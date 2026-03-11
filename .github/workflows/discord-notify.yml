@@ -23,7 +23,6 @@ jobs:
             **👤 담당자:** ${{ github.actor }}
             ${{ github.event_name == 'push' && format('**💬 커밋 내용:** {0}', github.event.head_commit.message) || format('**📄 PR 제목:** {0}', github.event.pull_request.title) }}
             
-            ---
             **💡 팀원 행동 가이드:**
             ${{ 
               (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged)) && '✅ 메인에 새로운 기능이 합쳐졌습니다. 지금 바로 `git checkout main` 후 `git pull`을 받아 로컬 코드를 최신화하세요!' || 
