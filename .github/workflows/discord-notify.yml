@@ -2,9 +2,9 @@ name: Discord Notification (Main-Feature Strategy)
 
 on:
   push:
-    branches: [ "main" ] # 메인 브랜치에 직접 푸시되거나 머지되었을 때
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ] # 모든 feature 브랜치에서 main으로 PR을 보낼 때
+    branches: [ "main" ]
     types: [ opened, closed, reopened ]
 
 jobs:
@@ -16,11 +16,10 @@ jobs:
         env:
           DISCORD_WEBHOOK: "https://discord.com/api/webhooks/1481328460172628159/l7zQclIGJw4dtiQc04AYS2Ae0M8zfRqVhd-V2ln_cZvxRmo6jDDfSi4JLjmZwXfcBNL0"
           
-          # 상황별 타이틀 (전략 맞춤형)
+          # 수정된 타이틀 (&&와 || 조합)
           DISCORD_TITLE: >-
-            ${{ github.event_name == 'push' || github.event.pull_request.merged ? '🚀 Main 통합 완료' : '📝 Feature 리뷰 요청' }}
+            ${{ (github.event_name == 'push' || github.event.pull_request.merged) && '🚀 Main 통합 완료' || '📝 Feature 리뷰 요청' }}
           
-          # 상세 메시지 및 팀원 행동 가이드
           DISCORD_MESSAGE: |
             **📍 저장소:** ${{ github.repository }}
             **👤 담당자:** ${{ github.actor }}
@@ -29,10 +28,9 @@ jobs:
             ---
             **💡 팀원 행동 가이드:**
             ${{ 
-              (github.event_name == 'push' || github.event.pull_request.merged) && '✅ 메인에 새로운 기능이 합쳐졌습니다. 지금 바로 `git checkout main` 후 `git pull`을 받아 로컬 코드를 최신화하세요!' || 
+              (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged)) && '✅ 메인에 새로운 기능이 합쳐졌습니다. 지금 바로 `git checkout main` 후 `git pull`을 받아 로컬 코드를 최신화하세요!' || 
               (github.event.action == 'opened' && '👀 새로운 기능(feature)에 대한 검토가 필요합니다. 코드를 확인하고 승인(Approve)을 눌러주세요.' || '🔄 PR 상태가 업데이트되었습니다. 변경 사항을 확인해 주세요.')
             }}
           
-          # 색상 구분 (성공/통합: 초록, 리뷰중: 파랑)
           DISCORD_COLOR: ${{ (github.event_name == 'push' || github.event.pull_request.merged) && '#2ecc71' || '#3498db' }}
           DISCORD_AVATAR: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
