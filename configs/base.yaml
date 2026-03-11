@@ -1,0 +1,26 @@
+# 기본 설정
+DEBUG: true
+API_HOST: 0.0.0.0
+API_PORT: 8000
+LOG_LEVEL: INFO
+
+# Ollama 설정
+OLLAMA_BASE_URL: http://localhost:11434
+OLLAMA_MODEL: qwen2.5:7b-instruct
+OLLAMA_TIMEOUT: 120
+
+# 벡터DB 설정
+CHROMA_DB_PATH: ./data/chroma_db
+
+# 임베딩 설정
+EMBEDDING_MODEL: BAAI/bge-m3
+EMBEDDING_DEVICE: cuda
+
+# 성능 설정
+MAX_WORKERS: 4
+REQUEST_TIMEOUT: 60
+BATCH_SIZE: 32
+
+# 검증 설정
+MIN_CONFIDENCE_SCORE: 0.5
+MAX_RETRY_COUNT: 3

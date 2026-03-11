@@ -1,0 +1,12 @@
+# 로컬 개발 환경 설정
+DEBUG: true
+LOG_LEVEL: DEBUG
+
+# 로컬 Ollama
+OLLAMA_BASE_URL: http://localhost:11434
+
+# 로컬 데이터
+CHROMA_DB_PATH: ./data/chroma_db
+
+# CPU 기반 임베딩 (GPU 없을 경우)
+EMBEDDING_DEVICE: cpu

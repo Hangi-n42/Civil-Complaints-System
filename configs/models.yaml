@@ -1,0 +1,19 @@
+# 모델 설정
+models:
+  embedding:
+    name: BAAI/bge-m3
+    dimension: 1024
+    device: cuda
+    batch_size: 32
+
+  llm:
+    name: qwen2.5:7b-instruct
+    base_url: http://localhost:11434
+    temperature: 0.7
+    max_tokens: 2048
+    timeout: 120
+
+  vectorstore:
+    type: chromadb
+    persist_directory: ./data/chroma_db
+    distance_metric: cosine
