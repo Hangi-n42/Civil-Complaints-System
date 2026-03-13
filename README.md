@@ -207,6 +207,33 @@ streamlit run app/ui/Home.py
 
 ---
 
+## 📈 DORA Metrics 자동화
+
+GitHub Actions로 DORA 4대 지표를 자동 집계합니다.
+
+- **워크플로**: `.github/workflows/dora-metrics.yml`
+  - 매일 00:00 UTC 자동 실행
+  - 수동 실행 시 `window_days`, `incident_label` 입력 가능
+- **집계 스크립트**: `.github/scripts/calc_dora_metrics.mjs`
+- **산출물**: Actions Artifact `dora-metrics` (`artifacts/dora/dora_metrics_latest.json`)
+
+측정 정의(현재 적용 기준):
+- Lead Time for Changes: 병합된 PR의 `첫 커밋 시각 -> merge 시각`
+- Deployment Frequency: 기본 브랜치 기준 `성공한 GitHub Deployment` 수/일
+- Mean Time to Recovery: `incident` 라벨 이슈의 `생성 -> 종료` 시간
+- Change Failure Rate: `(실패 Deployment) / (성공+실패 Deployment)`
+
+배포 이벤트는 아래 워크플로로 자동 기록됩니다.
+- `.github/workflows/deploy-production.yml`
+  - `main` push 또는 수동 실행 시 deployment 생성
+  - smoke check(`python -m compileall app scripts`) 성공/실패를 deployment status로 기록
+
+운영 규칙:
+- 장애 이슈는 `incident` 라벨(또는 실행 시 지정 라벨)로 관리
+- 배포 실패를 CFR에 반영하려면 `deploy-production` 실패 케이스가 누락되지 않도록 유지
+
+---
+
 ## 💡 주요 특징
 
 ### 🔒 보안 & 프라이버시
