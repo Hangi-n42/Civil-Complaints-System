@@ -16,20 +16,21 @@ sys.path.insert(0, str(project_root))
 from app.core.logging import evaluation_logger
 
 
-def main(queries_file: str):
+def main(queries_file: str, system_file: str, output_file: str):
     """메인 함수"""
     logger = evaluation_logger
 
     try:
-        logger.info(f"검색 평가 시작: {queries_file}")
+        logger.info(f"검색 평가 시작: queries={queries_file}, system={system_file}")
 
         # TODO: 평가 로직 구현
         # 1. 쿼리 로드
         # 2. 검색 수행
         # 3. MRR, NDCG, MAP@k 계산
         # 4. 결과 리포트 생성
+        # 5. output_file 저장
 
-        logger.info("검색 평가 완료")
+        logger.info(f"검색 평가 완료: 결과 파일={output_file}")
 
     except Exception as e:
         logger.error(f"검색 평가 실패: {str(e)}")
@@ -46,6 +47,18 @@ if __name__ == "__main__":
         default="data/annotations/queries.json",
         help="쿼리 파일 경로",
     )
+    parser.add_argument(
+        "--system",
+        type=str,
+        required=True,
+        help="시스템 검색 결과 파일 경로",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="data/annotations/retrieval_eval_result.json",
+        help="평가 결과 출력 경로",
+    )
     args = parser.parse_args()
 
-    main(args.queries)
+    main(args.queries, args.system, args.output)
