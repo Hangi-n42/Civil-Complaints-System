@@ -205,3 +205,28 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# === Project-specific ignores (AI-Civil-Affairs-Systems) ===
+# Local virtual environments
+Civil/
+
+# Local vector DB / runtime artifacts
+data/chroma_db/
+data/raw/
+data/interim/
+data/processed/
+data/annotations/
+!data/samples/
+
+# Runtime logs and generated artifacts
+logs/**
+artifacts/**
+!artifacts/.gitkeep
+
+# Local editor/workspace settings
+.vscode/
+.idea/
+
+# OS clutter
+.DS_Store
+Thumbs.db

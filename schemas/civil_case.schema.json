@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Civil Case Schema",
+  "description": "구조화된 민원 사건 데이터",
+  "type": "object",
+  "required": ["id", "requester", "respondent", "claim", "reason"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "고유 사건 ID"
+    },
+    "requester": {
+      "type": "string",
+      "description": "요청인"
+    },
+    "respondent": {
+      "type": "string",
+      "description": "피청구인"
+    },
+    "claim": {
+      "type": "string",
+      "description": "청구 내용"
+    },
+    "reason": {
+      "type": "string",
+      "description": "청구 사유"
+    },
+    "category": {
+      "type": "string",
+      "description": "사건 분류"
+    },
+    "confidence_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "신뢰도 점수"
+    },
+    "entities": {
+      "type": "object",
+      "description": "추출된 개체명",
+      "properties": {
+        "persons": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "organizations": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "locations": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "structured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "구조화 일시"
+    }
+  }
+}

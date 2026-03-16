@@ -1,0 +1,44 @@
+# Python 의존성 패키지 (python version 3.10.1 기준)
+# pip install -r requirements.txt
+
+# FastAPI & ASGI
+fastapi==0.115.12
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+pydantic-settings==2.10.1
+
+# Streamlit (UI)
+streamlit==1.44.1
+
+# 벡터 DB & 임베딩
+chromadb==0.5.23
+sentence-transformers==3.4.1
+torch==2.5.1
+transformers==4.46.3
+tokenizers==0.20.3
+
+# LLM & RAG
+ollama==0.6.1
+langchain==0.3.23
+
+# 데이터 처리
+pandas==2.2.3
+numpy==1.26.4
+pyyaml==6.0.2
+
+# HTTP 클라이언트
+requests==2.32.3
+httpx==0.28.1
+
+# 로깅 & 모니터링
+python-json-logger==3.3.0
+
+# 개발 도구
+pytest==8.3.5
+pytest-asyncio==0.25.3
+black==25.1.0
+flake8==7.1.2
+mypy==1.15.0
+
+# 환경 변수
+python-dotenv==1.0.1

@@ -1,0 +1,51 @@
+name: Discord Notification (Main-Feature Strategy)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, closed, reopened ]
+
+jobs:
+  discord-announcement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }} 
+          
+          DISCORD_TITLE: >-
+            ${{ (github.event_name == 'push' || github.event.pull_request.merged) && '🚀 Main 통합 완료' || '📝 Feature 리뷰 요청' }}
+          
+          DISCORD_MESSAGE: |
+            **📍 저장소:** ${{ github.repository }}
+            **👤 담당자:** ${{ github.actor }}
+            ${{ github.event_name == 'push' && format('**💬 커밋 내용:** {0}', github.event.head_commit.message) || format('**📄 PR 제목:** {0}', github.event.pull_request.title) }}
+            
+            **💡 팀원 행동 가이드:**
+            ${{ 
+              (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged)) && '✅ 메인에 새로운 기능이 합쳐졌습니다. 지금 바로 `git checkout main` 후 `git pull`을 받아 로컬 코드를 최신화하세요!' || 
+              (github.event.action == 'opened' && '👀 새로운 기능(feature)에 대한 검토가 필요합니다. 코드를 확인하고 승인(Approve)을 눌러주세요.' || '🔄 PR 상태가 업데이트되었습니다. 변경 사항을 확인해 주세요.')
+            }}
+          
+          DISCORD_COLOR: ${{ (github.event_name == 'push' || github.event.pull_request.merged) && '3066993' || '3447003' }}
+          DISCORD_AVATAR: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+
+        run: |
+          jq -n \
+            --arg title "$DISCORD_TITLE" \
+            --arg desc "$DISCORD_MESSAGE" \
+            --arg color "$DISCORD_COLOR" \
+            --arg avatar "$DISCORD_AVATAR" \
+            '{
+              username: "GitHub Actions",
+              avatar_url: $avatar,
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: ($color | tonumber)
+              }]
+            }' > payload.json
+            
+          curl -H "Content-Type: application/json" -d @payload.json "$DISCORD_WEBHOOK"
