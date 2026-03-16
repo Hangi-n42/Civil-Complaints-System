@@ -154,10 +154,10 @@ PRD의 전체 범위 중 실제 8주 일정, 4인 팀 규모, 로컬 추론 환�
 
 | KPI | 직접 책임 모듈 | 핵심 작업 |
 | --- | --- | --- |
-| 구조화 F1 0.80+ | structuring | 4요소 추출 정확도, 후처리 규칙 |
-| Recall@5 0.85+ | retrieval | 임베딩 품질, 청크 전략, 필터 설계 |
-| E2E 8초 이하 | generation / retrieval / API | 인덱스 효율, 모델 크기, 캐시 |
-| 출처 정확성 0.90+ | generation | citation 정합성, 프롬프트 설계 |
+| 구조화 F1 0.72+ | structuring | 4요소 추출 정확도, 후처리 규칙 |
+| Recall@5 0.75+ | retrieval | 임베딩 품질, 청크 전략, 필터 설계 |
+| E2E 12초 이하 | generation / retrieval / API | 인덱스 효율, 모델 크기, 캐시 |
+| 출처 정확성 0.80+ | generation | citation 정합성, 프롬프트 설계 |
 | 데모 안정성 | API / infra | 예외처리, 로깅, 폴백 |
 
 ## 8. 팀별 MVP 책임 범위

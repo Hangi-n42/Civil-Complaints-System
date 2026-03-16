@@ -209,16 +209,12 @@ marimo/_lsp/
 __marimo__/
 
 # === Project-specific ignores (AI-Civil-Affairs-Systems) ===
+
 # Local virtual environments
 Civil/
 
-# Local vector DB / runtime artifacts
-data/chroma_db/
-data/raw/
-data/interim/
-data/processed/
-data/annotations/
-!data/samples/
+# Local data directory (all subfolders/files)
+data/
 
 # Runtime logs and generated artifacts
 logs/**
