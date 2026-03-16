@@ -31,7 +31,7 @@
 - **LLM**: Ollama + Qwen2.5 7B Instruct
 - **임베딩**: BAAI/bge-m3
 - **벡터DB**: ChromaDB
-- **언어**: Python 3.10+
+- **언어**: Python 3.11.9
 
 ---
 
