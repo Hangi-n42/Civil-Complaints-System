@@ -165,6 +165,47 @@ OOM은 아래 이벤트로 감지한다.
 6. 실패 시 최종 종료
    - 코드: `OOM_FALLBACK_FAILED`
 
+### 8.1 Mermaid 흐름도
+
+```mermaid
+flowchart TD
+   A[요청 수신] --> B[모델 호출 시도]
+   B --> C{OOM 감지?}
+   C -- 아니오 --> Z[정상 응답 반환]
+   C -- 예 --> D[OOM_DETECTED 기록]
+
+   D --> E[1단계: 컨텍스트 축소]
+   E --> E1[긴 snippet 절단]
+   E --> E2[불필요 메타데이터 제거]
+   E --> F[재시도]
+   F --> G{성공?}
+   G -- 예 --> Z
+   G -- 아니오 --> H{다시 OOM?}
+   H -- 아니오 --> X[기타 오류 처리]
+   H -- 예 --> I[OOM_CONTEXT_REDUCED 기록]
+
+   I --> J[2단계: top_k 축소]
+   J --> J1[top_k 5->3->2]
+   J --> K[재시도]
+   K --> L{성공?}
+   L -- 예 --> Z
+   L -- 아니오 --> M{다시 OOM?}
+   M -- 아니오 --> X
+   M -- 예 --> N[OOM_TOPK_REDUCED 기록]
+
+   N --> O[3단계: 경량 모델 폴백]
+   O --> O1[OOM_MODEL_FALLBACK_APPLIED 기록]
+   O --> P[재시도]
+   P --> Q{성공?}
+   Q -- 예 --> Z
+   Q -- 아니오 --> R{여전히 OOM?}
+   R -- 아니오 --> X
+   R -- 예 --> S[OOM_FALLBACK_FAILED 기록]
+   S --> T[실패 응답 반환]
+
+   X --> U[에러 코드 분류 후 실패 응답]
+```
+
 ## 9. OOM 대응 의사결정 테이블
 
 | 상황 | 조치 | 반환 |
