@@ -1,4 +1,4 @@
-# Python 의존성 패키지 (python version 3.10.1 기준)
+# Python 의존성 패키지 (python version 3.11.9 기준)
 # pip install -r requirements.txt
 
 # FastAPI & ASGI

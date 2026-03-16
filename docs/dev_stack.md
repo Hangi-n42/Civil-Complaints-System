@@ -2,7 +2,7 @@
 
 문서 버전: v1.0  
 작성일: 2026-03-11  
-대상 프로젝트: AI Civil Affairs Systems (Python 3.10.1)
+대상 프로젝트: AI Civil Affairs Systems (Python 3.11.9)
 
 ---
 
@@ -65,7 +65,7 @@
 - mypy==1.15.0
 - python-dotenv==1.0.1
 
-> 참고: Python 3.10.1 환경에서 실제 설치/스모크 검증 완료된 조합입니다.
+> 참고: Python 3.11.9 환경에서 실제 설치/스모크 검증 완료된 조합입니다.
 
 ---
 
