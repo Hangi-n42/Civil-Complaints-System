@@ -301,3 +301,12 @@ validation 결과를 로그로 저장할 때 아래 필드를 권장한다.
 1. JSON 파싱 실패 유형 메모 ([docs/be3_json_parse_failures.md](be3_json_parse_failures.md))
 2. JSON 재시도 전략 초안 ([docs/be3_json_retry_strategy.md](be3_json_retry_strategy.md))
 3. 성능/OOM 기준 메모 ([docs/be3_perf_oom_baseline.md](be3_perf_oom_baseline.md))
+
+## 13. FE/BE2 통합 스펙 링크
+
+Citation, Error, Validation UI 연동용 단일 통합 스펙은 아래 문서를 기준으로 사용한다.
+
+- [docs/be3_fe_be2_unified_spec.md](be3_fe_be2_unified_spec.md)
+
+이 문서는 ValidationResult/ValidationIssue 기본 계약을 유지하고,
+FE 렌더링 규칙과 BE2 응답 필드 매핑을 단일 포맷으로 통합한다.
