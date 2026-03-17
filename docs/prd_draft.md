@@ -176,6 +176,112 @@
 4. Generation Layer: RAG 프롬프트, Ollama 추론, 근거 첨부
 5. Presentation Layer: Streamlit UI, 통계 대시보드
 
+## 9.1 데이터 기반 Adaptive RAG 설계 (이번 방향)
+
+### 배경
+- `data_classification.txt` 기준: 민원 길이 분포가 매우 다양하고, 주제/요건 복합성이 높음.
+- 짧은 민원(124어절 이하)과 긴 민원(301 이상) 공존, 단일/다수 요건 혼합, 다양한 주제(교통/환경/안전/복지/경제/주택/건설) 등으로 고정 RAG는 효율 저하.
+- 따라서 **길이/주제/요건 기반 라우팅을 통해 chunking/retrieval/prompt 전략을 다르게 적용**하는 Adaptive RAG가 합리적.
+
+### 1. 길이 기반 라우팅
+- Bucket 정의 (데이터 근거):
+  - Short: <= 200 어절 (전체 약 42.08%)
+  - Medium: 201~300 어절 (약 27.44%)
+  - Long: > 300 어절 (약 30.48%)
+- Chunking 전략:
+  - Short: 문단 단위 1~2청크(소형)로 전체 텍스트 사용
+  - Medium: 의미 단위(문장) 기반 128~256 토큰 슬라이딩
+  - Long: 섹션+롤업 chunking + 중요 문장 요약 candidate 생성 (기본 + 핵심 문장)
+- Retrieval Top-K / Rerank:
+  - Short: top_k=10, semantic embedding만 사용
+  - Medium: top_k=20, hybrid(semantic+BM25) + 간단 rerank
+  - Long: top_k=30, multi-stage rerank (retrieval->dense rerank->trainable scoring)
+- 구현 포인트: `LengthRouter` 객체로 threshold와 strategy 파라미터 주입, 하드코딩 if문 최소화.
+
+### 2. 주제 기반 라우팅
+- 주제 분류 기준:
+  - 현장/시설형: 교통, 안전, 환경, 주택/건설
+  - 제도/행정형: 복지, 경제, 기타(국방/세무/방송통신/경찰)
+- 분기 전략:
+  - 시설/현장형: 현장 문장 중심 추출 + 위치/위험요소 엔티티 강화
+  - 제도/행정형: 정책/규정 키워드 기반 요약 + 행정 단위 메타데이터 강조
+- Retrieval 분기:
+  - 현장형: dense retrieval 우선 + keyword 보강
+  - 행정형: hybrid retrieval (dense+BM25) + metadata filter
+- Topic-aware Prompt:
+  - Prompt template에 `topic` slot 포함
+  - 예: `[주제: 교통] - 이 민원은 도로시설/조명/교통신호 관련`처럼 컨텍스트 토픽 삽입
+  - long 민원은 `extract key issues first`(핵심 추출) + `generate concise answer` 전략
+
+### 3. 단일/복합 민원 분기
+- Multi-request 탐지:
+  - rule: `요청합니다`, `부탁드립니다`, `~~ 및 ~~` 2개 이상 요청어
+  - 간단 classifier: prompt 분류 + logistic 모델(회귀)로 `single/multi` 태그
+- Extraction 설계:
+  - single-slot: 4요소 각각 1개 value
+  - multi-slot: 각 slot을 리스트로 확장(`requests: [..]`, `observations: [..]`)
+  - 통합 스키마:
+```json
+{
+  "case_id": "...",
+  "observation": [{"text":"...","confidence":...}],
+  "result": [{...}],
+  "request": [{...}],
+  "context": {"text":"..."},
+  "entities": [{"label":"...","text":"..."}]
+}
+```
+- 최종 unified schema 유지:
+  - 내부 처리에서는 bucket/story 분기 후도, 외부 API/DB 저장/응답은 통일된 JSON schema로 출력
+  - `normalize_response()` 함수로 slot 통합
+
+### 4. LangChain 기반 모듈화 구조
+- Input Analyzer: 텍스트 길이+주제+요건 분석
+  - `Analyzer` -> metadata: `{length_bucket, topic_type, multi_request_flag}`
+- Router: 전략 선택
+  - `AdaptiveRouter`
+  - route key: `(length_bucket, topic_type, is_multi)`
+- Retrieval Chain:
+  - `RetrievalChain` 기본 + `LengthAdaptiveRetriever`, `TopicAdaptiveRetriever`
+  - 전략에 따라 vector store + metadata filter + hybrid config
+- Generation Chain:
+  - Prompt template factory (`PromptFactory`)에서 `task_type`, `topic`, `length_bucket` 기반 템플릿 선택
+  - `Chain`에서 `RAG` with rerank + citation extraction
+- Parser/Validator:
+  - 답변 JSON schema validator (`pydantic`)
+  - 불일치 시 재시도 및 fallback
+- Unified Output:
+  - 최종 응답은 `[answer, citations, confidence, limitations, structured_output]` 통일
+
+### 5. 실험 계획
+- Baseline: 고정 단일 RAG (기본 4요소+단일 chunk) vs Adaptive RAG
+- 평가 지표:
+  - Retrieval: Recall@5, nDCG@5
+  - Structure: 4요소 F1 (obs/result/request/context)
+  - QA: citation 정합성 (소스 일치율)
+  - Latency: E2E 응답 시간
+- Ablation 제안:
+  1) 길이 기반 chunking only vs 전체 adaptive
+  2) topic-aware prompt only vs no topic
+  3) multi-request 분기 on/off
+- 실행 로드맵 (8주 현실적):
+  - 구현 1단계: 길이 기반 routing + unified schema (2주)
+  - 구현 2단계: 주제/복합 분기 + retrieval/생성 분기 (2주)
+  - 검증 3단계: baseline vs adaptive 평가 + ablation (2주)
+  - 안정화 4단계: 데모 준비 + 성능 튜닝 (2주)
+
+### 9.2 구현 우선순위 (8주 내 현실적)
+1. 최소한으로 동작하는 `AdaptiveRouter` + `LengthAnalyzer` (핵심)
+2. chunking/resolver 전략을 config 파일(`yaml`)로 분리
+3. `topic_classifier`를 ME 모델/시작은 룰 기반
+4. unified output schema 테스트 자동화
+5. 평가 스크립트로 baseline/adaptive 비교
+
+### 9.3 주의사항
+- 하드코딩 if문 대신 route map + strategy class 사용
+- 분기 수 최소화: 길이 3개 * 주제 2개 * 단일/복합 2개 = 12조합 (초기에는 4~6조합으로 축소)
+- 출력 스키마 `unified_structured_response`로 통일
+
 ## 10. 데이터 계약 (Schema Contract)
 
 아래 스키마는 저장소의 `schemas/` 규격과 합치되도록 유지한다.
