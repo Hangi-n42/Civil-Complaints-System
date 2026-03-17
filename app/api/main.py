@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.logging import api_logger
+from app.api.routers import generation_router, retrieval_router
 
 
 @asynccontextmanager
@@ -36,6 +37,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API 라우터 등록
+app.include_router(retrieval_router)
+app.include_router(generation_router)
 
 
 # 헬스 체크 엔드포인트

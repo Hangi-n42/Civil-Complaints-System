@@ -342,7 +342,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 
 ### 목적
 - 자연어 질의 기반 유사 민원을 검색한다.
-- 기간/지역/카테고리 메타데이터 필터를 적용한다.
+- 기간/지역/카테고리/엔티티 라벨 메타데이터 필터를 적용한다.
 
 ### 요청 바디
 
@@ -354,7 +354,8 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
     "region": "서울시 OO구",
     "category": "도로안전",
     "date_from": "2025-12-01T00:00:00+09:00",
-    "date_to": "2026-03-11T23:59:59+09:00"
+    "date_to": "2026-03-11T23:59:59+09:00",
+    "entity_labels": ["FACILITY", "HAZARD"]
   }
 }
 ```
@@ -369,6 +370,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | `filters.category` | string | N | 카테고리 필터 |
 | `filters.date_from` | string(datetime) | N | 시작일 |
 | `filters.date_to` | string(datetime) | N | 종료일 |
+| `filters.entity_labels` | array[string] | N | 엔티티 라벨 필터 (OR 매칭) |
 
 ### 성공 응답 예시
 
@@ -380,22 +382,35 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
   "results": [
     {
       "rank": 1,
-      "score": 0.9123,
-      "chunk_id": "CHUNK-00044",
+      "doc_id": "DOC-25-102",
+      "score": 0.94,
+      "chunk_id": "CASE-2026-000123__chunk-0",
       "case_id": "CASE-2026-000123",
-      "category": "도로안전",
-      "region": "서울시 OO구",
-      "created_at": "2026-03-05T10:15:00+09:00",
+      "title": "중앙로 10m 인근 포트홀 임시 복구 완료건",
+      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다...",
       "summary": {
         "observation": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다.",
         "request": "LED 교체와 조도 점검을 요청합니다."
       },
-      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
+      "metadata": {
+        "created_at": "2026-03-05T10:15:00+09:00",
+        "category": "도로안전",
+        "region": "서울시 OO구",
+        "entity_labels": ["FACILITY", "HAZARD"]
+      }
     }
   ],
-  "latency_ms": 428
+  "count": 1,
+  "took_ms": 428
 }
 ```
+
+### FE 카드 연동 규칙 (Week 1 확정)
+
+- `results`는 반드시 배열(Array)로 반환
+- `results[].doc_id`, `results[].score`, `results[].title`, `results[].snippet` 필수
+- `score`는 소수점 둘째 자리 반올림
+- `snippet`은 100~150자 내외로 제한 (권장 140자)
 
 ### 상태 코드
 
@@ -426,7 +441,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
   "use_search_results": true,
   "search_results": [
     {
-      "chunk_id": "CHUNK-00044",
+      "chunk_id": "CASE-2026-000123__chunk-0",
       "case_id": "CASE-2026-000123",
       "snippet": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다.",
       "score": 0.9123
@@ -450,27 +465,44 @@ MVP 기준 두 가지 모드를 허용한다.
 
 ```json
 {
-  "success": true,
-  "answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 문제에 집중되어 있습니다.",
+  "status": "ok",
+  "request_id": "REQ-20260317-AB12CD34",
+  "timestamp": "2026-03-17T18:30:00+09:00",
+  "answer": "이륜차 전도 위험이 높은 구간으로 확인됩니다. [[CITE:1]] 우천 후 노면 파손 재발 이력이 있습니다. [[CITE:2]]",
   "citations": [
     {
-      "chunk_id": "CHUNK-00044",
+      "ref_id": 1,
+      "doc_id": "DOC-25-088",
+      "chunk_id": "CASE-2026-000123__chunk-0",
       "case_id": "CASE-2026-000123",
-      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
+      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다...",
+      "relevance_score": 0.89,
+      "source": "retrieval"
     },
     {
-      "chunk_id": "CHUNK-00091",
+      "ref_id": 2,
+      "doc_id": "DOC-24-913",
+      "chunk_id": "CASE-2026-000204__chunk-0",
       "case_id": "CASE-2026-000204",
-      "snippet": "...보행자 전도 위험이 증가하고 있습니다..."
+      "snippet": "...보행자 전도 위험이 증가하고 있습니다...",
+      "relevance_score": 0.84,
+      "source": "retrieval"
     }
   ],
   "confidence": "medium",
   "limitations": "수집 데이터 기간과 지역 범위에 따라 해석에 제한이 있습니다.",
-  "search_trace": {
-    "used_top_k": 5,
-    "retrieved_count": 5
+  "meta": {
+    "processing_time": 6.2,
+    "model": "qwen2.5:7b-instruct",
+    "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다.",
+    "generated_at": "2026-03-17T18:30:00+09:00",
+    "validator_version": "be3-val-v0.1"
   },
-  "latency_ms": 3870
+  "qa_validation": {
+    "is_valid": true,
+    "errors": [],
+    "warnings": []
+  }
 }
 ```
 
@@ -478,13 +510,14 @@ MVP 기준 두 가지 모드를 허용한다.
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "JSON_PARSE_ERROR",
-    "message": "모델 응답을 JSON으로 파싱하지 못했습니다.",
-    "details": {
-      "retry_count": 2
-    }
+  "status": "error",
+  "request_id": "REQ-20260317-34EF56AA",
+  "timestamp": "2026-03-17T18:35:00+09:00",
+  "error_code": "MODEL_TIMEOUT",
+  "message": "응답 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
+  "retryable": true,
+  "details": {
+    "fallback_stage": "context_reduced"
   }
 }
 ```
@@ -503,20 +536,23 @@ MVP 기준 두 가지 모드를 허용한다.
 ## 11. FE 연동 기준
 
 ### 업로드 화면
-- `POST /ingest`
-- 필요 시 연속으로 `POST /structure`
+- `POST /api/v1/ingest`
+- 필요 시 연속으로 `POST /api/v1/structure`
 
 ### 구조화 결과 화면
-- `POST /structure`
+- `POST /api/v1/structure`
 - `validation.is_valid`와 `errors`를 함께 표시
 
 ### 검색 화면
-- `POST /search`
-- `results[].summary`, `results[].snippet`, `score` 표시
+- `POST /api/v1/search`
+- `results[].score`, `results[].snippet`, `results[].metadata` 표시
 
 ### QA 화면
-- `POST /qa`
-- `answer`, `citations`, `confidence`, `limitations` 표시
+- `POST /api/v1/qa`
+- `answer` 내 `[[CITE:n]]` 토큰을 `[출처 n]` 배지로 치환
+- `citations.ref_id`와 토큰을 1:1 매핑
+- `meta.processing_time`, `meta.model`, `meta.validation_warning` 표시
+- `status=error` 시 상단 배너에 `message` 표시
 
 ## 12. 로깅 기준
 

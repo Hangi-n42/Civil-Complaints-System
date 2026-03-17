@@ -268,7 +268,7 @@
 
 ```json
 {
-  "chunk_id": "CHUNK-00044",
+  "chunk_id": "CASE-2026-000123__chunk-0",
   "case_id": "CASE-2026-000123",
   "chunk_text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다. LED 교체와 조도 점검을 요청합니다.",
   "chunk_type": "combined",
@@ -291,13 +291,22 @@
 | `score` | number | Y | 유사도 점수 |
 | `chunk_id` | string | Y | 청크 식별자 |
 | `case_id` | string | Y | 민원 식별자 |
-| `category` | string | N | 카테고리 |
-| `region` | string | N | 지역 |
-| `created_at` | string(datetime) | Y | 생성 시각 |
-| `summary` | object | N | FE 표시용 요약 |
 | `snippet` | string | Y | 근거 미리보기 |
+| `summary` | object | N | FE 표시용 요약 |
+| `metadata` | object | Y | 필터/표시용 메타데이터 |
 
-### 10.2 summary 하위 구조
+### 10.2 metadata 하위 구조
+
+```json
+{
+  "created_at": "2026-03-05T10:15:00+09:00",
+  "category": "도로안전",
+  "region": "서울시 OO구",
+  "entity_labels": ["FACILITY", "HAZARD"]
+}
+```
+
+### 10.3 summary 하위 구조
 
 ```json
 {
@@ -312,16 +321,19 @@
 {
   "rank": 1,
   "score": 0.9123,
-  "chunk_id": "CHUNK-00044",
+  "chunk_id": "CASE-2026-000123__chunk-0",
   "case_id": "CASE-2026-000123",
-  "category": "도로안전",
-  "region": "서울시 OO구",
-  "created_at": "2026-03-05T10:15:00+09:00",
+  "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다...",
   "summary": {
     "observation": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다.",
     "request": "LED 교체와 조도 점검을 요청합니다."
   },
-  "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
+  "metadata": {
+    "created_at": "2026-03-05T10:15:00+09:00",
+    "category": "도로안전",
+    "region": "서울시 OO구",
+    "entity_labels": ["FACILITY", "HAZARD"]
+  }
 }
 ```
 
@@ -331,17 +343,25 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
+| `ref_id` | integer | Y | 본문 토큰 `[[CITE:n]]`와 매핑되는 키 |
+| `doc_id` | string | Y | 문서 식별자 |
 | `chunk_id` | string | Y | 근거 청크 ID |
 | `case_id` | string | Y | 원본 민원 ID |
 | `snippet` | string | Y | 인용 원문 일부 |
+| `relevance_score` | number | N | citation 근거 점수(0~1) |
+| `source` | string | N | citation 출처 타입 (예: retrieval) |
 
 ### 11.2 예시
 
 ```json
 {
-  "chunk_id": "CHUNK-00044",
+  "ref_id": 1,
+  "doc_id": "DOC-25-088",
+  "chunk_id": "CASE-2026-000123__chunk-0",
   "case_id": "CASE-2026-000123",
-  "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
+  "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다...",
+  "relevance_score": 0.89,
+  "source": "retrieval"
 }
 ```
 
@@ -351,18 +371,23 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
+| `status` | string | Y | `ok` 또는 `error` |
+| `request_id` | string | Y | 요청 추적 ID |
+| `timestamp` | string(datetime) | Y | 응답 시각 |
 | `answer` | string | Y | 생성 답변 |
 | `citations` | array[Citation] | Y | 근거 목록 |
 | `confidence` | string | Y | `low`, `medium`, `high` |
 | `limitations` | string | Y | 해석 한계 또는 주의사항 |
-| `search_trace` | object | N | 검색 추적 정보 |
+| `meta` | object | Y | 처리시간/모델/검증 안내 |
+| `qa_validation` | object | Y | 검증 결과 |
 
-### 12.2 search_trace 예시
+### 12.2 meta 예시
 
 ```json
 {
-  "used_top_k": 5,
-  "retrieved_count": 5
+  "processing_time": 6.2,
+  "model": "qwen2.5:7b-instruct",
+  "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다."
 }
 ```
 
@@ -370,24 +395,41 @@
 
 ```json
 {
-  "answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 문제에 집중되어 있습니다.",
+  "status": "ok",
+  "request_id": "REQ-20260317-AB12CD34",
+  "timestamp": "2026-03-17T18:30:00+09:00",
+  "answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 문제에 집중되어 있습니다. [[CITE:1]]",
   "citations": [
     {
-      "chunk_id": "CHUNK-00044",
+      "ref_id": 1,
+      "doc_id": "DOC-25-088",
+      "chunk_id": "CASE-2026-000123__chunk-0",
       "case_id": "CASE-2026-000123",
-      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
+      "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다...",
+      "relevance_score": 0.89,
+      "source": "retrieval"
     },
     {
-      "chunk_id": "CHUNK-00091",
+      "ref_id": 2,
+      "doc_id": "DOC-24-913",
+      "chunk_id": "CASE-2026-000204__chunk-0",
       "case_id": "CASE-2026-000204",
-      "snippet": "...보행자 전도 위험이 증가하고 있습니다..."
+      "snippet": "...보행자 전도 위험이 증가하고 있습니다...",
+      "relevance_score": 0.84,
+      "source": "retrieval"
     }
   ],
   "confidence": "medium",
   "limitations": "수집 데이터 기간이 제한되어 장기 추세 해석에는 주의가 필요합니다.",
-  "search_trace": {
-    "used_top_k": 5,
-    "retrieved_count": 5
+  "meta": {
+    "processing_time": 6.2,
+    "model": "qwen2.5:7b-instruct",
+    "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다."
+  },
+  "qa_validation": {
+    "is_valid": true,
+    "errors": [],
+    "warnings": []
   }
 }
 ```
@@ -407,10 +449,11 @@
 - `chunk_id`, `case_id`, `snippet`은 필수
 
 ### 13.3 QA 응답 검증 규칙
-- `answer`는 비어 있을 수 없음
-- `citations`는 최소 1개 이상 권장
+- `status`는 `ok` 또는 `error`
+- `status=ok`일 때 `answer`, `citations`, `confidence`, `limitations`, `meta` 포함
+- `status=error`일 때 `error_code`, `message` 포함
+- `answer` 내 `[[CITE:n]]` 토큰은 `citations.ref_id`와 1:1 매칭
 - `confidence`는 `low`, `medium`, `high` 중 하나
-- `limitations`는 항상 포함
 
 ## 14. 저장 포맷과 API 포맷의 관계
 
@@ -421,7 +464,7 @@
 
 ### API 응답 포맷
 - 저장 포맷을 그대로 쓰되, UI 친화적 필드를 일부 추가 가능
-- 예: `validation`, `summary`, `latency_ms`, `search_trace`
+- 예: `validation`, `summary`, `took_ms`, `search_trace`
 
 즉, 저장 포맷은 엄격하고, API 응답은 약간 더 표현 친화적으로 가져간다.
 
