@@ -4,6 +4,7 @@
 문서 로드, 정제, 중복 제거, PII 마스킹 등을 담당한다.
 """
 
+import re
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from app.core.logging import pipeline_logger
@@ -86,10 +87,14 @@ class IngestionService:
         """
         try:
             self.logger.debug(f"PII 마스킹: {text[:50]}...")
-            # TODO: PII 마스킹 로직 구현
-            # - 전화번호
-            # - 이메일
-            # - 주민번호 등
+
+            # 전화번호 (010-1234-5678, 01012345678, 02-123-4567)
+            text = re.sub(r"\b(\d{2,3}[-.]?\d{3,4}[-.]?\d{4})\b", "[PHONE]", text)
+            # 이메일
+            text = re.sub(r"\b[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}\b", "[EMAIL]", text)
+            # 주민등록번호 6-7 형태
+            text = re.sub(r"\b\d{6}-?\d{7}\b", "[SSN]", text)
+
             return text
         except Exception as e:
             self.logger.error(f"PII 마스킹 실패: {str(e)}")

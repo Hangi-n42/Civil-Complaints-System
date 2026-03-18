@@ -1,7 +1,7 @@
 # [PRD] 민원 담당자를 위한 LLM-Chain 기반 On-Device 검색·분류 시스템
 
-문서 버전: v1.0  
-작성일: 2026-03-05  
+문서 버전: v1.1  
+작성일: 2026-03-17 
 프로젝트 코드명: `AI-Civil-Affairs-Systems`
 
 ## 1. 문서 목적
@@ -24,21 +24,24 @@
 
 "민원 텍스트를 구조적 지식으로 전환하고, 근거 기반 답변까지 제공하는 로컬 AI 조력자"를 구현한다.
 
-### 3.2 정량 KPI (졸업작품 최소 합격선) => 기존의 모델을 이길만한 kpi 설정(누굴 이겼냐)
+### 3.2 정량 KPI
 
 | 구분 | KPI | 목표치 |
 | --- | --- | --- |
-| 구조화 품질 | Observation/Result/Request/Context 필드 단위 F1 | 0.80 이상 |
-| 검색 품질 | Top-5 Recall@5 | 0.85 이상 |
-| 응답 지연 | 질의 1건 End-to-End 지연 (로컬 기준) | 8초 이하 |
-| 출처 정확성 | 답변 내 인용 근거가 실제 청크와 일치하는 비율 | 0.90 이상 |
+| 구조화 품질 | Observation/Result/Request/Context 필드 단위 F1 | 0.72 이상 |
+| 검색 품질 | Top-5 Recall@5 | 0.75 이상 |
+| 응답 지연 | 질의 1건 End-to-End 지연 (로컬 기준) | 12초 이하 |
+| 출처 정확성 | 답변 내 인용 근거가 실제 청크와 일치하는 비율 | 0.80 이상 |
 | 안정성 | 2시간 연속 데모 시 프로세스 강제 재시작 횟수 | 0회 |
+- 동일 평가 조건에서 AIHub에서 사용된 기준 모델 대비 핵심 성능
+   (구조화/검색/근거 정합성)에서 우위 결과를 달성
 
 ### 3.3 정성 KPI
 
 - 담당자 관점에서 "유사 민원 탐색 시간"이 수작업 대비 체감적으로 단축됨
 - 관리자 관점에서 월간 이슈 유형 보고서 생성이 가능함
 - 설명 가능성(XAI): 답변과 함께 출처 라인/청크를 제시함
+
 
 ## 4. 사용자 및 페르소나
 
@@ -90,14 +93,14 @@
 - 입력: 자연어 질의 (예: "최근 3개월 도로 안전 관련 민원")
 - 처리: 질의 임베딩 -> 벡터 검색 -> 메타데이터 필터(기간/지역)
 - 출력: 상위 K개 유사 사례 + 점수 + 핵심 필드 요약
-- 완료 조건: 테스트셋 Recall@5 0.85 이상
+- 완료 조건: 테스트셋 Recall@5 0.75 이상
 
 ### UC-03: 근거 기반 답변 생성
 
 - 입력: 사용자 질의 + 검색 결과 청크
 - 처리: RAG 프롬프트 구성 -> sLLM 추론 -> JSON 파싱 검증
 - 출력: 답변 + 근거 청크 인용 + 불확실성 문구
-- 완료 조건: 출처 정합성 0.90 이상
+- 완료 조건: 출처 정합성 0.80 이상
 
 ## 7. 기능 요구사항 (상세)
 
@@ -154,7 +157,7 @@
 
 - 권장 하드웨어: VRAM 6GB 이상 또는 RAM 16GB 이상
 - 동시 사용자 1~3명 데모 환경 기준 안정 동작
-- 평균 질의 지연 8초 이내 목표
+- 평균 질의 지연 12초 이내 목표
 
 ### 8.3 안정성
 
@@ -173,6 +176,122 @@
 3. Retrieval Layer: 임베딩 생성, 벡터 인덱싱, 필터 검색
 4. Generation Layer: RAG 프롬프트, Ollama 추론, 근거 첨부
 5. Presentation Layer: Streamlit UI, 통계 대시보드
+
+## 9.1 데이터 기반 Adaptive RAG 설계
+
+### 배경
+- `data_classification.txt` 기준: 민원 길이 분포가 매우 다양하고, 주제/요건 복합성이 높음.
+- 짧은 민원(124어절 이하)과 긴 민원(301 이상) 공존, 단일/다수 요건 혼합, 다양한 주제(교통/환경/안전/복지/경제/주택/건설) 등으로 고정 RAG는 효율 저하.
+- 따라서 **길이/주제/요건 기반 라우팅을 통해 chunking/retrieval/prompt 전략을 다르게 적용**하는 Adaptive RAG가 합리적이지만, MVP 단계에서는 단일 RAG를 먼저 구현·안정화한 뒤 2단계로 적용한다.
+
+### 9.1.0 단계적 적용 원칙 (확정)
+- 1단계(MVP): 단일 RAG 최소 구현(고정 chunking, 고정 retrieval, 고정 prompt)
+- 2단계(고도화): Adaptive RAG(길이/주제/단일-복합 분기) 적용
+- 전환 게이트:
+  - 단일 RAG 기준 구조화/검색/생성 파이프라인 E2E 동작 안정화 완료
+  - 단일 RAG baseline 지표 확보(Recall@5, 4요소 F1, citation 정합성, 지연시간)
+  - 데모 시나리오 3종 연속 성공
+
+### 9.1.1 길이 기반 라우팅
+- Bucket 정의 (데이터 근거):
+  - Short: <= 200 어절 (전체 약 42.08%)
+  - Medium: 201~300 어절 (약 27.44%)
+  - Long: > 300 어절 (약 30.48%)
+- Chunking 전략:
+  - Short: 문단 단위 1~2청크(소형)로 전체 텍스트 사용
+  - Medium: 의미 단위(문장) 기반 128~256 토큰 슬라이딩
+  - Long: 섹션+롤업 chunking + 중요 문장 요약 candidate 생성 (기본 + 핵심 문장)
+- Retrieval Top-K / Rerank:
+  - Short: top_k=10, semantic embedding만 사용
+  - Medium: top_k=20, hybrid(semantic+BM25) + 간단 rerank
+  - Long: top_k=30, multi-stage rerank (retrieval->dense rerank->trainable scoring)
+- 구현 포인트: `LengthRouter` 객체로 threshold와 strategy 파라미터 주입, 하드코딩 if문 최소화.
+
+### 9.1.2 주제 기반 라우팅
+- 주제 분류 기준:
+  - 현장/시설형: 교통, 안전, 환경, 주택/건설
+  - 제도/행정형: 복지, 경제, 기타(국방/세무/방송통신/경찰)
+- 분기 전략:
+  - 시설/현장형: 현장 문장 중심 추출 + 위치/위험요소 엔티티 강화
+  - 제도/행정형: 정책/규정 키워드 기반 요약 + 행정 단위 메타데이터 강조
+- Retrieval 분기:
+  - 현장형: dense retrieval 우선 + keyword 보강
+  - 행정형: hybrid retrieval (dense+BM25) + metadata filter
+- Topic-aware Prompt:
+  - Prompt template에 `topic` slot 포함
+  - 예: `[주제: 교통] - 이 민원은 도로시설/조명/교통신호 관련`처럼 컨텍스트 토픽 삽입
+  - long 민원은 `extract key issues first`(핵심 추출) + `generate concise answer` 전략
+
+### 9.1.3 단일/복합 민원 분기
+- Multi-request 탐지:
+  - rule: `요청합니다`, `부탁드립니다`, `~~ 및 ~~` 2개 이상 요청어
+  - 간단 classifier: prompt 분류 + logistic 모델(회귀)로 `single/multi` 태그
+- Extraction 설계:
+  - single-slot: 4요소 각각 1개 value
+  - multi-slot: 각 slot을 리스트로 확장(`requests: [..]`, `observations: [..]`)
+  - 통합 스키마:
+```json
+{
+  "case_id": "...",
+  "observation": [{"text":"...","confidence":...}],
+  "result": [{...}],
+  "request": [{...}],
+  "context": {"text":"..."},
+  "entities": [{"label":"...","text":"..."}]
+}
+```
+- 최종 unified schema 유지:
+  - 내부 처리에서는 bucket/story 분기 후도, 외부 API/DB 저장/응답은 통일된 JSON schema로 출력
+  - `normalize_response()` 함수로 slot 통합
+
+### 9.1.4 LangChain 기반 모듈화 구조
+- Input Analyzer: 텍스트 길이+주제+요건 분석
+  - `Analyzer` -> metadata: `{length_bucket, topic_type, multi_request_flag}`
+- Router: 전략 선택
+  - `AdaptiveRouter`
+  - route key: `(length_bucket, topic_type, is_multi)`
+- Retrieval Chain:
+  - `RetrievalChain` 기본 + `LengthAdaptiveRetriever`, `TopicAdaptiveRetriever`
+  - 전략에 따라 vector store + metadata filter + hybrid config
+- Generation Chain:
+  - Prompt template factory (`PromptFactory`)에서 `task_type`, `topic`, `length_bucket` 기반 템플릿 선택
+  - `Chain`에서 `RAG` with rerank + citation extraction
+- Parser/Validator:
+  - 답변 JSON schema validator (`pydantic`)
+  - 불일치 시 재시도 및 fallback
+- Unified Output:
+  - 최종 응답은 `[answer, citations, confidence, limitations, structured_output]` 통일
+
+### 9.1.5 실험 계획
+- Baseline: 고정 단일 RAG (기본 4요소+단일 chunk) vs Adaptive RAG
+- 평가 지표:
+  - Retrieval: Recall@5, nDCG@5
+  - Structure: 4요소 F1 (obs/result/request/context)
+  - QA: citation 정합성 (소스 일치율)
+  - Latency: E2E 응답 시간
+- Ablation 제안:
+  1) 길이 기반 chunking only vs 전체 adaptive
+  2) topic-aware prompt only vs no topic
+  3) multi-request 분기 on/off
+- 실행 로드맵 (8주 현실적):
+  - 구현 1단계: 단일 RAG 최소 구현 + baseline 측정 (2주)
+  - 구현 2단계: 길이 기반 routing 우선 적용 + unified schema 유지 (2주)
+  - 구현 3단계: 주제/복합 분기 + retrieval/생성 분기 (2주)
+  - 검증/안정화 4단계: baseline vs adaptive 평가 + ablation + 데모 튜닝 (2주)
+
+### 9.2 구현 우선순위 (8주 내 현실적)
+1. 최소 단일 RAG 구현(고정 chunking + top_k + prompt + JSON 파싱)
+2. 단일 RAG baseline 평가 파이프라인 고정(Recall@5, 4요소 F1, citation 정합성, 지연시간)
+3. `AdaptiveRouter` + `LengthAnalyzer` 도입(2단계)
+4. chunking/resolver 전략을 config 파일(`yaml`)로 분리
+5. `topic_classifier`를 ME 모델/시작은 룰 기반
+6. unified output schema 테스트 자동화
+7. 평가 스크립트로 baseline/adaptive 비교
+
+### 9.3 주의사항
+- 하드코딩 if문 대신 route map + strategy class 사용
+- 분기 수 최소화: 길이 3개 * 주제 2개 * 단일/복합 2개 = 12조합 (초기에는 4~6조합으로 축소)
+- 출력 스키마 `unified_structured_response`로 통일
 
 ## 10. 데이터 계약 (Schema Contract)
 
@@ -229,14 +348,51 @@
 
 ## 11. 기술 스택 확정안
 
-| 영역 | 1차 채택 | 대체 옵션 |
-| --- | --- | --- |
-| LLM 추론 | Ollama + Qwen2.5 7B Instruct | EXAONE 3.0 7.8B / llama.cpp |
-| 구조화/NLP | Transformers + Prompt 기반 추출 | 룰 기반 보정 파이프라인 |
-| 임베딩 | BGE-m3 (ko/en 멀티링구얼) | KoSimCSE |
-| Vector DB | ChromaDB (로컬 개발 생산성) | FAISS (성능 중심) |
-| API | FastAPI | Streamlit 단독 |
-| UI | Streamlit | Gradio |
+### 11.1 최종 확정 스택 (2026-03-17 기준)
+
+| 영역 | 최종 확정 | 버전/모델 | 확정 이유 |
+| --- | --- | --- | --- |
+| Python 런타임 | CPython | 3.11.9 | 주요 라이브러리 호환성이 높고, 팀 로컬 환경 재현이 쉬움 |
+| LLM 추론 엔진 | Ollama | 0.18.0 (최신 확인) | 로컬 오프라인 추론, 무료 운영, 설치/배포 단순 |
+| LLM 모델 | Qwen2.5 Instruct | `qwen2.5:7b-instruct` (기본), `qwen2.5:3b-instruct` (OOM 폴백) | 한국어 성능-속도 균형, 4-bit 양자화 운용 용이 |
+| 구조화/NLP | Transformers + Prompt | `transformers==4.46.3` | 기존 코드/파이프라인과 안정 호환 |
+| 임베딩 | BGE-m3 (sentence-transformers) | `sentence-transformers==3.4.1`, `torch==2.5.1` | 한국어 포함 멀티링구얼 검색 성능, 구현 복잡도 낮음 |
+| Vector DB | ChromaDB | `chromadb==0.5.23` | 로컬 영속화 + 메타데이터 필터 + 운영 단순성 |
+| API | FastAPI + Uvicorn | `fastapi==0.115.12`, `uvicorn==0.35.0` | 스키마 기반 개발 생산성, 테스트/문서화 유리 |
+| UI | Streamlit | `streamlit==1.44.1` | 8주 일정에서 데모 구현 속도 최적 |
+
+### 11.2 최신 버전 확인 및 호환성 검증 결과
+
+- 확인 일자: 2026-03-17
+- 확인 방법:
+	- PyPI 최신 버전 조회(핵심 패키지)
+	- `pip install --dry-run -r requirements.txt`로 Python 3.11.9 의존성 해석 검증
+	- `winget show Ollama.Ollama`로 Ollama 최신 버전 확인
+- 결과 요약:
+	- 최신 버전은 다수 존재하나(`fastapi 0.135.1`, `streamlit 1.55.0`, `chromadb 1.5.5`, `langchain 1.2.12` 등), 메이저/마이너 점프 시 API 변경 리스크가 큼
+	- 현재 고정 조합(`requirements.txt`)은 Python 3.11.9에서 충돌 없이 해석됨(드라이런 성공)
+	- 따라서 본 프로젝트는 "최신"보다 "검증된 호환 조합"을 우선 채택
+
+### 11.3 비용 최소화 기준의 최종 의사결정
+
+1) LLM 추론 확정: `Ollama + qwen2.5:7b-instruct`
+- 이유:
+	- 라이선스/사용료 관점에서 사실상 0원(로컬 하드웨어 비용만 발생)
+	- 인터넷 없이 온디바이스 운영 가능(보안 요구 충족)
+	- API 호출 구조가 단순하여 FastAPI/Streamlit 연동 비용이 낮음
+	- 성능 저하/OOM 시 `qwen2.5:3b-instruct`로 즉시 폴백 가능
+
+2) Vector DB 확정: `ChromaDB`
+- 이유:
+	- 이번 범위(졸업작품 MVP)에서 구축/운영 난이도가 가장 낮음
+	- 메타데이터 필터와 영속 저장이 직관적이라 BE2/BE3 협업에 유리
+	- FAISS 대비 초기 개발 속도와 디버깅 편의성이 높아 일정 리스크가 작음
+	- 비용 관점에서 오픈소스 무료 + 별도 인프라 불필요
+
+3) FAISS는 대체(조건부)로 유지
+- 전환 조건:
+	- 청크 수 대규모 증가로 Chroma 지연이 목표를 초과할 때
+	- 고정된 고성능 인덱스 튜닝이 필요한 평가 단계에서만 선택
 
 ## 12. 모델 운영 전략
 
@@ -362,7 +518,7 @@ R: 책임 수행, C: 협업/검토
 - BE2: `/index`, `/search`, `/qa` 핵심 API 구현, Recall@K 개선 실험, 하이브리드 검색 적용 검토
 - BE3: JSON 파싱 재시도 안정화, citation/근거 하이라이팅 연결, 성능 로깅 및 병목 지점 측정
 - Exit Criteria:
-- Recall@5 0.80 이상, 평균 검색 응답 2초 이내
+- Recall@5 0.75 이상, 평균 검색 응답 2초 이내
 
 ### M4 (7~8주): RAG + 근거 하이라이팅 + 성능/발표 통합
 
@@ -376,8 +532,8 @@ R: 책임 수행, C: 협업/검토
 - BE2: 리트리버 파라미터 튜닝(top_k, rerank), Ollama 기반 RAG API 안정화, 검색 성능 프로파일링 및 결과 정리
 - BE3: `/qa` 응답 JSON 파싱 안정화 마감, 근거 하이라이팅 완성, 4-bit/8-bit 비교, OOM 폴백 및 스키마 검증 로직 고도화
 - Exit Criteria:
-- 출처 정합성 0.85 이상, JSON 파싱 성공률 95% 이상
-- E2E 평균 8초 이하, 2시간 연속 데모 성공
+- 출처 정합성 0.80 이상, JSON 파싱 성공률 95% 이상
+- E2E 평균 12초 이하, 2시간 연속 데모 성공
 - 최종 KPI 목표 달성, 발표 리허설 2회 이상 완료
 
 ## 18. 주간 운영 규칙

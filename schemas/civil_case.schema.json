@@ -1,62 +1,159 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Civil Case Schema",
-  "description": "구조화된 민원 사건 데이터",
+  "description": "AIHub 공공 민원 원천데이터 기반 구조화 민원 스키마",
   "type": "object",
-  "required": ["id", "requester", "respondent", "claim", "reason"],
+  "required": [
+    "case_id",
+    "source",
+    "created_at",
+    "raw_text",
+    "observation",
+    "result",
+    "request",
+    "context",
+    "entities"
+  ],
   "properties": {
-    "id": {
+    "case_id": {
       "type": "string",
-      "description": "고유 사건 ID"
+      "description": "민원 고유 식별자 (source_id 또는 내부 생성 ID)"
     },
-    "requester": {
+    "source": {
       "type": "string",
-      "description": "요청인"
+      "description": "제공기관 또는 수집 출처"
     },
-    "respondent": {
+    "created_at": {
       "type": "string",
-      "description": "피청구인"
-    },
-    "claim": {
-      "type": "string",
-      "description": "청구 내용"
-    },
-    "reason": {
-      "type": "string",
-      "description": "청구 사유"
+      "description": "민원 생성 시점(YYYYMMDD 또는 ISO 8601)"
     },
     "category": {
       "type": "string",
-      "description": "사건 분류"
+      "description": "민원 카테고리(미제공 시 unknown)"
     },
-    "confidence_score": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1,
-      "description": "신뢰도 점수"
+    "region": {
+      "type": "string",
+      "description": "행정구역/지역 정보(미제공 시 unknown)"
+    },
+    "raw_text": {
+      "type": "string",
+      "description": "원문 상담 텍스트"
+    },
+    "observation": {
+      "$ref": "#/definitions/field_extraction"
+    },
+    "result": {
+      "$ref": "#/definitions/field_extraction"
+    },
+    "request": {
+      "$ref": "#/definitions/field_extraction"
+    },
+    "context": {
+      "$ref": "#/definitions/field_extraction"
     },
     "entities": {
-      "type": "object",
-      "description": "추출된 개체명",
-      "properties": {
-        "persons": {
-          "type": "array",
-          "items": {"type": "string"}
-        },
-        "organizations": {
-          "type": "array",
-          "items": {"type": "string"}
-        },
-        "locations": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
+      "type": "array",
+      "description": "NER 추출 엔티티 목록",
+      "items": {
+        "$ref": "#/definitions/entity"
       }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "원천데이터 보존 메타정보",
+      "properties": {
+        "source_id": {"type": "string"},
+        "consulting_category": {"type": "string"},
+        "consulting_turns": {"type": ["integer", "null"]},
+        "consulting_length": {"type": ["integer", "null"]},
+        "client_gender": {"type": "string"},
+        "client_age": {"type": "string"},
+        "source_file": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "supervision": {
+      "type": "object",
+      "description": "라벨링 데이터(분류/요약/질의응답) 보조 학습·평가 정보",
+      "properties": {
+        "classification": {
+          "$ref": "#/definitions/supervision_item"
+        },
+        "summary": {
+          "$ref": "#/definitions/supervision_item"
+        },
+        "qa": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "task_category": {"type": "string"},
+              "instruction": {"type": "string"},
+              "question": {"type": "string"},
+              "answer": {"type": "string"}
+            },
+            "required": ["question", "answer"]
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "structured_at": {
       "type": "string",
       "format": "date-time",
       "description": "구조화 일시"
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "is_valid": {"type": "boolean"},
+        "errors": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "required": ["is_valid", "errors"],
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "field_extraction": {
+      "type": "object",
+      "properties": {
+        "text": {"type": "string"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "evidence_span": {
+          "type": "array",
+          "items": {"type": "integer"},
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": ["text", "confidence", "evidence_span"],
+      "additionalProperties": false
+    },
+    "entity": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "enum": ["LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"]
+        },
+        "text": {"type": "string"}
+      },
+      "required": ["label", "text"],
+      "additionalProperties": false
+    },
+    "supervision_item": {
+      "type": "object",
+      "properties": {
+        "task_category": {"type": "string"},
+        "instruction": {"type": "string"},
+        "input": {"type": "string"},
+        "output": {"type": "string"}
+      },
+      "required": ["instruction", "output"],
+      "additionalProperties": false
     }
   }
 }

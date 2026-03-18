@@ -490,3 +490,107 @@
 이 스키마 계약의 핵심은 **모든 모듈이 같은 데이터 언어를 사용하게 만드는 것**이다.  
 특히 이 프로젝트는 구조화 → 인덱싱 → 검색 → QA → 평가가 강하게 연결되어 있으므로, 스키마가 흔들리면 후반 통합 비용이 급격히 커진다.  
 따라서 MVP 단계에서는 유연성보다 **명확성, 검증 가능성, 재현 가능성**을 우선해야 한다.
+
+## 18. Week 2 공식 계약 섹션 (2026-03-18 확정)
+
+본 섹션은 BE1-BE2-BE3 연동을 위한 운영 계약 우선 규칙이다.  
+기존 문서의 예시와 충돌할 경우 본 섹션을 우선 적용한다.
+
+### 18.1 전달 최소 필수 필드 (BE2 인덱싱 기준)
+
+- `case_id`
+- `created_at`
+- `source`
+
+### 18.2 권장 필드
+
+- `category`
+- `region`
+- `entities` (BE2 `entity_labels` 파생용)
+- `raw_text` (청킹/임베딩 원문)
+
+### 18.3 필드 보정(어댑터) 규칙
+
+- `id` -> `case_id`
+- `submitted_at` -> `created_at`
+- `metadata.source` -> `source`
+
+### 18.4 제공 불가 필드 대체값 정책
+
+- `category`: 값이 비었거나 `-`면 `unknown`
+- `region`: 값이 없으면 `unknown`
+- `entities`: 추출 전 단계면 `[]`
+
+### 18.5 원천데이터(AIHub) 매핑 규칙
+
+| 원천 필드 | 전달 필드 | 정책 |
+| --- | --- | --- |
+| `source_id` | `case_id` | 문자열 유지 |
+| `source` | `source` | 공백/누락 시 `unknown` |
+| `consulting_date` | `created_at` | 원문 `YYYYMMDD` 유지 |
+| `consulting_category` | `category` | `-`는 `unknown` |
+| `consulting_content` | `raw_text` | 원문 보존 |
+
+### 18.6 Week 2 전달 경로
+
+- 1차: 파일 전달(JSON)
+- 2차: API 전달(`POST /api/v1/ingest`, `POST /api/v1/structure`) 병행
+
+### 18.7 전달 객체 샘플 (Week 2)
+
+```json
+{
+  "case_id": "000022",
+  "source": "서울시",
+  "created_at": "20240709",
+  "category": "재난안전",
+  "region": "unknown",
+  "raw_text": "제목 : 한가람로 풍납동까지 연결해 주세요...",
+  "entities": [],
+  "metadata": {
+    "source_id": "000022",
+    "consulting_turns": 2,
+    "consulting_length": 199,
+    "client_gender": "남",
+    "client_age": "30대"
+  }
+}
+```
+
+## 19. 라벨링 데이터(supervision) 활용 계약
+
+AIHub 제공 라벨링 데이터(`분류`, `요약`, `질의응답`)는 아래 원칙으로 사용한다.
+
+- 저장: `supervision` 필드에 보존 가능
+- 사용 권장: 약지도(weak supervision), 프롬프트/리랭커 보정, 회귀 테스트셋 구축
+- 사용 제한: 최종 KPI 산출용 gold 정답셋으로 단독 사용 금지
+- 이유: 제공기관 모델 출력물 기반이므로 편향/오답 전파와 데이터 누수 위험 존재
+
+### 19.1 supervision 구조
+
+```json
+{
+  "supervision": {
+    "classification": {
+      "task_category": "상담 요건",
+      "instruction": "...",
+      "input": "...",
+      "output": "단일 요건 민원"
+    },
+    "summary": {
+      "task_category": "길이 제한 요약",
+      "instruction": "...",
+      "input": "...",
+      "output": "..."
+    },
+    "qa": [
+      {
+        "task_category": "예/아니요형",
+        "instruction": "현재 시에서는 한가람로 개설을 확정했어?",
+        "question": "현재 시에서는 한가람로 개설을 확정했어?",
+        "answer": "아니."
+      }
+    ]
+  }
+}
+```
