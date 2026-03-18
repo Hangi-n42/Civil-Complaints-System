@@ -2,13 +2,14 @@
 구조화 서비스
 
 민원 원문을 구조화된 JSON으로 변환한다.
-- 4요소 추출 (요청인, 피청구인, 청구 내용, 청구 사유)
+- 4요소 추출 (observation, result, request, context)
 - NER (Named Entity Recognition)
-- 스키마 검증
+- 스키마 합의안(case_id/source/created_at 포함) 기준 변환
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Union
 from datetime import datetime
+import re
 from app.core.logging import pipeline_logger
 from app.core.exceptions import StructuringError
 
@@ -19,38 +20,126 @@ class StructuringService:
     def __init__(self):
         """초기화"""
         self.logger = pipeline_logger
+        self._admin_unit_pattern = re.compile(r"([가-힣]+(?:시|도|군|구|면|동|과))")
+        self._time_pattern = re.compile(r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})")
+        self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
+        self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
 
-    async def extract_four_elements(self, text: str) -> Dict[str, str]:
+    def _safe_int(self, value: Any) -> Union[int, None]:
+        """문자열/숫자 값을 정수로 안전 변환한다."""
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _normalize_required(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+        """원천 데이터 필드를 합의된 내부 필드로 정규화한다."""
+        metadata = raw.get("metadata", {}) if isinstance(raw.get("metadata"), dict) else {}
+
+        case_id = str(raw.get("case_id") or raw.get("source_id") or raw.get("id") or "").strip()
+        if not case_id:
+            case_id = f"AUTO-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        source = str(raw.get("source") or metadata.get("source") or "unknown").strip() or "unknown"
+
+        created_at = str(
+            raw.get("created_at") or raw.get("consulting_date") or raw.get("submitted_at") or ""
+        ).strip()
+        if not created_at:
+            created_at = datetime.now().strftime("%Y%m%d")
+
+        category = str(raw.get("category") or raw.get("consulting_category") or "unknown").strip() or "unknown"
+        if category == "-":
+            category = "unknown"
+
+        region = str(raw.get("region") or metadata.get("region") or "unknown").strip() or "unknown"
+
+        raw_text = str(raw.get("text") or raw.get("consulting_content") or "").strip()
+
+        normalized = {
+            "case_id": case_id,
+            "source": source,
+            "created_at": created_at,
+            "category": category,
+            "region": region,
+            "raw_text": raw_text,
+            "metadata": {
+                "source_id": str(raw.get("source_id") or ""),
+                "consulting_category": str(raw.get("consulting_category") or category),
+                "consulting_turns": self._safe_int(raw.get("consulting_turns")),
+                "consulting_length": self._safe_int(raw.get("consulting_length")),
+                "client_gender": str(raw.get("client_gender") or ""),
+                "client_age": str(raw.get("client_age") or ""),
+                "source_file": str(metadata.get("source_file") or ""),
+            },
+            "instructions": raw.get("instructions") if isinstance(raw.get("instructions"), list) else [],
+        }
+        return normalized
+
+    def _build_field(self, text: str, start: int, end: int, confidence: float) -> Dict[str, Any]:
+        """4요소 공통 필드 객체 생성"""
+        safe_text = (text or "").strip()
+        if not safe_text:
+            return {"text": "", "confidence": confidence, "evidence_span": [0, 0]}
+        safe_start = max(0, start)
+        safe_end = max(safe_start, end)
+        return {
+            "text": safe_text,
+            "confidence": max(0.0, min(1.0, confidence)),
+            "evidence_span": [safe_start, safe_end],
+        }
+
+    async def extract_four_elements(self, text: str) -> Dict[str, Dict[str, Any]]:
         """
-        4요소 추출
+        4요소(observation/result/request/context) 추출
 
         Args:
             text: 원본 텍스트
 
         Returns:
             {
-                "requester": "요청인",
-                "respondent": "피청구인",
-                "claim": "청구 내용",
-                "reason": "청구 사유"
+                "observation": {...},
+                "result": {...},
+                "request": {...},
+                "context": {...}
             }
         """
         try:
             self.logger.info(f"4요소 추출: {text[:50]}...")
-            # TODO: 4요소 추출 로직 구현
-            # - LLM 활용 또는
-            # - 규칙 기반 추출
+            q_match = re.search(r"Q\s*:\s*(.+?)(?:\n\s*A\s*:|$)", text, flags=re.DOTALL)
+            a_match = re.search(r"A\s*:\s*(.+)$", text, flags=re.DOTALL)
+
+            question = (q_match.group(1).strip() if q_match else text[:600].strip())
+            answer = (a_match.group(1).strip() if a_match else "")
+
+            obs_text = question[:220]
+            req_text = question[-220:] if len(question) > 220 else question
+            res_text = answer[:220] if answer else "답변 본문 미제공"
+
+            if "제목" in text:
+                title_line = text.splitlines()[0][:140]
+                ctx_text = title_line
+            else:
+                ctx_text = text[:140]
+
+            obs_start = text.find(obs_text) if obs_text else 0
+            req_start = text.find(req_text) if req_text else 0
+            res_start = text.find(res_text) if res_text and res_text != "답변 본문 미제공" else 0
+            ctx_start = text.find(ctx_text) if ctx_text else 0
+
             return {
-                "requester": "",
-                "respondent": "",
-                "claim": "",
-                "reason": "",
+                "observation": self._build_field(obs_text, obs_start, obs_start + len(obs_text), 0.72),
+                "result": self._build_field(res_text, res_start, res_start + len(res_text), 0.76),
+                "request": self._build_field(req_text, req_start, req_start + len(req_text), 0.71),
+                "context": self._build_field(ctx_text, ctx_start, ctx_start + len(ctx_text), 0.68),
             }
         except Exception as e:
             self.logger.error(f"4요소 추출 실패: {str(e)}")
             raise StructuringError(f"4요소 추출 실패: {str(e)}") from e
 
-    async def extract_entities(self, text: str) -> Dict[str, List[str]]:
+    async def extract_entities(self, text: str) -> List[Dict[str, str]]:
         """
         개체명 인식 (NER)
 
@@ -58,29 +147,52 @@ class StructuringService:
             text: 텍스트
 
         Returns:
-            {
-                "person": ["이름1", "이름2"],
-                "organization": ["기관1"],
-                "location": ["장소1"],
-                "date": ["날짜1"]
-            }
+            [{"label": "LOCATION", "text": "..."}, ...]
         """
         try:
             self.logger.info(f"개체명 인식: {text[:50]}...")
-            # TODO: NER 로직 구현
-            # - 사전 기반 또는
-            # - 모델 기반 추출
-            return {
-                "person": [],
-                "organization": [],
-                "location": [],
-                "date": [],
-            }
+            entities: List[Dict[str, str]] = []
+            seen = set()
+
+            for m in self._admin_unit_pattern.finditer(text):
+                ent = ("ADMIN_UNIT", m.group(1))
+                if ent not in seen:
+                    seen.add(ent)
+                    entities.append({"label": ent[0], "text": ent[1]})
+
+            for m in self._time_pattern.finditer(text):
+                ent = ("TIME", m.group(1))
+                if ent not in seen:
+                    seen.add(ent)
+                    entities.append({"label": ent[0], "text": ent[1]})
+
+            for keyword in self._facility_keywords:
+                if keyword in text:
+                    ent = ("FACILITY", keyword)
+                    if ent not in seen:
+                        seen.add(ent)
+                        entities.append({"label": ent[0], "text": ent[1]})
+
+            for keyword in self._hazard_keywords:
+                if keyword in text:
+                    ent = ("HAZARD", keyword)
+                    if ent not in seen:
+                        seen.add(ent)
+                        entities.append({"label": ent[0], "text": ent[1]})
+
+            for loc_keyword in ["서울", "경기", "경상남도", "안양", "송파구", "풍납동"]:
+                if loc_keyword in text:
+                    ent = ("LOCATION", loc_keyword)
+                    if ent not in seen:
+                        seen.add(ent)
+                        entities.append({"label": ent[0], "text": ent[1]})
+
+            return entities
         except Exception as e:
             self.logger.error(f"개체명 인식 실패: {str(e)}")
             raise StructuringError(f"개체명 인식 실패: {str(e)}") from e
 
-    async def validate_schema(self, data: Dict[str, Any]) -> bool:
+    async def validate_schema(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         스키마 검증
 
@@ -88,18 +200,80 @@ class StructuringService:
             data: 구조화된 데이터
 
         Returns:
-            검증 결과
+            {"is_valid": bool, "errors": List[str]}
         """
+        errors: List[str] = []
         try:
             self.logger.debug(f"스키마 검증: {str(data)[:50]}...")
-            # TODO: 스키마 검증 로직 구현
-            # - 필수 필드 확인
-            # - 데이터 타입 확인
-            # - 값 범위 확인
-            return True
+            required = [
+                "case_id",
+                "source",
+                "created_at",
+                "raw_text",
+                "observation",
+                "result",
+                "request",
+                "context",
+                "entities",
+            ]
+            for key in required:
+                if key not in data:
+                    errors.append(f"missing:{key}")
+
+            for field_name in ["observation", "result", "request", "context"]:
+                field = data.get(field_name, {})
+                if not isinstance(field, dict):
+                    errors.append(f"invalid_type:{field_name}")
+                    continue
+                conf = field.get("confidence")
+                if not isinstance(conf, (int, float)) or conf < 0 or conf > 1:
+                    errors.append(f"invalid_confidence:{field_name}")
+                span = field.get("evidence_span")
+                if not isinstance(span, list) or len(span) != 2:
+                    errors.append(f"invalid_evidence_span:{field_name}")
+
+            if not isinstance(data.get("entities", []), list):
+                errors.append("invalid_type:entities")
+
+            return {"is_valid": len(errors) == 0, "errors": errors}
         except Exception as e:
             self.logger.error(f"스키마 검증 실패: {str(e)}")
-            return False
+            errors.append(f"exception:{str(e)}")
+            return {"is_valid": False, "errors": errors}
+
+    async def extract_supervision(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+        """라벨링 데이터 instructions를 supervision 필드로 정규화한다."""
+        result: Dict[str, Any] = {}
+        instructions = raw.get("instructions", [])
+        if not isinstance(instructions, list):
+            return result
+
+        qa_items: List[Dict[str, str]] = []
+        for item in instructions:
+            tuning_type = str(item.get("tuning_type", "")).strip()
+            for row in item.get("data", []):
+                normalized = {
+                    "task_category": str(row.get("task_category", "")),
+                    "instruction": str(row.get("instruction", "")),
+                    "input": str(row.get("input", "")),
+                    "output": str(row.get("output", "")),
+                }
+                if tuning_type == "분류":
+                    result["classification"] = normalized
+                elif tuning_type == "요약":
+                    result["summary"] = normalized
+                elif tuning_type == "질의응답":
+                    qa_items.append(
+                        {
+                            "task_category": normalized["task_category"],
+                            "instruction": normalized["instruction"],
+                            "question": normalized["instruction"],
+                            "answer": normalized["output"],
+                        }
+                    )
+        if qa_items:
+            result["qa"] = qa_items
+        return result
 
     async def compute_confidence_score(self, data: Dict[str, Any]) -> float:
         """
@@ -113,34 +287,53 @@ class StructuringService:
         """
         try:
             self.logger.debug("신뢰도 점수 계산")
-            # TODO: 신뢰도 점수 계산 로직 구현
-            # - 필드별 가중치
-            # - 텍스트 길이
-            # - 엔티티 개수 등
-            return 0.8
+            base = 0.55
+            entity_bonus = min(len(data.get("entities", [])) * 0.03, 0.2)
+            field_bonus = 0.0
+            for key in ["observation", "result", "request", "context"]:
+                if data.get(key, {}).get("text"):
+                    field_bonus += 0.05
+            return max(0.0, min(1.0, base + entity_bonus + field_bonus))
         except Exception as e:
             self.logger.error(f"신뢰도 점수 계산 실패: {str(e)}")
             raise StructuringError(f"신뢰도 점수 계산 실패: {str(e)}") from e
 
-    async def structure(self, text: str) -> Dict[str, Any]:
+    async def structure(self, record: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         구조화 종합 파이프라인
 
         Args:
-            text: 원본 텍스트
+            record: 원본 텍스트 또는 원천 레코드 딕셔너리
 
         Returns:
             {
-                "original_text": "...",
-                "four_elements": {...},
-                "entities": {...},
-                "confidence_score": 0.85,
+                "case_id": "...",
+                "source": "...",
+                "created_at": "...",
+                "category": "...",
+                "region": "...",
+                "raw_text": "...",
+                "observation": {...},
+                "result": {...},
+                "request": {...},
+                "context": {...},
+                "entities": [...],
+                "supervision": {...},
+                "metadata": {...},
                 "structured_at": "2026-03-11T...",
-                "is_valid": true
+                "validation": {"is_valid": true, "errors": []}
             }
         """
         try:
-            self.logger.info(f"구조화 시작: {text[:30]}...")
+            if isinstance(record, str):
+                raw_record: Dict[str, Any] = {"consulting_content": record}
+            else:
+                raw_record = record
+
+            normalized = self._normalize_required(raw_record)
+            text = normalized["raw_text"]
+
+            self.logger.info(f"구조화 시작: case_id={normalized['case_id']}, len={len(text)}")
 
             # 4요소 추출
             four_elements = await self.extract_four_elements(text)
@@ -148,24 +341,40 @@ class StructuringService:
             # 개체명 인식
             entities = await self.extract_entities(text)
 
+            # 라벨링 supervision 추출(있는 경우)
+            supervision = await self.extract_supervision(normalized)
+
+            candidate = {
+                "case_id": normalized["case_id"],
+                "source": normalized["source"],
+                "created_at": normalized["created_at"],
+                "category": normalized["category"],
+                "region": normalized["region"],
+                "raw_text": text,
+                "observation": four_elements["observation"],
+                "result": four_elements["result"],
+                "request": four_elements["request"],
+                "context": four_elements["context"],
+                "entities": entities,
+                "metadata": normalized["metadata"],
+            }
+            if supervision:
+                candidate["supervision"] = supervision
+
             # 신뢰도 점수 계산
-            confidence = await self.compute_confidence_score(
-                {**four_elements, **entities}
-            )
+            confidence = await self.compute_confidence_score(candidate)
 
             # 결과 구성
-            result = {
-                "original_text": text,
-                "four_elements": four_elements,
-                "entities": entities,
-                "confidence_score": confidence,
-                "structured_at": datetime.now().isoformat(),
-            }
+            result = dict(candidate)
+            result["confidence_score"] = confidence
+            result["structured_at"] = datetime.now().isoformat()
 
             # 스키마 검증
-            result["is_valid"] = await self.validate_schema(result)
+            result["validation"] = await self.validate_schema(result)
 
-            self.logger.info(f"구조화 완료 (신뢰도: {confidence:.2f})")
+            self.logger.info(
+                f"구조화 완료: case_id={result['case_id']} (신뢰도: {confidence:.2f}, valid={result['validation']['is_valid']})"
+            )
             return result
 
         except Exception as e:
