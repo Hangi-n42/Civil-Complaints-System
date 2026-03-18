@@ -86,7 +86,7 @@ error 규칙:
 
 - 필수 필드가 없으면 error
 - case_id, source, raw_text가 빈 문자열이거나 공백만 있으면 error
-- created_at이 ISO 8601 datetime으로 파싱되지 않으면 error
+- created_at이 YYYYMMDD, ISO 8601 처나 "unknown" 문자열이 아니면 error (BE1 입력 호환 위함)
 - entities가 배열이 아니면 error
 - validation이 객체가 아니면 error
 

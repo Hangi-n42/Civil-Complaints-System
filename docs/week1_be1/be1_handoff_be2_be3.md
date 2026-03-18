@@ -39,24 +39,38 @@
 - 각 필드 `confidence`는 0~1
 - 각 필드 `evidence_span` 길이 2
 
-### 2.2 validation 에러 포맷 권장
+### 2.2 validation 에러 포맷 (→ ValidationIssue 객체 기반)
 
 ```json
 {
   "is_valid": false,
   "errors": [
-    "missing:request",
-    "invalid_confidence:observation"
+    {
+      "field": "request",
+      "code": "VAL_REQUIRED_FIELD_MISSING",
+      "message": "request 필수 필드가 누락되었습니다.",
+      "severity": "error",
+      "retryable": false
+    },
+    {
+      "field": "observation.confidence",
+      "code": "VAL_INVALID_CONFIDENCE_RANGE",
+      "message": "observation의 confidence가 0~1 범위를 벗어났습니다.",
+      "severity": "error",
+      "retryable": false,
+      "value": 1.21,
+      "expected": "0.0 <= value <= 1.0"
+    }
   ]
 }
 ```
 
-### 2.3 주요 에러 코드 집합
+### 2.3 ValidationIssue 에러 코드 집합
 
-- `missing:<field>`
-- `invalid_type:<field>`
-- `invalid_confidence:<field>`
-- `invalid_evidence_span:<field>`
+- `VAL_REQUIRED_FIELD_MISSING`: 필수 필드 누락
+- `VAL_INVALID_TYPE`: 필드 타입 비매칭
+- `VAL_INVALID_CONFIDENCE_RANGE`: confidence 0~1 범위 위반
+- `VAL_INVALID_EVIDENCE_SPAN_ORDER`: evidence_span 시작 인덱스 >= 종료 인덱스
 
 ## 3. 전달 경로
 

@@ -157,7 +157,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
       "created_at": "2026-03-05T10:15:00+09:00",
       "category": "도로안전",
       "region": "서울시 OO구",
-      "text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다. 야간 보행 시 위험합니다. LED 교체를 요청합니다. 최근 2주간 매일 저녁 8시 이후 발생합니다."
+      "raw_text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다. 야간 보행 시 위험합니다. LED 교체를 요청합니다. 최근 2주간 매일 저녁 8시 이후 발생합니다."
     }
   ]
 }
@@ -173,10 +173,10 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | `deduplicate` | boolean | N | 중복 탐지 여부 |
 | `records` | array | Y | 민원 레코드 목록 |
 | `records[].case_id` | string | Y | 민원 식별자 |
-| `records[].created_at` | string(datetime) | Y | 생성 시각 |
+| `records[].created_at` | string | Y | 생성 시각 (YYYYMMDD, ISO 8601, 또는 "unknown") |
 | `records[].category` | string | N | 민원 카테고리 |
 | `records[].region` | string | N | 행정 구역 |
-| `records[].text` | string | Y | 원문 민원 텍스트 |
+| `records[].raw_text` | string | Y | 원문 민원 텍스트 |
 
 ### 성공 응답 예시
 
