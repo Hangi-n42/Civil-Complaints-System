@@ -1,0 +1,16 @@
+{
+  "source_type": "json",
+  "source_name": "week1_sample",
+  "mask_pii": true,
+  "deduplicate": true,
+  "records": [
+    {
+      "case_id": "000022",
+      "source": "서울시",
+      "created_at": "20240709",
+      "category": "재난안전",
+      "region": "unknown",
+      "text": "제목 : 한가람로 풍납동까지 연결해 주세요. Q : 서울 송파구 풍납동 교통이 불편하여 한가람로 연결 재개를 요청합니다. A : 24년 말까지 교통수요 및 타당성 검토 후 추진 여부를 결정할 예정입니다."
+    }
+  ]
+}

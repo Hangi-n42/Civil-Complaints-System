@@ -33,14 +33,15 @@
 | 응답 지연 | 질의 1건 End-to-End 지연 (로컬 기준) | 12초 이하 |
 | 출처 정확성 | 답변 내 인용 근거가 실제 청크와 일치하는 비율 | 0.80 이상 |
 | 안정성 | 2시간 연속 데모 시 프로세스 강제 재시작 횟수 | 0회 |
+- 동일 평가 조건에서 AIHub에서 사용된 기준 모델 대비 핵심 성능
+   (구조화/검색/근거 정합성)에서 우위 결과를 달성
 
 ### 3.3 정성 KPI
 
 - 담당자 관점에서 "유사 민원 탐색 시간"이 수작업 대비 체감적으로 단축됨
 - 관리자 관점에서 월간 이슈 유형 보고서 생성이 가능함
 - 설명 가능성(XAI): 답변과 함께 출처 라인/청크를 제시함
-- 동일 평가 조건에서 AIHub에서 사용된 기준 모델 대비 핵심 성능
-   (구조화/검색/근거 정합성)에서 우위 결과를 달성함
+
 
 ## 4. 사용자 및 페르소나
 
@@ -176,14 +177,22 @@
 4. Generation Layer: RAG 프롬프트, Ollama 추론, 근거 첨부
 5. Presentation Layer: Streamlit UI, 통계 대시보드
 
-## 9.1 데이터 기반 Adaptive RAG 설계 (이번 방향)
+## 9.1 데이터 기반 Adaptive RAG 설계
 
 ### 배경
 - `data_classification.txt` 기준: 민원 길이 분포가 매우 다양하고, 주제/요건 복합성이 높음.
 - 짧은 민원(124어절 이하)과 긴 민원(301 이상) 공존, 단일/다수 요건 혼합, 다양한 주제(교통/환경/안전/복지/경제/주택/건설) 등으로 고정 RAG는 효율 저하.
-- 따라서 **길이/주제/요건 기반 라우팅을 통해 chunking/retrieval/prompt 전략을 다르게 적용**하는 Adaptive RAG가 합리적.
+- 따라서 **길이/주제/요건 기반 라우팅을 통해 chunking/retrieval/prompt 전략을 다르게 적용**하는 Adaptive RAG가 합리적이지만, MVP 단계에서는 단일 RAG를 먼저 구현·안정화한 뒤 2단계로 적용한다.
 
-### 1. 길이 기반 라우팅
+### 9.1.0 단계적 적용 원칙 (확정)
+- 1단계(MVP): 단일 RAG 최소 구현(고정 chunking, 고정 retrieval, 고정 prompt)
+- 2단계(고도화): Adaptive RAG(길이/주제/단일-복합 분기) 적용
+- 전환 게이트:
+  - 단일 RAG 기준 구조화/검색/생성 파이프라인 E2E 동작 안정화 완료
+  - 단일 RAG baseline 지표 확보(Recall@5, 4요소 F1, citation 정합성, 지연시간)
+  - 데모 시나리오 3종 연속 성공
+
+### 9.1.1 길이 기반 라우팅
 - Bucket 정의 (데이터 근거):
   - Short: <= 200 어절 (전체 약 42.08%)
   - Medium: 201~300 어절 (약 27.44%)
@@ -198,7 +207,7 @@
   - Long: top_k=30, multi-stage rerank (retrieval->dense rerank->trainable scoring)
 - 구현 포인트: `LengthRouter` 객체로 threshold와 strategy 파라미터 주입, 하드코딩 if문 최소화.
 
-### 2. 주제 기반 라우팅
+### 9.1.2 주제 기반 라우팅
 - 주제 분류 기준:
   - 현장/시설형: 교통, 안전, 환경, 주택/건설
   - 제도/행정형: 복지, 경제, 기타(국방/세무/방송통신/경찰)
@@ -213,7 +222,7 @@
   - 예: `[주제: 교통] - 이 민원은 도로시설/조명/교통신호 관련`처럼 컨텍스트 토픽 삽입
   - long 민원은 `extract key issues first`(핵심 추출) + `generate concise answer` 전략
 
-### 3. 단일/복합 민원 분기
+### 9.1.3 단일/복합 민원 분기
 - Multi-request 탐지:
   - rule: `요청합니다`, `부탁드립니다`, `~~ 및 ~~` 2개 이상 요청어
   - 간단 classifier: prompt 분류 + logistic 모델(회귀)로 `single/multi` 태그
@@ -235,7 +244,7 @@
   - 내부 처리에서는 bucket/story 분기 후도, 외부 API/DB 저장/응답은 통일된 JSON schema로 출력
   - `normalize_response()` 함수로 slot 통합
 
-### 4. LangChain 기반 모듈화 구조
+### 9.1.4 LangChain 기반 모듈화 구조
 - Input Analyzer: 텍스트 길이+주제+요건 분석
   - `Analyzer` -> metadata: `{length_bucket, topic_type, multi_request_flag}`
 - Router: 전략 선택
@@ -253,7 +262,7 @@
 - Unified Output:
   - 최종 응답은 `[answer, citations, confidence, limitations, structured_output]` 통일
 
-### 5. 실험 계획
+### 9.1.5 실험 계획
 - Baseline: 고정 단일 RAG (기본 4요소+단일 chunk) vs Adaptive RAG
 - 평가 지표:
   - Retrieval: Recall@5, nDCG@5
@@ -265,17 +274,19 @@
   2) topic-aware prompt only vs no topic
   3) multi-request 분기 on/off
 - 실행 로드맵 (8주 현실적):
-  - 구현 1단계: 길이 기반 routing + unified schema (2주)
-  - 구현 2단계: 주제/복합 분기 + retrieval/생성 분기 (2주)
-  - 검증 3단계: baseline vs adaptive 평가 + ablation (2주)
-  - 안정화 4단계: 데모 준비 + 성능 튜닝 (2주)
+  - 구현 1단계: 단일 RAG 최소 구현 + baseline 측정 (2주)
+  - 구현 2단계: 길이 기반 routing 우선 적용 + unified schema 유지 (2주)
+  - 구현 3단계: 주제/복합 분기 + retrieval/생성 분기 (2주)
+  - 검증/안정화 4단계: baseline vs adaptive 평가 + ablation + 데모 튜닝 (2주)
 
 ### 9.2 구현 우선순위 (8주 내 현실적)
-1. 최소한으로 동작하는 `AdaptiveRouter` + `LengthAnalyzer` (핵심)
-2. chunking/resolver 전략을 config 파일(`yaml`)로 분리
-3. `topic_classifier`를 ME 모델/시작은 룰 기반
-4. unified output schema 테스트 자동화
-5. 평가 스크립트로 baseline/adaptive 비교
+1. 최소 단일 RAG 구현(고정 chunking + top_k + prompt + JSON 파싱)
+2. 단일 RAG baseline 평가 파이프라인 고정(Recall@5, 4요소 F1, citation 정합성, 지연시간)
+3. `AdaptiveRouter` + `LengthAnalyzer` 도입(2단계)
+4. chunking/resolver 전략을 config 파일(`yaml`)로 분리
+5. `topic_classifier`를 ME 모델/시작은 룰 기반
+6. unified output schema 테스트 자동화
+7. 평가 스크립트로 baseline/adaptive 비교
 
 ### 9.3 주의사항
 - 하드코딩 if문 대신 route map + strategy class 사용
