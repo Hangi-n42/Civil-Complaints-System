@@ -1,9 +1,9 @@
 # BE3-FE/BE2 단일 통합 응답 스펙 (Citation, Error, Validation)
 
-문서 버전: v0.1  
-작성일: 2026-03-16  
+문서 버전: v0.2  
+작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be3_validation_format.md](be3_validation_format.md), [be3_error_codes.md](be3_error_codes.md), [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_json_retry_strategy.md](be3_json_retry_strategy.md), [api_spec.md](api_spec.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](be2_be3_compromise_contract_week1.md), [be3_validation_format.md](be3_validation_format.md), [be3_error_codes.md](be3_error_codes.md), [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_json_retry_strategy.md](be3_json_retry_strategy.md), [api_spec.md](api_spec.md)
 
 ## 1. 문서 목적
 
@@ -23,10 +23,10 @@
 
 ## 3. 최상위 응답 구조
 
-최상위는 아래 2가지로 고정한다.
+최상위는 기존 API와 호환되는 아래 2가지로 고정한다.
 
-- 성공/부분성공: `status = "ok"`
-- 실패: `status = "error"`
+- 성공/부분성공: `success = true`
+- 실패: `success = false`
 
 공통 권장 필드:
 
@@ -59,10 +59,13 @@ FE 동작 규칙:
 필수 필드:
 
 - `ref_id`: number, 본문 토큰과 연결되는 키
-- `doc_id`: string, 문서 식별자
 - `chunk_id`: string, 검색 청크 식별자
 - `case_id`: string, 케이스 식별자
 - `snippet`: string, 툴팁에 표시할 근거 문장
+
+조건부 필수 필드:
+
+- `doc_id`: retrieval 결과에 존재하면 필수, 미보유 파이프라인에서는 생략 가능
 
 권장 필드:
 
@@ -79,7 +82,7 @@ FE 동작 규칙:
 
 ```json
 {
-  "status": "ok",
+  "success": true,
   "request_id": "REQ-20260316-0001",
   "timestamp": "2026-03-16T14:20:00+09:00",
   "answer": "이륜차 전도 위험이 매우 높으므로 최우선 처리 요망. [[CITE:1]] 해당 구간은 과거에도 우천 후 파손 이력이 있으므로 조기 보강이 필요합니다. [[CITE:2]]",
@@ -110,6 +113,10 @@ FE 동작 규칙:
     "is_valid": true,
     "errors": [],
     "warnings": []
+  },
+  "search_trace": {
+    "used_top_k": 5,
+    "retrieved_count": 5
   }
 }
 ```
@@ -124,34 +131,39 @@ FE 동작 규칙:
 
 필수 필드:
 
-- `status`: "error"
-- `error_code`: 표준 오류 코드
-- `message`: 사용자 친화 한국어 메시지
+- `success`: false
+- `error.code`: 표준 오류 코드
+- `error.message`: 사용자 친화 한국어 메시지
 
 권장 필드:
 
-- `retryable`: 재시도 가능 여부
+- `error.retryable`: 재시도 가능 여부
 - `request_id`: 추적 ID
+- `timestamp`: 응답 시각
 - `details`: 디버깅용 부가 정보
 
 ### 5.3 에러 코드/메시지 규칙
 
-- `error_code`는 [be3_error_codes.md](be3_error_codes.md) 표준 코드를 사용한다.
-- `message`는 FE에 그대로 표시 가능한 한국어 문장으로 제공한다.
+- `error.code`는 [be3_error_codes.md](be3_error_codes.md) 표준 코드를 사용한다.
+- `error.message`는 FE에 그대로 표시 가능한 한국어 문장으로 제공한다.
 - 내부 예외 원문/스택트레이스는 `message`에 노출하지 않는다.
+- `JSON_PARSE_ERROR`는 신규 표준 코드로 사용하지 않고 `PARSE_*` 코드를 사용한다.
 
 ### 5.4 실패 응답 예시 (OOM)
 
 ```json
 {
-  "status": "error",
-  "error_code": "OOM_DETECTED",
-  "message": "메모리 용량 초과로 답변 생성이 중단되었습니다. 검색할 문서를 줄여서 다시 시도해주세요.",
-  "retryable": true,
+  "success": false,
   "request_id": "REQ-20260316-0002",
-  "details": {
-    "fallback_stage": "context_reduced",
-    "last_error_code": "OOM_TOPK_REDUCED"
+  "timestamp": "2026-03-16T14:21:00+09:00",
+  "error": {
+    "code": "OOM_DETECTED",
+    "message": "메모리 용량 초과로 답변 생성이 중단되었습니다. 검색할 문서를 줄여서 다시 시도해주세요.",
+    "retryable": true,
+    "details": {
+      "fallback_stage": "context_reduced",
+      "last_error_code": "OOM_TOPK_REDUCED"
+    }
   }
 }
 ```
@@ -160,11 +172,14 @@ FE 동작 규칙:
 
 ```json
 {
-  "status": "error",
-  "error_code": "MODEL_TIMEOUT",
-  "message": "응답 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
-  "retryable": true,
-  "request_id": "REQ-20260316-0003"
+  "success": false,
+  "request_id": "REQ-20260316-0003",
+  "timestamp": "2026-03-16T14:22:00+09:00",
+  "error": {
+    "code": "MODEL_TIMEOUT",
+    "message": "응답 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
+    "retryable": true
+  }
 }
 ```
 
@@ -212,14 +227,13 @@ FE 동작 규칙:
 
 | 상태 | 필수 필드 |
 | --- | --- |
-| ok | status, answer, citations, confidence, limitations, meta |
-| ok(경고 포함) | status, answer, citations, confidence, limitations, meta, qa_validation.warnings |
-| error | status, error_code, message |
+| success=true | success, request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation |
+| success=false | success, request_id, timestamp, error.code, error.message, error.retryable |
 
 ## 8. FE 렌더링 규칙 요약
 
-1. `status == "error"`이면 상단 중앙 배너에 `message` 표시
-2. `status == "ok"`이면 `answer`의 `[[CITE:n]]` 토큰을 `[출처 n]` 배지로 치환
+1. `success == false`이면 상단 중앙 배너에 `error.message` 표시
+2. `success == true`이면 `answer`의 `[[CITE:n]]` 토큰을 `[출처 n]` 배지로 치환
 3. 배지 hover 시 `citations.ref_id == n`의 `snippet` 표시
 4. 답변 하단에 `meta.processing_time`, `meta.model`, `meta.validation_warning` 표시
 5. `qa_validation.warnings`가 있으면 하단 경고 섹션에 추가 렌더링
@@ -227,10 +241,11 @@ FE 동작 규칙:
 ## 9. BE2 연동 체크리스트
 
 - answer 생성 시 citation 토큰(`[[CITE:n]]`) 삽입
-- citations 배열에 `ref_id/doc_id/chunk_id/case_id/snippet` 채움
-- 에러 시 표준 `error_code` + 한국어 `message` 반환
+- citations 배열에 `ref_id/chunk_id/case_id/snippet` 채움
+- retrieval에 doc_id가 있으면 함께 채움
+- 에러 시 표준 `error.code` + 한국어 `error.message` 반환
 - meta 필수 3필드(processing_time/model/validation_warning) 채움
-- qa_validation은 성공 응답에도 항상 포함 권장
+- qa_validation은 성공 응답에도 항상 포함
 
 ## 10. 주간 적용 기준 (Week 1)
 

@@ -1,9 +1,9 @@
 # BE3 Validation 결과 포맷 초안
 
-문서 버전: v0.1  
-작성일: 2026-03-13  
+문서 버전: v0.2  
+작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be3_validation_rules.md](be3_validation_rules.md), [be3_error_codes.md](be3_error_codes.md), [schema_contract.md](schema_contract.md), [api_spec.md](api_spec.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](be2_be3_compromise_contract_week1.md), [be3_validation_rules.md](be3_validation_rules.md), [be3_error_codes.md](be3_error_codes.md), [schema_contract.md](schema_contract.md), [api_spec.md](api_spec.md)
 
 ## 1. 문서 목적
 
@@ -246,18 +246,31 @@
 
 권장 방식:
 
-- 파싱 성공 시에도 qa_validation을 별도로 포함해 citation 정합성을 표시한다.
+- 파싱 성공 시 qa_validation을 항상 포함해 citation 정합성을 표시한다.
 - 파싱 실패 시 error 객체와 함께 마지막 validation 상태를 같이 보낸다.
 
 ```json
 {
   "success": true,
+  "request_id": "REQ-20260318-AB12CD34",
+  "timestamp": "2026-03-18T18:30:00+09:00",
   "answer": "...",
   "citations": [
-    {"chunk_id": "CHUNK-00044", "case_id": "CASE-2026-000123", "snippet": "..."}
+    {
+      "ref_id": 1,
+      "doc_id": "DOC-25-088",
+      "chunk_id": "CHUNK-00044",
+      "case_id": "CASE-2026-000123",
+      "snippet": "..."
+    }
   ],
   "confidence": "medium",
   "limitations": "...",
+  "meta": {
+    "processing_time": 3.87,
+    "model": "qwen2.5:7b-instruct",
+    "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다."
+  },
   "qa_validation": {
     "is_valid": true,
     "errors": [],
@@ -271,6 +284,7 @@
 - is_valid=false 이면 상단 error 배너를 표시한다.
 - errors 배열은 코드, 필드, 메시지 순서로 테이블 렌더링한다.
 - warnings는 접기 가능한 섹션으로 표시한다.
+- citations는 [[CITE:n]] 토큰의 n과 citations.ref_id를 기준으로 매핑한다.
 - retryable=true 오류는 다시 시도 버튼과 연결 가능하게 노출한다.
 
 ## 10. 로그 저장 가이드

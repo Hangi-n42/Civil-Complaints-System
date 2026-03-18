@@ -1,9 +1,9 @@
 # BE3 Validation 규칙 메모
 
-문서 버전: v0.1  
-작성일: 2026-03-13  
+문서 버전: v0.2  
+작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [schema_contract.md](schema_contract.md), [api_spec.md](api_spec.md), [be3_manual.md](be3_manual.md), [prd_draft.md](prd_draft.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](be2_be3_compromise_contract_week1.md), [schema_contract.md](schema_contract.md), [api_spec.md](api_spec.md), [be3_manual.md](be3_manual.md), [prd_draft.md](prd_draft.md)
 
 ## 1. 문서 목적
 
@@ -34,8 +34,8 @@
 - confidence 범위 위반
 - evidence_span 형식 오류
 - 허용되지 않은 entity label
-- QA 응답의 answer, confidence, limitations 누락
-- citation의 chunk_id, case_id, snippet 누락
+- QA 성공 응답의 request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation 누락
+- citation의 ref_id, chunk_id, case_id, snippet 누락
 
 ### P1. warning으로 기록하되 처리 계속 가능한 항목
 
@@ -196,14 +196,21 @@ error 규칙:
 
 ## 7. QAResponse 검증 규칙
 
+본 절의 QAResponse는 `success=true`인 QA API 응답 본문을 기준으로 한다.
+
 ### 7.1 루트 필드
 
 필수 필드:
 
+- success
+- request_id
+- timestamp
 - answer
 - citations
 - confidence
 - limitations
+- meta
+- qa_validation
 
 선택 필드:
 
@@ -211,10 +218,15 @@ error 규칙:
 
 error 규칙:
 
+- success가 true가 아니면 error
+- request_id가 없거나 공백이면 error
+- timestamp가 ISO 8601 형식이 아니면 error
 - answer가 없거나 공백만 있으면 error
 - citations가 배열이 아니면 error
 - confidence가 low, medium, high 중 하나가 아니면 error
 - limitations가 없거나 공백만 있으면 error
+- meta가 객체가 아니면 error
+- qa_validation이 객체가 아니면 error
 - search_trace가 있을 때 객체가 아니면 error
 
 warning 규칙:
@@ -226,15 +238,22 @@ warning 규칙:
 
 필수 필드:
 
+- ref_id
 - chunk_id
 - case_id
 - snippet
 
+조건부 필수 필드:
+
+- doc_id (retrieval 결과에 존재하는 경우)
+
 error 규칙:
 
 - citation 원소가 객체가 아니면 error
-- chunk_id, case_id, snippet 중 하나라도 누락되면 error
+- ref_id, chunk_id, case_id, snippet 중 하나라도 누락되면 error
+- ref_id가 number가 아니면 error
 - chunk_id, case_id, snippet가 공백 문자열이면 error
+- answer의 [[CITE:n]] 토큰과 citations.ref_id가 1:1 매핑되지 않으면 error
 
 warning 규칙:
 
@@ -254,6 +273,35 @@ warning 규칙:
 - used_top_k 또는 retrieved_count가 없으면 warning
 - retrieved_count가 0인데 answer가 단정적으로 작성되면 warning
 
+### 7.4 meta 규칙
+
+필수 필드:
+
+- processing_time
+- model
+- validation_warning
+
+error 규칙:
+
+- processing_time이 number가 아니면 error
+- model이 없거나 공백이면 error
+- validation_warning이 없거나 공백이면 error
+
+### 7.5 qa_validation 규칙
+
+필수 필드:
+
+- is_valid
+- errors
+- warnings
+
+error 규칙:
+
+- is_valid가 boolean이 아니면 error
+- errors가 배열이 아니면 error
+- warnings가 배열이 아니면 error
+- Week 1 기준으로 is_valid=false인데 answer를 함께 반환하면 error
+
 ## 8. API 응답에서 validation 처리 원칙
 
 ### structure 응답
@@ -265,7 +313,7 @@ warning 규칙:
 
 ### qa 응답
 
-- 파싱 성공 후 QAResponse 계약을 만족하지 못하면 JSON_PARSE_ERROR 또는 VALIDATION_ERROR 계열로 처리한다.
+- 파싱 성공 후 QAResponse 계약을 만족하지 못하면 PARSE_SCHEMA_MISMATCH 또는 VAL_* 계열로 처리한다.
 - citations가 비어 있어도 answer 자체는 반환 가능하지만 warnings 또는 limitations에 반영한다.
 
 ## 9. 이번 주 구현 기준에서의 판단선

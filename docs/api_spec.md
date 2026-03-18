@@ -49,7 +49,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 {
   "success": false,
   "error": {
-    "code": "VALIDATION_ERROR",
+    "code": "REQ_INVALID_TYPE",
     "message": "요청 본문 형식이 올바르지 않습니다.",
     "details": {
       "field": "created_at"
@@ -62,14 +62,27 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 
 | 코드 | 의미 |
 | --- | --- |
-| `VALIDATION_ERROR` | 요청 필드 검증 실패 |
-| `BAD_REQUEST` | 필수 인자 누락 또는 잘못된 형식 |
+| `REQ_BAD_REQUEST` | 요청 형식 오류 |
+| `REQ_INVALID_TYPE` | 요청 필드 타입 오류 |
+| `REQ_REQUIRED_FIELD_MISSING` | 요청 필수 필드 누락 |
+| `REQ_EMPTY_TEXT` | 요청 텍스트 비어 있음 |
+| `VAL_REQUIRED_FIELD_MISSING` | 도메인 필수 필드 누락 |
+| `VAL_INVALID_TYPE` | 도메인 필드 타입 오류 |
 | `MODEL_NOT_READY` | LLM/임베딩 모델 사용 불가 |
-| `INDEX_NOT_READY` | 인덱스 미생성 또는 로드 실패 |
-| `PROCESSING_ERROR` | 내부 처리 실패 |
-| `JSON_PARSE_ERROR` | LLM 응답 파싱 실패 |
-| `RESOURCE_NOT_FOUND` | 대상 데이터 없음 |
-| `INTERNAL_SERVER_ERROR` | 예기치 못한 서버 오류 |
+| `MODEL_TIMEOUT` | 모델 응답 시간 초과 |
+| `SYS_INDEX_NOT_READY` | 인덱스 미생성 또는 로드 실패 |
+| `PARSE_JSON_DECODE_ERROR` | JSON 디코딩 실패 |
+| `PARSE_JSON_BLOCK_EXTRACTION_FAILED` | JSON 블록 추출 실패 |
+| `PARSE_SCHEMA_MISMATCH` | 파싱 후 스키마 불일치 |
+| `PARSE_RETRY_EXHAUSTED` | JSON 파싱 재시도 한도 초과 |
+| `CITE_REQUIRED_FIELD_MISSING` | citation 필수 필드 누락 |
+| `SYS_RESOURCE_NOT_FOUND` | 대상 데이터 없음 |
+| `SYS_INTERNAL_ERROR` | 예기치 못한 서버 오류 |
+
+호환성 참고:
+
+- `JSON_PARSE_ERROR`는 신규 표준 코드로 사용하지 않는다.
+- 하위 호환이 필요하면 FE에서 `PARSE_*`를 `JSON_PARSE_ERROR` 그룹으로 묶어 표시한다.
 
 ## 4. 엔드포인트 개요
 
@@ -451,9 +464,13 @@ MVP 기준 두 가지 모드를 허용한다.
 ```json
 {
   "success": true,
+  "request_id": "REQ-20260318-AB12CD34",
+  "timestamp": "2026-03-18T18:30:00+09:00",
   "answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 문제에 집중되어 있습니다.",
   "citations": [
     {
+      "ref_id": 1,
+      "doc_id": "DOC-25-088",
       "chunk_id": "CHUNK-00044",
       "case_id": "CASE-2026-000123",
       "snippet": "...가로등이 깜빡거리고 일부 구간이 소등됩니다..."
@@ -466,6 +483,16 @@ MVP 기준 두 가지 모드를 허용한다.
   ],
   "confidence": "medium",
   "limitations": "수집 데이터 기간과 지역 범위에 따라 해석에 제한이 있습니다.",
+  "meta": {
+    "processing_time": 3.87,
+    "model": "qwen2.5:7b-instruct",
+    "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다."
+  },
+  "qa_validation": {
+    "is_valid": true,
+    "errors": [],
+    "warnings": []
+  },
   "search_trace": {
     "used_top_k": 5,
     "retrieved_count": 5
@@ -479,11 +506,15 @@ MVP 기준 두 가지 모드를 허용한다.
 ```json
 {
   "success": false,
+  "request_id": "REQ-20260318-34EF56AA",
+  "timestamp": "2026-03-18T18:30:01+09:00",
   "error": {
-    "code": "JSON_PARSE_ERROR",
+    "code": "PARSE_JSON_DECODE_ERROR",
     "message": "모델 응답을 JSON으로 파싱하지 못했습니다.",
+    "retryable": true,
     "details": {
-      "retry_count": 2
+      "retry_count": 3,
+      "stage": "decode"
     }
   }
 }

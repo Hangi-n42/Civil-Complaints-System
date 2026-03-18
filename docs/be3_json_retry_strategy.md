@@ -1,9 +1,9 @@
 # BE3 JSON 재시도 전략 초안
 
-문서 버전: v0.1  
-작성일: 2026-03-13  
+문서 버전: v0.2  
+작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [api_spec.md](api_spec.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](be2_be3_compromise_contract_week1.md), [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [api_spec.md](api_spec.md)
 
 ## 1. 문서 목적
 
@@ -22,6 +22,7 @@
   - recoverable: 자동 재시도 수행
   - non-recoverable: 즉시 실패 반환
 - 최종 실패 코드: `PARSE_RETRY_EXHAUSTED`
+- 응답 래퍼: 성공/실패 모두 `success` 루트 필드 사용
 
 ## 3. 재시도 대상/비대상
 
@@ -103,9 +104,9 @@
 
 - 자연어 설명 금지
 - 코드블록 금지
-- 필수 필드 명시(answer, citations, confidence, limitations)
+- 필수 필드 명시(request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation)
 - enum 제한 명시(confidence: low|medium|high)
-- citations 각 항목 필수 필드 명시(chunk_id, case_id, snippet)
+- citations 각 항목 필수 필드 명시(ref_id, chunk_id, case_id, snippet)
 
 권장 재요청 템플릿:
 
@@ -113,9 +114,11 @@
 이전 응답은 JSON 계약을 만족하지 않았습니다.
 아래 규칙을 정확히 지켜 JSON 객체 하나만 반환하세요.
 1) 순수 JSON만 반환
-2) 필수 필드: answer, citations, confidence, limitations
+2) 필수 필드: request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation
 3) confidence는 low, medium, high 중 하나
-4) citations는 배열이며, 각 원소는 chunk_id, case_id, snippet 포함
+4) citations는 배열이며, 각 원소는 ref_id, chunk_id, case_id, snippet 포함
+5) meta는 processing_time, model, validation_warning 포함
+6) qa_validation은 is_valid, errors, warnings 포함
 ```
 
 실패 시:
@@ -167,15 +170,15 @@
 ### 7.1 최종 성공
 
 - 정상 QAResponse 반환
-- qa_validation 포함
+- qa_validation 항상 포함
+- meta(processing_time/model/validation_warning) 항상 포함
 - warnings가 있으면 함께 반환
 
 ### 7.2 부분 성공
 
-- answer는 생성되었으나 citation 일부만 유효
-- success=true 유지 가능
-- warnings에 `CITE_*` 경고 포함
-- limitations에 신뢰도 제한 문구 강제
+- Week 1에서는 `qa_validation.is_valid=false + answer 반환`을 허용하지 않는다.
+- citations 품질 저하가 warning 수준이면 `qa_validation.is_valid=true`를 유지한 채 success=true 반환 가능하다.
+- citation 정합성이 계약 위반(error 수준)이면 재시도 후 실패 응답으로 전환한다.
 
 ### 7.3 최종 실패
 
@@ -184,6 +187,8 @@
 ```json
 {
   "success": false,
+  "request_id": "REQ-20260318-34EF56AA",
+  "timestamp": "2026-03-18T18:30:01+09:00",
   "error": {
     "code": "PARSE_RETRY_EXHAUSTED",
     "message": "응답 JSON 파싱 재시도 한도를 초과했습니다.",
@@ -244,6 +249,7 @@ return fail("PARSE_RETRY_EXHAUSTED", last_error)
 
 - retryable=true 오류는 사용자에게 "다시 시도" 액션 제공 가능
 - 최종 실패는 원인 코드 + 사용자 친화 메시지 동시 노출
+- 레거시 클라이언트는 필요 시 `PARSE_*`를 `JSON_PARSE_ERROR` 그룹으로 묶어 표시할 수 있다.
 
 ### BE2
 

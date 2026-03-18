@@ -85,6 +85,11 @@
 | `PARSE_SCHEMA_MISMATCH` | JSON은 파싱되나 계약 불일치 | 500 | true | 필수 필드/타입 미충족 |
 | `PARSE_RETRY_EXHAUSTED` | 재시도 한도 초과 | 500 | false | max retry 후 실패 |
 
+호환성 규칙:
+
+- `JSON_PARSE_ERROR`는 레거시 그룹 코드이며 신규 표준 코드로는 사용하지 않는다.
+- 외부 연동이 `JSON_PARSE_ERROR`만 처리하는 경우, `PARSE_*` 코드를 `JSON_PARSE_ERROR` 그룹 라벨로 매핑해 표시할 수 있다.
+
 ### 4.4 Citation (`CITE_*`)
 
 | 코드 | 의미 | 기본 HTTP | retryable | 설명 |
