@@ -344,7 +344,7 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `ref_id` | integer | Y | 본문 토큰 `[[CITE:n]]`와 매핑되는 키 |
-| `doc_id` | string | Y | 문서 식별자 |
+| `doc_id` | string | 조건부 | retrieval 결과에 존재할 때 포함 |
 | `chunk_id` | string | Y | 근거 청크 ID |
 | `case_id` | string | Y | 원본 민원 ID |
 | `snippet` | string | Y | 인용 원문 일부 |
@@ -371,15 +371,17 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `status` | string | Y | `ok` 또는 `error` |
+| `success` | boolean | Y | 성공=true, 실패=false |
 | `request_id` | string | Y | 요청 추적 ID |
 | `timestamp` | string(datetime) | Y | 응답 시각 |
-| `answer` | string | Y | 생성 답변 |
-| `citations` | array[Citation] | Y | 근거 목록 |
-| `confidence` | string | Y | `low`, `medium`, `high` |
-| `limitations` | string | Y | 해석 한계 또는 주의사항 |
-| `meta` | object | Y | 처리시간/모델/검증 안내 |
-| `qa_validation` | object | Y | 검증 결과 |
+| `answer` | string | success=true 시 Y | 생성 답변 |
+| `citations` | array[Citation] | success=true 시 Y | 근거 목록 |
+| `confidence` | string | success=true 시 Y | `low`, `medium`, `high` |
+| `limitations` | string | success=true 시 Y | 해석 한계 또는 주의사항 |
+| `meta` | object | success=true 시 Y | 처리시간/모델/검증 안내 |
+| `qa_validation` | object | success=true 시 Y | 검증 결과 |
+| `search_trace` | object | success=true 시 Y | 검색 추적 정보 |
+| `error` | object | success=false 시 Y | 에러 코드/메시지/재시도 가능 여부 |
 
 ### 12.2 meta 예시
 
@@ -395,7 +397,7 @@
 
 ```json
 {
-  "status": "ok",
+  "success": true,
   "request_id": "REQ-20260317-AB12CD34",
   "timestamp": "2026-03-17T18:30:00+09:00",
   "answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 문제에 집중되어 있습니다. [[CITE:1]]",
@@ -430,6 +432,29 @@
     "is_valid": true,
     "errors": [],
     "warnings": []
+  },
+  "search_trace": {
+    "used_top_k": 5,
+    "retrieved_count": 5
+  }
+}
+```
+
+### 12.4 실패 예시
+
+```json
+{
+  "success": false,
+  "request_id": "REQ-20260317-34EF56AA",
+  "timestamp": "2026-03-17T18:35:00+09:00",
+  "error": {
+    "code": "PARSE_RETRY_EXHAUSTED",
+    "message": "모델 응답을 JSON으로 파싱하지 못했습니다.",
+    "retryable": true,
+    "details": {
+      "retry_count": 3,
+      "stage": "decode"
+    }
   }
 }
 ```
@@ -449,10 +474,13 @@
 - `chunk_id`, `case_id`, `snippet`은 필수
 
 ### 13.3 QA 응답 검증 규칙
-- `status`는 `ok` 또는 `error`
-- `status=ok`일 때 `answer`, `citations`, `confidence`, `limitations`, `meta` 포함
-- `status=error`일 때 `error_code`, `message` 포함
+- `success=true/false`를 항상 포함
+- `success=true`일 때 `answer`, `citations`, `confidence`, `limitations`, `meta`, `qa_validation` 포함
+- `success=false`일 때 `error.code`, `error.message`, `error.retryable` 포함
 - `answer` 내 `[[CITE:n]]` 토큰은 `citations.ref_id`와 1:1 매칭
+- `citations.ref_id`는 응답 내 유일
+- `chunk_id`는 검색 결과 목록에 존재하고 `case_id`와 일치
+- `limitations`는 빈 문자열 불가
 - `confidence`는 `low`, `medium`, `high` 중 하나
 
 ## 14. 저장 포맷과 API 포맷의 관계

@@ -2,6 +2,10 @@
 사용자 정의 예외 클래스
 """
 
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
 
 class AISystemException(Exception):
     """기본 애플리케이션 예외"""
@@ -25,7 +29,19 @@ class RetrievalError(AISystemException):
 
 class GenerationError(AISystemException):
     """응답 생성 오류"""
-    pass
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "PROCESSING_ERROR",
+        retryable: bool = True,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+        self.details = details or {}
 
 
 class ValidationError(AISystemException):

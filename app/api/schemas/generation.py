@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -33,7 +33,7 @@ class Citation(BaseModel):
     """QA citation"""
 
     ref_id: int
-    doc_id: str
+    doc_id: Optional[str] = None
     chunk_id: str
     case_id: str
     snippet: str
@@ -75,15 +75,34 @@ class SearchTrace(BaseModel):
     retrieved_count: int
 
 
-class QAResponse(BaseModel):
-    """QA 응답"""
+class ErrorInfo(BaseModel):
+    """에러 정보"""
 
-    status: str = "ok"
+    code: str
+    message: str
+    retryable: bool
+    details: Optional[Dict[str, Any]] = None
+
+
+class QAResponse(BaseModel):
+    """QA 성공 응답"""
+
+    success: Literal[True] = True
     request_id: str
     timestamp: str
     answer: str
     citations: List[Citation]
-    confidence: str
+    confidence: Literal["low", "medium", "high"]
     limitations: str
     meta: MetaInfo
     qa_validation: QAValidation
+    search_trace: SearchTrace
+
+
+class QAErrorResponse(BaseModel):
+    """QA 실패 응답"""
+
+    success: Literal[False] = False
+    request_id: str
+    timestamp: str
+    error: ErrorInfo

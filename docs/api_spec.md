@@ -67,7 +67,10 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | `MODEL_NOT_READY` | LLM/임베딩 모델 사용 불가 |
 | `INDEX_NOT_READY` | 인덱스 미생성 또는 로드 실패 |
 | `PROCESSING_ERROR` | 내부 처리 실패 |
-| `JSON_PARSE_ERROR` | LLM 응답 파싱 실패 |
+| `PARSE_JSON_DECODE_ERROR` | LLM 응답 JSON 디코딩 실패 |
+| `PARSE_JSON_BLOCK_EXTRACTION_FAILED` | 응답에서 JSON 블록 추출 실패 |
+| `PARSE_SCHEMA_MISMATCH` | JSON 스키마 필수 필드 불일치 |
+| `PARSE_RETRY_EXHAUSTED` | 파싱 재시도(3회) 모두 실패 |
 | `RESOURCE_NOT_FOUND` | 대상 데이터 없음 |
 | `INTERNAL_SERVER_ERROR` | 예기치 못한 서버 오류 |
 
@@ -465,7 +468,7 @@ MVP 기준 두 가지 모드를 허용한다.
 
 ```json
 {
-  "status": "ok",
+  "success": true,
   "request_id": "REQ-20260317-AB12CD34",
   "timestamp": "2026-03-17T18:30:00+09:00",
   "answer": "이륜차 전도 위험이 높은 구간으로 확인됩니다. [[CITE:1]] 우천 후 노면 파손 재발 이력이 있습니다. [[CITE:2]]",
@@ -502,6 +505,10 @@ MVP 기준 두 가지 모드를 허용한다.
     "is_valid": true,
     "errors": [],
     "warnings": []
+  },
+  "search_trace": {
+    "used_top_k": 5,
+    "retrieved_count": 5
   }
 }
 ```
@@ -510,14 +517,17 @@ MVP 기준 두 가지 모드를 허용한다.
 
 ```json
 {
-  "status": "error",
+  "success": false,
   "request_id": "REQ-20260317-34EF56AA",
   "timestamp": "2026-03-17T18:35:00+09:00",
-  "error_code": "MODEL_TIMEOUT",
-  "message": "응답 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
-  "retryable": true,
-  "details": {
-    "fallback_stage": "context_reduced"
+  "error": {
+    "code": "PARSE_RETRY_EXHAUSTED",
+    "message": "모델 응답을 JSON으로 파싱하지 못했습니다.",
+    "retryable": true,
+    "details": {
+      "retry_count": 3,
+      "stage": "decode"
+    }
   }
 }
 ```
@@ -552,7 +562,7 @@ MVP 기준 두 가지 모드를 허용한다.
 - `answer` 내 `[[CITE:n]]` 토큰을 `[출처 n]` 배지로 치환
 - `citations.ref_id`와 토큰을 1:1 매핑
 - `meta.processing_time`, `meta.model`, `meta.validation_warning` 표시
-- `status=error` 시 상단 배너에 `message` 표시
+- `success=false` 시 상단 배너에 `error.message` 표시
 
 ## 12. 로깅 기준
 

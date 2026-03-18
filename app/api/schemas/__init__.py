@@ -2,6 +2,7 @@
 
 from app.api.schemas.generation import (
 	Citation,
+	QAErrorResponse,
 	QARequest,
 	QAResponse,
 	SearchInputResult,
@@ -24,6 +25,7 @@ __all__ = [
 	"IndexRecordResult",
 	"IndexRequest",
 	"IndexResponse",
+	"QAErrorResponse",
 	"QARequest",
 	"QAResponse",
 	"SearchFilters",
