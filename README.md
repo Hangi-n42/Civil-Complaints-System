@@ -94,7 +94,7 @@ AI-Civil-Affairs-Systems/
 └── requirements.txt        # 의존성
 ```
 
-자세한 구조는 [PRIORITY_1_COMPLETED.md](PRIORITY_1_COMPLETED.md) 참조.
+자세한 구조는 [docs/00_overview/folder_structure_draft.md](docs/00_overview/folder_structure_draft.md) 참조.
 
 ---
 
@@ -156,18 +156,18 @@ streamlit run app/ui/Home.py
 
 | 문서 | 설명 |
 |------|------|
-| [docs/prd_draft.md](docs/prd_draft.md) | 전체 프로젝트 명세 |
-| [docs/mvp_scope.md](docs/mvp_scope.md) | MVP 필수/권장/제외 기능 |
-| [docs/wbs_8weeks.md](docs/wbs_8weeks.md) | 8주 마일스톤 및 역할별 작업 |
-| [docs/api_spec.md](docs/api_spec.md) | API 엔드포인트 명세 |
-| [docs/schema_contract.md](docs/schema_contract.md) | 데이터 스키마 계약 |
-| [docs/folder_structure_draft.md](docs/folder_structure_draft.md) | 폴더 구조 설계 |
-| [docs/be1_manual.md](docs/be1_manual.md) | BE1 역할 매뉴얼 |
-| [docs/fe_manual.md](docs/fe_manual.md) | FE 역할 매뉴얼 |
-| [docs/be2_manual.md](docs/be2_manual.md) | BE2 역할 매뉴얼 |
-| [docs/be3_manual.md](docs/be3_manual.md) | BE3 역할 매뉴얼 |
-| [NEXT_TASKS.md](NEXT_TASKS.md) | 다음 우선순위 작업 |
-| [PRIORITY_1_COMPLETED.md](PRIORITY_1_COMPLETED.md) | Priority 1 완료 현황 |
+| [docs/00_overview/prd.md](docs/00_overview/prd.md) | 전체 프로젝트 명세 |
+| [docs/00_overview/mvp_scope.md](docs/00_overview/mvp_scope.md) | MVP 필수/권장/제외 기능 |
+| [docs/00_overview/wbs_8weeks_v2_updated.md](docs/00_overview/wbs_8weeks_v2_updated.md) | 8주 마일스톤 및 역할별 작업 |
+| [docs/10_contracts/api/api_spec.md](docs/10_contracts/api/api_spec.md) | API 엔드포인트 명세 |
+| [docs/10_contracts/schema/schema_contract.md](docs/10_contracts/schema/schema_contract.md) | 데이터 스키마 계약 |
+| [docs/00_overview/folder_structure_draft.md](docs/00_overview/folder_structure_draft.md) | 폴더 구조 설계 |
+| [docs/30_manuals/be1_manual.md](docs/30_manuals/be1_manual.md) | BE1 역할 매뉴얼 |
+| [docs/30_manuals/fe_manual.md](docs/30_manuals/fe_manual.md) | FE 역할 매뉴얼 |
+| [docs/30_manuals/be2_manual.md](docs/30_manuals/be2_manual.md) | BE2 역할 매뉴얼 |
+| [docs/30_manuals/be3_manual.md](docs/30_manuals/be3_manual.md) | BE3 역할 매뉴얼 |
+| [docs/README.md](docs/README.md) | 문서 인덱스 |
+| [docs/40_delivery/week1/README.md](docs/40_delivery/week1/README.md) | Week 1 완료 현황 |
 
 ---
 
