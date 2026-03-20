@@ -38,17 +38,16 @@ class StructuringService:
         """원천 데이터 필드를 합의된 내부 필드로 정규화한다."""
         metadata = raw.get("metadata", {}) if isinstance(raw.get("metadata"), dict) else {}
 
-        case_id = str(raw.get("case_id") or raw.get("source_id") or raw.get("id") or "").strip()
+        case_id = str(raw.get("case_id") or raw.get("id") or "").strip()
         if not case_id:
             case_id = f"AUTO-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
         source = str(raw.get("source") or metadata.get("source") or "unknown").strip() or "unknown"
 
-        created_at = str(
-            raw.get("created_at") or raw.get("consulting_date") or raw.get("submitted_at") or ""
+        created_at_raw = str(
+            raw.get("created_at") or raw.get("submitted_at") or ""
         ).strip()
-        if not created_at:
-            created_at = datetime.now().strftime("%Y%m%d")
+        created_at = self._normalize_created_at(created_at_raw)
 
         category = str(raw.get("category") or raw.get("consulting_category") or "unknown").strip() or "unknown"
         if category == "-":
@@ -56,7 +55,7 @@ class StructuringService:
 
         region = str(raw.get("region") or metadata.get("region") or "unknown").strip() or "unknown"
 
-        raw_text = str(raw.get("text") or raw.get("consulting_content") or "").strip()
+        raw_text = str(raw.get("text") or "").strip()
 
         normalized = {
             "case_id": case_id,
@@ -77,6 +76,22 @@ class StructuringService:
             "instructions": raw.get("instructions") if isinstance(raw.get("instructions"), list) else [],
         }
         return normalized
+
+    def _normalize_created_at(self, created_at: str) -> str:
+        value = (created_at or "").strip()
+        if not value:
+            return datetime.now().isoformat()
+
+        for fmt in ("%Y%m%d", "%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"):
+            try:
+                return datetime.strptime(value, fmt).isoformat()
+            except ValueError:
+                continue
+
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).isoformat()
+        except ValueError:
+            return datetime.now().isoformat()
 
     def _build_field(self, text: str, start: int, end: int, confidence: float) -> Dict[str, Any]:
         """4요소 공통 필드 객체 생성"""
@@ -108,21 +123,45 @@ class StructuringService:
         """
         try:
             self.logger.info(f"4요소 추출: {text[:50]}...")
+            clean_text = "\n".join(line.strip() for line in text.splitlines() if line.strip())
             q_match = re.search(r"Q\s*:\s*(.+?)(?:\n\s*A\s*:|$)", text, flags=re.DOTALL)
             a_match = re.search(r"A\s*:\s*(.+)$", text, flags=re.DOTALL)
 
-            question = (q_match.group(1).strip() if q_match else text[:600].strip())
+            question = (q_match.group(1).strip() if q_match else clean_text[:600].strip())
             answer = (a_match.group(1).strip() if a_match else "")
 
-            obs_text = question[:220]
-            req_text = question[-220:] if len(question) > 220 else question
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?。])\s+|\n", question) if s.strip()]
+            request_candidates = [
+                s
+                for s in sentences
+                if re.search(r"요청|부탁|조치|개선|점검|정비|수리|바랍니다|해주시", s)
+            ]
+
+            obs_text = sentences[0] if sentences else question[:220]
+            req_text = request_candidates[-1] if request_candidates else (sentences[-1] if sentences else question)
             res_text = answer[:220] if answer else "답변 본문 미제공"
 
             if "제목" in text:
                 title_line = text.splitlines()[0][:140]
                 ctx_text = title_line
             else:
-                ctx_text = text[:140]
+                context_candidates = [
+                    s
+                    for s in sentences
+                    if re.search(r"최근|지난|매일|주간|월간|년|월|일|시|구|동|읍|면|로|길", s)
+                ]
+                ctx_text = context_candidates[0] if context_candidates else clean_text[:140]
+
+            obs_text = re.sub(r"^\s*(제목\s*[:：]\s*)", "", obs_text).strip()
+            req_text = re.sub(r"^\s*(요청\s*[:：]\s*)", "", req_text).strip()
+            ctx_text = re.sub(r"^\s*(제목\s*[:：]\s*)", "", ctx_text).strip()
+
+            if not obs_text:
+                obs_text = clean_text[:160]
+            if not req_text:
+                req_text = clean_text[-160:] if clean_text else "요청 내용 확인 필요"
+            if not ctx_text:
+                ctx_text = clean_text[:120]
 
             obs_start = text.find(obs_text) if obs_text else 0
             req_start = text.find(req_text) if req_text else 0
@@ -203,6 +242,7 @@ class StructuringService:
             {"is_valid": bool, "errors": List[str]}
         """
         errors: List[str] = []
+        warnings: List[str] = []
         try:
             self.logger.debug(f"스키마 검증: {str(data)[:50]}...")
             required = [
@@ -231,15 +271,24 @@ class StructuringService:
                 span = field.get("evidence_span")
                 if not isinstance(span, list) or len(span) != 2:
                     errors.append(f"invalid_evidence_span:{field_name}")
+                elif any(not isinstance(v, int) for v in span):
+                    errors.append(f"invalid_evidence_span_type:{field_name}")
+
+                text_value = str(field.get("text") or "").strip()
+                if not text_value:
+                    warnings.append(f"empty_field:{field_name}")
 
             if not isinstance(data.get("entities", []), list):
                 errors.append("invalid_type:entities")
 
-            return {"is_valid": len(errors) == 0, "errors": errors}
+            if data.get("source") == "unknown":
+                warnings.append("source_is_unknown")
+
+            return {"is_valid": len(errors) == 0, "errors": errors, "warnings": warnings}
         except Exception as e:
             self.logger.error(f"스키마 검증 실패: {str(e)}")
             errors.append(f"exception:{str(e)}")
-            return {"is_valid": False, "errors": errors}
+            return {"is_valid": False, "errors": errors, "warnings": warnings}
 
     async def extract_supervision(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         """라벨링 데이터 instructions를 supervision 필드로 정규화한다."""
@@ -326,7 +375,7 @@ class StructuringService:
         """
         try:
             if isinstance(record, str):
-                raw_record: Dict[str, Any] = {"consulting_content": record}
+                raw_record: Dict[str, Any] = {"text": record}
             else:
                 raw_record = record
 
