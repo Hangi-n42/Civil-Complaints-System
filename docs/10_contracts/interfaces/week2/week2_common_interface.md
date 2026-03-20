@@ -1,6 +1,6 @@
 # Week 2 공통 인터페이스 규약
 
-문서 버전: v1.0-week2  
+문서 버전: v1.1-week2-freeze  
 작성일: 2026-03-19  
 적용 파트: FE, BE1, BE2, BE3
 
@@ -10,6 +10,9 @@
 - nullable 필드는 `null` 허용 여부를 명시한다.
 - 누락과 빈 문자열은 동일하게 취급하지 않는다.
 - 모든 API 응답은 UTF-8 JSON으로 고정한다.
+- Week2 표준 성공 응답은 `success`, `request_id`, `timestamp`, `data`를 사용한다.
+- Week2 표준 실패 응답은 `success`, `request_id`, `timestamp`, `error`를 사용한다.
+- `error` 객체는 `code`, `message`, `retryable`를 필수로 포함한다.
 
 ## 2) 표준 객체명 (고정)
 
@@ -26,6 +29,10 @@
 - `case_id` (string)
 - `source` (string)
 - `created_at` (string, ISO-8601)
+
+단계별 규칙:
+- 입력 단계: `source` 누락 허용, `created_at` 원천 포맷 허용
+- 내부 저장/API 출력: `source` 필수(누락 시 `unknown` 보정), `created_at` ISO-8601 강제
 
 구조화 필드:
 - `observation` (`FieldExtraction`)
@@ -77,3 +84,4 @@
 - 1차: 공통 문서(`week2_common_interface.md`) 기준 적용
 - 2차: 파트 문서의 입출력 계약 적용
 - 3차: 분쟁 발생 시 BE1(데이터 계약 오너) + BE3(API 계약 오너) 합의 후 문서 우선 수정
+- Week2 기간에는 본 문서 규약이 `schema_contract.md`, `api_spec.md`보다 우선한다.

@@ -63,6 +63,7 @@
 
 ## 5) BE1 완료 체크
 
-- [ ] 필수 3필드(`case_id`, `source`, `created_at`) 누락률 0%
+- [ ] 입력(`CivilCaseInput`)에서 `source` 누락 허용 처리 확인
+- [ ] 출력(`StructuredCivilCase`)에서 `source` 누락률 0%(누락 시 `unknown` 보정)
 - [ ] 4요소 키 이름 고정(축약/별칭 없음)
 - [ ] `validation` 객체 항상 포함

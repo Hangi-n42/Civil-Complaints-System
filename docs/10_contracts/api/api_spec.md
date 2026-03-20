@@ -4,6 +4,12 @@
 기준 문서: [PRD](../../00_overview/prd.md), [MVP 범위 문서](../../00_overview/mvp_scope.md), [폴더 구조 초안](../../00_overview/folder_structure_draft.md)  
 작성일: 2026-03-11
 
+## 0. Week2 우선 적용 규칙 (Contract Freeze)
+
+- Week2 구현/검증 시 `docs/10_contracts/interfaces/week2/*` 문서를 최우선으로 적용한다.
+- 본 문서와 충돌하면 Week2 공통 규약을 우선한다.
+- 본 문서는 Week2 이후 확장(API 범위 전체) 시 기준 문서로 유지한다.
+
 ## 1. 문서 목적
 
 본 문서는 프론트엔드, 백엔드, 평가 파이프라인이 동일한 인터페이스를 기준으로 개발할 수 있도록 API 계약을 정의한다.  
@@ -31,26 +37,28 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 
 ### 3.1 공통 성공 응답 원칙
 
-각 엔드포인트는 도메인 데이터 외에 아래 메타 정보를 포함할 수 있다.
+각 엔드포인트는 아래 공통 래퍼를 사용한다.
 
 ```json
 {
   "success": true,
-  "message": "요청이 정상 처리되었습니다.",
+  "request_id": "REQ-20260320-AB12CD34",
+  "timestamp": "2026-03-20T10:00:00+09:00",
   "data": {}
 }
 ```
-
-단, 응답 본문이 복잡한 경우 `data`를 생략하고 도메인 필드를 최상위에 둘 수 있다. MVP 단계에서는 FE 구현 단순화를 위해 **도메인 필드를 최상위에 두는 방식**을 우선한다.
 
 ### 3.2 공통 에러 응답 형식
 
 ```json
 {
   "success": false,
+  "request_id": "REQ-20260320-EF56GH78",
+  "timestamp": "2026-03-20T10:00:01+09:00",
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "요청 본문 형식이 올바르지 않습니다.",
+    "retryable": false,
     "details": {
       "field": "created_at"
     }
@@ -70,7 +78,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | `PARSE_JSON_DECODE_ERROR` | LLM 응답 JSON 디코딩 실패 |
 | `PARSE_JSON_BLOCK_EXTRACTION_FAILED` | 응답에서 JSON 블록 추출 실패 |
 | `PARSE_SCHEMA_MISMATCH` | JSON 스키마 필수 필드 불일치 |
-| `PARSE_RETRY_EXHAUSTED` | 파싱 재시도(3회) 모두 실패 |
+| `PARSE_RETRY_EXHAUSTED` | 파싱 재시도(3회) 모두 실패 (retryable=false) |
 | `RESOURCE_NOT_FOUND` | 대상 데이터 없음 |
 | `INTERNAL_SERVER_ERROR` | 예기치 못한 서버 오류 |
 
@@ -96,23 +104,28 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 
 ### 요청
 - 바디 없음
+- 호환 경로: `/health` (legacy alias)
 
 ### 성공 응답 예시
 
 ```json
 {
-  "status": "ok",
+  "success": true,
+  "request_id": "REQ-20260320-AB12CD34",
   "timestamp": "2026-03-11T14:30:00+09:00",
-  "services": {
-    "api": "up",
-    "embedding_model": "ready",
-    "llm": "ready",
-    "vector_store": "ready"
-  },
-  "index": {
-    "is_ready": true,
-    "document_count": 523,
-    "last_updated_at": "2026-03-11T13:20:00+09:00"
+  "data": {
+    "status": "ok",
+    "services": {
+      "api": "up",
+      "embedding_model": "ready",
+      "llm": "ready",
+      "vector_store": "ready"
+    },
+    "index": {
+      "is_ready": true,
+      "document_count": 523,
+      "last_updated_at": "2026-03-11T13:20:00+09:00"
+    }
   }
 }
 ```
@@ -138,7 +151,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 ```json
 {
   "source_type": "manual",
-  "source_name": "demo_input",
+  "source": "demo_input",
   "mask_pii": true,
   "deduplicate": true,
   "records": [
@@ -158,7 +171,7 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `source_type` | string | Y | `manual`, `csv`, `json` |
-| `source_name` | string | Y | 업로드 소스 이름 |
+| `source` | string | Y | 업로드 소스 이름 |
 | `mask_pii` | boolean | N | 개인정보 마스킹 여부 |
 | `deduplicate` | boolean | N | 중복 탐지 여부 |
 | `records` | array | Y | 민원 레코드 목록 |
@@ -173,17 +186,21 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 ```json
 {
   "success": true,
-  "ingested_count": 1,
-  "skipped_count": 0,
-  "mask_pii": true,
-  "deduplicate": true,
-  "records": [
-    {
-      "case_id": "CASE-2026-000123",
-      "status": "accepted",
-      "normalized_text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다. 야간 보행 시 위험합니다. LED 교체를 요청합니다. 최근 2주간 매일 저녁 8시 이후 발생합니다."
-    }
-  ]
+  "request_id": "REQ-20260320-AB12CD34",
+  "timestamp": "2026-03-20T10:00:00+09:00",
+  "data": {
+    "ingested_count": 1,
+    "skipped_count": 0,
+    "mask_pii": true,
+    "deduplicate": true,
+    "records": [
+      {
+        "case_id": "CASE-2026-000123",
+        "status": "accepted",
+        "normalized_text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다. 야간 보행 시 위험합니다. LED 교체를 요청합니다. 최근 2주간 매일 저녁 8시 이후 발생합니다."
+      }
+    ]
+  }
 }
 ```
 
@@ -523,7 +540,7 @@ MVP 기준 두 가지 모드를 허용한다.
   "error": {
     "code": "PARSE_RETRY_EXHAUSTED",
     "message": "모델 응답을 JSON으로 파싱하지 못했습니다.",
-    "retryable": true,
+    "retryable": false,
     "details": {
       "retry_count": 3,
       "stage": "decode"

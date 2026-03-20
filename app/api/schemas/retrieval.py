@@ -53,10 +53,9 @@ class IndexRecordResult(BaseModel):
     chunk_ids: List[str]
 
 
-class IndexResponse(BaseModel):
-    """인덱싱 응답"""
+class IndexResponseData(BaseModel):
+    """인덱싱 응답 데이터"""
 
-    success: bool = True
     indexed_count: int
     chunk_count: int
     index_name: str
@@ -103,12 +102,29 @@ class SearchResultItem(BaseModel):
     metadata: SearchResultMetadata
 
 
-class SearchResponse(BaseModel):
-    """검색 응답"""
+class SearchResponseData(BaseModel):
+    """검색 응답 데이터"""
 
-    success: bool = True
     query: str
     top_k: int
     results: List[SearchResultItem]
     count: int
     took_ms: int
+
+
+class IndexResponse(BaseModel):
+    """인덱싱 성공 응답"""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: IndexResponseData
+
+
+class SearchResponse(BaseModel):
+    """검색 성공 응답"""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: SearchResponseData

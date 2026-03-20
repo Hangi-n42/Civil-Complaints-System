@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from time import perf_counter
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from app.api.error_utils import error_response, make_request_id, now_iso
 from app.api.schemas.retrieval import (
     IndexRequest,
     IndexResponse,
+    IndexResponseData,
     SearchRequest,
     SearchResponse,
+    SearchResponseData,
 )
 from app.core.exceptions import RetrievalError
 from app.retrieval.service import get_retrieval_service
@@ -21,13 +24,14 @@ router = APIRouter(prefix="/api/v1", tags=["retrieval"])
 @router.post("/index", response_model=IndexResponse)
 async def index_documents(request: IndexRequest) -> IndexResponse:
     """구조화 레코드를 인덱싱한다."""
+    request_id = make_request_id()
+
     if not request.records:
-        raise HTTPException(
+        return error_response(
+            request_id=request_id,
+            error_code="BAD_REQUEST",
+            message="records는 최소 1건 이상이어야 합니다.",
             status_code=400,
-            detail={
-                "code": "BAD_REQUEST",
-                "message": "records는 최소 1건 이상이어야 합니다.",
-            },
         )
 
     start = perf_counter()
@@ -39,28 +43,33 @@ async def index_documents(request: IndexRequest) -> IndexResponse:
             rebuild=request.rebuild,
         )
     except RetrievalError as e:
-        raise HTTPException(
+        return error_response(
+            request_id=request_id,
+            error_code="PROCESSING_ERROR",
+            message=str(e),
             status_code=500,
-            detail={
-                "code": "PROCESSING_ERROR",
-                "message": str(e),
-            },
-        ) from e
+        )
 
     took_ms = int((perf_counter() - start) * 1000)
-    return IndexResponse(took_ms=took_ms, **result)
+    data = IndexResponseData(took_ms=took_ms, **result)
+    return IndexResponse(
+        request_id=request_id,
+        timestamp=now_iso(),
+        data=data,
+    )
 
 
 @router.post("/search", response_model=SearchResponse)
 async def search_documents(request: SearchRequest) -> SearchResponse:
     """메타데이터 필터 기반 시맨틱 검색."""
+    request_id = make_request_id()
+
     if not request.query.strip():
-        raise HTTPException(
+        return error_response(
+            request_id=request_id,
+            error_code="BAD_REQUEST",
+            message="query는 비어 있을 수 없습니다.",
             status_code=400,
-            detail={
-                "code": "BAD_REQUEST",
-                "message": "query는 비어 있을 수 없습니다.",
-            },
         )
 
     start = perf_counter()
@@ -74,19 +83,23 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             filters=filters,
         )
     except RetrievalError as e:
-        raise HTTPException(
+        return error_response(
+            request_id=request_id,
+            error_code="INDEX_NOT_READY",
+            message=str(e),
             status_code=503,
-            detail={
-                "code": "INDEX_NOT_READY",
-                "message": str(e),
-            },
-        ) from e
+        )
 
     took_ms = int((perf_counter() - start) * 1000)
-    return SearchResponse(
+    data = SearchResponseData(
         query=request.query,
         top_k=request.top_k,
         results=results,
         count=len(results),
         took_ms=took_ms,
+    )
+    return SearchResponse(
+        request_id=request_id,
+        timestamp=now_iso(),
+        data=data,
     )

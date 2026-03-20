@@ -4,6 +4,12 @@
 기준 문서: [PRD](../../00_overview/prd.md), [MVP 범위 문서](../../00_overview/mvp_scope.md), [API 명세서](../api/api_spec.md)  
 작성일: 2026-03-11
 
+## 0. Week2 Contract Override
+
+- Week2 구현 및 검증 단계에서는 `docs/10_contracts/interfaces/week2/*`를 최우선 기준으로 적용한다.
+- 입력 단계는 원천 데이터 호환을 위해 일부 필드를 유연 허용한다.
+- 내부 저장 및 API 출력 단계는 필수 필드와 포맷을 엄격 적용한다.
+
 ## 1. 문서 목적
 
 본 문서는 프로젝트 전반에서 사용되는 핵심 데이터 구조의 계약을 정의한다.  
@@ -54,8 +60,8 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `case_id` | string | Y | 민원 고유 식별자 |
-| `source` | string | N | 데이터 출처 |
-| `created_at` | string(datetime) | Y | 생성 시각 |
+| `source` | string | N | ingest 입력에서는 선택 허용, 저장/출력 전 `unknown` 보정 |
+| `created_at` | string(datetime) | Y | ingest 입력은 원천 포맷 허용, 저장/출력은 ISO-8601 강제 |
 | `category` | string | N | 민원 분류 |
 | `region` | string | N | 행정 구역 |
 | `text` | string | Y | 원문 텍스트 |
@@ -288,9 +294,11 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `rank` | integer | Y | 검색 순위 |
+| `doc_id` | string | Y | 문서 식별자 |
 | `score` | number | Y | 유사도 점수 |
 | `chunk_id` | string | Y | 청크 식별자 |
 | `case_id` | string | Y | 민원 식별자 |
+| `title` | string | Y | 검색 카드 제목 |
 | `snippet` | string | Y | 근거 미리보기 |
 | `summary` | object | N | FE 표시용 요약 |
 | `metadata` | object | Y | 필터/표시용 메타데이터 |
@@ -555,7 +563,7 @@
 | --- | --- | --- |
 | `source_id` | `case_id` | 문자열 유지 |
 | `source` | `source` | 공백/누락 시 `unknown` |
-| `consulting_date` | `created_at` | 원문 `YYYYMMDD` 유지 |
+| `consulting_date` | `created_at` | ingest에서 수용 후 내부 저장/API 출력은 ISO-8601 변환 |
 | `consulting_category` | `category` | `-`는 `unknown` |
 | `consulting_content` | `raw_text` | 원문 보존 |
 
@@ -570,7 +578,7 @@
 {
   "case_id": "000022",
   "source": "서울시",
-  "created_at": "20240709",
+  "created_at": "2024-07-09T00:00:00+09:00",
   "category": "재난안전",
   "region": "unknown",
   "raw_text": "제목 : 한가람로 풍납동까지 연결해 주세요...",

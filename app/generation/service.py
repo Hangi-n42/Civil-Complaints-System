@@ -386,7 +386,7 @@ class GenerationService:
                 raise GenerationError(
                     "모델 응답을 JSON으로 파싱하지 못했습니다.",
                     code="PARSE_RETRY_EXHAUSTED",
-                    retryable=True,
+                    retryable=False,
                     details={
                         "retry_count": len(retry_steps),
                         "stage": "decode",

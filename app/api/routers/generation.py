@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import re
 from time import perf_counter
 from typing import Any, Dict, List, Set
-from uuid import uuid4
 
 from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 
+from app.api.error_utils import error_response, make_request_id, now_iso
 from app.api.schemas.generation import QARequest, QAResponse
 from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
@@ -21,26 +20,6 @@ router = APIRouter(prefix="/api/v1", tags=["generation"])
 
 CONTRACT_VERSION = "qa-v1.1"
 _CITE_TOKEN_PATTERN = re.compile(r"\[\[CITE:(\d+)\]\]")
-
-_ERROR_STATUS_MAP = {
-    "BAD_REQUEST": 400,
-    "INDEX_NOT_READY": 503,
-    "MODEL_TIMEOUT": 504,
-    "OOM_DETECTED": 503,
-    "PARSE_SCHEMA_MISMATCH": 422,
-    "PARSE_JSON_DECODE_ERROR": 500,
-    "PARSE_JSON_BLOCK_EXTRACTION_FAILED": 500,
-    "PARSE_RETRY_EXHAUSTED": 500,
-    "PROCESSING_ERROR": 500,
-}
-
-
-def _request_id() -> str:
-    return f"REQ-{datetime.now().strftime('%Y%m%d')}-{uuid4().hex[:8].upper()}"
-
-
-def _now_iso() -> str:
-    return datetime.now().astimezone().isoformat()
 
 
 def _confidence_label(value: Any) -> str:
@@ -56,10 +35,6 @@ def _confidence_label(value: Any) -> str:
     return "low"
 
 
-def _status_code_for_error(error_code: str) -> int:
-    return _ERROR_STATUS_MAP.get(error_code, 500)
-
-
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value)
@@ -69,35 +44,6 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 def _extract_citation_tokens(answer: str) -> Set[int]:
     return {int(match) for match in _CITE_TOKEN_PATTERN.findall(answer or "")}
-
-
-def _error_response(
-    *,
-    request_id: str,
-    error_code: str,
-    message: str,
-    retryable: bool,
-    status_code: int | None = None,
-    details: Dict[str, Any] | None = None,
-) -> JSONResponse:
-    payload: Dict[str, Any] = {
-        "success": False,
-        "request_id": request_id,
-        "timestamp": _now_iso(),
-        "error": {
-            "code": error_code,
-            "message": message,
-            "retryable": retryable,
-        },
-    }
-    if details:
-        payload["error"]["details"] = details
-
-    return JSONResponse(
-        status_code=status_code or _status_code_for_error(error_code),
-        content=payload,
-        headers={"X-Contract-Version": CONTRACT_VERSION},
-    )
 
 
 def _normalize_citations(
@@ -280,15 +226,16 @@ def _build_validation_result(
 @router.post("/qa", response_model=QAResponse)
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
-    request_id = _request_id()
+    request_id = make_request_id()
     response.headers["X-Contract-Version"] = CONTRACT_VERSION
 
     if not request.query.strip():
-        return _error_response(
+        return error_response(
             request_id=request_id,
             error_code="BAD_REQUEST",
             message="질문(query)은 비어 있을 수 없습니다.",
             retryable=False,
+            headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
     start = perf_counter()
@@ -306,12 +253,13 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 filters=filters,
             )
     except RetrievalError as e:
-        return _error_response(
+        return error_response(
             request_id=request_id,
             error_code="INDEX_NOT_READY",
             message="검색 인덱스가 준비되지 않았습니다. 인덱싱 후 다시 시도해주세요.",
             retryable=True,
             details={"reason": str(e)},
+            headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
     try:
@@ -337,12 +285,13 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         if error_code == "PARSE_RETRY_EXHAUSTED" and not message.strip():
             message = "모델 응답을 JSON으로 안정적으로 파싱하지 못했습니다."
 
-        return _error_response(
+        return error_response(
             request_id=request_id,
             error_code=error_code,
             message=message,
             retryable=retryable,
             details=details,
+            headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
     took_ms = int((perf_counter() - start) * 1000)
@@ -358,12 +307,13 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     )
 
     if not validation["is_valid"]:
-        return _error_response(
+        return error_response(
             request_id=request_id,
             error_code="PARSE_SCHEMA_MISMATCH",
             message="생성 응답 검증에 실패했습니다.",
             retryable=False,
             details={"validation_errors": validation["errors"]},
+            headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
     used_top_k = len(context) if request.use_search_results and request.search_results else request.top_k
@@ -371,7 +321,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     return QAResponse(
         success=True,
         request_id=request_id,
-        timestamp=_now_iso(),
+        timestamp=now_iso(),
         answer=answer,
         citations=citations,
         confidence=confidence,
@@ -380,7 +330,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             "processing_time": round(took_ms / 1000, 2),
             "model": str(result.get("model", settings.OLLAMA_MODEL)),
             "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다.",
-            "generated_at": _now_iso(),
+            "generated_at": now_iso(),
             "validator_version": "be3-val-v0.1",
         },
         qa_validation=validation,

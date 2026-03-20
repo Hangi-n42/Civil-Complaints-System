@@ -54,6 +54,13 @@ async def health_check():
     }
 
 
+# 버전 헬스 체크 엔드포인트 (contract alias)
+@app.get("/api/v1/health")
+async def health_check_v1():
+    """API v1 상태 확인"""
+    return await health_check()
+
+
 # 루트 엔드포인트
 @app.get("/")
 async def root():
@@ -64,7 +71,8 @@ async def root():
         "version": settings.API_VERSION,
         "docs_url": "/docs",
         "endpoints": {
-            "health": "/health",
+            "health": "/api/v1/health",
+            "health_legacy": "/health",
             "ingest": "/api/v1/ingest",
             "structure": "/api/v1/structure",
             "index": "/api/v1/index",

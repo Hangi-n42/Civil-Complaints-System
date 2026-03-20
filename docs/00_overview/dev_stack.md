@@ -1,7 +1,8 @@
 # 개발 기술 스택 가이드 (dev_stack)
 
-문서 버전: v1.0  
+문서 버전: v1.1  
 작성일: 2026-03-11  
+최신화: 2026-03-20 (ChromaDB/LangChain 계열 버전 상향 반영)  
 대상 프로젝트: AI Civil Affairs Systems (Python 3.11.9)
 
 ---
@@ -45,13 +46,16 @@
 - pydantic==2.11.7
 - pydantic-settings==2.10.1
 - streamlit==1.44.1
-- chromadb==0.5.23
+- chromadb==1.5.5
 - sentence-transformers==3.4.1
 - torch==2.5.1
 - transformers==4.46.3
 - tokenizers==0.20.3
 - ollama==0.6.1
-- langchain==0.3.23
+- langchain==1.0.0
+- langchain-chroma==1.1.0
+- langchain-core==1.2.20
+- langchain-text-splitters==1.0.0
 - pandas==2.2.3
 - numpy==1.26.4
 - pyyaml==6.0.2
@@ -65,7 +69,7 @@
 - mypy==1.15.0
 - python-dotenv==1.0.1
 
-> 참고: Python 3.11.9 환경에서 실제 설치/스모크 검증 완료된 조합입니다.
+> 참고: Python 3.11.9 환경에서 `pip install --dry-run -r requirements.txt` 기준 의존성 해석 검증을 완료한 조합입니다.
 
 ---
 

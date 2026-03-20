@@ -349,7 +349,7 @@
 
 ## 11. 기술 스택 확정안
 
-### 11.1 최종 확정 스택 (2026-03-17 기준)
+### 11.1 최종 확정 스택 (2026-03-20 기준)
 
 | 영역 | 최종 확정 | 버전/모델 | 확정 이유 |
 | --- | --- | --- | --- |
@@ -358,21 +358,22 @@
 | LLM 모델 | Qwen2.5 Instruct | `qwen2.5:7b-instruct` (기본), `qwen2.5:3b-instruct` (OOM 폴백) | 한국어 성능-속도 균형, 4-bit 양자화 운용 용이 |
 | 구조화/NLP | Transformers + Prompt | `transformers==4.46.3` | 기존 코드/파이프라인과 안정 호환 |
 | 임베딩 | BGE-m3 (sentence-transformers) | `sentence-transformers==3.4.1`, `torch==2.5.1` | 한국어 포함 멀티링구얼 검색 성능, 구현 복잡도 낮음 |
-| Vector DB | ChromaDB | `chromadb==0.5.23` | 로컬 영속화 + 메타데이터 필터 + 운영 단순성 |
+| Vector DB | ChromaDB | `chromadb==1.5.5` | 로컬 영속화 + 메타데이터 필터 + 운영 단순성 |
+| RAG 오케스트레이션 | LangChain + LangChain-Chroma | `langchain==1.0.0`, `langchain-core==1.2.20`, `langchain-text-splitters==1.0.0`, `langchain-chroma==1.1.0` | Chroma 연동 패키지 분리 구조를 반영해 검색/생성 체인 결합 안정성 확보 |
 | API | FastAPI + Uvicorn | `fastapi==0.115.12`, `uvicorn==0.35.0` | 스키마 기반 개발 생산성, 테스트/문서화 유리 |
 | UI | Streamlit | `streamlit==1.44.1` | 8주 일정에서 데모 구현 속도 최적 |
 
 ### 11.2 최신 버전 확인 및 호환성 검증 결과
 
-- 확인 일자: 2026-03-17
+- 확인 일자: 2026-03-20
 - 확인 방법:
 	- PyPI 최신 버전 조회(핵심 패키지)
 	- `pip install --dry-run -r requirements.txt`로 Python 3.11.9 의존성 해석 검증
 	- `winget show Ollama.Ollama`로 Ollama 최신 버전 확인
 - 결과 요약:
-	- 최신 버전은 다수 존재하나(`fastapi 0.135.1`, `streamlit 1.55.0`, `chromadb 1.5.5`, `langchain 1.2.12` 등), 메이저/마이너 점프 시 API 변경 리스크가 큼
-	- 현재 고정 조합(`requirements.txt`)은 Python 3.11.9에서 충돌 없이 해석됨(드라이런 성공)
-	- 따라서 본 프로젝트는 "최신"보다 "검증된 호환 조합"을 우선 채택
+  - `chromadb==1.5.5`, `langchain==1.0.0`, `langchain-core==1.2.20`, `langchain-text-splitters==1.0.0`, `langchain-chroma==1.1.0` 조합으로 상향
+  - `pip install --dry-run -r requirements.txt` 기준 Python 3.11.9에서 의존성 충돌 없이 해석됨
+  - 프로젝트 원칙은 동일하게 유지: "무조건 최신"이 아니라 "검증된 호환 조합" 우선
 
 ### 11.3 비용 최소화 기준의 최종 의사결정
 
