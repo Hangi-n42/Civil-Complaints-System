@@ -2,6 +2,7 @@
 
 기준일: 2026-03-19  
 라벨: `week2`
+문서 버전 변경 로그: 2026-03-20 `week2_common_interface.md` v1.2, `week2_be1_interface.md` v1.1로 코드 정합 반영
 
 ## 1) 상태 요약
 
@@ -83,3 +84,7 @@
 - BE2: `docs/10_contracts/interfaces/week2/week2_be2_interface.md`
 - BE3: `docs/10_contracts/interfaces/week2/week2_be3_interface.md`
 - FE: `docs/10_contracts/interfaces/week2/week2_fe_interface.md`
+
+## 7) Week 2 BE1 점검 산출물
+
+- BE1 이슈 체크리스트 diff 점검: `docs/40_delivery/week2/be1_diff_checklist.md`

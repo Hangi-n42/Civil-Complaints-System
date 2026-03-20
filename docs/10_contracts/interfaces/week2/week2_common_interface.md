@@ -1,7 +1,8 @@
 # Week 2 공통 인터페이스 규약
 
-문서 버전: v1.1-week2-freeze  
+문서 버전: v1.2-week2-aligned  
 작성일: 2026-03-19  
+최신화: 2026-03-20 (StructuredCivilCase 확장 필드 반영)  
 적용 파트: FE, BE1, BE2, BE3
 
 ## 1) 공통 원칙
@@ -42,6 +43,12 @@
 - `entities` (`Entity[]`)
 - `validation` (`ValidationResult`)
 
+`StructuredCivilCase` 확장 필드 (Week2 운영 허용):
+- `metadata` (object, required)
+- `supervision` (object, optional)
+- `confidence_score` (number, 0~1, required)
+- `structured_at` (string, ISO-8601, required)
+
 ## 4) 표준 타입 규약
 
 `FieldExtraction`:
@@ -67,6 +74,28 @@
   "is_valid": true,
   "errors": [],
   "warnings": []
+}
+```
+
+`StructuredCivilCase` 확장 필드 타입:
+```json
+{
+  "metadata": {
+    "source_id": "string",
+    "consulting_category": "string",
+    "consulting_turns": 0,
+    "consulting_length": 0,
+    "client_gender": "string",
+    "client_age": "string",
+    "source_file": "string"
+  },
+  "supervision": {
+    "classification": {"task_category": "string", "instruction": "string", "input": "string", "output": "string"},
+    "summary": {"task_category": "string", "instruction": "string", "input": "string", "output": "string"},
+    "qa": [{"task_category": "string", "instruction": "string", "question": "string", "answer": "string"}]
+  },
+  "confidence_score": 0.0,
+  "structured_at": "2026-03-20T15:21:04+09:00"
 }
 ```
 
