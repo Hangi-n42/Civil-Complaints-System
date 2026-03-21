@@ -1,4 +1,9 @@
+import html
+import json
+import re
 import time
+from urllib import error as urlerror
+from urllib import request as urlrequest
 
 import streamlit as st
 
@@ -338,16 +343,171 @@ SCENARIOS = {
     },
 }
 
+ALLOWED_ENTITY_LABELS = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
+ENTITY_LABEL_FALLBACK_MAP = {
+    "TYPE": "HAZARD",
+    "RISK": "HAZARD",
+    "DATE": "TIME",
+    "PLACE": "LOCATION",
+    "AREA": "ADMIN_UNIT",
+}
+
+
+def parse_entity_item(entity_item: str) -> tuple[str, str]:
+    label, _, text = entity_item.partition(":")
+    return label.strip(), text.strip()
+
+
+def normalize_entity_label(raw_label: str) -> tuple[str, str | None]:
+    upper_label = raw_label.strip().upper()
+    mapped_label = ENTITY_LABEL_FALLBACK_MAP.get(upper_label, upper_label)
+
+    if mapped_label in ALLOWED_ENTITY_LABELS:
+        if mapped_label != upper_label:
+            return mapped_label, f"[ENTITY_LABEL] {upper_label} -> {mapped_label} 정규화"
+        return mapped_label, None
+
+    return "HAZARD", f"[ENTITY_LABEL] {upper_label} -> HAZARD 강제 매핑"
+
+
+def get_entity_badge_color(label: str) -> tuple[str, str]:
+    palette = {
+        "LOCATION": ("#dbeafe", "#1e40af"),
+        "TIME": ("#fef3c7", "#92400e"),
+        "FACILITY": ("#e0e7ff", "#3730a3"),
+        "HAZARD": ("#fee2e2", "#991b1b"),
+        "ADMIN_UNIT": ("#dcfce7", "#166534"),
+    }
+    return palette.get(label, ("#f1f5f9", "#334155"))
+
 
 def reset_outputs() -> None:
     st.session_state.struct_done = False
     st.session_state.search_done = False
     st.session_state.chat_history = []
+    st.session_state.ingest_state = "idle"
+    st.session_state.ingest_payload = {}
+    st.session_state.ingest_error = {}
 
 
 def push_status(kind: str, message: str) -> None:
     st.session_state.status_kind = kind
     st.session_state.status_message = message
+
+
+def post_json(base_url: str, path: str, payload: dict, timeout: float = 15.0) -> tuple[dict, int, str | None]:
+    url = f"{base_url.rstrip('/')}{path}"
+    req = urlrequest.Request(
+        url,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urlrequest.urlopen(req, timeout=timeout) as response:
+            body = response.read().decode("utf-8")
+            parsed = json.loads(body) if body else {}
+            return parsed, int(response.status), None
+    except urlerror.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else ""
+        try:
+            parsed = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            parsed = {}
+        return parsed, int(getattr(e, "code", 500)), str(e)
+    except (urlerror.URLError, TimeoutError, json.JSONDecodeError) as e:
+        return {}, 0, str(e)
+
+
+def render_answer_with_citations(answer: str, citations: list[dict]) -> str:
+    citation_map: dict[int, dict] = {}
+    for citation in citations:
+        try:
+            ref_id = int(citation.get("ref_id", 0))
+        except (TypeError, ValueError):
+            continue
+        citation_map[ref_id] = citation
+
+    def _replace(match: re.Match[str]) -> str:
+        ref_id = int(match.group(1))
+        snippet = str(citation_map.get(ref_id, {}).get("snippet", "근거 스니펫 없음"))
+        hover = html.escape(snippet, quote=True)
+        return f"<span class='cit' title='{hover}'>[출처 {ref_id}]</span>"
+
+    return re.sub(r"\[\[CITE:(\d+)\]\]", _replace, answer or "")
+
+
+def build_structure_success_payload(scenario_key: str, source_text: str) -> dict:
+    curr = SCENARIOS[scenario_key]
+    s = curr["struct"]
+    normalized_entities = []
+    label_warnings = []
+
+    for entity_item, _, _ in curr["entities"]:
+        raw_label, text = parse_entity_item(entity_item)
+        normalized_label, warning = normalize_entity_label(raw_label)
+        normalized_entities.append({"label": normalized_label, "text": text})
+        if warning:
+            label_warnings.append(warning)
+
+    return {
+        "success": True,
+        "request_id": "REQ-20260320-AB12CD34",
+        "timestamp": "2026-03-20T10:00:00+09:00",
+        "data": {
+            "results": [
+                {
+                    "case_id": "CASE-2026-DEMO-001",
+                    "source": "demo_input",
+                    "created_at": "2026-03-20T10:00:00+09:00",
+                    "observation": {
+                        "text": s["관찰"],
+                        "confidence": 0.91,
+                        "evidence_span": [0, min(40, len(source_text))],
+                    },
+                    "result": {
+                        "text": s["결과"],
+                        "confidence": 0.87,
+                        "evidence_span": [41, min(90, len(source_text))],
+                    },
+                    "request": {
+                        "text": s["요청"],
+                        "confidence": 0.93,
+                        "evidence_span": [91, min(140, len(source_text))],
+                    },
+                    "context": {
+                        "text": s["맥락"],
+                        "confidence": 0.84,
+                        "evidence_span": [141, min(190, len(source_text))],
+                    },
+                    "entities": normalized_entities,
+                    "validation": {
+                        "is_valid": True,
+                        "errors": [],
+                        "warnings": ["context confidence가 0.85 미만입니다."] + label_warnings,
+                    },
+                }
+            ]
+        },
+    }
+
+
+def build_structure_error_payload() -> dict:
+    return {
+        "success": False,
+        "request_id": "REQ-20260320-EF56GH78",
+        "timestamp": "2026-03-20T10:00:01+09:00",
+        "error": {
+            "code": "VALIDATION_ERROR",
+            "message": "요청 본문 형식이 올바르지 않습니다.",
+            "retryable": False,
+            "details": {
+                "field": "created_at",
+                "reason": "ISO-8601 datetime 형식 불일치",
+            },
+        },
+    }
 
 
 if "view" not in st.session_state:
@@ -364,6 +524,20 @@ if "status_kind" not in st.session_state:
     st.session_state.status_kind = ""
 if "status_message" not in st.session_state:
     st.session_state.status_message = ""
+if "ingest_state" not in st.session_state:
+    st.session_state.ingest_state = "idle"
+if "ingest_payload" not in st.session_state:
+    st.session_state.ingest_payload = {}
+if "ingest_error" not in st.session_state:
+    st.session_state.ingest_error = {}
+if "use_be_mode" not in st.session_state:
+    st.session_state.use_be_mode = False
+if "api_base_url" not in st.session_state:
+    st.session_state.api_base_url = "http://localhost:8000"
+if "search_api_results" not in st.session_state:
+    st.session_state.search_api_results = []
+if "qa_last_response" not in st.session_state:
+    st.session_state.qa_last_response = {}
 
 
 with st.sidebar:
@@ -426,21 +600,95 @@ if st.session_state.view == "📊 관리자 대시보드":
 elif st.session_state.view == "📝 데이터 적재":
     st.markdown("## 신규 민원 데이터 적재 및 구조화")
     raw_text = st.text_area("원본 텍스트 입력", value=curr_data["raw"], height=120)
-    if st.button("구조화 분석 및 DB 적재 실행", type="primary", use_container_width=True):
-        st.markdown('<div class="status-loading">AI가 텍스트를 분석하여 4요소 및 엔티티를 추출 중입니다...</div>', unsafe_allow_html=True)
-        time.sleep(1.5)
-        st.session_state.struct_done = True
-        push_status("success", "DB 적재 성공 및 구조화 완료")
+    test_mode = st.selectbox(
+        "리그레션 시나리오",
+        options=["정상 응답", "검증 오류 응답", "빈 결과 응답"],
+        index=0,
+        help="화면 상태(loading/success/error/empty)와 계약 필드 렌더링을 점검하기 위한 모드입니다.",
+    )
+
+    if st.button("업로드 -> 구조화 -> 검증 실행", type="primary", use_container_width=True):
+        if not raw_text.strip():
+            st.session_state.struct_done = False
+            st.session_state.ingest_state = "empty"
+            st.session_state.ingest_payload = {}
+            st.session_state.ingest_error = {
+                "code": "BAD_REQUEST",
+                "message": "민원 원문 텍스트를 입력해주세요.",
+                "retryable": False,
+                "details": {"field": "text"},
+            }
+            st.rerun()
+
+        st.session_state.ingest_state = "loading"
+        st.markdown('<div class="status-loading">업로드/구조화/검증 처리를 진행 중입니다...</div>', unsafe_allow_html=True)
+        time.sleep(1.0)
+
+        if test_mode == "정상 응답":
+            st.session_state.struct_done = True
+            st.session_state.ingest_state = "success"
+            st.session_state.ingest_payload = build_structure_success_payload(st.session_state.scenario, raw_text)
+            st.session_state.ingest_error = {}
+            push_status("success", "구조화 및 검증 완료 (계약 필드 렌더링 성공)")
+        elif test_mode == "검증 오류 응답":
+            st.session_state.struct_done = False
+            st.session_state.ingest_state = "error"
+            err_payload = build_structure_error_payload()
+            st.session_state.ingest_payload = {}
+            st.session_state.ingest_error = err_payload["error"]
+            push_status("error", f"{err_payload['error']['code']}: {err_payload['error']['message']}")
+        else:
+            st.session_state.struct_done = False
+            st.session_state.ingest_state = "empty"
+            st.session_state.ingest_payload = {
+                "success": True,
+                "request_id": "REQ-20260320-EMPTY000",
+                "timestamp": "2026-03-20T10:00:02+09:00",
+                "data": {"results": []},
+            }
+            st.session_state.ingest_error = {}
+            push_status("empty", "구조화 가능한 결과가 없습니다. 입력 데이터를 확인해주세요.")
+
         st.rerun()
 
-    if st.session_state.struct_done:
-        st.markdown("### 분석 완료 (DB 적재 성공)")
-        badge_html = ""
-        for text, bg, fg in curr_data["entities"]:
-            badge_html += f'<span class="badge" style="background:{bg}; color:{fg};">{text}</span>'
-        st.markdown(f"<div>{badge_html}</div>", unsafe_allow_html=True)
+    if st.session_state.ingest_state == "idle":
+        st.markdown('<div class="status-empty">실행 전 상태입니다. 시나리오를 선택하고 통합 실행 버튼을 눌러주세요.</div>', unsafe_allow_html=True)
+    elif st.session_state.ingest_state == "loading":
+        st.markdown('<div class="status-loading">업로드 -> 구조화 -> 검증 처리 중입니다...</div>', unsafe_allow_html=True)
+    elif st.session_state.ingest_state == "success":
+        st.markdown('<div class="status-success">업로드, 구조화, 검증이 모두 완료되었습니다.</div>', unsafe_allow_html=True)
+    elif st.session_state.ingest_state == "error":
+        st.markdown('<div class="status-error">처리에 실패했습니다. 아래 오류 정보를 확인해주세요.</div>', unsafe_allow_html=True)
+    elif st.session_state.ingest_state == "empty":
+        st.markdown('<div class="status-empty">처리 결과가 비어 있습니다. 입력 또는 필터 조건을 확인해주세요.</div>', unsafe_allow_html=True)
 
-        s = curr_data["struct"]
+    if st.session_state.struct_done:
+        st.markdown("### 구조화 결과")
+        result = st.session_state.ingest_payload["data"]["results"][0]
+        badge_html = ""
+        for entity in result.get("entities", []):
+            label = entity.get("label", "")
+            text = entity.get("text", "")
+            bg, fg = get_entity_badge_color(label)
+            badge_html += f'<span class="badge" style="background:{bg}; color:{fg};">{label}: {text}</span>'
+        st.markdown(f"<div>{badge_html}</div>", unsafe_allow_html=True)
+        st.caption(f"배지 렌더링 확인: 총 {len(result.get('entities', []))}개")
+
+        if st.checkbox("배지 렌더링 디버그 보기", value=True, key="badge_debug"):
+            st.json(
+                {
+                    "badge_count": len(result.get("entities", [])),
+                    "badge_entities": result.get("entities", []),
+                    "allowed_labels": sorted(list(ALLOWED_ENTITY_LABELS)),
+                }
+            )
+
+        s = {
+            "관찰": result["observation"]["text"],
+            "결과": result["result"]["text"],
+            "요청": result["request"]["text"],
+            "맥락": result["context"]["text"],
+        }
         st.markdown(
             f"""
 <div class="card" style="line-height:1.8;">
@@ -453,31 +701,122 @@ elif st.session_state.view == "📝 데이터 적재":
             unsafe_allow_html=True,
         )
 
+        st.markdown("### 검증 상태")
+        validation = result["validation"]
+        if validation["is_valid"]:
+            st.markdown('<div class="status-success">validation.is_valid = true</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="status-error">validation.is_valid = false</div>', unsafe_allow_html=True)
+
+        warnings = validation.get("warnings", [])
+        errors = validation.get("errors", [])
+        col_w, col_e = st.columns(2)
+        with col_w:
+            st.markdown("#### warnings")
+            if warnings:
+                for item in warnings:
+                    st.write(f"- {item}")
+            else:
+                st.write("- 없음")
+        with col_e:
+            st.markdown("#### errors")
+            if errors:
+                for item in errors:
+                    st.write(f"- {item}")
+            else:
+                st.write("- 없음")
+
+        st.markdown("### 근거(evidence span)")
+        e1, e2, e3, e4 = st.columns(4)
+        e1.metric("관찰", str(result["observation"]["evidence_span"]))
+        e2.metric("결과", str(result["result"]["evidence_span"]))
+        e3.metric("요청", str(result["request"]["evidence_span"]))
+        e4.metric("맥락", str(result["context"]["evidence_span"]))
+
+    if st.session_state.ingest_state == "error" and st.session_state.ingest_error:
+        err = st.session_state.ingest_error
+        st.markdown("### 오류 상세")
+        st.json(
+            {
+                "code": err.get("code"),
+                "message": err.get("message"),
+                "retryable": err.get("retryable"),
+                "details": err.get("details", {}),
+            }
+        )
+
 else:
     st.markdown("## 민원 해결 워크스페이스")
+    mode_col, url_col = st.columns([1, 2])
+    with mode_col:
+        st.session_state.use_be_mode = st.checkbox("BE 연동 모드", value=st.session_state.use_be_mode)
+    with url_col:
+        st.session_state.api_base_url = st.text_input(
+            "API Base URL",
+            value=st.session_state.api_base_url,
+            help="예: http://localhost:8000",
+        )
+
     left, right = st.columns([1, 1.2])
 
     with left:
         st.markdown("### 유사 민원 검색")
-        st.text_input("검색어 입력", value=curr_data["search"], key="search_query")
+        search_query = st.text_input("검색어 입력", value=curr_data["search"], key="search_query")
         if st.button("유사 민원 검색", use_container_width=True):
-            st.markdown('<div class="status-loading">벡터 DB에서 BGE-m3 임베딩으로 유사 민원을 검색 중입니다...</div>', unsafe_allow_html=True)
-            time.sleep(1.2)
-            st.session_state.search_done = True
-            push_status("success", f'검색 완료 (총 {len(curr_data["docs"])}건)')
+            if st.session_state.use_be_mode:
+                payload = {
+                    "query": search_query,
+                    "top_k": 5,
+                }
+                data, _, err = post_json(st.session_state.api_base_url, "/api/v1/search", payload)
+                if err and not data:
+                    st.session_state.search_done = False
+                    push_status("error", f"검색 API 연결 실패: {err}")
+                elif data.get("success") is False:
+                    st.session_state.search_done = False
+                    message = str(data.get("error", {}).get("message", "검색 API 오류"))
+                    push_status("error", message)
+                else:
+                    results = data.get("data", {}).get("results", [])
+                    normalized_results = []
+                    for item in results:
+                        normalized_results.append(
+                            {
+                                "id": item.get("doc_id", "N/A"),
+                                "score": item.get("score", 0.0),
+                                "title": item.get("title", "제목 없음"),
+                                "snippet": item.get("snippet", ""),
+                                "chunk_id": item.get("chunk_id", ""),
+                                "case_id": item.get("case_id", ""),
+                            }
+                        )
+                    st.session_state.search_api_results = normalized_results
+                    st.session_state.search_done = True
+                    push_status("success", f"검색 완료 (총 {len(normalized_results)}건)")
+            else:
+                st.markdown('<div class="status-loading">벡터 DB에서 BGE-m3 임베딩으로 유사 민원을 검색 중입니다...</div>', unsafe_allow_html=True)
+                time.sleep(1.2)
+                st.session_state.search_done = True
+                push_status("success", f'검색 완료 (총 {len(curr_data["docs"])}건)')
             st.rerun()
 
         if st.session_state.search_done:
-            for idx, doc in enumerate(curr_data["docs"], start=1):
+            docs_to_render = st.session_state.search_api_results if st.session_state.use_be_mode else curr_data["docs"]
+            for idx, doc in enumerate(docs_to_render, start=1):
+                display_id = str(doc.get("id", "")).strip() or "N/A"
+                try:
+                    display_score = f"{float(doc.get('score', 0.0)):.2f}"
+                except (TypeError, ValueError):
+                    display_score = "0.00"
                 st.markdown(
                     f"""
 <div class="search-card">
     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
         <span style="font-weight:700; color:#0f172a;">[출처 {idx}] {doc['title']}</span>
-        <span style="font-size:0.8rem; background:#d1fae5; color:#065f46; padding:2px 6px; border-radius:4px; font-weight:700;">유사도: {doc['score']}</span>
+        <span style="font-size:0.8rem; background:#d1fae5; color:#065f46; padding:2px 6px; border-radius:4px; font-weight:700;">유사도: {display_score}</span>
     </div>
     <div style="font-size:0.86rem; color:#475569;">{doc['snippet']}</div>
-    <div style="font-size:0.75rem; color:#94a3b8; text-align:right; margin-top:8px;">ID: {doc['id']}</div>
+    <div style="font-size:0.75rem; color:#94a3b8; text-align:right; margin-top:8px;">ID: {display_id}</div>
 </div>
 """,
                     unsafe_allow_html=True,
@@ -494,13 +833,80 @@ else:
         if prompt:
             st.session_state.chat_history.append({"role": "user", "content": prompt})
             with st.chat_message("assistant"):
-                st.markdown("_타닥타닥... AI가 답변을 작성하고 있습니다..._")
-                time.sleep(2.5)
-                answer = (
-                    f"{curr_data['chat_response']}"
-                    "<div style='margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; font-size:0.75rem; "
-                    "color:#94a3b8; text-align:right;'>⚡ 생성 속도: 6.2s | 기반 모델: Qwen2.5-7B</div>"
-                )
+                if st.session_state.use_be_mode:
+                    st.markdown("_BE QA API 호출 중..._")
+                    time.sleep(0.4)
+
+                    search_results_payload = []
+                    for item in st.session_state.search_api_results:
+                        search_results_payload.append(
+                            {
+                                "doc_id": item.get("id"),
+                                "chunk_id": item.get("chunk_id", ""),
+                                "case_id": item.get("case_id", ""),
+                                "snippet": item.get("snippet", ""),
+                                "score": float(item.get("score", 0.0) or 0.0),
+                            }
+                        )
+
+                    qa_payload = {
+                        "query": prompt,
+                        "top_k": 5,
+                        "use_search_results": bool(search_results_payload),
+                        "search_results": search_results_payload,
+                    }
+
+                    qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", qa_payload, timeout=25.0)
+
+                    if qa_err and not qa_data:
+                        answer = f"<div class='status-error'>BE QA 연결 실패: {html.escape(qa_err)}</div>"
+                    elif qa_data.get("success") is False:
+                        error_message = str(qa_data.get("error", {}).get("message", "QA API 오류"))
+                        answer = f"<div class='status-error'>{html.escape(error_message)}</div>"
+                    else:
+                        st.session_state.qa_last_response = qa_data
+                        citations = qa_data.get("citations", [])
+                        rendered_answer = render_answer_with_citations(qa_data.get("answer", ""), citations)
+
+                        meta = qa_data.get("meta", {})
+                        warnings = qa_data.get("qa_validation", {}).get("warnings", [])
+
+                        warning_lines = ""
+                        for warning in warnings:
+                            if isinstance(warning, dict):
+                                message = str(warning.get("message", ""))
+                            else:
+                                message = str(warning)
+                            if message:
+                                warning_lines += f"<div>- {html.escape(message)}</div>"
+
+                        meta_html = (
+                            "<div style='margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; font-size:0.8rem; color:#475569;'>"
+                            f"<div>처리시간: {meta.get('processing_time', '-') }s</div>"
+                            f"<div>모델: {html.escape(str(meta.get('model', '-')))}</div>"
+                            f"<div>검증 안내: {html.escape(str(meta.get('validation_warning', '-')))}</div>"
+                            "</div>"
+                        )
+
+                        warnings_html = ""
+                        if warning_lines:
+                            warnings_html = (
+                                "<div style='margin-top:10px; padding:10px; background:#fff7ed; border:1px solid #fdba74; border-radius:8px; color:#9a3412;'>"
+                                "<b>qa_validation.warnings</b>"
+                                f"{warning_lines}"
+                                "</div>"
+                            )
+
+                        answer = f"{rendered_answer}{meta_html}{warnings_html}"
+                else:
+                    st.markdown("_타닥타닥... AI가 답변을 작성하고 있습니다..._")
+                    time.sleep(2.5)
+                    answer = (
+                        f"{curr_data['chat_response']}"
+                        "<div style='margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; font-size:0.75rem; "
+                        "color:#94a3b8; text-align:right;'>⚡ 생성 속도: 6.2s | 기반 모델: Qwen2.5-7B</div>"
+                    )
+
                 st.markdown(answer, unsafe_allow_html=True)
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
             st.rerun()
