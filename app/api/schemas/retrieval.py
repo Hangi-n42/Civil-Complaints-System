@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SearchFilters(BaseModel):
@@ -12,9 +12,26 @@ class SearchFilters(BaseModel):
 
     region: Optional[str] = None
     category: Optional[str] = None
+    created_at: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
     entity_labels: Optional[List[str]] = None
+
+    @field_validator("entity_labels")
+    @classmethod
+    def normalize_entity_labels(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+        if value is None:
+            return None
+
+        normalized: List[str] = []
+        seen = set()
+        for item in value:
+            label = str(item).strip().upper()
+            if not label or label in seen:
+                continue
+            seen.add(label)
+            normalized.append(label)
+        return normalized
 
 
 class IndexRecord(BaseModel):
