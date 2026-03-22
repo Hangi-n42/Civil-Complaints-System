@@ -1,0 +1,602 @@
+[
+  {
+    "case_id": "000012",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-04-05T00:00:00",
+    "category": "문화관광",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "문화관광",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.172636",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "000021",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-04-09T00:00:00",
+    "category": "문화관광",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "문화관광",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_10.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.173634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "001555",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-03-21T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_100.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.174635",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002465",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-11T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1000.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.174635",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002466",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-11T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1001.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.175634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002467",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-11T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1002.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.175634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002468",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-11T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1003.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.176634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002469",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-12T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1004.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.177634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002470",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-12T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1005.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.177634",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  },
+  {
+    "case_id": "002471",
+    "source": "국립아시아문화전당",
+    "created_at": "2024-06-12T00:00:00",
+    "category": "unknown",
+    "region": "unknown",
+    "raw_text": "",
+    "observation": {
+      "text": "",
+      "confidence": 0.72,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "result": {
+      "text": "답변 본문 미제공",
+      "confidence": 0.76,
+      "evidence_span": [
+        0,
+        9
+      ]
+    },
+    "request": {
+      "text": "요청 내용 확인 필요",
+      "confidence": 0.71,
+      "evidence_span": [
+        0,
+        10
+      ]
+    },
+    "context": {
+      "text": "",
+      "confidence": 0.68,
+      "evidence_span": [
+        0,
+        0
+      ]
+    },
+    "entities": [],
+    "metadata": {
+      "source_id": "",
+      "consulting_category": "unknown",
+      "consulting_turns": null,
+      "consulting_length": null,
+      "client_gender": "",
+      "client_age": "",
+      "source_file": "data/Training/01.원천데이터/TS_국립아시아문화전당/국립아시아문화전당_1006.json"
+    },
+    "confidence_score": 0.65,
+    "structured_at": "2026-03-22T19:55:29.178846",
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "empty_field:observation",
+        "empty_field:context"
+      ]
+    }
+  }
+]

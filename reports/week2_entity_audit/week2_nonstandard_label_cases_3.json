@@ -1,0 +1,29 @@
+[
+  {
+    "input_label": "TYPE",
+    "is_valid": true,
+    "errors": [],
+    "warnings": [
+      "empty_field:observation",
+      "empty_field:context"
+    ]
+  },
+  {
+    "input_label": "RISK",
+    "is_valid": true,
+    "errors": [],
+    "warnings": [
+      "empty_field:observation",
+      "empty_field:context"
+    ]
+  },
+  {
+    "input_label": "PLACE",
+    "is_valid": true,
+    "errors": [],
+    "warnings": [
+      "empty_field:observation",
+      "empty_field:context"
+    ]
+  }
+]

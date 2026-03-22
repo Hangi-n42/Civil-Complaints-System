@@ -1,8 +1,8 @@
 # Week 2 공통 인터페이스 규약
 
-문서 버전: v1.2-week2-aligned  
+문서 버전: v1.3-week2-enhanced  
 작성일: 2026-03-19  
-최신화: 2026-03-20 (StructuredCivilCase 확장 필드 반영)  
+최신화: 2026-03-22 (BE1 raw_text 폴백, entity label 검증 강화 반영)  
 적용 파트: FE, BE1, BE2, BE3
 
 ## 1) 공통 원칙

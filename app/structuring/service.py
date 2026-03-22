@@ -55,7 +55,7 @@ class StructuringService:
 
         region = str(raw.get("region") or metadata.get("region") or "unknown").strip() or "unknown"
 
-        raw_text = str(raw.get("text") or "").strip()
+        raw_text = str(raw.get("raw_text") or raw.get("text") or "").strip()
 
         normalized = {
             "case_id": case_id,
@@ -105,6 +105,19 @@ class StructuringService:
             "confidence": max(0.0, min(1.0, confidence)),
             "evidence_span": [safe_start, safe_end],
         }
+
+    def _normalize_entity_label(self, label: str) -> str:
+        """비표준 entity label을 표준 label로 변환한다."""
+        # 비표준 라벨 → 표준 라벨 매핑 (FE와 동일한 규칙)
+        ENTITY_LABEL_NORMALIZE_MAP = {
+            "TYPE": "HAZARD",
+            "RISK": "HAZARD",
+            "DATE": "TIME",
+            "PLACE": "LOCATION",
+            "AREA": "ADMIN_UNIT",
+        }
+        normalized = label.upper()
+        return ENTITY_LABEL_NORMALIZE_MAP.get(normalized, normalized)
 
     async def extract_four_elements(self, text: str) -> Dict[str, Dict[str, Any]]:
         """
@@ -280,6 +293,18 @@ class StructuringService:
 
             if not isinstance(data.get("entities", []), list):
                 errors.append("invalid_type:entities")
+            else:
+                # Entity label 검증 (스키마 enum 확인)
+                ALLOWED_ENTITY_LABELS = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
+                for idx, entity in enumerate(data.get("entities", [])):
+                    if isinstance(entity, dict):
+                        label = entity.get("label", "").upper()
+                        if label not in ALLOWED_ENTITY_LABELS:
+                            errors.append(f"invalid_entity_label:{label}")
+                            # 비표준 라벨 매핑 시도 및 경고
+                            standard_label = self._normalize_entity_label(label)
+                            if standard_label != label:
+                                warnings.append(f"entity_label_normalized:{label}→{standard_label}")
 
             if data.get("source") == "unknown":
                 warnings.append("source_is_unknown")

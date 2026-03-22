@@ -1,8 +1,8 @@
 # Week 2 BE1 인터페이스 문서
 
-문서 버전: v1.1-week2-aligned  
+문서 버전: v1.2-week2-enhanced  
 작성일: 2026-03-19  
-최신화: 2026-03-20 (코드 기준 확장 필드 정합 반영)  
+최신화: 2026-03-22 (raw_text 폴백, entity label 검증 강화)  
 책임: BE1  
 협업: BE2, BE3
 
@@ -22,6 +22,7 @@
   "category": "도로안전",
   "region": "서울시 강남구",
   "text": "민원 원문",
+  "raw_text": "민원 원문 (선택)",
   "metadata": {
     "source_file": "raw_001.json"
   }
@@ -29,10 +30,14 @@
 ```
 
 필수:
-- `case_id`, `created_at`, `text`
+- `case_id`, `created_at`, `text` 또는 `raw_text` (둘 중 하나 필수)
 
 권장:
 - `source`, `category`, `region`, `metadata.source_file`
+
+**필드 매핑 규칙:**
+- `text` 또는 `raw_text` 중 존재하는 것을 우선순위대로 읽음
+- 우선순위: `raw_text` > `text` (둘 다 있으면 `raw_text` 사용)
 
 ## 3) BE1 출력 계약 (BE1 -> BE2/BE3)
 
@@ -79,6 +84,27 @@
 - `supervision`: 라벨링 정보가 있을 때만 포함(optional)
 - `confidence_score`: 구조화 결과 집계 신뢰도(0~1)
 - `structured_at`: 구조화 처리 시각(ISO-8601)
+
+**Entity 필드 명시:**
+- `entities`: 개체명 인식(NER) 결과 배열
+  ```json
+  "entities": [
+    {"label": "LOCATION", "text": "서울시 강남구"},
+    {"label": "FACILITY", "text": "가로등"},
+    {"label": "TIME", "text": "2026년 3월 19일"},
+    {"label": "HAZARD", "text": "소음"},
+    {"label": "ADMIN_UNIT", "text": "강남구"}
+  ]
+  ```
+- `label` 허용값(enum): `LOCATION | TIME | FACILITY | HAZARD | ADMIN_UNIT`
+  - LOCATION: 지명, 시설 위치
+  - TIME: 시간, 날짜, 기간
+  - FACILITY: 도로, 정류장, 가로등, 하수구 등 시설물
+  - HAZARD: 소음, 분진, 악취, 위험요소 등
+  - ADMIN_UNIT: 행정 단위 (시/도/군/구/면/동 등)
+- 비표준 라벨(TYPE, RISK, DATE, PLACE, AREA 등) 입력 시:
+  - 자동 정규화 시도 후 `validation.warnings`에 매핑 이력 기록
+  - 예: `entity_label_normalized:TYPE→HAZARD`
 
 ## 4) 변수명 충돌 방지 규칙
 
