@@ -1,8 +1,8 @@
 # Week 2 FE 인터페이스 문서
 
-문서 버전: v1.1-week2-simulation  
+문서 버전: v1.2-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (API 연동 상태, 시뮬레이션 명시)  
+최신화: 2026-03-22 (시뮬레이션 상태 + 라벨 렌더링 규칙 반영)  
 책임: FE  
 협업: BE1, BE3
 
@@ -100,10 +100,13 @@ def build_structure_success_payload(scenario_key: str, source_text: str) -> dict
 - `validation.is_valid`는 `status`와 혼용하지 않는다.
 - 4요소 렌더링 카드 key는 `observation|result|request|context`만 사용.
 - 에러 배너는 `error.message`를 그대로 노출한다 (임의 키 재매핑 금지).
+- `entities.label` 렌더링/필터 기준은 서버 허용 5종(`LOCATION`, `TIME`, `FACILITY`, `HAZARD`, `ADMIN_UNIT`)으로 고정한다.
+- `validation.warnings`의 `entity_label_normalized:<OLD>-><NEW>`는 데이터 품질 로그 패널에 노출 가능해야 한다.
 
 ## 5) FE 완료 체크
 
-- [ ] 성공/실패 상태 분기 렌더링 일관화
-- [ ] 검증 배지(`is_valid`)와 에러 배너(`error.message`) 동시 표시 테스트
+- [x] 성공/실패 상태 분기 렌더링 일관화
+- [x] 검증 배지(`is_valid`)와 에러 배너(`error.message`) 동시 표시 테스트
+- [x] API 연동 준비: 시뮬레이션 로직을 `/api/v1/structure` 호출로 교체 가능하도록 설계
 - [ ] 50건+ 처리 시 목록 가상화/페이징으로 UI 지연 방지
-- [ ] API 연동 준비: 시뮬레이션 로직을 `/api/v1/structure` 호출로 교체 가능하도록 설계
+- [ ] `/api/v1/ingest`, `/api/v1/structure` 구현 후 실연동 전환 검증

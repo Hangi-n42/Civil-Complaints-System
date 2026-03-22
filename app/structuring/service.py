@@ -24,6 +24,14 @@ class StructuringService:
         self._time_pattern = re.compile(r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})")
         self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
         self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
+        self._allowed_entity_labels = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
+        self._entity_label_normalize_map = {
+            "TYPE": "HAZARD",
+            "RISK": "HAZARD",
+            "DATE": "TIME",
+            "PLACE": "LOCATION",
+            "AREA": "ADMIN_UNIT",
+        }
 
     def _safe_int(self, value: Any) -> Union[int, None]:
         """문자열/숫자 값을 정수로 안전 변환한다."""
@@ -108,16 +116,49 @@ class StructuringService:
 
     def _normalize_entity_label(self, label: str) -> str:
         """비표준 entity label을 표준 label로 변환한다."""
-        # 비표준 라벨 → 표준 라벨 매핑 (FE와 동일한 규칙)
-        ENTITY_LABEL_NORMALIZE_MAP = {
-            "TYPE": "HAZARD",
-            "RISK": "HAZARD",
-            "DATE": "TIME",
-            "PLACE": "LOCATION",
-            "AREA": "ADMIN_UNIT",
-        }
         normalized = label.upper()
-        return ENTITY_LABEL_NORMALIZE_MAP.get(normalized, normalized)
+        return self._entity_label_normalize_map.get(normalized, normalized)
+
+    def _sanitize_entities(self, entities: Any) -> Dict[str, Any]:
+        """entity 배열을 표준 label로 정규화하고, 미허용 값은 차단한다."""
+        errors: List[str] = []
+        warnings: List[str] = []
+        normalized_entities: List[Dict[str, str]] = []
+
+        if not isinstance(entities, list):
+            return {
+                "entities": normalized_entities,
+                "errors": ["invalid_type:entities"],
+                "warnings": warnings,
+            }
+
+        for idx, entity in enumerate(entities):
+            if not isinstance(entity, dict):
+                errors.append(f"invalid_entity_item_type:{idx}")
+                continue
+
+            raw_label = str(entity.get("label") or "").strip()
+            text = str(entity.get("text") or "").strip()
+
+            if not raw_label:
+                errors.append(f"invalid_entity_label_at:{idx}")
+                continue
+
+            normalized_label = self._normalize_entity_label(raw_label)
+            if normalized_label not in self._allowed_entity_labels:
+                errors.append(f"invalid_entity_label:{raw_label.upper()}")
+                continue
+
+            if normalized_label != raw_label.upper():
+                warnings.append(f"entity_label_normalized:{raw_label.upper()}->{normalized_label}")
+
+            normalized_entities.append({"label": normalized_label, "text": text})
+
+        return {
+            "entities": normalized_entities,
+            "errors": errors,
+            "warnings": warnings,
+        }
 
     async def extract_four_elements(self, text: str) -> Dict[str, Dict[str, Any]]:
         """
@@ -291,20 +332,10 @@ class StructuringService:
                 if not text_value:
                     warnings.append(f"empty_field:{field_name}")
 
-            if not isinstance(data.get("entities", []), list):
-                errors.append("invalid_type:entities")
-            else:
-                # Entity label 검증 (스키마 enum 확인)
-                ALLOWED_ENTITY_LABELS = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
-                for idx, entity in enumerate(data.get("entities", [])):
-                    if isinstance(entity, dict):
-                        label = entity.get("label", "").upper()
-                        if label not in ALLOWED_ENTITY_LABELS:
-                            errors.append(f"invalid_entity_label:{label}")
-                            # 비표준 라벨 매핑 시도 및 경고
-                            standard_label = self._normalize_entity_label(label)
-                            if standard_label != label:
-                                warnings.append(f"entity_label_normalized:{label}→{standard_label}")
+            entity_result = self._sanitize_entities(data.get("entities", []))
+            data["entities"] = entity_result["entities"]
+            errors.extend(entity_result["errors"])
+            warnings.extend(entity_result["warnings"])
 
             if data.get("source") == "unknown":
                 warnings.append("source_is_unknown")

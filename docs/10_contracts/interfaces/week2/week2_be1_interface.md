@@ -1,8 +1,8 @@
 # Week 2 BE1 인터페이스 문서
 
-문서 버전: v1.2-week2-enhanced  
+문서 버전: v1.3-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (raw_text 폴백, entity label 검증 강화)  
+최신화: 2026-03-22 (raw_text 우선 매핑, entity 정규화/차단 정책 반영)  
 책임: BE1  
 협업: BE2, BE3
 
@@ -104,7 +104,8 @@
   - ADMIN_UNIT: 행정 단위 (시/도/군/구/면/동 등)
 - 비표준 라벨(TYPE, RISK, DATE, PLACE, AREA 등) 입력 시:
   - 자동 정규화 시도 후 `validation.warnings`에 매핑 이력 기록
-  - 예: `entity_label_normalized:TYPE→HAZARD`
+  - 예: `entity_label_normalized:TYPE->HAZARD`
+  - 매핑 불가 라벨은 `invalid_entity_label:<LABEL>` 오류로 차단
 
 ## 4) 변수명 충돌 방지 규칙
 
@@ -116,8 +117,9 @@
 
 ## 5) BE1 완료 체크
 
-- [ ] 입력(`CivilCaseInput`)에서 `source` 누락 허용 처리 확인
-- [ ] 출력(`StructuredCivilCase`)에서 `source` 누락률 0%(누락 시 `unknown` 보정)
-- [ ] 4요소 키 이름 고정(축약/별칭 없음)
-- [ ] `validation` 객체 항상 포함
-- [ ] 확장 필드(`metadata`, `supervision`, `confidence_score`, `structured_at`) 규칙 준수 확인
+- [x] 입력(`CivilCaseInput`)에서 `source` 누락 허용 처리 확인
+- [x] 출력(`StructuredCivilCase`)에서 `source` 누락 시 `unknown` 보정 처리 확인
+- [x] 입력 원문 매핑 우선순위 `raw_text > text` 적용 확인
+- [x] Entity 라벨 허용값 5개 제한 + 비표준 라벨 서버 정규화 확인
+- [x] `validation` 객체 항상 포함 및 `warnings` 기록 확인
+- [x] 확장 필드(`metadata`, `supervision`, `confidence_score`, `structured_at`) 규칙 준수 확인

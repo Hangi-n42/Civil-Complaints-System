@@ -1,8 +1,9 @@
 # API 명세서 초안
 
-문서 버전: v1.0  
+문서 버전: v1.1-week2-aligned  
 기준 문서: [PRD](../../00_overview/prd.md), [MVP 범위 문서](../../00_overview/mvp_scope.md), [폴더 구조 초안](../../00_overview/folder_structure_draft.md)  
 작성일: 2026-03-11
+최신화: 2026-03-22 (Week2 구현 상태/입력 매핑/검증 필드 정합 반영)
 
 ## 0. Week2 우선 적용 규칙 (Contract Freeze)
 
@@ -84,14 +85,14 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 
 ## 4. 엔드포인트 개요
 
-| Method | Endpoint | 설명 | 우선순위 |
-| --- | --- | --- | --- |
-| `GET` | `/api/v1/health` | 서버/모델/인덱스 상태 확인 | 필수 |
-| `POST` | `/api/v1/ingest` | 민원 원문 업로드 및 적재 | 필수 |
-| `POST` | `/api/v1/structure` | 4요소 구조화 및 엔티티 추출 | 필수 |
-| `POST` | `/api/v1/index` | 임베딩 생성 및 인덱스 반영 | 필수 |
-| `POST` | `/api/v1/search` | 시맨틱 검색 및 필터 검색 | 필수 |
-| `POST` | `/api/v1/qa` | 검색 기반 RAG 질의응답 | 필수 |
+| Method | Endpoint | 설명 | 우선순위 | Week2 상태 |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/v1/health` | 서버/모델/인덱스 상태 확인 | 필수 | 구현 |
+| `POST` | `/api/v1/ingest` | 민원 원문 업로드 및 적재 | 필수 | 미구현 (Week3 예정) |
+| `POST` | `/api/v1/structure` | 4요소 구조화 및 엔티티 추출 | 필수 | 미구현 (Week3 예정) |
+| `POST` | `/api/v1/index` | 임베딩 생성 및 인덱스 반영 | 필수 | 구현 |
+| `POST` | `/api/v1/search` | 시맨틱 검색 및 필터 검색 | 필수 | 구현 |
+| `POST` | `/api/v1/qa` | 검색 기반 RAG 질의응답 | 필수 | 구현 |
 
 ---
 
@@ -179,7 +180,12 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
 | `records[].created_at` | string(datetime) | Y | 생성 시각 |
 | `records[].category` | string | N | 민원 카테고리 |
 | `records[].region` | string | N | 행정 구역 |
-| `records[].text` | string | Y | 원문 민원 텍스트 |
+| `records[].text` | string | N | 원문 민원 텍스트 (`raw_text` 대체 허용) |
+| `records[].raw_text` | string | N | 원문 민원 텍스트 (`text` 대체 허용) |
+
+추가 규칙:
+- BE1 입력 단계에서는 `text` 또는 `raw_text` 중 하나를 허용한다.
+- 내부 처리 우선순위는 `raw_text > text`를 적용한다.
 
 ### 성공 응답 예시
 
@@ -279,7 +285,8 @@ MVP 단계에서는 **명확한 요청/응답 구조**, **에러 처리 일관�
       ],
       "validation": {
         "is_valid": true,
-        "errors": []
+        "errors": [],
+        "warnings": []
       }
     }
   ]
