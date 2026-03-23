@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from time import perf_counter
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
@@ -14,12 +13,16 @@ from app.api.schemas.generation import QARequest, QAResponse
 from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
 from app.generation.service import get_generation_service
+from app.generation.validators.qa_response_validator import (
+    build_validation_result,
+    ensure_citation_tokens,
+    normalize_citations,
+)
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
 
 CONTRACT_VERSION = "qa-v1.1"
-_CITE_TOKEN_PATTERN = re.compile(r"\[\[CITE:(\d+)\]\]")
 
 
 def _confidence_label(value: Any) -> str:
@@ -33,194 +36,6 @@ def _confidence_label(value: Any) -> str:
     if score >= 0.45:
         return "medium"
     return "low"
-
-
-def _safe_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _extract_citation_tokens(answer: str) -> Set[int]:
-    return {int(match) for match in _CITE_TOKEN_PATTERN.findall(answer or "")}
-
-
-def _normalize_citations(
-    raw_citations: List[Dict[str, Any]],
-    context: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    context_by_chunk = {
-        str(item.get("chunk_id", "")): item
-        for item in context
-        if str(item.get("chunk_id", ""))
-    }
-
-    source = raw_citations if raw_citations else context[:3]
-    normalized: List[Dict[str, Any]] = []
-
-    for item in source:
-        raw_chunk_id = str(item.get("chunk_id") or "")
-        ctx = context_by_chunk.get(raw_chunk_id, {})
-
-        chunk_id = raw_chunk_id or str(ctx.get("chunk_id") or "")
-        if not chunk_id:
-            continue
-
-        if chunk_id not in context_by_chunk:
-            continue
-
-        ctx = context_by_chunk[chunk_id]
-        case_id = str(item.get("case_id") or ctx.get("case_id") or "")
-        context_case_id = str(ctx.get("case_id") or "")
-        if not case_id or (context_case_id and case_id != context_case_id):
-            continue
-
-        doc_id = str(item.get("doc_id") or ctx.get("doc_id") or "").strip() or None
-        snippet = str(item.get("snippet") or ctx.get("snippet") or "").strip()
-
-        if not snippet or not chunk_id:
-            continue
-
-        citation: Dict[str, Any] = {
-            "ref_id": len(normalized) + 1,
-            "chunk_id": chunk_id,
-            "case_id": case_id,
-            "snippet": snippet,
-            "relevance_score": _safe_float(item.get("relevance_score", item.get("score", 0.0))),
-            "source": str(item.get("source") or "retrieval"),
-        }
-        if doc_id:
-            citation["doc_id"] = doc_id
-
-        normalized.append(citation)
-
-    return normalized
-
-
-def _ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
-    rendered = (answer or "").strip()
-    if not rendered:
-        rendered = "검색 근거 기반 답변을 생성했지만 본문이 비어 있어 요약 문장을 제공하지 못했습니다."
-
-    missing_tokens: List[str] = []
-    for citation in citations:
-        token = f"[[CITE:{citation['ref_id']}]]"
-        if token not in rendered:
-            missing_tokens.append(token)
-
-    if missing_tokens:
-        rendered = rendered + " " + " ".join(missing_tokens)
-
-    return rendered
-
-
-def _validation_warnings(limitations: str, citations: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-    warnings: List[Dict[str, str]] = []
-
-    if "폴백" in limitations:
-        warnings.append(
-            {
-                "code": "FALLBACK_RESPONSE",
-                "message": "모델 파싱 불안정으로 폴백 답변이 제공되었습니다.",
-            }
-        )
-
-    if not citations:
-        warnings.append(
-            {
-                "code": "EMPTY_CITATIONS",
-                "message": "근거 citation이 비어 있습니다.",
-            }
-        )
-
-    return warnings
-
-
-def _build_validation_result(
-    answer: str,
-    citations: List[Dict[str, Any]],
-    limitations: str,
-    context: List[Dict[str, Any]],
-) -> Dict[str, Any]:
-    errors: List[Dict[str, str]] = []
-    warnings = _validation_warnings(limitations=limitations, citations=citations)
-
-    if not limitations.strip():
-        errors.append(
-            {
-                "code": "LIMITATIONS_REQUIRED",
-                "message": "limitations는 빈 문자열일 수 없습니다.",
-            }
-        )
-
-    if not citations:
-        errors.append(
-            {
-                "code": "CITATIONS_REQUIRED",
-                "message": "성공 응답에는 최소 1개 이상의 citation이 필요합니다.",
-            }
-        )
-
-    ref_ids = [int(item.get("ref_id", 0)) for item in citations]
-    if len(ref_ids) != len(set(ref_ids)):
-        errors.append(
-            {
-                "code": "DUPLICATE_REF_ID",
-                "message": "citations.ref_id는 응답 내에서 유일해야 합니다.",
-            }
-        )
-
-    token_ids = _extract_citation_tokens(answer)
-    if token_ids != set(ref_ids):
-        errors.append(
-            {
-                "code": "CITATION_TOKEN_MISMATCH",
-                "message": "answer의 [[CITE:n]] 토큰과 citations.ref_id가 1:1로 일치해야 합니다.",
-            }
-        )
-
-    context_by_chunk = {
-        str(item.get("chunk_id", "")): str(item.get("case_id", ""))
-        for item in context
-        if str(item.get("chunk_id", ""))
-    }
-
-    for citation in citations:
-        chunk_id = str(citation.get("chunk_id") or "")
-        case_id = str(citation.get("case_id") or "")
-        snippet = str(citation.get("snippet") or "").strip()
-
-        if not snippet:
-            errors.append(
-                {
-                    "code": "EMPTY_SNIPPET",
-                    "message": "citation.snippet은 빈 문자열일 수 없습니다.",
-                }
-            )
-
-        if chunk_id not in context_by_chunk:
-            errors.append(
-                {
-                    "code": "CHUNK_NOT_IN_CONTEXT",
-                    "message": f"chunk_id '{chunk_id}'가 검색 결과에 존재하지 않습니다.",
-                }
-            )
-            continue
-
-        if case_id != context_by_chunk[chunk_id]:
-            errors.append(
-                {
-                    "code": "CASE_ID_MISMATCH",
-                    "message": f"chunk_id '{chunk_id}'의 case_id가 검색 결과와 일치하지 않습니다.",
-                }
-            )
-
-    return {
-        "is_valid": len(errors) == 0,
-        "errors": errors,
-        "warnings": warnings,
-    }
 
 
 @router.post("/qa", response_model=QAResponse)
@@ -295,11 +110,11 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         )
 
     took_ms = int((perf_counter() - start) * 1000)
-    citations = _normalize_citations(result.get("citations", []), context=context)
-    answer = _ensure_citation_tokens(result.get("answer", ""), citations=citations)
+    citations = normalize_citations(result.get("citations", []), context=context)
+    answer = ensure_citation_tokens(result.get("answer", ""), citations=citations)
     confidence = _confidence_label(result.get("confidence", 0.5))
     limitations = str(result.get("limitations", "")).strip() or "검색 범위 내 데이터에 기반한 답변입니다."
-    validation = _build_validation_result(
+    validation = build_validation_result(
         answer=answer,
         citations=citations,
         limitations=limitations,
