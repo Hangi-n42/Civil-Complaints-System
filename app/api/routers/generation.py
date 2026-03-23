@@ -12,6 +12,7 @@ from app.api.error_utils import error_response, make_request_id, now_iso
 from app.api.schemas.generation import QARequest, QAResponse
 from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
+from app.core.logging import api_logger
 from app.generation.service import get_generation_service
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
@@ -23,6 +24,46 @@ from app.retrieval.service import get_retrieval_service
 router = APIRouter(prefix="/api/v1", tags=["generation"])
 
 CONTRACT_VERSION = "qa-v1.1"
+QA_LATENCY_WARN_MS = 8000
+
+
+def _log_error(
+    *,
+    endpoint: str,
+    request_id: str,
+    error_code: str,
+    retryable: bool,
+    took_ms: int,
+    message: str,
+) -> None:
+    api_logger.error(
+        "api_error endpoint=%s request_id=%s error_code=%s retryable=%s latency_ms=%s message=%s",
+        endpoint,
+        request_id,
+        error_code,
+        retryable,
+        took_ms,
+        message,
+    )
+
+
+def _log_success(*, endpoint: str, request_id: str, took_ms: int, retrieved_count: int) -> None:
+    api_logger.info(
+        "api_success endpoint=%s request_id=%s latency_ms=%s retrieved_count=%s",
+        endpoint,
+        request_id,
+        took_ms,
+        retrieved_count,
+    )
+
+    if took_ms > QA_LATENCY_WARN_MS:
+        api_logger.warning(
+            "api_perf_warning endpoint=%s request_id=%s code=PERF_LATENCY_THRESHOLD_EXCEEDED latency_ms=%s threshold_ms=%s",
+            endpoint,
+            request_id,
+            took_ms,
+            QA_LATENCY_WARN_MS,
+        )
 
 
 def _confidence_label(value: Any) -> str:
@@ -42,9 +83,19 @@ def _confidence_label(value: Any) -> str:
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
     request_id = make_request_id()
+    start = perf_counter()
     response.headers["X-Contract-Version"] = CONTRACT_VERSION
 
     if not request.query.strip():
+        took_ms = int((perf_counter() - start) * 1000)
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="BAD_REQUEST",
+            retryable=False,
+            took_ms=took_ms,
+            message="질문(query)은 비어 있을 수 없습니다.",
+        )
         return error_response(
             request_id=request_id,
             error_code="BAD_REQUEST",
@@ -53,7 +104,6 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
-    start = perf_counter()
     retrieval_service = get_retrieval_service()
     generation_service = get_generation_service()
 
@@ -68,11 +118,38 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 filters=filters,
             )
     except RetrievalError as e:
+        took_ms = int((perf_counter() - start) * 1000)
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="INDEX_NOT_READY",
+            retryable=True,
+            took_ms=took_ms,
+            message=str(e),
+        )
         return error_response(
             request_id=request_id,
             error_code="INDEX_NOT_READY",
             message="검색 인덱스가 준비되지 않았습니다. 인덱싱 후 다시 시도해주세요.",
             retryable=True,
+            details={"reason": str(e)},
+            headers={"X-Contract-Version": CONTRACT_VERSION},
+        )
+    except Exception as e:
+        took_ms = int((perf_counter() - start) * 1000)
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="INTERNAL_SERVER_ERROR",
+            retryable=False,
+            took_ms=took_ms,
+            message=str(e),
+        )
+        return error_response(
+            request_id=request_id,
+            error_code="INTERNAL_SERVER_ERROR",
+            message="검색 단계에서 예기치 못한 오류가 발생했습니다.",
+            retryable=False,
             details={"reason": str(e)},
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
@@ -100,12 +177,40 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         if error_code == "PARSE_RETRY_EXHAUSTED" and not message.strip():
             message = "모델 응답을 JSON으로 안정적으로 파싱하지 못했습니다."
 
+        took_ms = int((perf_counter() - start) * 1000)
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code=error_code,
+            retryable=retryable,
+            took_ms=took_ms,
+            message=message,
+        )
+
         return error_response(
             request_id=request_id,
             error_code=error_code,
             message=message,
             retryable=retryable,
             details=details,
+            headers={"X-Contract-Version": CONTRACT_VERSION},
+        )
+    except Exception as e:
+        took_ms = int((perf_counter() - start) * 1000)
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="INTERNAL_SERVER_ERROR",
+            retryable=False,
+            took_ms=took_ms,
+            message=str(e),
+        )
+        return error_response(
+            request_id=request_id,
+            error_code="INTERNAL_SERVER_ERROR",
+            message="생성 단계에서 예기치 못한 오류가 발생했습니다.",
+            retryable=False,
+            details={"reason": str(e)},
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
@@ -122,6 +227,14 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     )
 
     if not validation["is_valid"]:
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="PARSE_SCHEMA_MISMATCH",
+            retryable=False,
+            took_ms=took_ms,
+            message="생성 응답 검증에 실패했습니다.",
+        )
         return error_response(
             request_id=request_id,
             error_code="PARSE_SCHEMA_MISMATCH",
@@ -132,6 +245,12 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         )
 
     used_top_k = len(context) if request.use_search_results and request.search_results else request.top_k
+    _log_success(
+        endpoint="/api/v1/qa",
+        request_id=request_id,
+        took_ms=took_ms,
+        retrieved_count=len(context),
+    )
 
     return QAResponse(
         success=True,
