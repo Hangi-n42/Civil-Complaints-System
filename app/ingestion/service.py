@@ -204,7 +204,11 @@ class IngestionService:
             raise IngestionError(f"중복 제거 실패: {str(e)}") from e
 
     async def process(
-        self, documents: List[Dict[str, Any]], clean: bool = True, mask_pii: bool = True
+        self,
+        documents: List[Dict[str, Any]],
+        clean: bool = True,
+        mask_pii: bool = True,
+        deduplicate: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         종합 처리 파이프라인
@@ -213,6 +217,7 @@ class IngestionService:
             documents: 원본 문서 리스트
             clean: 정제 여부
             mask_pii: PII 마스킹 여부
+            deduplicate: 중복 제거 여부
 
         Returns:
             처리된 문서 리스트
@@ -235,7 +240,8 @@ class IngestionService:
                 ]
                 self.logger.info("PII 마스킹 완료")
 
-            result = await self.deduplicate(result)
+            if deduplicate:
+                result = await self.deduplicate(result)
             self.logger.info(f"입수 처리 완료: {len(result)}개 문서")
 
             return result

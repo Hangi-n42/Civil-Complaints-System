@@ -17,6 +17,150 @@ class SearchFilters(BaseModel):
     entity_labels: Optional[List[str]] = None
 
 
+class IngestRecordInput(BaseModel):
+    """입수 입력 레코드"""
+
+    model_config = ConfigDict(extra="allow")
+
+    case_id: Optional[str] = None
+    created_at: Optional[str] = None
+    category: Optional[str] = None
+    region: Optional[str] = None
+    text: Optional[str] = None
+    raw_text: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class IngestRequest(BaseModel):
+    """입수 요청"""
+
+    source_type: str = "manual"
+    source: str = "manual"
+    mask_pii: bool = True
+    deduplicate: bool = True
+    records: List[IngestRecordInput] = Field(default_factory=list)
+
+
+class IngestRecordResult(BaseModel):
+    """입수 처리 결과 레코드"""
+
+    case_id: str
+    status: str
+    normalized_text: str
+
+
+class IngestResponseData(BaseModel):
+    """입수 응답 데이터"""
+
+    ingested_count: int
+    skipped_count: int
+    mask_pii: bool
+    deduplicate: bool
+    records: List[IngestRecordResult]
+
+
+class IngestResponse(BaseModel):
+    """입수 성공 응답"""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: IngestResponseData
+
+
+class StructureRecordInput(BaseModel):
+    """구조화 입력 레코드"""
+
+    model_config = ConfigDict(extra="allow")
+
+    case_id: Optional[str] = None
+    source: Optional[str] = None
+    created_at: Optional[str] = None
+    category: Optional[str] = None
+    region: Optional[str] = None
+    text: Optional[str] = None
+    raw_text: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class StructureRequest(BaseModel):
+    """구조화 요청"""
+
+    records: List[StructureRecordInput] = Field(default_factory=list)
+
+
+class FieldExtraction(BaseModel):
+    """4요소 추출 필드"""
+
+    text: str
+    confidence: float
+    evidence_span: List[int]
+
+
+class EntityItem(BaseModel):
+    """엔티티 항목"""
+
+    label: str
+    text: str
+    start: Optional[int] = None
+    end: Optional[int] = None
+    confidence: Optional[float] = None
+
+
+class ValidationIssueItem(BaseModel):
+    """검증 이슈"""
+
+    field: str
+    code: str
+    message: str
+
+
+class ValidationResult(BaseModel):
+    """구조화 검증 결과"""
+
+    is_valid: bool
+    errors: List[ValidationIssueItem] = Field(default_factory=list)
+    warnings: List[ValidationIssueItem] = Field(default_factory=list)
+
+
+class StructuredRecordResult(BaseModel):
+    """구조화 처리 결과 레코드"""
+
+    case_id: str
+    source: str
+    created_at: str
+    category: Optional[str] = None
+    region: Optional[str] = None
+    raw_text: str
+    observation: FieldExtraction
+    result: FieldExtraction
+    request: FieldExtraction
+    context: FieldExtraction
+    entities: List[EntityItem] = Field(default_factory=list)
+    metadata: Dict[str, Any]
+    supervision: Optional[Dict[str, Any]] = None
+    confidence_score: float
+    structured_at: str
+    validation: ValidationResult
+
+
+class StructureResponseData(BaseModel):
+    """구조화 응답 데이터"""
+
+    structured_count: int
+    invalid_count: int
+    results: List[StructuredRecordResult]
+
+
+class StructureResponse(BaseModel):
+    """구조화 성공 응답"""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: StructureResponseData
+
+
 class IndexRecord(BaseModel):
     """인덱싱 입력 레코드"""
 
