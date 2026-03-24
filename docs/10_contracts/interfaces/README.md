@@ -1,6 +1,6 @@
 # 인터페이스 계약 문서 인덱스
 
-기준일: 2026-03-19  
+기준일: 2026-03-22  
 기준 원칙: 인터페이스 계약은 `docs/10_contracts/interfaces` 하위에서 주차 단위로 관리한다.
 
 ## 디렉토리 구조
@@ -18,3 +18,11 @@
 
 - Week 1 인덱스: `docs/10_contracts/interfaces/week1/README.md`
 - Week 2 인덱스: `docs/10_contracts/interfaces/week2/README.md`
+
+## Week2 최신 버전 스냅샷 (2026-03-22)
+
+- Common: `v1.4-week2-final`
+- BE1: `v1.3-week2-final`
+- BE2: `v1.2-week2-final`
+- BE3: `v1.2-week2-final`
+- FE: `v1.2-week2-final`

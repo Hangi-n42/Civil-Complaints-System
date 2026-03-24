@@ -1,8 +1,9 @@
 # 스키마 계약 문서
 
-문서 버전: v1.0  
+문서 버전: v1.1-week2-aligned  
 기준 문서: [PRD](../../00_overview/prd.md), [MVP 범위 문서](../../00_overview/mvp_scope.md), [API 명세서](../api/api_spec.md)  
 작성일: 2026-03-11
+최신화: 2026-03-22 (raw_text 우선 매핑, entity 라벨 정규화/차단, warnings 정합 반영)
 
 ## 0. Week2 Contract Override
 
@@ -64,8 +65,13 @@
 | `created_at` | string(datetime) | Y | ingest 입력은 원천 포맷 허용, 저장/출력은 ISO-8601 강제 |
 | `category` | string | N | 민원 분류 |
 | `region` | string | N | 행정 구역 |
-| `text` | string | Y | 원문 텍스트 |
+| `text` | string | N | 원문 텍스트 (`raw_text` 대체 허용) |
+| `raw_text` | string | N | 원문 텍스트 (`text` 대체 허용) |
 | `metadata` | object | N | 추가 메타데이터 |
+
+추가 규칙:
+- 입력 단계에서 `text` 또는 `raw_text` 중 하나는 반드시 존재해야 한다.
+- 내부 정규화 시 `raw_text`를 우선 사용하고, 없으면 `text`를 사용한다.
 
 ### 4.3 예시
 
@@ -131,6 +137,17 @@
 - `FACILITY`
 - `HAZARD`
 - `ADMIN_UNIT`
+
+### 6.4 정규화/차단 규칙
+
+- 비표준 라벨 매핑:
+  - `TYPE` -> `HAZARD`
+  - `RISK` -> `HAZARD`
+  - `DATE` -> `TIME`
+  - `PLACE` -> `LOCATION`
+  - `AREA` -> `ADMIN_UNIT`
+- 매핑이 발생하면 `validation.warnings`에 `entity_label_normalized:<OLD>-><NEW>`를 기록한다.
+- 매핑 후에도 허용 라벨이 아니면 `invalid_entity_label:<LABEL>` 오류로 차단한다.
 
 ### 6.3 예시
 
@@ -203,7 +220,8 @@
   ],
   "validation": {
     "is_valid": true,
-    "errors": []
+    "errors": [],
+    "warnings": []
   }
 }
 ```
@@ -216,7 +234,7 @@
 | --- | --- | --- | --- |
 | `is_valid` | boolean | Y | 스키마 유효 여부 |
 | `errors` | array | Y | 오류 목록 |
-| `warnings` | array | N | 경고 목록 |
+| `warnings` | array | Y | 경고 목록 (없으면 빈 배열) |
 
 ### 8.2 ValidationError 객체
 

@@ -9,7 +9,6 @@ Week 1 기준선 구현:
 
 from __future__ import annotations
 
-import json
 from typing import Any, Dict, List
 
 import httpx
@@ -17,6 +16,11 @@ import httpx
 from app.core.logging import pipeline_logger
 from app.core.exceptions import GenerationError
 from app.core.config import settings
+from app.generation.parsing.json_utils import (
+    extract_json_string,
+    normalize_confidence,
+    parse_qa_json_response,
+)
 
 
 class GenerationService:
@@ -31,40 +35,11 @@ class GenerationService:
 
     def _extract_json_string(self, text: str) -> str:
         """응답 텍스트에서 JSON 블록을 추출한다."""
-        if "```json" in text:
-            return text.split("```json", maxsplit=1)[1].split("```", maxsplit=1)[0].strip()
-        if "```" in text:
-            return text.split("```", maxsplit=1)[1].split("```", maxsplit=1)[0].strip()
-
-        stripped = text.strip()
-        start = stripped.find("{")
-        end = stripped.rfind("}")
-        if start == -1 or end == -1 or end < start:
-            raise GenerationError(
-                "모델 응답에서 JSON 블록을 찾지 못했습니다.",
-                code="PARSE_JSON_BLOCK_EXTRACTION_FAILED",
-                retryable=True,
-                details={"stage": "extract"},
-            )
-
-        return stripped[start : end + 1].strip()
+        return extract_json_string(text)
 
     def _normalize_confidence(self, value: Any) -> float:
         """confidence를 0~1 number로 정규화한다."""
-        if isinstance(value, (int, float)):
-            return max(0.0, min(1.0, float(value)))
-
-        if isinstance(value, str):
-            lowered = value.strip().lower()
-            mapping = {"low": 0.35, "medium": 0.65, "high": 0.85}
-            if lowered in mapping:
-                return mapping[lowered]
-            try:
-                return max(0.0, min(1.0, float(lowered)))
-            except ValueError:
-                return 0.5
-
-        return 0.5
+        return normalize_confidence(value)
 
     async def call_ollama(self, prompt: str, temperature: float = 0.7) -> str:
         """
@@ -200,84 +175,8 @@ class GenerationService:
         Returns:
             파싱된 JSON 객체
         """
-        try:
-            self.logger.debug(f"JSON 응답 파싱")
-
-            json_str = self._extract_json_string(text)
-
-            # JSON 파싱
-            result = json.loads(json_str)
-
-            required = ["answer", "citations", "confidence", "limitations"]
-            missing = [field for field in required if field not in result]
-            if missing:
-                raise GenerationError(
-                    f"필수 필드 누락: {', '.join(missing)}",
-                    code="PARSE_SCHEMA_MISMATCH",
-                    retryable=True,
-                    details={"stage": "schema", "missing_fields": missing},
-                )
-
-            if not isinstance(result.get("citations"), list):
-                raise GenerationError(
-                    "citations 필드는 배열이어야 합니다.",
-                    code="PARSE_SCHEMA_MISMATCH",
-                    retryable=True,
-                    details={"stage": "schema", "field": "citations"},
-                )
-
-            limitations = str(result.get("limitations", "")).strip()
-            if not limitations:
-                raise GenerationError(
-                    "limitations 필드는 빈 문자열일 수 없습니다.",
-                    code="PARSE_SCHEMA_MISMATCH",
-                    retryable=True,
-                    details={"stage": "schema", "field": "limitations"},
-                )
-
-            normalized_citations: List[Dict[str, Any]] = []
-            for item in result.get("citations", []):
-                if not isinstance(item, dict):
-                    continue
-
-                citation: Dict[str, Any] = {
-                    "chunk_id": str(item.get("chunk_id", "")),
-                    "case_id": str(item.get("case_id", "")),
-                    "snippet": str(item.get("snippet", "")),
-                    "relevance_score": self._normalize_confidence(
-                        item.get("relevance_score", 0.5)
-                    ),
-                }
-
-                doc_id = str(item.get("doc_id", "")).strip()
-                if doc_id:
-                    citation["doc_id"] = doc_id
-
-                normalized_citations.append(citation)
-
-            result["citations"] = normalized_citations
-            result["confidence"] = self._normalize_confidence(result.get("confidence"))
-            result["limitations"] = limitations
-
-            return result
-        except json.JSONDecodeError as e:
-            self.logger.error(f"JSON 파싱 실패: {str(e)}")
-            raise GenerationError(
-                "모델 응답을 JSON으로 파싱하지 못했습니다.",
-                code="PARSE_JSON_DECODE_ERROR",
-                retryable=True,
-                details={"stage": "decode", "reason": str(e)},
-            ) from e
-        except GenerationError:
-            raise
-        except Exception as e:
-            self.logger.error(f"응답 파싱 실패: {str(e)}")
-            raise GenerationError(
-                f"응답 파싱 실패: {str(e)}",
-                code="PARSE_SCHEMA_MISMATCH",
-                retryable=True,
-                details={"stage": "schema"},
-            ) from e
+        self.logger.debug("JSON 응답 파싱")
+        return parse_qa_json_response(text)
 
     async def build_citations(
         self, response: str, context: List[Dict[str, Any]]

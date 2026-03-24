@@ -1,0 +1,59 @@
+[
+  {
+    "input": {
+      "label": "TYPE",
+      "text": "소음"
+    },
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "entity_label_normalized:TYPE->HAZARD"
+      ]
+    },
+    "entities_after_validation": [
+      {
+        "label": "HAZARD",
+        "text": "소음"
+      }
+    ]
+  },
+  {
+    "input": {
+      "label": "RISK",
+      "text": "위험"
+    },
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "entity_label_normalized:RISK->HAZARD"
+      ]
+    },
+    "entities_after_validation": [
+      {
+        "label": "HAZARD",
+        "text": "위험"
+      }
+    ]
+  },
+  {
+    "input": {
+      "label": "PLACE",
+      "text": "서울"
+    },
+    "validation": {
+      "is_valid": true,
+      "errors": [],
+      "warnings": [
+        "entity_label_normalized:PLACE->LOCATION"
+      ]
+    },
+    "entities_after_validation": [
+      {
+        "label": "LOCATION",
+        "text": "서울"
+      }
+    ]
+  }
+]
