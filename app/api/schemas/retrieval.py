@@ -14,6 +14,7 @@ class SearchFilters(BaseModel):
 
     region: Optional[str] = None
     category: Optional[str] = None
+    created_at: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
     entity_labels: Optional[List[str]] = None
@@ -47,7 +48,6 @@ class SearchFilters(BaseModel):
                 f"filters.entity_labels에 허용되지 않은 라벨이 포함되었습니다: {invalid}. "
                 f"허용 라벨: {allowed}"
             )
-
         return normalized
 
 

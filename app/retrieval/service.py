@@ -320,6 +320,11 @@ class RetrievalService:
             if str(chunk.get("category") or "") != str(category):
                 return False
 
+        created_at = filters.get("created_at")
+        if created_at:
+            if str(chunk.get("created_at") or "") != str(created_at):
+                return False
+
         if not self._within_range(
             chunk.get("created_at", ""),
             filters.get("date_from"),
