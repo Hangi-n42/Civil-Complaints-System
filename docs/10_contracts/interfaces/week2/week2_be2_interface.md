@@ -54,3 +54,30 @@
 - [ ] `chunk_id` 규칙 `<case_id>__chunk-<n>` 준수
 - [ ] `created_at` ISO-8601 유지
 - [ ] `entity_labels`와 `entity_texts` 길이 정합성 검증
+
+## 6) entity_labels 계약 고정 (BE1/BE2/BE3 공통)
+
+허용 라벨셋(고정):
+
+- `LOCATION`
+- `TIME`
+- `FACILITY`
+- `HAZARD`
+- `ADMIN_UNIT`
+
+인덱싱 저장 규칙:
+
+- BE2는 인덱싱 시 `entity_labels`에 허용 라벨셋만 저장한다.
+- 허용 라벨이 아닌 값은 저장하지 않는다.
+
+검색 필터 규칙 (`filters.entity_labels`):
+
+- 매칭은 OR 규칙이다. (`FACILITY`, `HAZARD` 전달 시 둘 중 하나라도 포함하면 매칭)
+- 빈 배열(`[]`)은 "필터 미적용"으로 처리한다.
+- 미전달(`null` 또는 키 없음)도 "필터 미적용"으로 처리한다.
+- 허용 라벨셋 외 입력은 요청을 거부한다. (FastAPI/Pydantic 검증 오류, HTTP 422)
+
+비정상 라벨 처리 정책:
+
+- 정책: **무시하지 않고 에러 반환(Reject)**
+- 이유: FE 오류 메시지 표준화, 디버깅 용이성, 재현 가능한 동작 보장

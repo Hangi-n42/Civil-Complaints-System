@@ -92,3 +92,4 @@
 ## 8) Week 2 BE2 점검 산출물
 
 - BE2 ChromaDB 컬렉션/필터 점검: `docs/40_delivery/week2/be2_chromadb_filter_check.md`
+- BE2 entity_labels 계약/통합 검증 증빙: `docs/40_delivery/week2/artifacts/be2_entity_label_evidence.md`
