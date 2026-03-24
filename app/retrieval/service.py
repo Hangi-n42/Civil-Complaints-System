@@ -19,6 +19,7 @@ from typing import Dict, Any, List, Optional
 from app.core.logging import pipeline_logger
 from app.core.exceptions import RetrievalError
 from app.core.config import settings
+from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
 
 
 class RetrievalService:
@@ -92,7 +93,7 @@ class RetrievalService:
         self, record: Dict[str, Any]
     ) -> tuple[List[str], List[str], float]:
         entities = record.get("entities")
-        pairs: List[tuple[str, str]] = []
+        entity_pairs: List[tuple[str, str]] = []
         confidence_values: List[float] = []
 
         if isinstance(entities, list):
@@ -101,8 +102,8 @@ class RetrievalService:
                     continue
                 label = str(entity.get("label", "")).strip().upper()
                 text = str(entity.get("text", "")).strip()
-                if label and text:
-                    pairs.append((label, text))
+                if label in ALLOWED_ENTITY_LABELS and text:
+                    entity_pairs.append((label, text))
                 confidence = entity.get("confidence")
                 if isinstance(confidence, (int, float)):
                     confidence_values.append(float(confidence))
@@ -120,9 +121,9 @@ class RetrievalService:
             if isinstance(metadata_confidence, (int, float)):
                 confidence_values.append(float(metadata_confidence))
 
-        seen_pairs = set()
         unique_pairs: List[tuple[str, str]] = []
-        for pair in pairs:
+        seen_pairs = set()
+        for pair in entity_pairs:
             if pair in seen_pairs:
                 continue
             seen_pairs.add(pair)
@@ -352,7 +353,11 @@ class RetrievalService:
 
         label_filters = filters.get("entity_labels")
         if isinstance(label_filters, list) and label_filters:
-            current_labels = {label.upper() for label in chunk.get("entity_labels", [])}
+            current_labels = {
+                str(label).upper()
+                for label in chunk.get("entity_labels", [])
+                if str(label).upper() in ALLOWED_ENTITY_LABELS
+            }
             if not current_labels.intersection({str(item).upper() for item in label_filters}):
                 return False
 
