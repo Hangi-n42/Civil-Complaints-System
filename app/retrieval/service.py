@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
@@ -65,20 +65,29 @@ class RetrievalService:
         return f"CASE-{normalized}"
 
     def _normalize_created_at(self, record: Dict[str, Any]) -> str:
-        raw_created_at = record.get("created_at") or record.get("submitted_at")
+        raw_created_at = (
+            record.get("created_at")
+            or record.get("submitted_at")
+            or record.get("date")
+            or record.get("datetime")
+        )
+        kst = timezone(timedelta(hours=9))
+
         if not raw_created_at:
-            return datetime.now().isoformat()
+            return datetime.now(kst).isoformat()
 
         try:
             parsed = datetime.fromisoformat(str(raw_created_at).replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=kst)
             return parsed.isoformat()
         except ValueError:
             # yyyy-mm-dd 형식 대응
             try:
                 parsed = datetime.strptime(str(raw_created_at), "%Y-%m-%d")
-                return parsed.isoformat()
+                return parsed.replace(tzinfo=kst).isoformat()
             except ValueError:
-                return datetime.now().isoformat()
+                return datetime.now(kst).isoformat()
 
     def _extract_entities(
         self, record: Dict[str, Any]
@@ -130,6 +139,19 @@ class RetrievalService:
 
         return unique_labels, unique_texts, confidence_avg
 
+    def _normalize_chunk_id(self, case_id: str, record: Dict[str, Any], index: int) -> str:
+        candidate = str(record.get("chunk_id") or "").strip()
+        if candidate and re.fullmatch(rf"{re.escape(case_id)}__chunk-\d+", candidate):
+            return candidate
+
+        raw_index = record.get("chunk_index", index)
+        try:
+            chunk_index = max(0, int(raw_index))
+        except (TypeError, ValueError):
+            chunk_index = max(0, index)
+
+        return f"{case_id}__chunk-{chunk_index}"
+
     def _get_observation_text(self, record: Dict[str, Any]) -> str:
         observation = record.get("observation")
         if isinstance(observation, dict):
@@ -176,6 +198,10 @@ class RetrievalService:
         if sections:
             return "\n".join(sections)
 
+        raw_text = str(record.get("raw_text", "")).strip()
+        if raw_text:
+            return raw_text
+
         return str(record.get("text", "")).strip()
 
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
@@ -197,10 +223,7 @@ class RetrievalService:
         entity_labels, entity_texts, confidence = self._extract_entities(record)
 
         chunk_text = self._build_chunk_text(record)
-        chunk_id = str(
-            record.get("chunk_id")
-            or f"{case_id}__chunk-{int(record.get('chunk_index', 0))}"
-        )
+        chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
 
         return {
             "doc_id": doc_id,
@@ -219,6 +242,7 @@ class RetrievalService:
                 "request": self._get_request_text(record),
             },
             "metadata": {
+                "pipeline_version": "week2",
                 "structuring_confidence": confidence,
                 "content_type": "full",
             },
