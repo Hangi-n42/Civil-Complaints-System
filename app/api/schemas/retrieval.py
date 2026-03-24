@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS, normalize_entity_label
+
 
 class SearchFilters(BaseModel):
     """검색 필터"""
@@ -19,18 +21,33 @@ class SearchFilters(BaseModel):
 
     @field_validator("entity_labels")
     @classmethod
-    def normalize_entity_labels(cls, value: Optional[List[str]]) -> Optional[List[str]]:
+    def validate_entity_labels(cls, value: Optional[List[str]]) -> Optional[List[str]]:
         if value is None:
             return None
 
         normalized: List[str] = []
         seen = set()
+        invalid_labels: List[str] = []
+
         for item in value:
-            label = str(item).strip().upper()
-            if not label or label in seen:
+            label = normalize_entity_label(item)
+            if not label:
+                continue
+            if label not in ALLOWED_ENTITY_LABELS:
+                invalid_labels.append(label)
+                continue
+            if label in seen:
                 continue
             seen.add(label)
             normalized.append(label)
+
+        if invalid_labels:
+            allowed = ", ".join(sorted(ALLOWED_ENTITY_LABELS))
+            invalid = ", ".join(sorted(set(invalid_labels)))
+            raise ValueError(
+                f"filters.entity_labels에 허용되지 않은 라벨이 포함되었습니다: {invalid}. "
+                f"허용 라벨: {allowed}"
+            )
         return normalized
 
 

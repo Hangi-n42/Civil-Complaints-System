@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.ingestion.service import IngestionService
+from app.structuring.service import StructuringService
 from scripts.evaluate_structuring import main as run_structuring_eval
 
 
@@ -78,3 +79,69 @@ def test_evaluate_structuring_outputs_metrics(tmp_path: Path):
     assert "metrics" in report
     assert "quality" in report
     assert report["quality"]["schema_pass_rate"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_validate_schema_normalizes_nonstandard_entity_labels():
+    service = StructuringService()
+    payload = {
+        "case_id": "CASE-ENTITY-001",
+        "source": "aihub_71852",
+        "created_at": "2026-03-22T10:00:00+09:00",
+        "raw_text": "소음과 위험이 있습니다.",
+        "observation": {"text": "소음 민원", "confidence": 0.9, "evidence_span": [0, 4]},
+        "result": {"text": "생활 불편", "confidence": 0.9, "evidence_span": [5, 9]},
+        "request": {"text": "점검 요청", "confidence": 0.9, "evidence_span": [10, 14]},
+        "context": {"text": "서울시", "confidence": 0.9, "evidence_span": [15, 18]},
+        "entities": [
+            {"label": "TYPE", "text": "소음"},
+            {"label": "DATE", "text": "2026-03-22"},
+        ],
+    }
+
+    validation = await service.validate_schema(payload)
+
+    assert validation["is_valid"] is True
+    assert "invalid_entity_label:TYPE" not in validation["errors"]
+    assert payload["entities"][0]["label"] == "HAZARD"
+    assert payload["entities"][1]["label"] == "TIME"
+    assert "entity_label_normalized:TYPE->HAZARD" in validation["warnings"]
+    assert "entity_label_normalized:DATE->TIME" in validation["warnings"]
+
+
+@pytest.mark.asyncio
+async def test_validate_schema_blocks_unknown_entity_labels():
+    service = StructuringService()
+    payload = {
+        "case_id": "CASE-ENTITY-002",
+        "source": "aihub_71852",
+        "created_at": "2026-03-22T10:00:00+09:00",
+        "raw_text": "내용",
+        "observation": {"text": "관찰", "confidence": 0.9, "evidence_span": [0, 2]},
+        "result": {"text": "결과", "confidence": 0.9, "evidence_span": [3, 5]},
+        "request": {"text": "요청", "confidence": 0.9, "evidence_span": [6, 8]},
+        "context": {"text": "맥락", "confidence": 0.9, "evidence_span": [9, 11]},
+        "entities": [{"label": "FOO", "text": "임의"}],
+    }
+
+    validation = await service.validate_schema(payload)
+
+    assert validation["is_valid"] is False
+    assert "invalid_entity_label:FOO" in validation["errors"]
+
+
+@pytest.mark.asyncio
+async def test_structure_reads_raw_text_when_text_missing():
+    service = StructuringService()
+    result = await service.structure(
+        {
+            "case_id": "CASE-RAW-001",
+            "source": "aihub_71852",
+            "created_at": "2026-03-22",
+            "raw_text": "서울시 가로등 소음 개선 요청",
+        }
+    )
+
+    assert result["raw_text"] == "서울시 가로등 소음 개선 요청"
+    assert isinstance(result.get("entities"), list)
+    assert any(entity.get("label") == "FACILITY" for entity in result["entities"])

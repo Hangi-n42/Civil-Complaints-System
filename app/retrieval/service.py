@@ -19,6 +19,7 @@ from typing import Dict, Any, List, Optional
 from app.core.logging import pipeline_logger
 from app.core.exceptions import RetrievalError
 from app.core.config import settings
+from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
 
 
 class RetrievalService:
@@ -83,8 +84,7 @@ class RetrievalService:
         self, record: Dict[str, Any]
     ) -> tuple[List[str], List[str], float]:
         entities = record.get("entities")
-        labels: List[str] = []
-        texts: List[str] = []
+        entity_pairs: List[tuple[str, str]] = []
         confidence_values: List[float] = []
 
         if isinstance(entities, list):
@@ -93,10 +93,8 @@ class RetrievalService:
                     continue
                 label = str(entity.get("label", "")).strip().upper()
                 text = str(entity.get("text", "")).strip()
-                if label:
-                    labels.append(label)
-                if text:
-                    texts.append(text)
+                if label in ALLOWED_ENTITY_LABELS and text:
+                    entity_pairs.append((label, text))
                 confidence = entity.get("confidence")
                 if isinstance(confidence, (int, float)):
                     confidence_values.append(float(confidence))
@@ -114,8 +112,16 @@ class RetrievalService:
             if isinstance(metadata_confidence, (int, float)):
                 confidence_values.append(float(metadata_confidence))
 
-        unique_labels = sorted(set(labels))
-        unique_texts = sorted(set(texts))
+        unique_pairs: List[tuple[str, str]] = []
+        seen_pairs = set()
+        for pair in entity_pairs:
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            unique_pairs.append(pair)
+
+        unique_labels = [label for label, _ in unique_pairs]
+        unique_texts = [text for _, text in unique_pairs]
         confidence_avg = (
             round(sum(confidence_values) / len(confidence_values), 4)
             if confidence_values
@@ -328,7 +334,11 @@ class RetrievalService:
 
         label_filters = filters.get("entity_labels")
         if isinstance(label_filters, list) and label_filters:
-            current_labels = {label.upper() for label in chunk.get("entity_labels", [])}
+            current_labels = {
+                str(label).upper()
+                for label in chunk.get("entity_labels", [])
+                if str(label).upper() in ALLOWED_ENTITY_LABELS
+            }
             if not current_labels.intersection({str(item).upper() for item in label_filters}):
                 return False
 

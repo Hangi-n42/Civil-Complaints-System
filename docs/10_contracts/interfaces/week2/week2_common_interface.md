@@ -1,8 +1,8 @@
 # Week 2 공통 인터페이스 규약
 
-문서 버전: v1.2-week2-aligned  
+문서 버전: v1.4-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-20 (StructuredCivilCase 확장 필드 반영)  
+최신화: 2026-03-22 (raw_text/라벨 정책/검증-차단 규칙 정합 반영)  
 적용 파트: FE, BE1, BE2, BE3
 
 ## 1) 공통 원칙
@@ -105,10 +105,33 @@
 - `id` -> `case_id`
 - `submitted_at` -> `created_at`
 - `metadata.source` -> `source`
+- `raw_text` -> 내부 원문 필드 우선 사용
+- `text` -> `raw_text` 대체 입력 허용
 
 그 외 별칭은 금지한다.
 
-## 6) 충돌 해결 규칙
+## 6) Entity 라벨 정책 (서버 강제)
+
+허용 라벨(enum):
+- `LOCATION`
+- `TIME`
+- `FACILITY`
+- `HAZARD`
+- `ADMIN_UNIT`
+
+비표준 라벨 정규화:
+- `TYPE` -> `HAZARD`
+- `RISK` -> `HAZARD`
+- `DATE` -> `TIME`
+- `PLACE` -> `LOCATION`
+- `AREA` -> `ADMIN_UNIT`
+
+검증/차단 규칙:
+- 매핑 가능한 라벨은 서버에서 강제 정규화한다.
+- 매핑 불가능한 라벨은 `invalid_entity_label:<LABEL>` 오류로 차단한다.
+- 정규화가 발생하면 `validation.warnings`에 `entity_label_normalized:<OLD>-><NEW>`를 기록한다.
+
+## 7) 충돌 해결 규칙
 
 - 1차: 공통 문서(`week2_common_interface.md`) 기준 적용
 - 2차: 파트 문서의 입출력 계약 적용

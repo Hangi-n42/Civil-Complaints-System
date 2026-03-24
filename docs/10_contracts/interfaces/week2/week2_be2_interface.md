@@ -1,7 +1,8 @@
 # Week 2 BE2 인터페이스 문서
 
-문서 버전: v1.0-week2  
+문서 버전: v1.2-week2-final  
 작성일: 2026-03-19  
+최신화: 2026-03-22 (entity label 정규화/차단 전제 명시)  
 책임: BE2  
 협업: BE1, BE3
 
@@ -19,6 +20,10 @@
 - `case_id`, `source`, `created_at`
 - `observation`, `result`, `request`, `context`
 - `entities`, `validation`
+
+Entity 전제 조건:
+- `entities.label`은 서버 정규화 이후 허용값 5종(`LOCATION`, `TIME`, `FACILITY`, `HAZARD`, `ADMIN_UNIT`)만 전달된다.
+- 비표준 라벨은 BE1 단계에서 정규화되며, 매핑 불가 라벨은 차단되어 BE2로 전달되지 않는다.
 
 ## 3) BE2 출력 계약 (index input)
 
@@ -51,6 +56,14 @@
 
 ## 5) BE2 완료 체크
 
-- [ ] `chunk_id` 규칙 `<case_id>__chunk-<n>` 준수
-- [ ] `created_at` ISO-8601 유지
-- [ ] `entity_labels`와 `entity_texts` 길이 정합성 검증
+- [x] `chunk_id` 규칙 `<case_id>__chunk-<n>` 준수
+- [x] `created_at` ISO-8601 유지
+- [x] `entity_labels`와 `entity_texts` 길이 정합성 검증
+- [x] `entity_labels` 허용값 5종 제한 전제 준수
+
+## 6) entity_labels 필터 동작 규칙 (#25 재적용)
+
+- 허용 라벨셋 외 입력은 요청을 거부한다. (FastAPI/Pydantic 검증 오류, HTTP 422)
+- 라벨 다중 입력은 OR 매칭으로 처리한다.
+- 빈 배열(`[]`)은 필터 미적용으로 처리한다.
+- 미전달(`null` 또는 키 없음)은 필터 미적용으로 처리한다.
