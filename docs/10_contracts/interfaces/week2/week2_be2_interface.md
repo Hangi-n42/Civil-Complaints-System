@@ -60,3 +60,10 @@ Entity 전제 조건:
 - [x] `created_at` ISO-8601 유지
 - [x] `entity_labels`와 `entity_texts` 길이 정합성 검증
 - [x] `entity_labels` 허용값 5종 제한 전제 준수
+
+## 6) entity_labels 필터 동작 규칙 (#25 재적용)
+
+- 허용 라벨셋 외 입력은 요청을 거부한다. (FastAPI/Pydantic 검증 오류, HTTP 422)
+- 라벨 다중 입력은 OR 매칭으로 처리한다.
+- 빈 배열(`[]`)은 필터 미적용으로 처리한다.
+- 미전달(`null` 또는 키 없음)은 필터 미적용으로 처리한다.
