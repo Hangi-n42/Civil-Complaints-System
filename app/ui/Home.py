@@ -955,7 +955,7 @@ else:
                     for item in st.session_state.search_api_results:
                         search_results_payload.append(
                             {
-                                "doc_id": item.get("id"),
+                                "doc_id": item.get("doc_id"),
                                 "chunk_id": item.get("chunk_id", ""),
                                 "case_id": item.get("case_id", ""),
                                 "snippet": item.get("snippet", ""),

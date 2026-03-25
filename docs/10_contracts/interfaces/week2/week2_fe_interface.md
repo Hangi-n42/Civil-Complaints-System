@@ -1,8 +1,8 @@
 # Week 2 FE 인터페이스 문서
 
-문서 버전: v1.2-week2-final  
+문서 버전: v1.3-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (시뮬레이션 상태 + 라벨 렌더링 규칙 반영)  
+최신화: 2026-03-25 (search->qa doc_id 중계 규칙, 422 래퍼 처리 반영)  
 책임: FE  
 협업: BE1, BE3
 
@@ -23,6 +23,7 @@
 **검색/QA는 실제 API 연동 완료:**
 - POST /api/v1/search, /api/v1/qa 엔드포인트 구현 완료
 - FE 검색/응답 화면은 실제 BE API 호출 사용 중
+- search 결과를 qa 요청으로 중계할 때 `doc_id`는 검색 응답의 `doc_id`를 그대로 전달한다 (`id` 사용 금지)
 
 ## 2) FE 입력 계약 (from API, Week 3 예정)
 
@@ -100,6 +101,8 @@ def build_structure_success_payload(scenario_key: str, source_text: str) -> dict
 - `validation.is_valid`는 `status`와 혼용하지 않는다.
 - 4요소 렌더링 카드 key는 `observation|result|request|context`만 사용.
 - 에러 배너는 `error.message`를 그대로 노출한다 (임의 키 재매핑 금지).
+- 422 검증 오류도 `success=false` 실패 래퍼(`error.code=VALIDATION_ERROR`)로 처리한다.
+- search -> qa 중계 payload는 `doc_id`를 유지한다 (`id`로 재매핑 금지).
 - `entities.label` 렌더링/필터 기준은 서버 허용 5종(`LOCATION`, `TIME`, `FACILITY`, `HAZARD`, `ADMIN_UNIT`)으로 고정한다.
 - `validation.warnings`의 `entity_label_normalized:<OLD>-><NEW>`는 데이터 품질 로그 패널에 노출 가능해야 한다.
 

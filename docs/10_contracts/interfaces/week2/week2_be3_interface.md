@@ -1,8 +1,8 @@
 # Week 2 BE3 인터페이스 문서
 
-문서 버전: v1.2-week2-final  
+문서 버전: v1.3-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (API 구현 상태/체크리스트 정합 반영)  
+최신화: 2026-03-25 (422 VALIDATION_ERROR 래퍼 통일 반영)  
 책임: BE3  
 협업: BE1, BE2, FE
 
@@ -54,6 +54,30 @@
 }
 ```
 
+### 2.1) 검증 오류(HTTP 422) 래핑 규칙
+
+- FastAPI/Pydantic 검증 실패(`RequestValidationError`)도 위 실패 래퍼 형식으로 반환한다.
+- 오류 코드는 `VALIDATION_ERROR`로 통일한다.
+- `error.details`에 최소 `path`, `errors`를 포함한다.
+
+예시:
+```json
+{
+  "success": false,
+  "request_id": "REQ-20260325-AB12CD34",
+  "timestamp": "2026-03-25T11:00:00+09:00",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "요청 본문 형식이 올바르지 않습니다.",
+    "retryable": false,
+    "details": {
+      "path": "/api/v1/search",
+      "errors": []
+    }
+  }
+}
+```
+
 ## 3) `/ingest` 데이터 계약
 
 `data` 객체 최소 필드:
@@ -84,4 +108,5 @@
 - [x] 구현된 `/search`, `/qa` 엔드포인트의 `success` 래퍼 일관성 확인
 - [x] 구현된 `/search`, `/qa` 엔드포인트 에러 코드 표준 준수
 - [x] 구현된 `/search`, `/qa` 엔드포인트 `request_id`, `timestamp` 누락률 0%
+- [x] FastAPI 기본 422 검증 오류를 `VALIDATION_ERROR` 래퍼로 통일
 - [ ] `/ingest`, `/structure` 구현 이후 동일 체크 재검증 예정
