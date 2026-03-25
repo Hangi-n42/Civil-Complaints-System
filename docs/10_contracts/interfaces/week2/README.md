@@ -1,6 +1,6 @@
 # Week 2 인터페이스 문서 인덱스
 
-기준일: 2026-03-22  
+기준일: 2026-03-25  
 적용 범위: Week 2 (`ingest -> structure -> validate`) 계약 고정 + search/qa 실연동
 
 ## 1) 목적
@@ -17,11 +17,11 @@ Week 2 구현 중 변수명, 포맷, 객체명 충돌을 방지하기 위해 공
 
 ### 현재 버전
 
-- Common: `v1.4-week2-final`
-- BE1: `v1.3-week2-final`
+- Common: `v1.5-week2-final`
+- BE1: `v1.4-week2-final`
 - BE2: `v1.2-week2-final`
-- BE3: `v1.2-week2-final`
-- FE: `v1.2-week2-final`
+- BE3: `v1.3-week2-final`
+- FE: `v1.3-week2-final`
 
 ## 3) 우선순위 규칙
 
@@ -62,6 +62,12 @@ Week 2 구현 중 변수명, 포맷, 객체명 충돌을 방지하기 위해 공
 - 구현 완료 API: `POST /api/v1/search`, `POST /api/v1/qa`
 - 미구현 API(Week3 예정): `POST /api/v1/ingest`, `POST /api/v1/structure`
 - FE 업로드/구조화 화면은 시뮬레이션 경로(`build_structure_success_payload`) 사용
+
+## 10) 2026-03-25 동기화 반영
+
+- FastAPI 검증 오류(HTTP 422)도 Week2 표준 실패 래퍼(`success/request_id/timestamp/error`)로 통일
+- `created_at`, `structured_at` 출력은 KST 오프셋 포함 ISO-8601(`+09:00`)으로 통일
+- FE search -> qa 중계 시 `doc_id`는 검색 응답의 `doc_id`를 그대로 사용(`id` 금지)
 
 ## 8) 라벨 정책 스냅샷
 

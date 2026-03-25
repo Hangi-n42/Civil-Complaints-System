@@ -1,8 +1,8 @@
 # Week 2 공통 인터페이스 규약
 
-문서 버전: v1.4-week2-final  
+문서 버전: v1.5-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (raw_text/라벨 정책/검증-차단 규칙 정합 반영)  
+최신화: 2026-03-25 (422 래퍼 통일, KST +09:00 시각 규칙 반영)  
 적용 파트: FE, BE1, BE2, BE3
 
 ## 1) 공통 원칙
@@ -14,6 +14,7 @@
 - Week2 표준 성공 응답은 `success`, `request_id`, `timestamp`, `data`를 사용한다.
 - Week2 표준 실패 응답은 `success`, `request_id`, `timestamp`, `error`를 사용한다.
 - `error` 객체는 `code`, `message`, `retryable`를 필수로 포함한다.
+- FastAPI 기본 검증 오류(HTTP 422)도 `VALIDATION_ERROR` 코드로 동일 래퍼 형식을 사용한다.
 
 ## 2) 표준 객체명 (고정)
 
@@ -34,6 +35,7 @@
 단계별 규칙:
 - 입력 단계: `source` 누락 허용, `created_at` 원천 포맷 허용
 - 내부 저장/API 출력: `source` 필수(누락 시 `unknown` 보정), `created_at` ISO-8601 강제
+- 내부 저장/API 출력 시각 필드(`created_at`, `structured_at`, `timestamp`)는 KST 오프셋 포함 형식(`+09:00`)을 사용한다.
 
 구조화 필드:
 - `observation` (`FieldExtraction`)

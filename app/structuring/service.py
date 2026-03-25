@@ -8,7 +8,7 @@
 """
 
 from typing import Dict, Any, List, Union
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import re
 from app.core.logging import pipeline_logger
 from app.core.exceptions import StructuringError
@@ -20,6 +20,7 @@ class StructuringService:
     def __init__(self):
         """초기화"""
         self.logger = pipeline_logger
+        self._kst = timezone(timedelta(hours=9))
         self._admin_unit_pattern = re.compile(r"([가-힣]+(?:시|도|군|구|면|동|과))")
         self._time_pattern = re.compile(r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})")
         self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
@@ -88,18 +89,24 @@ class StructuringService:
     def _normalize_created_at(self, created_at: str) -> str:
         value = (created_at or "").strip()
         if not value:
-            return datetime.now().isoformat()
+            return datetime.now(self._kst).isoformat()
 
         for fmt in ("%Y%m%d", "%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"):
             try:
-                return datetime.strptime(value, fmt).isoformat()
+                parsed = datetime.strptime(value, fmt).replace(tzinfo=self._kst)
+                return parsed.isoformat()
             except ValueError:
                 continue
 
         try:
-            return datetime.fromisoformat(value.replace("Z", "+00:00")).isoformat()
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=self._kst)
+            else:
+                parsed = parsed.astimezone(self._kst)
+            return parsed.isoformat()
         except ValueError:
-            return datetime.now().isoformat()
+            return datetime.now(self._kst).isoformat()
 
     def _build_field(self, text: str, start: int, end: int, confidence: float) -> Dict[str, Any]:
         """4요소 공통 필드 객체 생성"""
@@ -472,7 +479,7 @@ class StructuringService:
             # 결과 구성
             result = dict(candidate)
             result["confidence_score"] = confidence
-            result["structured_at"] = datetime.now().isoformat()
+            result["structured_at"] = datetime.now(self._kst).isoformat()
 
             # 스키마 검증
             result["validation"] = await self.validate_schema(result)

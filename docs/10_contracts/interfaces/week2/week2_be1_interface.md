@@ -1,8 +1,8 @@
 # Week 2 BE1 인터페이스 문서
 
-문서 버전: v1.3-week2-final  
+문서 버전: v1.4-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-22 (raw_text 우선 매핑, entity 정규화/차단 정책 반영)  
+최신화: 2026-03-25 (created_at/structured_at KST +09:00 통일 반영)  
 책임: BE1  
 협업: BE2, BE3
 
@@ -83,7 +83,8 @@
 - `metadata`: 항상 포함(원천 추적/품질 분석용)
 - `supervision`: 라벨링 정보가 있을 때만 포함(optional)
 - `confidence_score`: 구조화 결과 집계 신뢰도(0~1)
-- `structured_at`: 구조화 처리 시각(ISO-8601)
+- `structured_at`: 구조화 처리 시각(ISO-8601, `+09:00` 포함)
+- `created_at`: 출력 단계에서는 ISO-8601 KST 오프셋(`+09:00`)으로 통일
 
 **Entity 필드 명시:**
 - `entities`: 개체명 인식(NER) 결과 배열

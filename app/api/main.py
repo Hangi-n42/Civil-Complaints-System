@@ -2,8 +2,10 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 
+from app.api.error_utils import error_response, make_request_id
 from app.core.config import settings
 from app.core.logging import api_logger
 from app.api.routers import generation_router, retrieval_router
@@ -41,6 +43,22 @@ app.add_middleware(
 # API 라우터 등록
 app.include_router(retrieval_router)
 app.include_router(generation_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request, exc: RequestValidationError):
+    """FastAPI 기본 422를 Week2 표준 에러 래퍼로 통일한다."""
+    return error_response(
+        request_id=make_request_id(),
+        error_code="VALIDATION_ERROR",
+        message="요청 본문 형식이 올바르지 않습니다.",
+        status_code=422,
+        retryable=False,
+        details={
+            "path": str(request.url.path),
+            "errors": exc.errors(),
+        },
+    )
 
 
 # 헬스 체크 엔드포인트

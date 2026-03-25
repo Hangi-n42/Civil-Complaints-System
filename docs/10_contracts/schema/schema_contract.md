@@ -3,7 +3,7 @@
 문서 버전: v1.1-week2-aligned  
 기준 문서: [PRD](../../00_overview/prd.md), [MVP 범위 문서](../../00_overview/mvp_scope.md), [API 명세서](../api/api_spec.md)  
 작성일: 2026-03-11
-최신화: 2026-03-22 (raw_text 우선 매핑, entity 라벨 정규화/차단, warnings 정합 반영)
+최신화: 2026-03-25 (+09:00 출력 시각 정책 동기화 반영)
 
 ## 0. Week2 Contract Override
 
@@ -27,6 +27,8 @@
 - 모든 주요 객체는 가능한 한 명시적인 필드를 사용한다.
 - 필드명은 snake_case를 사용한다.
 - 날짜/시간은 ISO 8601 문자열을 사용한다.
+- 출력 시각 필드(`created_at`, `structured_at`, `timestamp`, `generated_at`)는 KST 오프셋 포함 형식(`+09:00`)을 사용한다.
+- 입력에서 타임존 정보가 없는 datetime을 수용한 경우, 내부 저장/API 출력 전 KST(`+09:00`)를 부여해 정규화한다.
 - confidence는 `0.0 ~ 1.0` 범위를 사용한다.
 - evidence_span은 원문 기준 문자 인덱스 `[start, end]` 형태를 사용한다.
 - 검색 및 QA에 필요한 메타데이터는 평탄한(flat) 구조를 우선한다.
@@ -62,7 +64,7 @@
 | --- | --- | --- | --- |
 | `case_id` | string | Y | 민원 고유 식별자 |
 | `source` | string | N | ingest 입력에서는 선택 허용, 저장/출력 전 `unknown` 보정 |
-| `created_at` | string(datetime) | Y | ingest 입력은 원천 포맷 허용, 저장/출력은 ISO-8601 강제 |
+| `created_at` | string(datetime) | Y | ingest 입력은 원천 포맷 허용, 저장/출력은 ISO-8601 KST(`+09:00`) 강제 |
 | `category` | string | N | 민원 분류 |
 | `region` | string | N | 행정 구역 |
 | `text` | string | N | 원문 텍스트 (`raw_text` 대체 허용) |
@@ -172,7 +174,7 @@
 | --- | --- | --- | --- |
 | `case_id` | string | Y | 민원 식별자 |
 | `source` | string | Y | 데이터 출처 |
-| `created_at` | string(datetime) | Y | 생성 시각 |
+| `created_at` | string(datetime) | Y | 생성 시각 (ISO-8601, `+09:00`) |
 | `category` | string | N | 민원 카테고리 |
 | `region` | string | N | 지역 정보 |
 | `raw_text` | string | Y | 원문 보관용 텍스트 |
@@ -399,7 +401,7 @@
 | --- | --- | --- | --- |
 | `success` | boolean | Y | 성공=true, 실패=false |
 | `request_id` | string | Y | 요청 추적 ID |
-| `timestamp` | string(datetime) | Y | 응답 시각 |
+| `timestamp` | string(datetime) | Y | 응답 시각 (ISO-8601, `+09:00`) |
 | `answer` | string | success=true 시 Y | 생성 답변 |
 | `citations` | array[Citation] | success=true 시 Y | 근거 목록 |
 | `confidence` | string | success=true 시 Y | `low`, `medium`, `high` |
@@ -581,7 +583,7 @@
 | --- | --- | --- |
 | `source_id` | `case_id` | 문자열 유지 |
 | `source` | `source` | 공백/누락 시 `unknown` |
-| `consulting_date` | `created_at` | ingest에서 수용 후 내부 저장/API 출력은 ISO-8601 변환 |
+| `consulting_date` | `created_at` | ingest에서 수용 후 내부 저장/API 출력은 ISO-8601 KST(`+09:00`) 변환 |
 | `consulting_category` | `category` | `-`는 `unknown` |
 | `consulting_content` | `raw_text` | 원문 보존 |
 
