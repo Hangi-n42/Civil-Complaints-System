@@ -145,3 +145,23 @@ async def test_structure_reads_raw_text_when_text_missing():
     assert result["raw_text"] == "서울시 가로등 소음 개선 요청"
     assert isinstance(result.get("entities"), list)
     assert any(entity.get("label") == "FACILITY" for entity in result["entities"])
+
+
+@pytest.mark.asyncio
+async def test_extract_entities_filters_admin_unit_false_positives():
+    service = StructuringService()
+    text = (
+        "안타깝게도 단체이셔도 예매도 어렵습니다. "
+        "서울특별시 강남구는 10시부터 접수합니다. "
+        "현장도 10시부터입니다."
+    )
+
+    entities = await service.extract_entities(text)
+
+    admin_units = [e["text"] for e in entities if e["label"] == "ADMIN_UNIT"]
+    times = [e["text"] for e in entities if e["label"] == "TIME"]
+
+    assert "안타깝게도" not in admin_units
+    assert "예매도" not in admin_units
+    assert "서울특별시" in admin_units
+    assert "10시" in times

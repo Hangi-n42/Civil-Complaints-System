@@ -47,6 +47,6 @@
 
 ## 4) 산출 경로
 
-- 구조화 예측: data/processed/week2/be1_structured_pred_50.json
-- 요약 리포트: data/processed/week2/be1_structured_summary_50.json
+- 구조화 예측: docs/40_delivery/week2/artifacts/be1_structured_pred_50.json
+- 요약 리포트: docs/40_delivery/week2/artifacts/be1_structured_summary_50.json
 - 평가 리포트(선택): data/annotations/week2_structuring_eval_result.json

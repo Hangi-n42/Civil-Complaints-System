@@ -21,10 +21,55 @@ class StructuringService:
         """초기화"""
         self.logger = pipeline_logger
         self._kst = timezone(timedelta(hours=9))
-        self._admin_unit_pattern = re.compile(r"([가-힣]+(?:시|도|군|구|면|동|과))")
+        self._admin_unit_pattern = re.compile(
+            r"((?:서울|부산|대구|인천|광주|대전|울산|세종|제주)(?:특별시|광역시|특별자치시|특별자치도|시)?"
+            r"|(?:경기|강원|충청북|충청남|전라북|전라남|경상북|경상남)도"
+            r"|(?:서울|부산|대구|인천|광주|대전|울산|세종|제주)\s*[가-힣]{1,10}(?:구|군|시))"
+        )
         self._time_pattern = re.compile(r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})")
         self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
         self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
+        self._province_names = {
+            "경기도",
+            "강원도",
+            "충청북도",
+            "충청남도",
+            "전라북도",
+            "전라남도",
+            "경상북도",
+            "경상남도",
+            "제주도",
+            "제주특별자치도",
+        }
+        self._metro_names = {
+            "서울",
+            "서울시",
+            "서울특별시",
+            "부산",
+            "부산시",
+            "부산광역시",
+            "대구",
+            "대구시",
+            "대구광역시",
+            "인천",
+            "인천시",
+            "인천광역시",
+            "광주",
+            "광주시",
+            "광주광역시",
+            "대전",
+            "대전시",
+            "대전광역시",
+            "울산",
+            "울산시",
+            "울산광역시",
+            "세종",
+            "세종시",
+            "세종특별자치시",
+            "제주",
+            "제주시",
+            "제주특별자치도",
+        }
         self._allowed_entity_labels = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
         self._entity_label_normalize_map = {
             "TYPE": "HAZARD",
@@ -33,6 +78,26 @@ class StructuringService:
             "PLACE": "LOCATION",
             "AREA": "ADMIN_UNIT",
         }
+
+    def _is_plausible_admin_unit(self, candidate: str) -> bool:
+        """행정단위로 해석 가능한 문자열인지 보수적으로 판별한다."""
+        value = (candidate or "").strip()
+        if not value:
+            return False
+
+        compact = re.sub(r"\s+", "", value)
+
+        if compact in self._province_names or compact in self._metro_names:
+            return True
+
+        # "서울 강남구", "광주 북구" 형태를 허용한다.
+        if re.fullmatch(
+            r"(?:서울|부산|대구|인천|광주|대전|울산|세종|제주)\s*[가-힣]{1,10}(?:구|군|시)",
+            compact,
+        ):
+            return True
+
+        return False
 
     def _safe_int(self, value: Any) -> Union[int, None]:
         """문자열/숫자 값을 정수로 안전 변환한다."""
@@ -255,7 +320,10 @@ class StructuringService:
             seen = set()
 
             for m in self._admin_unit_pattern.finditer(text):
-                ent = ("ADMIN_UNIT", m.group(1))
+                token = m.group(1).strip()
+                if not self._is_plausible_admin_unit(token):
+                    continue
+                ent = ("ADMIN_UNIT", token)
                 if ent not in seen:
                     seen.add(ent)
                     entities.append({"label": ent[0], "text": ent[1]})

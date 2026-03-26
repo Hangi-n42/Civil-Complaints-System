@@ -492,7 +492,7 @@ R: 책임 수행, C: 협업/검토
 | --- | --- | --- | --- |
 | 1주차 | 완료 | 기획/문서/스캐폴딩 + PoC 착수 범위 기준선 고정 | PRD/MVP/WBS/API/Schema, 역할 매뉴얼, 기본 모듈 골격 |
 | 2주차 | 완료 | ingest-structure-validate E2E 안정화 | 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋 |
-| 3주차 | 계획 | index-search E2E + 검색 지표 기초 측정 | 임베딩/인덱싱/검색, 메타데이터 필터, Recall@K 초안 |
+| 3주차 | 계획 | index-search E2E + 검색 지표 기초 측정 | 임베딩/인덱싱/검색, 메타데이터 필터, Recall@K 초안, LLM 핵심 5종 + A.X 조건부 트랙 비교 리포트 |
 | 4주차 | 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline 리포트 |
 | 5주차 | 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | length bucket 분기, chunk/retrieval 전략 분기, ablation #1 |
 | 6주차 | 계획 | Adaptive RAG 2차(주제/단일-복합) 적용 | topic-aware prompt, multi-request 분기, unified schema 고정 |
@@ -513,7 +513,14 @@ R: 책임 수행, C: 협업/검토
 - FE: W2 업로드/검증 UI 안정화 -> W3 검색 UI -> W4 QA 화면 -> W7~W8 데모 UX 고정
 - BE1: W2 구조화 품질/평가체계 고정 -> W3 검색용 필드 품질 보강 -> W7 KPI 리포트 마감
 - BE2: W3 인덱싱/검색 파이프라인 고도화 -> W4 QA 컨텍스트 연결 -> W5~W6 retrieval 분기 최적화
-- BE3: W2 API 검증/파싱 안정화 -> W4 generation/citation baseline -> W5~W7 라우팅/성능/OOM 폴백 튜닝
+- BE3: W2 API 검증/파싱 안정화 -> W3 LLM 핵심 5종(+A.X 조건부) 동일조건 벤치마크 -> W4 generation/citation baseline -> W5~W7 라우팅/성능/OOM 폴백 튜닝
+
+### 17.5 Week3 모델 벤치마크 역할 분배 (확정)
+
+- BE1: 기존 AIHub baseline 모델 테스트 담당
+- BE2: 후보 1(`skt/A.X-4.0-Light`) 테스트 담당
+- BE3: 후보 2/3/4(`exaone3.5:7.8b-instruct`, `gemma3:12b`, `phi4-mini:3.8b-instruct`) 테스트 담당
+- FE: 결과 시각화(비교표/슬라이스 대시보드) 반영 협업
 
 ### 17.3 마일스톤 기준 실행 계획 (M1~M4)
 

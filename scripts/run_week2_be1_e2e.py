@@ -31,8 +31,12 @@ from app.structuring.service import StructuringService
 from scripts.evaluate_structuring import main as evaluate_structuring
 
 DEFAULT_INPUT = PROJECT_ROOT / "data" / "samples" / "week2_delivery_sample_50.json"
-DEFAULT_PRED = PROJECT_ROOT / "data" / "processed" / "week2" / "be1_structured_pred_50.json"
-DEFAULT_SUMMARY = PROJECT_ROOT / "data" / "processed" / "week2" / "be1_structured_summary_50.json"
+DEFAULT_PRED = (
+    PROJECT_ROOT / "docs" / "40_delivery" / "week2" / "artifacts" / "be1_structured_pred_50.json"
+)
+DEFAULT_SUMMARY = (
+    PROJECT_ROOT / "docs" / "40_delivery" / "week2" / "artifacts" / "be1_structured_summary_50.json"
+)
 DEFAULT_EVAL = PROJECT_ROOT / "data" / "annotations" / "week2_structuring_eval_result.json"
 RAW_ROOT = PROJECT_ROOT / "data" / "Training" / "01.원천데이터"
 
