@@ -51,6 +51,26 @@ def get_retryable(error_code: str, *, status_code: Optional[int] = None) -> bool
     return status_code >= 500
 
 
+def _to_json_safe(value: Any) -> Any:
+    """JSONResponse 직렬화가 가능한 형태로 재귀 변환한다."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, Exception):
+        return str(value)
+
+    if isinstance(value, Mapping):
+        return {str(k): _to_json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_to_json_safe(item) for item in value]
+
+    return str(value)
+
+
 def error_response(
     *,
     request_id: str,
@@ -79,7 +99,7 @@ def error_response(
         },
     }
     if details:
-        payload["error"]["details"] = details
+        payload["error"]["details"] = _to_json_safe(details)
 
     return JSONResponse(
         status_code=resolved_status,

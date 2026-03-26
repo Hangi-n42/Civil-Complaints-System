@@ -1,6 +1,6 @@
 # Week 2 GitHub 이슈 인덱스
 
-기준일: 2026-03-19  
+기준일: 2026-03-26  
 라벨: `week2`
 문서 버전 변경 로그: 2026-03-20 `week2_common_interface.md` v1.2, `week2_be1_interface.md` v1.1로 코드 정합 반영
 
@@ -9,6 +9,21 @@
 - Parent 이슈 5개 생성 완료
 - Sub 이슈 15개 생성 완료
 - Parent 본문 체크리스트에 Sub 이슈 링크 반영 완료
+- Week2 Common 종료 이슈 `#12/#17/#18/#19` 2026-03-26 기준 close 완료
+- Week2 단위 테스트 회귀 통과: `38 passed`
+
+## 1.1) Week2 종료 반영 (2026-03-26)
+
+종료/사인오프 항목:
+- `#17` API I/O 계약 재검토 및 동결: 완료
+- `#18` 샘플 50건 기준 E2E 체크리스트 운영: 완료
+- `#19` 주간 리스크 로그 및 사인오프 템플릿 적용: 완료
+- `#12` Common Parent 이슈: 하위 3건 종료 반영 후 완료
+
+핵심 근거:
+- 계약 문서 동결: `docs/10_contracts/interfaces/week2/*.md`
+- 통합 수정 요약: `reports/WEEK2_FIXES_SUMMARY.md`
+- BE1/BE2 점검 산출물: `docs/40_delivery/week2/be1_diff_checklist.md`, `docs/40_delivery/week2/be2_chromadb_filter_check.md`
 
 ## 2) Parent 이슈
 

@@ -2,7 +2,7 @@
 
 문서 버전: v1.2  
 작성일: 2026-03-17  
-최신화: 2026-03-19 (WBS v3, Week 1~8 실행 계획 정합 반영)
+최신화: 2026-03-26 (Week2 종료 이슈/문서 반영)
 프로젝트 코드명: `AI-Civil-Affairs-Systems`
 
 ## 1. 문서 목적
@@ -491,7 +491,7 @@ R: 책임 수행, C: 협업/검토
 | 주차 | 상태 | 핵심 목표 | 핵심 산출물 |
 | --- | --- | --- | --- |
 | 1주차 | 완료 | 기획/문서/스캐폴딩 + PoC 착수 범위 기준선 고정 | PRD/MVP/WBS/API/Schema, 역할 매뉴얼, 기본 모듈 골격 |
-| 2주차 | 진행 | ingest-structure-validate E2E 안정화 | 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋 |
+| 2주차 | 완료 | ingest-structure-validate E2E 안정화 | 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋 |
 | 3주차 | 계획 | index-search E2E + 검색 지표 기초 측정 | 임베딩/인덱싱/검색, 메타데이터 필터, Recall@K 초안 |
 | 4주차 | 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline 리포트 |
 | 5주차 | 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | length bucket 분기, chunk/retrieval 전략 분기, ablation #1 |
@@ -521,7 +521,7 @@ R: 책임 수행, C: 협업/검토
 
 | 마일스톤 | 주차 범위 | 핵심 목표 | 핵심 산출물 | 마일스톤 종료 조건 |
 | --- | --- | --- | --- | --- |
-| M1 | W1~W2 | 기준선 고정 + ingest-structure-validate E2E 안정화 | PRD/MVP/WBS/API/Schema 정합, 정제/PII 규칙, 4요소 구조화 결과셋, 스키마 검증 리포트 | 샘플 50건+ 처리, 스키마 통과율 90% 목표 |
+| M1 | W1~W2 | 완료 | PRD/MVP/WBS/API/Schema 정합, 정제/PII 규칙, 4요소 구조화 결과셋, 스키마 검증 리포트 | 샘플 50건+ 처리, 스키마 통과율 90% 목표 |
 | M2 | W3~W4 | index-search E2E 완성 + 단일 RAG baseline 확정 | 인덱싱/검색 파이프라인, 메타데이터 필터, `/qa` JSON 안정화, citation 연결 | Gate A 충족(Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출) |
 | M3 | W5~W6 | Adaptive RAG 1차/2차 통합 적용 | 길이 라우팅, topic/multi-request 분기, unified schema 고정, ablation 결과 | Gate B 충족(분기 E2E 동작 + unified output schema 일관성) |
 | M4 | W7~W8 | 품질 튜닝 + 데모/발표 산출물 동결 | KPI 중간 최종본, 병목 개선 내역, 최종 코드/문서/발표자료, 리허설 기록 | Gate C 충족(2시간 데모 안정성 목표, 리허설 2회 이상) |
