@@ -1,7 +1,7 @@
 # Week3 500건 확장 세트 생성 규칙
 
 작성일: 2026-03-26  
-목표: 15건 seed 케이스를 기반으로 동일 스키마를 유지한 500건 확장 벤치마크 세트를 재현 가능하게 생성한다.
+목표: 20건 seed 케이스를 기반으로 동일 스키마를 유지한 500건 확장 벤치마크 세트를 재현 가능하게 생성한다.
 
 ## 1) 생성 원칙
 
@@ -34,15 +34,15 @@
 ## 3) 자동 생성 스크립트
 
 - 스크립트: scripts/generate_week3_benchmark_cases_500.py
-- 입력: docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
-- 출력: docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
+- 입력: data/samples/initial_sample_20.json
+- 출력: docs/40_delivery/week3/model_test_assets/evaluation_set.json
 
 실행 예시:
 
 ```bash
 python scripts/generate_week3_benchmark_cases_500.py \
-  --input docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json \
-  --output docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json \
+  --input data/samples/initial_sample_20.json \
+  --output docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --target 500 \
   --seed 42
 ```

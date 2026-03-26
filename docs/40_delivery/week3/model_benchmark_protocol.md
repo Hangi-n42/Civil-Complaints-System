@@ -21,7 +21,7 @@
 
 - 호출 엔진: Ollama `/api/generate`
 - 프롬프트 템플릿: scripts/run_week3_model_benchmark.py 내 고정 템플릿
-- 입력 케이스: docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json (500건, 모든 모델 동일)
+- 입력 케이스: docs/40_delivery/week3/model_test_assets/evaluation_set.json (500건, 모든 모델 동일)
 - 파라미터: temperature=0.2, num_ctx=2048, num_predict=256, timeout=90초
 - 반복 횟수: 케이스당 1회 (필요 시 3회로 상향)
 
@@ -33,8 +33,8 @@
 
 ```bash
 python scripts/generate_week3_benchmark_cases_500.py \
-  --input docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json \
-  --output docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json \
+  --input data/samples/initial_sample_20.json \
+  --output docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --target 500 \
   --seed 42
 ```
@@ -61,7 +61,21 @@ python scripts/generate_week3_benchmark_cases_500.py \
 ```bash
 python scripts/run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
-  --cases docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
+  --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
+```
+
+모델 지정 실행 예시 (설정 파일 id 기준):
+
+```bash
+python scripts/run_week3_model_benchmark.py \
+  --config configs/week3_model_benchmark.yaml \
+  --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
+  --model aihub_baseline
+
+python scripts/run_week3_model_benchmark.py \
+  --config configs/week3_model_benchmark.yaml \
+  --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
+  --model candidate_exaone_3_5_7_8b
 ```
 
 ## 6) 역할 분담 (4인 팀)
@@ -75,11 +89,11 @@ python scripts/run_week3_model_benchmark.py \
 
 | 구분 | 담당 | 모델 |
 | --- | --- | --- |
-| Baseline | BE1 | AIHub 기존 모델 |
-| Candidate-1 | BE2 | `skt/A.X-4.0-Light` |
-| Candidate-2 | BE3 | `exaone3.5:7.8b-instruct` |
-| Candidate-3 | BE3 | `gemma3:12b` |
-| Candidate-4 | BE3 | `phi4-mini:3.8b-instruct` |
+| Baseline | BE1 | `aihub_baseline` (`aihub-local-baseline`) |
+| Candidate-1 | BE2 | `candidate_ax4_light` (`skt/A.X-4.0-Light`) |
+| Candidate-2 | BE3 | `candidate_exaone_3_5_7_8b` (`exaone3.5:7.8b-instruct`) |
+| Candidate-3 | BE3 | `candidate_gemma3_12b` (`gemma3:12b`) |
+| Candidate-4 | BE3 | `candidate_phi4_mini` (`phi4-mini:3.8b-instruct`) |
 
 ## 7) 리스크 관리
 
@@ -87,7 +101,7 @@ python scripts/run_week3_model_benchmark.py \
   - 원인: 모델 크기 대비 로컬 자원 부족
   - 예방책: num_ctx, num_predict 상한 고정
   - 대응책: 해당 모델을 `low-resource fallback` 트랙으로 이동
-  - 폴백안: qwen2.5 7B 또는 phi4-mini 우선 채택
+  - 폴백안: phi4-mini 우선 채택 (Qwen은 벤치마크 후 별도 선정)
 
 - 징후: JSON 파싱 실패 증가
   - 원인: 모델의 출력 형식 불안정

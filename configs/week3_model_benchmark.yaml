@@ -44,5 +44,7 @@ metrics:
   - scenario_slice_metrics
 
 outputs:
-  report_json: logs/evaluation/week3/model_benchmark_report.json
+  report_json: logs/evaluation/week3/model_benchmark_report_final.json
   summary_md: logs/evaluation/week3/model_benchmark_summary.md
+  individual_results_dir: logs/evaluation/week3/
+  note: "모든 출력 경로는 새 folder_structure.md 기준 (2026-03-27)"

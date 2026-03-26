@@ -18,6 +18,12 @@
 - [Week2 BE2 Interface](10_contracts/interfaces/week2/week2_be2_interface.md)
 - [Week2 BE3 Interface](10_contracts/interfaces/week2/week2_be3_interface.md)
 - [Week2 FE Interface](10_contracts/interfaces/week2/week2_fe_interface.md)
+- [Week3 Contracts Index](10_contracts/interfaces/week3/README.md)
+- [Week3 Common Interface](10_contracts/interfaces/week3/week3_common_interface.md)
+- [Week3 BE1 Interface](10_contracts/interfaces/week3/week3_be1_interface.md)
+- [Week3 BE2 Interface](10_contracts/interfaces/week3/week3_be2_interface.md)
+- [Week3 BE3 Interface](10_contracts/interfaces/week3/week3_be3_interface.md)
+- [Week3 FE Interface](10_contracts/interfaces/week3/week3_fe_interface.md)
 - [BE1-BE2 Interface](10_contracts/interfaces/be1_be2_interface.md)
 - [BE2-BE3 Interface](10_contracts/interfaces/be2_be3_interface.md)
 - [BE2-BE3 Compromise Contract (Week 1)](10_contracts/interfaces/be2_be3_compromise_contract_week1.md)
@@ -45,6 +51,18 @@
 ### 3.3 Ingestion/Structuring
 
 - [Ingestion/Structuring Notes](20_domains/ingestion_structuring/README.md)
+
+### 3.4 Retrieval/Search
+
+- [Retrieval Strategy](20_domains/retrieval/retrieval_strategy.md)
+- [Indexing Plan](20_domains/retrieval/indexing_plan.md)
+- [Search Implementation](20_domains/retrieval/search_implementation.md)
+- [Metadata Filter Schema](20_domains/retrieval/metadata_filter_schema.md)
+- [Embedding Comparison](20_domains/retrieval/embedding_comparison.md)
+- [Vector DB Comparison](20_domains/retrieval/vectordb_comparison.md)
+- [Metadata Schema](20_domains/retrieval/metadata_schema.md)
+- [Chunk Schema](20_domains/retrieval/chunk_schema.md)
+- [Ollama Setup Note](20_domains/retrieval/ollama_setup_note.md)
 
 ## 4. Manuals
 

@@ -5,8 +5,11 @@ LOG_LEVEL: DEBUG
 # 로컬 Ollama
 OLLAMA_BASE_URL: http://localhost:11434
 
-# 로컬 데이터
-CHROMA_DB_PATH: ./data/chroma_db
+# 로컬 데이터 (Week 3 folder_structure 기준)
+CHROMA_DB_PATH: ./data/indexed/chromadb
+PROCESSED_DATA_PATH: ./data/processed
+EVALUATION_SETS_PATH: ./data/evaluation_sets
+LOGS_EVALUATION_PATH: ./logs/evaluation
 
 # CPU 기반 임베딩 (GPU 없을 경우)
 EMBEDDING_DEVICE: cpu

@@ -1,9 +1,9 @@
 # 8주 WBS 문서 (v3 - 2026-03-18 일정 재기준화)
 
-문서 버전: v3.0 (재기준화)  
+문서 버전: v3.1 (Week2 종료 반영)  
 기준 문서: [PRD](prd.md), [MVP 범위 문서](mvp_scope.md)  
 작성일: 2026-03-11  
-최신화: 2026-03-18 (주차 체계 Week 0~7 -> Week 1~8 전환)
+최신화: 2026-03-27 (M1 완료, Week3 상세 계획 추가)
 
 ## 1. 문서 목적
 
@@ -43,13 +43,13 @@
 | 주차 | 상태 | 핵심 목표 | 핵심 산출물 |
 | --- | --- | --- | --- |
 | **1주차** | ✅ 완료 | 기획/문서/스캐폴딩 + PoC 착수 범위까지 기준선 고정 | PRD/MVP/WBS/API/Schema, 역할 매뉴얼, 기본 모듈 골격, Week1 이슈 완료 |
-| **2주차** | ✅ 완료 | ingest-structure-validate E2E 안정화 | 데이터 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋 |
-| **3주차** | ⏳ 계획 | index-search E2E + 검색 지표 기초 측정 | 임베딩/인덱싱/검색, 메타데이터 필터, Recall@K 초안 |
-| **4주차** | ⏳ 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline 리포트 |
-| **5주차** | ⏳ 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | Length bucket, chunk/retrieval 전략 분기, ablation #1 |
-| **6주차** | ⏳ 계획 | Adaptive RAG 2차(주제/단일-복합) 적용 | topic-aware prompt, multi-request 분기, unified schema 고정 |
-| **7주차** | ⏳ 계획 | 성능/품질 튜닝 + 데모 고정 | KPI 중간 최종화, 병목 개선, 데모 시나리오/슬라이드 초안 |
-| **8주차** | ⏳ 계획 | 최종 통합/리허설/발표 산출물 마감 | 최종 코드+문서+발표자료, 리허설 2회, 운영 체크리스트 |
+| **2주차** | ✅ 완료 | ingest-structure-validate E2E 안정화 | 데이터 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋, 5개 심각도 이슈 수정 완료 |
+| **3주차** | 🚀 진행중 | index-search E2E + LLM 핵심 5종 벤치마크 | 임베딩/인덱싱/검색, 메타필터, Recall@K 측정, 모델 비교 리포트(1차) |
+| **4주차** | ⏳ 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline KPI 리포트 |
+| **5주차** | ⏳ 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | Length bucket 분기, chunk/retrieval 전략, ablation #1 |
+| **6주차** | ⏳ 계획 | Adaptive RAG 2차(주제/단일-복합) 적용 | topic-aware prompt, multi-request 분기, unified schema 검증 |
+| **7주차** | ⏳ 계획 | 성능/품질 튜닝 + 데모 준비 | KPI 최종화, 병목 개선, 데모 시나리오/슬라이드, 코드 마감 |
+| **8주차** | ⏳ 계획 | 최종 통합/리허설/발표 산출물 제출 | 발표자료/코드/문서, 리허설 2회, 최종 검증 완료 |
 
 ### 5.1 마일스톤 미러 맵 (M1~M4)
 
@@ -57,8 +57,8 @@
 
 | 마일스톤 | 주차 범위 | 상태 | 핵심 목표 | 종료 게이트 |
 | --- | --- | --- | --- | --- |
-| **M1** | W1~W2 | ✅ 완료 | 기준선 고정 + ingest-structure-validate E2E 안정화 | 샘플 50건+ 처리, 스키마 통과율 90% 목표 |
-| **M2** | W3~W4 | ⏳ 계획 | index-search E2E 완성 + 단일 RAG baseline 확정 | Gate A: Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출 |
+| **M1** | W1~W2 | ✅ 완료 | 기준선 고정 + ingest-structure-validate E2E 안정화 | 샘플 50건+ 처리, 스키마 통과율 90% 달성 ✅ |
+| **M2** | W3~W4 | 🚀 진행중 | index-search E2E 완성 + 단일 RAG baseline 확정 | Gate A: Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출 |
 | **M3** | W5~W6 | ⏳ 계획 | Adaptive RAG 1차/2차 통합 적용 | Gate B: 분기 E2E 동작 + unified schema 일관성 유지 |
 | **M4** | W7~W8 | ⏳ 계획 | 품질 튜닝 + 데모/발표 산출물 동결 | Gate C: 2시간 데모 안정성 목표, 리허설 2회 이상 |
 
@@ -66,8 +66,8 @@
 
 | 마일스톤 | 진행률(%) | 증빙 문서/이슈 | 이번 주 상태 | 블로커 | 다음 액션 |
 | --- | --- | --- | --- | --- | --- |
-| **M1** | 100 | `docs/40_delivery/week2/README.md`, Week2 이슈(#12~#31) | W2 종료 사인오프 완료 | - | Week3 index-search E2E 착수 |
-| **M2** | 0 | - | 미착수 | - | 검색/인덱싱 E2E 준비 |
+| **M1** | 100 | `docs/40_delivery/week2/README.md`, Week2 이슈(#12~#31), `reports/WEEK2_FIXES_SUMMARY.md` | W2 종료 사인오프 완료 | - | ✅ 완료 |
+| **M2** | 10 | `docs/40_delivery/week3/README.md`, 벤치마크 프로토콜 | 임베딩/인덱싱 구현 시작, 벤치마크 설정 구성중 | 모델 환경 설정 | 검색 E2E + 모델별 QA 생성 테스트 |
 | **M3** | 0 | - | 미착수 | - | 라우팅/분기 실험 설계 |
 | **M4** | 0 | - | 미착수 | - | 데모 고정 요구사항 사전 점검 |
 
@@ -97,33 +97,25 @@
 
 ---
 
-## Week 2 — Ingest / Structure / Validate 안정화
+## Week 2 — Ingest / Structure / Validate 안정화 (✅ 완료)
 
 ### 주간 목표
 - 입수 -> 정제 -> 구조화 -> 검증 E2E 안정화
 - 구조화 품질 측정 가능한 데이터셋 확보
 
-### 역할별 작업
-#### FE
-- 업로드/구조화 결과/검증 상태 UI 안정화
-
-#### BE1
-- `app/ingestion/service.py` 정제/PII/중복 처리 고도화
-- `app/structuring/service.py` 4요소 추출 및 후처리 규칙 보완
-- 구조화 품질 측정 스크립트 정리
-
-#### BE2
-- 구조화 결과 -> 인덱싱 입력 포맷 변환 고정
-- 검색용 메타데이터 매핑 검증
-
-#### BE3
-- `/ingest`, `/structure` API 에러코드/검증 포맷 일치화
-- JSON 파싱/검증 공통 유틸 정리
+### 완료 사항
+- ✅ 샘플 50건+ 처리 완료
+- ✅ 스키마 통과율 90% 달성
+- ✅ 구조화 평가 파이프라인 재실행 가능
+- ✅ 5가지 심각도 이슈 수정 완료 (`reports/WEEK2_FIXES_SUMMARY.md`)
+  1. BE1 입력 필드 매핑 버그(raw_text 미지원) 수정
+  2. Entity Label 검증 부재 해결(정규화 규칙 추가)
+  3. 시각 포맷 KST +09:00 통일
+  4. API 응답 포맷 422 래퍼 일치화
+  5. JSON 파싱 재시도 전략 보강
 
 ### 완료 기준
-- 샘플 50건+ 처리
-- 스키마 통과율 90% 목표
-- 구조화 평가 파이프라인 재실행 가능
+- ✅ 모든 기준 충족 (2026-03-26 종료 사인오프 완료)
 
 ---
 
