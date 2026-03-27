@@ -1,4 +1,4 @@
-# 🏛️ AI-Civil-Affairs-Systems
+# 🏛️ Civil-Complaints-System
 
 **민원 담당자를 위한 LLM-Chain 기반 On-Device 검색·분류 시스템**
 
@@ -184,9 +184,9 @@ python scripts/run_week3_model_benchmark.py \
 
 ## 🔗 GitHub
 
-- 저장소: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems
-- 이슈: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems/issues
-- PR: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems/pulls
+- 저장소: https://github.com/Hangi-n42/Civil-Complaints-System
+- 이슈: https://github.com/Hangi-n42/Civil-Complaints-System/issues
+- PR: https://github.com/Hangi-n42/Civil-Complaints-System/pulls
 
 ---
 

@@ -3,7 +3,7 @@
 문서 버전: v1.2  
 작성일: 2026-03-17  
 최신화: 2026-03-26 (Week2 종료 이슈/문서 반영)
-프로젝트 코드명: `AI-Civil-Affairs-Systems`
+프로젝트 코드명: `Civil-Complaints-System`
 
 ## 1. 문서 목적
 
