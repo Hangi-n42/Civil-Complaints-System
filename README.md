@@ -2,73 +2,64 @@
 
 **민원 담당자를 위한 LLM-Chain 기반 On-Device 검색·분류 시스템**
 
-- 📋 **프로젝트**: 졸업 작품 / 팀 프로젝트
-- 👥 **팀**: 4명 (BE1, FE, BE2, BE3)
-- ⏰ **기간**: 8주 (M1~M4)
-- 🔒 **특징**: 온디바이스 실행, 보안/프라이버시 중심
-- 🚀 **상태**: M1 Week 1 (폴더 구조 스캐폰딩 완료)
+- 📋 프로젝트: 졸업 작품 / 팀 프로젝트
+- 👥 팀: 4명 (BE1, FE, BE2, BE3)
+- ⏰ 기간: 8주 (M1~M4)
+- 🔒 특징: 온디바이스 실행, 보안/프라이버시 중심
+- 🚀 현재 상태: M2 Week 3 진행중 (index-search E2E + 모델 벤치마크)
 
 ---
 
 ## 📖 프로젝트 개요
 
 ### 목표
-- 로컬 머신에서 자동으로 민원 데이터를 구조화하고 검색 가능하게 변환
+- 로컬 머신에서 민원 데이터를 구조화하고 검색/질의응답 가능한 형태로 변환
 - 주 데이터 소스: AIHub 공공 민원 상담 LLM 사전학습 및 Instruction Tuning 데이터 (`dataSetSn=71852`)
-- Ollama + ChromaDB를 활용한 온디바이스 RAG 시스템 구축
-- 보안과 프라이버시를 중심으로 한 엔드-투-엔드 파이프라인
+- Ollama + ChromaDB 기반 온디바이스 RAG 시스템 구축
+- 보안과 프라이버시를 중심으로 한 엔드-투-엔드 파이프라인 구현
 
-### 주요 기능
-1. **📤 문서 입수**: CSV/JSON 업로드, 자동 정제
-2. **🔨 구조화**: AI 기반 4요소 추출 (요청인, 피청구인, 청구 내용, 사유)
-3. **📊 인덱싱**: 의미론적 검색 (벡터화 + 임베딩)
-4. **🔍 검색**: 자연어 검색 쿼리
-5. **💬 QA**: RAG 기반 질의응답 (근거 citation 포함)
+### 핵심 기능 (In Scope)
+1. 문서 입수: CSV/JSON 배치 + 수동 입력
+2. 구조화: Observation/Result/Request/Context 4요소 추출
+3. 엔티티 추출: LOCATION/TIME/FACILITY/HAZARD/ADMIN_UNIT
+4. 검색: 임베딩 + 벡터 인덱스 기반 시맨틱 검색
+5. QA: 근거 citation 포함 RAG 응답 생성
 
 ### 기술 스택
-- **API**: FastAPI
-- **UI**: Streamlit
-- **LLM**: Ollama + Qwen2.5 7B Instruct
-- **임베딩**: BAAI/bge-m3
-- **벡터DB**: ChromaDB
-- **언어**: Python 3.11.9
+- API: FastAPI
+- UI: Streamlit
+- LLM 서빙: Ollama (로컬 모델 벤치마크 후 선정)
+- 임베딩: BAAI/bge-m3 (대안 KoSimCSE)
+- 벡터DB: ChromaDB
+- 언어: Python 3.11+
 
 ---
 
 ## 🎯 진행 상황
 
-### ✅ Completed (M1 Week 1)
-- [x] **기획 문서**: PRD, MVP 범위, 8주 WBS 완료
-- [x] **기술 명세**: API 명세, 데이터 스키마 계약 완료
-- [x] **팀 구성**: 역할 배치 (BE1, FE, BE2, BE3) 완료
-- [x] **역할별 매뉴얼**: 4개 매뉴얼 작성 완료
-- [x] **GitHub 이슈**: Week 1 이슈 5개 원격 생성 완료
-- [x] **Priority 1**: 프로젝트 스캐폰딩 생성 완료 ✨
-  - 폴더 구조 (40+ 디렉토리)
-  - FastAPI 기본 골격
-  - 5개 모듈 skeleton (ingestion, structuring, retrieval, generation, ui)
-  - 설정/로깅/예외 처리
-  - Streamlit 3탭 UI
-  - 샘플 데이터 + 스키마
+### ✅ Completed
+- M1 (W1~W2) 완료
+  - PRD/MVP/WBS/계약 문서 정리
+  - ingest-structure-validate E2E 안정화
+  - 샘플 50건+ 처리 및 스키마 통과율 목표 달성
+  - Week2 이슈 기반 주요 결함 수정 완료
 
-### ⏳ In Progress (M1 Week 1~2)
-- [ ] **Priority 2**: 샘플 데이터셋 + 데이터 정제 규칙 (BE1, BE3)
-- [ ] **Priority 3**: 벡터DB + Ollama 테스트 (BE2, BE3)
-- [ ] **Priority 4**: Streamlit UI 프로토타입 (FE)
-- [ ] **Priority 5**: 검증 규칙 + 성능 기준선 (BE3)
+### 🚀 In Progress (M2 W3)
+- index-search E2E 고도화
+- 평가셋(500건) 및 모델 벤치마크 실행 체계 운영
+- 검색 지표(Recall@K, latency) 측정 및 리포트 정리
+- 역할별 매뉴얼 v1.1 최신화 반영
 
-### 📋 Planned (M1 Week 2+)
-- [ ] Week 2~8 이슈 생성
-- [ ] 실제 코드 구현 (각 Priority별)
-- [ ] 통합 테스트
-- [ ] 성능 벤치마크
-- [ ] 발표 준비
+### ⏳ Next (M2 W4)
+- 단일 RAG baseline 확정
+- `/qa` JSON 응답 안정화(answer/citations/confidence/limitations)
+- Gate A 지표 확정(Recall@5, 4요소 F1, citation 정합성, latency)
 
 ---
 
 ## 📁 폴더 구조
 
-```
+```text
 AI-Civil-Affairs-Systems/
 ├── app/                    # 애플리케이션 소스코드
 │   ├── api/                # FastAPI 서버
@@ -79,76 +70,74 @@ AI-Civil-Affairs-Systems/
 │   ├── generation/         # RAG 응답 생성
 │   ├── ui/                 # Streamlit UI
 │   └── tests/              # 테스트 코드
-├── data/                   # 데이터 관리
-│   ├── raw/                # 원본
-│   ├── interim/            # 중간 산출물
-│   ├── processed/          # 최종 처리
-│   ├── annotations/        # 라벨링
-│   └── samples/            # 샘플 데이터
 ├── configs/                # 설정 파일
+├── data/                   # 데이터 관리
+├── docs/                   # 문서
+├── logs/                   # 로그 저장
+├── reports/                # 평가/분석 보고서
 ├── schemas/                # JSON 스키마
 ├── scripts/                # 실행 스크립트
-├── logs/                   # 로그 저장
-├── artifacts/              # 발표 자료
-├── docs/                   # 문서
 └── requirements.txt        # 의존성
 ```
 
-자세한 구조는 [docs/00_overview/folder_structure_draft.md](docs/00_overview/folder_structure_draft.md) 참조.
+자세한 구조는 [docs/00_overview/folder_structure.md](docs/00_overview/folder_structure.md) 참조.
 
 ---
 
 ## 🚀 빠른 시작
 
-### 1️⃣ 환경 설정
+### 1) 환경 설정
 ```bash
-# 저장소 클론
 git clone https://github.com/Hangi-n42/AI-Civil-Affairs-Systems.git
 cd AI-Civil-Affairs-Systems
 
-# 가상환경 생성 (권장)
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 또는
-venv\Scripts\activate  # Windows
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+# source venv/bin/activate
 
-# .env 파일 생성
-cp .env.example .env
-
-# 의존성 설치
 pip install -r requirements.txt
 ```
 
-### 2️⃣ Ollama 설치 (로컬 LLM)
+### 2) Ollama 준비
 ```bash
-# Ollama 다운로드 및 설치 (https://ollama.ai)
-# 모델 다운로드
-ollama pull qwen2.5:7b-instruct
-
-# Ollama 서버 시작
+# Ollama 설치 후
 ollama serve
-# (별도 터미널에서 실행 유지)
 ```
 
-### 3️⃣ API 서버 시작
+### 3) API/UI 실행
 ```bash
 python scripts/run_api.py
-# 또는
-uvicorn app.api.main:app --reload
-```
-
-**확인**: 
-- API 문서: http://localhost:8000/docs
-- 헬스 체크: `curl http://localhost:8000/health`
-
-### 4️⃣ UI 시작 (별도 터미널)
-```bash
 python scripts/run_ui.py
-# 또는
-streamlit run app/ui/Home.py
 ```
 
-**확인**: http://localhost:8501
+확인:
+- API 문서: http://localhost:8000/docs
+- UI: http://localhost:8501
+
+---
+
+## 📦 Week 3 실행 핵심
+
+### 평가셋 생성
+```bash
+python scripts/generate_week3_benchmark_cases_500.py \
+  --input data/samples/initial_sample_20.json \
+  --output docs/40_delivery/week3/model_test_assets/evaluation_set.json \
+  --target 500 \
+  --seed 42
+```
+
+### 모델 벤치마크 실행 예시
+```bash
+python scripts/run_week3_model_benchmark.py \
+  --config configs/week3_model_benchmark.yaml \
+  --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
+  --model aihub_baseline
+```
+
+상세 절차는 [docs/40_delivery/week3/README.md](docs/40_delivery/week3/README.md) 참조.
 
 ---
 
@@ -157,105 +146,47 @@ streamlit run app/ui/Home.py
 | 문서 | 설명 |
 |------|------|
 | [docs/00_overview/prd.md](docs/00_overview/prd.md) | 전체 프로젝트 명세 |
-| [docs/00_overview/mvp_scope.md](docs/00_overview/mvp_scope.md) | MVP 필수/권장/제외 기능 |
-| [docs/00_overview/wbs_8weeks_v2_updated.md](docs/00_overview/wbs_8weeks_v2_updated.md) | 8주 마일스톤 및 역할별 작업 |
-| [docs/10_contracts/api/api_spec.md](docs/10_contracts/api/api_spec.md) | API 엔드포인트 명세 |
-| [docs/10_contracts/schema/schema_contract.md](docs/10_contracts/schema/schema_contract.md) | 데이터 스키마 계약 |
-| [docs/00_overview/folder_structure_draft.md](docs/00_overview/folder_structure_draft.md) | 폴더 구조 설계 |
-| [docs/30_manuals/be1_manual.md](docs/30_manuals/be1_manual.md) | BE1 역할 매뉴얼 |
-| [docs/30_manuals/fe_manual.md](docs/30_manuals/fe_manual.md) | FE 역할 매뉴얼 |
-| [docs/30_manuals/be2_manual.md](docs/30_manuals/be2_manual.md) | BE2 역할 매뉴얼 |
-| [docs/30_manuals/be3_manual.md](docs/30_manuals/be3_manual.md) | BE3 역할 매뉴얼 |
-| [docs/README.md](docs/README.md) | 문서 인덱스 |
-| [docs/40_delivery/week1/README.md](docs/40_delivery/week1/README.md) | Week 1 완료 현황 |
+| [docs/00_overview/mvp_scope.md](docs/00_overview/mvp_scope.md) | MVP 범위 |
+| [docs/00_overview/wbs_8weeks_v2_updated.md](docs/00_overview/wbs_8weeks_v2_updated.md) | 8주 WBS/마일스톤 |
+| [docs/00_overview/folder_structure.md](docs/00_overview/folder_structure.md) | 폴더 구조 |
+| [docs/10_contracts/api/api_spec.md](docs/10_contracts/api/api_spec.md) | API 명세 |
+| [docs/10_contracts/schema/schema_contract.md](docs/10_contracts/schema/schema_contract.md) | 스키마 계약 |
+| [docs/10_contracts/interfaces/week3/week3_common_interface.md](docs/10_contracts/interfaces/week3/week3_common_interface.md) | Week3 공통 인터페이스 |
+| [docs/40_delivery/week3/README.md](docs/40_delivery/week3/README.md) | Week3 전달 문서 |
+| [docs/30_manuals/be1_manual.md](docs/30_manuals/be1_manual.md) | BE1 매뉴얼(v1.1) |
+| [docs/30_manuals/be2_manual.md](docs/30_manuals/be2_manual.md) | BE2 매뉴얼(v1.1) |
+| [docs/30_manuals/be3_manual.md](docs/30_manuals/be3_manual.md) | BE3 매뉴얼(v1.1) |
+| [docs/30_manuals/fe_manual.md](docs/30_manuals/fe_manual.md) | FE 매뉴얼(v1.1) |
 
 ---
 
 ## 👥 팀 구성
 
-| 역할 | 이름 | 책임 |
-|------|------|------|
-| **BE1** (팀장) | 현기 | 데이터 파이프라인, 구조화, 평가, 발표 |
-| **FE** | 도훈 | UI/UX, 데모 |
-| **BE2** | 민건 | 검색, 벡터DB, RAG API |
-| **BE3** | 현석 | 검증, 파싱, 성능, 안정성 |
-
-자세한 책임은 각 역할 매뉴얼 참조.
+| 역할 | 담당 | 주요 책임 |
+|------|------|-----------|
+| BE1 (팀장) | 현기 | 데이터 파이프라인, 구조화, 평가, 발표 총괄 |
+| FE | 도훈 | UI/UX, 검색/QA 화면, 데모 흐름 |
+| BE2 | 민건 | 임베딩/벡터DB/검색/검색평가 |
+| BE3 | 현석 | API/LLM/RAG/파싱/성능 안정화 |
 
 ---
 
 ## 🗓️ 마일스톤
 
-| 마일스톤 | 기간 | 목표 |
-|---------|------|------|
-| **M1** | W1~W2 | 기술 선택, 프로토타입 (ingestion, structuring) |
-| **M2** | W3~W4 | RAG 파이프라인 완성 (retrieval, generation) |
-| **M3** | W5~W6 | UI 통합 및 성능 최적화 |
-| **M4** | W7~W8 | 최종 평가, 발표 준비 |
+| 마일스톤 | 기간 | 상태 | 핵심 목표 |
+|---------|------|------|-----------|
+| M1 | W1~W2 | ✅ 완료 | 기준선 고정 + ingestion/structuring/validation 안정화 |
+| M2 | W3~W4 | 🚀 진행중 | index-search E2E + 단일 RAG baseline 확정 |
+| M3 | W5~W6 | ⏳ 계획 | Adaptive RAG 1차/2차 적용 |
+| M4 | W7~W8 | ⏳ 계획 | 품질 튜닝 + 데모/발표 산출물 동결 |
 
 ---
 
 ## 🔗 GitHub
 
-- **저장소**: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems
-- **이슈**: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems/issues
-- **Week 1 이슈**: 
-  - #2: [Week 1][Common] MVP 기준선 정리 및 인터페이스 1차 동결
-  - #3: [Week 1][BE1] 데이터 입력 규격·정제 규칙·구조화 평가 기준 초안
-  - #4: [Week 1][BE2] 임베딩·벡터DB 후보 비교 및 Ollama/RAG API 입력 구조
-  - #5: [Week 1][BE3] 스키마 검증 규칙·JSON 파싱·성능/OOM 기준 초안
-  - #6: [Week 1][FE] 업로드·검색·챗 화면 와이어프레임 및 데모 사용자 흐름
-
----
-
-## 📈 DORA Metrics 자동화
-
-GitHub Actions로 DORA 4대 지표를 자동 집계합니다.
-
-- **워크플로**: `.github/workflows/dora-metrics.yml`
-  - 매일 00:00 UTC 자동 실행
-  - 수동 실행 시 `window_days`, `incident_label` 입력 가능
-- **집계 스크립트**: `.github/scripts/calc_dora_metrics.mjs`
-- **산출물**: Actions Artifact `dora-metrics` (`artifacts/dora/dora_metrics_latest.json`)
-
-측정 정의(현재 적용 기준):
-- Lead Time for Changes: 병합된 PR의 `첫 커밋 시각 -> merge 시각`
-- Deployment Frequency: 기본 브랜치 기준 `성공한 GitHub Deployment` 수/일
-- Mean Time to Recovery: `incident` 라벨 이슈의 `생성 -> 종료` 시간
-- Change Failure Rate: `(실패 Deployment) / (성공+실패 Deployment)`
-
-배포 이벤트는 아래 워크플로로 자동 기록됩니다.
-- `.github/workflows/deploy-production.yml`
-  - `main` push 또는 수동 실행 시 deployment 생성
-  - smoke check(`python -m compileall app scripts`) 성공/실패를 deployment status로 기록
-
-운영 규칙:
-- 장애 이슈는 `incident` 라벨(또는 실행 시 지정 라벨)로 관리
-- 배포 실패를 CFR에 반영하려면 `deploy-production` 실패 케이스가 누락되지 않도록 유지
-
----
-
-## 💡 주요 특징
-
-### 🔒 보안 & 프라이버시
-- 온디바이스 실행 (클라우드 의존 X)
-- 로컬 머신에서만 데이터 처리
-- PII 마스킹 지원
-
-### ⚡ 성능
-- BGE-m3 임베딩 모델 (1024차원)
-- ChromaDB 벡터 인덱싱
-- Ollama 로컬 LLM (GPU 가능)
-
-### 📊 평가 기반 설계
-- 구조화 정확도 평가 (Precision, Recall, F1)
-- 검색 성능 평가 (MRR, NDCG, MAP@k)
-- QA 품질 평가 (BLEU, ROUGE, F1)
-
-### 🎯 조직화된 개발
-- GitHub 이슈 기반 작업 추적
-- 역할별 명확한 책임 분담
-- 통합 스크립트로 빌드/테스트 자동화
+- 저장소: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems
+- 이슈: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems/issues
+- PR: https://github.com/Hangi-n42/AI-Civil-Affairs-Systems/pulls
 
 ---
 
@@ -265,11 +196,5 @@ GitHub Actions로 DORA 4대 지표를 자동 집계합니다.
 
 ---
 
-## 📞 문의
-
-프로젝트 진행 중 이슈는 GitHub Issues에서 추적합니다.
-
----
-
-**Last Updated**: 2026-03-11  
-**Status**: 🚀 M1 Week 1 - Priority 1 완료
+**Last Updated**: 2026-03-27  
+**Status**: 🚀 M2 Week 3 진행중
