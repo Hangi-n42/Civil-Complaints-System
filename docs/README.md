@@ -2,6 +2,7 @@
 
 ## 1. Overview
 
+- [Architecture Decision Record (ARD)](00_overview/ard_architecture_decision_record.md)
 - [Project PRD](00_overview/prd.md)
 - [MVP Scope](00_overview/mvp_scope.md)
 - [WBS 8 Weeks](00_overview/wbs_8weeks_v2_updated.md)
