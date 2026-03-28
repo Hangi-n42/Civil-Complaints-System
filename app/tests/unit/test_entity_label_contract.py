@@ -50,7 +50,7 @@ def test_search_filter_rejects_invalid_entity_labels():
         assert "허용되지 않은 라벨" in str(exc)
 
 
-def test_search_api_returns_422_for_invalid_entity_labels():
+def test_search_api_returns_400_for_invalid_entity_labels():
     client = TestClient(app)
     response = client.post(
         "/api/v1/search",
@@ -61,6 +61,27 @@ def test_search_api_returns_422_for_invalid_entity_labels():
         },
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 400
     body = response.json()
+    assert body["error"]["code"] == "FILTER_INVALID"
     assert "허용되지 않은 라벨" in str(body)
+
+
+def test_search_api_returns_400_for_invalid_date_range():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/search",
+        json={
+            "query": "가로등",
+            "top_k": 5,
+            "filters": {
+                "date_from": "2026-03-31T00:00:00+09:00",
+                "date_to": "2026-03-01T00:00:00+09:00",
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "FILTER_INVALID"
+    assert "date_from" in str(body)

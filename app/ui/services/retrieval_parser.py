@@ -33,7 +33,7 @@ def parse_search_response(payload: Dict[str, Any]) -> Dict[str, Any]:
     """검색 응답 래퍼를 파싱해 data 객체를 반환한다."""
     data = _ensure_success_payload(payload)
 
-    required_keys = ["query", "top_k", "results", "count", "took_ms"]
+    required_keys = ["results", "total_found", "elapsed_ms"]
     missing = [key for key in required_keys if key not in data]
     if missing:
         raise ResponseContractError(f"search data 필수 필드 누락: {', '.join(missing)}")
@@ -48,12 +48,9 @@ def parse_index_response(payload: Dict[str, Any]) -> Dict[str, Any]:
     """인덱스 응답 래퍼를 파싱해 data 객체를 반환한다."""
     data = _ensure_success_payload(payload)
 
-    required_keys = ["indexed_count", "chunk_count", "index_name", "rebuild", "records", "took_ms"]
+    required_keys = ["indexed_count", "failed_count", "collection_name", "elapsed_ms"]
     missing = [key for key in required_keys if key not in data]
     if missing:
         raise ResponseContractError(f"index data 필수 필드 누락: {', '.join(missing)}")
-
-    if not isinstance(data.get("records"), list):
-        raise ResponseContractError("records는 배열이어야 합니다.")
 
     return data

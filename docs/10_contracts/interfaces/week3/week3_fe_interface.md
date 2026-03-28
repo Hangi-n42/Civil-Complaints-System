@@ -338,7 +338,7 @@ if result.get("success") == False:
     elif error_code == "COLLECTION_NOT_FOUND":
         st.error("❌ 검색 인덱스를 찾을 수 없습니다. 관리자에 문의하세요.")
     elif error_code == "FILTER_INVALID":
-        st.error(f"❌ 필터 오류: {error_message}")
+        st.warning(f"⚠️ 필터 형식 또는 값이 올바르지 않습니다. 필터를 수정해주세요. ({error_message})")
     else:
         st.error(f"❌ 검색 오류: {error_message}")
     
