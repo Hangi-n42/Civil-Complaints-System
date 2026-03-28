@@ -65,7 +65,7 @@ def test_search_response_is_wrapped(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/api/v1/search",
-        json={"query": "가로등", "top_k": 5},
+        json={"request_id": "SRCH-2026-000001", "query": "가로등", "top_k": 5},
     )
 
     assert response.status_code == 200
@@ -74,7 +74,9 @@ def test_search_response_is_wrapped(monkeypatch):
     assert isinstance(body["request_id"], str)
     assert isinstance(body["timestamp"], str)
     assert "data" in body
-    assert body["data"]["query"] == "가로등"
+    assert body["request_id"] == "SRCH-2026-000001"
+    assert "elapsed_ms" in body["data"]
+    assert "total_found" in body["data"]
     assert isinstance(body["data"]["results"], list)
 
 
@@ -90,17 +92,24 @@ def test_index_response_is_wrapped(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/api/v1/index",
-        json={"rebuild": False, "records": [{"case_id": "CASE-1", "text": "민원"}]},
+        json={
+            "request_id": "IDX-2026-000001",
+            "action": "incremental",
+            "collection_name": "civil_cases_v1",
+            "cases": [{"case_id": "CASE-1", "text": "민원"}],
+        },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 202
     body = response.json()
     assert body["success"] is True
-    assert isinstance(body["request_id"], str)
+    assert body["request_id"] == "IDX-2026-000001"
     assert isinstance(body["timestamp"], str)
     assert "data" in body
     assert body["data"]["indexed_count"] == 1
-    assert isinstance(body["data"]["records"], list)
+    assert body["data"]["failed_count"] == 0
+    assert body["data"]["collection_name"] == "civil_cases_v1"
+    assert "elapsed_ms" in body["data"]
 
 
 def test_search_bad_request_retryable_false(monkeypatch):
@@ -115,7 +124,7 @@ def test_search_bad_request_retryable_false(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/api/v1/search",
-        json={"query": "   ", "top_k": 5},
+        json={"request_id": "SRCH-2026-000099", "query": "   ", "top_k": 5},
     )
 
     assert response.status_code == 400
@@ -137,7 +146,7 @@ def test_search_index_not_ready_retryable_true(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/api/v1/search",
-        json={"query": "가로등", "top_k": 5},
+        json={"request_id": "SRCH-2026-000100", "query": "가로등", "top_k": 5},
     )
 
     assert response.status_code == 503

@@ -15,17 +15,14 @@ def test_parse_search_response_success():
         "request_id": "REQ-20260320-AAAA1111",
         "timestamp": "2026-03-20T10:00:00+09:00",
         "data": {
-            "query": "가로등",
-            "top_k": 5,
             "results": [],
-            "count": 0,
-            "took_ms": 12,
+            "total_found": 0,
+            "elapsed_ms": 12,
         },
     }
 
     data = parse_search_response(payload)
-    assert data["query"] == "가로등"
-    assert data["count"] == 0
+    assert data["total_found"] == 0
 
 
 def test_parse_index_response_success():
@@ -35,17 +32,15 @@ def test_parse_index_response_success():
         "timestamp": "2026-03-20T10:01:00+09:00",
         "data": {
             "indexed_count": 1,
-            "chunk_count": 2,
-            "index_name": "civil_cases",
-            "rebuild": False,
-            "records": [{"case_id": "CASE-1", "chunk_ids": ["CASE-1__chunk-0"]}],
-            "took_ms": 123,
+            "failed_count": 0,
+            "collection_name": "civil_cases_v1",
+            "elapsed_ms": 123,
         },
     }
 
     data = parse_index_response(payload)
     assert data["indexed_count"] == 1
-    assert data["records"][0]["case_id"] == "CASE-1"
+    assert data["collection_name"] == "civil_cases_v1"
 
 
 def test_parse_search_response_missing_data_raises_error():

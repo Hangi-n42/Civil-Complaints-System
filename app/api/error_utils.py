@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 # Week2 계약 기준 공통 에러 정책
 ERROR_POLICY: Dict[str, Dict[str, Any]] = {
     "BAD_REQUEST": {"status_code": 400, "retryable": False},
+    "FILTER_INVALID": {"status_code": 400, "retryable": False},
     "VALIDATION_ERROR": {"status_code": 422, "retryable": False},
     "INDEX_NOT_READY": {"status_code": 503, "retryable": True},
     "MODEL_TIMEOUT": {"status_code": 504, "retryable": True},

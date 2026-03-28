@@ -48,6 +48,24 @@ app.include_router(generation_router)
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request, exc: RequestValidationError):
     """FastAPI 기본 422를 Week2 표준 에러 래퍼로 통일한다."""
+    is_search_filter_error = str(request.url.path) == "/api/v1/search" and any(
+        isinstance(err.get("loc"), (list, tuple)) and "filters" in err.get("loc", ())
+        for err in exc.errors()
+    )
+
+    if is_search_filter_error:
+        return error_response(
+            request_id=make_request_id(),
+            error_code="FILTER_INVALID",
+            message="검색 필터 형식 또는 값이 올바르지 않습니다.",
+            status_code=400,
+            retryable=False,
+            details={
+                "path": str(request.url.path),
+                "errors": exc.errors(),
+            },
+        )
+
     return error_response(
         request_id=make_request_id(),
         error_code="VALIDATION_ERROR",

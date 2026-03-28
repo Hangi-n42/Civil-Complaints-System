@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS, normalize_entity_label
 
@@ -18,6 +19,18 @@ class SearchFilters(BaseModel):
     date_from: Optional[str] = None
     date_to: Optional[str] = None
     entity_labels: Optional[List[str]] = None
+
+    @field_validator("created_at", "date_from", "date_to")
+    @classmethod
+    def validate_iso_datetime(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+
+        try:
+            datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("날짜 필터는 ISO-8601 형식이어야 합니다.") from exc
+        return value
 
     @field_validator("entity_labels")
     @classmethod
@@ -50,6 +63,15 @@ class SearchFilters(BaseModel):
             )
         return normalized
 
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "SearchFilters":
+        if self.date_from and self.date_to:
+            start = datetime.fromisoformat(self.date_from)
+            end = datetime.fromisoformat(self.date_to)
+            if start > end:
+                raise ValueError("filters.date_from은 filters.date_to보다 이전이거나 같아야 합니다.")
+        return self
+
 
 class IndexRecord(BaseModel):
     """인덱싱 입력 레코드"""
@@ -76,8 +98,24 @@ class IndexRecord(BaseModel):
 class IndexRequest(BaseModel):
     """인덱싱 요청"""
 
-    rebuild: bool = False
-    records: List[IndexRecord] = Field(default_factory=list)
+    request_id: Optional[str] = None
+    action: Literal["bulk", "incremental"] = "bulk"
+    cases: List[IndexRecord] = Field(default_factory=list)
+    collection_name: str = "civil_cases_v1"
+
+    # Backward compatibility fields
+    rebuild: Optional[bool] = None
+    records: Optional[List[IndexRecord]] = None
+
+    @model_validator(mode="after")
+    def normalize_legacy_fields(self) -> "IndexRequest":
+        if not self.cases and self.records:
+            self.cases = self.records
+
+        if self.rebuild is not None:
+            self.action = "bulk" if self.rebuild else "incremental"
+
+        return self
 
 
 class IndexRecordResult(BaseModel):
@@ -91,19 +129,26 @@ class IndexResponseData(BaseModel):
     """인덱싱 응답 데이터"""
 
     indexed_count: int
-    chunk_count: int
-    index_name: str
-    rebuild: bool
-    records: List[IndexRecordResult]
-    took_ms: int
+    failed_count: int
+    collection_name: str
+    elapsed_ms: int
+
+    # Backward compatibility fields
+    chunk_count: Optional[int] = None
+    index_name: Optional[str] = None
+    rebuild: Optional[bool] = None
+    records: Optional[List[IndexRecordResult]] = None
+    took_ms: Optional[int] = None
 
 
 class SearchRequest(BaseModel):
     """검색 요청"""
 
+    request_id: Optional[str] = None
     query: str
     top_k: int = 5
     filters: Optional[SearchFilters] = None
+    collection_name: str = "civil_cases_v1"
 
 
 class SearchSummary(BaseModel):
@@ -126,24 +171,32 @@ class SearchResultItem(BaseModel):
     """검색 결과 항목"""
 
     rank: int
-    doc_id: str
-    score: float
-    chunk_id: str
     case_id: str
-    title: str
-    snippet: str
-    summary: Optional[SearchSummary] = None
+    similarity_score: float
+    content: Dict[str, str]
     metadata: SearchResultMetadata
+
+    # Backward compatibility fields
+    doc_id: Optional[str] = None
+    score: Optional[float] = None
+    chunk_id: Optional[str] = None
+    title: Optional[str] = None
+    snippet: Optional[str] = None
+    summary: Optional[SearchSummary] = None
 
 
 class SearchResponseData(BaseModel):
     """검색 응답 데이터"""
 
-    query: str
-    top_k: int
     results: List[SearchResultItem]
-    count: int
-    took_ms: int
+    total_found: int
+    elapsed_ms: int
+
+    # Backward compatibility fields
+    query: Optional[str] = None
+    top_k: Optional[int] = None
+    count: Optional[int] = None
+    took_ms: Optional[int] = None
 
 
 class IndexResponse(BaseModel):

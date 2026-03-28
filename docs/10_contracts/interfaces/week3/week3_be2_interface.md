@@ -225,6 +225,11 @@ def search(search_request: SearchRequest) -> SearchResult:
 | `date_from` | ISO-8601 | "2026-01-01" | date_to보다 이전이어야 함 |
 | `date_to` | ISO-8601 | "2026-03-31" | date_from보다 이후이어야 함 |
 
+정책:
+- 필터 미지정은 정상 검색(200) 처리
+- 필터 값이 유효하나 매칭 없음은 `200 + results=[]` 처리
+- 필터 형식/값 오류는 `400 FILTER_INVALID` 반환
+
 ### 6.2 필터 검증 함수
 
 ```python
