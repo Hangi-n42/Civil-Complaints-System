@@ -1,261 +1,1579 @@
-from urllib import error as urlerror
-from urllib import request as urlrequest
-import json
-import re
-import time
-import html
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 from datetime import datetime, timedelta
-import numpy as np
+import os
+import json
+from pathlib import Path
+from typing import Dict, List, Any
+import re
+import time
+import random
+import html
+from urllib import error as urlerror
+from urllib import request as urlrequest
 
-from app.ui.services.retrieval_parser import ResponseContractError, parse_search_response
+from app.ui.components.search_ui import render_search_filter, render_search_result_card
+from app.ui.services.search_service import post_json, search_cases_via_api_with_filters
 
-st.set_page_config(page_title="GovAI - 민원 처리 시스템", layout="wide", initial_sidebar_state="expanded")
 
-st.markdown(
+def load_model_benchmark_report() -> Dict[str, Any]:
+    """Week3 모델 벤치마크 최종 리포트(JSON)를 로드한다.
+
+    - Path 기반 로드
+    - 파일이 없거나 파싱 실패 시 Mock Dict 반환
     """
+
+    default_mock: Dict[str, Any] = {
+        "timestamp": "2026-03-27T18:00:00Z",
+        "model_info": {"llm_model": "Qwen2.5-7B", "embedding_model": "BGE-m3"},
+        "summary": {
+            "average_f1_score": 0.91,
+            "average_recall_at_5": 0.88,
+            "average_latency_sec": 4.5,
+        },
+        "scenarios": [
+            {"name": "도로안전 (포트홀)", "f1_score": 0.94, "recall_at_5": 0.90, "latency_sec": 4.2},
+            {"name": "환경위생 (무단투기)", "f1_score": 0.88, "recall_at_5": 0.85, "latency_sec": 4.6},
+            {"name": "주거복지 (층간소음)", "f1_score": 0.92, "recall_at_5": 0.89, "latency_sec": 4.8},
+        ],
+    }
+
+    try:
+        project_root = Path(__file__).resolve().parents[2]
+        report_path = project_root / "logs" / "evaluation" / "week3" / "model_benchmark_report_final.json"
+        if not report_path.exists():
+            return default_mock
+        raw = report_path.read_text(encoding="utf-8")
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else default_mock
+    except Exception:
+        return default_mock
+
+
+# ============================================================================
+# 1. PAGE CONFIG & STYLING
+# ============================================================================
+
+st.set_page_config(
+    page_title="공공 민원 AI 처리 시스템",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+st.markdown("""
 <style>
     :root {
-        --primary: #2563eb;
-        --bg: #f8fafc;
-        --surface: #ffffff;
-        --border: #e2e8f0;
-        --text-main: #0f172a;
-        --text-muted: #64748b;
+        --primary: #1e3a8a;
+        --primary-light: #3b82f6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --gray-bg: #f8fafc;
+        --gray-border: #e2e8f0;
+        --gray-text: #64748b;
+        --white: #ffffff;
     }
 
     .stApp {
-        background: var(--bg);
-        color: var(--text-main);
-    }
-
-    section[data-testid="stSidebar"] {
-        background: #0f172a;
-        border-right: 1px solid #334155;
-        min-width: 260px;
-    }
-
-    section[data-testid="stSidebar"] * {
-        color: #e2e8f0;
-    }
-
-    section[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
-        display: none;
-    }
-
-    section[data-testid="stSidebar"] button[kind="secondary"],
-    section[data-testid="stSidebar"] button[kind="primary"] {
-        width: 100%;
-        border-radius: 10px;
-        min-height: 50px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        font-size: 1rem;
-        font-weight: 700;
-        text-align: left;
-        justify-content: flex-start;
-    }
-
-    section[data-testid="stSidebar"] button[kind="secondary"] {
-        background: transparent;
-        border: 1px solid #334155;
-        color: #94a3b8;
-    }
-
-    section[data-testid="stSidebar"] button[kind="primary"] {
-        background: #2563eb;
-        border: 1px solid #60a5fa;
-        color: #ffffff;
-    }
-
-    [data-testid="stAppDeployButton"],
-    [data-testid="stToolbar"],
-    [data-testid="stHeaderActionElements"],
-    #MainMenu,
-    header[data-testid="stHeader"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    div[data-testid="stDecoration"] {
-        display: none;
-    }
-
-    .block-container {
-        padding-top: 1rem;
+        background: var(--gray-bg);
+        color: #0f172a;
     }
 
     .card {
-        background: var(--surface);
-        border: 1px solid var(--border);
+        background: var(--white);
+        border: 1px solid var(--gray-border);
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 16px;
     }
 
-    .kpi-card {
-        background: #ffffff;
-        border: 1px solid var(--border);
-        border-left: 4px solid var(--primary);
+    .card-success {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-left: 4px solid var(--success);
+    }
+
+    .card-warning {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-left: 4px solid var(--warning);
+    }
+
+    .card-danger {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-left: 4px solid var(--danger);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+    .badge-entity {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .badge-valid {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-invalid {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-hazard {
+        background: #fed7aa;
+        color: #92400e;
+    }
+
+    .citation {
+        background: #fef08a;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: help;
+    }
+
+    .case-list-item {
+        background: var(--white);
+        border: 1px solid var(--gray-border);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .case-list-item:hover {
+        border-color: var(--primary-light);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+    }
+
+    .case-list-item.active {
+        border-color: var(--primary-light);
+        background: #eff6ff;
+    }
+
+    .metric-card {
+        background: var(--white);
+        border: 1px solid var(--gray-border);
         border-radius: 12px;
-        padding: 18px;
+        padding: 20px;
         text-align: center;
     }
 
-    .kpi-label {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-
-    .kpi-value-good {
-        color: #10b981;
-        font-size: 2rem;
+    .metric-value {
+        font-size: 2.5rem;
         font-weight: 700;
+        color: var(--primary);
         margin: 8px 0;
     }
 
-    .priority-high {
-        background: #fee2e2;
-        color: #991b1b;
-        padding: 12px;
+    .metric-label {
+        color: var(--gray-text);
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .queue-kpi-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+    }
+
+    .queue-kpi-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: .01em;
+        margin-bottom: 4px;
+    }
+
+    .queue-kpi-value {
+        font-size: 1.6rem;
+        line-height: 1.15;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .queue-kpi-open {
+        border-left: 4px solid #2563eb;
+    }
+
+    .queue-kpi-urgent {
         border-left: 4px solid #dc2626;
-        border-radius: 8px;
+    }
+
+    .queue-kpi-done {
+        border-left: 4px solid #059669;
+    }
+
+    .queue-filter-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #334155;
         margin-bottom: 8px;
+    }
+
+    .queue-filter-label {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: .01em;
+        margin-bottom: 2px;
+    }
+
+    .chat-message-user {
+        background: var(--primary-light);
+        color: white;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        margin-left: 40px;
+        text-align: right;
+    }
+
+    .chat-message-assistant {
+        background: #f3f4f6;
+        color: #0f172a;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        margin-right: 40px;
+    }
+
+    .entity-label {
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    .confidence-high {
+        color: var(--success);
         font-weight: 600;
     }
 
-    .priority-medium {
-        background: #fef3c7;
-        color: #92400e;
-        padding: 12px;
+    .confidence-medium {
+        color: var(--warning);
+        font-weight: 600;
+    }
+
+    .confidence-low {
+        color: var(--danger);
+        font-weight: 600;
+    }
+
+    @keyframes slideInFade {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .detail-header-animate {
+        background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #2563eb;
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        animation: slideInFade 220ms ease-out;
+    }
+
+    .detail-header-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin-bottom: 2px;
+    }
+
+    .detail-header-sub {
+        color: #475569;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    @keyframes fadeNoticeOut {
+        0% { opacity: 1; transform: translateY(0); }
+        80% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-3px); }
+    }
+
+    .transition-inline-notice {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #1e3a8a;
+        font-size: 0.86rem;
+        font-weight: 700;
+        animation: fadeNoticeOut 1s ease forwards;
+    }
+
+    .detail-header-animate.detail-header-done {
+        background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+        border: 1px solid #86efac;
+        border-left: 4px solid #16a34a;
+    }
+
+    .detail-header-animate.detail-header-review {
+        background: linear-gradient(90deg, #fffbeb 0%, #fefce8 100%);
+        border: 1px solid #fcd34d;
         border-left: 4px solid #f59e0b;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        font-weight: 600;
     }
 
-    .priority-low {
-        background: #dbeafe;
-        color: #1e40af;
-        padding: 12px;
-        border-left: 4px solid #3b82f6;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        font-weight: 600;
+    /* Queue table UX: row hover emphasis for one-click selection */
+    [data-testid="stDataFrame"] tbody tr:hover {
+        background-color: #eff6ff !important;
+        cursor: pointer;
     }
 
-    .search-card {
-        padding: 16px;
-        border: 1px solid var(--border);
+    [data-testid="stDataFrame"] thead th {
+        background: #f8fafc !important;
+        color: #334155 !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    [data-testid="stDataFrame"] tbody td {
+        font-size: 0.84rem !important;
+        color: #0f172a !important;
+        line-height: 1.25 !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+
+    .queue-table-wrap [data-testid="stDataFrame"] {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .workbench-toolbar-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+
+    .workbench-panel {
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+
+    .workbench-panel-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 8px;
+    }
+
+    .workbench-result-item {
+        border-bottom: 1px solid #f1f5f9;
+        padding: 8px 0;
+        margin-bottom: 2px;
+    }
+
+    .workbench-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .workbench-citation-line {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
-        border-left: 4px solid var(--primary);
-        background: white;
+        padding: 6px 8px;
+        margin-bottom: 6px;
+        font-size: 0.82rem;
+        color: #334155;
+    }
+
+    .structured-card {
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+    }
+
+    .structured-card-title {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #1e3a8a;
+    }
+
+    .structured-card-text {
+        font-size: 0.94rem;
+        font-weight: 600;
+        color: #0f172a;
+        margin: 8px 0 4px;
+    }
+
+    .structured-card-evidence {
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+
+    .workbench-notice {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #2563eb;
+        color: #1e3a8a;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .entity-mini-card {
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        padding: 10px 12px;
+        min-height: 84px;
+    }
+
+    .workbench-side-title {
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 8px;
+    }
+
+    .workbench-side-meta {
+        font-size: 0.82rem;
+        color: #475569;
+        margin-bottom: 8px;
+    }
+
+    .workbench-entity-pill {
+        display: inline-block;
+        border-radius: 999px;
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        color: #1e3a8a;
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        margin: 2px 4px 2px 0;
+    }
+
+    .entity-mini-label {
+        font-size: 0.76rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        letter-spacing: .02em;
+        margin-bottom: 6px;
+    }
+
+    .entity-mini-text {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .workbench-action-title {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 8px;
+    }
+
+    .workbench-action-help {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-top: 4px;
+    }
+
+    .admin-panel-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+
+    .admin-kpi-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+    }
+
+    .admin-kpi-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .admin-kpi-value {
+        font-size: 1.35rem;
+        line-height: 1.2;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .admin-kpi-delta {
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    .admin-kpi-up {
+        color: #059669;
+    }
+
+    .admin-kpi-down {
+        color: #2563eb;
+    }
+
+    .admin-section-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+
+    .admin-section-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 8px;
+    }
+
+    .app-hero {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 22px 20px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .app-hero-title {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+
+    .app-hero-sub {
+        margin-top: 6px;
+        font-size: 0.95rem;
+        opacity: 0.95;
+        font-weight: 500;
+    }
+
+    .app-info-inline {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e3a8a;
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 0.86rem;
+        font-weight: 600;
         margin-bottom: 12px;
     }
 
-    .chat-wrapper {
-        background: var(--surface);
-        border: 1px solid var(--border);
+    .app-footer {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.86rem;
+        padding: 14px 0 8px;
+    }
+
+    .app-footer p {
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .queue-select-hint {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #2563eb;
+        color: #1e3a8a;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .queue-list-wrap {
+        margin-top: 10px;
+    }
+
+    .queue-row-link {
+        display: block;
+        text-decoration: none;
+        color: #0f172a;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        transition: all .18s ease;
+    }
+
+    .queue-row-link:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 2px 8px rgba(30, 58, 138, 0.08);
+    }
+
+    .queue-row-selected {
+        border-color: #3b82f6 !important;
+        background: #eff6ff !important;
+    }
+
+    .queue-row-title {
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 4px;
+    }
+
+    .queue-title-link {
+        display: inline-block !important;
+        color: #000000 !important;
+        font-size: 0.80rem !important;
+        font-weight: 700 !important;
+        line-height: 1.15 !important;
+        text-decoration: none !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    .queue-title-link:hover {
+        text-decoration: none !important;
+        color: #000000 !important;
+    }
+
+    .queue-title-button {
+        background: none !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        color: #000000 !important;
+        font-size: 0.65rem !important;
+        font-weight: 600 !important;
+        padding: 2px 5px !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        font-family: inherit !important;
+        line-height: 1 !important;
+    }
+
+    .queue-title-button:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .queue-row-meta {
+        color: #475569;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+
+    .queue-pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-right: 6px;
+    }
+
+    .queue-pill-priority-high {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .queue-pill-priority-mid {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .queue-pill-priority-low {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .queue-pill-status-open {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .queue-pill-status-review {
+        background: #e0f2fe;
+        color: #075985;
+    }
+
+    .queue-pill-status-hold {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .queue-pill-status-done {
+        background: #ede9fe;
+        color: #5b21b6;
+    }
+
+    /* Hide Streamlit default chrome/navigation in favor of app-defined controls */
+    #MainMenu {
+        visibility: hidden;
+    }
+
+    header[data-testid="stHeader"] {
+        display: none;
+    }
+
+    [data-testid="stToolbarActions"] {
+        display: none;
+    }
+
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+
+    /* Reduce top whitespace across all pages/views */
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 0.35rem !important;
+    }
+
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-top: 0.35rem !important;
+        margin-top: 0 !important;
+    }
+
+    /* Sidebar nav tuning: place controls higher and make buttons larger */
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 0 !important;
+        margin-top: -0.45rem;
+    }
+
+    [data-testid="stSidebar"] .stButton > button {
+        min-height: 48px;
+        font-size: 0.98rem;
+        font-weight: 700;
         border-radius: 12px;
-        padding: 12px;
+        margin-bottom: 6px;
     }
 
+    /* Always show sidebar collapse/expand arrow controls */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+    }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 
-SCENARIOS = {
-    "road": {
-        "label": "1. 도로안전 (포트홀)",
-        "search": "포트홀, 도로 파손, 이륜차 사고",
-        "chat": "이 사례를 바탕으로 도로보수팀 긴급 작업 지시서를 작성해줘.",
-        "docs": [
-            {"id": "DOC-25-102", "score": "0.94", "title": "중앙로 10m 인근 포트홀 임시 복구 완료건", "snippet": "...우천 후 배수 불량으로 발생한 포트홀에 대해 긴급 아스팔트 타설 완료..."},
-            {"id": "DOC-25-088", "score": "0.89", "title": "이륜차 전도사고 발생 (노면 불량)", "snippet": "...야간 주행 중 도로 파인 곳을 발견하지 못하고 배달 오토바이가 전도됨..."},
-        ],
-        "chat_response": "<b>[도로보수팀 긴급 작업 지시서]</b><br><br><b>1. 작업 개요</b><br>- 위치: 중앙로 사거리 횡단보도 앞<br>- 내용: 우천으로 인한 포트홀 긴급 평탄화 및 복구",
-    },
-    "env": {
-        "label": "2. 환경 (무단투기)",
-        "search": "무단투기, 악취, CCTV 설치",
-        "chat": "CCTV 설치 타당성 검토 요청서를 유관 부서용으로 작성해줘.",
-        "docs": [
-            {"id": "DOC-25-301", "score": "0.96", "title": "상습 투기지역 이동식 단속 카메라 배치 결과", "snippet": "...고정식 CCTV 예산 부족으로 센서형 이동식 카메라를 배치한 결과 투기율 70% 감소..."},
-        ],
-        "chat_response": "<b>[방범용 CCTV 설치 타당성 검토 요청서]</b><br><br>",
-    },
-    "noise": {
-        "label": "3. 소음 (층간소음)",
-        "search": "층간소음, 아파트 분쟁, 야간 소음",
-        "chat": "층간소음 분쟁 중재 절차 안내문을 민원인에게 보낼 형식으로 작성해줘.",
-        "docs": [
-            {"id": "DOC-25-412", "score": "0.95", "title": "환경부 층간소음 이웃사이센터 연계 지원 사례", "snippet": "...전문가 방문 상담 및 소음 측정 지원으로 갈등 완화..."},
-        ],
-        "chat_response": "<b>[층간소음 분쟁 중재 절차 안내]</b><br><br>",
-    },
-}
+# ============================================================================
+# 2. MOCK DATA DEFINITIONS
+# ============================================================================
+
+def _format_received_at(value: Any) -> str:
+    if isinstance(value, str) and value:
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", ""))
+            return dt.strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            return value
+    return "-"
 
 
-def generate_sample_dashboard_data():
-    """대시보드용 샘플 데이터 생성"""
+def _safe_index(options: List[str], value: Any, default: int = 0) -> int:
+    try:
+        text = "" if value is None else str(value)
+        return options.index(text)
+    except ValueError:
+        return default
+
+
+def get_case_category(case: Dict[str, Any]) -> str:
+    return str(case.get("category_norm") or case.get("category") or "기타")
+
+
+def get_case_region(case: Dict[str, Any]) -> str:
+    region = str(case.get("region_norm") or case.get("region") or "-")
+    if region in ("unknown", "Unknown", "UNK", ""):
+        return "-"
+    return region
+
+
+def build_category_options(cases: List[Dict[str, Any]]) -> List[str]:
+    base = ["도로안전", "환경위생", "주거복지", "교통행정"]
+    seen: set[str] = set()
+    extras: List[str] = []
+    for case in cases:
+        cat = get_case_category(case)
+        if not cat or cat == "기타":
+            continue
+        if cat not in base and cat not in seen:
+            seen.add(cat)
+            extras.append(cat)
+    return ["전체", *base, *sorted(extras)]
+
+
+def build_region_options(cases: List[Dict[str, Any]]) -> List[str]:
+    base = ["강남구", "서초구", "송파구", "강동구", "영등포구"]
+    seen: set[str] = set()
+    extras: List[str] = []
+    for case in cases:
+        region = get_case_region(case)
+        if not region or region == "-":
+            continue
+        if region not in base and region not in seen:
+            seen.add(region)
+            extras.append(region)
+    return ["전체", *base, *sorted(extras)]
+
+
+def _span_to_evidence_text(raw_text: str, span: Any) -> str:
+    if isinstance(span, str):
+        return span
+    if (
+        isinstance(span, (list, tuple))
+        and len(span) == 2
+        and isinstance(span[0], int)
+        and isinstance(span[1], int)
+    ):
+        start, end = span
+        if isinstance(raw_text, str) and 0 <= start < end <= len(raw_text):
+            return raw_text[start:end]
+        return f"{start}:{end}"
+    return ""
+
+
+def load_week2_structured_sample_cases() -> List[Dict[str, Any]]:
+    """week2_structured_sample_10.json을 UI 케이스 포맷으로 변환해 로딩한다.
+
+    - 파일이 없거나 파싱 실패 시 빈 리스트 반환 (기존 mock으로 폴백)
+    """
+    sample_path = (
+        Path(__file__).resolve().parents[2]
+        / "reports"
+        / "week2_entity_audit"
+        / "week2_structured_sample_10.json"
+    )
+    if not sample_path.exists():
+        return []
+
+    try:
+        data = json.loads(sample_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    cases: List[Dict[str, Any]] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+
+        raw_text = str(item.get("raw_text") or item.get("text") or "")
+
+        # 입력이 UI-case(상위에 structured 포함) 형태로 들어올 수도 있어 방어적으로 처리
+        structured_in = item.get("structured") if isinstance(item.get("structured"), dict) else None
+        structured_src = structured_in if structured_in is not None else item
+
+        validation = structured_src.get("validation") if isinstance(structured_src.get("validation"), dict) else {}
+        is_valid = bool(validation.get("is_valid", True))
+
+        def _pack_field(name: str) -> Dict[str, Any]:
+            field = structured_src.get(name) if isinstance(structured_src.get(name), dict) else {}
+            text = str(field.get("text", ""))
+            confidence = float(field.get("confidence", 0.0) or 0.0)
+            span = field.get("evidence_span")
+            evidence_text = _span_to_evidence_text(raw_text, span)
+            return {"text": text, "confidence": confidence, "evidence_span": evidence_text}
+
+        entities_in = structured_src.get("entities") if isinstance(structured_src.get("entities"), list) else []
+        entities: List[Dict[str, Any]] = []
+        for e in entities_in:
+            if not isinstance(e, dict):
+                continue
+            label = e.get("label")
+            text = e.get("text")
+            if not label or not text:
+                continue
+            entities.append({"label": str(label), "text": str(text)})
+
+        case_id = str(item.get("case_id", "")) or f"SAMPLE-{len(cases) + 1:03d}"
+
+        category = str(item.get("category_norm") or item.get("category") or "기타")
+        region = str(item.get("region_norm") or item.get("region") or "-")
+        if region in ("unknown", "Unknown", "UNK", ""):
+            region = "-"
+
+        assignee = str(item.get("assignee") or item.get("source") or "미지정")
+        priority = str(item.get("priority") or "보통")
+        status = str(item.get("status") or "미처리")
+        received_at = item.get("received_at") or item.get("created_at")
+
+        cases.append(
+            {
+                "case_id": case_id,
+                "received_at": _format_received_at(received_at),
+                "category": category,
+                "category_norm": item.get("category_norm"),
+                "region": region,
+                "region_norm": item.get("region_norm"),
+                "raw_text": raw_text,
+                "assignee": assignee,
+                "priority": priority,
+                "status": status,
+                "structured": {
+                    "observation": _pack_field("observation"),
+                    "result": _pack_field("result"),
+                    "request": _pack_field("request"),
+                    "context": _pack_field("context"),
+                    "entities": entities,
+                    "is_valid": is_valid,
+                    "schema_version": "1.0",
+                },
+            }
+        )
+
+    return cases
+
+def generate_mock_assigned_cases() -> List[Dict[str, Any]]:
+    """신규 할당 민원 Mock Data (Tab 1)"""
+    return [
+        {
+            "case_id": "CASE-2026-0301-001",
+            "received_at": "2026-03-21 14:30",
+            "category": "도로안전",
+            "region": "강남구",
+            "raw_text": "중앙로 10m 지점에서 포트홀이 발생했습니다. 어제 폭우 이후 배수가 불량해 아스팔트가 패여있습니다. 이륜차 사고가 발생할 위험이 있으니 긴급 복구를 부탁드립니다.",
+            "assignee": "김민철",
+            "priority": "급함",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "중앙로 10m 지점에 포트홀이 발생함",
+                    "confidence": 0.94,
+                    "evidence_span": "중앙로 10m 지점에서 포트홀이 발생했습니다"
+                },
+                "result": {
+                    "text": "폭우로 인한 배수 불량이 원인",
+                    "confidence": 0.89,
+                    "evidence_span": "어제 폭우 이후 배수가 불량해 아스팔트가 패여있습니다"
+                },
+                "request": {
+                    "text": "긴급 복구 요청",
+                    "confidence": 0.97,
+                    "evidence_span": "긴급 복구를 부탁드립니다"
+                },
+                "context": {
+                    "text": "이륜차 사고 위험 상황",
+                    "confidence": 0.91,
+                    "evidence_span": "이륜차 사고가 발생할 위험이 있으니"
+                },
+                "entities": [
+                    {"label": "LOCATION", "text": "중앙로", "start": 0, "end": 3},
+                    {"label": "HAZARD", "text": "포트홀", "start": 5, "end": 7},
+                    {"label": "TIME", "text": "어제", "start": 22, "end": 24},
+                    {"label": "HAZARD", "text": "배수 불량", "start": 25, "end": 30},
+                    {"label": "FACILITY", "text": "아스팔트", "start": 31, "end": 34},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-002",
+            "received_at": "2026-03-21 13:15",
+            "category": "환경위생",
+            "region": "서초구",
+            "raw_text": "아파트 뒷골목에서 지속적으로 악취가 나고 있습니다. 해당 지역에는 무단 쓰레기 투기가 많이 일어나고 있으며, CCTV 설치가 시급합니다. 주민 민원이 많이 접수되고 있습니다.",
+            "assignee": "이정미",
+            "priority": "매우급함",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "아파트 뒷골목에서 지속적인 악취 발생",
+                    "confidence": 0.93,
+                    "evidence_span": "아파트 뒷골목에서 지속적으로 악취가 나고 있습니다"
+                },
+                "result": {
+                    "text": "무단 쓰레기 투기가 원인",
+                    "confidence": 0.88,
+                    "evidence_span": "해당 지역에는 무단 쓰레기 투기가 많이 일어나고 있으며"
+                },
+                "request": {
+                    "text": "CCTV 설치 요청",
+                    "confidence": 0.96,
+                    "evidence_span": "CCTV 설치가 시급합니다"
+                },
+                "context": {
+                    "text": "다수 주민 민원 접수",
+                    "confidence": 0.92,
+                    "evidence_span": "주민 민원이 많이 접수되고 있습니다"
+                },
+                "entities": [
+                    {"label": "LOCATION", "text": "아파트 뒷골목", "start": 0, "end": 6},
+                    {"label": "HAZARD", "text": "악취", "start": 9, "end": 11},
+                    {"label": "HAZARD", "text": "무단 쓰레기 투기", "start": 18, "end": 26},
+                    {"label": "FACILITY", "text": "CCTV", "start": 33, "end": 37},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-003",
+            "received_at": "2026-03-20 16:45",
+            "category": "주거복지",
+            "region": "송파구",
+            "raw_text": "위층 주민이 밤 11시 이후에도 계속 시끄러운 소음을 냅니다. 짐을 옮기고 바닥을 쿵쿵거리는 소리가 매일 들립니다. 층간소음 분쟁 중재를 요청합니다.",
+            "assignee": "박수환",
+            "priority": "보통",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "위층 주민의 야간 소음 발생",
+                    "confidence": 0.95,
+                    "evidence_span": "위층 주민이 밤 11시 이후에도 계속 시끄러운 소음을 냅니다"
+                },
+                "result": {
+                    "text": "짐 이동과 바닥 쿵쿵거림이 원인",
+                    "confidence": 0.90,
+                    "evidence_span": "짐을 옮기고 바닥을 쿵쿵거리는 소리가 매일 들립니다"
+                },
+                "request": {
+                    "text": "층간소음 분쟁 중재 요청",
+                    "confidence": 0.98,
+                    "evidence_span": "층간소음 분쟁 중재를 요청합니다"
+                },
+                "context": {
+                    "text": "야간 시간대 문제 (23:00 이후)",
+                    "confidence": 0.93,
+                    "evidence_span": "밤 11시 이후에도 계속"
+                },
+                "entities": [
+                    {"label": "TIME", "text": "밤 11시 이후", "start": 10, "end": 17},
+                    {"label": "HAZARD", "text": "소음", "start": 24, "end": 26},
+                    {"label": "FACILITY", "text": "바닥", "start": 43, "end": 45},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-004",
+            "received_at": "2026-03-21 10:40",
+            "category": "교통행정",
+            "region": "강동구",
+            "raw_text": "사거리 신호등이 주말부터 점멸 상태로 방치되어 차량 정체가 심합니다. 출근 시간대 접촉사고가 2건 발생했습니다. 신호제어기 점검과 긴급 복구를 요청합니다.",
+            "assignee": "최서연",
+            "priority": "매우급함",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "사거리 신호등이 점멸 상태로 지속됨",
+                    "confidence": 0.95,
+                    "evidence_span": "사거리 신호등이 주말부터 점멸 상태로 방치되어"
+                },
+                "result": {
+                    "text": "출근 시간대 정체 심화 및 접촉사고 2건 발생",
+                    "confidence": 0.90,
+                    "evidence_span": "출근 시간대 접촉사고가 2건 발생했습니다"
+                },
+                "request": {
+                    "text": "신호제어기 점검 및 긴급 복구 요청",
+                    "confidence": 0.97,
+                    "evidence_span": "신호제어기 점검과 긴급 복구를 요청합니다"
+                },
+                "context": {
+                    "text": "주말부터 지속된 교차로 안전 이슈",
+                    "confidence": 0.89,
+                    "evidence_span": "주말부터 점멸 상태로 방치되어"
+                },
+                "entities": [
+                    {"label": "LOCATION", "text": "사거리", "start": 0, "end": 2},
+                    {"label": "FACILITY", "text": "신호등", "start": 4, "end": 6},
+                    {"label": "TIME", "text": "주말부터", "start": 8, "end": 11},
+                    {"label": "HAZARD", "text": "접촉사고", "start": 39, "end": 43},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-005",
+            "received_at": "2026-03-21 09:55",
+            "category": "환경위생",
+            "region": "영등포구",
+            "raw_text": "하천 산책로 인근 쓰레기 적치로 악취가 심하고 해충이 증가했습니다. 야간 무단투기가 반복되며 주민 불편이 커지고 있습니다. 이동식 단속 카메라 설치 검토를 요청합니다.",
+            "assignee": "이정미",
+            "priority": "급함",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "하천 산책로 주변 쓰레기 적치 및 악취 발생",
+                    "confidence": 0.92,
+                    "evidence_span": "하천 산책로 인근 쓰레기 적치로 악취가 심하고"
+                },
+                "result": {
+                    "text": "해충 증가와 주민 불편 심화",
+                    "confidence": 0.88,
+                    "evidence_span": "해충이 증가했습니다. 주민 불편이 커지고 있습니다"
+                },
+                "request": {
+                    "text": "이동식 단속 카메라 설치 검토 요청",
+                    "confidence": 0.96,
+                    "evidence_span": "이동식 단속 카메라 설치 검토를 요청합니다"
+                },
+                "context": {
+                    "text": "야간 무단투기 반복 지역",
+                    "confidence": 0.91,
+                    "evidence_span": "야간 무단투기가 반복되며"
+                },
+                "entities": [
+                    {"label": "LOCATION", "text": "하천 산책로", "start": 0, "end": 5},
+                    {"label": "HAZARD", "text": "악취", "start": 16, "end": 18},
+                    {"label": "HAZARD", "text": "해충", "start": 23, "end": 25},
+                    {"label": "TIME", "text": "야간", "start": 31, "end": 33},
+                    {"label": "FACILITY", "text": "단속 카메라", "start": 57, "end": 62},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-006",
+            "received_at": "2026-03-20 15:20",
+            "category": "도로안전",
+            "region": "서초구",
+            "raw_text": "지하차도 진입부 가로등 3개가 고장 나 야간 시야가 매우 어둡습니다. 비가 오면 도로 경계가 보이지 않아 사고 위험이 큽니다. 조명 복구와 안전 표지 설치를 요청합니다.",
+            "assignee": "김민철",
+            "priority": "급함",
+            "status": "검토중",
+            "structured": {
+                "observation": {
+                    "text": "지하차도 진입부 가로등 3개 고장",
+                    "confidence": 0.93,
+                    "evidence_span": "지하차도 진입부 가로등 3개가 고장 나"
+                },
+                "result": {
+                    "text": "야간 시야 저하로 사고 위험 증가",
+                    "confidence": 0.90,
+                    "evidence_span": "야간 시야가 매우 어둡습니다. 사고 위험이 큽니다"
+                },
+                "request": {
+                    "text": "조명 복구 및 안전 표지 설치 요청",
+                    "confidence": 0.95,
+                    "evidence_span": "조명 복구와 안전 표지 설치를 요청합니다"
+                },
+                "context": {
+                    "text": "강우 시 시인성 급격히 악화",
+                    "confidence": 0.87,
+                    "evidence_span": "비가 오면 도로 경계가 보이지 않아"
+                },
+                "entities": [
+                    {"label": "LOCATION", "text": "지하차도 진입부", "start": 0, "end": 7},
+                    {"label": "FACILITY", "text": "가로등", "start": 8, "end": 10},
+                    {"label": "TIME", "text": "야간", "start": 20, "end": 22},
+                    {"label": "HAZARD", "text": "시야 저하", "start": 23, "end": 27},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+        {
+            "case_id": "CASE-2026-0301-007",
+            "received_at": "2026-03-20 11:05",
+            "category": "주거복지",
+            "region": "강남구",
+            "raw_text": "노후 임대아파트 엘리베이터가 한 달 내 두 차례 멈춰 고령 입주민 이동이 어렵습니다. 관리사무소 긴급 점검과 예비부품 교체 계획 안내를 요청합니다.",
+            "assignee": "박수환",
+            "priority": "보통",
+            "status": "미처리",
+            "structured": {
+                "observation": {
+                    "text": "엘리베이터 고장 반복 발생",
+                    "confidence": 0.91,
+                    "evidence_span": "엘리베이터가 한 달 내 두 차례 멈춰"
+                },
+                "result": {
+                    "text": "고령 입주민 이동 불편 심화",
+                    "confidence": 0.89,
+                    "evidence_span": "고령 입주민 이동이 어렵습니다"
+                },
+                "request": {
+                    "text": "긴급 점검 및 예비부품 교체 계획 안내 요청",
+                    "confidence": 0.94,
+                    "evidence_span": "긴급 점검과 예비부품 교체 계획 안내를 요청합니다"
+                },
+                "context": {
+                    "text": "노후 임대아파트 시설 안전 문제",
+                    "confidence": 0.88,
+                    "evidence_span": "노후 임대아파트"
+                },
+                "entities": [
+                    {"label": "FACILITY", "text": "엘리베이터", "start": 9, "end": 14},
+                    {"label": "TIME", "text": "한 달 내", "start": 16, "end": 20},
+                    {"label": "HAZARD", "text": "고장", "start": 15, "end": 17},
+                    {"label": "ADMIN_UNIT", "text": "관리사무소", "start": 38, "end": 43},
+                ],
+                "is_valid": True,
+                "schema_version": "1.0"
+            }
+        },
+    ]
+
+
+def generate_mock_search_results(query: str, cases_db: List[Dict]) -> List[Dict[str, Any]]:
+    """유사 민원 검색 결과 Mock Data (Tab 2)"""
+    # 테스트용 검색 코퍼스 확장 + 간단한 유사도 시뮬레이션
+    all_results = [
+        {
+            "doc_id": "DOC-2025-1024",
+            "case_id": "CASE-2025-1024",
+            "title": "중앙로 포트홀 긴급 복구 완료",
+            "category": "도로안전",
+            "region": "강남구",
+            "received_at": "2025-10-15",
+            "similarity_score": 0.94,
+            "snippet": "...폭우 이후 배수 불량으로 발생한 포트홀에 대해 해당일 오후 긴급 아스팔트 타설 완료. 예방차원에서 해당 지점 배수로 점검 및 보수 계획 수립... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-0988",
+            "case_id": "CASE-2025-0988",
+            "title": "이륜차 전도사고 발생 (노면 불량)",
+            "category": "도로안전",
+            "region": "서초구",
+            "received_at": "2025-09-02",
+            "similarity_score": 0.89,
+            "snippet": "...야간 주행 중 도로 파인 곳을 발견하지 못하고 배달 오토바이가 전도되어 운전자 경상. 현장 사진 첨부. 도로관리팀에 즉시 보수 지시... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-0876",
+            "case_id": "CASE-2025-0876",
+            "title": "도로 침하로 통행 주의",
+            "category": "도로안전",
+            "region": "송파구",
+            "received_at": "2025-08-20",
+            "similarity_score": 0.81,
+            "snippet": "...선거로 도로 침하가 발생하여 차량 통행 지장 발생. 해당 구간 우회 경로 안내 및 긴급 복구... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-1102",
+            "case_id": "CASE-2025-1102",
+            "title": "상습 무단투기 구역 이동식 CCTV 운영 성과",
+            "category": "환경위생",
+            "region": "영등포구",
+            "received_at": "2025-11-01",
+            "similarity_score": 0.92,
+            "snippet": "...이동식 CCTV 도입 후 무단투기 신고 건수가 62% 감소. 야간 단속 병행으로 악취 민원 동시 감소... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-1045",
+            "case_id": "CASE-2025-1045",
+            "title": "하천변 악취 민원 집중 정비 사례",
+            "category": "환경위생",
+            "region": "강동구",
+            "received_at": "2025-10-11",
+            "similarity_score": 0.86,
+            "snippet": "...하천변 쓰레기 적치 구간에 대해 일괄 수거 및 방역 실시. 주 2회 순찰 체계로 악취 재발률 감소... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-0931",
+            "case_id": "CASE-2025-0931",
+            "title": "교차로 신호등 점멸 긴급 복구",
+            "category": "교통행정",
+            "region": "강동구",
+            "received_at": "2025-09-19",
+            "similarity_score": 0.91,
+            "snippet": "...신호제어기 오류로 점멸 운전 발생. 3시간 내 제어기 교체 후 정상 신호 복구, 사고 예방 조치 완료... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-0814",
+            "case_id": "CASE-2025-0814",
+            "title": "지하차도 가로등 고장 야간 사고 예방 조치",
+            "category": "도로안전",
+            "region": "서초구",
+            "received_at": "2025-08-14",
+            "similarity_score": 0.87,
+            "snippet": "...가로등 2개 고장으로 시야 저하 민원 접수. 임시 조명차 투입 후 영업일 2일 내 복구 완료... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-0720",
+            "case_id": "CASE-2025-0720",
+            "title": "층간소음 분쟁 중재 및 소음 측정 연계",
+            "category": "주거복지",
+            "region": "송파구",
+            "received_at": "2025-07-20",
+            "similarity_score": 0.88,
+            "snippet": "...이웃사이센터와 연계해 소음 측정 및 중재 회의 진행. 야간 소음 민원 재접수율 감소... [더보기]",
+        },
+        {
+            "doc_id": "DOC-2025-1011",
+            "case_id": "CASE-2025-1011",
+            "title": "노후 아파트 엘리베이터 반복 고장 대응",
+            "category": "주거복지",
+            "region": "강남구",
+            "received_at": "2025-10-05",
+            "similarity_score": 0.84,
+            "snippet": "...고령층 이동권 보호를 위해 긴급 점검과 핵심 부품 선교체 시행, 입주민 안내문 즉시 배포... [더보기]",
+        },
+    ]
+
+    query_tokens = [t.strip().lower() for t in re.split(r"[,\s]+", query or "") if t.strip()]
+    selected_category = str(st.session_state.get("ui_filter_category", "전체"))
+    selected_region = str(st.session_state.get("ui_filter_region", "전체"))
+
+    scored_results: List[Dict[str, Any]] = []
+    for item in all_results:
+        if selected_category != "전체" and item.get("category") != selected_category:
+            continue
+        if selected_region != "전체" and item.get("region") != selected_region:
+            continue
+
+        haystack = " ".join([
+            str(item.get("title", "")).lower(),
+            str(item.get("snippet", "")).lower(),
+            str(item.get("category", "")).lower(),
+        ])
+        matched = sum(1 for token in query_tokens if token and token in haystack)
+        boost = min(0.08, matched * 0.02)
+
+        result = dict(item)
+        result["similarity_score"] = min(0.99, float(item.get("similarity_score", 0.0)) + boost)
+        scored_results.append(result)
+
+    if not scored_results:
+        scored_results = list(all_results)
+
+    sorted_results = sorted(scored_results, key=lambda x: x["similarity_score"], reverse=True)
+
+    # 계약(SearchResult) 필드가 항상 존재하도록 mock 결과를 정규화
+    normalized_results: List[Dict[str, Any]] = []
+    for rank, item in enumerate(sorted_results, start=1):
+        case_id = str(item.get("case_id", "") or "")
+        received_at = item.get("received_at")
+        score = float(item.get("similarity_score", 0.0) or 0.0)
+
+        existing_metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else None
+        entity_labels = item.get("entity_labels") if isinstance(item.get("entity_labels"), list) else None
+        metadata = existing_metadata or {
+            "created_at": received_at,
+            "category": item.get("category"),
+            "region": item.get("region"),
+            "entity_labels": entity_labels or [],
+        }
+
+        normalized_results.append(
+            {
+                **item,
+                "rank": int(item.get("rank", rank) or rank),
+                "score": float(item.get("score", score) or score),
+                "chunk_id": str(item.get("chunk_id") or (f"{case_id}__chunk-0" if case_id else "")),
+                "summary": item.get("summary") if isinstance(item.get("summary"), dict) else None,
+                "metadata": metadata,
+                # UI 편의/호환 필드
+                "created_at": item.get("created_at") or metadata.get("created_at") or received_at,
+                "entity_labels": entity_labels or metadata.get("entity_labels") or [],
+                "similarity_score": float(item.get("similarity_score", score) or score),
+            }
+        )
+
+    return normalized_results
+
+
+def search_cases_via_api(query: str, top_k: int = 5) -> tuple[List[Dict[str, Any]], str | None]:
+    """현재 필터 상태를 이용해 /api/v1/search를 호출한다."""
+    date_range = st.session_state.get("ui_filter_date_range")
+    return search_cases_via_api_with_filters(
+        query=query,
+        top_k=top_k,
+        date_range=date_range,
+        region=st.session_state.get("ui_filter_region", "전체"),
+        category=st.session_state.get("ui_filter_category", "전체"),
+        entity_labels=st.session_state.get("ui_filter_entity_labels", []),
+    )
+def build_search_results_payload_from_session() -> List[Dict[str, Any]]:
+    """현재 검색 결과를 /api/v1/qa의 search_results 포맷으로 변환한다."""
+    payload: List[Dict[str, Any]] = []
+    for item in st.session_state.search_results:
+        payload.append(
+            {
+                "doc_id": item.get("doc_id"),
+                "chunk_id": item.get("chunk_id", ""),
+                "case_id": item.get("case_id", ""),
+                "snippet": item.get("snippet", ""),
+                "score": float(item.get("similarity_score", item.get("score", 0.0)) or 0.0),
+            }
+        )
+    return payload
+
+
+def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
+    """통합 워크벤치에서 검색결과 기반 QA를 실행한다."""
+    search_results_payload = build_search_results_payload_from_session()
+    qa_payload = {
+        "query": prompt,
+        "top_k": 5,
+        "use_search_results": bool(search_results_payload),
+        "search_results": search_results_payload,
+        "filters": {
+            "region": case.get("region"),
+            "category": case.get("category"),
+            "entity_labels": ["FACILITY", "HAZARD"],
+        },
+    }
+
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+    with st.spinner("AI 어시스턴트가 답변을 생성 중입니다... (약 8~12초)"):
+        start_ts = time.time()
+        qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", qa_payload, timeout=35.0)
+        elapsed = time.time() - start_ts
+        if elapsed < 8.0:
+            time.sleep(8.0 - elapsed)
+
+    if qa_err and not qa_data:
+        fallback_answer = (
+            "서버 지연으로 샘플 초안을 표시합니다. 현장 안전조치, 원인 점검, 후속 일정 공유 순으로 대응하세요. [출처 1]"
+        )
+        fallback_citations = [
+            {
+                "ref_id": 1,
+                "case_id": "CASE-2025-1024",
+                "chunk_id": "CASE-2025-1024__chunk-0",
+                "doc_id": "DOC-2025-1024",
+                "snippet": "포트홀 긴급 복구 및 후속 배수 개선 사례",
+            }
+        ]
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "content": render_answer_with_citations(fallback_answer, fallback_citations),
+                "citations": fallback_citations,
+                "meta": {"processing_time": 8.0, "model": "fallback-sample"},
+            }
+        )
+        st.session_state.single_call_notice = f"QA API 폴백 사용: {qa_err}"
+        return
+
+    if qa_data.get("success") is True:
+        citations = qa_data.get("citations", [])
+        rendered_answer = render_answer_with_citations(str(qa_data.get("answer", "")), citations)
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "content": rendered_answer,
+                "citations": citations,
+                "meta": qa_data.get("meta", {}),
+                "limitations": qa_data.get("limitations"),
+                "confidence": qa_data.get("confidence"),
+                "qa_validation": qa_data.get("qa_validation"),
+            }
+        )
+        st.session_state.single_call_notice = "통합 워크벤치에서 답변 생성이 완료되었습니다."
+        return
+
+    error_message = str(qa_data.get("error", {}).get("message", "QA 응답 생성 실패"))
+    st.session_state.chat_history.append(
+        {
+            "role": "assistant",
+            "content": f"<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; padding:12px;'>{html.escape(error_message)}</div>",
+            "citations": [],
+            "meta": {},
+        }
+    )
+    st.session_state.single_call_notice = error_message
+
+
+def generate_mock_hazard_statistics() -> Dict[str, Any]:
+    """위험요소 통계 Mock Data (Tab 3)"""
     return {
-        "monthly": {"completed": 287, "pending": 143},
-        "yearly": {
-            "months": ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-            "completed": [234, 245, 267, 289, 312, 298, 334, 356, 321, 289, 267, 287],
-            "pending": [89, 95, 104, 112, 118, 121, 128, 135, 98, 87, 76, 143],
+        "total_cases": 1243,
+        "cases_this_month": 287,
+        "cases_this_week": 64,
+        "category_stats": {
+            "category": ["도로안전", "환경위생", "주거복지", "교통행정", "안전총괄"],
+            "count": [342, 289, 198, 156, 108],
+            "change_pct": [12.5, -3.2, 8.1, -5.4, 2.1],
         },
-        "priority": {
-            "매우급함": {"count": 42, "avg_time": "2.3일"},
-            "급함": {"count": 156, "avg_time": "5.1일"},
-            "보통": {"count": 232, "avg_time": "9.7일"},
-        },
-        "department_load": {
-            "부서": ["도로관리", "환경위생", "주거복지", "교통행정", "안전총괄"],
-            "미처리": [52, 39, 31, 27, 19],
-            "지연": [21, 16, 12, 9, 6],
-        },
-        "weekly": {"weeks": ['1주차', '2주차', '3주차', '4주차'], "count": [127, 145, 162, 143]},
+        "hazard_top5": [
+            {"hazard": "포트홀", "count": 124, "percentage": 15.2},
+            {"hazard": "무단투기/악취", "count": 98, "percentage": 12.1},
+            {"hazard": "층간소음", "count": 87, "percentage": 10.7},
+            {"hazard": "가로등 고장", "count": 76, "percentage": 9.3},
+            {"hazard": "도로 함몰", "count": 65, "percentage": 8.0},
+        ],
+        "region_stats": {
+            "region": ["강남구", "서초구", "송파구", "강동구", "영등포구"],
+            "count": [256, 203, 198, 176, 165],
+        }
     }
 
 
-def push_status(kind: str, message: str) -> None:
-    st.session_state.status_kind = kind
-    st.session_state.status_message = message
+# ============================================================================
+# 3. HELPER FUNCTIONS
+# ============================================================================
+
+def render_entity_badge() -> str:
+    """엔티티 배지 렌더링"""
+    return """
+    <span class="badge badge-entity">LOCATION</span>
+    <span class="badge badge-entity">HAZARD</span>
+    <span class="badge badge-entity">TIME</span>
+    """
 
 
-def post_json(base_url: str, path: str, payload: dict, timeout: float = 15.0) -> tuple[dict, int, str | None]:
-    url = f"{base_url.rstrip('/')}{path}"
-    req = urlrequest.Request(
-        url,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urlrequest.urlopen(req, timeout=timeout) as response:
-            body = response.read().decode("utf-8")
-            parsed = json.loads(body) if body else {}
-            return parsed, int(response.status), None
-    except urlerror.HTTPError as e:
-        body = e.read().decode("utf-8", errors="ignore") if hasattr(e, "read") else ""
-        try:
-            parsed = json.loads(body) if body else {}
-        except json.JSONDecodeError:
-            parsed = {}
-        return parsed, int(getattr(e, "code", 500)), str(e)
-    except (urlerror.URLError, TimeoutError, json.JSONDecodeError) as e:
-        return {}, 0, str(e)
+def render_confidence_score(score: float) -> str:
+    """신뢰도 점수 렌더링"""
+    if score >= 0.90:
+        css_class = "confidence-high"
+        label = "높음"
+    elif score >= 0.75:
+        css_class = "confidence-medium"
+        label = "중간"
+    else:
+        css_class = "confidence-low"
+        label = "낮음"
+    return f"<span class='{css_class}'>{score:.0%} ({label})</span>"
 
 
-def render_answer_with_citations(answer: str, citations: list[dict]) -> str:
-    citation_map: dict[int, dict] = {}
+def render_citation(ref_id: int, snippet: str) -> str:
+    """Citation 배지 렌더링 (hover 추가 정보)"""
+    escaped_snippet = snippet.replace('"', '&quot;')
+    return f'<span class="citation" title="{escaped_snippet}">[출처 {ref_id}]</span>'
+
+
+def render_answer_with_citations(answer: str, citations: List[Dict[str, Any]]) -> str:
+    """[[CITE:n]] 또는 [출처 n] 토큰을 시각 배지로 변환한다."""
+    citation_map: Dict[int, Dict[str, Any]] = {}
     for citation in citations:
         try:
             ref_id = int(citation.get("ref_id", 0))
@@ -266,466 +1584,1914 @@ def render_answer_with_citations(answer: str, citations: list[dict]) -> str:
     def _replace(match: re.Match[str]) -> str:
         ref_id = int(match.group(1))
         snippet = str(citation_map.get(ref_id, {}).get("snippet", "근거 스니펫 없음"))
-        hover = html.escape(snippet, quote=True)
-        return f"<span style='background:#fef08a; padding:2px 8px; border-radius:10px; font-size:0.75rem; font-weight:700;' title='{hover}'>[출처 {ref_id}]</span>"
+        return render_citation(ref_id=ref_id, snippet=snippet)
 
-    return re.sub(r"\[\[CITE:(\d+)\]\]", _replace, answer or "")
+    rendered = re.sub(r"\[\[CITE:(\d+)\]\]", _replace, answer or "")
+    rendered = re.sub(r"\[출처\s*(\d+)\]", _replace, rendered)
+    return rendered
 
 
-def build_sample_qa_success_payload(query: str, search_results: list[dict]) -> dict:
-    first = search_results[0] if search_results else {}
-    doc_id = str(first.get("doc_id") or first.get("id") or "DOC-SAMPLE-001")
-    chunk_id = str(first.get("chunk_id") or "CASE-SAMPLE-001__chunk-0")
-    case_id = str(first.get("case_id") or "CASE-SAMPLE-001")
-    snippet = str(first.get("snippet") or "샘플 근거 스니펫")
+def get_selected_case() -> Dict[str, Any] | None:
+    for case in st.session_state.mock_cases:
+        if case["case_id"] == st.session_state.selected_case_id:
+            return case
+    return None
+
+
+def move_to_next_open_case(current_case_id: str) -> str | None:
+    """현재 민원 다음 순서의 열린 민원(미처리/검토중)으로 이동한다."""
+    open_case_ids = [
+        c["case_id"]
+        for c in st.session_state.mock_cases
+        if st.session_state.case_statuses.get(c["case_id"], c.get("status", "미처리")) in ("미처리", "검토중")
+    ]
+    if not open_case_ids:
+        return None
+
+    all_case_ids = [c["case_id"] for c in st.session_state.mock_cases]
+    if current_case_id not in all_case_ids:
+        return open_case_ids[0]
+
+    start_idx = all_case_ids.index(current_case_id)
+    total = len(all_case_ids)
+    for offset in range(1, total + 1):
+        candidate = all_case_ids[(start_idx + offset) % total]
+        if candidate in open_case_ids:
+            return candidate
+
+    return None
+
+
+def apply_auto_filters_from_case(case: Dict[str, Any]) -> None:
+    """Tab1에서 선택된 민원 정보를 Tab2 필터 상태로 동기화한다."""
+    entities = case.get("structured", {}).get("entities", [])
+    hazards = [e.get("text", "") for e in entities if e.get("label") == "HAZARD" and e.get("text")]
+    facilities = [e.get("text", "") for e in entities if e.get("label") == "FACILITY" and e.get("text")]
+    keywords = [*hazards[:2], *facilities[:1], case.get("category", "")]
+    query = ", ".join([k for k in keywords if k])
+
+    st.session_state.search_query_text = query if query else case.get("category", "")
+    st.session_state.auto_filter_payload = {
+        "ui_search_query": st.session_state.search_query_text,
+        "ui_filter_region": get_case_region(case) if get_case_region(case) != "-" else "전체",
+        "ui_filter_category": get_case_category(case) if get_case_category(case) else "전체",
+        "ui_filter_date_range": (
+            datetime.now() - timedelta(days=90),
+            datetime.now(),
+        ),
+        "ui_filter_entity_labels": ["FACILITY", "HAZARD"],
+    }
+
+
+def build_single_call_qa_payload(case: Dict[str, Any]) -> Dict[str, Any]:
+    """내부 검색 모드 /api/v1/qa payload 생성."""
+    entities = case.get("structured", {}).get("entities", [])
+    hazards = [e.get("text", "") for e in entities if e.get("label") == "HAZARD" and e.get("text")]
+    facilities = [e.get("text", "") for e in entities if e.get("label") == "FACILITY" and e.get("text")]
+    query_terms = [*hazards[:2], *facilities[:1], case.get("category", "")]
+    query = " ".join([t for t in query_terms if t]).strip() or case.get("raw_text", "")[:60]
+
     return {
-        "success": True,
-        "request_id": "REQ-SAMPLE-QA-0001",
-        "timestamp": "2026-03-21T10:00:00+09:00",
-        "answer": f"질문 '{query}'에 대한 검증 모드 샘플 답변입니다. [[CITE:1]]",
-        "citations": [
-            {
-                "ref_id": 1,
-                "doc_id": doc_id,
-                "chunk_id": chunk_id,
-                "case_id": case_id,
-                "snippet": snippet,
-                "relevance_score": 0.82,
-                "source": "verification_sample",
-            }
-        ],
-        "confidence": "medium",
-        "limitations": "Ollama 실패로 검증 모드 샘플 응답을 사용했습니다.",
-        "meta": {
-            "processing_time": 0.1,
-            "model": "verification-sample",
-            "validation_warning": "검증 모드 샘플 응답입니다.",
-        },
-        "qa_validation": {
-            "is_valid": True,
-            "errors": [],
-            "warnings": [
-                {
-                    "code": "SAMPLE_FALLBACK",
-                    "message": "실제 QA 성공 응답이 없어 샘플 payload로 렌더링을 검증했습니다.",
-                }
-            ],
+        "query": f"{query} 민원에 대한 대응 방안을 공문체로 작성해줘.",
+        "top_k": 5,
+        "use_search_results": False,
+        "filters": {
+            "region": case.get("region"),
+            "category": case.get("category"),
+            "entity_labels": ["FACILITY", "HAZARD"],
         },
     }
 
 
-def check_search_contract_fields(items: list[dict]) -> tuple[bool, list[dict]]:
-    required = ["doc_id", "score", "title", "snippet"]
-    failures = []
-    for idx, item in enumerate(items, start=1):
-        missing = [key for key in required if key not in item or item.get(key) in (None, "")]
-        score_ok = isinstance(item.get("score"), (int, float))
-        if missing or not score_ok:
-            failures.append({"index": idx, "missing": missing, "score_type_ok": score_ok})
-    return len(failures) == 0 and len(items) > 0, failures
+def run_single_call_qa(case: Dict[str, Any]) -> None:
+    """Tab1 원클릭에서 QA를 호출하고 Tab2 챗 히스토리를 갱신한다."""
+    payload = build_single_call_qa_payload(case)
+    st.session_state.chat_history = []
+    query_for_search = st.session_state.get("search_query_text", case.get("category", ""))
+    api_results, api_err = search_cases_via_api(query=query_for_search, top_k=5)
+    if api_results:
+        st.session_state.search_results = api_results
+    else:
+        st.session_state.search_results = generate_mock_search_results(query_for_search, st.session_state.mock_cases)
+        if api_err:
+            st.session_state.single_call_notice = f"검색 API 폴백 사용: {api_err}"
+
+    user_msg = {
+        "role": "user",
+        "content": f"{case['case_id']} 기반으로 유사 사례와 대응 방안을 작성해줘.",
+    }
+    st.session_state.chat_history.append(user_msg)
+
+    delay_seconds = random.uniform(8.0, 12.0)
+    with st.spinner("내부 검색 모드로 /api/v1/qa 호출 중... (약 8~12초)"):
+        start_ts = time.time()
+        qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", payload, timeout=35.0)
+        elapsed = time.time() - start_ts
+        if elapsed < delay_seconds:
+            time.sleep(delay_seconds - elapsed)
+
+    if qa_err and not qa_data:
+        fallback_answer = (
+            "내부망 QA 서버 연결이 지연되어 샘플 대응안을 표시합니다. "
+            "현장 안전조치 및 임시복구를 우선 진행하고, 후속 정비계획을 3일 이내 제출하세요. [출처 1]"
+        )
+        citations = [
+            {
+                "ref_id": 1,
+                "case_id": "CASE-2025-1024",
+                "chunk_id": "CASE-2025-1024__chunk-0",
+                "doc_id": "DOC-2025-1024",
+                "snippet": "폭우 이후 배수 불량으로 발생한 포트홀 긴급 복구 사례",
+            }
+        ]
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "content": render_answer_with_citations(fallback_answer, citations),
+                "citations": citations,
+                "meta": {"model": "fallback-sample", "processing_time": round(delay_seconds, 2)},
+            }
+        )
+        st.session_state.single_call_notice = f"QA API 연결 실패: {qa_err}"
+        return
+
+    if qa_data.get("success") is True:
+        citations = qa_data.get("citations", [])
+        rendered_answer = render_answer_with_citations(str(qa_data.get("answer", "")), citations)
+        st.session_state.chat_history.append(
+            {
+                "role": "assistant",
+                "content": rendered_answer,
+                "citations": citations,
+                "meta": qa_data.get("meta", {}),
+                "limitations": qa_data.get("limitations"),
+                "confidence": qa_data.get("confidence"),
+                "qa_validation": qa_data.get("qa_validation"),
+            }
+        )
+        st.session_state.single_call_notice = "유사 사례 검색 + 대응안 생성이 완료되었습니다. 2번 탭 우측 챗 패널을 확인하세요."
+        return
+
+    error_message = str(qa_data.get("error", {}).get("message", "QA 응답 생성 실패"))
+    st.session_state.chat_history.append(
+        {
+            "role": "assistant",
+            "content": f"<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; padding:12px;'>{html.escape(error_message)}</div>",
+            "citations": [],
+            "meta": {},
+        }
+    )
+    st.session_state.single_call_notice = error_message
 
 
-if "view" not in st.session_state:
-    st.session_state.view = "📊 관리자 대시보드"
-if "scenario" not in st.session_state:
-    st.session_state.scenario = "road"
+def highlight_evidence_in_text(text: str, evidence: str) -> str:
+    """원문에서 근거 부분 강조"""
+    return text.replace(
+        evidence,
+        f"<mark style='background-color: #fef08a; font-weight:600;'>{evidence}</mark>"
+    )
+
+
+# ============================================================================
+# 4. SESSION STATE INITIALIZATION
+# ============================================================================
+
+if "mock_cases" not in st.session_state:
+    use_week2_sample = os.getenv("UI_USE_WEEK2_SAMPLE", "false").lower() == "true"
+    if use_week2_sample:
+        sample_cases = load_week2_structured_sample_cases()
+        st.session_state.mock_cases = sample_cases if sample_cases else generate_mock_assigned_cases()
+    else:
+        st.session_state.mock_cases = generate_mock_assigned_cases()
+
+if "selected_case_id" not in st.session_state:
+    st.session_state.selected_case_id = st.session_state.mock_cases[0]["case_id"] if st.session_state.mock_cases else None
+
+if "search_results" not in st.session_state:
+    st.session_state.search_results = []
+
+if "wb_search_state" not in st.session_state:
+    st.session_state.wb_search_state = None
+
+if "wb_last_api_err" not in st.session_state:
+    st.session_state.wb_last_api_err = None
+
+if "wb_pending_search" not in st.session_state:
+    st.session_state.wb_pending_search = None
+
+if "wb_query" not in st.session_state:
+    st.session_state.wb_query = ""
+
+if "wb_region" not in st.session_state:
+    st.session_state.wb_region = "전체"
+
+if "wb_category" not in st.session_state:
+    st.session_state.wb_category = "전체"
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
+if "search_query_text" not in st.session_state:
+    st.session_state.search_query_text = "포트홀, 도로 파손"
+
+if "selected_date_range" not in st.session_state:
+    st.session_state.selected_date_range = (
+        datetime.now() - timedelta(days=30),
+        datetime.now(),
+    )
+
+# 데모 안정성을 위해 기본값은 mock 강제(백엔드 응답 변동/계약 불일치 방어)
+if "ui_force_mock" not in st.session_state:
+    st.session_state.ui_force_mock = os.getenv("UI_FORCE_MOCK", "true").lower() == "true"
+
 if "api_base_url" not in st.session_state:
     st.session_state.api_base_url = "http://localhost:8000"
-if "search_api_results" not in st.session_state:
-    st.session_state.search_api_results = []
-if "search_done" not in st.session_state:
-    st.session_state.search_done = False
-if "ui_mode" not in st.session_state:
-    st.session_state.ui_mode = "테스트 모드"
-if "use_be_mode" not in st.session_state:
-    st.session_state.use_be_mode = False
-if "verification_mode" not in st.session_state:
-    st.session_state.verification_mode = False
-if "status_kind" not in st.session_state:
-    st.session_state.status_kind = ""
-if "status_message" not in st.session_state:
-    st.session_state.status_message = ""
-if "qa_last_response" not in st.session_state:
-    st.session_state.qa_last_response = {}
-if "search_last_raw_response" not in st.session_state:
-    st.session_state.search_last_raw_response = {}
-if "qa_last_raw_response" not in st.session_state:
-    st.session_state.qa_last_raw_response = {}
-if "qa_unverifiable_reason" not in st.session_state:
-    st.session_state.qa_unverifiable_reason = ""
 
+if "ui_search_query" not in st.session_state:
+    st.session_state.ui_search_query = st.session_state.search_query_text
 
-with st.sidebar:
-    st.markdown("### GovAI 시스템")
-    menu_items = ["📊 관리자 대시보드", "💬 워크스페이스"]
-    for menu in menu_items:
-        if st.button(f"{menu}", key=f"menu_{menu}", use_container_width=True, type="primary" if st.session_state.view == menu else "secondary"):
-            if st.session_state.view != menu:
-                st.session_state.view = menu
-                st.rerun()
+if "ui_filter_region" not in st.session_state:
+    st.session_state.ui_filter_region = "전체"
 
+if "ui_filter_category" not in st.session_state:
+    st.session_state.ui_filter_category = "전체"
 
-
-
-status_placeholder = st.empty()
-
-
-if st.session_state.view == "📊 관리자 대시보드":
-    data = generate_sample_dashboard_data()
-    
-    col1, col2 = st.columns([1.2, 1.8])
-    
-    with col1:
-        st.markdown("### 월간 완료/미완료")
-        fig_pie = go.Figure(data=[go.Pie(labels=['완료', '미완료'], values=[data["monthly"]["completed"], data["monthly"]["pending"]], marker=dict(colors=['#10b981', '#f59e0b']), hole=0.4, textposition='inside', textinfo='label+percent')])
-        fig_pie.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0), showlegend=True, paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_pie, use_container_width=True)
-    
-    with col2:
-        p_left, p_right = st.columns([1.0, 1.15])
-
-        with p_left:
-            st.markdown("### 민원 우선순위 큐")
-            priority = data["priority"]
-            st.markdown(f'<div class="priority-high">매우 급함 (즉시 대응)<br><strong>{priority["매우급함"]["count"]}건</strong> | 평균 처리 {priority["매우급함"]["avg_time"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="priority-medium">급함 (우선 처리)<br><strong>{priority["급함"]["count"]}건</strong> | 평균 처리 {priority["급함"]["avg_time"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="priority-low">보통 (일반 처리)<br><strong>{priority["보통"]["count"]}건</strong> | 평균 처리 {priority["보통"]["avg_time"]}</div>', unsafe_allow_html=True)
-
-        with p_right:
-            st.markdown("### 부서별 미처리/지연 현황")
-            dept = data["department_load"]
-            df_dept = pd.DataFrame(
-                {
-                    "부서": dept["부서"],
-                    "미처리": dept["미처리"],
-                    "지연": dept["지연"],
-                }
-            )
-            fig_dept = go.Figure(data=[
-                go.Bar(
-                    x=df_dept['부서'],
-                    y=df_dept['미처리'],
-                    name='미처리',
-                    marker=dict(color='#60a5fa'),
-                ),
-                go.Bar(
-                    x=df_dept['부서'],
-                    y=df_dept['지연'],
-                    name='지연',
-                    marker=dict(color='#fb7185'),
-                ),
-            ])
-            fig_dept.update_layout(
-                height=320,
-                margin=dict(l=18, r=8, t=16, b=36),
-                barmode='group',
-                yaxis_title='건수',
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                yaxis=dict(gridcolor='#e2e8f0'),
-            )
-            st.plotly_chart(fig_dept, use_container_width=True)
-    
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    
-    st.markdown("### 연간 민원 처리 추이")
-    df_yearly = pd.DataFrame({'월': data["yearly"]["months"], '완료': data["yearly"]["completed"], '미완료': data["yearly"]["pending"]})
-    fig_bar = go.Figure(data=[
-        go.Bar(
-            x=df_yearly['월'],
-            y=df_yearly['완료'],
-            name='완료',
-            marker=dict(color='#14b8a6', line=dict(color='#0f766e', width=0.6)),
-            opacity=0.92,
-            hovertemplate='<b>%{x}</b><br>완료 %{y}건<extra></extra>',
-        ),
-        go.Bar(
-            x=df_yearly['월'],
-            y=df_yearly['미완료'],
-            name='미완료',
-            marker=dict(color='#fda4af', line=dict(color='#e11d48', width=0.6)),
-            opacity=0.88,
-            hovertemplate='<b>%{x}</b><br>미완료 %{y}건<extra></extra>',
-        ),
-    ])
-    fig_bar.update_layout(
-        barmode='stack',
-        height=360,
-        margin=dict(l=40, r=20, t=12, b=16),
-        hovermode='x unified',
-        bargap=0.45,
-        bargroupgap=0.08,
-        xaxis_title='월',
-        yaxis_title='건수',
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(gridcolor='#eef2ff', tickfont=dict(color='#334155')),
-        yaxis=dict(gridcolor='#e2e8f0', tickfont=dict(color='#334155')),
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
-    
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    
-    st.markdown("### 최근 4주간 민원 접수 추이")
-    df_weekly = pd.DataFrame({'주차': data["weekly"]["weeks"], '접수건수': data["weekly"]["count"]})
-    fig_weekly = go.Figure()
-    fig_weekly.add_trace(go.Scatter(x=df_weekly['주차'], y=df_weekly['접수건수'], mode='lines+markers', name='접수건수', line=dict(color='#2563eb', width=4), marker=dict(size=11), fill='tozeroy', fillcolor='rgba(37, 99, 235, 0.14)'))
-    fig_weekly.update_layout(height=300, margin=dict(l=40, r=20, t=20, b=20), hovermode='x unified', yaxis_title='건수', xaxis_title='', showlegend=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', yaxis=dict(gridcolor='#e2e8f0'))
-    st.plotly_chart(fig_weekly, use_container_width=True)
-
-else:
-    st.markdown("## 민원 해결 워크스페이스")
-
-    mode_col, verify_col, url_col = st.columns([1.1, 1.3, 2.6])
-    with mode_col:
-        st.session_state.ui_mode = st.radio(
-            "데이터 경로",
-            options=["테스트 모드", "BE 연동 모드"],
-            index=1 if st.session_state.use_be_mode else 0,
-            horizontal=False,
-        )
-        st.session_state.use_be_mode = st.session_state.ui_mode == "BE 연동 모드"
-    with verify_col:
-        st.session_state.verification_mode = st.checkbox(
-            "검증 모드(QA 폴백)",
-            value=st.session_state.verification_mode,
-            help="QA API 실패 시 샘플 성공 응답을 주입하여 UI 검증을 계속합니다.",
-        )
-    with url_col:
-        st.session_state.api_base_url = st.text_input("API Base URL", value=st.session_state.api_base_url)
-
-    st.caption(
-        f"현재 모드: {st.session_state.ui_mode} | "
-        + ("검색/QA 모두 API 응답 기반" if st.session_state.use_be_mode else "검색/QA 모두 시나리오 목데이터 기반")
+if "ui_filter_date_range" not in st.session_state:
+    st.session_state.ui_filter_date_range = (
+        datetime.now() - timedelta(days=30),
+        datetime.now(),
     )
 
-    curr_data = SCENARIOS[st.session_state.scenario]
-    selected = st.selectbox(
-        "데모 시나리오",
-        options=list(SCENARIOS.keys()),
-        format_func=lambda key: SCENARIOS[key]["label"],
-        index=list(SCENARIOS.keys()).index(st.session_state.scenario),
-    )
-    if selected != st.session_state.scenario:
-        st.session_state.scenario = selected
-        st.session_state.search_done = False
-        st.session_state.chat_history = []
-        st.rerun()
+if "ui_filter_entity_labels" not in st.session_state:
+    st.session_state.ui_filter_entity_labels = []
 
-    left, right = st.columns([1, 1.2])
+if "single_call_notice" not in st.session_state:
+    st.session_state.single_call_notice = ""
 
-    with left:
-        st.markdown("### 유사 민원 검색")
-        search_query = st.text_input("검색어 입력", value=curr_data["search"], key="search_query")
-        if st.button("유사 민원 검색", use_container_width=True):
-            if st.session_state.use_be_mode:
-                payload = {"query": search_query, "top_k": 5}
-                data, _, err = post_json(st.session_state.api_base_url, "/api/v1/search", payload)
-                st.session_state.search_last_raw_response = data if data else {"_error": err or "unknown"}
-                if err and not data:
-                    st.session_state.search_done = False
-                    push_status("error", f"검색 API 연결 실패: {err}")
-                elif data.get("success") is False:
-                    st.session_state.search_done = False
-                    message = str(data.get("error", {}).get("message", "검색 API 오류"))
-                    push_status("error", message)
-                else:
-                    try:
-                        parsed_data = parse_search_response(data)
-                    except ResponseContractError as e:
-                        st.session_state.search_done = False
-                        push_status("error", f"search 계약 위반: {str(e)}")
-                        st.rerun()
+if "filter_synced_case_id" not in st.session_state:
+    st.session_state.filter_synced_case_id = ""
 
-                    results = parsed_data.get("results", [])
-                    normalized_results = []
-                    for item in results:
-                        normalized_results.append(
-                            {
-                                "doc_id": item.get("doc_id", "N/A"),
-                                "score": item.get("score", 0.0),
-                                "title": item.get("title", "제목 없음"),
-                                "snippet": item.get("snippet", ""),
-                                "chunk_id": item.get("chunk_id", ""),
-                                "case_id": item.get("case_id", ""),
-                            }
-                        )
-                    st.session_state.search_api_results = normalized_results
-                    st.session_state.search_done = True
-                    push_status("success", f"검색 완료 (총 {len(normalized_results)}건)")
-            else:
-                st.markdown('<div class="status-loading">벡터 DB에서 BGE-m3 임베딩으로 유사 민원을 검색 중입니다...</div>', unsafe_allow_html=True)
-                time.sleep(1.2)
-                st.session_state.search_done = True
-                st.session_state.search_api_results = curr_data.get("docs", [])
-                push_status("success", f"검색 완료 (총 {len(curr_data['docs'])}건)")
-            st.rerun()
+if "auto_filter_payload" not in st.session_state:
+    st.session_state.auto_filter_payload = None
 
-        if st.session_state.search_done:
-            docs_to_render = st.session_state.search_api_results if st.session_state.use_be_mode else curr_data["docs"]
-            for idx, doc in enumerate(docs_to_render, start=1):
-                display_id = str(doc.get("doc_id", "")).strip() or "N/A" if st.session_state.use_be_mode else str(doc.get("id", "")).strip() or "N/A"
-                try:
-                    display_score = f"{float(doc.get('score', 0.0)):.2f}"
-                except (TypeError, ValueError):
-                    display_score = "0.00"
+if "wb_prompt_input" not in st.session_state:
+    st.session_state.wb_prompt_input = ""
 
-                st.markdown(
-                    f"""
-<div class="search-card">
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-        <span style="font-weight:700; color:#0f172a;">[출처 {idx}] {doc['title']}</span>
-        <span style="font-size:0.8rem; background:#d1fae5; color:#065f46; padding:2px 6px; border-radius:4px; font-weight:700;">유사도: {display_score}</span>
-    </div>
-    <div style="font-size:0.86rem; color:#475569;">{doc['snippet']}</div>
-    <div style="font-size:0.75rem; color:#94a3b8; text-align:right; margin-top:8px;">ID: {display_id}</div>
-</div>
-""",
-                    unsafe_allow_html=True,
-                )
+if "app_view" not in st.session_state:
+    st.session_state.app_view = "queue"
 
-        # 사용자 화면 단순화를 위해 raw 디버그 로그는 숨김
+if "pending_transition_toast" not in st.session_state:
+    st.session_state.pending_transition_toast = ""
 
-    with right:
-        st.markdown("### 🤖 AI 어시스턴트")
+if "scroll_to_top_on_workbench" not in st.session_state:
+    st.session_state.scroll_to_top_on_workbench = False
 
-        for message in st.session_state.chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"], unsafe_allow_html=True)
+if "scroll_to_integrated_workbench" not in st.session_state:
+    st.session_state.scroll_to_integrated_workbench = False
 
-        prompt = st.chat_input(placeholder=f"지시사항 입력... 예시) {curr_data['chat']}")
-        if prompt:
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
-            answer = ""
+if "status_transition_notice" not in st.session_state:
+    st.session_state.status_transition_notice = ""
 
-            with st.chat_message("assistant"):
-                if st.session_state.use_be_mode:
-                    st.markdown("_BE QA API 호출 중..._")
-                    time.sleep(0.3)
+if "status_transition_notice_seq" not in st.session_state:
+    st.session_state.status_transition_notice_seq = 0
 
-                    search_results_payload = []
-                    for item in st.session_state.search_api_results:
-                        search_results_payload.append(
-                            {
-                                "doc_id": item.get("doc_id"),
-                                "chunk_id": item.get("chunk_id", ""),
-                                "case_id": item.get("case_id", ""),
-                                "snippet": item.get("snippet", ""),
-                                "score": float(item.get("score", 0.0) or 0.0),
-                            }
-                        )
-
-                    qa_payload = {
-                        "query": prompt,
-                        "top_k": 5,
-                        "use_search_results": bool(search_results_payload),
-                        "search_results": search_results_payload,
-                    }
-
-                    qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", qa_payload, timeout=25.0)
-                    st.session_state.qa_last_raw_response = qa_data if qa_data else {"_error": qa_err or "unknown"}
-
-                    if qa_err and not qa_data:
-                        st.session_state.qa_unverifiable_reason = f"QA API 연결 실패: {qa_err}"
-                        if st.session_state.verification_mode:
-                            qa_data = build_sample_qa_success_payload(prompt, st.session_state.search_api_results)
-                        else:
-                            answer = f"<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; padding:12px; font-weight:700;'>BE QA 연결 실패: {html.escape(qa_err)}</div>"
-                    elif qa_data.get("success") is False:
-                        error_message = str(qa_data.get("error", {}).get("message", "QA API 오류"))
-                        st.session_state.qa_unverifiable_reason = f"QA 실패 응답: {error_message}"
-                        if st.session_state.verification_mode:
-                            qa_data = build_sample_qa_success_payload(prompt, st.session_state.search_api_results)
-                        else:
-                            answer = f"<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; padding:12px; font-weight:700;'>{html.escape(error_message)}</div>"
-
-                    if qa_data.get("success") is True:
-                        st.session_state.qa_unverifiable_reason = ""
-                        st.session_state.qa_last_response = qa_data
-                        citations = qa_data.get("citations", [])
-                        rendered_answer = render_answer_with_citations(qa_data.get("answer", ""), citations)
-                        meta = qa_data.get("meta", {})
-                        answer = (
-                            f"<div class='chat-wrapper'>{rendered_answer}"
-                            f"<div style='margin-top:10px; color:#64748b; font-size:0.8rem;'>처리시간: {meta.get('processing_time', '-')}s | 모델: {html.escape(str(meta.get('model', '-')))}</div>"
-                            "</div>"
-                        )
-                    elif not st.session_state.verification_mode:
-                        st.session_state.qa_last_response = {}
-                else:
-                    st.markdown("_타닥타닥... AI가 답변을 작성하고 있습니다..._")
-                    time.sleep(2.5)
-                    answer = (
-                        f"{curr_data['chat_response']}"
-                        "<div style='margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; font-size:0.75rem; "
-                        "color:#94a3b8; text-align:right;'>⚡ 생성 속도: 6.2s | 기반 모델: Qwen2.5-7B</div>"
-                    )
-
-                st.markdown(answer, unsafe_allow_html=True)
-
-            st.session_state.chat_history.append({"role": "assistant", "content": answer})
-            st.rerun()
-
-        # 사용자 화면 단순화를 위해 raw 디버그 로그는 숨김
-
-        st.markdown("### Week1 검증 체크리스트 (1, 2, 4)")
-        search_items = st.session_state.search_api_results if st.session_state.use_be_mode else []
-        pass1, fail1 = check_search_contract_fields(search_items)
-        na1 = st.session_state.use_be_mode and st.session_state.search_done and len(search_items) == 0
-        qa_resp = st.session_state.qa_last_response if st.session_state.use_be_mode else {}
-        qa_success = bool(qa_resp.get("success") is True)
-        citations = qa_resp.get("citations", []) if qa_success else []
-        answer_text = str(qa_resp.get("answer", "")) if qa_success else ""
-        token_ids = {int(v) for v in re.findall(r"\[\[CITE:(\d+)\]\]", answer_text)} if answer_text else set()
-        ref_ids = set()
-        for c in citations:
-            try:
-                ref_ids.add(int(c.get("ref_id", 0)))
-            except (TypeError, ValueError):
-                continue
-        pass2 = qa_success and bool(citations) and token_ids == ref_ids and bool(token_ids)
-
-        meta = qa_resp.get("meta", {}) if qa_success else {}
-        warnings = qa_resp.get("qa_validation", {}).get("warnings", []) if qa_success else []
-        pass4 = qa_success and all(k in meta for k in ["processing_time", "model", "validation_warning"]) and isinstance(warnings, list)
-
-        c1, c2, c4 = st.columns(3)
-        with c1:
-            if pass1:
-                st.success("1) Pass")
-            elif na1:
-                st.info("1) N/A")
-            else:
-                st.error("1) Fail")
-            st.caption("기준: 검색 카드에 doc_id, score, title, snippet 누락 없음")
-            if na1:
-                st.caption("검색 결과 0건으로 필드 렌더링 검증 불가")
-            elif fail1:
-                st.caption(f"누락/타입 이상 항목 수: {len(fail1)}")
-        with c2:
-            if pass2:
-                st.success("2) Pass")
-            else:
-                st.error("2) Fail")
-            st.caption("기준: CITE 토큰-출처 ID 매칭")
-        with c4:
-            if pass4:
-                st.success("4) Pass")
-            else:
-                st.error("4) Fail")
-            st.caption("기준: meta/warnings 노출")
+if "status_transition_notice_rendered_seq" not in st.session_state:
+    st.session_state.status_transition_notice_rendered_seq = 0
 
 
-if st.session_state.status_message:
-    status_placeholder.markdown(
-        f"<div style='background:{'#d1fae5' if st.session_state.status_kind == 'success' else '#fee2e2'}; color:{'#065f46' if st.session_state.status_kind == 'success' else '#991b1b'}; border:1px solid {'#a7f3d0' if st.session_state.status_kind == 'success' else '#fecaca'}; border-radius:8px; padding:12px; font-weight:700;'>{st.session_state.status_message}</div>",
+def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> None:
+    """선택 민원 상세 + 통합 워크벤치(단일 화면)"""
+    current_status = st.session_state.case_statuses.get(selected_case["case_id"], selected_case.get("status", "미처리"))
+    header_status_class = ""
+    if current_status == "처리완료":
+        header_status_class = " detail-header-done"
+    elif current_status == "검토중":
+        header_status_class = " detail-header-review"
+
+    status_label_map = {
+        "처리완료": "처리 완료",
+        "검토중": "검토중",
+        "미처리": "미처리",
+        "보류": "보류",
+    }
+    display_status = status_label_map.get(current_status, current_status)
+
+    st.markdown(
+        f"""
+        <div class="detail-header-animate{header_status_class}">
+            <div class="detail-header-title">선택 민원: {selected_case['case_id']}</div>
+            <div class="detail-header-sub">카테고리: {selected_case['category']} | 우선순위: {selected_case['priority']} | 상태: {display_status}</div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    time.sleep(1.6)
-    status_placeholder.empty()
-    st.session_state.status_kind = ""
-    st.session_state.status_message = ""
+
+    if st.session_state.single_call_notice:
+        st.markdown(f"<div class='workbench-notice'>{html.escape(st.session_state.single_call_notice)}</div>", unsafe_allow_html=True)
+        st.session_state.single_call_notice = ""
+    structured = selected_case["structured"]
+    entities = structured.get("entities", [])
+
+    main_col, side_col = st.columns([2.2, 1], gap="large")
+
+    with main_col:
+        with st.expander("📄 원문 텍스트", expanded=False):
+            st.write(selected_case["raw_text"])
+
+        st.markdown("### 📋 민원 요약 (AI 분석)")
+        st.caption("담당자가 빠르게 파악할 수 있도록 핵심 3개 항목만 표시합니다.")
+
+        summary_cols = st.columns(3, gap="small")
+        
+        # 관찰(상황)
+        with summary_cols[0]:
+            with st.container(border=True):
+                st.markdown("<div style='font-weight: 600; margin-bottom: 0.5rem;'>📌 상황</div>", unsafe_allow_html=True)
+                st.markdown(structured["observation"]["text"], unsafe_allow_html=False)
+                st.markdown(
+                    render_confidence_score(structured["observation"]["confidence"]), 
+                    unsafe_allow_html=True
+                )
+        
+        # 요청
+        with summary_cols[1]:
+            with st.container(border=True):
+                st.markdown("<div style='font-weight: 600; margin-bottom: 0.5rem;'>🙋 민원인 요청</div>", unsafe_allow_html=True)
+                st.markdown(structured["request"]["text"], unsafe_allow_html=False)
+                st.markdown(
+                    render_confidence_score(structured["request"]["confidence"]), 
+                    unsafe_allow_html=True
+                )
+        
+        # 원인/분석
+        with summary_cols[2]:
+            with st.container(border=True):
+                st.markdown("<div style='font-weight: 600; margin-bottom: 0.5rem;'>⚠️ 문제점/원인</div>", unsafe_allow_html=True)
+                st.markdown(structured["result"]["text"], unsafe_allow_html=False)
+                st.markdown(
+                    render_confidence_score(structured["result"]["confidence"]), 
+                    unsafe_allow_html=True
+                )
+
+        # 상세 구조화 정보 (Context 포함)
+        with st.expander("📖 상세 구조화 정보 (근거/맥락)", expanded=False):
+            detail_left, detail_right = st.columns(2)
+            with detail_left:
+                st.markdown("**상황 근거**")
+                st.caption(f"\"{structured['observation']['evidence_span']}\"")
+            with detail_right:
+                st.markdown("**요청 근거**")
+                st.caption(f"\"{structured['request']['evidence_span']}\"")
+            
+            st.divider()
+            st.markdown("**처리 결과 근거**")
+            st.caption(f"\"{structured['result']['evidence_span']}\"")
+            
+            st.divider()
+            st.markdown("**배경/맥락 (Context)**")
+            with st.container(border=True):
+                st.markdown(structured["context"]["text"])
+                st.markdown(render_confidence_score(structured["context"]["confidence"]), unsafe_allow_html=True)
+                st.caption(f"근거: \"{structured['context']['evidence_span']}\"")
+            
+            if not structured["is_valid"]:
+                st.warning("⚠️ 이 구조화 결과는 스키마 검증을 통과하지 못했습니다.")
+
+        st.markdown("<div class='workbench-action-title'>처리 액션</div>", unsafe_allow_html=True)
+        action_cols = st.columns(3)
+        with action_cols[0]:
+            if st.button("✅ 처리완료", use_container_width=True, key=f"workbench_done_{selected_case['case_id']}"):
+                st.session_state.case_statuses[selected_case["case_id"]] = "처리완료"
+                next_case_id = move_to_next_open_case(selected_case["case_id"])
+                if next_case_id:
+                    st.session_state.selected_case_id = next_case_id
+                    next_case = next((c for c in st.session_state.mock_cases if c["case_id"] == next_case_id), None)
+                    if next_case:
+                        apply_auto_filters_from_case(next_case)
+                    st.session_state.status_transition_notice = f"다음 민원 {next_case_id}로 이동했습니다."
+                else:
+                    st.session_state.status_transition_notice = "다음 민원이 없습니다."
+                st.session_state.status_transition_notice_seq += 1
+                st.session_state.scroll_to_top_on_workbench = True
+                st.session_state.scroll_to_integrated_workbench = False
+                st.rerun()
+            st.markdown("<div class='workbench-action-help'>현재 민원 상태를 처리 완료로 변경합니다.</div>", unsafe_allow_html=True)
+        with action_cols[1]:
+            if st.button("🕒 검토중", use_container_width=True, key=f"workbench_inreview_{selected_case['case_id']}"):
+                st.session_state.case_statuses[selected_case["case_id"]] = "검토중"
+                next_case_id = move_to_next_open_case(selected_case["case_id"])
+                if next_case_id:
+                    st.session_state.selected_case_id = next_case_id
+                    next_case = next((c for c in st.session_state.mock_cases if c["case_id"] == next_case_id), None)
+                    if next_case:
+                        apply_auto_filters_from_case(next_case)
+                    st.session_state.status_transition_notice = f"다음 민원 {next_case_id}로 이동했습니다."
+                else:
+                    st.session_state.status_transition_notice = "다음 민원이 없습니다."
+                st.session_state.status_transition_notice_seq += 1
+                st.session_state.scroll_to_top_on_workbench = True
+                st.session_state.scroll_to_integrated_workbench = False
+                st.rerun()
+            st.markdown("<div class='workbench-action-help'>내부 검토 단계로 상태를 변경해 큐 우선순위를 조정합니다.</div>", unsafe_allow_html=True)
+        with action_cols[2]:
+            if st.button("✨ AI 유사 사례 및 대응 방안 생성", use_container_width=True, type="primary", key=f"workbench_single_call_{selected_case['case_id']}"):
+                apply_auto_filters_from_case(selected_case)
+                run_single_call_qa(selected_case)
+                st.rerun()
+            st.markdown("<div class='workbench-action-help'>유사 사례 검색과 답변 초안을 한 번에 실행합니다.</div>", unsafe_allow_html=True)
+
+    with side_col:
+        st.markdown("<div class='workbench-side-title'>보조 정보</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='workbench-side-meta'>민원 ID: {selected_case['case_id']}<br>지역: {get_case_region(selected_case)}<br>담당: {selected_case.get('assignee', '-')}</div>",
+            unsafe_allow_html=True,
+        )
+
+        with st.expander("핵심 엔티티", expanded=False):
+            if entities:
+                for entity in entities:
+                    st.markdown(
+                        f"<span class='workbench-entity-pill'>{entity.get('label', '-')}: {entity.get('text', '-')}</span>",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.caption("추출된 엔티티가 없습니다.")
+
+        with st.expander("추출/검증 정보", expanded=False):
+            if structured["is_valid"]:
+                st.markdown('<span class="badge badge-valid">✓ 스키마 검증 통과</span>', unsafe_allow_html=True)
+            else:
+                st.markdown('<span class="badge badge-invalid">✗ 스키마 검증 실패</span>', unsafe_allow_html=True)
+            st.caption(f"Schema v{structured['schema_version']}")
+
+        if (
+            st.session_state.status_transition_notice
+            and st.session_state.status_transition_notice_seq > st.session_state.status_transition_notice_rendered_seq
+        ):
+            st.markdown(
+                f"<div class='transition-inline-notice' data-seq='{st.session_state.status_transition_notice_seq}'>{html.escape(st.session_state.status_transition_notice)}</div>",
+                unsafe_allow_html=True,
+            )
+            st.session_state.status_transition_notice_rendered_seq = st.session_state.status_transition_notice_seq
+
+    st.divider()
+    st.markdown("<div id='integrated-workbench-anchor'></div>", unsafe_allow_html=True)
+    if st.session_state.scroll_to_integrated_workbench:
+        components.html(
+            """
+            <script>
+                const target = window.parent.document.getElementById('integrated-workbench-anchor');
+                if (target) {
+                    target.scrollIntoView({behavior: 'instant', block: 'start'});
+                }
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
+        st.session_state.scroll_to_integrated_workbench = False
+
+    st.markdown("### 🧩 통합 민원 처리 워크벤치")
+    st.caption("선택 민원의 검색/답변 작성 도구를 한 화면에서 실행합니다.")
+
+    wb_entities = selected_case.get("structured", {}).get("entities", [])
+    wb_hazards = [e.get("text", "") for e in wb_entities if e.get("label") == "HAZARD" and e.get("text")]
+    wb_facilities = [e.get("text", "") for e in wb_entities if e.get("label") == "FACILITY" and e.get("text")]
+    default_wb_query = ", ".join([*wb_hazards[:2], *wb_facilities[:1], selected_case.get("category", "")]).strip(", ")
+
+    if st.session_state.get("wb_selected_case_id") != selected_case["case_id"]:
+        st.session_state.wb_selected_case_id = selected_case["case_id"]
+        st.session_state.wb_query = default_wb_query or selected_case.get("category", "")
+
+    region_options = build_region_options(st.session_state.mock_cases)
+    category_options = build_category_options(st.session_state.mock_cases)
+
+    default_region = get_case_region(selected_case)
+    default_category = get_case_category(selected_case)
+    if st.session_state.wb_region not in region_options:
+        st.session_state.wb_region = default_region if default_region in region_options else region_options[0]
+    if st.session_state.wb_category not in category_options:
+        st.session_state.wb_category = default_category if default_category in category_options else category_options[0]
+
+    test_cols = st.columns([1, 6])
+    with test_cols[0]:
+        if st.button("⚠️ 오류 테스트", key=f"wb_error_test_{selected_case['case_id']}"):
+            st.session_state.wb_search_state = "error_fallback"
+            st.session_state.wb_last_api_err = "검색 서버에 일시적인 장애가 발생했습니다. 관리자에게 문의하세요."
+            st.session_state.wb_pending_search = None
+            st.session_state.search_results = []
+            st.rerun()
+
+    with st.container():
+        query, region, category, is_search_clicked = render_search_filter(
+            default_query=st.session_state.wb_query,
+            default_region=st.session_state.wb_region,
+            default_category=st.session_state.wb_category,
+            region_options=region_options,
+            category_options=category_options,
+        )
+
+        # 상태 머신: 클릭 -> loading 세팅 -> rerun -> (loading 상태에서 실제 호출)
+        if is_search_clicked:
+            st.session_state.wb_search_state = "loading"
+            st.session_state.wb_last_api_err = None
+            st.session_state.search_results = []
+            st.session_state.wb_pending_search = {
+                "query": query,
+                "region": region,
+                "category": category,
+                "date_range": st.session_state.ui_filter_date_range,
+                "entity_labels": ["FACILITY", "HAZARD"],
+                "top_k": 5,
+            }
+            st.rerun()
+
+        if st.session_state.wb_search_state == "loading" and st.session_state.wb_pending_search:
+            pending = dict(st.session_state.wb_pending_search)
+            with st.spinner("유사 민원 및 지식 베이스를 검색 중입니다..."):
+                api_results, api_err = search_cases_via_api_with_filters(
+                    query=str(pending.get("query", "")),
+                    top_k=int(pending.get("top_k", 5)),
+                    date_range=pending.get("date_range"),
+                    region=str(pending.get("region", "전체")),
+                    category=str(pending.get("category", "전체")),
+                    entity_labels=list(pending.get("entity_labels", [])),
+                )
+
+            st.session_state.wb_pending_search = None
+            st.session_state.wb_last_api_err = api_err
+            if api_err and not api_results:
+                api_err_text = str(api_err)
+                if st.session_state.ui_force_mock or "UI_FORCE_MOCK" in api_err_text:
+                    st.session_state.wb_search_state = "mock_mode"
+                else:
+                    st.session_state.wb_search_state = "error_fallback"
+                st.session_state.search_results = generate_mock_search_results(str(pending.get("query", "")), st.session_state.mock_cases)
+            elif api_results is not None and len(api_results) == 0:
+                st.session_state.wb_search_state = "empty"
+                st.session_state.search_results = []
+            else:
+                st.session_state.wb_search_state = "success"
+                st.session_state.search_results = api_results or []
+            st.rerun()
+
+    with st.container(border=True):
+        result_count = len(st.session_state.search_results)
+        st.markdown(f"<div class='workbench-panel-title'>유사 사례 검색 결과 ({result_count}건)</div>", unsafe_allow_html=True)
+        st.caption("워크벤치 검색 필터를 실행하면 아래에 유사 사례가 표시됩니다.")
+        if st.session_state.wb_search_state == "loading":
+            st.info("⏳ 검색을 실행 중입니다...")
+        elif st.session_state.wb_search_state == "mock_mode":
+            st.info("🧪 Mock 모드(UI_FORCE_MOCK)로 기본 Mock 데이터를 표시합니다.")
+        elif st.session_state.wb_search_state == "error_fallback":
+            st.error(f"🚨 검색 서버 통신 오류가 발생했습니다: {st.session_state.wb_last_api_err}")
+            st.warning("⚠️ 기본 Mock 데이터를 로드하여 결과를 표시합니다.")
+        elif st.session_state.wb_search_state == "empty":
+            st.info("💡 조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.")
+        elif st.session_state.wb_search_state == "success":
+            st.success(f"✅ 총 {len(st.session_state.search_results)}건의 유사 사례를 찾았습니다.")
+
+        if st.session_state.search_results:
+            for idx, item in enumerate(st.session_state.search_results[:5], start=1):
+                render_search_result_card(idx, item)
+        else:
+            if st.session_state.wb_search_state is None:
+                st.info("검색 버튼을 눌러 유사 사례를 불러오세요.")
+
+    st.divider()
+
+    with st.container(border=True):
+        st.markdown("<div class='workbench-panel-title'>AI 어시스턴트</div>", unsafe_allow_html=True)
+        st.caption("유사 사례 검색과 별개로, 선택 민원 기준 지시사항을 입력해 답변 초안을 생성합니다.")
+
+        quick_cols = st.columns(4)
+        with quick_cols[0]:
+            if st.button("답변 초안", key=f"wb_quick_reply_{selected_case['case_id']}", use_container_width=True):
+                st.session_state.wb_prompt_input = "선택 민원을 기준으로 민원인 안내용 답변 초안을 작성해줘."
+                st.rerun()
+        with quick_cols[1]:
+            if st.button("부서 전달", key=f"wb_quick_dept_{selected_case['case_id']}", use_container_width=True):
+                st.session_state.wb_prompt_input = "선택 민원을 기준으로 유관부서 전달문을 작성해줘."
+                st.rerun()
+        with quick_cols[2]:
+            if st.button("일정 요약", key=f"wb_quick_plan_{selected_case['case_id']}", use_container_width=True):
+                st.session_state.wb_prompt_input = "선택 민원의 처리 일정과 조치 항목을 3줄로 요약해줘."
+                st.rerun()
+        with quick_cols[3]:
+            if st.button("대화 초기화", key=f"wb_quick_clear_{selected_case['case_id']}", use_container_width=True):
+                st.session_state.chat_history = []
+                st.session_state.single_call_notice = "워크벤치 대화를 초기화했습니다."
+                st.rerun()
+
+        st.markdown("<div class='queue-filter-label'>지시사항</div>", unsafe_allow_html=True)
+        st.text_area(
+            "지시사항",
+            key="wb_prompt_input",
+            height=90,
+            placeholder="예: 선택 민원을 기준으로 담당부서 전달문과 민원인 안내문을 작성해줘.",
+            label_visibility="collapsed",
+        )
+
+        if st.button("🤖 워크벤치 답변 생성", use_container_width=True, type="primary", key=f"workbench_qa_{selected_case['case_id']}"):
+            prompt = st.session_state.wb_prompt_input.strip()
+            if not prompt:
+                st.warning("지시사항을 입력해주세요.")
+            else:
+                run_workbench_qa(prompt=prompt, case=selected_case)
+                st.rerun()
+
+        for message in st.session_state.chat_history[-8:]:
+            if message.get("role") == "user":
+                st.markdown(f"<div class='chat-message-user'>{message.get('content', '')}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div class='chat-message-assistant'>{message.get('content', '')}</div>", unsafe_allow_html=True)
+                citations = message.get("citations", [])
+                if citations:
+                    for cidx, citation in enumerate(citations, start=1):
+                        ref_id = citation.get("ref_id", cidx)
+                        case_id = citation.get("case_id", "-")
+                        chunk_id = citation.get("chunk_id", "-")
+                        snippet = citation.get("snippet", "-")
+                        source = citation.get("source")
+                        rel = citation.get("relevance_score")
+                        tail = []
+                        if source:
+                            tail.append(str(source))
+                        if rel is not None:
+                            try:
+                                tail.append(f"score={float(rel):.2f}")
+                            except (TypeError, ValueError):
+                                pass
+                        tail_text = f" ({' | '.join(tail)})" if tail else ""
+
+                        st.markdown(
+                            f"<div class='workbench-citation-line'>• [출처 {ref_id}] {case_id} | {chunk_id}{tail_text}<br>{html.escape(str(snippet))}</div>",
+                            unsafe_allow_html=True,
+                        )
+
+                qa_validation = message.get("qa_validation")
+                if isinstance(qa_validation, dict) and qa_validation.get("is_valid") is False:
+                    st.warning("⚠️ QA 응답 검증에서 문제가 감지되었습니다. (qa_validation.is_valid=false)")
+                limitations = message.get("limitations")
+                if limitations:
+                    st.info(f"제한사항: {limitations}")
+                meta = message.get("meta", {})
+                if isinstance(meta, dict) and meta.get("validation_warning"):
+                    st.caption(str(meta.get("validation_warning")))
+
+
+def render_queue_entry_screen() -> None:
+    """민원 선택 전용 화면"""
+    open_case_param = st.query_params.get("open_case")
+    if open_case_param:
+        open_case_id = open_case_param[0] if isinstance(open_case_param, list) else str(open_case_param)
+        selected_case = next((c for c in st.session_state.mock_cases if c["case_id"] == open_case_id), None)
+        if selected_case:
+            st.session_state.selected_case_id = open_case_id
+            apply_auto_filters_from_case(selected_case)
+            st.session_state.scroll_to_top_on_workbench = True
+            st.session_state.scroll_to_integrated_workbench = False
+            st.session_state.app_view = "workbench"
+        if "open_case" in st.query_params:
+            del st.query_params["open_case"]
+        st.rerun()
+
+    st.markdown("## 📥 처리 대상 민원 선택")
+    st.caption("민원 목록에서 항목을 클릭하면 현재 화면에서 바로 워크벤치로 전환됩니다.")
+
+    def _shorten_for_display(value: Any, max_len: int) -> str:
+        text = "" if value is None else str(value)
+        if max_len <= 0:
+            return ""
+        if len(text) <= max_len:
+            return text
+        if max_len == 1:
+            return "…"
+        return text[: max_len - 1] + "…"
+
+    open_count = sum(1 for c in st.session_state.mock_cases if st.session_state.case_statuses.get(c["case_id"], "미처리") in ("미처리", "검토중"))
+    urgent_count = sum(1 for c in st.session_state.mock_cases if c.get("priority") == "매우급함" and st.session_state.case_statuses.get(c["case_id"], "미처리") in ("미처리", "검토중"))
+    done_count = sum(1 for c in st.session_state.mock_cases if st.session_state.case_statuses.get(c["case_id"], "미처리") == "처리완료")
+
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(
+            f"""
+            <div class="queue-kpi-card queue-kpi-open">
+                <div class="queue-kpi-label">열린 건</div>
+                <div class="queue-kpi-value">{open_count}건</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with m2:
+        st.markdown(
+            f"""
+            <div class="queue-kpi-card queue-kpi-urgent">
+                <div class="queue-kpi-label">매우급함</div>
+                <div class="queue-kpi-value">{urgent_count}건</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with m3:
+        st.markdown(
+            f"""
+            <div class="queue-kpi-card queue-kpi-done">
+                <div class="queue-kpi-label">오늘 완료</div>
+                <div class="queue-kpi-value">{done_count}건</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    def _reset_queue_filters() -> None:
+        st.session_state.queue_priority_value = "전체"
+        st.session_state.queue_status_value = "전체"
+        st.session_state.queue_sort_by = "우선순위"
+        st.session_state.queue_keyword = ""
+
+    with st.container(border=True):
+        st.markdown("<div class='queue-filter-title'>빠른 필터</div>", unsafe_allow_html=True)
+
+        r1c1, r1c2, r1c3 = st.columns([1, 1, 1])
+        with r1c1:
+            st.markdown("<div class='queue-filter-label'>우선순위</div>", unsafe_allow_html=True)
+            priority_value = st.selectbox(
+                "우선순위",
+                ["전체", "매우급함", "급함", "보통"],
+                key="queue_priority_value",
+                label_visibility="collapsed",
+            )
+        with r1c2:
+            st.markdown("<div class='queue-filter-label'>상태</div>", unsafe_allow_html=True)
+            status_value = st.selectbox(
+                "상태",
+                ["전체", "미처리", "검토중", "보류", "처리완료"],
+                key="queue_status_value",
+                label_visibility="collapsed",
+            )
+        with r1c3:
+            st.markdown("<div class='queue-filter-label'>정렬</div>", unsafe_allow_html=True)
+            st.selectbox(
+                "정렬",
+                ["우선순위", "최신 접수"],
+                key="queue_sort_by",
+                label_visibility="collapsed",
+            )
+
+        r2c1, r2c2 = st.columns([4.2, 1])
+        with r2c1:
+            st.markdown("<div class='queue-filter-label'>빠른 검색</div>", unsafe_allow_html=True)
+            st.text_input(
+                "빠른 검색",
+                key="queue_keyword",
+                placeholder="case_id, 카테고리, 담당자, 지역",
+                label_visibility="collapsed",
+            )
+        with r2c2:
+            st.markdown("<div class='queue-filter-label'>도구</div>", unsafe_allow_html=True)
+            st.button("초기화", key="queue_reset_filters_top", use_container_width=True, on_click=_reset_queue_filters)
+
+    priority_rank = {"매우급함": 0, "급함": 1, "보통": 2}
+    queue_rows: List[Dict[str, Any]] = []
+    filtered_cases: List[Dict[str, Any]] = []
+    for case in st.session_state.mock_cases:
+        status = st.session_state.case_statuses.get(case["case_id"], case.get("status", "미처리"))
+        if priority_value != "전체" and case.get("priority") != priority_value:
+            continue
+        if status_value != "전체" and status != status_value:
+            continue
+
+        keyword = st.session_state.queue_keyword.strip().lower()
+        if keyword:
+            haystack = " ".join([
+                case.get("case_id", ""),
+                case.get("category", ""),
+                case.get("assignee", ""),
+                case.get("region", ""),
+            ]).lower()
+            if keyword not in haystack:
+                continue
+
+        filtered_cases.append(case)
+        title_text = (
+            case.get("title")
+            or case.get("structured", {}).get("observation", {}).get("text")
+            or case.get("raw_text", "").split(".")[0].strip()
+            or "민원 제목 없음"
+        )
+        queue_rows.append(
+            {
+                "제목": title_text,
+                "case_id": case["case_id"],
+                "접수": case.get("received_at", "-"),
+                "카테고리": get_case_category(case),
+                "지역": get_case_region(case),
+                "우선순위": case.get("priority", "보통"),
+                "담당": case.get("assignee", "-") ,
+                "상태": status,
+            }
+        )
+
+    if st.session_state.queue_sort_by == "우선순위":
+        queue_rows.sort(key=lambda x: (priority_rank.get(x.get("우선순위", "보통"), 9), x.get("접수", "")), reverse=False)
+    else:
+        queue_rows.sort(key=lambda x: x.get("접수", ""), reverse=True)
+
+    if queue_rows:
+        case_ids = [row["case_id"] for row in queue_rows]
+        if st.session_state.selected_case_id not in case_ids:
+            st.session_state.selected_case_id = case_ids[0]
+
+        st.markdown(f"#### 민원 목록 ({len(queue_rows)}건)")
+        priority_badge = {"매우급함": "🔴 매우급함", "급함": "🟠 급함", "보통": "🟢 보통"}
+        status_badge = {
+            "미처리": "🕒 미처리",
+            "검토중": "🟡 검토중",
+            "보류": "⏸ 보류",
+            "처리완료": "✅ 처리완료",
+        }
+
+        header_cols = st.columns([1.3, 0.7, 1.1, 0.9, 0.9, 1.1, 1.0], gap="small")
+        header_labels = ["민원 제목", "케이스ID", "접수일", "카테고리", "지역", "우선순위", "상태"]
+        for col, label in zip(header_cols, header_labels):
+            with col:
+                st.markdown(f"<div class='queue-filter-label'>{label}</div>", unsafe_allow_html=True)
+
+        for idx, row in enumerate(queue_rows):
+            row_cols = st.columns([1.3, 0.7, 1.1, 0.9, 0.9, 1.1, 1.0], gap="small")
+            with row_cols[0]:
+                full_title = str(row.get("제목", ""))
+                display_title = _shorten_for_display(full_title, 34)
+                st.markdown(
+                    f"<a class='queue-title-link' href='?open_case={row['case_id']}' target='_self' title='{html.escape(full_title)}'>{html.escape(display_title)}</a>",
+                    unsafe_allow_html=True,
+                )
+            with row_cols[1]:
+                full_case_id = str(row.get("case_id", ""))
+                display_case_id = _shorten_for_display(full_case_id, 16)
+                st.markdown(
+                    f"<div style='font-size:0.75rem;line-height:1.0;color:#94a3b8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' title='{html.escape(full_case_id)}'>{html.escape(display_case_id)}</div>",
+                    unsafe_allow_html=True,
+                )
+            with row_cols[2]:
+                st.markdown(f"<div style='font-size:0.85rem;line-height:1.15;color:#475569;'>{row['접수']}</div>", unsafe_allow_html=True)
+            with row_cols[3]:
+                st.markdown(f"<div style='font-size:0.85rem;line-height:1.15;color:#475569;'>{row['카테고리']}</div>", unsafe_allow_html=True)
+            with row_cols[4]:
+                st.markdown(f"<div style='font-size:0.85rem;line-height:1.15;color:#475569;'>{row['지역']}</div>", unsafe_allow_html=True)
+            with row_cols[5]:
+                st.markdown(f"<div style='font-size:0.85rem;line-height:1.15;color:#475569;'>{priority_badge.get(row['우선순위'], row['우선순위'])}</div>", unsafe_allow_html=True)
+            with row_cols[6]:
+                st.markdown(f"<div style='font-size:0.85rem;line-height:1.15;color:#475569;'>{status_badge.get(row['상태'], row['상태'])}</div>", unsafe_allow_html=True)
+            if idx < len(queue_rows) - 1:
+                st.markdown(
+                    "<div style='height:1px;background:#e2e8f0;margin:2px 0 3px 0;'></div>",
+                    unsafe_allow_html=True,
+                )
+    else:
+        st.warning("필터 조건에 맞는 민원이 없습니다.")
+
+
+def render_case_workbench_screen() -> None:
+    """선택 민원 전용 처리 화면"""
+    if st.session_state.scroll_to_top_on_workbench:
+        components.html(
+            """
+            <script>
+                const w = window.parent || window;
+                w.scrollTo({top: 0, left: 0, behavior: 'instant'});
+                window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+                const appView = w.document.querySelector('[data-testid="stAppViewContainer"]');
+                if (appView) {
+                    appView.scrollTop = 0;
+                }
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
+        st.session_state.scroll_to_top_on_workbench = False
+
+    top_cols = st.columns([1, 1, 2])
+    with top_cols[0]:
+        if st.button("⬅ 민원 목록으로", use_container_width=True, key="wb_nav_queue"):
+            st.session_state.app_view = "queue"
+            st.rerun()
+    with top_cols[1]:
+        if st.button("📊 관리자 통계", use_container_width=True, key="wb_nav_admin"):
+            st.session_state.app_view = "admin"
+            st.rerun()
+
+    selected_case = get_selected_case()
+    if not selected_case:
+        st.warning("선택된 민원이 없습니다. 목록 화면으로 이동합니다.")
+        st.session_state.app_view = "queue"
+        st.rerun()
+        return
+
+    st.markdown("## 🧩 민원 처리 워크벤치")
+    st.caption("선택 민원의 원문, 구조화 결과, 유사 사례 검색, AI 답변 생성을 한 화면에서 처리합니다.")
+    render_selected_case_detail_and_workbench(selected_case)
+
+if "case_statuses" not in st.session_state:
+    st.session_state.case_statuses = {
+        case["case_id"]: case.get("status", "미처리") for case in st.session_state.mock_cases
+    }
+
+if "queue_priority_filter" not in st.session_state:
+    st.session_state.queue_priority_filter = ["매우급함", "급함", "보통"]
+
+if "queue_status_filter" not in st.session_state:
+    st.session_state.queue_status_filter = ["미처리", "검토중"]
+
+if "queue_sort_by" not in st.session_state:
+    st.session_state.queue_sort_by = "우선순위"
+
+if "queue_keyword" not in st.session_state:
+    st.session_state.queue_keyword = ""
+
+if "queue_priority_value" not in st.session_state:
+    st.session_state.queue_priority_value = "전체"
+
+if "queue_status_value" not in st.session_state:
+    st.session_state.queue_status_value = "전체"
+
+
+# ============================================================================
+# 5. TAB 1: 할당된 민원 및 자동 구조화
+# ============================================================================
+
+def render_tab1_assigned_cases():
+    """
+    Tab 1: 담당자가 자신에게 할당된 신규 민원을 확인하고
+           AI 구조화 결과를 검토하는 화면
+    """
+    st.markdown("## 📋 할당된 민원 및 자동 구조화")
+    st.markdown("오늘 처리해야 할 신규 기일 민원을 확인하고, AI가 분석한 구조화 결과를 검토합니다.")
+    st.caption("처리 순서: 1) 왼쪽 큐에서 민원 선택  2) 오른쪽에서 구조화 확인  3) 하단 워크벤치에서 검색/답변 생성")
+
+    col_left, col_right = st.columns([1.1, 1.3], gap="large")
+
+    # 좌측: 민원 목록
+    with col_left:
+        st.markdown("### 신규 대기 민원 큐")
+        m1, m2, m3 = st.columns(3)
+        open_count = sum(1 for c in st.session_state.mock_cases if st.session_state.case_statuses.get(c["case_id"], "미처리") in ("미처리", "검토중"))
+        urgent_count = sum(1 for c in st.session_state.mock_cases if c.get("priority") == "매우급함" and st.session_state.case_statuses.get(c["case_id"], "미처리") in ("미처리", "검토중"))
+        done_count = sum(1 for c in st.session_state.mock_cases if st.session_state.case_statuses.get(c["case_id"], "미처리") == "처리완료")
+        m1.metric("열린 건", f"{open_count}건")
+        m2.metric("매우급함", f"{urgent_count}건")
+        m3.metric("오늘 완료", f"{done_count}건")
+
+        c1, c2, c3 = st.columns([1.2, 1.2, 1])
+        with c1:
+            st.multiselect(
+                "우선순위 필터",
+                ["매우급함", "급함", "보통"],
+                key="queue_priority_filter",
+            )
+        with c2:
+            st.multiselect(
+                "상태 필터",
+                ["미처리", "검토중", "보류", "처리완료"],
+                key="queue_status_filter",
+            )
+        with c3:
+            st.selectbox("정렬", ["우선순위", "최신 접수"], key="queue_sort_by")
+
+        priority_rank = {"매우급함": 0, "급함": 1, "보통": 2}
+        queue_rows: List[Dict[str, Any]] = []
+        filtered_cases: List[Dict[str, Any]] = []
+        for case in st.session_state.mock_cases:
+            status = st.session_state.case_statuses.get(case["case_id"], case.get("status", "미처리"))
+            if case.get("priority") not in st.session_state.queue_priority_filter:
+                continue
+            if status not in st.session_state.queue_status_filter:
+                continue
+            filtered_cases.append(case)
+            queue_rows.append(
+                {
+                    "case_id": case["case_id"],
+                    "접수": case["received_at"],
+                    "카테고리": case["category"],
+                    "우선순위": case["priority"],
+                    "담당": case["assignee"],
+                    "상태": status,
+                }
+            )
+
+        if st.session_state.queue_sort_by == "우선순위":
+            filtered_cases.sort(key=lambda x: (priority_rank.get(x.get("priority", "보통"), 9), x.get("received_at", "")), reverse=False)
+            queue_rows.sort(key=lambda x: (priority_rank.get(x.get("우선순위", "보통"), 9), x.get("접수", "")), reverse=False)
+        else:
+            filtered_cases.sort(key=lambda x: x.get("received_at", ""), reverse=True)
+            queue_rows.sort(key=lambda x: x.get("접수", ""), reverse=True)
+
+        if queue_rows:
+            queue_df = pd.DataFrame(queue_rows)
+            selection_event = st.dataframe(
+                queue_df,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+            )
+            case_ids = [c["case_id"] for c in filtered_cases]
+            if st.session_state.selected_case_id not in case_ids:
+                st.session_state.selected_case_id = case_ids[0]
+
+            selected_rows = selection_event.selection.get("rows", []) if hasattr(selection_event, "selection") else []
+            if selected_rows:
+                selected_case_id = queue_df.iloc[selected_rows[0]]["case_id"]
+                st.session_state.selected_case_id = selected_case_id
+                sel_case = next((c for c in st.session_state.mock_cases if c["case_id"] == selected_case_id), None)
+                if sel_case:
+                    apply_auto_filters_from_case(sel_case)
+                st.rerun()
+        else:
+            st.warning("필터 조건에 맞는 민원이 없습니다.")
+
+    # 우측: 구조화 결과
+    with col_right:
+        selected_case = None
+        for case in st.session_state.mock_cases:
+            if case["case_id"] == st.session_state.selected_case_id:
+                selected_case = case
+                break
+
+        if selected_case:
+            current_status = st.session_state.case_statuses.get(selected_case["case_id"], selected_case.get("status", "미처리"))
+            st.markdown(
+                f"""
+                <div class="detail-header-animate">
+                    <div class="detail-header-title">선택 민원: {selected_case['case_id']}</div>
+                    <div class="detail-header-sub">카테고리: {get_case_category(selected_case)} | 우선순위: {selected_case.get('priority','보통')} | 상태: {current_status}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # 원문 표시
+            with st.expander("📄 원문 텍스트", expanded=True):
+                st.write(selected_case["raw_text"])
+
+            # 4요소 구조화 결과
+            st.markdown("### 🤖 AI 구조화 결과")
+            structured = selected_case["structured"]
+
+            # 관찰 (Observation)
+            with st.container(border=True):
+                col_obs_label, col_obs_conf = st.columns([3, 1])
+                with col_obs_label:
+                    st.markdown("**관찰 (Observation)**")
+                with col_obs_conf:
+                    st.markdown(render_confidence_score(structured["observation"]["confidence"]), unsafe_allow_html=True)
+                
+                st.write(structured["observation"]["text"])
+                st.caption(f"근거: \"{structured['observation']['evidence_span']}\"")
+
+            # 결과 (Result)
+            with st.container(border=True):
+                col_res_label, col_res_conf = st.columns([3, 1])
+                with col_res_label:
+                    st.markdown("**결과 (Result)**")
+                with col_res_conf:
+                    st.markdown(render_confidence_score(structured["result"]["confidence"]), unsafe_allow_html=True)
+                
+                st.write(structured["result"]["text"])
+                st.caption(f"근거: \"{structured['result']['evidence_span']}\"")
+
+            # 요청 (Request)
+            with st.container(border=True):
+                col_req_label, col_req_conf = st.columns([3, 1])
+                with col_req_label:
+                    st.markdown("**요청 (Request)**")
+                with col_req_conf:
+                    st.markdown(render_confidence_score(structured["request"]["confidence"]), unsafe_allow_html=True)
+                
+                st.write(structured["request"]["text"])
+                st.caption(f"근거: \"{structured['request']['evidence_span']}\"")
+
+            # 맥락 (Context)
+            with st.container(border=True):
+                col_ctx_label, col_ctx_conf = st.columns([3, 1])
+                with col_ctx_label:
+                    st.markdown("**맥락 (Context)**")
+                with col_ctx_conf:
+                    st.markdown(render_confidence_score(structured["context"]["confidence"]), unsafe_allow_html=True)
+                
+                st.write(structured["context"]["text"])
+                st.caption(f"근거: \"{structured['context']['evidence_span']}\"")
+
+            # 추출된 엔티티
+            st.markdown("### 🏷️ 추출된 핵심 엔티티")
+            entities = structured.get("entities", [])
+            if entities:
+                for entity in entities[:24]:
+                    st.markdown(
+                        f"<span class='workbench-entity-pill'>{entity.get('label','-')}: {entity.get('text','-')}</span>",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.caption("추출된 엔티티가 없습니다.")
+
+            # 스키마 검증 배지
+            col_valid, col_version = st.columns([1, 1])
+            with col_valid:
+                if structured["is_valid"]:
+                    st.markdown(
+                        '<span class="badge badge-valid">✓ 스키마 검증 통과</span>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        '<span class="badge badge-invalid">✗ 스키마 검증 실패</span>',
+                        unsafe_allow_html=True,
+                    )
+            with col_version:
+                st.caption(f"Schema v{structured['schema_version']}")
+
+            action_cols = st.columns(3)
+            with action_cols[0]:
+                if st.button("✅ 처리완료", use_container_width=True):
+                    st.session_state.case_statuses[selected_case["case_id"]] = "처리완료"
+                    open_cases = [
+                        c["case_id"]
+                        for c in st.session_state.mock_cases
+                        if st.session_state.case_statuses.get(c["case_id"], c.get("status", "미처리")) in ("미처리", "검토중")
+                    ]
+                    if open_cases:
+                        st.session_state.selected_case_id = open_cases[0]
+                        next_case = next((c for c in st.session_state.mock_cases if c["case_id"] == open_cases[0]), None)
+                        if next_case:
+                            apply_auto_filters_from_case(next_case)
+                    st.rerun()
+            with action_cols[1]:
+                if st.button("🕒 검토중", use_container_width=True):
+                    st.session_state.case_statuses[selected_case["case_id"]] = "검토중"
+                    st.rerun()
+            with action_cols[2]:
+                if st.button("⏭️ 다음 미처리", use_container_width=True):
+                    open_cases = [
+                        c["case_id"]
+                        for c in st.session_state.mock_cases
+                        if st.session_state.case_statuses.get(c["case_id"], c.get("status", "미처리")) in ("미처리", "검토중")
+                    ]
+                    if selected_case["case_id"] in open_cases and len(open_cases) > 1:
+                        next_idx = (open_cases.index(selected_case["case_id"]) + 1) % len(open_cases)
+                        st.session_state.selected_case_id = open_cases[next_idx]
+                    st.rerun()
+
+            st.divider()
+            st.markdown("### 🚀 빠른 실행")
+            st.caption("선택 민원의 핵심 엔티티(FACILITY/HAZARD/카테고리)를 검색 필터에 자동 반영한 뒤 단일 호출을 실행합니다.")
+            if st.button("✨ AI 유사 사례 및 대응 방안 생성", use_container_width=True, type="primary"):
+                apply_auto_filters_from_case(selected_case)
+                run_single_call_qa(selected_case)
+                st.rerun()
+
+            if st.session_state.single_call_notice:
+                st.info(st.session_state.single_call_notice)
+
+            st.divider()
+            st.markdown("### 🧩 통합 민원 처리 워크벤치")
+            st.caption("선택 민원의 검색/답변 작성 도구를 한 화면에서 실행합니다.")
+
+            wb_entities = selected_case.get("structured", {}).get("entities", [])
+            wb_hazards = [e.get("text", "") for e in wb_entities if e.get("label") == "HAZARD" and e.get("text")]
+            wb_facilities = [e.get("text", "") for e in wb_entities if e.get("label") == "FACILITY" and e.get("text")]
+            default_wb_query = ", ".join([*wb_hazards[:2], *wb_facilities[:1], selected_case.get("category", "")]).strip(", ")
+
+            if st.session_state.get("wb_selected_case_id") != selected_case["case_id"]:
+                st.session_state.wb_selected_case_id = selected_case["case_id"]
+                st.session_state.wb_query = default_wb_query or selected_case.get("category", "")
+
+            region_options = build_region_options(st.session_state.mock_cases)
+            category_options = build_category_options(st.session_state.mock_cases)
+
+            default_region = get_case_region(selected_case)
+            default_category = get_case_category(selected_case)
+            if st.session_state.wb_region not in region_options:
+                st.session_state.wb_region = default_region if default_region in region_options else region_options[0]
+            if st.session_state.wb_category not in category_options:
+                st.session_state.wb_category = default_category if default_category in category_options else category_options[0]
+
+            test_cols = st.columns([1, 6])
+            with test_cols[0]:
+                if st.button("⚠️ 오류 테스트", key=f"wb_error_test_compact_{selected_case['case_id']}"):
+                    st.session_state.wb_search_state = "error_fallback"
+                    st.session_state.wb_last_api_err = "검색 서버에 일시적인 장애가 발생했습니다. 관리자에게 문의하세요."
+                    st.session_state.wb_pending_search = None
+                    st.session_state.search_results = []
+                    st.rerun()
+
+            query, region, category, is_search_clicked = render_search_filter(
+                default_query=st.session_state.wb_query,
+                default_region=st.session_state.wb_region,
+                default_category=st.session_state.wb_category,
+                region_options=region_options,
+                category_options=category_options,
+            )
+
+            if is_search_clicked:
+                st.session_state.wb_search_state = "loading"
+                st.session_state.wb_last_api_err = None
+                st.session_state.search_results = []
+                st.session_state.wb_pending_search = {
+                    "query": query,
+                    "region": region,
+                    "category": category,
+                    "date_range": st.session_state.ui_filter_date_range,
+                    "entity_labels": ["FACILITY", "HAZARD"],
+                    "top_k": 5,
+                }
+                st.rerun()
+
+            if st.session_state.wb_search_state == "loading" and st.session_state.wb_pending_search:
+                pending = dict(st.session_state.wb_pending_search)
+                with st.spinner("유사 민원 및 지식 베이스를 검색 중입니다..."):
+                    api_results, api_err = search_cases_via_api_with_filters(
+                        query=str(pending.get("query", "")),
+                        top_k=int(pending.get("top_k", 5)),
+                        date_range=pending.get("date_range"),
+                        region=str(pending.get("region", "전체")),
+                        category=str(pending.get("category", "전체")),
+                        entity_labels=list(pending.get("entity_labels", [])),
+                    )
+
+                st.session_state.wb_pending_search = None
+                st.session_state.wb_last_api_err = api_err
+                if api_err and not api_results:
+                    api_err_text = str(api_err)
+                    if st.session_state.ui_force_mock or "UI_FORCE_MOCK" in api_err_text:
+                        st.session_state.wb_search_state = "mock_mode"
+                    else:
+                        st.session_state.wb_search_state = "error_fallback"
+                    st.session_state.search_results = generate_mock_search_results(str(pending.get("query", "")), st.session_state.mock_cases)
+                elif api_results is not None and len(api_results) == 0:
+                    st.session_state.wb_search_state = "empty"
+                    st.session_state.search_results = []
+                else:
+                    st.session_state.wb_search_state = "success"
+                    st.session_state.search_results = api_results or []
+                st.rerun()
+
+            left_tool, right_tool = st.columns([1, 1.2], gap="large")
+            with left_tool:
+                st.markdown("#### 유사 사례")
+                if st.session_state.wb_search_state == "loading":
+                    st.info("⏳ 검색을 실행 중입니다...")
+                elif st.session_state.wb_search_state == "mock_mode":
+                    st.info("🧪 Mock 모드(UI_FORCE_MOCK)로 기본 Mock 데이터를 표시합니다.")
+                elif st.session_state.wb_search_state == "error_fallback":
+                    st.error(f"🚨 검색 서버 통신 오류가 발생했습니다: {st.session_state.wb_last_api_err}")
+                    st.warning("⚠️ 기본 Mock 데이터를 로드하여 결과를 표시합니다.")
+                elif st.session_state.wb_search_state == "empty":
+                    st.info("💡 조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.")
+                elif st.session_state.wb_search_state == "success":
+                    st.success(f"✅ 총 {len(st.session_state.search_results)}건의 유사 사례를 찾았습니다.")
+
+                if st.session_state.search_results:
+                    for idx, item in enumerate(st.session_state.search_results[:5], start=1):
+                        render_search_result_card(idx, item)
+                else:
+                    if st.session_state.wb_search_state is None:
+                        st.info("검색 버튼을 눌러 유사 사례를 불러오세요.")
+
+            with right_tool:
+                st.markdown("#### AI 어시스턴트")
+                st.text_area(
+                    "지시사항",
+                    key="wb_prompt_input",
+                    height=90,
+                    placeholder="예: 선택 민원을 기준으로 담당부서 전달문과 민원인 안내문을 작성해줘.",
+                )
+                if st.button("🤖 워크벤치 답변 생성", use_container_width=True, type="primary"):
+                    prompt = st.session_state.wb_prompt_input.strip()
+                    if not prompt:
+                        st.warning("지시사항을 입력해주세요.")
+                    else:
+                        run_workbench_qa(prompt=prompt, case=selected_case)
+                        st.rerun()
+
+                for message in st.session_state.chat_history[-4:]:
+                    if message.get("role") == "user":
+                        st.markdown(f"<div class='chat-message-user'>{message.get('content', '')}</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div class='chat-message-assistant'>{message.get('content', '')}</div>", unsafe_allow_html=True)
+                        citations = message.get("citations", [])
+                        if citations:
+                            for cidx, citation in enumerate(citations, start=1):
+                                ref_id = citation.get("ref_id", cidx)
+                                case_id = citation.get("case_id", "-")
+                                chunk_id = citation.get("chunk_id", "-")
+                                snippet = citation.get("snippet", "-")
+                                st.caption(f"• [출처 {ref_id}] {case_id} | {chunk_id} | {snippet}")
+
+                        qa_validation = message.get("qa_validation")
+                        if isinstance(qa_validation, dict) and qa_validation.get("is_valid") is False:
+                            st.warning("⚠️ QA 응답 검증에서 문제가 감지되었습니다. (qa_validation.is_valid=false)")
+                        limitations = message.get("limitations")
+                        if limitations:
+                            st.info(f"제한사항: {limitations}")
+                        meta = message.get("meta", {})
+                        if isinstance(meta, dict) and meta.get("validation_warning"):
+                            st.caption(str(meta.get("validation_warning")))
+
+
+# ============================================================================
+# 6. TAB 2: 유사 민원 검색 및 RAG 챗
+# ============================================================================
+
+def render_tab2_search_rag():
+    """
+    Tab 2: 특정 민원에 대해 과거 유사 사례를 검색하고
+           AI가 제공하는 RAG 기반 답변을 작성하는 화면
+    """
+    st.markdown("## 🔍 유사 민원 검색 및 AI 조력자 (RAG-QA)")
+    st.markdown("과거 비슷한 사례를 찾아 AI와 함께 답변 초안을 작성합니다.")
+    st.caption("Tab1에서 민원을 선택하면 엔티티 기반 필터가 자동 세팅됩니다.")
+
+    # 현재 선택 민원을 기준으로 자동 필터 동기화
+    selected_case = get_selected_case()
+    if selected_case and st.session_state.filter_synced_case_id != selected_case.get("case_id", ""):
+        apply_auto_filters_from_case(selected_case)
+        st.session_state.filter_synced_case_id = selected_case.get("case_id", "")
+
+    # 위젯 렌더 전 pending 필터를 반영해 Streamlit key 충돌을 피한다.
+    if st.session_state.auto_filter_payload:
+        payload = st.session_state.auto_filter_payload
+        st.session_state.ui_search_query = payload.get("ui_search_query", st.session_state.ui_search_query)
+        st.session_state.ui_filter_region = payload.get("ui_filter_region", st.session_state.ui_filter_region)
+        st.session_state.ui_filter_category = payload.get("ui_filter_category", st.session_state.ui_filter_category)
+        st.session_state.ui_filter_date_range = payload.get("ui_filter_date_range", st.session_state.ui_filter_date_range)
+        st.session_state.ui_filter_entity_labels = payload.get("ui_filter_entity_labels", st.session_state.ui_filter_entity_labels)
+        st.session_state.auto_filter_payload = None
+
+    # -------- 필터 영역 --------
+    with st.container():
+        filter_cols = st.columns([2, 1.5, 1.5, 1.5])
+        
+        with filter_cols[0]:
+            st.text_input(
+                "🔎 검색어 입력",
+                key="ui_search_query",
+                placeholder="예: 포트홀, 도로 파손, 배수..."
+            )
+        
+        with filter_cols[1]:
+            st.date_input(
+                "📅 기간",
+                key="ui_filter_date_range",
+                label_visibility="visible",
+            )
+        
+        with filter_cols[2]:
+            region_options = build_region_options(st.session_state.mock_cases)
+            if st.session_state.ui_filter_region not in region_options:
+                st.session_state.ui_filter_region = "전체"
+            st.selectbox(
+                "🏘️ 행정구역",
+                options=region_options,
+                index=_safe_index(region_options, st.session_state.ui_filter_region, default=0),
+                key="ui_filter_region",
+            )
+        
+        with filter_cols[3]:
+            category_options = build_category_options(st.session_state.mock_cases)
+            if st.session_state.ui_filter_category not in category_options:
+                st.session_state.ui_filter_category = "전체"
+            st.selectbox(
+                "카테고리",
+                options=category_options,
+                index=_safe_index(category_options, st.session_state.ui_filter_category, default=0),
+                key="ui_filter_category",
+            )
+
+    # 위젯 값 -> 내부 상태 동기화
+    st.session_state.search_query_text = st.session_state.ui_search_query
+
+    st.text_input("API Base URL", key="api_base_url")
+
+    st.divider()
+
+    # -------- 검색 버튼 --------
+    search_cols = st.columns([1, 1])
+    with search_cols[0]:
+        run_search = st.button("🔍 검색 시작", use_container_width=True, type="primary")
+    with search_cols[1]:
+        auto_search = st.button("⚡ 자동 검색(선택 민원 기반)", use_container_width=True)
+
+    if auto_search and selected_case:
+        apply_auto_filters_from_case(selected_case)
+        api_results, api_err = search_cases_via_api(query=st.session_state.search_query_text, top_k=5)
+        if api_results:
+            st.session_state.search_results = api_results
+        else:
+            st.session_state.search_results = generate_mock_search_results(st.session_state.search_query_text, st.session_state.mock_cases)
+            if api_err:
+                st.session_state.single_call_notice = f"검색 API 폴백 사용: {api_err}"
+        st.session_state.single_call_notice = "선택 민원 기반 자동 검색 완료"
+        st.rerun()
+
+    if run_search:
+        api_results, api_err = search_cases_via_api(query=st.session_state.search_query_text, top_k=5)
+        if api_results:
+            st.session_state.search_results = api_results
+            st.session_state.single_call_notice = "실제 /api/v1/search 결과를 불러왔습니다."
+        else:
+            st.session_state.search_results = generate_mock_search_results(st.session_state.search_query_text, st.session_state.mock_cases)
+            st.session_state.single_call_notice = f"검색 API 폴백 사용: {api_err}" if api_err else "Mock 검색 결과를 사용합니다."
+        st.session_state.chat_history = []  # 새로운 검색 시작하면 채팅 히스토리 초기화
+
+    # -------- 검색 결과 + RAG 챗 (2열 분할) --------
+    col_search, col_rag = st.columns([1.1, 1.3], gap="large")
+
+    # 좌측: 검색 결과 리스트
+    with col_search:
+        st.markdown("### 검색 결과")
+        
+        if st.session_state.search_results:
+            st.markdown(f"**{len(st.session_state.search_results)}개 결과 찾음**")
+            
+            for idx, result in enumerate(st.session_state.search_results):
+                with st.container(border=True):
+                    col_title, col_score = st.columns([4, 1])
+                    
+                    with col_title:
+                        st.markdown(f"**{result['title']}**")
+                        st.caption(f"{result['case_id']} | {result['received_at']}")
+                    
+                    with col_score:
+                        st.markdown(
+                            f"<div style='text-align: right; font-weight: 700; color: #10b981;'>"
+                            f"{result['similarity_score']:.0%}</div>",
+                            unsafe_allow_html=True,
+                        )
+                    
+                    st.caption(result['snippet'])
+                    
+                    # 이 결과 기반으로 RAG 질문 버튼
+                    if st.button(
+                        f"💬 이 사례로 답변 생성",
+                        key=f"use_result_{idx}",
+                        use_container_width=True,
+                    ):
+                        # 해당 문서 기반 RAG 채팅 시작 (Mock)
+                        st.session_state.current_rag_doc = result
+                        st.rerun()
+        else:
+            st.info("💡 검색어를 입력하고 '검색 시작'을 클릭해주세요.")
+
+    # 우측: RAG QA 채팅 인터페이스
+    with col_rag:
+        st.markdown("### 🤖 AI 어시스턴트 (RAG-QA)")
+        quick_prompts = st.columns(3)
+        with quick_prompts[0]:
+            if st.button("📝 답변 초안", use_container_width=True):
+                st.session_state.chat_history.append({"role": "user", "content": "선택된 유사 사례 기반으로 민원 답변 초안을 작성해줘."})
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": render_answer_with_citations("민원 답변 초안을 생성했습니다. 사실관계 확인 후 발송하세요. [출처 1]", [{"ref_id": 1, "case_id": "CASE-2025-1024", "snippet": "유사 민원 처리 내역"}]),
+                    "citations": [{"ref_id": 1, "case_id": "CASE-2025-1024", "snippet": "유사 민원 처리 내역"}],
+                    "meta": {"processing_time": round(random.uniform(8.0, 12.0), 2), "model": "mock-rag"},
+                })
+                st.rerun()
+        with quick_prompts[1]:
+            if st.button("🏢 부서 전달문", use_container_width=True):
+                st.session_state.chat_history.append({"role": "user", "content": "유관 부서 전달용 조치 요청문을 작성해줘."})
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": render_answer_with_citations("부서 전달문을 작성했습니다. 현장점검과 조치일정을 병행 요청합니다. [출처 1]", [{"ref_id": 1, "case_id": "CASE-2025-0988", "snippet": "이륜차 사고 예방 조치 사례"}]),
+                    "citations": [{"ref_id": 1, "case_id": "CASE-2025-0988", "snippet": "이륜차 사고 예방 조치 사례"}],
+                    "meta": {"processing_time": round(random.uniform(8.0, 12.0), 2), "model": "mock-rag"},
+                })
+                st.rerun()
+        with quick_prompts[2]:
+            if st.button("📞 민원인 안내", use_container_width=True):
+                st.session_state.chat_history.append({"role": "user", "content": "민원인 안내 메시지를 친절한 톤으로 작성해줘."})
+                st.session_state.chat_history.append({
+                    "role": "assistant",
+                    "content": render_answer_with_citations("민원인 안내문을 생성했습니다. 접수번호와 처리예정일을 함께 안내하세요. [출처 1]", [{"ref_id": 1, "case_id": "CASE-2025-0876", "snippet": "처리 지연 최소화 안내 문안"}]),
+                    "citations": [{"ref_id": 1, "case_id": "CASE-2025-0876", "snippet": "처리 지연 최소화 안내 문안"}],
+                    "meta": {"processing_time": round(random.uniform(8.0, 12.0), 2), "model": "mock-rag"},
+                })
+                st.rerun()
+
+        # 채팅 히스토리 표시
+        chat_container = st.container(border=True)
+        
+        with chat_container:
+            for message in st.session_state.chat_history:
+                if message["role"] == "user":
+                    st.markdown(
+                        f"""
+                        <div class="chat-message-user">
+                            {message['content']}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:  # assistant
+                    # 답변에 citation이 포함되어 있으면 렌더링
+                    answer = message['content']
+                    
+                    st.markdown(
+                        f"""
+                        <div class="chat-message-assistant">
+                            {answer}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    
+                    # Citation 목록
+                    if "citations" in message and message["citations"]:
+                        st.markdown("**📚 참고 자료:**")
+                        for cidx, citation in enumerate(message["citations"], start=1):
+                            ref_id = citation.get("ref_id", cidx)
+                            case_id = citation.get("case_id", "-")
+                            chunk_id = citation.get("chunk_id", "-")
+                            snippet = citation.get("snippet", "-")
+                            st.caption(f"• [출처 {ref_id}] {case_id} | {chunk_id} | {snippet}")
+
+                    meta = message.get("meta", {})
+                    if meta:
+                        st.caption(
+                            f"처리시간: {meta.get('processing_time', '-')}s | 모델: {meta.get('model', '-')}"
+                        )
+
+        # 사용자 입력
+        user_prompt = st.chat_input(
+            placeholder="예: 이 사례를 바탕으로 도로보수팀 지시서를 작성해줄 수 있나?",
+        )
+
+        if user_prompt:
+            # 사용자 메시지 추가
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_prompt,
+            })
+
+            # Mock RAG 답변 생성
+            mock_answer = f"""이 사례를 바탕으로 아래와 같이 작성을 제안드립니다:
+
+**[도로보수팀 긴급 작업 지시서]**
+
+**1. 작업 개요** [[CITE:1]]
+- 위치: 중앙로 10m 지점
+- 원인: 폭우로 인한 배수 불량
+- 긴급도: 높음 (이륜차 사고 위험)
+
+**2. 조치 방안**
+- 당일 현장 확인 및 임시 응급 복구 [[CITE:1]]
+- 아스팔트 타설 (2-3일 소요)
+- 해당 지점 배수로 개선 계획 수립
+
+**3. 예상 기간**
+- 임시 복구: 당일 완료
+- 본격 복구: 영업 3일 내 완료"""
+
+            mock_citations = [
+                {
+                    "ref_id": 1,
+                    "case_id": "CASE-2025-1024",
+                    "doc_id": "DOC-2025-1024",
+                    "snippet": "폭우 이후 배수 불량으로 발생한 포트홀에 대해 긴급 아스팔트 타설 완료...",
+                }
+            ]
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": render_answer_with_citations(mock_answer, mock_citations),
+                "citations": mock_citations,
+                "meta": {"processing_time": round(random.uniform(8.0, 12.0), 2), "model": "mock-rag"},
+            })
+
+            st.rerun()
+
+
+# ============================================================================
+# 7. TAB 3: 관리자 통계 대시보드
+# ============================================================================
+
+def render_tab3_statistics():
+    """
+    Tab 3: 정책 관리자가 민원 트렌드와 위험요소 통계를 분석하는 화면
+    """
+    st.caption("민원 발생 현황, 카테고리별 추이, 위험요소 분포를 분석합니다.")
+
+    # 기간 필터
+    with st.container(border=True):
+        st.markdown("<div class='admin-panel-title'>조회 설정</div>", unsafe_allow_html=True)
+        col_date, col_refresh = st.columns([4, 1])
+        with col_date:
+            st.markdown("<div class='queue-filter-label'>조회 기간</div>", unsafe_allow_html=True)
+            period = st.selectbox(
+                "📅 조회 기간",
+                options=["지난 7일", "지난 30일", "지난 90일", "올해", "전체"],
+                index=1,
+                label_visibility="collapsed",
+            )
+        with col_refresh:
+            st.markdown("<div class='queue-filter-label'>실행</div>", unsafe_allow_html=True)
+            if st.button("🔄 새로고침", use_container_width=True):
+                st.rerun()
+
+    st.divider()
+
+    stats = generate_mock_hazard_statistics()
+
+    # -------- 차트 1: 카테고리별 발생 건수 (Bar Chart) --------
+    chart_cols = st.columns([1.2, 1.0])
+
+    with chart_cols[0]:
+        st.markdown("<div class='admin-section-title'>📋 카테고리별 발생 현황</div>", unsafe_allow_html=True)
+        
+        category_data = stats["category_stats"]
+        df_category = pd.DataFrame({
+            "카테고리": category_data["category"],
+            "건수": category_data["count"],
+        })
+
+        fig_category = go.Figure(
+            data=[
+                go.Bar(
+                    x=df_category["카테고리"],
+                    y=df_category["건수"],
+                    marker=dict(
+                        color=["#1d4ed8", "#059669", "#d97706", "#7c3aed", "#334155"],
+                    ),
+                    text=df_category["건수"],
+                    textposition="outside",
+                    cliponaxis=False,
+                    hovertemplate="<b>%{x}</b><br>%{y}건<extra></extra>",
+                )
+            ]
+        )
+
+        fig_category.update_layout(
+            height=350,
+            margin=dict(l=40, r=20, t=20, b=60),
+            xaxis_tickangle=-45,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(gridcolor="#e2e8f0"),
+        )
+
+        st.plotly_chart(fig_category, use_container_width=True)
+
+    # -------- 차트 2: 위험요소 Top 5 (Horizontal Bar) --------
+    with chart_cols[1]:
+        st.markdown("<div class='admin-section-title'>⚠️ 위험요소 Top 5</div>", unsafe_allow_html=True)
+        
+        hazard_data = stats["hazard_top5"]
+        df_hazard = pd.DataFrame({
+            "위험요소": [h["hazard"] for h in hazard_data],
+            "건수": [h["count"] for h in hazard_data],
+            "비율": [h["percentage"] for h in hazard_data],
+        })
+
+        fig_hazard = go.Figure(
+            data=[
+                go.Bar(
+                    y=df_hazard["위험요소"],
+                    x=df_hazard["건수"],
+                    orientation="h",
+                    marker=dict(
+                        color=["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"],
+                    ),
+                    text=[f"{count}건" for count in df_hazard["건수"]],
+                    textposition="outside",
+                    cliponaxis=False,
+                    hovertemplate="<b>%{y}</b><br>%{x}건<extra></extra>",
+                )
+            ]
+        )
+
+        fig_hazard.update_layout(
+            height=350,
+            margin=dict(l=120, r=120, t=20, b=20),
+            xaxis=dict(
+                gridcolor="#e2e8f0",
+                range=[0, float(df_hazard["건수"].max()) * 1.25],
+            ),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
+
+        st.plotly_chart(fig_hazard, use_container_width=True)
+
+    st.divider()
+
+    # -------- 지역별 발생 현황 (데이터테이블) --------
+    st.markdown("<div class='admin-section-title'>🗺️ 지역별 민원 발생 현황</div>", unsafe_allow_html=True)
+
+    region_data = stats["region_stats"]
+    df_region = pd.DataFrame({
+        "지역": region_data["region"],
+        "건수": region_data["count"],
+        "비율": [f"{(count / sum(region_data['count'])) * 100:.1f}%" for count in region_data["count"]],
+    })
+
+    st.dataframe(
+        df_region,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "건수": st.column_config.NumberColumn(format="%d건"),
+        },
+    )
+
+    # -------- 추가 분석 아이템 --------
+    st.divider()
+    st.markdown("<div class='admin-section-title'>📌 주간 트렌드 (지난 4주)</div>", unsafe_allow_html=True)
+
+    weeks = ["1주차", "2주차", "3주차", "4주차"]
+    weekly_count = [58, 71, 94, 64]
+
+    df_weekly = pd.DataFrame({
+        "주차": weeks,
+        "접수건수": weekly_count,
+    })
+
+    fig_weekly = go.Figure(
+        data=[
+            go.Scatter(
+                x=df_weekly["주차"],
+                y=df_weekly["접수건수"],
+                mode="lines+markers",
+                line=dict(color="#3b82f6", width=3),
+                marker=dict(size=10),
+                fill="tozeroy",
+                fillcolor="rgba(59, 130, 246, 0.2)",
+                hovertemplate="<b>%{x}</b><br>%{y}건<extra></extra>",
+            )
+        ]
+    )
+
+    fig_weekly.update_layout(
+        height=280,
+        margin=dict(l=40, r=20, t=0, b=20),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(gridcolor="rgba(0,0,0,0)"),
+        yaxis=dict(gridcolor="#e2e8f0"),
+        showlegend=False,
+    )
+
+    st.plotly_chart(fig_weekly, use_container_width=True)
+
+    # =====================================================================
+    # [Week 3] 모델 벤치마크 대시보드 시각화
+    # =====================================================================
+
+    st.divider()
+    st.markdown("<div class='admin-section-title'>🤖 주간 AI 모델 성능 벤치마크</div>", unsafe_allow_html=True)
+
+    benchmark_data = load_model_benchmark_report()
+    summary = benchmark_data.get("summary", {}) if isinstance(benchmark_data, dict) else {}
+    model_info = benchmark_data.get("model_info", {}) if isinstance(benchmark_data, dict) else {}
+    scenarios = benchmark_data.get("scenarios", []) if isinstance(benchmark_data, dict) else []
+
+    # [Step A] 요약 KPI 카드
+    kpi_cols = st.columns(3)
+    avg_f1 = float(summary.get("average_f1_score", 0.0) or 0.0)
+    avg_recall = float(summary.get("average_recall_at_5", 0.0) or 0.0)
+    avg_latency = float(summary.get("average_latency_sec", 0.0) or 0.0)
+
+    def _kpi_card(label: str, value: str) -> str:
+        return (
+            "<div class='admin-kpi-card'>"
+            f"<div class='admin-kpi-label'>{html.escape(label)}</div>"
+            f"<div class='admin-kpi-value'>{html.escape(value)}</div>"
+            "</div>"
+        )
+
+    with kpi_cols[0]:
+        st.markdown(_kpi_card("구조화 F1", f"{avg_f1 * 100:.1f}%"), unsafe_allow_html=True)
+    with kpi_cols[1]:
+        st.markdown(_kpi_card("검색 명중률 (Recall@5)", f"{avg_recall * 100:.1f}%"), unsafe_allow_html=True)
+    with kpi_cols[2]:
+        st.markdown(_kpi_card("평균 추론 지연", f"{avg_latency:.2f}s"), unsafe_allow_html=True)
+
+    llm_model = str(model_info.get("llm_model", "-"))
+    emb_model = str(model_info.get("embedding_model", "-"))
+    st.caption(f"모델: {llm_model} | 임베딩: {emb_model}")
+
+    # [Step B] 시나리오별 성능 비교 차트 (Grouped Bar)
+    df_scenarios = pd.DataFrame(scenarios) if isinstance(scenarios, list) else pd.DataFrame()
+    chart_col, table_col = st.columns([1.6, 1.0], gap="large")
+    with chart_col:
+        if not df_scenarios.empty and "name" in df_scenarios.columns:
+            df_scenarios = df_scenarios.copy()
+            df_scenarios["f1_score"] = pd.to_numeric(df_scenarios.get("f1_score", 0), errors="coerce").fillna(0.0)
+            df_scenarios["recall_at_5"] = pd.to_numeric(df_scenarios.get("recall_at_5", 0), errors="coerce").fillna(0.0)
+
+            fig = go.Figure(
+                data=[
+                    go.Bar(
+                        name="F1",
+                        x=df_scenarios["name"],
+                        y=df_scenarios["f1_score"],
+                        marker_color="#2563eb",
+                        hovertemplate="<b>%{x}</b><br>F1: %{y:.2f}<extra></extra>",
+                    ),
+                    go.Bar(
+                        name="Recall@5",
+                        x=df_scenarios["name"],
+                        y=df_scenarios["recall_at_5"],
+                        marker_color="#10b981",
+                        hovertemplate="<b>%{x}</b><br>Recall@5: %{y:.2f}<extra></extra>",
+                    ),
+                ]
+            )
+            fig.update_layout(
+                barmode="group",
+                height=320,
+                margin=dict(l=40, r=20, t=10, b=90),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                yaxis=dict(range=[0, 1.0], gridcolor="#e2e8f0"),
+                xaxis=dict(tickangle=0),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("시나리오 데이터가 없어 차트를 표시할 수 없습니다.")
+
+    # [Step C] 상세 데이터 테이블 및 출처
+    with table_col:
+        if not df_scenarios.empty:
+            view_df = df_scenarios.rename(
+                columns={
+                    "name": "시나리오",
+                    "f1_score": "F1",
+                    "recall_at_5": "Recall@5",
+                    "latency_sec": "지연(초)",
+                }
+            )
+            st.dataframe(
+                view_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "F1": st.column_config.NumberColumn(format="%.2f"),
+                    "Recall@5": st.column_config.NumberColumn(format="%.2f"),
+                    "지연(초)": st.column_config.NumberColumn(format="%.2f"),
+                },
+            )
+        else:
+            st.caption("표시할 시나리오 데이터가 없습니다.")
+
+    project_root = Path(__file__).resolve().parents[2]
+    source_path = project_root / "logs" / "evaluation" / "week3" / "model_benchmark_report_final.json"
+    st.caption(f"출처: {source_path} (없거나 파싱 실패 시 Mock 데이터 표시)")
+
+
+# ============================================================================
+# 8. MAIN APP
+# ============================================================================
+
+def main():
+    with st.sidebar:
+        if st.button("📥 민원 선택", use_container_width=True, key="sidebar_nav_queue"):
+            st.session_state.app_view = "queue"
+            st.rerun()
+        if st.button("🧩 처리 워크벤치", use_container_width=True, key="sidebar_nav_workbench"):
+            st.session_state.scroll_to_top_on_workbench = False
+            st.session_state.scroll_to_integrated_workbench = True
+            st.session_state.app_view = "workbench"
+            st.rerun()
+        if st.button("📊 관리자 통계", use_container_width=True, key="sidebar_nav_admin"):
+            st.session_state.app_view = "admin"
+            st.rerun()
+
+    if st.session_state.app_view == "queue":
+        render_queue_entry_screen()
+    elif st.session_state.app_view == "workbench":
+        render_case_workbench_screen()
+    else:
+        st.markdown("## 📊 관리자 통계 대시보드")
+        if st.button("⬅ 민원 선택으로", use_container_width=False, key="admin_back_to_queue"):
+            st.session_state.app_view = "queue"
+            st.rerun()
+        render_tab3_statistics()
+
+    # 푸터
+    st.divider()
+    st.markdown(
+        """
+        <div class="app-footer">
+            <p>🔐 <strong>보안 특화 On-Device AI 시스템</strong> | 로컬 환경 추론만 지원 | 외부 API 미사용</p>
+            <p style="opacity: 0.85;">© 2026 공공기관 민원처리팀 | Mock Data 기반 데모</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
