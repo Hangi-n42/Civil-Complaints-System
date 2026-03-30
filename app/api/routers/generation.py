@@ -159,9 +159,11 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     except GenerationError as e:
         error_code = getattr(e, "code", "PROCESSING_ERROR")
         retryable = bool(getattr(e, "retryable", True))
-        details = getattr(e, "details", None)
+        details = getattr(e, "details", None) or {}
+        upstream_status = getattr(e, "upstream_status", None)
         message = str(e)
 
+        # 제너릭 PROCESSING_ERROR를 더 구체적인 코드로 분류
         if error_code == "PROCESSING_ERROR":
             upper = message.upper()
             if "TIMEOUT" in upper:
@@ -176,6 +178,10 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
         if error_code == "PARSE_RETRY_EXHAUSTED" and not message.strip():
             message = "모델 응답을 JSON으로 안정적으로 파싱하지 못했습니다."
+
+        # upstream_status를 details에 포함
+        if upstream_status is not None:
+            details["upstream_status"] = upstream_status
 
         took_ms = int((perf_counter() - start) * 1000)
         _log_error(

@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from app.api.error_utils import error_response, make_request_id
 from app.core.config import settings
 from app.core.logging import api_logger
-from app.api.routers import generation_router, retrieval_router
+from app.api.routers import generation_router, retrieval_router, ui_router
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 # API 라우터 등록
 app.include_router(retrieval_router)
 app.include_router(generation_router)
+app.include_router(ui_router)
 
 
 @app.exception_handler(RequestValidationError)
@@ -114,6 +115,7 @@ async def root():
             "index": "/api/v1/index",
             "search": "/api/v1/search",
             "qa": "/api/v1/qa",
+            "ui_cases": "/api/v1/ui/cases",
         },
     }
 

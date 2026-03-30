@@ -16,6 +16,7 @@ from urllib import request as urlrequest
 
 from app.ui.components.search_ui import render_search_filter, render_search_result_card
 from app.ui.services.search_service import post_json, search_cases_via_api_with_filters
+from app.ui.services.ui_case_adapter import load_ui_cases_from_week2_sample
 
 
 def load_model_benchmark_report() -> Dict[str, Any]:
@@ -882,87 +883,7 @@ def load_week2_structured_sample_cases() -> List[Dict[str, Any]]:
         / "week2_entity_audit"
         / "week2_structured_sample_10.json"
     )
-    if not sample_path.exists():
-        return []
-
-    try:
-        data = json.loads(sample_path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-
-    if not isinstance(data, list):
-        return []
-
-    cases: List[Dict[str, Any]] = []
-    for item in data:
-        if not isinstance(item, dict):
-            continue
-
-        raw_text = str(item.get("raw_text") or item.get("text") or "")
-
-        # 입력이 UI-case(상위에 structured 포함) 형태로 들어올 수도 있어 방어적으로 처리
-        structured_in = item.get("structured") if isinstance(item.get("structured"), dict) else None
-        structured_src = structured_in if structured_in is not None else item
-
-        validation = structured_src.get("validation") if isinstance(structured_src.get("validation"), dict) else {}
-        is_valid = bool(validation.get("is_valid", True))
-
-        def _pack_field(name: str) -> Dict[str, Any]:
-            field = structured_src.get(name) if isinstance(structured_src.get(name), dict) else {}
-            text = str(field.get("text", ""))
-            confidence = float(field.get("confidence", 0.0) or 0.0)
-            span = field.get("evidence_span")
-            evidence_text = _span_to_evidence_text(raw_text, span)
-            return {"text": text, "confidence": confidence, "evidence_span": evidence_text}
-
-        entities_in = structured_src.get("entities") if isinstance(structured_src.get("entities"), list) else []
-        entities: List[Dict[str, Any]] = []
-        for e in entities_in:
-            if not isinstance(e, dict):
-                continue
-            label = e.get("label")
-            text = e.get("text")
-            if not label or not text:
-                continue
-            entities.append({"label": str(label), "text": str(text)})
-
-        case_id = str(item.get("case_id", "")) or f"SAMPLE-{len(cases) + 1:03d}"
-
-        category = str(item.get("category_norm") or item.get("category") or "기타")
-        region = str(item.get("region_norm") or item.get("region") or "-")
-        if region in ("unknown", "Unknown", "UNK", ""):
-            region = "-"
-
-        assignee = str(item.get("assignee") or item.get("source") or "미지정")
-        priority = str(item.get("priority") or "보통")
-        status = str(item.get("status") or "미처리")
-        received_at = item.get("received_at") or item.get("created_at")
-
-        cases.append(
-            {
-                "case_id": case_id,
-                "received_at": _format_received_at(received_at),
-                "category": category,
-                "category_norm": item.get("category_norm"),
-                "region": region,
-                "region_norm": item.get("region_norm"),
-                "raw_text": raw_text,
-                "assignee": assignee,
-                "priority": priority,
-                "status": status,
-                "structured": {
-                    "observation": _pack_field("observation"),
-                    "result": _pack_field("result"),
-                    "request": _pack_field("request"),
-                    "context": _pack_field("context"),
-                    "entities": entities,
-                    "is_valid": is_valid,
-                    "schema_version": "1.0",
-                },
-            }
-        )
-
-    return cases
+    return load_ui_cases_from_week2_sample(sample_path)
 
 def generate_mock_assigned_cases() -> List[Dict[str, Any]]:
     """신규 할당 민원 Mock Data (Tab 1)"""
