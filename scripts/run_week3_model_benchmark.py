@@ -194,12 +194,18 @@ def _slice_metrics_for_model(
     return out
 
 
-def run(config_path: Path, cases_path: Path) -> Dict[str, Any]:
+def run(config_path: Path, cases_path: Path, target_model_id: str | None = None) -> Dict[str, Any]:
     config = _read_yaml(config_path)
     cases = _read_json(cases_path)
 
     benchmark_cfg = config["benchmark"]
     models = config["models"]
+    
+    # 특정 모델만 선택
+    if target_model_id:
+        models = [m for m in models if m.get("id") == target_model_id]
+        if not models:
+            raise ValueError(f"모델을 찾을 수 없음: {target_model_id}")
 
     base_url = benchmark_cfg["base_url"]
     timeout_sec = int(benchmark_cfg["timeout_sec"])
@@ -393,7 +399,7 @@ def main() -> None:
     parser.add_argument(
         "--cases",
         type=str,
-        default="docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json",
+        default="docs/40_delivery/week3/model_test_assets/evaluation_set.json",
         help="벤치마크 케이스 파일 경로",
     )
     parser.add_argument(
@@ -402,6 +408,12 @@ def main() -> None:
         default="logs/evaluation/week3",
         help="결과 출력 디렉터리",
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="특정 모델만 실행 (모델 ID 지정, 예: candidate_exaone_3_5_7_8b)",
+    )
     args = parser.parse_args()
 
     config_path = (PROJECT_ROOT / args.config).resolve()
@@ -409,10 +421,18 @@ def main() -> None:
     output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report = run(config_path=config_path, cases_path=cases_path)
+    report = run(config_path=config_path, cases_path=cases_path, target_model_id=args.model)
 
-    report_json = output_dir / "model_benchmark_report.json"
-    summary_md = output_dir / "model_benchmark_summary.md"
+    # 모델별 파일명 결정
+    if args.model:
+        # 특정 모델 운영 중: model_benchmark_candidate_{model_id}.json
+        model_id = args.model
+        report_json = output_dir / f"model_benchmark_candidate_{model_id}.json"
+    else:
+        # 모든 모델 운영: model_benchmark_report.json
+        report_json = output_dir / "model_benchmark_report.json"
+    
+    summary_md = report_json.with_suffix(".md")
 
     report_json.write_text(
         json.dumps(report, ensure_ascii=False, indent=2),
