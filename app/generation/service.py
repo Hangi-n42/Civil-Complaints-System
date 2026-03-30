@@ -51,9 +51,30 @@ class GenerationService:
 
         Returns:
             생성된 텍스트
+            
+        Raises:
+            GenerationError: 다음 경우 발생
+                - MODEL_NOT_READY (503): Ollama 미기동/연결거부
+                - MODEL_NOT_FOUND (404): 모델 미존재
+                - MODEL_TIMEOUT (504): 응답 시간 초과
+                - PROCESSING_ERROR (500): 기타 HTTP 오류
         """
+        from app.core.logging import log_ollama_call, log_ollama_error
+        
+        endpoint = "/api/generate"
+        stage = "init"
+        
         try:
-            self.logger.info(f"Ollama 호출: model={self.model}, temp={temperature}")
+            # 호출 시작 로깅
+            log_ollama_call(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                temperature=temperature,
+            )
+            
             payload = {
                 "model": self.model,
                 "prompt": prompt,
@@ -66,40 +87,273 @@ class GenerationService:
                 },
             }
 
-            url = f"{self.ollama_url.rstrip('/')}/api/generate"
+            url = f"{self.ollama_url.rstrip('/')}{endpoint}"
+            
+            stage = "connect"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                stage = "request"
                 response = await client.post(url, json=payload)
-                response.raise_for_status()
-
-            data = response.json()
-            text = str(data.get("response", "")).strip()
+                
+                # HTTP 상태코드 확인
+                if response.status_code != 200:
+                    stage = "response_check"
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {response.status_code}",
+                        request=response.request,
+                        response=response,
+                    )
+                
+                stage = "parse"
+                data = response.json()
+                text = str(data.get("response", "")).strip()
+                
             if not text:
-                raise GenerationError("Ollama 응답이 비어 있습니다.", code="PROCESSING_ERROR")
+                raise GenerationError(
+                    "Ollama 응답이 비어 있습니다.",
+                    code="PROCESSING_ERROR",
+                    retryable=True,
+                    details={"stage": stage},
+                    upstream_status=200,
+                )
 
             return text
+            
+        # 1. 연결 거부/Ollama 미기동
+        except httpx.ConnectError as e:
+            log_ollama_error(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                stage=stage,
+                upstream_status=None,
+                error_code="MODEL_NOT_READY",
+                error_message=f"Ollama 연결 거부: {str(e)}",
+                retryable=True,
+            )
+            raise GenerationError(
+                "Ollama 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.",
+                code="MODEL_NOT_READY",
+                retryable=True,
+                details={
+                    "stage": stage,
+                    "error_type": "ConnectError",
+                },
+                upstream_status=None,
+            ) from e
+        
+        # 2. 연결 타임아웃
+        except httpx.ConnectTimeout as e:
+            log_ollama_error(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                stage=stage,
+                upstream_status=None,
+                error_code="MODEL_NOT_READY",
+                error_message=f"Ollama 연결 타임아웃: {str(e)}",
+                retryable=True,
+            )
+            raise GenerationError(
+                "Ollama 서버 연결이 시간 초과되었습니다. 잠시 후 다시 시도해주세요.",
+                code="MODEL_NOT_READY",
+                retryable=True,
+                details={
+                    "stage": stage,
+                    "error_type": "ConnectTimeout",
+                    "timeout": self.timeout,
+                },
+                upstream_status=None,
+            ) from e
+        
+        # 3. 읽기 타임아웃 (응답 시간 초과)
         except httpx.ReadTimeout as e:
-            self.logger.error(f"Ollama timeout: {str(e)}")
+            log_ollama_error(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                stage=stage,
+                upstream_status=None,
+                error_code="MODEL_TIMEOUT",
+                error_message=f"Ollama 읽기 타임아웃: {str(e)}",
+                retryable=True,
+            )
             raise GenerationError(
                 "응답 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
                 code="MODEL_TIMEOUT",
                 retryable=True,
-                details={"stage": "llm_call"},
+                details={
+                    "stage": stage,
+                    "error_type": "ReadTimeout",
+                    "timeout": self.timeout,
+                },
+                upstream_status=None,
             ) from e
+        
+        # 4. HTTP 상태 오류 (4xx, 5xx)
+        except httpx.HTTPStatusError as e:
+            upstream_status = e.response.status_code
+            
+            # 4-1. 404: 모델 미존재
+            if upstream_status == 404:
+                log_ollama_error(
+                    self.logger,
+                    endpoint=endpoint,
+                    model=self.model,
+                    ollama_base_url=self.ollama_url,
+                    timeout=self.timeout,
+                    stage=stage,
+                    upstream_status=upstream_status,
+                    error_code="MODEL_NOT_FOUND",
+                    error_message=f"모델을 찾을 수 없음: {self.model}",
+                    retryable=False,
+                )
+                raise GenerationError(
+                    f"요청하신 모델 '{self.model}'을 찾을 수 없습니다. "
+                    "Ollama에 해당 모델이 설치되어 있는지 확인해주세요.",
+                    code="MODEL_NOT_FOUND",
+                    retryable=False,
+                    details={
+                        "stage": stage,
+                        "error_type": "HTTPStatusError",
+                        "model": self.model,
+                    },
+                    upstream_status=upstream_status,
+                ) from e
+            
+            # 4-2. 503: 서비스 불가 (메모리/기타 리소스 부족)
+            elif upstream_status == 503:
+                log_ollama_error(
+                    self.logger,
+                    endpoint=endpoint,
+                    model=self.model,
+                    ollama_base_url=self.ollama_url,
+                    timeout=self.timeout,
+                    stage=stage,
+                    upstream_status=upstream_status,
+                    error_code="MODEL_NOT_READY",
+                    error_message="Ollama 서비스 임시 불가",
+                    retryable=True,
+                )
+                raise GenerationError(
+                    "Ollama 서버가 현재 요청을 처리할 수 없습니다. "
+                    "메모리 부족이거나 서버가 준비 중일 수 있습니다.",
+                    code="MODEL_NOT_READY",
+                    retryable=True,
+                    details={
+                        "stage": stage,
+                        "error_type": "HTTPStatusError",
+                    },
+                    upstream_status=upstream_status,
+                ) from e
+            
+            # 4-3. 기타 5xx: 일반 처리 오류
+            elif 500 <= upstream_status < 600:
+                log_ollama_error(
+                    self.logger,
+                    endpoint=endpoint,
+                    model=self.model,
+                    ollama_base_url=self.ollama_url,
+                    timeout=self.timeout,
+                    stage=stage,
+                    upstream_status=upstream_status,
+                    error_code="PROCESSING_ERROR",
+                    error_message=f"Ollama 서버 오류: HTTP {upstream_status}",
+                    retryable=True,
+                )
+                raise GenerationError(
+                    f"Ollama 서버에서 오류가 발생했습니다 (HTTP {upstream_status}). "
+                    f"잠시 후 다시 시도해주세요.",
+                    code="PROCESSING_ERROR",
+                    retryable=True,
+                    details={
+                        "stage": stage,
+                        "error_type": "HTTPStatusError",
+                    },
+                    upstream_status=upstream_status,
+                ) from e
+            
+            # 4-4. 기타 4xx: 클라이언트 오류 (재시도 불가)
+            else:
+                log_ollama_error(
+                    self.logger,
+                    endpoint=endpoint,
+                    model=self.model,
+                    ollama_base_url=self.ollama_url,
+                    timeout=self.timeout,
+                    stage=stage,
+                    upstream_status=upstream_status,
+                    error_code="BAD_REQUEST",
+                    error_message=f"Ollama 클라이언트 오류: HTTP {upstream_status}",
+                    retryable=False,
+                )
+                raise GenerationError(
+                    f"Ollama 요청이 올바르지 않습니다 (HTTP {upstream_status}).",
+                    code="BAD_REQUEST",
+                    retryable=False,
+                    details={
+                        "stage": stage,
+                        "error_type": "HTTPStatusError",
+                    },
+                    upstream_status=upstream_status,
+                ) from e
+        
+        # 5. 기타 httpx 오류
         except httpx.HTTPError as e:
-            self.logger.error(f"Ollama HTTP 오류: {str(e)}")
+            log_ollama_error(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                stage=stage,
+                upstream_status=None,
+                error_code="PROCESSING_ERROR",
+                error_message=f"Ollama HTTP 오류: {type(e).__name__} - {str(e)}",
+                retryable=True,
+            )
             raise GenerationError(
                 f"Ollama 호출 실패: {str(e)}",
                 code="PROCESSING_ERROR",
                 retryable=True,
-                details={"stage": "llm_call"},
+                details={
+                    "stage": stage,
+                    "error_type": type(e).__name__,
+                },
+                upstream_status=None,
             ) from e
+        
+        # 6. 기타 모든 예외
+        except GenerationError:
+            # GenerationError는 그대로 전파
+            raise
         except Exception as e:
-            self.logger.error(f"Ollama 호출 실패: {str(e)}")
+            log_ollama_error(
+                self.logger,
+                endpoint=endpoint,
+                model=self.model,
+                ollama_base_url=self.ollama_url,
+                timeout=self.timeout,
+                stage=stage,
+                upstream_status=None,
+                error_code="PROCESSING_ERROR",
+                error_message=f"Ollama 예기치 않은 오류: {type(e).__name__} - {str(e)}",
+                retryable=True,
+            )
             raise GenerationError(
                 f"Ollama 호출 실패: {str(e)}",
                 code="PROCESSING_ERROR",
                 retryable=True,
-                details={"stage": "llm_call"},
+                details={
+                    "stage": stage,
+                    "error_type": type(e).__name__,
+                },
+                upstream_status=None,
             ) from e
 
     async def build_rag_prompt(

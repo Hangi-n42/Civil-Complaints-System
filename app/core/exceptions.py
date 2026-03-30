@@ -37,11 +37,13 @@ class GenerationError(AISystemException):
         code: str = "PROCESSING_ERROR",
         retryable: bool = True,
         details: Optional[Dict[str, Any]] = None,
+        upstream_status: Optional[int] = None,
     ):
         super().__init__(message)
         self.code = code
         self.retryable = retryable
         self.details = details or {}
+        self.upstream_status = upstream_status
 
 
 class ValidationError(AISystemException):

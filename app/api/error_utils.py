@@ -10,13 +10,24 @@ from fastapi.responses import JSONResponse
 
 
 # Week2 계약 기준 공통 에러 정책
+# HTTP 상태코드 매핑 규칙:
+#   4xx (클라이언트 오류): retryable=False
+#   - 400: 잘못된 요청
+#   - 401: 인증 실패
+#   - 404: 리소스/모델 미존재
+#   - 422: 유효성 검사 실패
+#   5xx (서버 오류): retryable=True (재시도 권장)
+#   - 500: 일반 처리 오류
+#   - 503: 서비스 이용 불가 (Ollama 미기동/준비 중)
+#   - 504: 게이트웨이 타임아웃 (응답 시간 초과)
 ERROR_POLICY: Dict[str, Dict[str, Any]] = {
     "BAD_REQUEST": {"status_code": 400, "retryable": False},
     "FILTER_INVALID": {"status_code": 400, "retryable": False},
     "VALIDATION_ERROR": {"status_code": 422, "retryable": False},
     "INDEX_NOT_READY": {"status_code": 503, "retryable": True},
-    "MODEL_TIMEOUT": {"status_code": 504, "retryable": True},
-    "MODEL_NOT_READY": {"status_code": 503, "retryable": True},
+    "MODEL_NOT_FOUND": {"status_code": 404, "retryable": False},  # 모델 미존재
+    "MODEL_TIMEOUT": {"status_code": 504, "retryable": True},  # 응답 시간 초과
+    "MODEL_NOT_READY": {"status_code": 503, "retryable": True},  # Ollama 미기동/연결거부
     "OOM_DETECTED": {"status_code": 503, "retryable": True},
     "PARSE_SCHEMA_MISMATCH": {"status_code": 422, "retryable": False},
     "PARSE_JSON_DECODE_ERROR": {"status_code": 500, "retryable": True},
