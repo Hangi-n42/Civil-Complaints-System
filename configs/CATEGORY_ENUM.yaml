@@ -1,0 +1,263 @@
+# Category normalization enum (카테고리 정규화 규칙)
+# Purpose: 민원 시나리오를 표준 업무 분류로 매핑
+# Authority: 민원 처리 가이드 기준
+# Update: 2026-03-31
+
+# ============================================================================
+# 카테고리 정의
+# ============================================================================
+
+# 도로/교통 카테고리
+road_safety:
+  korean_name: "도로안전"
+  description: "야간 조명, 포장 상태, 표지판 등 도로 안전 관련 민원"
+  aliases:
+    - road_safety
+    - road
+    - lighting
+    - pavement
+  priority: "high"
+  response_time_sla: 48  # hours
+  responsible_dept: "도로관리과"
+
+traffic:
+  korean_name: "교통"
+  description: "신호체계, 차선, 교통혼잡 관련 민원"
+  aliases:
+    - traffic
+    - signal
+    - lane
+  priority: "medium"
+  response_time_sla: 72
+  responsible_dept: "교통과"
+
+public_transport:
+  korean_name: "대중교통"
+  description: "버스, 택시, 지하철 운영 관련 민원"
+  aliases:
+    - public_transport
+    - bus
+    - transit
+    - metro
+  priority: "medium"
+  response_time_sla: 72
+  responsible_dept: "대중교통과"
+
+# 환경/위생 카테고리
+waste:
+  korean_name: "폐기물"
+  description: "불법 투기, 무단 방치, 쓰레기 처리 관련 민원"
+  aliases:
+    - waste
+    - garbage
+    - illegal_dump
+    - trash
+  priority: "high"
+  response_time_sla: 48
+  responsible_dept: "환경과"
+
+water_quality:
+  korean_name: "수질"
+  description: "수돗물 이취, 녹물, 탁도 관련 민원"
+  aliases:
+    - water_quality
+    - water
+    - tap_water
+    - odor
+  priority: "high"
+  response_time_sla: 24
+  responsible_dept: "수도과"
+
+construction_dust:
+  korean_name: "건설비산먼지"
+  description: "공사장 비산먼지, 소음진동 관련 민원"
+  aliases:
+    - construction_dust
+    - dust
+    - construction
+    - demolition
+  priority: "high"
+  response_time_sla: 48
+  responsible_dept: "건설과"
+
+# 안전/재난 카테고리
+flood:
+  korean_name: "침수"
+  description: "도로 침수, 배수 불량, 우수관 역류 관련 민원"
+  aliases:
+    - flood
+    - flooding
+    - drainage
+    - water_damage
+  priority: "critical"
+  response_time_sla: 12
+  responsible_dept: "도시계획과"
+
+sinkhole:
+  korean_name: "도로함몰"
+  description: "도로/보도 함몰, 포트홀 관련 민원"
+  aliases:
+    - sinkhole
+    - pothole
+    - collapse
+    - road_damage
+  priority: "critical"
+  response_time_sla: 12
+  responsible_dept: "도로관리과"
+
+fire_hazard:
+  korean_name: "화재위험"
+  description: "전기차 충전구역, 가스누출, 화재 위험성 관련 민원"
+  aliases:
+    - fire_hazard
+    - fire_risk
+    - electric_vehicle
+    - gas_leak
+    - hazard
+  priority: "critical"
+  response_time_sla: 6
+  responsible_dept: "예방안전과"
+
+winter_road:
+  korean_name: "제설"
+  description: "겨울 도로 정비, 제설 미흡 관련 민원"
+  aliases:
+    - winter_road
+    - snow
+    - ice
+    - road_clearing
+  priority: "high"
+  response_time_sla: 24
+  responsible_dept: "도로관리과"
+
+# 소음/대기 카테고리
+noise:
+  korean_name: "소음"
+  description: "공사장, 영업소, 도로 소음 관련 민원"
+  aliases:
+    - noise
+    - sound
+    - acoustic
+  priority: "medium"
+  response_time_sla: 72
+  responsible_dept: "환경과"
+
+# 교육/안전시설
+school_zone:
+  korean_name: "어린이보호구역"
+  description: "스쿨존 정비, 안전시설, 스쿨버스 관련 민원"
+  aliases:
+    - school_zone
+    - school
+    - children
+    - daycare
+    - protection_zone
+  priority: "critical"
+  response_time_sla: 24
+  responsible_dept: "교육청"
+
+# 복지 카테고리
+welfare:
+  korean_name: "복지"
+  description: "복지 지원금, 사회복지 신청 관련 민원"
+  aliases:
+    - welfare
+    - subsidy
+    - benefit
+    - social_welfare
+  priority: "low"
+  response_time_sla: 120
+  responsible_dept: "복지과"
+
+# 접근성/생활 편의
+accessibility:
+  korean_name: "장애인편의"
+  description: "휠체어 접근, 점자블록, 장애인 편의시설 관련 민원"
+  aliases:
+    - accessibility
+    - disability
+    - wheelchair
+    - accessibility_facilities
+  priority: "medium"
+  response_time_sla: 72
+  responsible_dept: "도시계획과"
+
+# 행정처리
+administrative_delay:
+  korean_name: "행정처리지연"
+  description: "민원 처리 지연, 행정 절차 관련 불만"
+  aliases:
+    - administrative_delay
+    - delay
+    - administration
+    - processing
+  priority: "low"
+  response_time_sla: 120
+  responsible_dept: "민원과"
+
+# ============================================================================
+# 다중 요청 (특수)
+# ============================================================================
+multi_request:
+  korean_name: "다중요청"
+  description: "2개 이상의 구분되는 민원이 포함된 경우"
+  aliases:
+    - multi_request
+    - multiple_request
+    - composite
+  priority: "variable"
+  response_time_sla: "depends_on_subtasks"
+  responsible_dept: "민원과"
+
+# ============================================================================
+# 매핑 규칙
+# ============================================================================
+mapping_rules:
+  - source_field: "scenario_type"
+    target_field: "category"
+    case_sensitive: false
+
+# ============================================================================
+# 검증 규칙
+# ============================================================================
+validation:
+  required: true
+  allowed_values:
+    - road_safety
+    - traffic
+    - public_transport
+    - waste
+    - water_quality
+    - construction_dust
+    - flood
+    - sinkhole
+    - fire_hazard
+    - winter_road
+    - noise
+    - school_zone
+    - welfare
+    - accessibility
+    - administrative_delay
+    - multi_request
+  
+  default: "multi_request"
+
+# ============================================================================
+# 응답 시간 기준 (Priority by SLA)
+# ============================================================================
+sla_priority:
+  critical:
+    max_hours: 12
+    categories: [fire_hazard, sinkhole, flood, school_zone]
+  
+  high:
+    max_hours: 48
+    categories: [road_safety, waste, construction_dust, winter_road]
+  
+  medium:
+    max_hours: 72
+    categories: [traffic, public_transport, noise, accessibility]
+  
+  low:
+    max_hours: 120
+    categories: [welfare, administrative_delay]
