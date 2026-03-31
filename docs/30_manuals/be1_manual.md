@@ -70,13 +70,13 @@
 - index-search E2E와 단일 RAG baseline 확정에 필요한 데이터/평가 기준 고정
 
 ### BE1 실행 항목
-- [ ] 평가셋 500건의 품질 검증 및 freeze
+- [x] 평가셋 500건의 품질 검증 및 freeze
 - [ ] baseline 모델(`aihub_baseline`) 벤치마크 실행
 - [ ] 구조화 출력에서 검색 필터용 메타데이터 결측률 점검
 - [ ] KPI 중간 리포트 초안 배포
 
 ### 완료 기준
-- [ ] `evaluation_set.json`이 팀 공통 입력으로 고정됨
+- [x] `evaluation_set.json`이 팀 공통 입력으로 고정됨
 - [ ] baseline 결과가 통합 리포트에 반영됨
 - [ ] Week4 Gate A 측정 항목 4개가 모두 산출 가능 상태
 
