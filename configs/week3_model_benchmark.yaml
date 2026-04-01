@@ -16,9 +16,9 @@ models:
     note: Replace with the currently used AIHub model tag.
 
   - id: candidate_ax4_light
-    model_name: skt/A.X-4.0-Light
+    model_name: ax4-light-local:latest
     role: candidate
-    note: Korean-specialized model candidate based on user research.
+    note: SK Telecom A.X-4.0-Light (GGUF quantized Q3_K_S locally installed).
 
   - id: candidate_exaone_3_5_7_8b
     model_name: exaone3.5:7.8b-instruct
