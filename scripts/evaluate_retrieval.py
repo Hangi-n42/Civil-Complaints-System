@@ -8,12 +8,20 @@ Usage:
 """
 
 import sys
+import json
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from app.core.logging import evaluation_logger
+from scripts.run_issue_103 import (
+    _load_eval_set,
+    _extract_queries,
+    _initialize_chroma_client,
+    _initialize_embedding_model,
+    _evaluate_single_query,
+)
 
 
 def main(queries_file: str, system_file: str, output_file: str):
@@ -23,12 +31,55 @@ def main(queries_file: str, system_file: str, output_file: str):
     try:
         logger.info(f"검색 평가 시작: queries={queries_file}, system={system_file}")
 
-        # TODO: 평가 로직 구현
-        # 1. 쿼리 로드
-        # 2. 검색 수행
-        # 3. MRR, NDCG, MAP@k 계산
-        # 4. 결과 리포트 생성
-        # 5. output_file 저장
+        eval_set = _load_eval_set(Path(queries_file))
+        queries = _extract_queries(eval_set, sample_size=0)
+
+        _, collection = _initialize_chroma_client(
+            persist_dir=str(project_root / "data" / "chroma_db"),
+            collection_name="civil_cases_v1",
+        )
+        model = _initialize_embedding_model("BAAI/bge-m3", "cpu")
+
+        rows = []
+        for query_id, query_text, ground_truth in queries:
+            rows.append(
+                _evaluate_single_query(
+                    query_id=query_id,
+                    query_text=query_text,
+                    ground_truth=ground_truth,
+                    collection=collection,
+                    model=model,
+                    top_k=10,
+                )
+            )
+
+        total = len(rows)
+        recall_at_5 = sum(r.recall_at_5 for r in rows) / total if total else 0.0
+        recall_at_10 = sum(r.recall_at_10 for r in rows) / total if total else 0.0
+        mrr_at_5 = sum(r.mrr_at_5 for r in rows) / total if total else 0.0
+        mrr_at_10 = sum(r.mrr_at_10 for r in rows) / total if total else 0.0
+        avg_latency_ms = sum(r.latency_ms for r in rows) / total if total else 0.0
+
+        report = {
+            "status": "success",
+            "total_queries": total,
+            "recall_5": round(recall_at_5, 4),
+            "recall_10": round(recall_at_10, 4),
+            "mrr_5": round(mrr_at_5, 4),
+            "mrr_10": round(mrr_at_10, 4),
+            "avg_latency_ms": round(avg_latency_ms, 2),
+            "gate": {
+                "recall_5": {"target": 0.75, "passed": recall_at_5 >= 0.75},
+                "avg_latency_ms": {"target": 12000, "passed": avg_latency_ms <= 12000},
+            },
+        }
+
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
         logger.info(f"검색 평가 완료: 결과 파일={output_file}")
 
