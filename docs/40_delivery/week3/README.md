@@ -40,6 +40,7 @@
 |-----|------|------|
 | 프로토콜 | `docs/40_delivery/week3/model_benchmark_protocol.md` | 벤치마크 실행 규격 |
 | 확장 규칙 | `docs/40_delivery/week3/benchmark_case_expansion_rules.md` | 평가셋 생성 규칙 |
+| 통합 비교 리포트 (EXAONE/PHI4/GEMMA) | `docs/40_delivery/week3/WEEK3_BE3_MODEL_INTEGRATED_REPORT.md` | 3개 모델 결과 통합 비교 및 권장안 |
 | 설정 파일 | `configs/week3_model_benchmark.yaml` | Ollama 환경 설정 |
 | 실행 스크립트 | `scripts/run_week3_model_benchmark.py` | 모델 테스트 실행 |
 
@@ -131,9 +132,9 @@ python scripts/generate_week3_benchmark_report.py \
 | 기본 검색 | Top-K 자유문 검색 동작 | ⏳ 진행중 |
 | 메타필터 | 지역/카테고리/기간 필터 2종 이상 안정 | ⏳ 진행중 |
 | 성능 측정 | Recall@5, latency 기초값 산출 | ⏳ 진행중 |
-| 모델 벤치마크 | 5종 모델 평가 완료 | ⏳ 우선순위 |
+| 모델 벤치마크 | 5종 모델 평가 완료 | 🟡 부분완료 (BE3 3종 완료) |
 | 검색 성능 리포트 | 지표 및 분석 완료 | ⏳ 진행중 |
-| 모델 비교 리포트 | 1차본 산출 | ⏳ 진행중 |
+| 모델 비교 리포트 | 1차본 산출 | ✅ 완료 (통합 리포트 작성) |
 
 ---
 
@@ -191,5 +192,5 @@ python scripts/generate_week3_benchmark_report.py \
 
 ---
 
-**마지막 업데이트**: 2026-03-27 15:00 (KST)  
+**마지막 업데이트**: 2026-04-02 (KST)  
 **다음 갱신**: 주간 체크포인트 후 (금요일)

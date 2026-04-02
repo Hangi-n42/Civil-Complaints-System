@@ -58,7 +58,7 @@ ollama list
 #### 모델 2: EXAONE 3.5 (7.8B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_exaone_3_5_7_8b \
@@ -72,7 +72,7 @@ python scripts/run_week3_model_benchmark.py \
 #### 모델 3: Gemma 3 (12B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_gemma3_12b \
@@ -86,7 +86,7 @@ python scripts/run_week3_model_benchmark.py \
 #### 모델 4: Phi 4 Mini (3.8B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_phi4_mini \
@@ -240,4 +240,5 @@ num_ctx: 1024  # 2048 → 1024
 - citation 정합성 검증
 - latency 최적화
 - 성능 지표 확정
+
 
