@@ -1,7 +1,7 @@
 """Week3 LLM 모델 동일조건 벤치마크 스크립트.
 
 Usage:
-  python scripts/run_week3_model_benchmark.py \
+  python scripts/Be3_run_week3_model_benchmark.py \
     --config configs/week3_model_benchmark.yaml \
                 --cases docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
 """
@@ -655,3 +655,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
