@@ -215,7 +215,14 @@ def _list_installed_models(base_url: str, timeout_sec: int) -> set[str]:
         resp = client.get(url)
         resp.raise_for_status()
         data = resp.json()
-    return {m.get("name", "") for m in data.get("models", [])}
+    models = {m.get("name", "") for m in data.get("models", [])}
+    # Normalize by adding both full name and base name (without tag)
+    normalized = set()
+    for name in models:
+        normalized.add(name)
+        if ':' in name:
+            normalized.add(name.split(':')[0])  # Also add without tag
+    return normalized
 
 
 def _call_model(

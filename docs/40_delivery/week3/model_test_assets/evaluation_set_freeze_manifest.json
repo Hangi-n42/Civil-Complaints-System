@@ -1,0 +1,10 @@
+{
+  "asset": "docs/40_delivery/week3/model_test_assets/evaluation_set.json",
+  "version": "week3-freeze-v1",
+  "frozen_at": "2026-03-31",
+  "record_count": 500,
+  "sha256": "6b629cf6081eeb05de057aecd8f3c55a7c294d6538816fde819b01ba173bdfcb",
+  "quality_report": "docs/40_delivery/week3/model_test_assets/evaluation_set_quality_report.md",
+  "owner": "BE1",
+  "notes": "Week3 benchmark common input. Any update requires BE1 approval and benchmark rerun."
+}

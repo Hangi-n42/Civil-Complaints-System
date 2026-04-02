@@ -47,7 +47,7 @@
 ### 예상 산출물 (Week 3 구현 중)
 | 항목 | 경로 | 기준 |
 |-----|------|------|
-| 평가셋 (500건) | `docs/40_delivery/week3/model_test_assets/evaluation_set.json` | ⏳ 우선순위 |
+| 평가셋 (500건) | `docs/40_delivery/week3/model_test_assets/evaluation_set.json` | ✅ freeze 완료 (`evaluation_set_freeze_manifest.json`) |
 | 인덱싱 리포트 | `logs/evaluation/week3/indexing_report.json` | 500건 100% 인덱싱 |
 | 검색 성능 | `logs/evaluation/week3/retrieval_metrics.json` | Recall@5 ≥ 75% |
 | 모델 리포트 | `logs/evaluation/week3/model_benchmark_*.json` | 5개 모델 |
