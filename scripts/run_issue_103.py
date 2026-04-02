@@ -182,6 +182,69 @@ def _calculate_precision(retrieved_chunks: List[str], ground_truth: Set[str], k:
     return len(top_k & ground_truth) / k
 
 
+def _build_case_slice_index(cases: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
+    """Build per-query slice labels for filter-wise metric aggregation."""
+    index: Dict[str, Dict[str, str]] = {}
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        query_id = str(case.get("case_id") or "unknown")
+        index[query_id] = {
+            "scenario_type": str(case.get("scenario_type") or "unknown").lower(),
+            "risk_level": str(case.get("risk_level") or "unknown").lower(),
+            "requires_multi_request": str(bool(case.get("requires_multi_request", False))).lower(),
+            "time_sensitivity": str(case.get("time_sensitivity") or "unknown").lower(),
+        }
+    return index
+
+
+def _aggregate_slice_metrics(
+    results: List[QueryResult],
+    slice_index: Dict[str, Dict[str, str]],
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """Aggregate retrieval metrics by slice groups."""
+    out: Dict[str, Dict[str, Dict[str, float]]] = {
+        "scenario_type": {},
+        "risk_level": {},
+        "requires_multi_request": {},
+        "time_sensitivity": {},
+    }
+
+    for row in results:
+        labels = slice_index.get(row.query_id, {})
+        for slice_key in out.keys():
+            group = labels.get(slice_key, "unknown")
+            bucket = out[slice_key].setdefault(
+                group,
+                {
+                    "count": 0,
+                    "recall_at_5_sum": 0.0,
+                    "recall_at_10_sum": 0.0,
+                    "mrr_at_5_sum": 0.0,
+                    "latency_ms_sum": 0.0,
+                },
+            )
+            bucket["count"] += 1
+            bucket["recall_at_5_sum"] += row.recall_at_5
+            bucket["recall_at_10_sum"] += row.recall_at_10
+            bucket["mrr_at_5_sum"] += row.mrr_at_5
+            bucket["latency_ms_sum"] += row.latency_ms
+
+    normalized: Dict[str, Dict[str, Dict[str, float]]] = {}
+    for slice_key, groups in out.items():
+        normalized[slice_key] = {}
+        for group, raw in groups.items():
+            count = max(1, int(raw["count"]))
+            normalized[slice_key][group] = {
+                "count": int(raw["count"]),
+                "recall_at_5": round(raw["recall_at_5_sum"] / count, 4),
+                "recall_at_10": round(raw["recall_at_10_sum"] / count, 4),
+                "mrr_at_5": round(raw["mrr_at_5_sum"] / count, 4),
+                "avg_latency_ms": round(raw["latency_ms_sum"] / count, 2),
+            }
+    return normalized
+
+
 def _evaluate_single_query(
     query_id: str,
     query_text: str,
@@ -244,6 +307,7 @@ def main():
     # Load evaluation set
     eval_set = _load_eval_set(Path(args.eval_set))
     queries = _extract_queries(eval_set, args.sample_size)
+    slice_index = _build_case_slice_index(eval_set)
     print(f"[*] 평가 쿼리 {len(queries)}개 로드")
     
     # Initialize Chroma and model
@@ -275,6 +339,7 @@ def main():
     avg_mrr_at_10 = sum(r.mrr_at_10 for r in results) / len(results) if results else 0.0
     avg_precision_at_5 = sum(r.precision_at_5 for r in results) / len(results) if results else 0.0
     avg_latency_ms = sum(r.latency_ms for r in results) / len(results) if results else 0.0
+    slice_metrics = _aggregate_slice_metrics(results, slice_index)
     
     # Count passes for gate criteria
     # Gate: Recall@5 >= 0.75, avg_latency <= 12000ms (12s)
@@ -287,6 +352,9 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "pipeline_phase": "issue_103",
         "collection": args.collection,
+        "recall_5": round(avg_recall_at_5, 4),
+        "recall_10": round(avg_recall_at_10, 4),
+        "avg_latency_ms": round(avg_latency_ms, 2),
         "evaluation": {
             "total_queries": len(results),
             "sample_size": args.sample_size if args.sample_size > 0 else len(results),
@@ -301,6 +369,7 @@ def main():
             "min_latency_ms": round(min(r.latency_ms for r in results), 2) if results else 0,
             "max_latency_ms": round(max(r.latency_ms for r in results), 2) if results else 0,
         },
+        "slice_metrics": slice_metrics,
         "gate": {
             "issue": "103",
             "requirements": [
