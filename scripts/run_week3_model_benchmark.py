@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import statistics
 import time
 from datetime import datetime
@@ -35,13 +36,141 @@ def _read_json(path: Path) -> List[Dict[str, Any]]:
 def _extract_json(text: str) -> Dict[str, Any]:
     text = text.strip()
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
     except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-        raise
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = text[start : end + 1]
+        parsed = json.loads(candidate)
+        if isinstance(parsed, dict):
+            return parsed
+
+    raise ValueError("JSON object 파싱 실패")
+
+
+def _strip_code_fence(text: str) -> str:
+    t = text.strip()
+    if t.startswith("```"):
+        lines = t.splitlines()
+        if len(lines) >= 2:
+            lines = lines[1:]
+            if lines and lines[-1].strip().startswith("```"):
+                lines = lines[:-1]
+            t = "\n".join(lines).strip()
+    return t
+
+
+def _extract_json_candidate(text: str) -> str:
+    start = text.find("{")
+    if start == -1:
+        return text
+
+    depth = 0
+    in_str = False
+    escape = False
+    end = -1
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+
+    if end != -1:
+        return text[start : end + 1]
+    return text[start:]
+
+
+def _safe_json_loads(text: str) -> Dict[str, Any]:
+    cleaned = _strip_code_fence(text)
+    cleaned = _extract_json_candidate(cleaned).strip()
+
+    # 자주 관측되는 출력 노이즈 정리
+    cleaned = cleaned.replace("\u201c", '"').replace("\u201d", '"')
+    cleaned = cleaned.replace("\u2018", "'").replace("\u2019", "'")
+    cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+
+    parsed = _extract_json(cleaned)
+    if not isinstance(parsed, dict):
+        raise ValueError("파싱 결과가 객체(dict)가 아님")
+    return parsed
+
+
+def _normalize_citations(value: Any) -> List[Dict[str, Any]]:
+    if isinstance(value, list):
+        out = []
+        for item in value:
+            if isinstance(item, dict):
+                out.append(item)
+        return out
+
+    if isinstance(value, dict):
+        return [value]
+
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return []
+        try:
+            parsed = _safe_json_loads(s)
+            if isinstance(parsed, dict):
+                return [parsed]
+        except Exception:
+            try:
+                parsed_any = json.loads(s)
+                if isinstance(parsed_any, list):
+                    return [x for x in parsed_any if isinstance(x, dict)]
+                if isinstance(parsed_any, dict):
+                    return [parsed_any]
+            except Exception:
+                return []
+
+    return []
+
+
+def _normalize_response(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    answer = parsed.get("answer", "")
+    limitations = parsed.get("limitations", "")
+    confidence = parsed.get("confidence", "low")
+    citations = _normalize_citations(parsed.get("citations", []))
+
+    return {
+        "answer": str(answer) if answer is not None else "",
+        "citations": citations,
+        "confidence": confidence,
+        "limitations": str(limitations) if limitations is not None else "",
+    }
+
+
+def _recover_minimal_response(raw_text: str) -> Dict[str, Any]:
+    # 마지막 방어선: 제한 응답으로 스키마만 유지
+    ans_match = re.search(r'"answer"\s*:\s*"(.*?)"', raw_text, flags=re.DOTALL)
+    answer = ans_match.group(1).strip() if ans_match else ""
+    return {
+        "answer": answer,
+        "citations": [],
+        "confidence": "low",
+        "limitations": "response_format_recovered",
+    }
 
 
 def _normalize_confidence(value: Any) -> float:
@@ -118,8 +247,27 @@ def _call_model(
         raw = resp.json()
     latency = time.perf_counter() - start
     response_text = str(raw.get("response", "")).strip()
-    parsed = _extract_json(response_text)
-    return parsed, latency, response_text
+
+    # 1) 기본/강건 파서 시도
+    try:
+        parsed = _normalize_response(_safe_json_loads(response_text))
+        return parsed, latency, response_text
+    except Exception:
+        pass
+
+    # 2) 재시도 1회 (동일 파라미터)
+    with httpx.Client(timeout=timeout_sec) as client:
+        retry_resp = client.post(url, json=payload)
+        retry_resp.raise_for_status()
+        retry_raw = retry_resp.json()
+    retry_text = str(retry_raw.get("response", "")).strip()
+
+    try:
+        parsed = _normalize_response(_safe_json_loads(retry_text))
+        return parsed, latency, retry_text
+    except Exception:
+        # 3) 제한 응답 반환
+        return _recover_minimal_response(retry_text), latency, retry_text
 
 
 def _citation_match_rate(citations: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> float:
@@ -240,8 +388,15 @@ def run(config_path: Path, cases_path: Path, target_model_id: str | None = None)
         parse_success = 0
         answer_non_empty = 0
         citation_rates: List[float] = []
+        total_runs = len(cases) * repetitions
+        processed_runs = 0
 
-        for case in cases:
+        print(
+            f"[START] model={model_id} ({model_name}) total_runs={total_runs}",
+            flush=True,
+        )
+
+        for case_idx, case in enumerate(cases, start=1):
             for rep in range(repetitions):
                 prompt = _build_prompt(case["query"], case["context"])
                 record: Dict[str, Any] = {
@@ -251,7 +406,7 @@ def run(config_path: Path, cases_path: Path, target_model_id: str | None = None)
                     "run_index": rep + 1,
                 }
                 try:
-                    parsed, latency, _ = _call_model(
+                    parsed, latency, raw_response = _call_model(
                         base_url=base_url,
                         model_name=model_name,
                         prompt=prompt,
@@ -281,6 +436,8 @@ def run(config_path: Path, cases_path: Path, target_model_id: str | None = None)
                             "status": "ok",
                             "latency_sec": round(latency, 4),
                             "answer_len": len(answer),
+                            "raw_response": raw_response,
+                            "parsed_answer": answer,
                             "citations_count": len(citations),
                             "citation_match_rate": round(cite_rate, 4),
                             "confidence_num": round(_normalize_confidence(parsed.get("confidence")), 4),
@@ -291,9 +448,18 @@ def run(config_path: Path, cases_path: Path, target_model_id: str | None = None)
                         {
                             "status": "error",
                             "latency_sec": None,
+                            "raw_response": "",
+                            "parsed_answer": "",
                             "error": str(e),
                         }
                     )
+
+                processed_runs += 1
+                print(
+                    f"[PROGRESS] model={model_id} case={case_idx}/{len(cases)} run={rep + 1}/{repetitions} "
+                    f"processed={processed_runs}/{total_runs} status={record.get('status')}",
+                    flush=True,
+                )
                 all_results.append(record)
 
             model_records = [
@@ -301,7 +467,6 @@ def run(config_path: Path, cases_path: Path, target_model_id: str | None = None)
             ]
             model_slice_metrics[model_name] = _slice_metrics_for_model(model_records, case_slices)
 
-        total_runs = len(cases) * repetitions
         summary.append(
             {
                 "model_id": model_id,
@@ -388,6 +553,12 @@ def _write_summary_md(report: Dict[str, Any], out_path: Path) -> None:
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _append_jsonl(path: Path, row: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Week3 LLM 모델 벤치마크")
     parser.add_argument(
@@ -421,6 +592,12 @@ def main() -> None:
     output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    raw_response_jsonl = output_dir / "raw_responses.jsonl"
+    parsed_answer_jsonl = output_dir / "parsed_answers.jsonl"
+
+    raw_response_jsonl.write_text("", encoding="utf-8")
+    parsed_answer_jsonl.write_text("", encoding="utf-8")
+
     report = run(config_path=config_path, cases_path=cases_path, target_model_id=args.model)
 
     # 모델별 파일명 결정
@@ -440,8 +617,33 @@ def main() -> None:
     )
     _write_summary_md(report, summary_md)
 
+    for row in report.get("results", []):
+        raw_response_row = {
+            "model_id": row.get("model_id"),
+            "model_name": row.get("model_name"),
+            "case_id": row.get("case_id"),
+            "run_index": row.get("run_index"),
+            "status": row.get("status"),
+            "raw_response": row.get("raw_response", ""),
+            "error": row.get("error"),
+        }
+        parsed_answer_row = {
+            "model_id": row.get("model_id"),
+            "model_name": row.get("model_name"),
+            "case_id": row.get("case_id"),
+            "run_index": row.get("run_index"),
+            "status": row.get("status"),
+            "parsed_answer": row.get("parsed_answer", ""),
+            "citations_count": row.get("citations_count", 0),
+            "citation_match_rate": row.get("citation_match_rate", 0.0),
+        }
+        _append_jsonl(raw_response_jsonl, raw_response_row)
+        _append_jsonl(parsed_answer_jsonl, parsed_answer_row)
+
     print(f"[DONE] report: {report_json}")
     print(f"[DONE] summary: {summary_md}")
+    print(f"[DONE] raw responses: {raw_response_jsonl}")
+    print(f"[DONE] parsed answers: {parsed_answer_jsonl}")
 
 
 if __name__ == "__main__":
