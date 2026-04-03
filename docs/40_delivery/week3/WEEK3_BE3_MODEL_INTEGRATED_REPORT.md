@@ -41,8 +41,9 @@ Week3 BE3 기준으로 EXAONE, PHI4, GEMMA의 A/B 테스트 결과를 한 곳에
 | Model | 대표 Stage | parse_success_rate | answer_non_empty_rate | citation_match_rate | avg_latency_sec | p95_latency_sec |
 |---|---|---:|---:|---:|---:|---:|
 | EXAONE | Stage 3 (`num_ctx=1024`, `num_predict=128`) | 1.0 | 0.33 | 0.00 | 15.7420 | 16.6224 |
-| PHI4 | Stage 1 (`num_ctx=1024`, `num_predict=128`) | 1.0 | 0.03 | 0.00 | 22.8132 | 24.0367 |
 | GEMMA | Stage 1 (`num_ctx=1024`, `num_predict=128`) | 1.0 | 0.31 | 0.00 | 20.2235 | 24.4759 |
+| PHI4 | Stage 1 (`num_ctx=1024`, `num_predict=128`) | 1.0 | 0.03 | 0.00 | 22.8132 | 24.0367 |
+| A.X-4.0-Light | Stage 2 (`num_ctx=2048`, `num_predict=128`) | 1.0 | 0.0 | 0.00 | 25.4711 | 32.5377 |
 
 참고:
 - EXAONE Stage 1은 answer_non_empty_rate가 0.70으로 가장 높지만 avg_latency_sec가 25.4296으로 길어, 지연 관점에서 Stage 3를 대표값으로 선택했다.
@@ -56,34 +57,42 @@ Week3 BE3 기준으로 EXAONE, PHI4, GEMMA의 A/B 테스트 결과를 한 곳에
 - `num_predict` 축소로 지연이 크게 개선됐다.
 - citation 정합성은 Stage 1의 0.03 외에는 0.0으로 낮다.
 
+### GEMMA
+- 파싱 안정성은 1.0으로 안정적이다.
+- answer_non_empty_rate는 0.31로 중간 수준이다.
+- `num_ctx` 2048 확장 시 품질 개선 없이 지연만 증가했다.
+
 ### PHI4
 - 파싱 안정성은 1.0으로 안정적이다.
 - `num_ctx`를 2048로 늘려도 답변 생성률 개선이 없고 오히려 하락했다.
 - 지연도 증가해 컨텍스트 확장 이득이 확인되지 않았다.
 
-### GEMMA
+### A.X-4.0-Light
 - 파싱 안정성은 1.0으로 안정적이다.
-- PHI4보다 answer_non_empty_rate가 높다(0.31 vs 0.03, 대표값 기준).
-- `num_ctx` 2048 확장 시 품질 개선 없이 지연만 증가했다.
+- **`num_ctx` 2048 확장 시 평균 지연이 약 16.1% 개선됐다** (30.3초 → 25.5초).
+- 유일하게 컨텍스트 확장이 성능 개선을 가져온 모델이다.
+- 다만 answer_non_empty_rate와 citation_match_rate가 0.0으로, 응답 품질은 가장 낮다.
 
 ---
 
 ## 5. 통합 결론
 
 1. 파싱 안정성 관점
-- 세 모델 모두 parse_success_rate 1.0으로 안정적이다.
+- 네 모델 모두 parse_success_rate 1.0으로 안정적이다.
 
 2. 품질 관점
 - citation_match_rate가 전반적으로 0.0에 머물러, 근거 정합성은 아직 핵심 미해결 이슈다.
-- answer_non_empty_rate는 EXAONE(Stage 1) > GEMMA(Stage 1) >> PHI4(Stage 1) 순으로 관측된다.
+- answer_non_empty_rate는 EXAONE(Stage 1) ≈ GEMMA(Stage 1) >> PHI4(Stage 1) >> A.X(Stage 2) 순으로 관측된다.
 
 3. 지연 관점
-- 대표값 기준 평균 지연은 EXAONE(Stage 3) < GEMMA(Stage 1) < PHI4(Stage 1) 순이다.
+- 대표값 기준 평균 지연은 EXAONE(Stage 3) < GEMMA(Stage 1) < PHI4(Stage 1) < A.X(Stage 2) 순이다.
+- A.X는 가장 길지만, 유일하게 컨텍스트 확장이 성능 개선을 달성했다.
 
 4. 현재 단계 권장
-- 임시 운영 기준:
-  - 지연 중심: EXAONE Stage 3
-  - 답변 생성률 균형: GEMMA Stage 1
+- 임시 운영 기준 (우선순위순):
+  1. 지연 + 답변률 균형: **EXAONE Stage 3** (가장 균형적)
+  2. 답변 생성률 중심: **GEMMA Stage 1**
+  3. 컨텍스트 활용 성능: **A.X-4.0-Light Stage 2** (향후 프롬프트 개선 시 재평가 필요)
 - 단, 어떤 모델도 citation 정합성 목표를 만족하지 못해 최종 baseline 확정은 보류가 타당하다.
 
 ---
@@ -107,14 +116,17 @@ Week3 BE3 기준으로 EXAONE, PHI4, GEMMA의 A/B 테스트 결과를 한 곳에
 ## 7. 상세 리포트 링크
 
 - [EXAONE A/B 리포트](WEEK3_BE3_AB_COMPARISON_REPORT.md)
-- [PHI4 A/B 리포트](WEEK3_BE3_PHI4_AB_COMPARISON_REPORT.md)
 - [GEMMA A/B 리포트](WEEK3_BE3_GEMMA_AB_COMPARISON_REPORT.md)
+- [PHI4 A/B 리포트](WEEK3_BE3_PHI4_AB_COMPARISON_REPORT.md)
+- [A.X-4.0-Light A/B 리포트](WEEK3_BE3_AX4_AB_COMPARISON_REPORT.md)
 
 세부 결과 파일:
 - [EXAONE Stage 1 결과](../../../logs/evaluation/week3/model_benchmark_candidate_candidate_exaone_3_5_7_8b.json)
 - [EXAONE Stage 2 결과](../../../logs/evaluation/week3/ab_stage2/model_benchmark_candidate_candidate_exaone_3_5_7_8b.json)
 - [EXAONE Stage 3 결과](../../../logs/evaluation/week3/ab_stage3/model_benchmark_candidate_candidate_exaone_3_5_7_8b.json)
-- [PHI4 Stage 1 결과](../../../logs/evaluation/week3/phi4_stage1/model_benchmark_candidate_candidate_phi4_mini.json)
-- [PHI4 Stage 2 결과](../../../logs/evaluation/week3/phi4_stage2_ctx2048/model_benchmark_candidate_candidate_phi4_mini.json)
 - [GEMMA Stage 1 결과](../../../logs/evaluation/week3/gemma_stage1_ctx1024/model_benchmark_candidate_candidate_gemma3_12b.json)
 - [GEMMA Stage 2 결과](../../../logs/evaluation/week3/gemma_stage2_ctx2048/model_benchmark_candidate_candidate_gemma3_12b.json)
+- [PHI4 Stage 1 결과](../../../logs/evaluation/week3/phi4_stage1/model_benchmark_candidate_candidate_phi4_mini.json)
+- [PHI4 Stage 2 결과](../../../logs/evaluation/week3/phi4_stage2_ctx2048/model_benchmark_candidate_candidate_phi4_mini.json)
+- [A.X-4.0-Light Stage 1 결과](../../../logs/evaluation/week3/ax4_stage1_ctx1024/model_benchmark_candidate_candidate_ax4_light.json)
+- [A.X-4.0-Light Stage 2 결과](../../../logs/evaluation/week3/ax4_stage2_ctx2048/model_benchmark_candidate_candidate_ax4_light.json)
