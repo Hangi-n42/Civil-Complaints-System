@@ -56,7 +56,7 @@ def render_search_filter(
         )
     with cols[3]:
         st.markdown("<div class='queue-filter-label'>실행</div>", unsafe_allow_html=True)
-        is_search_clicked = st.button("🔍 워크벤치 검색", use_container_width=True)
+        is_search_clicked = st.button("워크벤치 검색", use_container_width=True)
 
     return query, region, category, is_search_clicked
 
@@ -115,3 +115,46 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
 
         if snippet:
             st.caption(snippet)
+
+
+def render_similar_cases_table(rows: list[dict[str, Any]], *, return_html: bool = False) -> str | None:
+    """워크벤치(스크린샷)용 유사 민원 테이블 렌더러.
+
+    Expected row keys:
+      - case_id, date, similarity, status
+    """
+
+    def _status_text(status: str) -> str:
+        text = (status or "").strip().upper()
+        if not text:
+            text = "PENDING"
+        return text
+
+    def _esc(value: Any) -> str:
+        return str(value or "-").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    body_rows: list[str] = []
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        body_rows.append(
+            (
+                "<tr>"
+                f"<td><b>{_esc(row.get('case_id'))}</b></td>"
+                f"<td>{_esc(row.get('date'))}</td>"
+                f"<td>{_esc(row.get('similarity'))}</td>"
+                f"<td style='font-weight:800;color:#0f172a;'>{_esc(_status_text(str(row.get('status', 'PENDING'))))}</td>"
+                "</tr>"
+            )
+        )
+
+    table_html = (
+        "<table class='wb-table'>"
+        "<thead><tr><th>CASE ID</th><th>DATE</th><th>SIMILARITY</th><th>STATUS</th></tr></thead>"
+        f"<tbody>{''.join(body_rows)}</tbody>"
+        "</table>"
+    )
+    if return_html:
+        return table_html
+    st.markdown(table_html, unsafe_allow_html=True)
+    return None
