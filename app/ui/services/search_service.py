@@ -167,3 +167,61 @@ def search_cases_via_api_with_filters(
         else "검색 응답 처리 실패"
     )
     return [], get_friendly_error_message(0, raw_msg)
+
+
+def search_similar_cases_for_workbench(query: str, top_k: int = 5) -> tuple[List[Dict[str, Any]], str | None]:
+    """워크벤치(스크린샷) 테이블에 바로 넣을 유사 민원 rows를 만든다.
+
+    - API 사용 가능하면 /api/v1/search 결과를 축약 변환
+    - mock/오류면 UI 고정 더미 2개로 폴백
+    """
+
+    if not query:
+        query = "유사 민원"
+
+    # In demo mode, avoid noisy errors and show stable rows.
+    if st.session_state.get("ui_force_mock", False):
+        return (
+            [
+                {"case_id": "CASE_20231102-09", "date": "2023.11.02", "similarity": "92%", "status": "COMPLETED"},
+                {"case_id": "CASE_20240115-04", "date": "2024.01.15", "similarity": "88%", "status": "COMPLETED"},
+            ],
+            None,
+        )
+
+    results, err = search_cases_via_api_with_filters(
+        query=query,
+        top_k=top_k,
+        date_range=(None, None),
+        region="전체",
+        category="전체",
+        entity_labels=[],
+    )
+
+    if err or not results:
+        return (
+            [
+                {"case_id": "CASE_20231102-09", "date": "2023.11.02", "similarity": "92%", "status": "COMPLETED"},
+                {"case_id": "CASE_20240115-04", "date": "2024.01.15", "similarity": "88%", "status": "COMPLETED"},
+            ],
+            err,
+        )
+
+    rows: List[Dict[str, Any]] = []
+    for item in results[: max(1, int(top_k or 5))]:
+        case_id = str(item.get("case_id") or item.get("doc_id") or "-")
+        created_at = item.get("created_at") or (item.get("metadata", {}) or {}).get("created_at")
+        date_text = str(created_at or "-")
+        try:
+            score = float(item.get("score", item.get("similarity_score", 0.0)) or 0.0)
+        except (TypeError, ValueError):
+            score = 0.0
+        rows.append(
+            {
+                "case_id": case_id,
+                "date": date_text,
+                "similarity": f"{int(round(score * 100))}%",
+                "status": "COMPLETED" if score >= 0.5 else "PENDING",
+            }
+        )
+    return rows, None
