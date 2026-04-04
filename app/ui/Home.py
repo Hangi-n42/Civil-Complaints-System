@@ -456,6 +456,102 @@ st.markdown("""
         gap: 10px;
         margin-top: 10px;
     }
+
+    /* Workbench similar-cases collapsible list */
+    .wb-similar-list {
+        max-height: 360px;
+        overflow-y: auto;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+    }
+    .wb-similar-item {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0;
+        margin: 0;
+    }
+    .wb-similar-item:last-child {
+        border-bottom: 0;
+    }
+    .wb-similar-item summary {
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+        padding: 10px 10px;
+    }
+    .wb-similar-item summary::-webkit-details-marker {
+        display: none;
+    }
+    .wb-similar-item summary::marker {
+        content: "";
+    }
+    .wb-similar-summary {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .wb-similar-title {
+        font-weight: 900;
+        font-size: 0.86rem;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 58%;
+    }
+    .wb-similar-meta {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    .wb-similar-body {
+        padding: 0 10px 10px 10px;
+        display: grid;
+        gap: 8px;
+        max-height: 240px;
+        overflow-y: auto;
+    }
+    .wb-similar-block {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 8px 8px;
+    }
+    .wb-similar-dept-list {
+        display: grid;
+        gap: 8px;
+    }
+    .wb-similar-dept-item {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        padding: 8px 8px;
+    }
+    .wb-similar-dept-name {
+        font-size: 0.78rem;
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+    .wb-similar-dept-answer {
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: #0f172a;
+        white-space: pre-wrap;
+    }
+    .wb-similar-label {
+        font-size: 0.78rem;
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+    .wb-similar-text {
+        max-height: none;
+        overflow: visible;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: #0f172a;
+        white-space: pre-wrap;
+    }
     .wb-action-btn {
         display: inline-flex;
         align-items: center;
@@ -1152,8 +1248,17 @@ st.markdown("""
         visibility: hidden;
     }
 
+    /* Keep header container (needed for sidebar re-open control) but visually minimize it */
     header[data-testid="stHeader"] {
-        display: none;
+        background: transparent;
+        height: 0px;
+    }
+
+    header[data-testid="stHeader"] [data-testid="collapsedControl"] {
+        position: fixed;
+        top: 0.35rem;
+        left: 0.35rem;
+        z-index: 1000;
     }
 
     [data-testid="stToolbarActions"] {
@@ -1343,6 +1448,84 @@ def build_region_options(cases: List[Dict[str, Any]]) -> List[str]:
             seen.add(region)
             extras.append(region)
     return ["전체", *base, *sorted(extras)]
+
+
+def get_case_admin_units(case: Dict[str, Any]) -> List[str]:
+    """케이스에서 부서(ADMIN_UNIT) 후보를 추출한다.
+
+    - 구조화 엔티티(label=ADMIN_UNIT) 우선
+    - 데이터 소스별로 top-level 필드(admin_unit/department/dept)도 방어적으로 지원
+    """
+    units: List[str] = []
+
+    for key in ("admin_unit", "department", "dept"):
+        raw = case.get(key)
+        if raw:
+            text = str(raw).strip()
+            if text and text not in units:
+                units.append(text)
+
+    entities = case.get("structured", {}).get("entities", [])
+    if isinstance(entities, list):
+        for entity in entities:
+            if not isinstance(entity, dict):
+                continue
+            if str(entity.get("label")) != "ADMIN_UNIT":
+                continue
+            text = str(entity.get("text") or "").strip()
+            if text and text not in units:
+                units.append(text)
+
+    return units
+
+
+def build_admin_unit_options(cases: List[Dict[str, Any]]) -> List[str]:
+    seen: set[str] = set()
+    extras: List[str] = []
+    has_unassigned = False
+
+    for case in cases:
+        units = get_case_admin_units(case)
+        if not units:
+            has_unassigned = True
+            continue
+        for unit in units:
+            if unit not in seen:
+                seen.add(unit)
+                extras.append(unit)
+
+    options = ["전체", *sorted(extras)]
+    if has_unassigned:
+        options.append("미지정")
+    return options
+
+
+def filter_cases_by_admin_unit(cases: List[Dict[str, Any]], selected_unit: str) -> List[Dict[str, Any]]:
+    if not selected_unit or selected_unit == "전체":
+        return list(cases)
+    if selected_unit == "미지정":
+        return [case for case in cases if not get_case_admin_units(case)]
+    return [case for case in cases if selected_unit in get_case_admin_units(case)]
+
+
+def get_case_status_kr(case: Dict[str, Any], statuses: Dict[str, Any]) -> str:
+    status_kr = statuses.get(case.get("case_id", ""), case.get("status", "미처리"))
+    status_kr = str(status_kr or "").strip() or "미처리"
+    if status_kr in ("미처리", "검토중", "보류", "처리완료"):
+        return status_kr
+    return "미처리"
+
+
+def filter_cases_by_priority(cases: List[Dict[str, Any]], priority_value: str) -> List[Dict[str, Any]]:
+    if not priority_value or priority_value == "전체":
+        return list(cases)
+    return [case for case in cases if str(case.get("priority") or "보통") == priority_value]
+
+
+def filter_cases_by_status(cases: List[Dict[str, Any]], statuses: Dict[str, Any], status_value: str) -> List[Dict[str, Any]]:
+    if not status_value or status_value == "전체":
+        return list(cases)
+    return [case for case in cases if get_case_status_kr(case, statuses) == status_value]
 
 
 def _span_to_evidence_text(raw_text: str, span: Any) -> str:
@@ -2278,6 +2461,15 @@ if "wb_region" not in st.session_state:
 if "wb_category" not in st.session_state:
     st.session_state.wb_category = "전체"
 
+if "wb_admin_unit" not in st.session_state:
+    st.session_state.wb_admin_unit = "전체"
+
+if "wb_priority_value" not in st.session_state:
+    st.session_state.wb_priority_value = "전체"
+
+if "wb_status_value" not in st.session_state:
+    st.session_state.wb_status_value = "전체"
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -2976,7 +3168,11 @@ def render_case_workbench_screen() -> None:
             st.session_state.case_statuses[selected_case["case_id"]] = "검토중"
         _save_case_statuses_to_cache(st.session_state.case_statuses)
         # Move to next case in the left-list order (shown 7 cases)
-        display_cases = list(st.session_state.mock_cases[:7])
+        display_cases = list(st.session_state.mock_cases)
+        display_cases = filter_cases_by_admin_unit(display_cases, str(st.session_state.get("wb_admin_unit", "전체")))
+        display_cases = filter_cases_by_priority(display_cases, str(st.session_state.get("wb_priority_value", "전체")))
+        display_cases = filter_cases_by_status(display_cases, st.session_state.case_statuses, str(st.session_state.get("wb_status_value", "전체")))
+        display_cases = list(display_cases[:7])
         ordered_ids = [str(c.get("case_id")) for c in display_cases if c.get("case_id")]
 
         current_id = str(selected_case.get("case_id") or "")
@@ -3050,6 +3246,49 @@ def render_case_workbench_screen() -> None:
     with col1:
         current_case_id = html.escape(str(selected_case.get("case_id", "")))
 
+        def _reset_wb_queue_filters() -> None:
+            st.session_state.wb_admin_unit = "전체"
+            st.session_state.wb_priority_value = "전체"
+            st.session_state.wb_status_value = "전체"
+
+        filter_row = st.columns([1.2, 1.0, 1.0, 0.7])
+        with filter_row[0]:
+            admin_unit_options = build_admin_unit_options(list(st.session_state.mock_cases))
+            if st.session_state.wb_admin_unit not in admin_unit_options:
+                st.session_state.wb_admin_unit = "전체"
+            st.selectbox(
+                "부서",
+                options=admin_unit_options,
+                index=_safe_index(admin_unit_options, st.session_state.wb_admin_unit, default=0),
+                key="wb_admin_unit",
+            )
+        with filter_row[1]:
+            priority_options = ["전체", "매우급함", "급함", "보통"]
+            if st.session_state.wb_priority_value not in priority_options:
+                st.session_state.wb_priority_value = "전체"
+            st.selectbox(
+                "우선순위",
+                options=priority_options,
+                index=_safe_index(priority_options, st.session_state.wb_priority_value, default=0),
+                key="wb_priority_value",
+            )
+        with filter_row[2]:
+            status_options = ["전체", "미처리", "검토중", "보류", "처리완료"]
+            if st.session_state.wb_status_value not in status_options:
+                st.session_state.wb_status_value = "전체"
+            st.selectbox(
+                "상태",
+                options=status_options,
+                index=_safe_index(status_options, st.session_state.wb_status_value, default=0),
+                key="wb_status_value",
+            )
+
+        with filter_row[3]:
+            # selectbox는 라벨이 위에 렌더링되지만 button은 그렇지 않아 상단 정렬처럼 보인다.
+            # 라벨 높이만큼 간격을 주어 필터와 일자로 맞춘다.
+            st.markdown("<div style='height: 1.75rem'></div>", unsafe_allow_html=True)
+            st.button("초기화", key="wb_reset_filters", use_container_width=True, on_click=_reset_wb_queue_filters)
+
         def _title_for_case(case: Dict[str, Any]) -> str:
             return (
                 str(case.get("title") or "").strip()
@@ -3068,7 +3307,11 @@ def render_case_workbench_screen() -> None:
                 return status_kr
             return "미처리"
 
-        list_cases = list(st.session_state.mock_cases[:7])
+        list_cases_all = list(st.session_state.mock_cases)
+        list_cases_all = filter_cases_by_admin_unit(list_cases_all, str(st.session_state.get("wb_admin_unit", "전체")))
+        list_cases_all = filter_cases_by_priority(list_cases_all, str(st.session_state.get("wb_priority_value", "전체")))
+        list_cases_all = filter_cases_by_status(list_cases_all, st.session_state.case_statuses, str(st.session_state.get("wb_status_value", "전체")))
+        list_cases = list(list_cases_all[:7])
         rows_html: list[str] = []
         for case in list_cases:
             cid = str(case.get("case_id", "-"))
@@ -3166,13 +3409,13 @@ def render_case_workbench_screen() -> None:
         )
 
         # Section 3: 유사 민원 검색
-        from app.ui.components.search_ui import render_similar_cases_table
+        from app.ui.components.search_ui import render_similar_cases_collapsible
 
         cid = html.escape(str(selected_case.get("case_id", "")))
         similar_rows = st.session_state.get("wb_similar_rows")
         table_html = ""
         if isinstance(similar_rows, list) and similar_rows:
-            table_html = render_similar_cases_table(similar_rows, return_html=True) or ""
+            table_html = render_similar_cases_collapsible(similar_rows, return_html=True) or ""
 
         similar_card_html = (
             "<div class='wb-card'>"
