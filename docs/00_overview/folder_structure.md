@@ -30,7 +30,6 @@
 | W4 마감 | 단일 RAG baseline, citation 정합성 리포트 | `logs/evaluation/week4/` |
 | W5 마감 | 길이 라우팅 실험, ablation #1 | `logs/evaluation/week5/` |
 | W6 마감 | 주제/복합 분기, unified schema 검증 | `logs/evaluation/week6/` |
-| W7 마감 | KPI 최종화, 병목 개선 리포트, 데모 시나리오 | `reports/final_kpi.json`, `demo/scenarios/` |
 | W8 마감 | 발표자료, 최종 코드, README, 평가보고서 | `artifacts/`, 프로젝트 루트 |
 
 ---
@@ -132,12 +131,10 @@ AI-Civil-Affairs-Systems/
 │     │  └─ README.md                 [W5 길이 라우팅 ablation]
 │     ├─ week6/
 │     │  └─ README.md                 [W6 주제/복합 라우팅 & unified schema]
-│     ├─ week7/
-│     │  ├─ README.md                 [W7 KPI 최종화, 데모 준비]
-│     │  └─ demo/
-│     │     ├─ scenario_1_road_safety.json
-│     │     ├─ scenario_2_water_management.json
-│     │     └─ scenario_3_construction.json
+│     ├─ demo/
+│     │  ├─ scenario_1_road_safety.json
+│     │  ├─ scenario_2_water_management.json
+│     │  └─ scenario_3_construction.json
 │     └─ week8/
 │        └─ README.md                 [W8 최종 발표, 평가]
 │
@@ -353,11 +350,9 @@ AI-Civil-Affairs-Systems/
 │     │  ├─ ablation_topic_routing.json
 │     │  ├─ ablation_multi_request.json
 │     │  └─ unified_schema_validation_w6.json
-│     └─ week7/
-│        ├─ kpi_final_report.json         [KPI 최종값]
-│        └─ performance_comparison.json   [baseline vs adaptive]
+│     └─ performance_comparison.json   [baseline vs adaptive]
 │
-├─ 📂 reports/                        [주간 회고 & KPI 리포트]
+├─ 📂 reports/                        [주간 회고 & 리포트]
 │  ├─ README.md                      [리포트 인덱스]
 │  ├─ WEEK1_SUMMARY.md
 │  ├─ WEEK2_FIXES_SUMMARY.md         [심각도 이슈 5개 수정사항]
@@ -366,7 +361,6 @@ AI-Civil-Affairs-Systems/
 │  ├─ WEEK4_RAG_BASELINE_REPORT.md
 │  ├─ WEEK5_ADAPTIVE_RAG_ABLATION.md
 │  ├─ WEEK6_UNIFIED_SCHEMA_VALIDATION.md
-│  ├─ WEEK7_KPI_FINAL.md
 │  └─ WEEK8_DELIVERY.md              [최종 평가/회고]
 │
 ├─ 📂 artifacts/                      [발표/데모/최종 산출물]
@@ -380,13 +374,11 @@ AI-Civil-Affairs-Systems/
 │  │
 │  ├─ slides/
 │  │  ├─ presentation.pptx           [최종 발표 자료]
-│  │  ├─ technical_deep_dive.pptx    [기술 상세 설명]
-│  │  └─ kpi_summary.pptx            [KPI 요약]
+│  │  └─ technical_deep_dive.pptx    [기술 상세 설명]
 │  │
 │  ├─ figures/
 │  │  ├─ architecture_diagram.png
 │  │  ├─ pipeline_flow.png
-│  │  ├─ kpi_comparison.png
 │  │  └─ model_benchmark_results.png
 │  │
 │  └─ final_delivery/
@@ -415,7 +407,7 @@ AI-Civil-Affairs-Systems/
 │  │  ├─ evaluate_structuring.py     [F1, Precision, Recall]
 │  │  ├─ evaluate_retrieval.py       [Recall@K, nDCG@K, latency]
 │  │  ├─ evaluate_qa.py              [citation 정합성, 답변 품질]
-│  │  └─ generate_kpi_report.py      [KPI 리포트 생성]
+
 │  │
 │  ├─ 🧪 유틸리티
 │  │  ├─ data_profiling.py           [데이터 분석]
@@ -479,12 +471,10 @@ logs/evaluation/
 │  ├─ ablation_multi_request.json
 │  └─ unified_schema_validation_w6.json
 └─ week7/
-   ├─ kpi_final_report.json          ← 모든 KPI 최종값
    └─ performance_comparison.json    ← baseline vs adaptive
 ```
 
 **이점**:
-- "마지막 주 KPI는 뭐였냐"고 물어올 때 바로 `logs/evaluation/week7/kpi_final_report.json` 제시 가능
 - ablation 실험 재반복 필요 시 이전 수치 즉시 비교
 - 리포트(Markdown)와 데이터(JSON) 동시 저장으로 시각화 + 원본 데이터 모두 추적
 
@@ -541,12 +531,10 @@ artifacts/
 │  └─ demo_data/                     ← 공개용 샘플 데이터
 ├─ slides/
 │  ├─ presentation.pptx              ← 최종 발표 자료
-│  ├─ technical_deep_dive.pptx       ← 기술 상세
-│  └─ kpi_summary.pptx               ← KPI 비교
+│  └─ technical_deep_dive.pptx       ← 기술 상세
 ├─ figures/
 │  ├─ architecture_diagram.png       ← 시스템 구조도
-│  ├─ pipeline_flow.png              ← 데이터 흐름
-│  └─ kpi_comparison.png             ← 성능 비교 차트
+│  └─ pipeline_flow.png              ← 데이터 흐름
 └─ final_delivery/
    ├─ README.md
    ├─ DEPLOYMENT.md                  ← "이렇게 배포하세요"
@@ -569,8 +557,6 @@ artifacts/
 | **W3** | `data/indexed/chromadb/civil_cases_v1/`<br/>`logs/evaluation/week3/model_benchmark_report_final.json` | BE2/BE3 | BE3가 W4 RAG 구현 시 검색 결과 이용 |
 | **W4** | `logs/evaluation/week4/single_rag_baseline.json` | BE3 | W5+ ablation 비교 기준선 |
 | **W5** | `logs/evaluation/week5/ablation_length_routing.json` | BE2/BE3 | W6 주제 라우팅 설계 시 참고 |
-| **W6** | `logs/evaluation/week6/unified_schema_validation_w6.json` | BE1/BE3 | W7 KPI 통합 시 참고 |
-| **W7** | `logs/evaluation/week7/kpi_final_report.json`<br/>`artifacts/demo/demo_script.md` | 팀 전체 | W8 최종 발표 자료 작성 |
 | **W8** | `artifacts/slides/presentation.pptx`<br/>`artifacts/final_delivery/README.md` | 팀 전체 | 졸업작품 제출 |
 
 ---
