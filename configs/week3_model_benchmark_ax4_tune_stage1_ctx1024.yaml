@@ -1,0 +1,29 @@
+benchmark:
+  name: week3_llm_model_benchmark_ax4_tune_stage1_ctx1024
+  description: AX4 A/B stage1 with num_predict=128 and num_ctx=1024.
+  base_url: http://localhost:11434
+  temperature: 0.2
+  num_predict: 128
+  num_ctx: 1024
+  timeout_sec: 90
+  repetitions_per_case: 1
+  response_format: json
+
+models:
+  - id: candidate_ax4_light
+    model_name: ax4-light-local:latest
+    role: candidate
+    note: SK Telecom A.X-4.0-Light local GGUF model.
+
+metrics:
+  - parse_success_rate
+  - answer_non_empty_rate
+  - citation_match_rate
+  - avg_latency_sec
+  - p95_latency_sec
+  - scenario_slice_metrics
+
+outputs:
+  report_json: logs/evaluation/week3/ax4_stage1_ctx1024/model_benchmark_report_final.json
+  summary_md: logs/evaluation/week3/ax4_stage1_ctx1024/model_benchmark_summary.md
+  individual_results_dir: logs/evaluation/week3/ax4_stage1_ctx1024/
