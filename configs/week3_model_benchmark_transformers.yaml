@@ -1,0 +1,38 @@
+benchmark:
+  name: week3_llm_model_benchmark_transformers_smoke_optimized
+  description: Optimized smoke benchmark for local OpenChat with lenient parsing and expanded context.
+  backend: transformers
+  temperature: 0.2
+  num_predict: 512 
+  num_ctx: 2048 
+  timeout_sec: 300
+  repetitions_per_case: 1
+  case_batch_size: 100
+  response_format: json
+  parse_mode: lenient 
+  citation_retry_count: 2
+  min_citations_default: 1
+  require_snippet_match: false
+  enable_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bnb_4bit_compute_dtype: float16
+
+models:
+  - id: aihub_baseline
+    model_name: aihub-openchat-local
+    backend: transformers
+    model_path: data/aihub_model/openchat-3.5-0106-public
+    role: baseline
+    note: OpenChat local path for transformer inference with optimized settings.
+
+metrics:
+  - parse_success_rate
+  - answer_non_empty_rate
+  - citation_match_rate
+  - avg_latency_sec
+  - p95_latency_sec
+
+outputs:
+  report_json: docs/40_devlivery/evaluation/week3/model_benchmark_aihub_baseline_500.json
+  summary_md: docs/40_devlivery/evaluation/week3/model_benchmark_aihub_baseline_500.md

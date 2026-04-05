@@ -1,6 +1,7 @@
 benchmark:
   name: week3_llm_model_benchmark
   description: Compare core open-source models and optional A.X candidate under identical RAG-QA conditions.
+  backend: ollama
   base_url: http://localhost:11434
   temperature: 0.2
   num_predict: 256
@@ -12,8 +13,10 @@ benchmark:
 models:
   - id: aihub_baseline
     model_name: aihub-local-baseline
+    backend: transformers
+    model_path: data/aihub_model/openchat-3.5-0106-public
     role: baseline
-    note: Replace with the currently used AIHub model tag.
+    note: OpenChat local GPU inference via HuggingFace Transformers.
 
   - id: candidate_ax4_light
     model_name: ax4-light-local:latest
@@ -44,7 +47,7 @@ metrics:
   - scenario_slice_metrics
 
 outputs:
-  report_json: logs/evaluation/week3/model_benchmark_report_final.json
-  summary_md: logs/evaluation/week3/model_benchmark_summary.md
-  individual_results_dir: logs/evaluation/week3/
+  report_json: docs/40_devlivery/evaluation/week3/model_benchmark_report_final.json
+  summary_md: docs/40_devlivery/evaluation/week3/model_benchmark_summary.md
+  individual_results_dir: docs/40_devlivery/evaluation/week3/
   note: "모든 출력 경로는 새 folder_structure.md 기준 (2026-03-27)"

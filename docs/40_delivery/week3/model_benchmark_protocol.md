@@ -48,13 +48,12 @@ python scripts/generate_week3_benchmark_cases_500.py \
 - p95_latency_sec: 95퍼센타일 응답 시간
 - scenario slice metrics: scenario_type/risk_level/requires_multi_request/time_sensitivity 별 지표
 
-## 4) 합격 기준 (Week3 1차)
+## 4) 비교 해석 원칙
 
-- parse_success_rate >= 0.9
-- citation_match_rate >= 0.8
-- avg_latency_sec <= 12
-- high risk 슬라이스에서 citation_match_rate >= 0.8
-- multi_request=true 슬라이스에서 answer_non_empty_rate >= 0.9
+- 목적은 통과/실패 판정이 아니라 5개 모델의 상대적 강약을 동일 조건에서 비교하는 것이다.
+- 전체 평균 지표(parse/answer/citation/latency)와 슬라이스 지표를 함께 본다.
+- 단일 지표 최댓값보다 운영 시나리오(고위험/다중요청)에서의 균형 성능을 우선한다.
+- 결과 보고서는 모델별 강점/약점/리스크를 정리해 Week4 baseline 선정 근거로 사용한다.
 
 ## 5) 실행 커맨드
 
