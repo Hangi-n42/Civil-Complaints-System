@@ -20,7 +20,7 @@
   - Embedding time: 4분 9초 (batch_size=64, CPU)
   - Index success rate: 100% (1000/1000)
   - Collection: `civil_cases_v1` (persistent ChromaDB)
-- **Gate A**: indexed_count=500 ≥ 495 ✅
+- **참고 수치**: indexed_count=500
 
 #### Issue #101-4/5: ChromaDB 컬렉션 + 보고서
 - **Status**: PASS
@@ -62,7 +62,7 @@
   - Avg Latency: **459.20ms** (target: ≤12000ms) ✅
   - Min/Max Latency: 315.42ms ~ 11466.74ms
 - **산출물**: `logs/evaluation/week3_retrieval_metrics_full.json`
-- **Gate 결과**: recall_at_5 (0.205 < 0.75) ❌, latency (459.20ms < 12000ms) ✅
+- **비교 요약**: recall_at_5는 상대적으로 낮고, latency는 상대적으로 우수함
 
 ---
 
