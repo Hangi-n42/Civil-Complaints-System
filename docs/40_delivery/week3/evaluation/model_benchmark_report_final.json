@@ -1,0 +1,74 @@
+{
+  "report_name": "Week3 Candidate Model Comparison - Round 1",
+  "generated_at": "2026-04-05T22:10:00+09:00",
+  "scope": {
+    "issue": "#100",
+    "parent_issue": "#91",
+    "dataset_size": 100,
+    "selection_rule": "모델별 권장 Stage 기준 상대 비교"
+  },
+  "compared_models": [
+    {
+      "model_id": "candidate_exaone_3_5_7_8b",
+      "model_name": "exaone3.5:7.8b-instruct",
+      "selected_stage": "Stage 3 (num_ctx=1024, num_predict=128)",
+      "parse_success_rate": 1.0,
+      "answer_non_empty_rate": 0.33,
+      "citation_match_rate": 0.0,
+      "avg_latency_sec": 15.742,
+      "p95_latency_sec": 16.6224,
+      "notes": "지연/답변률 균형 우수"
+    },
+    {
+      "model_id": "candidate_gemma3_12b",
+      "model_name": "gemma3:12b",
+      "selected_stage": "Stage 1 (num_ctx=1024, num_predict=128)",
+      "parse_success_rate": 1.0,
+      "answer_non_empty_rate": 0.31,
+      "citation_match_rate": 0.0,
+      "avg_latency_sec": 20.2235,
+      "p95_latency_sec": 24.4759,
+      "notes": "안정적 파싱 + 중간 수준 응답률"
+    },
+    {
+      "model_id": "candidate_phi4_mini",
+      "model_name": "phi4-mini:3.8b-instruct",
+      "selected_stage": "Stage 1 (num_ctx=1024, num_predict=128)",
+      "parse_success_rate": 1.0,
+      "answer_non_empty_rate": 0.03,
+      "citation_match_rate": 0.0,
+      "avg_latency_sec": 22.8132,
+      "p95_latency_sec": 24.0367,
+      "notes": "응답 생성률 낮음"
+    },
+    {
+      "model_id": "candidate_ax4_light",
+      "model_name": "ax4-light-local:latest",
+      "selected_stage": "Stage 2 (num_ctx=2048, num_predict=128)",
+      "parse_success_rate": 1.0,
+      "answer_non_empty_rate": 0.0,
+      "citation_match_rate": 0.0,
+      "avg_latency_sec": 25.4711,
+      "p95_latency_sec": 32.5377,
+      "notes": "지연 개선 관측, 답변 생성률 0.0"
+    }
+  ],
+  "top2_candidates": [
+    {
+      "rank": 1,
+      "model_id": "candidate_exaone_3_5_7_8b",
+      "model_name": "exaone3.5:7.8b-instruct",
+      "reason": "가장 낮은 평균 지연 + 최고 수준 answer_non_empty_rate"
+    },
+    {
+      "rank": 2,
+      "model_id": "candidate_gemma3_12b",
+      "model_name": "gemma3:12b",
+      "reason": "파싱 안정성 유지 + 두 번째로 높은 answer_non_empty_rate"
+    }
+  ],
+  "decision_notes": [
+    "4개 후보 모두 citation_match_rate가 0.0으로 동일해 본 1차 비교에서는 변별력이 제한적임",
+    "다음 라운드에서는 citation 강제 규칙(최소 citation, chunk_id allow-list) 적용 후 재비교 필요"
+  ]
+}

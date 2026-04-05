@@ -13,6 +13,7 @@ from app.api.schemas.generation import QARequest, QAResponse
 from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
 from app.core.logging import api_logger
+from app.generation.context_mapper import map_retrieval_to_qa_context
 from app.generation.service import get_generation_service
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
@@ -109,10 +110,10 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
     try:
         if request.use_search_results and request.search_results:
-            context = [item.model_dump() for item in request.search_results]
+            raw_context = [item.model_dump() for item in request.search_results]
         else:
             filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
-            context = await retrieval_service.search(
+            raw_context = await retrieval_service.search(
                 query=request.query,
                 top_k=request.top_k,
                 filters=filters,
@@ -151,6 +152,54 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             message="검색 단계에서 예기치 못한 오류가 발생했습니다.",
             retryable=False,
             details={"reason": str(e)},
+            headers={"X-Contract-Version": CONTRACT_VERSION},
+        )
+
+    context_policy = (
+        request.context_window_policy.model_dump()
+        if request.context_window_policy
+        else None
+    )
+    context, context_trace = map_retrieval_to_qa_context(
+        retrieval_results=raw_context,
+        top_k=request.top_k,
+        policy=context_policy,
+    )
+
+    if not context:
+        took_ms = int((perf_counter() - start) * 1000)
+        if request.use_search_results and request.search_results:
+            _log_error(
+                endpoint="/api/v1/qa",
+                request_id=request_id,
+                error_code="BAD_REQUEST",
+                retryable=False,
+                took_ms=took_ms,
+                message="QA 컨텍스트를 구성할 수 없습니다. search_results 형식을 확인해주세요.",
+            )
+            return error_response(
+                request_id=request_id,
+                error_code="BAD_REQUEST",
+                message="QA 컨텍스트를 구성할 수 없습니다. search_results 형식을 확인해주세요.",
+                retryable=False,
+                details={"hint": "chunk_id/case_id/snippet이 포함되어야 합니다."},
+                headers={"X-Contract-Version": CONTRACT_VERSION},
+            )
+
+        _log_error(
+            endpoint="/api/v1/qa",
+            request_id=request_id,
+            error_code="RESOURCE_NOT_FOUND",
+            retryable=False,
+            took_ms=took_ms,
+            message="질문과 관련된 검색 결과를 찾지 못했습니다.",
+        )
+        return error_response(
+            request_id=request_id,
+            error_code="RESOURCE_NOT_FOUND",
+            message="질문과 관련된 검색 결과를 찾지 못했습니다.",
+            retryable=False,
+            details={"query": request.query},
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
@@ -250,7 +299,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
-    used_top_k = len(context) if request.use_search_results and request.search_results else request.top_k
+    used_top_k = min(request.top_k, len(context)) if request.top_k > 0 else len(context)
     _log_success(
         endpoint="/api/v1/qa",
         request_id=request_id,
@@ -277,5 +326,9 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         search_trace={
             "used_top_k": used_top_k,
             "retrieved_count": len(context),
+            "context_budget_chars": context_trace["context_budget_chars"],
+            "context_used_chars": context_trace["context_used_chars"],
+            "context_truncated_count": context_trace["context_truncated_count"],
+            "context_dropped_count": context_trace["context_dropped_count"],
         },
     )

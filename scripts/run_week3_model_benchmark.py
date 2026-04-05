@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import statistics
 import time
 from datetime import datetime
@@ -37,11 +38,48 @@ def _extract_json(text: str) -> Dict[str, Any]:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(text[start : end + 1])
-        raise
+        pass
+
+    # Fallback 1: extract from fenced json block.
+    fence = "```json"
+    if fence in text and "```" in text[text.find(fence) + len(fence) :]:
+        block_start = text.find(fence) + len(fence)
+        block_end = text.find("```", block_start)
+        if block_end > block_start:
+            candidate = text[block_start:block_end].strip()
+            if candidate:
+                try:
+                    return json.loads(candidate)
+                except json.JSONDecodeError:
+                    pass
+
+    # Fallback 2: scan all { ... } ranges and pick the first valid object.
+    starts = [i for i, ch in enumerate(text) if ch == "{"]
+    ends = [i for i, ch in enumerate(text) if ch == "}"]
+    for start in starts:
+        for end in reversed(ends):
+            if end <= start:
+                continue
+            candidate = text[start : end + 1]
+            try:
+                loaded = json.loads(candidate)
+                if isinstance(loaded, dict):
+                    return loaded
+            except json.JSONDecodeError:
+                continue
+
+    raise json.JSONDecodeError("JSON object not found in model response", text, 0)
+
+
+def _has_meaningful_payload(parsed: Dict[str, Any]) -> bool:
+    if not isinstance(parsed, dict):
+        return False
+    answer = str(parsed.get("answer", "")).strip()
+    citations = parsed.get("citations", [])
+    if isinstance(citations, dict):
+        citations = [citations]
+    has_citations = isinstance(citations, list) and len(citations) > 0
+    return bool(answer) or has_citations
 
 
 def _normalize_confidence(value: Any) -> float:
@@ -65,19 +103,54 @@ def _normalize_confidence(value: Any) -> float:
 def _build_prompt(query: str, context: List[Dict[str, Any]]) -> str:
     context_lines = []
     for i, row in enumerate(context, start=1):
+        snippet = str(row["snippet"]).replace("\n", " ").strip()
+        snippet = snippet[:180]
         context_lines.append(
             f"[{i}] chunk_id={row['chunk_id']} case_id={row['case_id']} score={row.get('score', 0.0)}\\n"
-            f"snippet={row['snippet']}"
+            f"snippet={snippet}"
         )
 
     return (
-        "검색 기반 QA입니다. 오직 JSON만 출력하세요.\\n"
+        "검색 기반 QA입니다. 반드시 JSON 객체 1개만 출력하세요(설명 금지).\\n"
         "스키마: {\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],\"confidence\":\"low|medium|high\",\"limitations\":\"string\"}.\\n"
+        "제약: answer는 2문장 이내, citations는 최대 2개.\\n"
         "주의: citations는 아래 근거 목록의 chunk_id/case_id/snippet만 사용하세요.\\n\\n"
         f"질문: {query}\\n\\n"
         "검색 컨텍스트:\\n"
         + "\\n".join(context_lines)
     )
+
+
+def _recover_partial_payload(text: str) -> Dict[str, Any]:
+    raw = text.strip()
+    answer = ""
+    citations: List[Dict[str, Any]] = []
+    confidence = ""
+    limitations = ""
+
+    answer_match = re.search(r'"answer"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', raw)
+    if answer_match:
+        answer = answer_match.group(1).replace('\\n', ' ').replace('\\"', '"').strip()
+
+    confidence_match = re.search(r'"confidence"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', raw)
+    if confidence_match:
+        confidence = confidence_match.group(1).strip()
+
+    limitations_match = re.search(r'"limitations"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)', raw)
+    if limitations_match:
+        limitations = limitations_match.group(1).replace('\\n', ' ').replace('\\"', '"').strip()
+
+    if not answer:
+        # Last-resort: keep a short clean plain-text answer so benchmark can track non-empty outputs.
+        cleaned = raw.replace("\\n", " ").strip()
+        answer = cleaned[:220]
+
+    return {
+        "answer": answer,
+        "citations": citations,
+        "confidence": confidence,
+        "limitations": limitations,
+    }
 
 
 def _list_installed_models(base_url: str, timeout_sec: int) -> set[str]:
@@ -86,7 +159,14 @@ def _list_installed_models(base_url: str, timeout_sec: int) -> set[str]:
         resp = client.get(url)
         resp.raise_for_status()
         data = resp.json()
-    return {m.get("name", "") for m in data.get("models", [])}
+    models = {m.get("name", "") for m in data.get("models", [])}
+    # Normalize by adding both full name and base name (without tag)
+    normalized = set()
+    for name in models:
+        normalized.add(name)
+        if ':' in name:
+            normalized.add(name.split(':')[0])  # Also add without tag
+    return normalized
 
 
 def _call_model(
@@ -104,22 +184,43 @@ def _call_model(
         "model": model_name,
         "prompt": prompt,
         "stream": False,
-        "format": "json",
         "options": {
             "temperature": temperature,
             "num_ctx": num_ctx,
             "num_predict": num_predict,
         },
     }
+
+    # First attempt: strict JSON mode for fast/clean parse.
+    payload_json = dict(payload)
+    payload_json["format"] = "json"
+
     start = time.perf_counter()
     with httpx.Client(timeout=timeout_sec) as client:
-        resp = client.post(url, json=payload)
+        resp = client.post(url, json=payload_json)
         resp.raise_for_status()
         raw = resp.json()
     latency = time.perf_counter() - start
     response_text = str(raw.get("response", "")).strip()
     parsed = _extract_json(response_text)
-    return parsed, latency, response_text
+
+    # AX4 can return '{}' in strict mode even when normal mode has usable content.
+    if _has_meaningful_payload(parsed):
+        return parsed, latency, response_text
+
+    start_fallback = time.perf_counter()
+    with httpx.Client(timeout=timeout_sec) as client:
+        resp_fb = client.post(url, json=payload)
+        resp_fb.raise_for_status()
+        raw_fb = resp_fb.json()
+    latency += time.perf_counter() - start_fallback
+
+    response_text_fb = str(raw_fb.get("response", "")).strip()
+    try:
+        parsed_fb = _extract_json(response_text_fb)
+    except json.JSONDecodeError:
+        parsed_fb = _recover_partial_payload(response_text_fb)
+    return parsed_fb, latency, response_text_fb
 
 
 def _citation_match_rate(citations: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> float:
@@ -341,17 +442,21 @@ def _write_summary_md(report: Dict[str, Any], out_path: Path) -> None:
     lines.append("# Week3 모델 벤치마크 요약")
     lines.append("")
     lines.append(f"- 생성 시각: {report['generated_at']}")
-    cfg = report["config"]
-    lines.append(
-        f"- 조건: temp={cfg['temperature']}, num_ctx={cfg['num_ctx']}, num_predict={cfg['num_predict']}, timeout={cfg['timeout_sec']}s"
-    )
-    lines.append(f"- 케이스 수: {cfg['cases_count']}")
+    cfg = report.get("config", {})
+    if cfg:
+        lines.append(
+            f"- 조건: temp={cfg['temperature']}, num_ctx={cfg['num_ctx']}, num_predict={cfg['num_predict']}, timeout={cfg['timeout_sec']}s"
+        )
+        lines.append(f"- 케이스 수: {cfg['cases_count']}")
+    else:
+        lines.append("- 조건: N/A (실행 인프라 오류)")
+        lines.append("- 케이스 수: N/A")
     lines.append("- 추가 지표: scenario_type/risk_level/requires_multi_request/time_sensitivity 슬라이스")
     lines.append("")
     lines.append("| model | status | parse_success_rate | answer_non_empty_rate | citation_match_rate | avg_latency_sec | p95_latency_sec |")
     lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: |")
 
-    for row in report["summary"]:
+    for row in report.get("summary", []):
         lines.append(
             "| {model_name} | {status} | {parse_success_rate} | {answer_non_empty_rate} | {citation_match_rate} | {avg_latency_sec} | {p95_latency_sec} |".format(
                 model_name=row.get("model_name", ""),
@@ -421,18 +526,34 @@ def main() -> None:
     output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report = run(config_path=config_path, cases_path=cases_path, target_model_id=args.model)
-
     # 모델별 파일명 결정
     if args.model:
-        # 특정 모델 운영 중: model_benchmark_candidate_{model_id}.json
+        # 특정 모델 운영 중: model_benchmark_{model_id}.json
         model_id = args.model
-        report_json = output_dir / f"model_benchmark_candidate_{model_id}.json"
+        report_json = output_dir / f"model_benchmark_{model_id}.json"
     else:
         # 모든 모델 운영: model_benchmark_report.json
         report_json = output_dir / "model_benchmark_report.json"
     
     summary_md = report_json.with_suffix(".md")
+
+    try:
+        report = run(config_path=config_path, cases_path=cases_path, target_model_id=args.model)
+    except Exception as exc:
+        report = {
+            "benchmark_name": "week3_llm_model_benchmark",
+            "generated_at": datetime.now().astimezone().isoformat(),
+            "status": "infra_error",
+            "error": str(exc),
+            "summary": [
+                {
+                    "model_id": args.model or "all",
+                    "status": "infra_error",
+                    "message": "Ollama 연결 실패 또는 모델 미기동",
+                }
+            ],
+            "results": [],
+        }
 
     report_json.write_text(
         json.dumps(report, ensure_ascii=False, indent=2),

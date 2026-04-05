@@ -1,0 +1,29 @@
+benchmark:
+  name: week3_llm_model_benchmark_exaone_tune_stage2_ctx2048
+  description: EXAONE A/B rerun stage 2 - num_ctx 2048, num_predict 128.
+  base_url: http://localhost:11434
+  temperature: 0.2
+  num_predict: 128
+  num_ctx: 2048
+  timeout_sec: 90
+  repetitions_per_case: 1
+  response_format: json
+
+models:
+  - id: candidate_exaone_3_5_7_8b
+    model_name: exaone3.5:7.8b-instruct
+    role: candidate
+    note: Korean domain-friendly model family.
+
+metrics:
+  - parse_success_rate
+  - answer_non_empty_rate
+  - citation_match_rate
+  - avg_latency_sec
+  - p95_latency_sec
+  - scenario_slice_metrics
+
+outputs:
+  report_json: logs/evaluation/week3/exaone_stage2_ctx2048/model_benchmark_report_final.json
+  summary_md: logs/evaluation/week3/exaone_stage2_ctx2048/model_benchmark_summary.md
+  individual_results_dir: logs/evaluation/week3/exaone_stage2_ctx2048/

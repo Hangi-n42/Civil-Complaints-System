@@ -1,11 +1,65 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List
 
 import streamlit as st
 from urllib import error as urlerror
 from urllib import request as urlrequest
+
+
+def _extract_admin_units_from_text(text: str) -> list[str]:
+    """텍스트에서 부서(ADMIN_UNIT) 후보를 가볍게 추출한다.
+
+    BE 검색 결과에는 보통 entity_labels만 있고 entity text가 없어서,
+    워크벤치 유사민원 UI 데모 안정성을 위해 UI 레이어에서만 사용하는 휴리스틱이다.
+    """
+
+    if not text:
+        return []
+
+    candidates: list[str] = []
+    patterns = [
+        r"\b\d{1,2}\s*부서\b",  # 1부서, 2 부서
+        r"[가-힣]{2,}(?:과|팀|국|실)\b",  # 도로과, 환경팀, 교통국
+    ]
+
+    for pat in patterns:
+        for m in re.finditer(pat, text):
+            token = (m.group(0) or "").strip()
+            if token and token not in candidates:
+                candidates.append(token)
+
+    return candidates[:5]
+
+
+def _build_department_tracks(
+    *,
+    admin_units: list[str],
+    complaint: str,
+    default_answer: str,
+    answers_by_unit: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    tracks: list[dict[str, Any]] = []
+    answers_by_unit = answers_by_unit if isinstance(answers_by_unit, dict) else None
+
+    for unit in admin_units:
+        unit_answer = ""
+        if answers_by_unit and unit in answers_by_unit:
+            unit_answer = str(answers_by_unit.get(unit) or "").strip()
+        if not unit_answer:
+            unit_answer = default_answer or "(부서별 답변 데이터 없음)"
+
+        tracks.append(
+            {
+                "admin_unit": unit,
+                "complaint": complaint,
+                "answer": unit_answer,
+            }
+        )
+
+    return tracks
 
 
 def get_friendly_error_message(err_code: int, raw_msg: str) -> str:
@@ -167,3 +221,170 @@ def search_cases_via_api_with_filters(
         else "검색 응답 처리 실패"
     )
     return [], get_friendly_error_message(0, raw_msg)
+
+
+def search_similar_cases_for_workbench(query: str, top_k: int = 5) -> tuple[List[Dict[str, Any]], str | None]:
+    """워크벤치(스크린샷) 테이블에 바로 넣을 유사 민원 rows를 만든다.
+
+    - API 사용 가능하면 /api/v1/search 결과를 축약 변환
+    - mock/오류면 UI 고정 더미 2개로 폴백
+    """
+
+    if not query:
+        query = "유사 민원"
+
+    # In demo mode, avoid noisy errors and show stable rows.
+    if st.session_state.get("ui_force_mock", False):
+        return (
+            [
+                {
+                    "case_id": "CASE_20231102-09",
+                    "date": "2023.11.02",
+                    "similarity": "92%",
+                    "status": "COMPLETED",
+                    "complaint": "지하차도 진입부 조명이 소등되어 야간 시야 확보가 어렵습니다. 조속한 점검이 필요합니다.",
+                    "answer": "현장 점검을 실시하고 고장 가로등을 교체하겠습니다. 임시 안전 표지 설치 후 복구 일정을 안내드립니다.",
+                    "department_tracks": [
+                        {
+                            "admin_unit": "도로과",
+                            "complaint": "지하차도 진입부 조명이 소등되어 야간 시야 확보가 어렵습니다.",
+                            "answer": "현장 점검 후 고장 조명을 교체하고, 복구 일정을 안내하겠습니다.",
+                        }
+                    ],
+                },
+                {
+                    "case_id": "CASE_20240115-04",
+                    "date": "2024.01.15",
+                    "similarity": "88%",
+                    "status": "COMPLETED",
+                    "complaint": "아파트 인근 무단투기로 악취가 심합니다. 단속 강화와 CCTV 설치 검토를 요청합니다.",
+                    "answer": "관계 부서와 합동 단속을 진행하고 취약 시간대 순찰을 강화하겠습니다. CCTV 설치는 현장 여건 검토 후 추진하겠습니다.",
+                    "department_tracks": [
+                        {
+                            "admin_unit": "1부서",
+                            "complaint": "무단투기 단속 강화 요청",
+                            "answer": "취약 시간대 합동 단속을 우선 시행하고, 계도문 부착 및 수거 주기를 조정하겠습니다.",
+                        },
+                        {
+                            "admin_unit": "2부서",
+                            "complaint": "악취 민원(현장 정비) 요청",
+                            "answer": "현장 정비 및 소독을 진행하고, 재발 구간에 임시 적치 금지 안내물을 설치하겠습니다.",
+                        },
+                        {
+                            "admin_unit": "3부서",
+                            "complaint": "CCTV 설치 검토 요청",
+                            "answer": "설치 후보 지점을 현장 여건(전원/사각지대/민원 빈도) 기준으로 검토 후 설치 계획을 회신하겠습니다.",
+                        },
+                    ],
+                },
+            ],
+            None,
+        )
+
+    results, err = search_cases_via_api_with_filters(
+        query=query,
+        top_k=top_k,
+        date_range=(None, None),
+        region="전체",
+        category="전체",
+        entity_labels=[],
+    )
+
+    if err or not results:
+        return (
+            [
+                {
+                    "case_id": "CASE_20231102-09",
+                    "date": "2023.11.02",
+                    "similarity": "92%",
+                    "status": "COMPLETED",
+                    "complaint": "지하차도 진입부 조명이 소등되어 야간 시야 확보가 어렵습니다. 조속한 점검이 필요합니다.",
+                    "answer": "현장 점검을 실시하고 고장 가로등을 교체하겠습니다. 임시 안전 표지 설치 후 복구 일정을 안내드립니다.",
+                    "department_tracks": [
+                        {
+                            "admin_unit": "도로과",
+                            "complaint": "지하차도 진입부 조명 소등",
+                            "answer": "현장 점검 후 고장 조명을 교체하고, 복구 일정을 안내하겠습니다.",
+                        }
+                    ],
+                },
+                {
+                    "case_id": "CASE_20240115-04",
+                    "date": "2024.01.15",
+                    "similarity": "88%",
+                    "status": "COMPLETED",
+                    "complaint": "아파트 인근 무단투기로 악취가 심합니다. 단속 강화와 CCTV 설치 검토를 요청합니다.",
+                    "answer": "관계 부서와 합동 단속을 진행하고 취약 시간대 순찰을 강화하겠습니다. CCTV 설치는 현장 여건 검토 후 추진하겠습니다.",
+                    "department_tracks": [
+                        {
+                            "admin_unit": "1부서",
+                            "complaint": "무단투기 단속 강화 요청",
+                            "answer": "취약 시간대 합동 단속을 우선 시행하고, 계도문 부착 및 수거 주기를 조정하겠습니다.",
+                        },
+                        {
+                            "admin_unit": "2부서",
+                            "complaint": "악취 민원(현장 정비) 요청",
+                            "answer": "현장 정비 및 소독을 진행하고, 재발 구간에 임시 적치 금지 안내물을 설치하겠습니다.",
+                        },
+                        {
+                            "admin_unit": "3부서",
+                            "complaint": "CCTV 설치 검토 요청",
+                            "answer": "설치 후보 지점을 현장 여건(전원/사각지대/민원 빈도) 기준으로 검토 후 설치 계획을 회신하겠습니다.",
+                        },
+                    ],
+                },
+            ],
+            err,
+        )
+
+    rows: List[Dict[str, Any]] = []
+    for item in results[: max(1, int(top_k or 5))]:
+        case_id = str(item.get("case_id") or item.get("doc_id") or "-")
+        created_at = item.get("created_at") or (item.get("metadata", {}) or {}).get("created_at")
+        date_text = str(created_at or "-")
+        try:
+            score = float(item.get("score", item.get("similarity_score", 0.0)) or 0.0)
+        except (TypeError, ValueError):
+            score = 0.0
+
+        summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+        complaint = str(summary.get("observation") or item.get("title") or item.get("snippet") or "").strip()
+        answer = str(
+            summary.get("request")
+            or item.get("answer")
+            or item.get("final_answer")
+            or item.get("response")
+            or (item.get("metadata", {}) or {}).get("answer")
+            or ""
+        ).strip()
+        if not answer:
+            # 데이터셋/인덱스에 '답변' 필드가 없는 경우에도 UI는 두 칸을 유지한다.
+            answer = "(답변 데이터 없음)"
+
+        # 복합 민원(다부서) 데모를 위한 부서 트랙 구성
+        answers_by_unit = (
+            item.get("answers_by_admin_unit")
+            or item.get("department_answers")
+            or (item.get("metadata", {}) or {}).get("answers_by_admin_unit")
+            or (item.get("metadata", {}) or {}).get("department_answers")
+        )
+        admin_units = _extract_admin_units_from_text(complaint) or _extract_admin_units_from_text(str(item.get("snippet") or ""))
+        department_tracks = _build_department_tracks(
+            admin_units=admin_units,
+            complaint=complaint,
+            default_answer=answer,
+            answers_by_unit=answers_by_unit if isinstance(answers_by_unit, dict) else None,
+        )
+
+        rows.append(
+            {
+                "case_id": case_id,
+                "date": date_text,
+                "similarity": f"{int(round(score * 100))}%",
+                "status": "COMPLETED" if score >= 0.5 else "PENDING",
+                "complaint": complaint,
+                "answer": answer,
+                "department_tracks": department_tracks,
+            }
+        )
+    return rows, None

@@ -1,262 +1,172 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""Issue #101-2 metadata normalization validator.
+
+검증 범위:
+1) REGION_MAPPING.yaml 구조 및 검증 섹션
+2) CATEGORY_ENUM.yaml 구조 및 검증 섹션
+3) evaluation_set.json의 scenario_type이 CATEGORY allowed_values에 포함되는지
 """
-Issue #101-2: Metadata Normalization Validation Script
-목적: REGION_MAPPING.yaml, CATEGORY_ENUM.yaml 검증
-작성: 2026-03-31 BE2 Engineer
-"""
+
+from __future__ import annotations
 
 import json
-import yaml
-from pathlib import Path
-from collections import defaultdict
+from collections import Counter
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
-def load_yaml(filepath):
-    """YAML 파일 로드"""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+import yaml
 
-def load_evaluation_set(filepath):
-    """evaluation_set.json 로드"""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        return json.load(f)
 
-def validate_region_mapping():
-    """REGION_MAPPING 검증"""
-    print("\n" + "="*80)
-    print("REGION MAPPING VALIDATION")
-    print("="*80)
-    
-    regions = load_yaml("configs/REGION_MAPPING.yaml")
-    
-    # 메인 지역 검증
-    allowed_regions = regions.get('validation', {}).get('allowed_values', [])
-    print(f"\n[✓] 정의된 지역 수: {len(allowed_regions)}")
-    print(f"    Regions: {', '.join(allowed_regions)}")
-    
-    # 각 지역의 별칭 검증
-    alias_count = 0
-    for region, config in regions.items():
-        if isinstance(config, dict) and 'aliases' in config:
-            alias_count += len(config.get('aliases', []))
-        if isinstance(config, dict) and 'districts' in config:
-            alias_count += sum(len(v) if isinstance(v, list) else 1 
-                              for v in config.get('districts', {}).values())
-    
-    print(f"[✓] 정의된 별칭 수: {alias_count}")
-    
-    mapping_rules = regions.get('mapping_rules', [])
-    print(f"[✓] 매핑 규칙 수: {len(mapping_rules)}")
-    
-    import re
-    return {
-        'status': 'PASS',
-        'region_count': len(allowed_regions),
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-        # 기본 구조 검증
+def _load_yaml(path: Path) -> Dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        payload = yaml.safe_load(f)
+    if not isinstance(payload, dict):
+        raise ValueError(f"YAML payload must be object: {path}")
+    return payload
+
+
+def _load_json_list(path: Path) -> List[Dict[str, Any]]:
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, list):
+        raise ValueError(f"JSON payload must be list: {path}")
+    return payload
+
+
+def validate_region_mapping(path: Path) -> Dict[str, Any]:
+    regions = _load_yaml(path)
+    validation = regions.get("validation", {})
+    allowed = validation.get("allowed_values", [])
+    mapping_rules = regions.get("mapping_rules", [])
+
+    if not isinstance(allowed, list) or not allowed:
         return {
-            'exists': True,
-            'size': len(content),
-            'lines': len(content.split('\n'))
+            "status": "FAIL",
+            "error": "validation.allowed_values missing or empty",
+            "region_count": 0,
+            "alias_count": 0,
         }
-    }
 
-def validate_category_enum():
-    """CATEGORY_ENUM 검증"""
-    print("\n" + "="*80)
-    print("CATEGORY ENUM VALIDATION")
-    print("="*80)
-        regions = load_yaml("configs/REGION_MAPPING.yaml")
-    
-        # 파일 존재 및 크기 검증
-        print(f"\n[✓] REGION_MAPPING.yaml 파일 크기: {regions['size']} bytes")
-        print(f"[✓] 파일 라인 수: {regions['lines']}")
-        print(f"[✓] 메인 지역: 서울, 경기, 인천, 강원, 대구, 경북, 경남, 부산, 울산, 광주, 전북, 전남, 충북, 충남, 대전, 세종, 제주")
-    print(f"    Categories: {', '.join(allowed_categories)}")
-    
-    # 각 카테고리의 상세 정보 검증
-    detail_count = 0
-    sla_coverage = defaultdict(list)
-    
-    for cat_key, cat_config in categories.items():
-        categories = load_yaml("configs/CATEGORY_ENUM.yaml")
-    
-        # 파일 검증
-        print(f"\n[✓] CATEGORY_ENUM.yaml 파일 크기: {categories['size']} bytes")
-        print(f"[✓] 파일 라인 수: {categories['lines']}")
-    
-        allowed_categories = ['road_safety', 'traffic', 'public_transport', 'waste', 'water_quality',
-                             'construction_dust', 'flood', 'sinkhole', 'fire_hazard', 'winter_road',
-                             'noise', 'school_zone', 'welfare', 'accessibility', 'administrative_delay',
-                             'multi_request']
-        print(f"\n[✓] 정의된 카테고리 수: {len(allowed_categories)}")
-        print(f"    Categories: {', '.join(sorted(allowed_categories))}")
-    
-    print(f"[✓] 상세 설정 포함 카테고리: {detail_count}")
-    
-    # SLA 카테고리 분포
-    print(f"\n[✓] SLA 카테고리 분포:")
-    for priority in ['critical', 'high', 'medium', 'low']:
-        cats = sla_coverage.get(priority, [])
-        print(f"    {priority:10} ({len(cats):2}개): {', '.join(cats)}")
-    
-    # 별칭 검증
     alias_count = 0
-        allowed_categories = set(['road_safety', 'traffic', 'public_transport', 'waste', 'water_quality',
-                                 'construction_dust', 'flood', 'sinkhole', 'fire_hazard', 'winter_road',
-                                 'noise', 'school_zone', 'welfare', 'accessibility', 'administrative_delay',
-                                 'multi_request'])
-    print(f"[✓] 정의된 별칭 수: {alias_count}")
-    
+    for _, config in regions.items():
+        if isinstance(config, dict):
+            aliases = config.get("aliases", [])
+            if isinstance(aliases, list):
+                alias_count += len(aliases)
+
+            districts = config.get("districts", {})
+            if isinstance(districts, dict):
+                for _, district_aliases in districts.items():
+                    if isinstance(district_aliases, list):
+                        alias_count += len(district_aliases)
+                    elif isinstance(district_aliases, str):
+                        alias_count += 1
+
     return {
-        'status': 'PASS',
-        'category_count': len(allowed_categories),
-        'detail_count': detail_count,
-        'alias_count': alias_count
+        "status": "PASS",
+        "region_count": len(allowed),
+        "alias_count": alias_count,
+        "mapping_rule_count": len(mapping_rules) if isinstance(mapping_rules, list) else 0,
     }
 
-def validate_evaluation_set_coverage():
-    """evaluation_set.json에서 필요한 메타데이터 검증"""
-    print("\n" + "="*80)
-    print("EVALUATION SET COVERAGE VALIDATION")
-    print("="*80)
-    
-    evaluation_set = load_evaluation_set(
-        "docs/40_delivery/week3/model_test_assets/evaluation_set.json"
-    )
-    
-    categories_yaml = load_yaml("configs/CATEGORY_ENUM.yaml")
-    allowed_categories = set(
-        categories_yaml.get('validation', {}).get('allowed_values', [])
-    )
-    
-    # evaluation_set에서 scenario_type 추출
-    scenario_types = set()
-    for case in evaluation_set:
-        if isinstance(case, dict) and 'scenario_type' in case:
-            scenario_types.add(case['scenario_type'])
-    
-    print(f"\n[✓] evaluation_set 케이스 수: {len(evaluation_set)}")
-    print(f"[✓] 발견된 scenario_type 수: {len(scenario_types)}")
-    print(f"    Types: {', '.join(sorted(scenario_types))}")
-            try:
-                region_result = validate_region_mapping()
-            except Exception as e:
-                print(f"[Error in region validation: {e}]")
-                region_result = {'status': 'INTERNAL_ERROR', 'region_count': 0, 'alias_count': 0}
-        
-            try:
-                category_result = validate_category_enum()
-            except Exception as e:
-                print(f"[Error in category validation: {e}]")
-                category_result = {'status': 'INTERNAL_ERROR', 'category_count': 0, 'detail_count': 0, 'alias_count': 0}
-        
-            try:
-                coverage_result = validate_evaluation_set_coverage()
-            except Exception as e:
-                print(f"[Error in coverage validation: {e}]")
-                coverage_result = {'status': 'INTERNAL_ERROR', 'total_cases': 0, 'mapped_count': 0, 'scenario_type_count': 0, 'unmapped_types': []}
-        
-            all_pass = generate_report(region_result, category_result, coverage_result)
-    mapped_count = len(scenario_types - unmapped_types)
-    
-    print(f"\n[✓] 매핑 가능한 scenario_type: {mapped_count}/{len(scenario_types)}")
-    
-    if unmapped_types:
-        print(f"[!] 매핑 불가능한 scenario_type: {unmapped_types}")
-        status = 'WARNING'
-    else:
-        print(f"[✓] 모든 scenario_type이 카테고리에 매핑됨")
-        status = 'PASS'
-    
-    # 분포 확인
-    type_distribution = defaultdict(int)
-    for case in evaluation_set:
-        if isinstance(case, dict) and 'scenario_type' in case:
-            type_distribution[case['scenario_type']] += 1
-    
-    print(f"\n[✓] scenario_type 분포:")
-    for stype in sorted(type_distribution.keys()):
-        count = type_distribution[stype]
-        pct = (count / len(evaluation_set)) * 100
-        print(f"    {stype:20} ({count:3} cases, {pct:5.1f}%)")
-    
+
+def validate_category_enum(path: Path) -> Dict[str, Any]:
+    categories = _load_yaml(path)
+    validation = categories.get("validation", {})
+    allowed = validation.get("allowed_values", [])
+
+    if not isinstance(allowed, list) or not allowed:
+        return {
+            "status": "FAIL",
+            "error": "validation.allowed_values missing or empty",
+            "category_count": 0,
+            "alias_count": 0,
+            "detail_count": 0,
+        }
+
+    detail_count = 0
+    alias_count = 0
+    for key, config in categories.items():
+        if key in {"mapping_rules", "validation"}:
+            continue
+        if isinstance(config, dict):
+            detail_count += 1
+            aliases = config.get("aliases", [])
+            if isinstance(aliases, list):
+                alias_count += len(aliases)
+
     return {
-        'status': status,
-        'total_cases': len(evaluation_set),
-        'scenario_type_count': len(scenario_types),
-        'mapped_count': mapped_count,
-        'unmapped_types': list(unmapped_types)
+        "status": "PASS",
+        "category_count": len(allowed),
+        "alias_count": alias_count,
+        "detail_count": detail_count,
     }
 
-def generate_report(region_result, category_result, coverage_result):
-    """종합 보고서 생성"""
-    print("\n" + "="*80)
-    print("METADATA NORMALIZATION VALIDATION REPORT")
-    print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("="*80)
-    
-    print("\n[SUMMARY]")
-    print(f"  Region Mapping:         {region_result['status']}")
-    print(f"  Category Enum:          {category_result['status']}")
-    print(f"  Evaluation Set Coverage: {coverage_result['status']}")
-    
-    print("\n[DETAILS]")
-    print(f"  - Region count:           {region_result['region_count']}")
-    print(f"  - Region aliases:         {region_result['alias_count']}")
-    print(f"  - Category count:         {category_result['category_count']}")
-    print(f"  - Category details:       {category_result['detail_count']}")
-    print(f"  - Category aliases:       {category_result['alias_count']}")
-    print(f"  - Evaluation set cases:   {coverage_result['total_cases']}")
-    print(f"  - Mapped scenario types:  {coverage_result['mapped_count']}/{coverage_result['scenario_type_count']}")
-    
-    if coverage_result['unmapped_types']:
-        print(f"\n[WARNINGS]")
-        print(f"  Unmapped scenario_types: {coverage_result['unmapped_types']}")
-    else:
-        print(f"\n[✓] All validations PASSED - Ready for Issue #101-3")
-    
-    # 저장파일 표시
-    print(f"\n[OUTPUT FILES]")
-    print(f"  - {Path('configs/REGION_MAPPING.yaml').absolute()}")
-    print(f"  - {Path('configs/CATEGORY_ENUM.yaml').absolute()}")
-    
-    # Gate 기준 확인
-    print(f"\n[GATE CRITERIA for Issue #101-2]")
-    print(f"  ✓ REGION_MAPPING.yaml created: True")
-    print(f"  ✓ CATEGORY_ENUM.yaml created: True")
-    print(f"  ✓ Validation completion: 100%")
-    print(f"  ✓ Ready for Issue #101-3 (Embedding Pipeline): True")
-    
-    print("\n" + "="*80)
-    
-    return all([
-        region_result['status'] == 'PASS',
-        category_result['status'] == 'PASS'
-    ])
 
-if __name__ == "__main__":
+def validate_evaluation_set_coverage(eval_path: Path, category_path: Path) -> Dict[str, Any]:
+    evaluation_set = _load_json_list(eval_path)
+    category_yaml = _load_yaml(category_path)
+    allowed_categories = set(category_yaml.get("validation", {}).get("allowed_values", []))
+
+    scenario_types = [
+        str(case.get("scenario_type"))
+        for case in evaluation_set
+        if isinstance(case, dict) and case.get("scenario_type") is not None
+    ]
+    unique_scenario_types = sorted(set(scenario_types))
+    unmapped = sorted([s for s in unique_scenario_types if s not in allowed_categories])
+    distribution = Counter(scenario_types)
+
+    return {
+        "status": "PASS" if not unmapped else "WARNING",
+        "total_cases": len(evaluation_set),
+        "scenario_type_count": len(unique_scenario_types),
+        "mapped_count": len(unique_scenario_types) - len(unmapped),
+        "unmapped_types": unmapped,
+        "distribution": dict(distribution),
+    }
+
+
+def main() -> int:
+    region_path = Path("configs/REGION_MAPPING.yaml")
+    category_path = Path("configs/CATEGORY_ENUM.yaml")
+    eval_path = Path("docs/40_delivery/week3/model_test_assets/evaluation_set.json")
+
     print("\n[START] Issue #101-2 Metadata Normalization Validation")
     print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    try:
-        region_result = validate_region_mapping()
-        category_result = validate_category_enum()
-        coverage_result = validate_evaluation_set_coverage()
-        
-        all_pass = generate_report(region_result, category_result, coverage_result)
-        
-        if all_pass:
-            print("\n[✓ SUCCESS] Issue #101-2 completed successfully")
-            exit(0)
-        else:
-            print("\n[! WARNING] Issue #101-2 completed with warnings")
-            exit(1)
-    
-    except Exception as e:
-        print(f"\n[✕ ERROR] Validation failed: {e}")
-        import traceback
-        traceback.print_exc()
-        exit(1)
+
+    region_result = validate_region_mapping(region_path)
+    category_result = validate_category_enum(category_path)
+    coverage_result = validate_evaluation_set_coverage(eval_path, category_path)
+
+    print("\n[SUMMARY]")
+    print(f"  Region Mapping:          {region_result['status']}")
+    print(f"  Category Enum:           {category_result['status']}")
+    print(f"  Evaluation Set Coverage: {coverage_result['status']}")
+    print(
+        "  Mapped scenario types: "
+        f"{coverage_result['mapped_count']}/{coverage_result['scenario_type_count']}"
+    )
+
+    if coverage_result["unmapped_types"]:
+        print(f"  Unmapped types: {coverage_result['unmapped_types']}")
+
+    all_pass = (
+        region_result["status"] == "PASS"
+        and category_result["status"] == "PASS"
+        and coverage_result["status"] in {"PASS", "WARNING"}
+    )
+
+    print("\n[GATE CRITERIA for Issue #101-2]")
+    print(f"  REGION_MAPPING.yaml valid: {region_result['status'] == 'PASS'}")
+    print(f"  CATEGORY_ENUM.yaml valid:  {category_result['status'] == 'PASS'}")
+    print(f"  Evaluation set mapped:     {coverage_result['mapped_count'] > 0}")
+    print(f"  Ready for Issue #101-3:    {all_pass}")
+
+    return 0 if all_pass else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

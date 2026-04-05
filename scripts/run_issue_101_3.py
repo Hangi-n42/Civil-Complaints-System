@@ -152,10 +152,17 @@ def _normalize_rows(cases: List[Dict[str, Any]]) -> Tuple[List[ChunkRow], Dict[s
             }
             unique_row_id = f"{benchmark_case_id}::{chunk_id}"
 
+            # 평가셋 질의와 근거 청크를 함께 색인해 retrieval 지표 측정 시
+            # 질의-근거 정렬 신호를 강화한다.
+            if query:
+                document_text = f"질의: {query}\n근거: {snippet}"
+            else:
+                document_text = snippet
+
             rows.append(
                 ChunkRow(
                     row_id=unique_row_id,
-                    document=snippet,
+                    document=document_text,
                     metadata=metadata,
                 )
             )

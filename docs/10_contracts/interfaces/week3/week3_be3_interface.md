@@ -188,17 +188,17 @@ def index_endpoint(request: IndexRequest):
 
 ```bash
 # 개별 모델 테스트
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_exaone_3_5_7_8b
 
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_gemma3_12b
 
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_phi4_mini
@@ -347,3 +347,4 @@ python scripts/generate_week3_benchmark_report.py \
 - [ ] 메트릭 수집 및 정리
 - [ ] 모델별 리포트 생성
 - [ ] 최종 통합 리포트 작성
+

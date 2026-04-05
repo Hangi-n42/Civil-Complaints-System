@@ -19,6 +19,7 @@ from typing import Dict, Any, List, Optional
 from app.core.logging import pipeline_logger
 from app.core.exceptions import RetrievalError
 from app.core.config import settings
+from app.core.title_builder import build_case_title
 from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
 
 
@@ -376,18 +377,13 @@ class RetrievalService:
 
     def _build_title(self, chunk: Dict[str, Any], max_length: int = 60) -> str:
         summary = chunk.get("summary") or {}
-        observation = str(summary.get("observation") or "").strip()
-        request = str(summary.get("request") or "").strip()
-        category = str(chunk.get("category") or "민원").strip()
-
-        title_source = observation or request or str(chunk.get("chunk_text") or "").strip()
-        if not title_source:
-            title_source = f"{category} 관련 민원"
-
-        title = " ".join(title_source.split())
-        if len(title) <= max_length:
-            return title
-        return title[:max_length].rstrip() + "..."
+        return build_case_title(
+            observation=summary.get("observation"),
+            request=summary.get("request"),
+            chunk_text=chunk.get("chunk_text"),
+            category=chunk.get("category"),
+            max_length=max_length,
+        )
 
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100

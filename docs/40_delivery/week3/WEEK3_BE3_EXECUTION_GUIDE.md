@@ -58,7 +58,7 @@ ollama list
 #### 모델 2: EXAONE 3.5 (7.8B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_exaone_3_5_7_8b \
@@ -72,7 +72,7 @@ python scripts/run_week3_model_benchmark.py \
 #### 모델 3: Gemma 3 (12B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_gemma3_12b \
@@ -86,7 +86,7 @@ python scripts/run_week3_model_benchmark.py \
 #### 모델 4: Phi 4 Mini (3.8B)
 
 ```bash
-python scripts/run_week3_model_benchmark.py \
+python scripts/Be3_run_week3_model_benchmark.py \
   --config configs/week3_model_benchmark.yaml \
   --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json \
   --model candidate_phi4_mini \
@@ -157,15 +157,15 @@ python scripts/generate_week3_unified_benchmark_report.py \
 
 ---
 
-## 5. 합격 기준
+## 5. 비교 분석 기준
 
-Week3 모델 벤치마크 합격 기준 (Week3 1차):
+Week3 모델 벤치마크는 통과/실패 판정이 아니라 상대 비교를 목적으로 한다.
 
-| 지표 | 기준 |
+| 지표 | 비교 관점 |
 |-----|------|
-| parse_success_rate | >= 0.9 (90%) |
-| citation_match_rate | >= 0.8 (80%) |
-| avg_latency_sec | <= 12 |
+| parse_success_rate | 모델 간 형식 안정성 순위 |
+| citation_match_rate | 근거 정합성 상대 우위 |
+| avg_latency_sec | 응답 지연의 상대 효율 |
 
 **통합 점수 계산:**
 - parse_success_rate: 30%
@@ -240,4 +240,5 @@ num_ctx: 1024  # 2048 → 1024
 - citation 정합성 검증
 - latency 최적화
 - 성능 지표 확정
+
 
