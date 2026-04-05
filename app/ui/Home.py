@@ -14,8 +14,14 @@ import html
 from urllib import error as urlerror
 from urllib import request as urlrequest
 
-from app.ui.components.search_ui import render_search_filter, render_search_result_card
-from app.ui.services.search_service import post_json, search_cases_via_api_with_filters
+from app.ui.components.search_ui import (
+    render_search_filter,
+    render_search_result_card,
+    render_standard_status_banner,
+    render_citations_block,
+    render_limitations_block,
+)
+from app.ui.services.search_service import post_json, run_qa_via_api, search_cases_via_api_with_filters
 
 
 def load_model_benchmark_report() -> Dict[str, Any]:
@@ -79,6 +85,16 @@ st.markdown("""
     .stApp {
         background: var(--gray-bg);
         color: #0f172a;
+    }
+
+    /* Hide Streamlit top-right Deploy (robust across Streamlit versions) */
+    header [data-testid="stHeaderActionElements"],
+    header [data-testid="stToolbar"],
+    [data-testid="stToolbar"],
+    [data-testid="stToolbarActions"],
+    [data-testid="stToolbarActionElements"] {
+        display: none !important;
+        visibility: hidden !important;
     }
 
     /* Remove hyperlink look (black text, no underline) */
@@ -248,6 +264,180 @@ st.markdown("""
     div[data-testid="stElementContainer"]:has(.wb-draft-mini-btn-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button:hover {
         background: #f1f5f9 !important;
         border-color: #94a3b8 !important;
+    }
+
+    /* Workbench: style Streamlit buttons as existing wb-mini-btn */
+    .wb-mini-btn-anchor {
+        display: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-mini-btn-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button {
+        padding: 4px 10px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        height: auto !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-mini-btn-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    /* Wrapper-based styling (robust inside columns) */
+    .wb-mini-btn-wrap div[data-testid="stButton"] > button {
+        padding: 4px 10px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
+        line-height: 1.2 !important;
+        white-space: nowrap !important;
+        height: auto !important;
+        box-shadow: none !important;
+    }
+    .wb-mini-btn-wrap div[data-testid="stButton"] > button:hover {
+        background: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .wb-topnav-link-wrap div[data-testid="stButton"] > button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        font-size: 0.92rem !important;
+        box-shadow: none !important;
+        height: auto !important;
+    }
+
+    .wb-queue-link-wrap div[data-testid="stButton"] > button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        font-size: 0.86rem !important;
+        text-align: left !important;
+        box-shadow: none !important;
+        height: auto !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+    }
+
+    .wb-action-done-wrap div[data-testid="stButton"] > button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 46px !important;
+        width: 100% !important;
+        border-radius: 4px !important;
+        font-size: 0.92rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.01em !important;
+        background: #0b0b0b !important;
+        color: #ffffff !important;
+        border: 2px solid #0b0b0b !important;
+        box-shadow: none !important;
+    }
+    .wb-action-review-wrap div[data-testid="stButton"] > button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 46px !important;
+        width: 100% !important;
+        border-radius: 4px !important;
+        font-size: 0.92rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.01em !important;
+        background: #ffffff !important;
+        color: #0b0b0b !important;
+        border: 2px solid #0b0b0b !important;
+        box-shadow: none !important;
+    }
+
+    /* Workbench: style Streamlit buttons as existing wb-action-btn (done/review) */
+    .wb-action-done-anchor, .wb-action-review-anchor {
+        display: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-action-done-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 46px !important;
+        width: 100% !important;
+        border-radius: 4px !important;
+        font-size: 0.92rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.01em !important;
+        background: #0b0b0b !important;
+        color: #ffffff !important;
+        border: 2px solid #0b0b0b !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-action-review-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 46px !important;
+        width: 100% !important;
+        border-radius: 4px !important;
+        font-size: 0.92rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.01em !important;
+        background: #ffffff !important;
+        color: #0b0b0b !important;
+        border: 2px solid #0b0b0b !important;
+        box-shadow: none !important;
+    }
+
+    /* Workbench: style Streamlit buttons as topnav links */
+    .wb-topnav-link-anchor {
+        display: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-topnav-link-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        font-size: 0.92rem !important;
+        box-shadow: none !important;
+        height: auto !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-topnav-link-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button:hover {
+        background: transparent !important;
+        border: none !important;
+        text-decoration: none !important;
+    }
+
+    /* Workbench: case title buttons in left queue should look like plain links */
+    .wb-queue-link-anchor {
+        display: none !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-queue-link-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: #0f172a !important;
+        font-weight: 800 !important;
+        font-size: 0.86rem !important;
+        text-align: left !important;
+        box-shadow: none !important;
+        height: auto !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+    }
+    div[data-testid="stElementContainer"]:has(.wb-queue-link-anchor) + div[data-testid="stElementContainer"] div[data-testid="stButton"] button:hover {
+        background: transparent !important;
+        border: none !important;
     }
 
     .wb-table {
@@ -2128,7 +2318,14 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
 
     with st.spinner("AI 어시스턴트가 답변을 생성 중입니다... (약 8~12초)"):
         start_ts = time.time()
-        qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", qa_payload, timeout=35.0)
+        qa_data, qa_err = run_qa_via_api(
+            query=str(qa_payload.get("query") or ""),
+            top_k=int(qa_payload.get("top_k") or 5),
+            use_search_results=bool(qa_payload.get("use_search_results")),
+            search_results=qa_payload.get("search_results") or [],
+            filters=qa_payload.get("filters") if isinstance(qa_payload.get("filters"), dict) else None,
+            timeout=35.0,
+        )
         elapsed = time.time() - start_ts
         if elapsed < 8.0:
             time.sleep(8.0 - elapsed)
@@ -2174,7 +2371,7 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
         st.session_state.single_call_notice = "통합 워크벤치에서 답변 생성이 완료되었습니다."
         return
 
-    error_message = str(qa_data.get("error", {}).get("message", "QA 응답 생성 실패"))
+    error_message = str(qa_err or (qa_data.get("error", {}) or {}).get("message") or "QA 응답 생성 실패")
     st.session_state.chat_history.append(
         {
             "role": "assistant",
@@ -2358,7 +2555,14 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
     delay_seconds = random.uniform(8.0, 12.0)
     with st.spinner("내부 검색 모드로 /api/v1/qa 호출 중... (약 8~12초)"):
         start_ts = time.time()
-        qa_data, _, qa_err = post_json(st.session_state.api_base_url, "/api/v1/qa", payload, timeout=35.0)
+        qa_data, qa_err = run_qa_via_api(
+            query=str(payload.get("query") or ""),
+            top_k=int(payload.get("top_k") or 5),
+            use_search_results=bool(payload.get("use_search_results")),
+            search_results=payload.get("search_results") or [],
+            filters=payload.get("filters") if isinstance(payload.get("filters"), dict) else None,
+            timeout=35.0,
+        )
         elapsed = time.time() - start_ts
         if elapsed < delay_seconds:
             time.sleep(delay_seconds - elapsed)
@@ -2405,7 +2609,7 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
         st.session_state.single_call_notice = "유사 사례 검색 + 대응안 생성이 완료되었습니다. 2번 탭 우측 챗 패널을 확인하세요."
         return
 
-    error_message = str(qa_data.get("error", {}).get("message", "QA 응답 생성 실패"))
+    error_message = str(qa_err or (qa_data.get("error", {}) or {}).get("message") or "QA 응답 생성 실패")
     st.session_state.chat_history.append(
         {
             "role": "assistant",
@@ -2630,7 +2834,7 @@ def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> 
             st.caption(f"\"{structured['result']['evidence_span']}\"")
             
             st.divider()
-            st.markdown("**배경/맥락 (Context)**")
+            st.markdown("**배경/맥락**")
             with st.container(border=True):
                 st.markdown(structured["context"]["text"])
                 st.markdown(render_confidence_score(structured["context"]["confidence"]), unsafe_allow_html=True)
@@ -2823,17 +3027,23 @@ def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> 
         result_count = len(st.session_state.search_results)
         st.markdown(f"<div class='workbench-panel-title'>유사 사례 검색 결과 ({result_count}건)</div>", unsafe_allow_html=True)
         st.caption("워크벤치 검색 필터를 실행하면 아래에 유사 사례가 표시됩니다.")
-        if st.session_state.wb_search_state == "loading":
-            st.info("검색을 실행 중입니다...")
-        elif st.session_state.wb_search_state == "mock_mode":
-            st.info("Mock 모드(UI_FORCE_MOCK)로 기본 Mock 데이터를 표시합니다.")
-        elif st.session_state.wb_search_state == "error_fallback":
-            st.error(f"검색 서버 통신 오류가 발생했습니다: {st.session_state.wb_last_api_err}")
-            st.warning("기본 Mock 데이터를 로드하여 결과를 표시합니다.")
-        elif st.session_state.wb_search_state == "empty":
-            st.info("조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.")
-        elif st.session_state.wb_search_state == "success":
-            st.success(f"총 {len(st.session_state.search_results)}건의 유사 사례를 찾았습니다.")
+        banner_state = st.session_state.wb_search_state
+        banner_err = st.session_state.wb_last_api_err
+        if (banner_state or "").strip().lower() in ("error_fallback", "error") and banner_err:
+            banner_err = f"{banner_err} (Mock 데이터를 표시합니다.)"
+
+        render_standard_status_banner(
+            state=banner_state,
+            result_count=result_count,
+            error_message=banner_err,
+            idle_message="검색 조건을 입력한 뒤 ‘워크벤치 검색’을 실행하세요.",
+            loading_message="검색 요청을 처리 중입니다...",
+            empty_message="조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.",
+            success_message=(
+                f"총 {result_count}건의 유사 사례를 찾았습니다." if (banner_state == "success") else None
+            ),
+            mock_message="Mock 모드(UI_FORCE_MOCK)로 샘플 데이터를 표시합니다.",
+        )
 
         if st.session_state.search_results:
             for idx, item in enumerate(st.session_state.search_results[:5], start=1):
@@ -2889,36 +3099,16 @@ def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> 
                 st.markdown(f"<div class='chat-message-user'>{message.get('content', '')}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div class='chat-message-assistant'>{message.get('content', '')}</div>", unsafe_allow_html=True)
-                citations = message.get("citations", [])
-                if citations:
-                    for cidx, citation in enumerate(citations, start=1):
-                        ref_id = citation.get("ref_id", cidx)
-                        case_id = citation.get("case_id", "-")
-                        chunk_id = citation.get("chunk_id", "-")
-                        snippet = citation.get("snippet", "-")
-                        source = citation.get("source")
-                        rel = citation.get("relevance_score")
-                        tail = []
-                        if source:
-                            tail.append(str(source))
-                        if rel is not None:
-                            try:
-                                tail.append(f"score={float(rel):.2f}")
-                            except (TypeError, ValueError):
-                                pass
-                        tail_text = f" ({' | '.join(tail)})" if tail else ""
-
-                        st.markdown(
-                            f"<div class='workbench-citation-line'>• [출처 {ref_id}] {case_id} | {chunk_id}{tail_text}<br>{html.escape(str(snippet))}</div>",
-                            unsafe_allow_html=True,
-                        )
-
                 qa_validation = message.get("qa_validation")
                 if isinstance(qa_validation, dict) and qa_validation.get("is_valid") is False:
                     st.warning("QA 응답 검증에서 문제가 감지되었습니다. (qa_validation.is_valid=false)")
+                citations = message.get("citations", [])
+                render_citations_block(citations if isinstance(citations, list) else [], expanded=False)
+
                 limitations = message.get("limitations")
-                if limitations:
-                    st.info(f"제한사항: {limitations}")
+                has_limitations = bool(str(limitations).strip()) if isinstance(limitations, str) else bool(limitations)
+                render_limitations_block(limitations, expanded=has_limitations)
+
                 meta = message.get("meta", {})
                 if isinstance(meta, dict) and meta.get("validation_warning"):
                     st.caption(str(meta.get("validation_warning")))
@@ -3155,9 +3345,6 @@ def render_case_workbench_screen() -> None:
         st.rerun()
         return
 
-    current_status_kr = st.session_state.case_statuses.get(selected_case["case_id"], selected_case.get("status", "미처리"))
-    current_status_kr = str(current_status_kr or "").strip() or "미처리"
-
     # Query-param driven actions (HTML buttons)
     wb_action = _qp_first("wb_action")
     wb_mark = _qp_first("wb_mark")
@@ -3167,7 +3354,7 @@ def render_case_workbench_screen() -> None:
         else:
             st.session_state.case_statuses[selected_case["case_id"]] = "검토중"
         _save_case_statuses_to_cache(st.session_state.case_statuses)
-        # Move to next case in the left-list order (shown 7 cases)
+
         display_cases = list(st.session_state.mock_cases)
         display_cases = filter_cases_by_admin_unit(display_cases, str(st.session_state.get("wb_admin_unit", "전체")))
         display_cases = filter_cases_by_priority(display_cases, str(st.session_state.get("wb_priority_value", "전체")))
@@ -3183,7 +3370,6 @@ def render_case_workbench_screen() -> None:
             else:
                 next_case_id = ordered_ids[0]
 
-        # Update query param + session selection so the UI opens the next case
         if next_case_id:
             st.session_state.selected_case_id = next_case_id
             st.query_params["open_case"] = next_case_id
@@ -3238,7 +3424,7 @@ def render_case_workbench_screen() -> None:
         unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns([1, 1.2], gap="large")
+    col1, col2 = st.columns([1, 1], gap="small")
 
     # ----------------------------
     # LEFT: 민원 목록 (7개)
@@ -3284,8 +3470,6 @@ def render_case_workbench_screen() -> None:
             )
 
         with filter_row[3]:
-            # selectbox는 라벨이 위에 렌더링되지만 button은 그렇지 않아 상단 정렬처럼 보인다.
-            # 라벨 높이만큼 간격을 주어 필터와 일자로 맞춘다.
             st.markdown("<div style='height: 1.75rem'></div>", unsafe_allow_html=True)
             st.button("초기화", key="wb_reset_filters", use_container_width=True, on_click=_reset_wb_queue_filters)
 
@@ -3312,6 +3496,7 @@ def render_case_workbench_screen() -> None:
         list_cases_all = filter_cases_by_priority(list_cases_all, str(st.session_state.get("wb_priority_value", "전체")))
         list_cases_all = filter_cases_by_status(list_cases_all, st.session_state.case_statuses, str(st.session_state.get("wb_status_value", "전체")))
         list_cases = list(list_cases_all[:7])
+
         rows_html: list[str] = []
         for case in list_cases:
             cid = str(case.get("case_id", "-"))
@@ -3341,7 +3526,9 @@ def render_case_workbench_screen() -> None:
             )
 
         table_html = (
-            "<table class='wb-table wb-table-queue'>"
+            "<div class='wb-empty'>표시할 민원이 없습니다.</div>"
+            if not rows_html
+            else "<table class='wb-table wb-table-queue'>"
             "<thead><tr><th>제목</th><th>접수일</th><th>우선순위</th><th>상태</th></tr></thead>"
             f"<tbody>{''.join(rows_html)}</tbody>"
             "</table>"
@@ -3363,7 +3550,6 @@ def render_case_workbench_screen() -> None:
     # RIGHT: 상세/처리
     # ----------------------------
     with col2:
-        # Section 1: 원문 텍스트 (접기/펼치기 + 내부 스크롤)
         raw_text = selected_case.get("raw_text") or "[상수도사업본부] 안녕하세요..."
         raw_html = (
             "<div class='wb-card'>"
@@ -3380,7 +3566,6 @@ def render_case_workbench_screen() -> None:
         )
         st.markdown(raw_html, unsafe_allow_html=True)
 
-        # Section 2: 민원 요약 (AI 분석)
         observation = str(selected_case.get("structured", {}).get("observation", {}).get("text") or "-")
         problem = str(selected_case.get("structured", {}).get("result", {}).get("text") or "-")
         request = str(selected_case.get("structured", {}).get("request", {}).get("text") or "-")
@@ -3389,13 +3574,18 @@ def render_case_workbench_screen() -> None:
             <div class="wb-card">
                 <div class="wb-card-header">
                     <div class="wb-card-title">민원 요약 (AI 분석)</div>
-                    <div class="wb-conf-badge">CONFIDENCE: 98.4%</div>
+                        <div class="wb-conf-badge">신뢰도: 98.4%</div>
                 </div>
                 <table class="wb-table" style="border:none;table-layout:fixed;">
+                    <colgroup>
+                        <col style="width: 33%;" />
+                        <col style="width: 20%;" />
+                        <col style="width: 47%;" />
+                    </colgroup>
                     <thead><tr>
-                        <th style="border-top:1px solid #cbd5e1;">OBSERVATION</th>
-                        <th style="border-top:1px solid #cbd5e1;">PROBLEM</th>
-                        <th style="border-top:1px solid #cbd5e1;">REQUEST</th>
+                            <th style="border-top:1px solid #cbd5e1;">관찰</th>
+                            <th style="border-top:1px solid #cbd5e1;">결과</th>
+                            <th style="border-top:1px solid #cbd5e1;">요청</th>
                     </tr></thead>
                     <tbody><tr>
                         <td>{obs}</td>
@@ -3408,7 +3598,6 @@ def render_case_workbench_screen() -> None:
             unsafe_allow_html=True,
         )
 
-        # Section 3: 유사 민원 검색
         from app.ui.components.search_ui import render_similar_cases_collapsible
 
         cid = html.escape(str(selected_case.get("case_id", "")))
@@ -3429,16 +3618,14 @@ def render_case_workbench_screen() -> None:
         )
         st.markdown(similar_card_html, unsafe_allow_html=True)
 
-        # Section 4: 답변 초안 및 비교
-        cid = html.escape(str(selected_case.get("case_id", "")))
         st.markdown(
-            """
+            f"""
             <div class="wb-card">
                 <div class="wb-card-header">
                     <div class="wb-card-title">답변 초안 및 비교</div>
                     <a class="wb-mini-btn" href="?view=workbench&wb_action=draft&open_case={cid}" target="_self" onclick="window.location.assign('?view=workbench&wb_action=draft&open_case={cid}'); return false;">초안</a>
                 </div>
-            """.format(cid=cid),
+            """,
             unsafe_allow_html=True,
         )
 
@@ -3455,14 +3642,13 @@ def render_case_workbench_screen() -> None:
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-        cid = html.escape(str(selected_case.get("case_id", "")))
         st.markdown(
-            """
+            f"""
             <div class="wb-actions">
                 <a class="wb-action-btn wb-action-done" href="?view=workbench&wb_mark=done&open_case={cid}" target="_self" onclick="window.location.assign('?view=workbench&wb_mark=done&open_case={cid}'); return false;">처리완료</a>
                 <a class="wb-action-btn wb-action-review" href="?view=workbench&wb_mark=review&open_case={cid}" target="_self" onclick="window.location.assign('?view=workbench&wb_mark=review&open_case={cid}'); return false;">검토중</a>
             </div>
-            """.format(cid=cid),
+            """,
             unsafe_allow_html=True,
         )
 
@@ -3615,7 +3801,7 @@ def render_tab1_assigned_cases():
             with st.container(border=True):
                 col_obs_label, col_obs_conf = st.columns([3, 1])
                 with col_obs_label:
-                    st.markdown("**관찰 (Observation)**")
+                    st.markdown("**관찰**")
                 with col_obs_conf:
                     st.markdown(render_confidence_score(structured["observation"]["confidence"]), unsafe_allow_html=True)
                 
@@ -3626,7 +3812,7 @@ def render_tab1_assigned_cases():
             with st.container(border=True):
                 col_res_label, col_res_conf = st.columns([3, 1])
                 with col_res_label:
-                    st.markdown("**결과 (Result)**")
+                    st.markdown("**결과**")
                 with col_res_conf:
                     st.markdown(render_confidence_score(structured["result"]["confidence"]), unsafe_allow_html=True)
                 
@@ -3637,7 +3823,7 @@ def render_tab1_assigned_cases():
             with st.container(border=True):
                 col_req_label, col_req_conf = st.columns([3, 1])
                 with col_req_label:
-                    st.markdown("**요청 (Request)**")
+                    st.markdown("**요청**")
                 with col_req_conf:
                     st.markdown(render_confidence_score(structured["request"]["confidence"]), unsafe_allow_html=True)
                 
@@ -3648,7 +3834,7 @@ def render_tab1_assigned_cases():
             with st.container(border=True):
                 col_ctx_label, col_ctx_conf = st.columns([3, 1])
                 with col_ctx_label:
-                    st.markdown("**맥락 (Context)**")
+                    st.markdown("**맥락**")
                 with col_ctx_conf:
                     st.markdown(render_confidence_score(structured["context"]["confidence"]), unsafe_allow_html=True)
                 
@@ -3810,20 +3996,27 @@ def render_tab1_assigned_cases():
                     st.session_state.search_results = api_results or []
                 st.rerun()
 
-            left_tool, right_tool = st.columns([1, 1.2], gap="large")
+            left_tool, right_tool = st.columns([1, 1], gap="small")
             with left_tool:
                 st.markdown("#### 유사 사례")
-                if st.session_state.wb_search_state == "loading":
-                    st.info("검색을 실행 중입니다...")
-                elif st.session_state.wb_search_state == "mock_mode":
-                    st.info("Mock 모드(UI_FORCE_MOCK)로 기본 Mock 데이터를 표시합니다.")
-                elif st.session_state.wb_search_state == "error_fallback":
-                    st.error(f"검색 서버 통신 오류가 발생했습니다: {st.session_state.wb_last_api_err}")
-                    st.warning("기본 Mock 데이터를 로드하여 결과를 표시합니다.")
-                elif st.session_state.wb_search_state == "empty":
-                    st.info("조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.")
-                elif st.session_state.wb_search_state == "success":
-                    st.success(f"총 {len(st.session_state.search_results)}건의 유사 사례를 찾았습니다.")
+                result_count = len(st.session_state.search_results)
+                banner_state = st.session_state.wb_search_state
+                banner_err = st.session_state.wb_last_api_err
+                if (banner_state or "").strip().lower() in ("error_fallback", "error") and banner_err:
+                    banner_err = f"{banner_err} (Mock 데이터를 표시합니다.)"
+
+                render_standard_status_banner(
+                    state=banner_state,
+                    result_count=result_count,
+                    error_message=banner_err,
+                    idle_message="검색 조건을 입력한 뒤 ‘워크벤치 검색’을 실행하세요.",
+                    loading_message="검색 요청을 처리 중입니다...",
+                    empty_message="조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.",
+                    success_message=(
+                        f"총 {result_count}건의 유사 사례를 찾았습니다." if (banner_state == "success") else None
+                    ),
+                    mock_message="Mock 모드(UI_FORCE_MOCK)로 샘플 데이터를 표시합니다.",
+                )
 
                 if st.session_state.search_results:
                     for idx, item in enumerate(st.session_state.search_results[:5], start=1):
@@ -3854,20 +4047,14 @@ def render_tab1_assigned_cases():
                     else:
                         st.markdown(f"<div class='chat-message-assistant'>{message.get('content', '')}</div>", unsafe_allow_html=True)
                         citations = message.get("citations", [])
-                        if citations:
-                            for cidx, citation in enumerate(citations, start=1):
-                                ref_id = citation.get("ref_id", cidx)
-                                case_id = citation.get("case_id", "-")
-                                chunk_id = citation.get("chunk_id", "-")
-                                snippet = citation.get("snippet", "-")
-                                st.caption(f"• [출처 {ref_id}] {case_id} | {chunk_id} | {snippet}")
+                        render_citations_block(citations if isinstance(citations, list) else [], expanded=False)
 
                         qa_validation = message.get("qa_validation")
                         if isinstance(qa_validation, dict) and qa_validation.get("is_valid") is False:
                             st.warning("QA 응답 검증에서 문제가 감지되었습니다. (qa_validation.is_valid=false)")
                         limitations = message.get("limitations")
-                        if limitations:
-                            st.info(f"제한사항: {limitations}")
+                        has_limitations = bool(str(limitations).strip()) if isinstance(limitations, str) else bool(limitations)
+                        render_limitations_block(limitations, expanded=has_limitations)
                         meta = message.get("meta", {})
                         if isinstance(meta, dict) and meta.get("validation_warning"):
                             st.caption(str(meta.get("validation_warning")))
@@ -3885,6 +4072,13 @@ def render_tab2_search_rag():
     st.markdown("## 유사 민원 검색 및 AI 조력자 (RAG-QA)")
     st.markdown("과거 비슷한 사례를 찾아 AI와 함께 답변 초안을 작성합니다.")
     st.caption("Tab1에서 민원을 선택하면 엔티티 기반 필터가 자동 세팅됩니다.")
+
+    if "tab2_search_state" not in st.session_state:
+        st.session_state.tab2_search_state = None
+    if "tab2_pending_search" not in st.session_state:
+        st.session_state.tab2_pending_search = None
+    if "tab2_last_api_err" not in st.session_state:
+        st.session_state.tab2_last_api_err = None
 
     # 현재 선택 민원을 기준으로 자동 필터 동기화
     selected_case = get_selected_case()
@@ -3958,25 +4152,54 @@ def render_tab2_search_rag():
 
     if auto_search and selected_case:
         apply_auto_filters_from_case(selected_case)
-        api_results, api_err = search_cases_via_api(query=st.session_state.search_query_text, top_k=5)
-        if api_results:
-            st.session_state.search_results = api_results
-        else:
-            st.session_state.search_results = generate_mock_search_results(st.session_state.search_query_text, st.session_state.mock_cases)
-            if api_err:
-                st.session_state.single_call_notice = f"검색 API 폴백 사용: {api_err}"
-        st.session_state.single_call_notice = "선택 민원 기반 자동 검색 완료"
+        st.session_state.tab2_search_state = "loading"
+        st.session_state.tab2_last_api_err = None
+        st.session_state.tab2_pending_search = {
+            "query": st.session_state.search_query_text,
+            "top_k": 5,
+        }
+        st.session_state.single_call_notice = "선택 민원 기반 자동 검색을 실행합니다."
         st.rerun()
 
     if run_search:
-        api_results, api_err = search_cases_via_api(query=st.session_state.search_query_text, top_k=5)
-        if api_results:
-            st.session_state.search_results = api_results
-            st.session_state.single_call_notice = "실제 /api/v1/search 결과를 불러왔습니다."
-        else:
-            st.session_state.search_results = generate_mock_search_results(st.session_state.search_query_text, st.session_state.mock_cases)
-            st.session_state.single_call_notice = f"검색 API 폴백 사용: {api_err}" if api_err else "Mock 검색 결과를 사용합니다."
+        st.session_state.tab2_search_state = "loading"
+        st.session_state.tab2_last_api_err = None
+        st.session_state.tab2_pending_search = {
+            "query": st.session_state.search_query_text,
+            "top_k": 5,
+        }
+        st.session_state.single_call_notice = "검색을 실행합니다."
         st.session_state.chat_history = []  # 새로운 검색 시작하면 채팅 히스토리 초기화
+        st.rerun()
+
+    if st.session_state.tab2_search_state == "loading" and st.session_state.tab2_pending_search:
+        pending = dict(st.session_state.tab2_pending_search)
+        with st.spinner("유사 민원 및 지식 베이스를 검색 중입니다..."):
+            api_results, api_err = search_cases_via_api(
+                query=str(pending.get("query", "")),
+                top_k=int(pending.get("top_k", 5)),
+            )
+
+        st.session_state.tab2_pending_search = None
+        st.session_state.tab2_last_api_err = api_err
+
+        if api_err and not api_results:
+            st.session_state.tab2_search_state = "error_fallback"
+            st.session_state.search_results = generate_mock_search_results(
+                str(pending.get("query", "")),
+                st.session_state.mock_cases,
+            )
+            st.session_state.single_call_notice = "검색 서버 오류로 인해 Mock 데이터로 대체합니다."
+        elif api_results is not None and len(api_results) == 0:
+            st.session_state.tab2_search_state = "empty"
+            st.session_state.search_results = []
+            st.session_state.single_call_notice = "검색 결과가 없습니다."
+        else:
+            st.session_state.tab2_search_state = "success"
+            st.session_state.search_results = api_results or []
+            st.session_state.single_call_notice = "검색 결과를 불러왔습니다."
+
+        st.rerun()
 
     # -------- 검색 결과 + RAG 챗 (2열 분할) --------
     col_search, col_rag = st.columns([1.1, 1.3], gap="large")
@@ -3984,6 +4207,22 @@ def render_tab2_search_rag():
     # 좌측: 검색 결과 리스트
     with col_search:
         st.markdown("### 검색 결과")
+
+        banner_state = st.session_state.tab2_search_state
+        banner_err = st.session_state.tab2_last_api_err
+        if (banner_state or "").strip().lower() in ("error_fallback", "error") and banner_err:
+            banner_err = f"{banner_err} (Mock 데이터를 표시합니다.)"
+
+        render_standard_status_banner(
+            state=banner_state,
+            result_count=len(st.session_state.search_results),
+            error_message=banner_err,
+            idle_message="검색어를 입력하고 ‘검색 시작’을 클릭해주세요.",
+            loading_message="검색 요청을 처리 중입니다...",
+            empty_message="조건에 맞는 유사 민원이 없습니다. 검색어나 필터를 변경해 보세요.",
+            success_message=None,
+            mock_message="Mock 모드(UI_FORCE_MOCK)로 샘플 데이터를 표시합니다.",
+        )
         
         if st.session_state.search_results:
             st.markdown(f"**{len(st.session_state.search_results)}개 결과 찾음**")
@@ -3993,7 +4232,7 @@ def render_tab2_search_rag():
                     col_title, col_score = st.columns([4, 1])
                     
                     with col_title:
-                        st.markdown(f"**{result['title']}**")
+                        st.markdown(f"**유사민원 {idx + 1}**")
                         st.caption(f"{result['case_id']} | {result['received_at']}")
                     
                     with col_score:
@@ -4015,7 +4254,8 @@ def render_tab2_search_rag():
                         st.session_state.current_rag_doc = result
                         st.rerun()
         else:
-            st.info("검색어를 입력하고 '검색 시작'을 클릭해주세요.")
+            # 표준 배너가 idle/empty/error를 담당한다.
+            pass
 
     # 우측: RAG QA 채팅 인터페이스
     with col_rag:
@@ -4421,6 +4661,7 @@ def render_tab3_statistics():
     project_root = Path(__file__).resolve().parents[2]
     source_path = project_root / "logs" / "evaluation" / "week3" / "model_benchmark_report_final.json"
     st.caption(f"출처: {source_path} (없거나 파싱 실패 시 Mock 데이터 표시)")
+
 
 
 # ============================================================================

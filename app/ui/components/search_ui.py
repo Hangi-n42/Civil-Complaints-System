@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
+import html
 import streamlit as st
 
 
@@ -18,6 +19,9 @@ def render_search_filter(
     default_category: str,
     region_options: list[str],
     category_options: list[str],
+    *,
+    key_prefix: str = "wb",
+    button_label: str = "워크벤치 검색",
 ) -> Tuple[str, str, str, bool]:
     """Render workbench search filter UI.
 
@@ -27,13 +31,15 @@ def render_search_filter(
 
     st.markdown("<div class='workbench-toolbar-title'>워크벤치 검색 필터</div>", unsafe_allow_html=True)
 
+    prefix = (key_prefix or "wb").strip() or "wb"
+
     cols = st.columns([2.2, 1, 1, 1.2])
     with cols[0]:
         st.markdown("<div class='queue-filter-label'>검색어</div>", unsafe_allow_html=True)
         query = st.text_input(
             "워크벤치 검색어",
             value=default_query or "",
-            key="wb_query",
+            key=f"{prefix}_query",
             label_visibility="collapsed",
         )
     with cols[1]:
@@ -42,7 +48,7 @@ def render_search_filter(
             "지역",
             region_options,
             index=_safe_index(region_options, default_region, default=0),
-            key="wb_region",
+            key=f"{prefix}_region",
             label_visibility="collapsed",
         )
     with cols[2]:
@@ -51,12 +57,12 @@ def render_search_filter(
             "카테고리",
             category_options,
             index=_safe_index(category_options, default_category, default=0),
-            key="wb_category",
+            key=f"{prefix}_category",
             label_visibility="collapsed",
         )
     with cols[3]:
         st.markdown("<div class='queue-filter-label'>실행</div>", unsafe_allow_html=True)
-        is_search_clicked = st.button("워크벤치 검색", use_container_width=True)
+        is_search_clicked = st.button(button_label, use_container_width=True, key=f"{prefix}_search_btn")
 
     return query, region, category, is_search_clicked
 
@@ -64,7 +70,6 @@ def render_search_filter(
 def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
     """Render a single search result as a bordered card."""
 
-    title = item.get("title", "-")
     similarity = float(item.get("score", item.get("similarity_score", 0.0)) or 0.0)
     rank = item.get("rank")
     try:
@@ -73,6 +78,9 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
         rank_int = idx
     case_id = item.get("case_id", "-")
     snippet = item.get("snippet", "")
+
+    # UI title policy: avoid showing raw case_id-like titles as the main heading.
+    title = f"유사민원 {rank_int}"
 
     created_at = item.get("created_at") or (item.get("metadata", {}) or {}).get("created_at")
     category = item.get("category") or (item.get("metadata", {}) or {}).get("category")
@@ -88,7 +96,7 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
 
     with st.container(border=True):
         st.markdown(
-            f"**{rank_int}. {title}**  \n"
+            f"**{title}**  \n"
             f"유사도: {similarity:.0%} | {case_id}"
         )
 
@@ -232,8 +240,8 @@ def render_similar_cases_collapsible(rows: list[dict[str, Any]], *, return_html:
                     "<details class='wb-similar-item'>",
                     "<summary>",
                     "<div class='wb-similar-summary'>",
-                    f"<div class='wb-similar-title'>{idx}. {case_id}</div>",
-                    f"<div class='wb-similar-meta'>{date} | {similarity} | {status}{dept_badge}</div>",
+                    f"<div class='wb-similar-title'>유사민원 {idx}</div>",
+                    f"<div class='wb-similar-meta'>{case_id} | {date} | {similarity} | {status}{dept_badge}</div>",
                     "</div>",
                     "</summary>",
                     "<div class='wb-similar-body'>",
@@ -253,3 +261,120 @@ def render_similar_cases_collapsible(rows: list[dict[str, Any]], *, return_html:
         return html
     st.markdown(html, unsafe_allow_html=True)
     return None
+
+
+def render_standard_status_banner(
+    *,
+    state: str | None,
+    result_count: int | None = None,
+    error_message: str | None = None,
+    empty_message: str = "조건에 맞는 결과가 없습니다. 검색어나 필터를 변경해 보세요.",
+    idle_message: str = "검색 조건을 입력하고 실행하세요.",
+    loading_message: str = "요청을 처리 중입니다...",
+    success_message: str | None = None,
+    mock_message: str = "Mock 모드(UI_FORCE_MOCK)로 샘플 데이터를 표시합니다.",
+) -> None:
+    """FE 공통 상태 배너(success/loading/error/empty/idle)를 고정 메시지로 렌더링한다."""
+
+    normalized_state = (state or "").strip().lower()
+
+    if normalized_state in ("loading",):
+        st.info(loading_message)
+        return
+
+    if normalized_state in ("mock", "mock_mode"):
+        st.info(mock_message)
+        return
+
+    if normalized_state in ("error", "error_fallback"):
+        msg = (error_message or "알 수 없는 오류").strip()
+        st.error(f"오류가 발생했습니다: {msg}")
+        return
+
+    if normalized_state in ("empty",):
+        st.info(empty_message)
+        return
+
+    if normalized_state in ("success",):
+        if success_message:
+            st.success(success_message)
+        else:
+            cnt = "-" if result_count is None else str(int(result_count))
+            st.success(f"총 {cnt}건의 결과를 표시합니다.")
+        return
+
+    st.info(idle_message)
+
+
+def render_citations_block(
+    citations: list[dict[str, Any]] | None,
+    *,
+    title: str = "근거(citations)",
+    empty_text: str = "표시할 근거가 없습니다.",
+    expanded: bool = True,
+) -> None:
+    """QA citations를 안정적으로 표시한다."""
+
+    citations = citations if isinstance(citations, list) else []
+    header = f"{title} ({len(citations)}개)"
+
+    with st.expander(header, expanded=expanded):
+        if not citations:
+            st.caption(empty_text)
+            return
+
+        for cidx, citation in enumerate(citations, start=1):
+            if not isinstance(citation, dict):
+                continue
+
+            ref_id = citation.get("ref_id", cidx)
+            case_id = citation.get("case_id") or "-"
+            chunk_id = citation.get("chunk_id") or "-"
+            snippet = citation.get("snippet") or "-"
+            source = citation.get("source")
+            rel = citation.get("relevance_score")
+
+            tail: list[str] = []
+            if source:
+                tail.append(str(source))
+            if rel is not None:
+                try:
+                    tail.append(f"score={float(rel):.2f}")
+                except (TypeError, ValueError):
+                    pass
+            tail_text = f" ({' | '.join(tail)})" if tail else ""
+
+            st.markdown(
+                "\n".join(
+                    [
+                        f"• **[출처 {html.escape(str(ref_id))}]** {html.escape(str(case_id))} | {html.escape(str(chunk_id))}{html.escape(tail_text)}",
+                        f"  - {html.escape(str(snippet))}",
+                    ]
+                )
+            )
+
+
+def render_limitations_block(
+    limitations: Any,
+    *,
+    title: str = "제한사항(limitations)",
+    empty_text: str = "표시할 제한사항이 없습니다.",
+    expanded: bool = True,
+) -> None:
+    """QA limitations를 안정적으로 표시한다."""
+
+    text = ""
+    if isinstance(limitations, str):
+        text = limitations.strip()
+    elif isinstance(limitations, list):
+        parts = [str(x).strip() for x in limitations if str(x).strip()]
+        text = "\n".join([f"- {p}" for p in parts])
+    elif limitations is not None:
+        text = str(limitations).strip()
+
+    with st.expander(title, expanded=expanded):
+        if not text:
+            st.caption(empty_text)
+            return
+        st.markdown(text)
+
