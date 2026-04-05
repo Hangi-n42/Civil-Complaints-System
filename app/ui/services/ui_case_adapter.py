@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+from app.core.title_builder import build_case_title
+
 _UI_CATEGORY_ALLOWED = {"도로안전", "환경위생", "주거복지", "교통행정", "기타"}
 _UI_CATEGORY_MAP = {
     "문화관광": "기타",
@@ -73,6 +75,13 @@ def _pack_field(structured_src: Dict[str, Any], raw_text: str, name: str) -> Dic
     return {"text": text, "confidence": confidence, "evidence_span": evidence_text}
 
 
+def _field_text(structured_src: Dict[str, Any], name: str) -> str:
+    field = structured_src.get(name)
+    if isinstance(field, dict):
+        return str(field.get("text", "")).strip()
+    return ""
+
+
 def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     raw_text = str(item.get("raw_text") or item.get("text") or "")
 
@@ -108,10 +117,17 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     priority = str(item.get("priority") or "보통")
     status = str(item.get("status") or "미처리")
     received_at_raw = item.get("received_at") or item.get("created_at")
+    title = build_case_title(
+        explicit_title=item.get("title"),
+        observation=_field_text(structured_src, "observation"),
+        request=_field_text(structured_src, "request"),
+        raw_text=raw_text,
+        category=category,
+    )
 
     return {
         "case_id": case_id,
-        "title": str(item.get("title") or ""),
+        "title": title,
         "received_at": _format_received_at(received_at_raw),
         "priority": priority,
         "status": status,
