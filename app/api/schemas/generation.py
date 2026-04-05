@@ -19,6 +19,17 @@ class SearchInputResult(BaseModel):
     score: float = 0.0
 
 
+class QAContextWindowPolicy(BaseModel):
+    """Retrieval 청크를 QA 입력 컨텍스트로 매핑할 때 사용할 안전 예산 정책"""
+
+    model_ctx_tokens: int = Field(default=2048, ge=512, le=32768)
+    reserved_output_tokens: int = Field(default=512, ge=128, le=8192)
+    reserved_system_tokens: int = Field(default=256, ge=64, le=4096)
+    chars_per_token: float = Field(default=2.0, ge=1.0, le=8.0)
+    max_chunks: int = Field(default=8, ge=1, le=50)
+    max_chars_per_chunk: int = Field(default=320, ge=80, le=4000)
+
+
 class QARequest(BaseModel):
     """QA 요청"""
 
@@ -27,6 +38,7 @@ class QARequest(BaseModel):
     filters: Optional[SearchFilters] = None
     use_search_results: bool = False
     search_results: List[SearchInputResult] = Field(default_factory=list)
+    context_window_policy: Optional[QAContextWindowPolicy] = None
 
 
 class Citation(BaseModel):
@@ -73,6 +85,10 @@ class SearchTrace(BaseModel):
 
     used_top_k: int
     retrieved_count: int
+    context_budget_chars: Optional[int] = None
+    context_used_chars: Optional[int] = None
+    context_truncated_count: Optional[int] = None
+    context_dropped_count: Optional[int] = None
 
 
 class ErrorInfo(BaseModel):
