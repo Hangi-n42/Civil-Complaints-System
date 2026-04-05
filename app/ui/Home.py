@@ -14,6 +14,7 @@ import html
 from urllib import error as urlerror
 from urllib import request as urlrequest
 
+from app.core.title_builder import build_case_title
 from app.ui.components.search_ui import (
     render_search_filter,
     render_search_result_card,
@@ -2762,10 +2763,21 @@ def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> 
     }
     display_status = status_label_map.get(current_status, current_status)
 
+    structured = selected_case.get("structured") if isinstance(selected_case.get("structured"), dict) else {}
+    case_title = build_case_title(
+        explicit_title=selected_case.get("title"),
+        observation=(structured.get("observation") or {}).get("text"),
+        request=(structured.get("request") or {}).get("text"),
+        raw_text=selected_case.get("raw_text"),
+        category=selected_case.get("category"),
+    )
+    case_title_esc = html.escape(case_title)
+    case_id_esc = html.escape(str(selected_case.get("case_id") or "-"))
+
     st.markdown(
         f"""
         <div class="detail-header-animate{header_status_class}">
-            <div class="detail-header-title">선택 민원: {selected_case['case_id']}</div>
+            <div class="detail-header-title">선택 민원: {case_title_esc} <span style="font-size:0.78rem;font-weight:800;color:#64748b;">({case_id_esc})</span></div>
             <div class="detail-header-sub">카테고리: {selected_case['category']} | 우선순위: {selected_case['priority']} | 상태: {display_status}</div>
         </div>
         """,
@@ -3249,11 +3261,12 @@ def render_queue_entry_screen() -> None:
                 continue
 
         filtered_cases.append(case)
-        title_text = (
-            case.get("title")
-            or case.get("structured", {}).get("observation", {}).get("text")
-            or case.get("raw_text", "").split(".")[0].strip()
-            or "민원 제목 없음"
+        title_text = build_case_title(
+            explicit_title=case.get("title"),
+            observation=(case.get("structured", {}).get("observation", {}) or {}).get("text"),
+            request=(case.get("structured", {}).get("request", {}) or {}).get("text"),
+            raw_text=case.get("raw_text", ""),
+            category=get_case_category(case),
         )
         queue_rows.append(
             {
@@ -3474,11 +3487,12 @@ def render_case_workbench_screen() -> None:
             st.button("초기화", key="wb_reset_filters", use_container_width=True, on_click=_reset_wb_queue_filters)
 
         def _title_for_case(case: Dict[str, Any]) -> str:
-            return (
-                str(case.get("title") or "").strip()
-                or str(case.get("structured", {}).get("observation", {}).get("text") or "").strip()
-                or str(case.get("raw_text", "").split(".")[0]).strip()
-                or "민원 제목 없음"
+            return build_case_title(
+                explicit_title=case.get("title"),
+                observation=(case.get("structured", {}).get("observation", {}) or {}).get("text"),
+                request=(case.get("structured", {}).get("request", {}) or {}).get("text"),
+                raw_text=case.get("raw_text", ""),
+                category=case.get("category"),
             )
 
         def _priority_for_case(case: Dict[str, Any]) -> str:

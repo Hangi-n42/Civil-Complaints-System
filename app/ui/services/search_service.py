@@ -8,6 +8,7 @@ import streamlit as st
 from urllib import error as urlerror
 from urllib import request as urlrequest
 
+from app.core.title_builder import build_case_title
 
 def _extract_admin_units_from_text(text: str) -> list[str]:
     """텍스트에서 부서(ADMIN_UNIT) 후보를 가볍게 추출한다.
@@ -224,6 +225,14 @@ def normalize_search_results_from_api(payload: Dict[str, Any]) -> List[Dict[str,
         entity_labels = metadata.get("entity_labels", [])
         entity_labels = entity_labels if isinstance(entity_labels, list) else []
 
+        normalized_title = build_case_title(
+            explicit_title=item.get("title"),
+            observation=(summary or {}).get("observation"),
+            request=(summary or {}).get("request"),
+            chunk_text=item.get("snippet"),
+            category=category,
+        )
+
         normalized.append(
             {
                 # BE2 contract fields
@@ -232,7 +241,7 @@ def normalize_search_results_from_api(payload: Dict[str, Any]) -> List[Dict[str,
                 "score": score,
                 "chunk_id": str(item.get("chunk_id", "")),
                 "case_id": str(item.get("case_id", "")),
-                "title": str(item.get("title", "유사 민원")),
+                "title": normalized_title,
                 "snippet": str(item.get("snippet", "")),
                 "summary": summary,
                 "metadata": {

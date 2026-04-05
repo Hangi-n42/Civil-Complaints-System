@@ -5,6 +5,7 @@ from typing import Any, Dict, Tuple
 import html
 import streamlit as st
 
+from app.core.title_builder import build_case_title
 
 def _safe_index(options: list[str], value: str, default: int = 0) -> int:
     try:
@@ -79,9 +80,6 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
     case_id = item.get("case_id", "-")
     snippet = item.get("snippet", "")
 
-    # UI title policy: avoid showing raw case_id-like titles as the main heading.
-    title = f"유사민원 {rank_int}"
-
     created_at = item.get("created_at") or (item.get("metadata", {}) or {}).get("created_at")
     category = item.get("category") or (item.get("metadata", {}) or {}).get("category")
     region = item.get("region") or (item.get("metadata", {}) or {}).get("region")
@@ -92,12 +90,23 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
     summary_observation = (summary or {}).get("observation") if summary else None
     summary_request = (summary or {}).get("request") if summary else None
 
+    raw_title = str(item.get("title") or "").strip()
+    title = raw_title
+    if not title:
+        title = build_case_title(
+            explicit_title=item.get("title"),
+            observation=summary_observation,
+            request=summary_request,
+            chunk_text=snippet,
+            category=category,
+        )
+
     chunk_id = item.get("chunk_id")
 
     with st.container(border=True):
         st.markdown(
             f"**{title}**  \n"
-            f"유사도: {similarity:.0%} | {case_id}"
+            f"유사도: {similarity:.0%} | {case_id} | 순위: {rank_int}"
         )
 
         meta_parts: list[str] = []
