@@ -9,11 +9,12 @@ from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 
 from app.api.error_utils import error_response, make_request_id, now_iso
-from app.api.schemas.generation import QARequest, QAResponse
+from app.api.schemas.generation import QARequest, QAResponse, CitationValidation
 from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
 from app.core.logging import api_logger
 from app.generation.context_mapper import map_retrieval_to_qa_context
+from app.generation.citation.citation_mapper import get_citation_mapper
 from app.generation.service import get_generation_service
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
@@ -227,6 +228,11 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
         if error_code == "PARSE_RETRY_EXHAUSTED" and not message.strip():
             message = "모델 응답을 JSON으로 안정적으로 파싱하지 못했습니다."
+        
+        # PARSE_RETRY_EXHAUSTED를 Week 4 표준 에러코드 QA_PARSE_ERROR로 변환
+        if error_code == "PARSE_RETRY_EXHAUSTED":
+            error_code = "QA_PARSE_ERROR"
+            message = "JSON 파싱 실패 (재시도 정책 모두 소진)"
 
         # upstream_status를 details에 포함
         if upstream_status is not None:
@@ -307,14 +313,31 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         retrieved_count=len(context),
     )
 
+    # Citation 정합성 검증
+    citation_mapper = get_citation_mapper()
+    is_valid, mismatch_count, mismatch_details = citation_mapper.validate_citations_against_context(
+        citations=[c.model_dump() if hasattr(c, 'model_dump') else c for c in citations],
+        retrieval_context=context,
+    )
+
+    if not is_valid:
+        api_logger.warning(
+            "citation_validation_failed request_id=%s mismatch_count=%d",
+            request_id,
+            mismatch_count,
+        )
+
     return QAResponse(
         success=True,
         request_id=request_id,
         timestamp=now_iso(),
-        answer=answer,
-        citations=citations,
-        confidence=confidence,
-        limitations=limitations,
+        data={
+            "answer": answer,
+            "citations": citations,
+            "confidence": confidence,
+            "limitations": limitations,
+            "latency_ms": took_ms,
+        },
         meta={
             "processing_time": round(took_ms / 1000, 2),
             "model": str(result.get("model", settings.OLLAMA_MODEL)),
@@ -331,4 +354,9 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             "context_truncated_count": context_trace["context_truncated_count"],
             "context_dropped_count": context_trace["context_dropped_count"],
         },
+        citation_validation=CitationValidation(
+            is_valid=is_valid,
+            mismatch_count=mismatch_count,
+            details={"mismatches": mismatch_details} if mismatch_details else None,
+        ),
     )
