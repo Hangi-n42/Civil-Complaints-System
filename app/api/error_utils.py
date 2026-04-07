@@ -35,6 +35,11 @@ ERROR_POLICY: Dict[str, Dict[str, Any]] = {
     "PARSE_RETRY_EXHAUSTED": {"status_code": 500, "retryable": False},
     "PROCESSING_ERROR": {"status_code": 500, "retryable": True},
     "INTERNAL_SERVER_ERROR": {"status_code": 500, "retryable": False},
+    # Week 4 QA 특화 에러코드
+    "QA_PARSE_ERROR": {"status_code": 500, "retryable": True},  # JSON 파싱 실패 (재시도 권장)
+    "CITATION_MISMATCH": {"status_code": 500, "retryable": True},  # citation 정합성 불일치
+    "INVALID_QA_REQUEST": {"status_code": 400, "retryable": False},  # 잘못된 QA 요청
+    "GENERATION_TIMEOUT": {"status_code": 504, "retryable": True},  # 생성 타임아웃
 }
 
 

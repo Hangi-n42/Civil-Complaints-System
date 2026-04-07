@@ -91,6 +91,24 @@ class SearchTrace(BaseModel):
     context_dropped_count: Optional[int] = None
 
 
+class CitationValidation(BaseModel):
+    """Citation 정합성 검증 결과"""
+
+    is_valid: bool
+    mismatch_count: int = 0
+    details: Optional[Dict[str, Any]] = None
+
+
+class QAResponseData(BaseModel):
+    """QA 응답 본체"""
+
+    answer: str
+    citations: List[Citation]
+    confidence: Literal["low", "medium", "high"]
+    limitations: str
+    latency_ms: int
+
+
 class ErrorInfo(BaseModel):
     """에러 정보"""
 
@@ -101,18 +119,16 @@ class ErrorInfo(BaseModel):
 
 
 class QAResponse(BaseModel):
-    """QA 성공 응답"""
+    """QA 성공 응답 (Week 4 계약)"""
 
     success: Literal[True] = True
     request_id: str
     timestamp: str
-    answer: str
-    citations: List[Citation]
-    confidence: Literal["low", "medium", "high"]
-    limitations: str
+    data: QAResponseData
     meta: MetaInfo
     qa_validation: QAValidation
     search_trace: SearchTrace
+    citation_validation: CitationValidation
 
 
 class QAErrorResponse(BaseModel):

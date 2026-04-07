@@ -124,7 +124,7 @@ python scripts/generate_week3_benchmark_report.py \
 
 ---
 
-## ✅ Week 3 완료 기준 (M2 Gate A)
+## ✅ Week 3 진행 체크리스트
 
 | 항목 | 완료 조건 | 상태 |
 |-----|---------|------|

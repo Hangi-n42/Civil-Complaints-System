@@ -7,7 +7,7 @@ from app.core.exceptions import RetrievalError
 
 
 class _StubRetrievalService:
-    async def index_documents(self, documents, rebuild=False):
+    async def index_documents(self, documents, rebuild=False, collection_name=None, **kwargs):
         return {
             "indexed_count": len(documents),
             "chunk_count": len(documents),
@@ -18,7 +18,7 @@ class _StubRetrievalService:
             ],
         }
 
-    async def search(self, query, top_k=5, filters=None):
+    async def search(self, query, top_k=5, filters=None, collection_name=None, **kwargs):
         return [
             {
                 "rank": 1,
@@ -40,7 +40,7 @@ class _StubRetrievalService:
 
 
 class _FailSearchService:
-    async def index_documents(self, documents, rebuild=False):
+    async def index_documents(self, documents, rebuild=False, collection_name=None, **kwargs):
         return {
             "indexed_count": len(documents),
             "chunk_count": len(documents),
@@ -49,7 +49,7 @@ class _FailSearchService:
             "records": [],
         }
 
-    async def search(self, query, top_k=5, filters=None):
+    async def search(self, query, top_k=5, filters=None, collection_name=None, **kwargs):
         raise RetrievalError("index unavailable")
 
 
