@@ -32,8 +32,8 @@ Week4에서 BE1은 baseline 평가셋/질문셋 운영 기준을 고정하고,
 - Gate A 지표 산출 가능 상태 유지(산출 파이프라인/로그/근거 경로 확인)
 
 # Linked Sub Issues
-- [Week 4][BE1][Sub] baseline 평가셋/질문셋 freeze 및 품질 점검 #133
-- [Week 4][BE1][Sub] 구조화/메타데이터 품질 점검표 배포 #134
+- [Sub #133 - baseline 평가셋/질문셋 freeze 및 품질 점검](./week4_be1_sub_133.md)
+- [Sub #134 - 구조화/메타데이터 품질 점검표 배포](./week4_be1_sub_134.md)
 
 # Deliverables
 - 평가셋 freeze 근거 및 버전 정보
