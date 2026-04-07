@@ -1,9 +1,9 @@
 # BE1 매뉴얼(현기)
 
-문서 버전: v1.1  
-기준 문서: [PRD](../00_overview/prd.md), [WBS](../00_overview/wbs_8weeks_v2_updated.md), [Week3 공통 인터페이스](../10_contracts/interfaces/week3/week3_common_interface.md), [Week3 BE1 인터페이스](../10_contracts/interfaces/week3/week3_be1_interface.md)  
+문서 버전: v1.2  
+기준 문서: [PRD](../00_overview/prd.md), [WBS](../00_overview/wbs_8weeks_v2_updated.md), [Week3 공통 인터페이스](../10_contracts/interfaces/week3/week3_common_interface.md), [Week3 BE1 인터페이스](../10_contracts/interfaces/week3/week3_be1_interface.md), [Week4 공통 인터페이스](../10_contracts/interfaces/week4/week4_common_interface.md), [Week4 BE1 인터페이스](../10_contracts/interfaces/week4/week4_be1_interface.md)  
 작성일: 2026-03-11  
-최신화: 2026-03-27 (M1 완료, M2 진행중 기준 반영)
+최신화: 2026-04-08 (#127 메인 이슈 운영 기준 반영)
 
 ## 1. 문서 목적
 
@@ -73,7 +73,7 @@
 - [x] 평가셋 500건의 품질 검증 및 freeze
 - [ ] baseline 모델(`aihub_baseline`) 벤치마크 실행
 - [ ] 구조화 출력에서 검색 필터용 메타데이터 결측률 점검
-- [ ] KPI 중간 리포트 초안 배포
+- [ ] Gate A 지표 산출 가능 상태 점검(초안 KPI 문서 별도 미작성)
 
 ### 완료 기준
 - [x] `evaluation_set.json`이 팀 공통 입력으로 고정됨
