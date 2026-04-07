@@ -98,6 +98,7 @@ async def index_documents(request: IndexRequest) -> IndexResponse:
         result = await service.index_documents(
             documents=[record.model_dump(exclude_none=True) for record in cases],
             rebuild=rebuild,
+            collection_name=request.collection_name,
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
@@ -192,6 +193,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             query=request.query,
             top_k=request.top_k,
             filters=filters,
+            collection_name=request.collection_name,
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
