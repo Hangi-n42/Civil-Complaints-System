@@ -13,6 +13,7 @@ import json
 import re
 import statistics
 import time
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -20,14 +21,16 @@ from typing import Any, Dict, List, Tuple
 import httpx
 import yaml
 
+PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from app.generation.parsing.json_utils import normalize_confidence, parse_qa_json_response
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
     normalize_citations,
 )
-
-PROJECT_ROOT = Path(__file__).parent.parent
 
 
 def _read_yaml(path: Path) -> Dict[str, Any]:
