@@ -21,6 +21,7 @@ from app.core.exceptions import RetrievalError
 from app.core.config import settings
 from app.core.title_builder import build_case_title
 from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
+from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 
 
 class RetrievalService:
@@ -31,12 +32,22 @@ class RetrievalService:
         self.logger = pipeline_logger
         self.embedding_model = settings.EMBEDDING_MODEL
         self.vectorstore_path = settings.CHROMA_DB_PATH
-        self.index_name = "civil_cases"
-        self._indexed_chunks: List[Dict[str, Any]] = []
-        self._bootstrap_from_samples()
+        self.embedding_device = settings.EMBEDDING_DEVICE
+        self.default_collection_name = "civil_cases_v1"
+        self._vectorstore: Optional[ChromaVectorStore] = None
 
-    def _bootstrap_from_samples(self) -> None:
-        """샘플 데이터가 존재하면 인메모리 인덱스를 초기화한다."""
+    def _get_vectorstore(self) -> ChromaVectorStore:
+        if self._vectorstore is None:
+            self._vectorstore = ChromaVectorStore(
+                persist_directory=self.vectorstore_path,
+                embedding_model_name=self.embedding_model,
+                embedding_device=self.embedding_device,
+            )
+        return self._vectorstore
+
+    def _bootstrap_from_samples(self, collection_name: Optional[str] = None) -> None:
+        """샘플 데이터가 존재하면 ChromaDB 컬렉션을 초기화한다."""
+        collection_key = collection_name or self.default_collection_name
         sample_path = Path(settings.SAMPLES_DATA_PATH) / "sample_cases.json"
         if not sample_path.exists():
             self.logger.info("샘플 데이터 없음: 초기 인덱스 비어 있음")
@@ -46,10 +57,15 @@ class RetrievalService:
             with sample_path.open("r", encoding="utf-8") as f:
                 sample_records = json.load(f)
             if isinstance(sample_records, list) and sample_records:
-                self._index_documents_internal(sample_records, rebuild=True)
-                self.logger.info(
-                    f"샘플 인덱스 로드 완료: {len(self._indexed_chunks)}개 청크"
-                )
+                store = self._get_vectorstore()
+                if store.count(collection_key) == 0:
+                    normalized = [
+                        self._normalize_record(record, index=index)
+                        for index, record in enumerate(sample_records)
+                        if isinstance(record, dict)
+                    ]
+                    store.upsert_records(collection_key, normalized)
+                self.logger.info(f"샘플 인덱스 로드 완료: {len(sample_records)}개 레코드")
         except Exception as e:
             self.logger.warning(f"샘플 인덱스 로드 실패: {str(e)}")
 
@@ -138,6 +154,26 @@ class RetrievalService:
             else 0.0
         )
 
+        if not unique_labels:
+            raw_labels = record.get("entity_labels")
+            raw_texts = record.get("entity_texts")
+            if isinstance(raw_labels, list):
+                fallback_pairs: List[tuple[str, str]] = []
+                seen_fallback = set()
+                for idx, label in enumerate(raw_labels):
+                    normalized_label = str(label).strip().upper()
+                    if normalized_label not in ALLOWED_ENTITY_LABELS or normalized_label in seen_fallback:
+                        continue
+                    seen_fallback.add(normalized_label)
+                    fallback_text = ""
+                    if isinstance(raw_texts, list) and idx < len(raw_texts):
+                        fallback_text = str(raw_texts[idx]).strip()
+                    fallback_pairs.append((normalized_label, fallback_text))
+
+                if fallback_pairs:
+                    unique_labels = [label for label, _ in fallback_pairs]
+                    unique_texts = [text for _, text in fallback_pairs]
+
         return unique_labels, unique_texts, confidence_avg
 
     def _normalize_chunk_id(self, case_id: str, record: Dict[str, Any], index: int) -> str:
@@ -158,6 +194,10 @@ class RetrievalService:
         if isinstance(observation, dict):
             return str(observation.get("text", "")).strip()
 
+        summary = record.get("summary")
+        if isinstance(summary, dict):
+            return str(summary.get("observation", "")).strip()
+
         structured_text = record.get("structured_text")
         if isinstance(structured_text, dict):
             return str(structured_text.get("observation", "")).strip()
@@ -168,6 +208,10 @@ class RetrievalService:
         request = record.get("request")
         if isinstance(request, dict):
             return str(request.get("text", "")).strip()
+
+        summary = record.get("summary")
+        if isinstance(summary, dict):
+            return str(summary.get("request", "")).strip()
 
         structured_text = record.get("structured_text")
         if isinstance(structured_text, dict):
@@ -209,6 +253,7 @@ class RetrievalService:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
         created_at = self._normalize_created_at(record)
+        created_at_ts = int(datetime.fromisoformat(created_at).timestamp())
 
         metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
         source = (
@@ -225,6 +270,17 @@ class RetrievalService:
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
+        try:
+            chunk_index = int(str(chunk_id).rsplit("-", 1)[-1])
+        except (TypeError, ValueError):
+            chunk_index = index
+
+        title = build_case_title(
+            observation=self._get_observation_text(record),
+            request=self._get_request_text(record),
+            chunk_text=chunk_text,
+            category=category,
+        )
 
         return {
             "doc_id": doc_id,
@@ -234,8 +290,11 @@ class RetrievalService:
             "chunk_type": str(record.get("chunk_type", "combined")),
             "source": source,
             "created_at": created_at,
+            "created_at_ts": created_at_ts,
+            "chunk_index": chunk_index,
             "category": category,
             "region": region,
+            "title": title,
             "entity_labels": entity_labels,
             "entity_texts": entity_texts,
             "summary": {
@@ -246,38 +305,34 @@ class RetrievalService:
                 "pipeline_version": "week2",
                 "structuring_confidence": confidence,
                 "content_type": "full",
+                "created_at_ts": created_at_ts,
             },
         }
 
     def _index_documents_internal(
-        self, documents: List[Dict[str, Any]], rebuild: bool = False
+        self,
+        documents: List[Dict[str, Any]],
+        rebuild: bool = False,
+        collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
+        normalized_documents = [
+            self._normalize_record(record, index=index)
+            for index, record in enumerate(documents)
+            if isinstance(record, dict)
+        ]
+
+        store = self._get_vectorstore()
+        collection_key = collection_name or self.default_collection_name
         if rebuild:
-            self._indexed_chunks = []
+            store.reset_collection(collection_key)
 
-        indexed_count = 0
-        chunk_count = 0
-        records: List[Dict[str, Any]] = []
-
-        for index, record in enumerate(documents):
-            normalized = self._normalize_record(record, index=index)
-            self._indexed_chunks.append(normalized)
-
-            indexed_count += 1
-            chunk_count += 1
-            records.append(
-                {
-                    "case_id": normalized["case_id"],
-                    "chunk_ids": [normalized["chunk_id"]],
-                }
-            )
-
+        result = store.upsert_records(collection_key, normalized_documents)
         return {
-            "indexed_count": indexed_count,
-            "chunk_count": chunk_count,
-            "index_name": self.index_name,
+            "indexed_count": int(result.get("indexed_count", 0)),
+            "chunk_count": int(result.get("chunk_count", 0)),
+            "index_name": collection_key,
             "rebuild": rebuild,
-            "records": records,
+            "records": result.get("records", []),
         }
 
     def _tokenize(self, text: str) -> set[str]:
@@ -433,15 +488,16 @@ class RetrievalService:
         """
         try:
             self.logger.info(f"임베딩 생성: {len(texts)}개 텍스트")
-            # Week 1 기준선: 실제 모델 연동 전 인터페이스 고정용 더미 벡터
-            embeddings = [[0.0] * 1024 for _ in texts]
-            return embeddings
+            return self._get_vectorstore().embed_texts(texts)
         except Exception as e:
             self.logger.error(f"임베딩 실패: {str(e)}")
             raise RetrievalError(f"임베딩 실패: {str(e)}") from e
 
     async def index_documents(
-        self, documents: List[Dict[str, Any]], rebuild: bool = False
+        self,
+        documents: List[Dict[str, Any]],
+        rebuild: bool = False,
+        collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         문서 인덱싱
@@ -455,10 +511,19 @@ class RetrievalService:
         """
         try:
             self.logger.info(f"문서 인덱싱 시작: {len(documents)}개 문서")
-            result = self._index_documents_internal(documents, rebuild=rebuild)
+            result = self._index_documents_internal(
+                documents,
+                rebuild=rebuild,
+                collection_name=collection_name,
+            )
             self.logger.info(
                 f"문서 인덱싱 완료: indexed={result['indexed_count']}, chunk={result['chunk_count']}"
             )
+            if collection_name and collection_name != self.default_collection_name:
+                self.logger.info(
+                    "collection_name=%s is accepted for contract compatibility but the runtime store uses the default collection",
+                    collection_name,
+                )
             return result
         except Exception as e:
             self.logger.error(f"인덱싱 실패: {str(e)}")
@@ -470,6 +535,7 @@ class RetrievalService:
         top_k: int = 5,
         threshold: float = 0.0,
         filters: Optional[Dict[str, Any]] = None,
+        collection_name: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -485,41 +551,19 @@ class RetrievalService:
         try:
             self.logger.info(f"검색 시작: query='{query}', top_k={top_k}")
 
-            if not self._indexed_chunks:
-                self._bootstrap_from_samples()
+            collection_key = collection_name or self.default_collection_name
+            store = self._get_vectorstore()
 
-            scored_results: List[Dict[str, Any]] = []
-            for chunk in self._indexed_chunks:
-                if not self._matches_filters(chunk, filters or {}):
-                    continue
+            if store.count(collection_key) == 0:
+                self._bootstrap_from_samples(collection_key)
 
-                score = self._score(query, chunk.get("chunk_text", ""))
-                if score < threshold:
-                    continue
-
-                scored_results.append(
-                    {
-                        "doc_id": chunk.get("doc_id", chunk["case_id"]),
-                        "score": round(score, 2),
-                        "chunk_id": chunk["chunk_id"],
-                        "case_id": chunk["case_id"],
-                        "title": self._build_title(chunk),
-                        "snippet": self._build_snippet(chunk.get("chunk_text", ""), max_length=140),
-                        "summary": chunk.get("summary", {}),
-                        "metadata": {
-                            "created_at": chunk.get("created_at"),
-                            "category": chunk.get("category"),
-                            "region": chunk.get("region"),
-                            "entity_labels": chunk.get("entity_labels", []),
-                        },
-                    }
-                )
-
-            scored_results.sort(key=lambda item: item["score"], reverse=True)
-            results = scored_results[: max(1, top_k)]
-
-            for rank, item in enumerate(results, start=1):
-                item["rank"] = rank
+            results = store.query(
+                collection_name=collection_key,
+                query=query,
+                top_k=top_k,
+                filters=filters or {},
+                threshold=threshold,
+            )
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results
