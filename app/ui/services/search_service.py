@@ -8,6 +8,7 @@ import streamlit as st
 from urllib import error as urlerror
 from urllib import request as urlrequest
 
+from app.core.title_builder import build_case_title
 
 def _extract_admin_units_from_text(text: str) -> list[str]:
     """텍스트에서 부서(ADMIN_UNIT) 후보를 가볍게 추출한다.
@@ -80,6 +81,17 @@ def get_friendly_error_message(err_code: int, raw_msg: str) -> str:
     return f"검색 중 알 수 없는 오류가 발생했습니다. ({msg})"
 
 
+def get_friendly_error_message_for_api(api_name: str, err_code: int, raw_msg: str) -> str:
+    """API 종류(/search, /qa 등)에 따라 사용자 메시지를 표준화한다."""
+
+    name = (api_name or "").strip().lower()
+    base = get_friendly_error_message(err_code, raw_msg)
+    if name in ("qa", "/qa"):
+        # search 문구를 qa 문구로 치환(최소 변경)
+        return base.replace("검색", "QA")
+    return base
+
+
 def post_json(base_url: str, path: str, payload: dict, timeout: float = 25.0) -> tuple[dict, int, str | None]:
     """BE API POST 호출 유틸."""
 
@@ -107,6 +119,79 @@ def post_json(base_url: str, path: str, payload: dict, timeout: float = 25.0) ->
         return parsed, int(getattr(e, "code", 500)), str(e)
     except (urlerror.URLError, TimeoutError, json.JSONDecodeError) as e:
         return {}, 0, str(e)
+
+
+def normalize_qa_response_from_api(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """/api/v1/qa 응답을 UI 표시용 포맷으로 정규화한다.
+
+    허용 입력:
+    - {success: true, answer, citations, limitations, ...}
+    - {success: true, data: {answer, citations, limitations, ...}}
+    """
+
+    if not isinstance(payload, dict):
+        return {
+            "success": False,
+            "answer": "",
+            "citations": [],
+            "limitations": None,
+            "confidence": None,
+            "meta": {},
+            "qa_validation": None,
+            "error": {"message": "QA 응답이 올바른 JSON 객체가 아닙니다."},
+        }
+
+    root_success = payload.get("success")
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else None
+    src = data if data is not None else payload
+
+    success = bool(root_success) if root_success is not None else bool(src.get("answer") or src.get("citations"))
+    citations = src.get("citations")
+    citations = citations if isinstance(citations, list) else []
+
+    return {
+        "success": success,
+        "answer": str(src.get("answer", "") or ""),
+        "citations": citations,
+        "limitations": src.get("limitations"),
+        "confidence": src.get("confidence"),
+        "meta": src.get("meta", {}) if isinstance(src.get("meta"), dict) else {},
+        "qa_validation": src.get("qa_validation") if isinstance(src.get("qa_validation"), dict) else None,
+        "error": payload.get("error") if isinstance(payload.get("error"), dict) else None,
+    }
+
+
+def run_qa_via_api(
+    *,
+    query: str,
+    top_k: int,
+    use_search_results: bool,
+    search_results: list[dict[str, Any]] | None,
+    filters: dict[str, Any] | None,
+    timeout: float = 35.0,
+) -> tuple[Dict[str, Any], str | None]:
+    """/api/v1/qa를 호출하고 (normalized_payload, friendly_error) 를 반환한다."""
+
+    payload = {
+        "query": query,
+        "top_k": int(top_k or 5),
+        "use_search_results": bool(use_search_results),
+        "search_results": search_results or [],
+        "filters": filters or None,
+    }
+
+    res, status_code, err = post_json(st.session_state.api_base_url, "/api/v1/qa", payload, timeout=timeout)
+    if err and not res:
+        return {}, get_friendly_error_message_for_api("qa", int(status_code or 0), str(err))
+
+    normalized = normalize_qa_response_from_api(res)
+    if normalized.get("success") is True:
+        return normalized, None
+
+    raw_msg = "QA 응답 생성 실패"
+    if isinstance(res, dict):
+        raw_msg = str((res.get("error") or {}).get("message") or raw_msg)
+    return normalized, get_friendly_error_message_for_api("qa", int(status_code or 0), raw_msg)
 
 
 def _to_iso_date(value: Any) -> str | None:
@@ -140,6 +225,14 @@ def normalize_search_results_from_api(payload: Dict[str, Any]) -> List[Dict[str,
         entity_labels = metadata.get("entity_labels", [])
         entity_labels = entity_labels if isinstance(entity_labels, list) else []
 
+        normalized_title = build_case_title(
+            explicit_title=item.get("title"),
+            observation=(summary or {}).get("observation"),
+            request=(summary or {}).get("request"),
+            chunk_text=item.get("snippet"),
+            category=category,
+        )
+
         normalized.append(
             {
                 # BE2 contract fields
@@ -148,7 +241,7 @@ def normalize_search_results_from_api(payload: Dict[str, Any]) -> List[Dict[str,
                 "score": score,
                 "chunk_id": str(item.get("chunk_id", "")),
                 "case_id": str(item.get("case_id", "")),
-                "title": str(item.get("title", "유사 민원")),
+                "title": normalized_title,
                 "snippet": str(item.get("snippet", "")),
                 "summary": summary,
                 "metadata": {

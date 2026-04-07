@@ -239,22 +239,17 @@ AI-Civil-Affairs-Systems/
 │  │
 │  ├─ ui/
 │  │  ├─ __init__.py
-│  │  ├─ Home.py                      [메인 대시보드 (Streamlit)]
+│  │  ├─ Home.py                      [Streamlit 메인(민원 큐/워크벤치/검색/QA)]
 │  │  ├─ pages/
-│  │  │  ├─ __init__.py
-│  │  │  ├─ 1_Ingest_and_Structure.py [데이터 수집/구조화]
-│  │  │  ├─ 2_Search_and_QA.py        [검색/질의응답]
-│  │  │  └─ 3_Admin_Dashboard.py      [통계 대시보드]
+│  │  │  └─ __init__.py               [예비 폴더(현재 미사용)]
 │  │  ├─ components/
 │  │  │  ├─ __init__.py
-│  │  │  ├─ upload_form.py            [업로드 폼]
-│  │  │  ├─ result_card.py            [결과 카드]
-│  │  │  ├─ citation_viewer.py        [근거 뷰어]
-│  │  │  └─ status_banner.py          [상태 배너]
+│  │  │  └─ search_ui.py              [검색/QA UI + 상태배너 + citations/limitations 렌더링]
 │  │  └─ services/
 │  │     ├─ __init__.py
-│  │     ├─ api_client.py             [API 클라이언트]
-│  │     └─ demo_service.py           [데모 시나리오 로더]
+│  │     ├─ search_service.py         [API 호출/응답 정규화/오류 메시지]
+│  │     ├─ ui_case_adapter.py        [UI용 케이스 어댑터]
+│  │     └─ retrieval_parser.py       [검색 결과 파서/변환]
 │  │
 │  └─ tests/
 │     ├─ __init__.py

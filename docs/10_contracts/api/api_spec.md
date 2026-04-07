@@ -598,11 +598,12 @@ MVP 기준 두 가지 모드를 허용한다.
 
 ## 11. FE 연동 기준
 
-### 업로드 화면
+### 데이터 적재(선택)
 - `POST /api/v1/ingest`
 - 필요 시 연속으로 `POST /api/v1/structure`
+- 데모 UI는 **파일 업로드 화면을 제공하지 않으며**, 적재는 스크립트/배치로 수행할 수 있다.
 
-### 구조화 결과 화면
+### 큐/워크벤치: 구조화 확인
 - `POST /api/v1/structure`
 - `validation.is_valid`와 `errors`를 함께 표시
 
