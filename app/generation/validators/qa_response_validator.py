@@ -6,7 +6,7 @@ import re
 from typing import Any, Dict, List, Set
 
 
-_CITE_TOKEN_PATTERN = re.compile(r"\[\[CITE:(\d+)\]\]")
+_CITE_TOKEN_PATTERN = re.compile(r"\[\[출처\s*(\d+)\]\]")
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -71,14 +71,14 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
 
 
 def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
-    """answer 본문에 누락된 [[CITE:n]] 토큰을 자동 보완한다."""
+    """answer 본문에 누락된 [[출처 n]] 토큰을 자동 보완한다."""
     rendered = (answer or "").strip()
     if not rendered:
         rendered = "검색 근거 기반 답변을 생성했지만 본문이 비어 있어 요약 문장을 제공하지 못했습니다."
 
     missing_tokens: List[str] = []
     for citation in citations:
-        token = f"[[CITE:{citation['ref_id']}]]"
+        token = f"[[출처 {citation['ref_id']}]]"
         if token not in rendered:
             missing_tokens.append(token)
 
@@ -144,7 +144,7 @@ def build_validation_result(
         errors.append(
             {
                 "code": "CITATION_TOKEN_MISMATCH",
-                "message": "answer의 [[CITE:n]] 토큰과 citations.ref_id가 1:1로 일치해야 합니다.",
+                "message": "answer의 [[출처 n]] 토큰과 citations.ref_id가 1:1로 일치해야 합니다.",
             }
         )
 

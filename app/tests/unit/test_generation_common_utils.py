@@ -57,13 +57,13 @@ def test_normalize_citations_and_tokens():
 
     assert len(citations) == 1
     assert citations[0]["ref_id"] == 1
-    assert "[[CITE:1]]" in answer
+    assert "[[출처 1]]" in answer
 
 
 def test_build_validation_result_detects_mismatch():
     context = [{"chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
     citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-2", "snippet": "근거"}]
-    answer = "본문 [[CITE:1]]"
+    answer = "본문 [[출처 1]]"
 
     validation = build_validation_result(
         answer=answer,

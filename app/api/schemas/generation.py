@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.api.schemas.retrieval import SearchFilters
 
@@ -16,7 +16,7 @@ class SearchInputResult(BaseModel):
     chunk_id: str
     case_id: str
     snippet: str
-    score: float = 0.0
+    score: float
 
 
 class QAContextWindowPolicy(BaseModel):
@@ -33,12 +33,27 @@ class QAContextWindowPolicy(BaseModel):
 class QARequest(BaseModel):
     """QA 요청"""
 
-    query: str
-    top_k: int = 5
+    query: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=50)
     filters: Optional[SearchFilters] = None
     use_search_results: bool = False
     search_results: List[SearchInputResult] = Field(default_factory=list)
     context_window_policy: Optional[QAContextWindowPolicy] = None
+
+    @field_validator("query")
+    @classmethod
+    def validate_query_not_blank(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("query는 공백일 수 없습니다.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_search_results_when_forced(self) -> "QARequest":
+        if self.use_search_results and not self.search_results:
+            raise ValueError(
+                "use_search_results=true인 경우 search_results를 최소 1개 이상 전달해야 합니다."
+            )
+        return self
 
 
 class Citation(BaseModel):
@@ -115,7 +130,7 @@ class ErrorInfo(BaseModel):
     code: str
     message: str
     retryable: bool
-    details: Optional[Dict[str, Any]] = None
+    details: Dict[str, Any] = Field(default_factory=dict)
 
 
 class QAResponse(BaseModel):
