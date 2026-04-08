@@ -154,8 +154,8 @@ class SearchRequest(BaseModel):
 class SearchSummary(BaseModel):
     """검색 요약"""
 
-    observation: Optional[str] = None
-    request: Optional[str] = None
+    observation: str = ""
+    request: str = ""
 
 
 class SearchResultMetadata(BaseModel):
@@ -175,14 +175,16 @@ class SearchResultItem(BaseModel):
     similarity_score: float
     content: Dict[str, str]
     metadata: SearchResultMetadata
+    doc_id: str
+    score: float
+    chunk_id: str
+    snippet: str
+    summary: SearchSummary
+    answers_by_admin_unit: Dict[str, str] = Field(default_factory=dict)
 
     # Backward compatibility fields
-    doc_id: Optional[str] = None
-    score: Optional[float] = None
-    chunk_id: Optional[str] = None
     title: Optional[str] = None
-    snippet: Optional[str] = None
-    summary: Optional[SearchSummary] = None
+    department_answers: Dict[str, str] = Field(default_factory=dict)
 
 
 class SearchResponseData(BaseModel):

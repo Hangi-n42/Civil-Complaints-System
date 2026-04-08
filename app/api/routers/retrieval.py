@@ -24,6 +24,31 @@ router = APIRouter(prefix="/api/v1", tags=["retrieval"])
 SEARCH_LATENCY_WARN_MS = 2000
 
 
+def _normalize_department_answers(item: dict) -> dict[str, str]:
+    """부서별 답변 맵을 표준화한다."""
+    candidates = [
+        item.get("answers_by_admin_unit"),
+        item.get("department_answers"),
+        (item.get("metadata") or {}).get("answers_by_admin_unit"),
+        (item.get("metadata") or {}).get("department_answers"),
+    ]
+
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+
+        normalized: dict[str, str] = {}
+        for raw_key, raw_value in candidate.items():
+            key = str(raw_key or "").strip()
+            value = str(raw_value or "").strip()
+            if key:
+                normalized[key] = value
+        if normalized:
+            return normalized
+
+    return {}
+
+
 def _log_error(
     *,
     endpoint: str,
@@ -248,18 +273,27 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
     formatted_results = []
     for item in results:
         summary = item.get("summary") or {}
+        raw_content = item.get("content") if isinstance(item.get("content"), dict) else {}
+        observation = str(summary.get("observation") or raw_content.get("observation") or "")
+        request_text = str(summary.get("request") or raw_content.get("request") or "")
+        snippet = str(item.get("snippet") or observation or "")
+        case_id = str(item.get("case_id") or item.get("doc_id") or "")
+        doc_id = str(item.get("doc_id") or case_id)
+        chunk_id = str(item.get("chunk_id") or f"{case_id}__chunk-0") if case_id else str(item.get("chunk_id") or "")
+        score = float(item.get("score", 0.0) or 0.0)
+        answers_by_admin_unit = _normalize_department_answers(item)
         content = {
-            "observation": str(summary.get("observation") or ""),
-            "result": "",
-            "request": str(summary.get("request") or ""),
-            "context": "",
+            "observation": observation,
+            "result": str(raw_content.get("result") or ""),
+            "request": request_text,
+            "context": str(raw_content.get("context") or ""),
         }
         metadata = item.get("metadata") or {}
         formatted_results.append(
             {
                 "rank": int(item.get("rank", 0)),
-                "case_id": str(item.get("case_id", "")),
-                "similarity_score": float(item.get("score", 0.0) or 0.0),
+                "case_id": case_id,
+                "similarity_score": score,
                 "content": content,
                 "metadata": {
                     "created_at": metadata.get("created_at"),
@@ -267,16 +301,18 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "region": metadata.get("region"),
                     "entity_labels": metadata.get("entity_labels", []),
                 },
-                # Backward compatibility fields
-                "doc_id": item.get("doc_id"),
-                "score": float(item.get("score", 0.0) or 0.0),
-                "chunk_id": item.get("chunk_id"),
+                "doc_id": doc_id,
+                "score": score,
+                "chunk_id": chunk_id,
                 "title": item.get("title"),
-                "snippet": item.get("snippet"),
+                "snippet": snippet,
                 "summary": {
-                    "observation": content["observation"],
-                    "request": content["request"],
+                    "observation": observation,
+                    "request": request_text,
                 },
+                "answers_by_admin_unit": answers_by_admin_unit,
+                # Backward compatibility alias for FE variants
+                "department_answers": answers_by_admin_unit,
             }
         )
 
