@@ -37,6 +37,11 @@ Week4 BE1 서브 이슈 #133이다.
 - 평가셋/질문셋 품질 점검 결과 요약
 - Gate A 입력 데이터 사용 가능 판정 결과
 
+# Artifact Paths
+- `docs/40_delivery/week4/be1/week4_evaluation_set_freeze_manifest.json`
+- `docs/40_delivery/week4/be1/week4_evaluation_set_quality_report.md`
+- `docs/40_delivery/week4/be1/week4_gatea_input_readiness.md`
+
 # Verification
 - 데이터 건수 일치(목표 500건)
 - 분포 균형 여부(category/region/difficulty)

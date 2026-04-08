@@ -39,6 +39,12 @@ Gate A 지표 산출 가능 상태를 안정적으로 유지하는 것이다.
 - 메타데이터 품질 점검표(`region`, `category`, `created_at` 중심)
 - Gate A 산출 가능 상태 체크 결과(스크립트/로그 경로 포함)
 
+# Artifact Paths
+- `docs/40_delivery/week4/be1/week4_structured_metadata_quality_checklist.md`
+- `docs/40_delivery/week4/be1/week4_gatea_metric_readiness_check.md`
+- `logs/evaluation/week4/be1/week4_metadata_quality_snapshot.json`
+- `logs/evaluation/week4/be1/week4_gatea_metric_readiness.json`
+
 # Out of Scope
 - KPI 초안 문서 작성/배포는 수행하지 않는다.
 
