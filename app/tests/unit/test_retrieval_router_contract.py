@@ -78,6 +78,19 @@ def test_search_response_is_wrapped(monkeypatch):
     assert "elapsed_ms" in body["data"]
     assert "total_found" in body["data"]
     assert isinstance(body["data"]["results"], list)
+    first = body["data"]["results"][0]
+    assert first["rank"] == 1
+    assert first["case_id"] == "CASE-1"
+    assert isinstance(first["similarity_score"], float)
+    assert set(first["content"].keys()) == {"observation", "result", "request", "context"}
+    assert set(first["metadata"].keys()) == {"created_at", "category", "region", "entity_labels"}
+    assert first["doc_id"] == "DOC-1"
+    assert isinstance(first["score"], float)
+    assert first["chunk_id"] == "CASE-1__chunk-0"
+    assert isinstance(first["snippet"], str)
+    assert set(first["summary"].keys()) == {"observation", "request"}
+    assert isinstance(first["answers_by_admin_unit"], dict)
+    assert isinstance(first["department_answers"], dict)
 
 
 def test_index_response_is_wrapped(monkeypatch):
