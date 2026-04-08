@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-04-08T14:25:00+09:00",
+  "issue": "#134",
+  "prerequisites": {
+    "evaluation_set_exists": true,
+    "freeze_manifest_week4_exists": true,
+    "evaluate_structuring_script_exists": true,
+    "evaluate_retrieval_script_exists": true,
+    "evaluate_qa_script_exists": true,
+    "benchmark_script_exists": true,
+    "be1_baseline_report_exists": true
+  },
+  "baseline_status": {
+    "model_id": "aihub_baseline",
+    "status": "not_installed",
+    "results_count": 0
+  },
+  "decision": "PARTIAL_READY",
+  "blocking_factors": [
+    "aihub_baseline model is not installed in local Ollama runtime"
+  ]
+}
