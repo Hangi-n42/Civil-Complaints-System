@@ -113,10 +113,9 @@ def error_response(
             "code": error_code,
             "message": message,
             "retryable": resolved_retryable,
+            "details": _to_json_safe(details or {}),
         },
     }
-    if details:
-        payload["error"]["details"] = _to_json_safe(details)
 
     return JSONResponse(
         status_code=resolved_status,
