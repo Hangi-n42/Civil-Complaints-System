@@ -34,4 +34,5 @@
 
 - `docs/40_delivery/week4/be1/week4_evaluation_set_freeze_manifest.json`
 - `docs/40_delivery/week4/be1/week4_evaluation_set_quality_report.md`
+- `docs/40_delivery/week4/be1/week4_gatea_metric_readiness_check.md`
 - `logs/evaluation/week4/be1/week4_gatea_metric_readiness.json`

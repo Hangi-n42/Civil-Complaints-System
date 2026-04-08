@@ -38,5 +38,7 @@
 ## 5) Evidence
 
 - `logs/evaluation/week3/be1_baseline/model_benchmark_report.json`
+- `docs/40_delivery/week4/be1/week4_evaluation_set_quality_report.md`
+- `docs/40_delivery/week4/be1/week4_structured_metadata_quality_checklist.md`
 - `logs/evaluation/week4/be1/week4_gatea_metric_readiness.json`
 - `logs/evaluation/week4/be1/week4_metadata_quality_snapshot.json`

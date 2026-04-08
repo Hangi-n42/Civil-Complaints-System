@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-04-08T14:20:00+09:00",
+  "issue": "#134",
+  "source": "reports/week2_entity_audit/week2_structured_sample_10.json",
+  "metrics": {
+    "sample_count": 10,
+    "missing_region_like": 10,
+    "missing_category_like": 8,
+    "missing_created_at": 0,
+    "created_at_kst_suffix": 0,
+    "structured_at_kst_suffix": 0
+  },
+  "rules": {
+    "region_required": true,
+    "category_required": true,
+    "created_at_required": true,
+    "kst_timezone_required": true
+  },
+  "decision": "FAIL_REMEDIATION_REQUIRED"
+}
