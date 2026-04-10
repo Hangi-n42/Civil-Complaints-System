@@ -1,552 +1,145 @@
-# [PRD] 민원 담당자를 위한 LLM-Chain 기반 On-Device 검색·분류 시스템
+# [PRD] 민원 담당자를 위한 Adaptive RAG Workbench 시스템
 
-문서 버전: v1.2  
+문서 버전: v2.1  
 작성일: 2026-03-17  
-최신화: 2026-03-26 (Week2 종료 이슈/문서 반영)
-프로젝트 코드명: `Civil-Complaints-System`
+최신화: 2026-04-10 (복잡도 기반 라우팅 기준 반영)
 
 ## 1. 문서 목적
 
-본 PRD는 졸업작품 `민원 담당자를 위한 LLM-Chain 기반 On-Device 검색·분류 시스템`의 범위, 성공 기준, 기능 명세, 일정, 역할 분담을 확정하기 위한 기준 문서다.  
-설계/구현/평가 단계에서 의사결정 충돌이 발생할 경우 본 문서를 1차 기준으로 사용한다.
+본 문서는 Week5-8 개발 범위를 Adaptive RAG 코어 로직 구현 및 데모 UI 완성에 집중하도록 고정한다.
 
 ## 2. 프로젝트 개요
 
-- 핵심 목표: 인터넷 연결 없이 로컬 환경에서 민원 데이터를 구조화, 검색, 질의응답까지 일관 처리하는 보안 특화 AI 시스템 구축
-- 핵심 가치: 보안성, 처리 효율, 검색 정확도, 설명 가능성
-- 문제 정의:
-- 공공 민원 데이터는 개인정보 포함 가능성이 높아 외부 API 사용이 제한됨
-- 단순 키워드 검색으로는 유사 사례 탐색 품질이 낮음
-- 담당자 업무는 반복/수작업 비중이 높아 분류 및 대응 속도가 느림
+- 목표: 민원 데이터를 Adaptive RAG로 처리하고, 담당자 워크벤치에서 근거 기반 답변 초안을 제공한다.
+- 환경: 로컬/온디바이스 우선.
+- 집중 범위: Analyzer -> Router -> Retrieval -> Generation -> Workbench E2E.
 
-## 3. 비전 및 성공 지표
+## 3. 성공 조건 (데모 중심)
 
-### 3.1 비전
+- 민원 선택 후 adaptive 처리 결과가 UI에서 확인된다.
+- 유사 민원 근거와 답변 초안이 같은 화면 흐름에서 출력된다.
+- 단일/복합 요청 케이스 모두 워크벤치에서 처리된다.
 
-"민원 텍스트를 구조적 지식으로 전환하고, 근거 기반 답변까지 제공하는 로컬 AI 조력자"를 구현한다.
+## 4. 사용자
 
-### 3.2 성공 조건
+### 4.1 민원 담당 공무원
+- 빠른 요약 확인
+- 유사 사례 참고
+- 답변 초안 검토/편집
 
-- 동일 평가 조건에서 AIHub에서 사용된 기준 모델 대비 핵심 성능(구조화/검색/근거 정합성)에서 우위 결과 달성
-- 담당자 관점에서 "유사 민원 탐색 시간"이 수작업 대비 체감적으로 단축됨
-- 관리자 관점에서 월간 이슈 유형 보고서 생성이 가능함
-- 설명 가능성(XAI): 답변과 함께 출처 라인/청크를 제시함
-
-
-## 4. 사용자 및 페르소나
-
-### 4.1 메인 사용자: 민원 담당 공무원
-
-- 목표: 빠르게 민원 요지 파악, 유사 사례 탐색, 답변 초안 작성
-- Pain Point:
-- 민원량 폭증 시 분류 및 우선순위 판단이 늦어짐
-- 과거 사례 검색 실패로 동일 민원 반복 처리
-- 보안 규정으로 외부 생성형 AI 사용 불가
-
-### 4.2 서브 사용자: 정책/기획 관리자
-
-- 목표: 민원 트렌드 분석 및 정책 반영 인사이트 확보
-- Pain Point:
-- 비정형 원문 중심 데이터는 통계적 재활용이 어려움
+### 4.2 관리자
+- 처리 상태 확인
+- 시연용 운영 흐름 점검
 
 ## 5. 범위 정의
 
-### 5.1 In Scope (이번 졸업작품 범위)
+### 5.1 In Scope
 
-- 한국어 민원 텍스트 입력/수집 (CSV/JSON 배치 + 수동 입력)
-- 주 데이터 소스: AIHub "공공 민원 상담 LLM 사전학습 및 Instruction Tuning" 데이터(`dataSetSn=71852`) 중심 사용
-- 4요소 구조화 추출: Observation, Result, Request, Context
-- NER 기반 핵심 엔티티 추출 (장소, 시간, 시설물, 위험요소 등)
-- 임베딩 생성 및 벡터 인덱싱 (ChromaDB 또는 FAISS)
-- 자연어 질의 기반 시맨틱 검색 + RAG 응답 생성
-- 답변 근거 하이라이팅(출처 청크 ID, 원문 일부)
-- Streamlit 기반 데모 UI
+- TopicAnalyzer, ComplexityAnalyzer (복잡도 지표 기반)
+- AdaptiveRouter(route key: topic/complexity)
+- Topic/Complexity adaptive retrieval
+- Topic-aware PromptFactory
+- normalize_response 기반 unified output
+- FastAPI + React/Next.js 3단 Workbench UI
 
-### 5.2 Out of Scope (이번 단계 제외)
+### 5.2 Out of Scope
 
-- 실제 행정시스템 연동(전자결재, 민원포털 실연동)
-- 다국어 번역 민원 처리
-- 모바일 앱 네이티브 개발
-- 대규모 분산 인프라(K8s) 운영
+- 추가적인 지표 벤치마크 작업
+- 지표 산출 리포트 확장 작업
+- 리팩토링 중심 작업
+- 실제 행정시스템 실연동
+- 모바일 네이티브 앱
 
 ## 6. 핵심 유스케이스
 
-### UC-01: 민원 구조화
+### UC-01: Adaptive 검색/생성
+- 입력: 민원 텍스트 또는 선택된 민원
+- 처리: analyzer -> router -> retrieval -> generation
+- 출력: 답변 초안 + citation + routing_trace
 
-- 입력: 원문 민원 텍스트 1건 이상
-- 처리: 전처리 -> 4요소 추출 -> 엔티티 추출 -> 스키마 검증
-- 출력: 구조화 JSON + 신뢰도 점수
-- 완료 조건: 스키마 검증 통과율 95% 이상
+### UC-02: Workbench 검토
+- 입력: UC-01 결과
+- 처리: 우측 AI 패널 표시 + 초안 편집
+- 출력: 검토 가능한 답변 초안
 
-### UC-02: 유사 민원 검색
+## 7. 기능 요구사항
 
-- 입력: 자연어 질의 (예: "최근 3개월 도로 안전 관련 민원")
-- 처리: 질의 임베딩 -> 벡터 검색 -> 메타데이터 필터(기간/지역)
-- 출력: 상위 K개 유사 사례 + 점수 + 핵심 필드 요약
-- 완료 조건: 테스트셋 Recall@5 0.75 이상
+### FR-1 Analyzer
+- 주제(`topic_type`)와 복잡도(`complexity_level`, `complexity_score`)를 metadata로 반환한다.
+- 복잡도 산출 근거(`complexity_trace`)를 함께 반환한다.
 
-### UC-03: 근거 기반 답변 생성
+### FR-2 Router
+- `(topic_type, complexity_level)` 기반 전략을 선택한다.
 
-- 입력: 사용자 질의 + 검색 결과 청크
-- 처리: RAG 프롬프트 구성 -> sLLM 추론 -> JSON 파싱 검증
-- 출력: 답변 + 근거 청크 인용 + 불확실성 문구
-- 완료 조건: 출처 정합성 0.80 이상
+### FR-3 Retrieval
+- 전략별 파라미터를 적용해 검색 결과와 trace를 반환한다.
 
-## 7. 기능 요구사항 (상세)
+### FR-4 Generation
+- topic-aware prompt를 사용해 답변을 생성한다.
+- normalize_response로 unified schema를 반환한다.
 
-### FR-1 데이터 수집/정제
-
-- CSV/JSON 로더 제공
-- 개인정보 패턴(전화번호/주민번호 유사 패턴) 마스킹 옵션 제공
-- 중복 민원 탐지(해시 + 유사도 임계값) 제공
-
-### FR-2 텍스트 구조화/NER
-
-- 4요소(Observation/Result/Request/Context) 필수 필드 생성
-- 각 필드는 `text`, `confidence`, `evidence_span` 포함
-- NER 태그셋 최소 포함: `LOCATION`, `TIME`, `FACILITY`, `HAZARD`, `ADMIN_UNIT`
-
-### FR-3 임베딩 및 인덱싱
-
-- 임베딩 모델 교체 가능 구조(`bge-m3`, `KoSimCSE` 실험)
-- 배치 인덱싱 및 증분 인덱싱 지원
-- 메타데이터 필터를 위한 flat key 구조 유지
-
-### FR-4 검색
-
-- Top-K 유사 검색
-- 기간/지역/민원 카테고리 필터(UI만?)
-- 키워드 + 벡터 하이브리드 검색(선택)
-
-### FR-5 RAG 응답 생성
-
-- Ollama 기반 로컬 모델 호출
-- JSON 출력 강제 프롬프트 및 파싱 실패 재시도
-- 답변에 근거 청크 ID/원문 하이라이트 포함
+### FR-5 API 계약
+- `/search`는 `routing_trace`를 반환한다.
+- `/qa`는 `routing_hint`를 수신하고 `routing_trace`를 반환한다.
 
 ### FR-6 UI/UX
-
-- 화면 1: **민원 큐(샘플/대기 목록) 선택 + 구조화 결과 확인(워크벤치 상단)**
-- 화면 2: **워크벤치 기반 검색/질의응답(답변 + citations + limitations + 상태 배너)**
-- 화면 3: 관리자용 통계 대시보드(기간별 유형/빈도) *(선택/후순위 — 데모에서는 제외 가능)*
-
-### FR-7 로깅/평가
-
-- 추론 지연시간, 검색 점수, 실패 원인 로그 저장
-- 오프라인 평가 스크립트 제공(F1, Recall, 응답시간)
+- 3단 분할 Workbench를 제공한다.
+  - 좌측: 네비게이션
+  - 중앙: 민원 목록/상태
+  - 우측: AI 패널(요약, 유사 민원, 답변 초안, citation, 편집)
 
 ## 8. 비기능 요구사항
 
-### 8.1 보안
-
-- 모든 처리 로컬 환경 수행(외부 API 기본 차단)
-- 민원 원문 저장 시 암호화 옵션(AES-256) 지원 권장
-- 로그는 PII 마스킹 후 저장
-
-### 8.2 성능
-
-- 권장 하드웨어: VRAM 6GB 이상 또는 RAM 16GB 이상
-- 동시 사용자 1~3명 데모 환경 기준 안정 동작
-- 평균 질의 지연 12초 이내 목표
-
-### 8.3 안정성
-
-- OOM 발생 시 모델 자동 재로딩/폴백(더 작은 모델) 동작
-- 인덱스 손상 대비 백업/복구 스크립트 제공
-
-### 8.4 유지보수성
-
-- 모듈 분리: ingestion / structuring / retrieval / generation / ui
-- 핵심 파라미터 `.env` 또는 설정 파일로 관리
+- 보안: 로컬 처리 원칙 유지
+- 안정성: 데모 시나리오 연속 동작 보장
+- 유지보수성: 모듈 경계와 API 계약 고정
 
 ## 9. 시스템 아키텍처
 
-1. Ingestion Layer: 원천 민원 수집, 정제, 익명화
-2. NLP Structuring Layer: 4요소 추출 + NER + 스키마 검증
-3. Retrieval Layer: 임베딩 생성, 벡터 인덱싱, 필터 검색
-4. Generation Layer: RAG 프롬프트, Ollama 추론, 근거 첨부
-5. Presentation Layer: Streamlit UI, 통계 대시보드
-
-## 9.1 데이터 기반 Adaptive RAG 설계
-
-### 배경
-- `data_classification.txt` 기준: 민원 길이 분포가 매우 다양하고, 주제/요건 복합성이 높음.
-- 짧은 민원(124어절 이하)과 긴 민원(301 이상) 공존, 단일/다수 요건 혼합, 다양한 주제(교통/환경/안전/복지/경제/주택/건설) 등으로 고정 RAG는 효율 저하.
-- 따라서 **길이/주제/요건 기반 라우팅을 통해 chunking/retrieval/prompt 전략을 다르게 적용**하는 Adaptive RAG가 합리적이지만, MVP 단계에서는 단일 RAG를 먼저 구현·안정화한 뒤 2단계로 적용한다.
-
-### 9.1.0 단계적 적용 원칙 (확정)
-- 1단계(MVP): 단일 RAG 최소 구현(고정 chunking, 고정 retrieval, 고정 prompt)
-- 2단계(고도화): Adaptive RAG(길이/주제/단일-복합 분기) 적용
-- 전환 게이트:
-  - 단일 RAG 기준 구조화/검색/생성 파이프라인 E2E 동작 안정화 완료
-  - 단일 RAG baseline 지표 확보(Recall@5, 4요소 F1, citation 정합성, 지연시간)
-  - 데모 시나리오 3종 연속 성공
-
-### 9.1.1 길이 기반 라우팅
-- Bucket 정의 (데이터 근거):
-  - Short: <= 200 어절 (전체 약 42.08%)
-  - Medium: 201~300 어절 (약 27.44%)
-  - Long: > 300 어절 (약 30.48%)
-- Chunking 전략:
-  - Short: 문단 단위 1~2청크(소형)로 전체 텍스트 사용
-  - Medium: 의미 단위(문장) 기반 128~256 토큰 슬라이딩
-  - Long: 섹션+롤업 chunking + 중요 문장 요약 candidate 생성 (기본 + 핵심 문장)
-- Retrieval Top-K / Rerank:
-  - Short: top_k=10, semantic embedding만 사용
-  - Medium: top_k=20, hybrid(semantic+BM25) + 간단 rerank
-  - Long: top_k=30, multi-stage rerank (retrieval->dense rerank->trainable scoring)
-- 구현 포인트: `LengthRouter` 객체로 threshold와 strategy 파라미터 주입, 하드코딩 if문 최소화.
-
-### 9.1.2 주제 기반 라우팅
-- 주제 분류 기준:
-  - 현장/시설형: 교통, 안전, 환경, 주택/건설
-  - 제도/행정형: 복지, 경제, 기타(국방/세무/방송통신/경찰)
-- 분기 전략:
-  - 시설/현장형: 현장 문장 중심 추출 + 위치/위험요소 엔티티 강화
-  - 제도/행정형: 정책/규정 키워드 기반 요약 + 행정 단위 메타데이터 강조
-- Retrieval 분기:
-  - 현장형: dense retrieval 우선 + keyword 보강
-  - 행정형: hybrid retrieval (dense+BM25) + metadata filter
-- Topic-aware Prompt:
-  - Prompt template에 `topic` slot 포함
-  - 예: `[주제: 교통] - 이 민원은 도로시설/조명/교통신호 관련`처럼 컨텍스트 토픽 삽입
-  - long 민원은 `extract key issues first`(핵심 추출) + `generate concise answer` 전략
-
-### 9.1.3 단일/복합 민원 분기
-- Multi-request 탐지:
-  - rule: `요청합니다`, `부탁드립니다`, `~~ 및 ~~` 2개 이상 요청어
-  - 간단 classifier: prompt 분류 + logistic 모델(회귀)로 `single/multi` 태그
-- Extraction 설계:
-  - single-slot: 4요소 각각 1개 value
-  - multi-slot: 각 slot을 리스트로 확장(`requests: [..]`, `observations: [..]`)
-  - 통합 스키마:
-```json
-{
-  "case_id": "...",
-  "observation": [{"text":"...","confidence":...}],
-  "result": [{...}],
-  "request": [{...}],
-  "context": {"text":"..."},
-  "entities": [{"label":"...","text":"..."}]
-}
-```
-- 최종 unified schema 유지:
-  - 내부 처리에서는 bucket/story 분기 후도, 외부 API/DB 저장/응답은 통일된 JSON schema로 출력
-  - `normalize_response()` 함수로 slot 통합
-
-### 9.1.4 LangChain 기반 모듈화 구조
-- Input Analyzer: 텍스트 길이+주제+요건 분석
-  - `Analyzer` -> metadata: `{length_bucket, topic_type, multi_request_flag}`
-- Router: 전략 선택
-  - `AdaptiveRouter`
-  - route key: `(length_bucket, topic_type, is_multi)`
-- Retrieval Chain:
-  - `RetrievalChain` 기본 + `LengthAdaptiveRetriever`, `TopicAdaptiveRetriever`
-  - 전략에 따라 vector store + metadata filter + hybrid config
-- Generation Chain:
-  - Prompt template factory (`PromptFactory`)에서 `task_type`, `topic`, `length_bucket` 기반 템플릿 선택
-  - `Chain`에서 `RAG` with rerank + citation extraction
-- Parser/Validator:
-  - 답변 JSON schema validator (`pydantic`)
-  - 불일치 시 재시도 및 fallback
-- Unified Output:
-  - 최종 응답은 `[answer, citations, confidence, limitations, structured_output]` 통일
-
-### 9.1.5 실험 계획
-- Baseline: 고정 단일 RAG (기본 4요소+단일 chunk) vs Adaptive RAG
-- 평가 지표:
-  - Retrieval: Recall@5, nDCG@5
-  - Structure: 4요소 F1 (obs/result/request/context)
-  - QA: citation 정합성 (소스 일치율)
-  - Latency: E2E 응답 시간
-- Ablation 제안:
-  1) 길이 기반 chunking only vs 전체 adaptive
-  2) topic-aware prompt only vs no topic
-  3) multi-request 분기 on/off
-- 실행 로드맵 (8주 현실적):
-  - 구현 1단계: 단일 RAG 최소 구현 + baseline 측정 (2주)
-  - 구현 2단계: 길이 기반 routing 우선 적용 + unified schema 유지 (2주)
-  - 구현 3단계: 주제/복합 분기 + retrieval/생성 분기 (2주)
-  - 검증/안정화 4단계: baseline vs adaptive 평가 + ablation + 데모 튜닝 (2주)
-
-### 9.2 구현 우선순위 (8주 내 현실적)
-1. 최소 단일 RAG 구현(고정 chunking + top_k + prompt + JSON 파싱)
-2. 단일 RAG baseline 평가 파이프라인 고정(Recall@5, 4요소 F1, citation 정합성, 지연시간)
-3. `AdaptiveRouter` + `LengthAnalyzer` 도입(2단계)
-4. chunking/resolver 전략을 config 파일(`yaml`)로 분리
-5. `topic_classifier`를 ME 모델/시작은 룰 기반
-6. unified output schema 테스트 자동화
-7. 평가 스크립트로 baseline/adaptive 비교
-
-### 9.3 주의사항
-- 하드코딩 if문 대신 route map + strategy class 사용
-- 분기 수 최소화: 길이 3개 * 주제 2개 * 단일/복합 2개 = 12조합 (초기에는 4~6조합으로 축소)
-- 출력 스키마 `unified_structured_response`로 통일
-
-## 10. 데이터 계약 (Schema Contract)
-
-아래 스키마는 저장소의 `schemas/` 규격과 합치되도록 유지한다.
-
-### 10.1 구조화 민원 예시
-
-```json
-{
-	"case_id": "CASE-2026-000123",
-	"source": "civil_portal",
-	"created_at": "2026-03-05T10:15:00+09:00",
-	"observation": {
-		"text": "OO동 사거리 가로등이 깜빡거리고 일부 구간이 소등됩니다.",
-		"confidence": 0.91,
-		"evidence_span": [0, 29]
-	},
-	"result": {
-		"text": "야간 보행 시 시야가 확보되지 않아 넘어질 위험이 큽니다.",
-		"confidence": 0.87,
-		"evidence_span": [30, 60]
-	},
-	"request": {
-		"text": "LED 교체와 조도 점검을 요청합니다.",
-		"confidence": 0.93,
-		"evidence_span": [61, 82]
-	},
-	"context": {
-		"text": "최근 2주간 매일 저녁 8시 이후 발생",
-		"confidence": 0.84,
-		"evidence_span": [83, 104]
-	},
-	"entities": [
-		{"label": "LOCATION", "text": "OO동 사거리"},
-		{"label": "TIME", "text": "매일 저녁 8시"},
-		{"label": "FACILITY", "text": "가로등"}
-	]
-}
-```
-
-### 10.2 RAG 응답 예시
-
-```json
-{
-	"answer": "최근 3개월 도로 안전 민원은 야간 조명 불량과 보행자 안전 이슈가 집중되었습니다.",
-	"citations": [
-		{"chunk_id": "CHUNK-00044", "case_id": "CASE-2026-000123", "snippet": "...가로등이 깜빡..."},
-		{"chunk_id": "CHUNK-00091", "case_id": "CASE-2026-000204", "snippet": "...보행자 전도 위험..."}
-	],
-	"confidence": "medium",
-	"limitations": "수집 데이터 기간이 3개월로 제한되어 장기 추세 해석은 보수적으로 필요"
-}
-```
-
-## 11. 기술 스택 확정안
-
-### 11.1 최종 확정 스택 (2026-04-04 기준)
-
-| 영역 | 최종 확정 | 버전/모델 | 확정 이유 |
-| --- | --- | --- | --- |
-| Python 런타임 | CPython | 3.11.9 | 주요 라이브러리 호환성이 높고, 팀 로컬 환경 재현이 쉬움 |
-| LLM 추론 엔진 | Ollama | 0.18.0 (최신 확인) | 로컬 오프라인 추론, 무료 운영, 설치/배포 단순 |
-| LLM 모델 | 모델 벤치마킹 테스트 진행중 | `none` | 한국어 성능-속도 균형, 4-bit 양자화 운용 용이를 우선 가치로 |
-| 구조화/NLP | Transformers + Prompt | `transformers==4.46.3` | 기존 코드/파이프라인과 안정 호환 |
-| 임베딩 | BGE-m3 (sentence-transformers) | `sentence-transformers==3.4.1`, `torch==2.5.1` | 한국어 포함 멀티링구얼 검색 성능, 구현 복잡도 낮음 |
-| Vector DB | ChromaDB | `chromadb==1.5.5` | 로컬 영속화 + 메타데이터 필터 + 운영 단순성 |
-| RAG 오케스트레이션 | LangChain + LangChain-Chroma | `langchain==1.0.0`, `langchain-core==1.2.20`, `langchain-text-splitters==1.0.0`, `langchain-chroma==1.1.0` | Chroma 연동 패키지 분리 구조를 반영해 검색/생성 체인 결합 안정성 확보 |
-| API | FastAPI + Uvicorn | `fastapi==0.115.12`, `uvicorn==0.35.0` | 스키마 기반 개발 생산성, 테스트/문서화 유리 |
-| UI | Streamlit | `streamlit==1.44.1` | 8주 일정에서 데모 구현 속도 최적 |
-
-### 11.2 최신 버전 확인 및 호환성 검증 결과
-
-- 확인 일자: 2026-03-20
-- 확인 방법:
-	- PyPI 최신 버전 조회(핵심 패키지)
-	- `pip install --dry-run -r requirements.txt`로 Python 3.11.9 의존성 해석 검증
-	- `winget show Ollama.Ollama`로 Ollama 최신 버전 확인
-- 결과 요약:
-  - `chromadb==1.5.5`, `langchain==1.0.0`, `langchain-core==1.2.20`, `langchain-text-splitters==1.0.0`, `langchain-chroma==1.1.0` 조합으로 상향
-  - `pip install --dry-run -r requirements.txt` 기준 Python 3.11.9에서 의존성 충돌 없이 해석됨
-  - 프로젝트 원칙은 동일하게 유지: "무조건 최신"이 아니라 "검증된 호환 조합" 우선
-
-### 11.3 비용 최소화 기준의 최종 의사결정
-
-1) Vector DB 확정: `ChromaDB`
-- 이유:
-	- 이번 범위(졸업작품 MVP)에서 구축/운영 난이도가 가장 낮음
-	- 메타데이터 필터와 영속 저장이 직관적이라 BE2/BE3 협업에 유리
-	- FAISS 대비 초기 개발 속도와 디버깅 편의성이 높아 일정 리스크가 작음
-	- 비용 관점에서 오픈소스 무료 + 별도 인프라 불필요
-
-2) FAISS는 대체(조건부)로 유지
-- 전환 조건:
-	- 청크 수 대규모 증가로 Chroma 지연이 목표를 초과할 때
-	- 고정된 고성능 인덱스 튜닝이 필요한 평가 단계에서만 선택
-
-## 12. 모델 운영 전략
-
-### 12.1 우선순위
-
-- 1순위: 파이프라인 완성도 및 안정성
-- 2순위: 한국어 뉘앙스 성능 개선
-
-### 12.2 양자화 전략
-
-- 기본: 4-bit(QLoRA/GGUF)로 VRAM 사용량 절감
-- 품질 저하 시: 8-bit 또는 프롬프트/리트리벌 보강
-- OOM 대응: 컨텍스트 길이 축소 -> 배치 축소 -> 모델 다운스케일 순서
-
-## 13. API 요구사항 (초안)
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| POST | `/api/v1/ingest` | 민원 원문 업로드/배치 적재 |
-| POST | `/api/v1/structure` | 4요소 구조화 추출 |
-| POST | `/api/v1/index` | 임베딩/인덱스 생성 |
-| POST | `/api/v1/search` | 시맨틱 검색 |
-| POST | `/api/v1/qa` | RAG 기반 질의응답 |
-| GET | `/api/v1/health` | 모델/인덱스 상태 확인 |
-
-## 14. 테스트 및 평가 계획
-
-### 14.1 데이터셋
-
-- 주 데이터셋: AIHub 공공 민원 상담 LLM 사전학습 및 Instruction Tuning 데이터
-	- 링크: https://aihub.or.kr/aihubdata/data/view.do?pageIndex=1&currMenu=115&topMenu=100&srchOptnCnd=OPTNCND001&searchKeyword=%EB%AF%BC%EC%9B%90&srchDetailCnd=DETAILCND001&srchOrder=ORDER001&srchPagePer=20&aihubDataSe=data&dataSetSn=71852
-- 데이터 사용 원칙: AIHub 이용약관 및 라이선스 범위 준수, 외부 전송 없이 로컬 저장소에서만 처리
-- 학습/검증/테스트 분리(7:1.5:1.5)
-- 카테고리 불균형 점검 및 샘플링
-
-### 14.2 평가 항목
-
-- 구조화: 필드별 Precision/Recall/F1
-- 검색: Recall@K, nDCG@K
-- 생성: 출처 정합성, 사실성 점검 체크리스트
-- 성능: 평균/95p 지연, 메모리 피크
-
-### 14.3 수용 기준(Release Gate)
-
-- 모든 핵심 API 정상 동작
-- 데모 시나리오 3종(도로안전/소음/환경) 연속 성공
-
-## 15. 리스크 및 대응
-
-| 리스크 | 징후 | 대응 |
-| --- | --- | --- |
-| OOM/CUDA 에러 | 추론 중 강제 종료 | 4-bit 우선, 컨텍스트 길이 제한, 모델 폴백 |
-| 전처리 노이즈 | 필드 추출 누락 증가 | 정규식 정제 + 룰 기반 후처리 |
-| 양자화 품질 저하 | 답변 환각 증가 | 검색 근거 강화, 8-bit 비교 실험 |
-| 검색 부정확 | 유사도 상위 결과 품질 저하 | 임베딩 모델 A/B 테스트, 하이브리드 검색 |
-| 일정 지연 | 통합 단계 버그 누적 | 주차별 통합 리허설, 인터페이스 고정 |
-
-## 16. 4인 팀 운영안 및 역할 분담
-
-### 16.1 팀 구성
-
-- BE1 (팀장): 데이터 수집/정제 파이프라인 구축, 텍스트 구조화(4요소 추출) 전처리/후처리, 평가 지표 산출 및 리포트 자동화, PPT 준비 및 발표
-- FE: **민원 큐/워크벤치/검색/챗 UI 구현**, 대시보드 시각화(선택), 사용자 흐름 설계, 데모 시나리오 구성
-- BE2: 임베딩/벡터DB(ChromaDB/FAISS) 설계, 검색 품질 개선(Recall@K, 하이브리드 검색), Ollama 기반 LLM 서빙 및 RAG API 구현
-- BE3: JSON 파싱 안정화, 근거 하이라이팅, 성능 최적화(4-bit/8-bit, OOM 폴백), 스키마 검증 로직 구현
-
-### 16.2 책임 매트릭스 (RACI 간략)
-
-| 업무 | BE1 | FE | BE2 | BE3 |
-| --- | --- | --- | --- | --- |
-| 요구사항 정리 및 주간 운영 | R | C | C | C |
-| 데이터 수집/정제 파이프라인 | R | C | C | C |
-| 4요소 구조화 전처리/후처리 | R | C | C | C |
-| 민원 큐/워크벤치/검색/챗 UI | C | R | C | C |
-| 대시보드/시각화/데모 흐름 | C | R | C | C |
-| 임베딩/벡터DB 설계 | C | C | R | C |
-| 검색 품질 개선 | C | C | R | C |
-| Ollama 서빙 및 RAG API | C | C | R | C |
-| JSON 파싱 안정화 | C | C | C | R |
-| 근거 하이라이팅 | C | C | C | R |
-| 스키마 검증 로직 | C | C | C | R |
-| 성능 최적화/OOM 폴백 | C | C | C | R |
-| 평가 지표 산출 및 리포트 자동화 | R | C | C | C |
-| PPT 준비 및 발표 | R | C | C | C |
-| 통합 테스트 | R | R | R | R |
-
-R: 책임 수행, C: 협업/검토
-
-## 17. 주차별 실행 계획 (WBS v3 정합)
-
-본 장은 `docs/00_overview/wbs_8weeks_v2_updated.md`를 상위 일정 기준으로 삼아 동기화한다.
-
-| 주차 | 상태 | 핵심 목표 | 핵심 산출물 |
-| --- | --- | --- | --- |
-| 1주차 | 완료 | 기획/문서/스캐폴딩 + PoC 착수 범위 기준선 고정 | PRD/MVP/WBS/API/Schema, 역할 매뉴얼, 기본 모듈 골격 |
-| 2주차 | 완료 | ingest-structure-validate E2E 안정화 | 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋 |
-| 3주차 | 계획 | index-search E2E + 검색 지표 기초 측정 | 임베딩/인덱싱/검색, 메타데이터 필터, Recall@K 초안, LLM 핵심 5종 + A.X 조건부 트랙 비교 리포트 |
-| 4주차 | 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline 리포트 |
-| 5주차 | 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | length bucket 분기, chunk/retrieval 전략 분기, ablation #1 |
-| 6주차 | 계획 | Adaptive RAG 2차(주제/단일-복합) 적용 | topic-aware prompt, multi-request 분기, unified schema 고정 |
-| 7주차 | 계획 | 성능/품질 튜닝 + 데모 고정 | 병목 개선, 데모 시나리오/슬라이드 초안 |
-| 8주차 | 계획 | 최종 통합/리허설/발표 산출물 마감 | 최종 코드+문서+발표자료, 리허설 2회, 운영 체크리스트 |
-
-### 17.1 단계 게이트(필수)
-
-- Gate A (W4 종료): 단일 RAG baseline 확정
-  - 필수 조건: Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출
-- Gate B (W6 종료): Adaptive 분기 통합 완료
-  - 필수 조건: 길이/주제/복합 분기 E2E 동작 + unified output schema 일관성 유지
-- Gate C (W8 종료): 데모/발표 동결
-  - 필수 조건: 2시간 연속 데모 치명 장애 0회 목표, 리허설 2회 이상 완료
-
-### 17.2 주차별 책임 포커스
-
-<<<<<<< HEAD
-- FE: W2 업로드/검증 UI 안정화 -> W3 검색 UI -> W4 QA 화면 -> W7~W8 데모 UX 고정
-- BE1: W2 구조화 품질/평가체계 고정 -> W3 검색용 필드 품질 보강 -> W7 성능 튜닝
-=======
-- FE: W2 **구조화 결과 표시/상태 UX 기준 고정** -> W3 검색 UI -> W4 QA 화면(근거/제약/오류 상태 안정화) -> W7~W8 데모 UX 고정
-- BE1: W2 구조화 품질/평가체계 고정 -> W3 검색용 필드 품질 보강 -> W7 KPI 리포트 마감
->>>>>>> 47778ee (backup: local changes before overwrite)
-- BE2: W3 인덱싱/검색 파이프라인 고도화 -> W4 QA 컨텍스트 연결 -> W5~W6 retrieval 분기 최적화
-- BE3: W2 API 검증/파싱 안정화 -> W3 LLM 핵심 5종(+A.X 조건부) 동일조건 벤치마크 -> W4 generation/citation baseline -> W5~W7 라우팅/성능/OOM 폴백 튜닝
-
-### 17.5 Week3 모델 벤치마크 역할 분배 (확정)
-
-- BE1: 기존 AIHub baseline 모델 테스트 담당
-- BE2: 후보 1(`skt/A.X-4.0-Light`) 테스트 담당
-- BE3: 후보 2/3/4(`exaone3.5:7.8b-instruct`, `gemma3:12b`, `phi4-mini:3.8b-instruct`) 테스트 담당
-- FE: 결과 시각화(비교표/슬라이스 대시보드) 반영 협업
-
-### 17.3 마일스톤 기준 실행 계획 (M1~M4)
-
-주차 기반 계획을 리뷰/보고 단위로 관리하기 위해 2주 단위 마일스톤으로 병행 추적한다.
-
-| 마일스톤 | 주차 범위 | 핵심 목표 | 핵심 산출물 | 마일스톤 종료 조건 |
-| --- | --- | --- | --- | --- |
-| M1 | W1~W2 | 완료 | PRD/MVP/WBS/API/Schema 정합, 정제/PII 규칙, 4요소 구조화 결과셋, 스키마 검증 리포트 | 샘플 50건+ 처리, 스키마 통과율 90% 목표 |
-| M2 | W3~W4 | index-search E2E 완성 + 단일 RAG baseline 확정 | 인덱싱/검색 파이프라인, 메타데이터 필터, `/qa` JSON 안정화, citation 연결 | Gate A 충족(Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출) |
-| M3 | W5~W6 | Adaptive RAG 1차/2차 통합 적용 | 길이 라우팅, topic/multi-request 분기, unified schema 고정, ablation 결과 | Gate B 충족(분기 E2E 동작 + unified output schema 일관성) |
-| M4 | W7~W8 | 품질 튜닝 + 데모/발표 산출물 동결 | 병목 개선 내역, 최종 코드/문서/발표자료, 리허설 기록 | Gate C 충족(2시간 데모 안정성 목표, 리허설 2회 이상) |
-
-### 17.4 마일스톤 리뷰 체크리스트
-
-- M1 리뷰: 데이터 계약 불일치 항목 0건 여부, 구조화 파이프라인 재실행 가능 여부
-- M2 리뷰: 검색/생성 baseline 수치 확정 여부, QA JSON 파싱 안정성 여부
-- M3 리뷰: Adaptive 분기별 성능 편차 허용 범위 내 여부, fallback 경로 정상 동작 여부
-- M4 리뷰: 데모 시나리오 3종 연속 성공 여부, 발표 산출물 동결 여부
-
-## 18. 주간 운영 규칙
-
-- 매주 수요일: 중간 통합 점검(브랜치 통합, 회귀 테스트)
-- 운영 순서: 설계 -> 구현 -> 검증 -> 통합 기록
-- 브랜치 전략: `main`(안정), `feature/*`(개발)
-
-## 19. 최종 산출물
-
-- 실행 가능한 로컬 데모 앱(Streamlit + API)
-- 구조화/검색/QA 파이프라인 코드
-- 평가 리포트(실패사례, 개선내역)
-- 사용자 매뉴얼/설치 가이드
-- 발표 자료(문제정의 -> 아키텍처 -> 성능 -> 시연)
-
-## 20. 확장 로드맵 (후속)
-
-- 불확실성 추정(답변 신뢰도 수치화)
-- 정책 제안 자동 요약(월간/분기 보고서)
-- 온디바이스 모델 교체 자동 A/B 프레임워크
-- 감사 로그 및 접근제어 강화(기관 도입 대비)
-
-## 21. 포트폴리오/면접 어필 포인트
-
-"클라우드 의존 없이 공공 보안 제약 환경에서, 구조화 NLP + RAG + 양자화 최적화를 통합해 실제 운영 가능한 로컬 AI 시스템을 설계하고 구현했다"를 핵심 메시지로 제시한다.
+1. Ingestion/Structuring
+2. Adaptive Analyzer
+3. Adaptive Router
+4. Retrieval
+5. Generation
+6. FastAPI API Layer
+7. Next.js Workbench Layer
+
+## 9.1 데이터 기반 Adaptive RAG 설계 (실행 기준)
+
+### 9.1.1 Input Analyzer
+- `TopicAnalyzer`
+- `ComplexityAnalyzer`
+- (보조) `MultiRequestDetector`
+- 출력: `{topic_type, complexity_level, complexity_score, complexity_trace, request_segments}`
+
+### 9.1.2 Router
+- `AdaptiveRouter`
+- route key: `(topic_type, complexity_level)`
+- 출력: `{strategy_id, route_key, routing_trace}`
+
+### 9.1.3 Retrieval
+- `TopicAdaptiveRetriever`
+- `ComplexityAdaptiveRetriever`
+- 결과 metadata에 `strategy_id`, `topic_type`, `complexity_level` 포함
+
+### 9.1.4 Generation
+- `PromptFactory`
+- `normalize_response()`
+- unified output: `answer`, `citations`, `limitations`, `structured_output`, `routing_trace`
+
+## 10. 주차 전략 (현재 시점)
+
+- Week1-4: 완료 사인오프
+- Week5-6: Adaptive 코어 모듈 구현
+- Week7-8: Workbench 통합 및 데모 동결
+
+## 11. 역할 분담
+
+- FE: Next.js Workbench UX
+- BE1: Analyzer
+- BE2: Router/Retrieval
+- BE3: Generation/API 통합
+
+## 12. 완료 판정
+
+- 특정 민원 선택 -> adaptive 처리 -> 답변 초안 + citation UI 출력이 연속 동작하면 완료로 판단한다.
