@@ -1,36 +1,22 @@
 # ARD (Architecture Decision Record)
 
-문서 버전: v1.1  
+문서 버전: v2.1  
 작성일: 2026-03-26  
-최신화: 2026-03-26 (매뉴얼/Week2 운영 규칙 반영)  
-대상 프로젝트: AI-Civil-Affairs-Systems
+최신화: 2026-04-10 (복잡도 기반 라우팅 전환 반영)
 
 ## 1. 문서 목적
 
-이 문서는 현재 프로젝트의 핵심 아키텍처 의사결정을 한곳에 기록하고, 이후 변경 시 비교 기준으로 사용하기 위한 ARD다.  
-아래 결정은 다음 문서를 근거로 작성했다.
+본 문서는 프로젝트의 핵심 아키텍처 결정을 기록하고, 변경 시 근거와 트레이드오프를 추적하기 위한 기준 문서다. 이전 변경 기록은 90_archive/week4_overview/ 에 유지하고 있다.
 
-- `README.md`
-- `docs/00_overview/prd.md`
-- `docs/00_overview/mvp_scope.md`
-- `docs/00_overview/dev_stack.md`
-- `docs/00_overview/folder_structure_draft.md`
-- `docs/00_overview/wbs_8weeks_v2_updated.md`
-- `docs/10_contracts/api/api_spec.md`
-- `docs/10_contracts/schema/schema_contract.md`
-- `docs/10_contracts/interfaces/week2/README.md`
-- `docs/10_contracts/interfaces/week2/week2_common_interface.md`
-- `docs/30_manuals/be1_manual.md`
-- `docs/30_manuals/be2_manual.md`
-- `docs/30_manuals/be3_manual.md`
-- `docs/30_manuals/fe_manual.md`
-- `docs/40_delivery/week2/README.md`
+## 2. 현재 유효 결정 요약
 
-## 2. 아키텍처 범위 요약
+- On-device 우선 처리
+- Adaptive RAG 단계 적용
+- 계약 기반 API 통합
+- Week5-8은 코어 구현 + 데모 동결 중심 운영
+- 라우팅 기준은 topic + complexity 중심으로 운영
 
-- 목표: 로컬 환경에서 민원 데이터의 구조화, 검색, 근거 기반 QA를 일관 처리
-- 제약: 온디바이스 우선, 개인정보 보호, 8주 MVP 일정, 4인 분업
-- 기본 파이프라인: `ingestion -> structuring -> retrieval -> generation -> ui`
+## 3. 결정 기록
 
 ## 3. 결정 기록
 
@@ -236,39 +222,76 @@
   - 단점: 문서 동기화 비용 증가
   - 후속: 계약 변경은 단일 PR로 동시 반영 원칙 유지
 
-## 4. 현재 아키텍처 도식(텍스트)
 
-1. 입력: CSV/JSON/수동 텍스트
-2. Ingestion: 정제, PII 마스킹, 중복 처리
-3. Structuring: 4요소 추출, 엔티티 추출, 스키마 검증
-4. Retrieval: 청킹, 임베딩(BGE-m3), 인덱싱/검색(ChromaDB)
-5. Generation: 검색 결과 기반 RAG, JSON 파싱/재시도, citation 생성
-6. API: FastAPI 공통 래퍼 응답
-7. UI: Streamlit 업로드/검색/QA/대시보드
+## ARD-013: FE 아키텍처 전환 및 3단 Workbench UX 채택
 
-## 5. 리스크 및 추적 항목
+- 상태: 승인(Active)
+- 날짜: 2026-04-09
 
-- 리스크 A: 로컬 자원 한계로 인한 OOM/지연
-  - 추적: 평균/최대 응답시간, 실패율, 폴백 횟수
-- 리스크 B: 계약 불일치로 인한 FE/BE 통합 오류
-  - 추적: VALIDATION_ERROR 빈도, 파서 실패 케이스
-- 리스크 C: citation 정합성 저하
-  - 추적: citation 소스 일치율, 무근거 응답 비율
+### 1) Context (도입 배경)
 
-## 6. 변경 관리 및 완료 게이트
+- 기존 Streamlit 기반 UI는 빠른 프로토타이핑에는 유리했지만, 실무자 중심의 복합 워크플로우(실시간 목록 + 상세 검토 + 초안 편집)를 안정적으로 표현하기에 한계가 있었다.
+- Week5-8의 핵심 목표가 Adaptive RAG 코어 구현 결과를 명확히 보여주는 데모 완성으로 이동하면서, 화면 구조와 상태 관리의 확장성이 필요해졌다.
+- 특히 민원 담당자 동선 기준으로 "민원 선택 -> 진행 상태 확인 -> 근거 기반 답변 검토/편집"을 한 화면에서 처리할 수 있는 구조가 요구되었다.
 
-- 이 ARD의 상태값은 `Active`, `Superseded`, `Deprecated`로 관리한다.
-- 계약 변경이 발생하면 다음 3개 문서를 같은 PR에서 함께 업데이트한다.
-  - `docs/10_contracts/interfaces/week2/*`
-  - `docs/10_contracts/api/api_spec.md`
-  - `docs/10_contracts/schema/schema_contract.md`
-- 아키텍처 변경 PR에는 최소 1개의 영향 지표(성능/품질/안정성)를 첨부한다.
-- Week2 완료 게이트는 아래 3개를 동시에 만족해야 한다.
-  - 샘플 50건 이상 처리
-  - 스키마 통과율 90% 목표 달성
-  - 구조화 평가 파이프라인 재실행 가능
+### 2) Decision (결정 사항)
 
-## 7. 승인 이력
+- FE 스택을 Streamlit에서 React/Next.js로 전환한다.
+- BE는 FastAPI를 유지하고, FE는 FastAPI API 계약을 소비하는 분리형 구조로 고정한다.
+- UX는 3단 분할 통합 Workbench를 채택한다.
+  - 좌측: 네비게이션(민원 선택, 워크벤치, 관리자 대시보드)
+  - 중앙: 실시간 민원 목록 및 상태 관리
+  - 우측: AI 어시스턴트 패널(요약, 유사 민원 검색, 답변 초안 검토/편집)
 
-- 2026-03-26: v1.0 초안 작성
-- 2026-03-26: v1.1 매뉴얼/Week2 운영 근거 반영
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - Adaptive RAG 처리 결과를 역할 동선에 맞게 명확히 시각화할 수 있다.
+  - 데모 완성도와 설득력이 높아진다.
+  - 이후 기능 확장(권한, 워크플로우 상태, 편집 이력)에 유리하다.
+- 한계/트레이드오프
+  - FE 개발 복잡도와 초기 구현 비용이 증가한다.
+  - API 계약 동기화 부담이 증가한다.
+  - 팀 내 FE/BE 통합 테스트 루틴을 더 엄격히 운영해야 한다.
+
+## ARD-014: Adaptive Router 복잡도 기반 전환 (length/is_multi 중심 분기 대체)
+
+- 상태: 승인(Active)
+- 날짜: 2026-04-10
+
+### 1) Context (도입 배경)
+
+- 기존 length_bucket/is_multi 중심 분기는 구현 단순성은 높지만, 실제 민원 난이도와 검색 난도를 충분히 설명하지 못하는 한계가 있었다.
+- 특히 같은 길이여도 요청 의도 수, 제약 조건 수, 정책 참조 밀도에 따라 retrieval/generation 복잡도가 크게 달라졌다.
+- Week5-8 목표가 데모 관통 안정성과 설명 가능성인 만큼, 라우팅 근거가 사용자에게 더 납득 가능해야 했다.
+
+### 2) Decision (결정 사항)
+
+- `topic_type`은 유지하고, 라우팅 핵심 축을 `complexity_level`로 전환한다.
+- 신규 분석 모듈 `ComplexityAnalyzer`를 도입해 아래 지표를 기반으로 `complexity_score`, `complexity_level`을 산출한다.
+  - `intent_count`
+  - `constraint_count`
+  - `entity_diversity`
+  - `policy_reference_count`
+  - `cross_sentence_dependency`
+- `route_key`는 `{topic_type}/{complexity_level}` 포맷으로 고정한다.
+- `length_bucket`, `is_multi`는 보조 분석/표시 용도로만 유지하고 라우팅 핵심 기준으로는 사용하지 않는다.
+
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - 라우팅 근거의 설명 가능성이 향상된다.
+  - retrieval 파라미터를 실제 난이도에 더 밀접하게 조정할 수 있다.
+  - FE에서 `complexity_trace`를 통해 전략 선택 이유를 사용자에게 직관적으로 제시할 수 있다.
+- 한계/트레이드오프
+  - 초기 복잡도 규칙 설계 비용이 증가한다.
+  - Analyzer/Router/API/UI 문서 동시 변경이 필요해 동기화 부담이 커진다.
+- 후속
+  - PRD/WBS/MVP/specs/issues/manual을 동일 기준으로 동기화한다.
+  - `/search`, `/qa` 계약에서 `routing_trace` 내 complexity 필드를 필수화한다.
+
+## 4. 후속 액션
+
+- PRD/WBS/MVP/dev_stack/folder_structure/FE manual을 본 결정과 정렬한다.
+- Week5-6에 API 필드(`routing_trace`, `routing_hint`, `structured_output`)를 동결한다.
+- Week7부터 UI 기능 추가보다 통합 안정화에 집중한다.

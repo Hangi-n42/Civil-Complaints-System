@@ -1,317 +1,143 @@
-# 8주 WBS 문서 (v3 - 2026-03-18 일정 재기준화)
+# 8주 WBS 문서 (Adaptive RAG Demo Focus)
 
-문서 버전: v3.1 (Week2 종료 반영)  
-기준 문서: [PRD](prd.md), [MVP 범위 문서](mvp_scope.md)  
+문서 버전: v4.1  
 작성일: 2026-03-11  
-최신화: 2026-03-27 (M1 완료, Week3 상세 계획 추가)
+최신화: 2026-04-10 (복잡도 기반 라우팅 기준 반영)
 
 ## 1. 문서 목적
 
-본 문서는 4인 팀 기준 8주 동안 프로젝트를 실제로 완성하기 위한 작업 분해 구조(WBS)를 정의한다.  
+본 문서는 8주 프로젝트의 남은 기간(Week5-8) 동안 팀이 Adaptive RAG 코어 로직 구현과 데모 UI 완성에만 집중하도록 실행 계획을 고정한다.
 
-## 2. 변경 배경 및 반영 원칙
+## 2. 운영 원칙
 
-### 2.1 PRD 최신 의사결정 반영 사항
-- PRD v1.1 기준으로 RAG 전략은 **단일 RAG(1단계) -> Adaptive RAG(2단계)** 순차 적용.
-- 즉, WBS에서도 먼저 단일 RAG 안정화/베이스라인 확보 후 Adaptive 라우팅(길이/주제/단일-복합)을 적용하도록 배치.
+- Week1-4 세부 태스크는 완료 사인오프로 묶고 재논의하지 않는다.
+- Week5-8은 코어 모듈 개발과 E2E 데모 흐름 관통 구현만 수행한다.
+- 지표 확장, 추가 벤치마크, 리팩토링 중심 태스크는 배치하지 않는다.
+- 모든 주차 완료 기준은 기능 동작 검증(입력 -> UI 출력)으로 판단한다.
 
-## 3. 운영 원칙
+## 3. 역할 정의
 
-### 3.1 일정 운영 원칙
-- 매주 월요일: 목표 및 리스크 점검
-- 매주 수요일: 중간 통합 점검
-- 각 주차는 **설계 -> 구현 -> 검증 -> 통합 기록** 순서로 운영
-
-### 3.2 WBS 작성 기준
-- 모든 작업은 담당자와 산출물이 명확해야 함
-- 기능 개발과 동시에 평가 및 로그 설계를 병행
-- 후반부 병목을 막기 위해 인터페이스 고정 작업을 초반에 배치
-- 발표 준비는 마지막 주가 아니라 Week 6부터 병행
-
-## 4. 역할 정의
-
-| 역할 | 담당자 | 주요 책임 |
+| 역할 | 담당자 | 핵심 책임 |
 | --- | --- | --- |
-| **BE1** (팀장) | 현기 | 데이터 파이프라인, 구조화, 평가 주도, 발표 총괄 |
-| **FE** | 도훈 | Streamlit UI, 사용자 흐름, 시각화, 데모 UX |
-| **BE2** | 민건 | 벡터DB, 임베딩, 인덱싱, 검색, 검색 평가 |
-| **BE3** | 현석 | FastAPI, Ollama, RAG, 성능, 검증, 안정성 |
+| FE | 도훈 | Next.js Workbench UI, 상태/동선, BE 결과 가시화 |
+| BE1 | 현기 | Length/Topic/Multi Analyzer 메타데이터 생성 |
+| BE2 | 민건 | Adaptive Router(주제+복잡도), Retrieval 전략 분기, retrieval trace |
+| BE3 | 현석 | Topic-aware Prompt, normalize_response, /qa 통합 |
 
-## 5. 주차별 WBS 요약 (1~8주차)
+## 4. 주차별 요약
 
-| 주차 | 상태 | 핵심 목표 | 핵심 산출물 |
+| 주차 | 상태 | 목표 | 핵심 산출물 |
 | --- | --- | --- | --- |
-| **1주차** | ✅ 완료 | 기획/문서/스캐폴딩 + PoC 착수 범위까지 기준선 고정 | PRD/MVP/WBS/API/Schema, 역할 매뉴얼, 기본 모듈 골격, Week1 이슈 완료 |
-| **2주차** | ✅ 완료 | ingest-structure-validate E2E 안정화 | 데이터 정제/PII, 4요소 구조화, 스키마 검증, 구조화 결과셋, 5개 심각도 이슈 수정 완료 |
-| **3주차** | 🚀 진행중 | index-search E2E + LLM 핵심 5종 벤치마크 | 임베딩/인덱싱/검색, 메타필터, Recall@K 측정, 모델 비교 리포트(1차) |
-| **4주차** | ⏳ 계획 | 단일 RAG(1단계) 완성 및 baseline 확정 | `/qa` JSON 안정화, citation 연결, baseline 리포트 |
-| **5주차** | ⏳ 계획 | Adaptive RAG 1차(길이 라우팅) 적용 | Length bucket 분기, chunk/retrieval 전략, ablation #1 |
-| **6주차** | ⏳ 계획 | Adaptive RAG 2차(주제/단일-복합) 적용 | topic-aware prompt, multi-request 분기, unified schema 검증 |
-| **7주차** | ⏳ 계획 | 성능/품질 튜닝 + 데모 준비 | 병목 개선, 데모 시나리오/슬라이드, 코드 마감 |
-| **8주차** | ⏳ 계획 | 최종 통합/리허설/발표 산출물 제출 | 발표자료/코드/문서, 리허설 2회, 최종 검증 완료 |
+| Week1-4 | 완료 | 단일 RAG + Baseline + M2 사인오프 완료 | 완료 보고 및 운영 기록 |
+| Week5 | 진행 | Complexity 기반 Adaptive 분기 + 검색/생성 전달 | ComplexityAnalyzer, AdaptiveRouter(1차), routing_trace |
+| Week6 | 계획 | Topic/Multi 분기 + Prompt/Schema 통합 | TopicAnalyzer, PromptFactory, normalize_response |
+| Week7 | 계획 | BE->FE 데모 관통 통합 및 Workbench UX 고정 | 3단 Workbench E2E 시연 경로 |
+| Week8 | 계획 | 데모 동결, 리허설, 발표 산출물 마감 | 최종 데모 빌드/시나리오/문서 동결 |
 
-### 5.1 마일스톤 미러 맵 (M1~M4)
+## 5. 완료 사인오프 (Week1-4)
 
-주차 계획(1~8)을 2주 단위 마일스톤으로 병행 추적한다.
+- Week1-4는 기획/단일 RAG/Baseline 관련 세부 작업을 완료한 것으로 사인오프한다.
 
-| 마일스톤 | 주차 범위 | 상태 | 핵심 목표 | 종료 게이트 |
-| --- | --- | --- | --- | --- |
-| **M1** | W1~W2 | ✅ 완료 | 기준선 고정 + ingest-structure-validate E2E 안정화 | 샘플 50건+ 처리, 스키마 통과율 90% 달성 ✅ |
-| **M2** | W3~W4 | 🚀 진행중 | index-search E2E 완성 + 단일 RAG baseline 확정 | Gate A: Recall@5, 4요소 F1, citation 정합성, latency 기준선 산출 |
-| **M3** | W5~W6 | ⏳ 계획 | Adaptive RAG 1차/2차 통합 적용 | Gate B: 분기 E2E 동작 + unified schema 일관성 유지 |
-| **M4** | W7~W8 | ⏳ 계획 | 품질 튜닝 + 데모/발표 산출물 동결 | Gate C: 2시간 데모 안정성 목표, 리허설 2회 이상 |
+## 6. 상세 WBS (Week5-8)
 
-### 5.2 마일스톤 진행률 체크보드
+## Week5: Complexity Adaptive Core 구현
 
-| 마일스톤 | 진행률(%) | 증빙 문서/이슈 | 이번 주 상태 | 블로커 | 다음 액션 |
-| --- | --- | --- | --- | --- | --- |
-| **M1** | 100 | `docs/40_delivery/week2/README.md`, Week2 이슈(#12~#31), `reports/WEEK2_FIXES_SUMMARY.md` | W2 종료 사인오프 완료 | - | ✅ 완료 |
-| **M2** | 10 | `docs/40_delivery/week3/README.md`, 벤치마크 프로토콜 | 임베딩/인덱싱 구현 시작, 벤치마크 설정 구성중 | 모델 환경 설정 | 검색 E2E + 모델별 QA 생성 테스트 |
-| **M3** | 0 | - | 미착수 | - | 라우팅/분기 실험 설계 |
-| **M4** | 0 | - | 미착수 | - | 데모 고정 요구사항 사전 점검 |
+### 목표
+- 복잡도 기반 분기(low/medium/high)를 실제 검색/생성 체인에 연결한다.
 
-### 5.3 마일스톤 종료 체크리스트
+### FE
+- 검색 결과 카드에 `routing_trace.complexity_level`, `routing_trace.complexity_score`, `strategy_id` 표시.
+- 검색 -> QA 전환 시 `routing_hint` 전달 상태를 UI에서 유지.
 
-- [x] M1 종료: 샘플 50건+ 처리 및 스키마 통과율 90% 달성
-- [ ] M2 종료: 단일 RAG baseline 지표(Recall@5, 4요소 F1, citation 정합성, latency) 확정
-- [ ] M3 종료: 길이/주제/복합 분기 E2E 동작 및 unified schema 일관성 검증
-- [ ] M4 종료: 2시간 데모 안정성 목표 달성 및 리허설 2회 완료
+### BE1
+- `LengthAnalyzer.analyze(text)` 구현.
+- `MultiRequestDetector.detect(text)` 1차 룰 구현(요청문 분리 포함).
 
----
+### BE2
+- `AdaptiveRouter.route(topic_type, complexity_level, complexity_score)` 1차 구현(복잡도 우선).
+- 복잡도 레벨별 `top_k`, `snippet_max_chars`, `chunk_policy` 적용.
 
-## 6. 상세 WBS
-
-## Week 1 — 기준선 고정 및 초기 구현 완료 (✅ 완료)
-
-### 완료 범위 (기존 Week 1 + Week 2 상당 부분)
-- PRD/MVP/WBS/API/스키마 계약 문서 정리
-- 역할 매뉴얼 및 폴더 구조/코어 모듈 스캐폴딩 완료
-- FastAPI/Streamlit 기본 실행 구조 확보
-- 벡터DB/임베딩/Ollama 연동 PoC 착수
-- Week1 이슈 문서 기준 주요 작업 완료 처리
-
-### 상태 메모
-- `docs/40_delivery/week1/issues/` 기준으로 공통/역할별 1주차 핵심 과업은 완료로 간주
-- 이후 주차는 “기획 단계”가 아닌 “실제 품질/통합 단계” 중심으로 운영
-
----
-
-## Week 2 — Ingest / Structure / Validate 안정화 (✅ 완료)
-
-### 주간 목표
-- 입수 -> 정제 -> 구조화 -> 검증 E2E 안정화
-- 구조화 품질 측정 가능한 데이터셋 확보
-
-### 완료 사항
-- ✅ 샘플 50건+ 처리 완료
-- ✅ 스키마 통과율 90% 달성
-- ✅ 구조화 평가 파이프라인 재실행 가능
-- ✅ 5가지 심각도 이슈 수정 완료 (`reports/WEEK2_FIXES_SUMMARY.md`)
-  1. BE1 입력 필드 매핑 버그(raw_text 미지원) 수정
-  2. Entity Label 검증 부재 해결(정규화 규칙 추가)
-  3. 시각 포맷 KST +09:00 통일
-  4. API 응답 포맷 422 래퍼 일치화
-  5. JSON 파싱 재시도 전략 보강
+### BE3
+- `/search` 응답에 `routing_trace` 포함.
+- `/qa` 요청 `routing_hint` 수신/전달 경로 연결.
 
 ### 완료 기준
-- ✅ 모든 기준 충족 (2026-03-26 종료 사인오프 완료)
+- 입력 질의가 complexity level로 분기되고, 동일 `strategy_id`가 검색 응답과 QA 응답에 모두 노출된다.
 
----
+## Week6: Topic/Multi + Unified Output 구현
 
-## Week 3 — Index / Search 구현 및 측정
+### 목표
+- 주제/복합 분기를 반영한 generation 통합과 응답 정규화를 완료한다.
 
-### 주간 목표
-- 인덱싱/검색 E2E 완료
-- Recall@K, nDCG@K 측정 파이프라인 시작
-- LLM 핵심 5종(기존 AIHub 모델 + 후보 4종) 동일조건 벤치마크 수행
-- SKT A.X는 라이선스/로컬 배포 경로 확인 시 조건부 트랙으로 추가 측정
+### FE
+- 단일/복합 요청 UI 렌더링 분기(`request` list 대응).
+- topic badge 및 strategy badge 표시 고정.
 
-### 역할별 작업
-#### FE
-- 검색 UI(쿼리/필터/결과카드) 연결
+### BE1
+- `TopicAnalyzer.classify(text, category, entity_labels)` 구현.
+- `ComplexityAnalyzer.analyze(text, topic_type)` 구현.
+- analyzer 출력을 `{topic_type, complexity_level, complexity_score, complexity_trace, request_segments}`로 통일.
 
-#### BE1
-- 검색용 필드 품질 보완(카테고리/지역/기간)
-- 모델 비교용 공통 평가셋/질문셋 고정 및 품질 점검
-- 기존 AIHub baseline 모델 벤치마크 실행
+### BE2
+- topic_type별 retrieval 분기(field_ops/admin_policy) 적용.
+- retrieval trace에 `route_key`, `applied_filters` 포함.
 
-#### BE2
-- `app/retrieval/service.py` 인덱싱/검색/필터 구현 고도화
-- ChromaDB 컬렉션 전략 고정
-- 후보 1(`skt/A.X-4.0-Light`) 벤치마크 실행 및 결과 정리
-
-#### BE3
-- `/index`, `/search` 안정화
-- 응답 시간 로깅/에러 핸들링 정리
-- Ollama 기반 모델별 QA 생성 성능 측정 스크립트 운영
-- 후보 2/3/4(`exaone3.5:7.8b-instruct`, `gemma3:12b`, `phi4-mini:3.8b-instruct`) 벤치마크 실행 및 통합 리포트 작성
+### BE3
+- `PromptFactory.build(query, context, routing_trace)` 구현.
+- `normalize_response(payload)`로 unified schema 확정.
 
 ### 완료 기준
-- Top-K 검색 정상 동작
-- 필터 2종 이상 안정 동작
-- 검색 지표 초기값 산출 가능
-- 모델 비교 리포트 1차본 산출(핵심 5종 필수, A.X 조건부)
-- 벤치마크 케이스 15건 이상으로 시나리오 슬라이스 지표 확보
+- topic/multi 분기 입력에 대해 `/qa`가 `structured_output` + `routing_trace`를 일관 반환한다.
 
----
+## Week7: 3단 Workbench E2E 통합
 
-## Week 4 — 단일 RAG(1단계) 완성 + Baseline
+### 목표
+- FastAPI + Next.js 기반 통합 워크벤치 데모 흐름을 고정한다.
 
-### 주간 목표
-- PRD 최신 의사결정 반영: 단일 RAG를 먼저 완성
-- Baseline 지표 확정(Adaptive 비교 기준선)
+### FE
+- 3단 분할 Workbench 구현:
+  - 좌측: 민원 선택/워크벤치/관리자 대시보드 네비게이션
+  - 중앙: 실시간 민원 목록/상태 관리
+  - 우측: AI 패널(요약/유사민원/답변초안 검토/편집)
+- 상태 UX(success/loading/error/empty) 통일.
 
-### 역할별 작업
-#### FE
-- QA 화면(질문/답변/근거/제약) 안정화
+### BE1
+- Workbench 중앙 목록에 필요한 구조화/분류 요약 필드 제공.
 
-#### BE1
-- baseline용 평가셋/수동 검증셋 정리
+### BE2
+- 우측 AI 패널용 유사 민원 목록 API 응답을 Workbench 형식으로 고정.
 
-#### BE2
-- 검색 결과를 QA 컨텍스트로 최적 연결
-
-#### BE3
-- `app/generation/service.py` JSON 파싱 재시도 안정화
-- citation 정합성 검증 로직 고정
+### BE3
+- 답변 초안/근거/제약사항 응답 스키마를 편집 가능한 형태로 고정.
 
 ### 완료 기준
-- `/qa`에서 answer+citation+limitations 반환
-- 단일 RAG baseline 지표 확보:
-  - Recall@5
-  - 4요소 F1
-  - citation 정합성
-  - latency
+- 단일 민원 선택 후 우측 패널에서 답변과 citation이 생성/표시되고, 수정 가능한 초안 영역이 동작한다.
 
----
+## Week8: 데모 동결 및 발표 준비
 
-## Week 5 — Adaptive RAG 1차 (길이 라우팅)
+### 목표
+- 기능 변경을 중지하고 데모 시나리오와 문서를 동결한다.
 
-### 주간 목표
-- 길이 기반 라우팅(Short/Medium/Long) 도입
-- chunking/retrieval 전략 분기 적용
+### FE
+- 시연 동선 3종을 클릭 순서 문서와 일치하도록 고정.
 
-### 역할별 작업
-#### FE
-- 라우팅/전략 정보 디버그 표시(운영자용)
-
-#### BE1
-- 길이 bucket 기준 검증 및 예외 케이스 정리
-
-#### BE2
-- bucket별 top_k/retrieval 설정 및 성능 측정
-
-#### BE3
-- 라우팅 후 generation/prompt 안정화
+### BE1/BE2/BE3
+- E2E 시연 중 필요한 로그/추적 정보 최소 세트 유지.
+- 스키마 변경 금지, 버그 픽스만 허용.
 
 ### 완료 기준
-- 길이 분기 적용 E2E 동작
-- ablation #1(길이 라우팅 on/off) 결과 확보
+- 데모 시나리오 3종이 동일 워크벤치 UX에서 연속 실행된다.
 
----
+## 7. 주차 게이트 (기능 중심)
 
-## Week 6 — Adaptive RAG 2차 (주제/단일-복합)
+- Gate W5: 복잡도 분기 라우팅 trace가 검색/생성/화면에서 확인 가능.
+- Gate W6: topic/multi 분기 후 unified schema가 UI에서 그대로 렌더 가능.
+- Gate W7: 3단 Workbench에서 실시간 목록/AI 패널 연동 완료.
+- Gate W8: 기능 동결 상태로 리허설 시나리오 연속 성공.
 
-### 주간 목표
-- 주제 기반 분기 + 단일/복합 민원 분기 적용
-- unified schema 유지
+## 8. 금지 항목 (Week5-8)
 
-### 역할별 작업
-#### FE
-- 다중 요청 결과 표시 UX 정리
-
-#### BE1
-- multi-request 탐지 룰/데이터 검증
-
-#### BE2
-- topic별 retrieval 전략 분기(현장형 vs 행정형)
-
-#### BE3
-- topic-aware prompt 템플릿/파서/검증 통합
-- `normalize_response()` 규격 고정
-
-### 완료 기준
-- topic/multi 분기 동작
-- unified output schema 일관성 유지
-- ablation #2/#3 결과 확보
-
----
-
-## Week 7 — 품질 튜닝 + 데모 준비
-
-### 주간 목표
-- baseline vs adaptive 비교 리포트 정리
-- 데모 안정화 및 발표 자료 초안 완성
-
-### 역할별 작업
-#### FE
-- 데모 UX, 오류/로딩 상태 개선
-
-#### BE1
-- 구조화 품질 리포트 마감
-
-#### BE2
-- 검색 성능 리포트 및 튜닝 결과 확정
-
-#### BE3
-- latency/OOM/폴백 최종 튜닝
-
-### 완료 기준
-- 데모 시나리오 3종 고정
-- 발표 자료 초안 완료
-
----
-
-## Week 8 — 최종 통합/리허설/발표 마감
-
-### 주간 목표
-- 코드/문서/발표 산출물 최종 동결
-- 리허설 기반 운영 안정성 확보
-
-### 완료 기준
-- 2시간 연속 데모 치명 장애 0회 목표
-- 리허설 2회 이상 완료
-- 최종 발표자료/README/평가리포트 완성
-
----
-
-## 7. 핵심 선행관계 (1~8 기준)
-
-| 선행 작업 | 후속 작업 |
-| --- | --- |
-| 구조화 스키마 확정 (W1) | `/structure` 안정화 (W2), 검색 메타 연결 (W3) |
-| 검색 응답 형식 고정 (W3) | 단일 RAG baseline (W4) |
-| 단일 RAG baseline 확정 (W4) | Adaptive 길이 라우팅 (W5) |
-| 길이 라우팅 적용 (W5) | 주제/복합 라우팅 (W6) |
-| Adaptive 비교 리포트 (W7) | 최종 데모/발표 (W8) |
-
----
-
-## 8. 주간 체크포인트 질문 (매주 금요일)
-
-- 이번 주 E2E로 실제 연결된 기능은 무엇인가?
-- baseline 대비 adaptive 개선/악화 항목은 무엇인가?
-- 다음 주 가장 큰 리스크는 무엇인가?
-- 지금 범위를 줄여야 하는 기능은 무엇인가?
-
----
-
-## 9. 최종 관리 포인트
-
-⚠️ 일정 관리 핵심
-- **W4 말까지** 단일 RAG baseline이 확정되지 않으면 Adaptive 실험 신뢰도가 떨어진다.
-- **W6 말까지** Adaptive 분기 적용/통합이 완료되지 않으면 W7~W8 데모 품질이 급락한다.
-- **W7부터는** 신규 기능 추가보다 품질 개선/데모 안정화 우선.
-- **W8에는** 불필요한 확장 금지, 발표 성공 가능성 최우선.
-
----
-
-## 10. 결론
-
-이번 WBS v3는 실제 진행 상황을 반영해 **Week 1~8 실행형 계획**으로 재정렬했다.  
-핵심 전략은 PRD 최신 결정과 동일하게 **단일 RAG baseline 확보 후 Adaptive RAG를 단계적으로 적용**하는 것이다.
-
----
-
-**Last Updated**: 2026-03-19  
-**Next Review**: 2026-03-22 (Week 2 종료 리뷰)
+- 추가 지표 측정/리포트 확장 태스크
+- 모델 벤치마크 확장 태스크
+- 리팩토링 중심 태스크
+- 예외 처리 고도화만을 목표로 한 태스크
