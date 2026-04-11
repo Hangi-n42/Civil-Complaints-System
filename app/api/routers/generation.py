@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 from time import perf_counter
-from typing import Any
 
 from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 
 from app.api.error_utils import error_response, make_request_id, now_iso
-from app.api.schemas.generation import QARequest, QAResponse, CitationValidation
-from app.core.config import settings
+from app.api.schemas.generation import QARequest, QAResponse
 from app.core.exceptions import GenerationError, RetrievalError
 from app.core.logging import api_logger
 from app.generation.context_mapper import map_retrieval_to_qa_context
 from app.generation.citation.citation_mapper import get_citation_mapper
+from app.generation.normalization.response_normalizer import (
+    normalize_response,
+    validate_unified_contract,
+)
 from app.generation.service import get_generation_service
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
@@ -27,6 +29,88 @@ router = APIRouter(prefix="/api/v1", tags=["generation"])
 
 CONTRACT_VERSION = "qa-v1.1"
 QA_LATENCY_WARN_MS = 8000
+
+
+def _derive_request_segments(query: str) -> list[str]:
+    cleaned = str(query or "").strip()
+    if not cleaned:
+        return []
+
+    delimiters = [" 및 ", " 그리고 ", ",", ";"]
+    segments = [cleaned]
+    for delimiter in delimiters:
+        next_segments = []
+        for item in segments:
+            next_segments.extend(item.split(delimiter))
+        segments = next_segments
+
+    normalized = [item.strip() for item in segments if item.strip()]
+    return normalized if normalized else [cleaned]
+
+
+def _is_strategy_consistent(strategy_id: str, route_key: str) -> bool:
+    if "/" not in route_key:
+        return False
+    topic, complexity = route_key.split("/", 1)
+    expected = f"topic_{topic}_{complexity}_v1"
+    return strategy_id == expected
+
+
+def _validate_week6_qa_request(request: QARequest) -> str | None:
+    if not str(request.complaint_id or "").strip():
+        return "complaint_id is required"
+    if not request.query.strip():
+        return "query is required"
+    if request.routing_hint is None:
+        return "routing_hint is required"
+
+    if not str(request.routing_hint.strategy_id or "").strip():
+        return "routing_hint.strategy_id is required"
+    if not str(request.routing_hint.route_key or "").strip():
+        return "routing_hint.route_key is required"
+    if "/" not in request.routing_hint.route_key:
+        return "routing_hint.route_key must contain topic/complexity format"
+    if not _is_strategy_consistent(
+        request.routing_hint.strategy_id,
+        request.routing_hint.route_key,
+    ):
+        return "routing_hint.strategy_id and routing_hint.route_key are inconsistent"
+    if request.routing_hint.top_k < 1:
+        return "routing_hint.top_k must be >= 1"
+    if request.routing_hint.snippet_max_chars < 120:
+        return "routing_hint.snippet_max_chars must be >= 120"
+    return None
+
+
+def _build_trace_from_route_key(route_key: str, query: str) -> dict:
+    topic_type = "general"
+    complexity_level = "medium"
+    if "/" in route_key:
+        parts = route_key.split("/", 1)
+        topic_type = parts[0] or "general"
+        complexity_level = parts[1] or "medium"
+
+    if complexity_level == "high":
+        complexity_score = 0.8
+    elif complexity_level == "low":
+        complexity_score = 0.3
+    else:
+        complexity_score = 0.55
+
+    return {
+        "topic_type": topic_type,
+        "complexity_level": complexity_level,
+        "complexity_score": complexity_score,
+        "request_segments": _derive_request_segments(query),
+        "complexity_trace": {
+            "intent_count": 1,
+            "constraint_count": 0,
+            "entity_diversity": 1,
+            "policy_reference_count": 0,
+            "cross_sentence_dependency": False,
+        },
+        "route_reason": "search 단계 routing_hint 값을 그대로 계승했습니다.",
+    }
 
 
 def _log_error(
@@ -68,19 +152,6 @@ def _log_success(*, endpoint: str, request_id: str, took_ms: int, retrieved_coun
         )
 
 
-def _confidence_label(value: Any) -> str:
-    try:
-        score = float(value)
-    except (TypeError, ValueError):
-        score = 0.5
-
-    if score >= 0.75:
-        return "high"
-    if score >= 0.45:
-        return "medium"
-    return "low"
-
-
 @router.post("/qa", response_model=QAResponse)
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
@@ -88,20 +159,27 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     start = perf_counter()
     response.headers["X-Contract-Version"] = CONTRACT_VERSION
 
-    if not request.query.strip():
+    validation_message = _validate_week6_qa_request(request)
+    if validation_message:
         took_ms = int((perf_counter() - start) * 1000)
+        error_code = (
+            "ROUTING_STRATEGY_INCONSISTENT"
+            if "inconsistent" in validation_message
+            else "VALIDATION_ERROR"
+        )
         _log_error(
             endpoint="/api/v1/qa",
             request_id=request_id,
-            error_code="BAD_REQUEST",
+            error_code=error_code,
             retryable=False,
             took_ms=took_ms,
-            message="질문(query)은 비어 있을 수 없습니다.",
+            message=validation_message,
         )
         return error_response(
             request_id=request_id,
-            error_code="BAD_REQUEST",
-            message="질문(query)은 비어 있을 수 없습니다.",
+            error_code=error_code,
+            message=validation_message,
+            status_code=400,
             retryable=False,
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
@@ -110,15 +188,18 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     generation_service = get_generation_service()
 
     try:
+        retrieval_start = perf_counter()
+        effective_top_k = request.routing_hint.top_k if request.routing_hint else request.top_k
         if request.use_search_results and request.search_results:
             raw_context = [item.model_dump() for item in request.search_results]
         else:
             filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
             raw_context = await retrieval_service.search(
                 query=request.query,
-                top_k=request.top_k,
+                top_k=effective_top_k,
                 filters=filters,
             )
+        retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
         _log_error(
@@ -161,9 +242,9 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         if request.context_window_policy
         else None
     )
-    context, context_trace = map_retrieval_to_qa_context(
+    context, _context_trace = map_retrieval_to_qa_context(
         retrieval_results=raw_context,
-        top_k=request.top_k,
+        top_k=effective_top_k,
         policy=context_policy,
     )
 
@@ -205,7 +286,15 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         )
 
     try:
-        result = await generation_service.generate_qa(query=request.query, context=context)
+        generation_start = perf_counter()
+        route_key = request.routing_hint.route_key if request.routing_hint else "general/medium"
+        routing_trace = _build_trace_from_route_key(route_key, request.query)
+        result = await generation_service.generate_qa(
+            query=request.query,
+            context=context,
+            routing_trace=routing_trace,
+        )
+        generation_elapsed_ms = int((perf_counter() - generation_start) * 1000)
     except GenerationError as e:
         error_code = getattr(e, "code", "PROCESSING_ERROR")
         retryable = bool(getattr(e, "retryable", True))
@@ -278,7 +367,6 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     took_ms = int((perf_counter() - start) * 1000)
     citations = normalize_citations(result.get("citations", []), context=context)
     answer = ensure_citation_tokens(result.get("answer", ""), citations=citations)
-    confidence = _confidence_label(result.get("confidence", 0.5))
     limitations = str(result.get("limitations", "")).strip() or "검색 범위 내 데이터에 기반한 답변입니다."
     validation = build_validation_result(
         answer=answer,
@@ -305,7 +393,6 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
-    used_top_k = min(request.top_k, len(context)) if request.top_k > 0 else len(context)
     _log_success(
         endpoint="/api/v1/qa",
         request_id=request_id,
@@ -327,36 +414,69 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             mismatch_count,
         )
 
+    response_citations = []
+    for item in citations:
+        if hasattr(item, "model_dump"):
+            item = item.model_dump()
+        response_citations.append(
+            {
+                "doc_id": str(item.get("doc_id") or item.get("case_id") or ""),
+                "source": str(item.get("source") or "retrieval"),
+                "quote": str(item.get("snippet") or ""),
+            }
+        )
+
+    route_key = request.routing_hint.route_key if request.routing_hint else "general/medium"
+    strategy_id = request.routing_hint.strategy_id if request.routing_hint else "topic_general_medium_v1"
+    routing_trace = _build_trace_from_route_key(route_key, request.query)
+
+    generated_structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
+    unified_payload = normalize_response(
+        {
+            "complaint_id": request.complaint_id,
+            "strategy_id": strategy_id,
+            "route_key": route_key,
+            "routing_trace": routing_trace,
+            "structured_output": {
+                "summary": generated_structured.get("summary", ""),
+                "action_items": generated_structured.get("action_items", []),
+                "request_segments": generated_structured.get(
+                    "request_segments",
+                    routing_trace.get("request_segments", []),
+                ),
+            },
+            "answer": answer,
+            "citations": response_citations,
+            "limitations": result.get("limitations", [limitations]),
+            "latency_ms": {
+                "analyzer": 0,
+                "router": 0,
+                "retrieval": retrieval_elapsed_ms,
+                "generation": generation_elapsed_ms,
+            },
+            "quality_signals": {
+                "citation_coverage": 1.0 if response_citations else 0.0,
+                "hallucination_flag": False,
+                "segment_coverage": 1.0 if routing_trace.get("request_segments") else 0.0,
+            },
+        }
+    )
+
+    contract_missing = validate_unified_contract(unified_payload)
+    if contract_missing:
+        return error_response(
+            request_id=request_id,
+            error_code="VALIDATION_ERROR",
+            message="/qa unified response contract validation failed",
+            status_code=500,
+            retryable=False,
+            details={"missing_fields": contract_missing},
+            headers={"X-Contract-Version": CONTRACT_VERSION},
+        )
+
     return QAResponse(
         success=True,
         request_id=request_id,
         timestamp=now_iso(),
-        data={
-            "answer": answer,
-            "citations": citations,
-            "confidence": confidence,
-            "limitations": limitations,
-            "latency_ms": took_ms,
-        },
-        meta={
-            "processing_time": round(took_ms / 1000, 2),
-            "model": str(result.get("model", settings.OLLAMA_MODEL)),
-            "validation_warning": "본 답변은 로컬 AI가 작성한 초안이므로 실제 공문 발송 전 반드시 담당자의 검토가 필요합니다.",
-            "generated_at": now_iso(),
-            "validator_version": "be3-val-v0.1",
-        },
-        qa_validation=validation,
-        search_trace={
-            "used_top_k": used_top_k,
-            "retrieved_count": len(context),
-            "context_budget_chars": context_trace["context_budget_chars"],
-            "context_used_chars": context_trace["context_used_chars"],
-            "context_truncated_count": context_trace["context_truncated_count"],
-            "context_dropped_count": context_trace["context_dropped_count"],
-        },
-        citation_validation=CitationValidation(
-            is_valid=is_valid,
-            mismatch_count=mismatch_count,
-            details={"mismatches": mismatch_details} if mismatch_details else None,
-        ),
+        data=unified_payload,
     )

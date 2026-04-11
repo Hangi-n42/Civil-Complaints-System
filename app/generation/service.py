@@ -16,6 +16,7 @@ import httpx
 from app.core.logging import pipeline_logger
 from app.core.exceptions import GenerationError
 from app.core.config import settings
+from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.parsing.json_utils import (
     extract_json_string,
     normalize_confidence,
@@ -360,6 +361,7 @@ class GenerationService:
         self,
         query: str,
         context: List[Dict[str, Any]],
+        routing_trace: Dict[str, Any] | None = None,
         mode: str = "default",
     ) -> str:
         """
@@ -374,42 +376,13 @@ class GenerationService:
         """
         try:
             self.logger.info(f"RAG 프롬프트 구성: {len(context)}개 컨텍스트")
-            context_lines: List[str] = []
-            for i, doc in enumerate(context, start=1):
-                snippet = str(doc.get("snippet", "")).strip()
-                context_lines.append(
-                    (
-                        f"[{i}] chunk_id={doc.get('chunk_id', 'unknown')} "
-                        f"case_id={doc.get('case_id', 'unknown')} "
-                        f"score={doc.get('score', doc.get('relevance_score', 0.0))}\n"
-                        f"snippet={snippet[:120]}"
-                    )
-                )
-
-            mode_hint = ""
+            base_trace = dict(routing_trace or {})
             if mode == "force_json":
-                mode_hint = (
-                    "\n재요청 단계 2: 반드시 단일 JSON 객체만 출력하세요. "
-                    "설명/주석/코드블록(```)은 절대 포함하지 마세요."
-                )
+                base_trace["prompt_mode"] = "force_json"
             elif mode == "compact":
-                mode_hint = (
-                    "\n재요청 단계 3: 공백 최소화한 compact JSON 한 줄만 출력하세요. "
-                    "추가 텍스트는 금지합니다."
-                )
+                base_trace["prompt_mode"] = "compact"
 
-            prompt = (
-                "검색 기반 QA입니다. 오직 JSON만 출력하세요.\n"
-                "스키마: {\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],\"confidence\":\"low|medium|high\",\"limitations\":\"string\"}.\n"
-                "주의: citations는 아래 근거 목록의 chunk_id/case_id/snippet만 사용하세요.\n\n"
-                + mode_hint
-                + "\n\n"
-                f"질문: {query}\n\n"
-                "검색 컨텍스트:\n"
-                + "\n".join(context_lines)
-            )
-
-            return prompt
+            return PromptFactory.build(query=query, context=context, routing_trace=base_trace)
         except Exception as e:
             self.logger.error(f"프롬프트 구성 실패: {str(e)}")
             raise GenerationError(
@@ -474,7 +447,10 @@ class GenerationService:
             ) from e
 
     async def generate_qa(
-        self, query: str, context: List[Dict[str, Any]]
+        self,
+        query: str,
+        context: List[Dict[str, Any]],
+        routing_trace: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         """
         QA 응답 생성 (RAG)
@@ -509,6 +485,7 @@ class GenerationService:
                     prompt = await self.build_rag_prompt(
                         query,
                         context,
+                        routing_trace=routing_trace,
                         mode=str(step["mode"]),
                     )
                     response_text = await self.call_ollama(

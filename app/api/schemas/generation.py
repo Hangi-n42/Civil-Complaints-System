@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.api.schemas.retrieval import SearchFilters
+from app.api.schemas.retrieval import RoutingHint, RoutingTrace, SearchFilters
 
 
 class SearchInputResult(BaseModel):
@@ -33,7 +33,9 @@ class QAContextWindowPolicy(BaseModel):
 class QARequest(BaseModel):
     """QA 요청"""
 
+    complaint_id: Optional[str] = None
     query: str = Field(min_length=1)
+    routing_hint: Optional[RoutingHint] = None
     top_k: int = Field(default=5, ge=1, le=50)
     filters: Optional[SearchFilters] = None
     use_search_results: bool = False
@@ -117,11 +119,16 @@ class CitationValidation(BaseModel):
 class QAResponseData(BaseModel):
     """QA 응답 본체"""
 
+    complaint_id: str
+    strategy_id: str
+    route_key: str
+    routing_trace: RoutingTrace
+    structured_output: Dict[str, Any] = Field(default_factory=dict)
     answer: str
-    citations: List[Citation]
-    confidence: Literal["low", "medium", "high"]
-    limitations: str
-    latency_ms: int
+    citations: List[Dict[str, Any]] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+    latency_ms: Dict[str, int] = Field(default_factory=dict)
+    quality_signals: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ErrorInfo(BaseModel):
@@ -134,16 +141,16 @@ class ErrorInfo(BaseModel):
 
 
 class QAResponse(BaseModel):
-    """QA 성공 응답 (Week 4 계약)"""
+    """QA 성공 응답 (Week 5 계약)"""
 
     success: Literal[True] = True
     request_id: str
     timestamp: str
     data: QAResponseData
-    meta: MetaInfo
-    qa_validation: QAValidation
-    search_trace: SearchTrace
-    citation_validation: CitationValidation
+    meta: Optional[MetaInfo] = None
+    qa_validation: Optional[QAValidation] = None
+    search_trace: Optional[SearchTrace] = None
+    citation_validation: Optional[CitationValidation] = None
 
 
 class QAErrorResponse(BaseModel):

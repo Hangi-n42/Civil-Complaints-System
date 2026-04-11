@@ -1,0 +1,52 @@
+[
+  {
+    "complaint_id": "CMP-2026-1001",
+    "query": "기초생활 수급 신청 절차를 안내해주세요",
+    "top_k": 3
+  },
+  {
+    "complaint_id": "CMP-2026-1002",
+    "query": "임대주택 보수 지연 및 관리비 이의제기 관련 민원",
+    "top_k": 5
+  },
+  {
+    "complaint_id": "CMP-2026-1003",
+    "query": "도로 파손 구간 긴급 보수 요청",
+    "top_k": 4
+  },
+  {
+    "complaint_id": "CMP-2026-1004",
+    "query": "교통 신호 고장, 불법주정차 단속 요청",
+    "top_k": 5
+  },
+  {
+    "complaint_id": "CMP-2026-1005",
+    "query": "생활 소음 민원 처리 기준을 알려주세요",
+    "top_k": 3
+  },
+  {
+    "complaint_id": "CMP-2026-1006",
+    "query": "악취 그리고 폐기물 적치 문제를 함께 신고합니다",
+    "top_k": 4
+  },
+  {
+    "complaint_id": "CMP-2026-1007",
+    "query": "공사장 안전 펜스 설치 요청",
+    "top_k": 3
+  },
+  {
+    "complaint_id": "CMP-2026-1008",
+    "query": "시설 보수 지연; 현장 안내 미흡 개선 요청",
+    "top_k": 4
+  },
+  {
+    "complaint_id": "CMP-2026-1009",
+    "query": "민원 회신 지연 사유를 설명해 주세요",
+    "top_k": 2
+  },
+  {
+    "complaint_id": "CMP-2026-1010",
+    "query": "민원 처리 기한 및 회신 방식 안내 요청",
+    "top_k": 3
+  }
+]

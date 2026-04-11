@@ -104,6 +104,7 @@ interface WorkbenchState {
 1. 사용자: `PanelActions > 답변 생성` 클릭 (또는 자동 트리거)
 2. 시스템:
    - `/qa` 호출 (`routing_hint` 포함)
+   - `/search` 연계 시 `use_search_results=true`, `search_results[]` 함께 전달
 3. 성공 시:
    - `qaResult.answer`, `citations`, `limitations`, `structured_output` 저장
    - `draftAnswer = answer`
@@ -127,6 +128,8 @@ interface WorkbenchState {
   - `strategy_id`, `route_key`, `routing_hint`, `routing_trace`, `retrieved_docs`
 - `/qa` 요청 시 필수 전송 필드:
   - `complaint_id`, `query`, `routing_hint`
+- `/qa` 요청 시 연계 전달 필드(권장):
+   - `use_search_results`, `search_results`
 - `/qa` 성공 시 필수 사용 필드:
   - `routing_trace`, `structured_output`, `answer`, `citations`, `limitations`
 

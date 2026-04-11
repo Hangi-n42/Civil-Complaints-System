@@ -145,10 +145,41 @@ class SearchRequest(BaseModel):
     """검색 요청"""
 
     request_id: Optional[str] = None
+    complaint_id: Optional[str] = None
     query: str
     top_k: int = 5
     filters: Optional[SearchFilters] = None
     collection_name: str = "civil_cases_v1"
+
+
+class RoutingHint(BaseModel):
+    """search -> qa 전달용 라우팅 힌트"""
+
+    strategy_id: str
+    route_key: str
+    top_k: int = Field(default=5, ge=1, le=50)
+    snippet_max_chars: int = Field(default=1100, ge=120, le=4000)
+    chunk_policy: Literal["compact", "balanced", "expanded"] = "balanced"
+
+
+class RoutingComplexityTrace(BaseModel):
+    """라우팅 복잡도 산정 근거"""
+
+    intent_count: int = 1
+    constraint_count: int = 0
+    entity_diversity: int = 1
+    policy_reference_count: int = 0
+    cross_sentence_dependency: bool = False
+
+
+class RoutingTrace(BaseModel):
+    """라우팅 추적 정보"""
+
+    topic_type: str
+    complexity_level: Literal["low", "medium", "high"]
+    complexity_score: float = Field(ge=0.0, le=1.0)
+    complexity_trace: RoutingComplexityTrace
+    route_reason: str
 
 
 class SearchSummary(BaseModel):
@@ -165,6 +196,8 @@ class SearchResultMetadata(BaseModel):
     category: Optional[str] = None
     region: Optional[str] = None
     entity_labels: List[str] = Field(default_factory=list)
+    strategy_id: Optional[str] = None
+    route_key: Optional[str] = None
 
 
 class SearchResultItem(BaseModel):
@@ -190,7 +223,13 @@ class SearchResultItem(BaseModel):
 class SearchResponseData(BaseModel):
     """검색 응답 데이터"""
 
-    results: List[SearchResultItem]
+    complaint_id: Optional[str] = None
+    strategy_id: str
+    route_key: str
+    routing_hint: RoutingHint
+    routing_trace: RoutingTrace
+    retrieved_docs: List[SearchResultItem]
+    results: List[SearchResultItem] = Field(default_factory=list)
     total_found: int
     elapsed_ms: int
 

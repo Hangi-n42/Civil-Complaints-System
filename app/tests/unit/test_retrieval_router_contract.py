@@ -77,13 +77,25 @@ def test_search_response_is_wrapped(monkeypatch):
     assert body["request_id"] == "SRCH-2026-000001"
     assert "elapsed_ms" in body["data"]
     assert "total_found" in body["data"]
+    assert isinstance(body["data"]["strategy_id"], str)
+    assert isinstance(body["data"]["route_key"], str)
+    assert isinstance(body["data"]["routing_hint"], dict)
+    assert isinstance(body["data"]["routing_trace"], dict)
+    assert isinstance(body["data"]["retrieved_docs"], list)
     assert isinstance(body["data"]["results"], list)
     first = body["data"]["results"][0]
     assert first["rank"] == 1
     assert first["case_id"] == "CASE-1"
     assert isinstance(first["similarity_score"], float)
     assert set(first["content"].keys()) == {"observation", "result", "request", "context"}
-    assert set(first["metadata"].keys()) == {"created_at", "category", "region", "entity_labels"}
+    assert set(first["metadata"].keys()) == {
+        "created_at",
+        "category",
+        "region",
+        "entity_labels",
+        "strategy_id",
+        "route_key",
+    }
     assert first["doc_id"] == "DOC-1"
     assert isinstance(first["score"], float)
     assert first["chunk_id"] == "CASE-1__chunk-0"
