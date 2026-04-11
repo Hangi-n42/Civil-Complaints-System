@@ -80,7 +80,7 @@ Week 5에서 BE3는 `/search` 응답에 routing 필드를 통합하고, `/qa` �
 
 누락 시 에러:
 - `VALIDATION_ERROR`
-- 메시지 예시: `routing_hint.route_key is required`
+- 메시지 예시: `routing_hint is required`
 
 ---
 
@@ -138,8 +138,9 @@ Week 5에서 BE3는 `/search` 응답에 routing 필드를 통합하고, `/qa` �
 
 Week5 BE3 에러 코드:
 - `VALIDATION_ERROR` (400)
-- `SEARCH_PIPELINE_ERROR` (500)
-- `QA_PIPELINE_ERROR` (500)
+- `BAD_REQUEST` (400)
+- `INDEX_NOT_READY` (503)
+- `INTERNAL_SERVER_ERROR` (500)
 
 공통 실패 포맷:
 
@@ -150,8 +151,8 @@ Week5 BE3 에러 코드:
   "timestamp": "2026-04-10T17:15:02+09:00",
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "routing_hint.route_key is required",
-    "retryable": true,
+    "message": "routing_hint is required",
+    "retryable": false,
     "details": {}
   }
 }
