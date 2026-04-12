@@ -36,6 +36,10 @@ Week 6에서 BE3는 topic-aware generation과 응답 정규화 레이어를 고�
     "topic_type": "welfare",
     "complexity_level": "high",
     "complexity_score": 0.81,
+    "request_segments": [
+      "보수 지연",
+      "관리비 이의제기"
+    ],
     "complexity_trace": {
       "intent_count": 3,
       "constraint_count": 4,
@@ -43,18 +47,15 @@ Week 6에서 BE3는 topic-aware generation과 응답 정규화 레이어를 고�
       "policy_reference_count": 1,
       "cross_sentence_dependency": true
     }
-  },
-  "request_segments": [
-    "보수 지연",
-    "관리비 이의제기"
-  ]
+  }
 }
 ```
 
 필수 규칙:
 - routing_trace 필수
-- request_segments는 최소 1개
+- request_segments는 `routing_trace.request_segments` 또는 `structured_output.request_segments`에 최소 1개
 - route_key/strategy_id는 search 단계 값 계승
+- route_key/strategy_id 형식 불일치 시 `ROUTING_STRATEGY_INCONSISTENT` 반환
 
 ---
 
@@ -145,7 +146,10 @@ Week6 BE3 에러 코드:
 - `VALIDATION_ERROR` (400)
 - `PROMPT_BUILD_ERROR` (500)
 - `NORMALIZE_RESPONSE_ERROR` (500)
-- `ROUTING_STRATEGY_INCONSISTENT` (500)
+- `ROUTING_STRATEGY_INCONSISTENT` (400)
+
+검증 보충:
+- 요청 본문 스키마 파싱 실패(예: 필수 필드 타입 오류)는 FastAPI 검증 경로에서 `VALIDATION_ERROR`(422)로 응답될 수 있음
 
 실패 응답 포맷:
 
@@ -156,8 +160,8 @@ Week6 BE3 에러 코드:
   "timestamp": "2026-04-10T17:15:02+09:00",
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "routing_hint.route_key is required",
-    "retryable": true,
+    "message": "routing_hint is required",
+    "retryable": false,
     "details": {}
   }
 }

@@ -91,6 +91,78 @@ def _log_perf_warning(*, endpoint: str, request_id: str, took_ms: int, threshold
         )
 
 
+def _detect_topic_type(query: str) -> str:
+    query_lower = query.lower()
+    topic_keywords = {
+        "welfare": ["복지", "급여", "기초생활", "수급", "임대주택"],
+        "traffic": ["도로", "교통", "신호", "불법주정차", "가로등"],
+        "environment": ["환경", "소음", "악취", "미세먼지", "폐기물"],
+        "construction": ["공사", "건축", "안전", "보수", "시설"],
+    }
+    for topic, keywords in topic_keywords.items():
+        if any(keyword in query_lower for keyword in keywords):
+            return topic
+    return "general"
+
+
+def _build_routing_payload(query: str, top_k: int) -> dict:
+    topic_type = _detect_topic_type(query)
+    query_len = len(query.strip())
+    intent_count = 1 + int("및" in query or "그리고" in query or "," in query)
+    constraint_count = sum(1 for token in ["기한", "예산", "법", "규정", "절차"] if token in query)
+    entity_diversity = min(3, max(1, sum(1 for token in ["기관", "부서", "주민", "사업자"] if token in query) + 1))
+    policy_reference_count = int("법" in query or "조례" in query or "규정" in query)
+    cross_sentence_dependency = any(token in query for token in ["또한", "한편", "다만", "그리고"])
+
+    score = min(
+        1.0,
+        round(
+            0.2
+            + min(0.3, query_len / 200.0)
+            + min(0.2, intent_count * 0.08)
+            + min(0.2, constraint_count * 0.08)
+            + (0.1 if cross_sentence_dependency else 0.0),
+            2,
+        ),
+    )
+    if score >= 0.75:
+        complexity_level = "high"
+    elif score >= 0.5:
+        complexity_level = "medium"
+    else:
+        complexity_level = "low"
+
+    chunk_policy = "expanded" if complexity_level == "high" else ("balanced" if complexity_level == "medium" else "compact")
+    snippet_max_chars = 1100 if complexity_level == "high" else (900 if complexity_level == "medium" else 700)
+    strategy_id = f"topic_{topic_type}_{complexity_level}_v1"
+    route_key = f"{topic_type}/{complexity_level}"
+
+    return {
+        "strategy_id": strategy_id,
+        "route_key": route_key,
+        "routing_hint": {
+            "strategy_id": strategy_id,
+            "route_key": route_key,
+            "top_k": top_k,
+            "snippet_max_chars": snippet_max_chars,
+            "chunk_policy": chunk_policy,
+        },
+        "routing_trace": {
+            "topic_type": topic_type,
+            "complexity_level": complexity_level,
+            "complexity_score": score,
+            "complexity_trace": {
+                "intent_count": intent_count,
+                "constraint_count": constraint_count,
+                "entity_diversity": entity_diversity,
+                "policy_reference_count": policy_reference_count,
+                "cross_sentence_dependency": cross_sentence_dependency,
+            },
+            "route_reason": f"{topic_type} 주제와 {complexity_level} 복잡도에 맞춰 {chunk_policy} 검색 전략을 선택했습니다.",
+        },
+    }
+
+
 @router.post("/index", response_model=IndexResponse, status_code=202)
 async def index_documents(request: IndexRequest) -> IndexResponse:
     """구조화 레코드를 인덱싱한다."""
@@ -270,6 +342,8 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         code="PERF_RETRIEVAL_SLOW",
     )
 
+    routing = _build_routing_payload(request.query, request.top_k)
+
     formatted_results = []
     for item in results:
         summary = item.get("summary") or {}
@@ -300,6 +374,8 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "category": metadata.get("category"),
                     "region": metadata.get("region"),
                     "entity_labels": metadata.get("entity_labels", []),
+                    "strategy_id": routing["strategy_id"],
+                    "route_key": routing["route_key"],
                 },
                 "doc_id": doc_id,
                 "score": score,
@@ -317,6 +393,12 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         )
 
     data = SearchResponseData(
+        complaint_id=request.complaint_id,
+        strategy_id=routing["strategy_id"],
+        route_key=routing["route_key"],
+        routing_hint=routing["routing_hint"],
+        routing_trace=routing["routing_trace"],
+        retrieved_docs=formatted_results,
         results=formatted_results,
         total_found=len(formatted_results),
         elapsed_ms=took_ms,

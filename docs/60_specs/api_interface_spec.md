@@ -28,21 +28,18 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
   "query": "임대주택 보수 지연과 관리비 이의제기 관련 민원",
   "top_k": 6,
   "filters": {
-    "topic_type": "welfare",
-    "region": "seoul"
-  },
-  "session_context": {
-    "operator_id": "user-001"
+    "region": "seoul",
+    "category": "welfare"
   }
 }
 ```
 
 필드 정의:
-- `complaint_id` (string, required)
+- `complaint_id` (string, optional)
 - `query` (string, required)
 - `top_k` (integer, optional)
 - `filters` (object, optional)
-- `session_context.operator_id` (string, optional)
+- `request_id` (string, optional)
 
 ## 3.2 Response Schema (Success)
 
@@ -56,6 +53,8 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
     "strategy_id": "topic_welfare_high_v1",
     "route_key": "welfare/high",
     "routing_hint": {
+      "strategy_id": "topic_welfare_high_v1",
+      "route_key": "welfare/high",
       "top_k": 9,
       "snippet_max_chars": 1100,
       "chunk_policy": "expanded"
@@ -75,15 +74,25 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
     },
     "retrieved_docs": [
       {
+        "rank": 1,
+        "case_id": "CASE-001",
         "doc_id": "DOC-001",
         "title": "유사 민원 처리 사례",
         "snippet": "관리비 이의제기 처리 절차...",
+        "similarity_score": 0.89,
         "score": 0.89,
-        "source": "civil_db",
+        "chunk_id": "CASE-001__chunk-0",
+        "summary": {
+          "observation": "관리비 이의제기 민원",
+          "request": "처리 절차 안내"
+        },
         "metadata": {
+          "created_at": "2026-04-10T11:20:00+09:00",
+          "category": "welfare",
+          "region": "seoul",
+          "entity_labels": ["FACILITY"],
           "strategy_id": "topic_welfare_high_v1",
-          "topic_type": "welfare",
-          "complexity_level": "high"
+          "route_key": "welfare/high"
         }
       }
     ]
@@ -106,16 +115,16 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
     "snippet_max_chars": 1100,
     "chunk_policy": "expanded"
   },
-  "retrieved_docs": [
+  "use_search_results": true,
+  "search_results": [
     {
       "doc_id": "DOC-001",
+      "chunk_id": "CASE-001__chunk-0",
+      "case_id": "CASE-001",
       "snippet": "관리비 이의제기 처리 절차...",
       "score": 0.89
     }
-  ],
-  "session_context": {
-    "operator_id": "user-001"
-  }
+  ]
 }
 ```
 
@@ -123,8 +132,8 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
 - `complaint_id` (string, required)
 - `query` (string, required)
 - `routing_hint` (object, required)
-- `retrieved_docs` (array, optional: `/search` 연계 시 전달)
-- `session_context.operator_id` (string, optional)
+- `use_search_results` (boolean, optional)
+- `search_results` (array, optional: `/search` 연계 시 전달)
 
 ## 4.2 Response Schema (Success)
 
@@ -196,18 +205,22 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
   "timestamp": "2026-04-10T17:15:02+09:00",
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "routing_hint.route_key is required",
-    "retryable": true,
+    "message": "routing_hint is required",
+    "retryable": false,
     "details": {}
   }
 }
 ```
+
+참고:
+- 본문 스키마 파싱 실패 경로는 `VALIDATION_ERROR` + HTTP 422로 반환될 수 있다.
 
 ## 6. 계약 고정 체크포인트 (Week5-8)
 
 - `/search` 응답은 반드시 `routing_trace`, `routing_hint`, `strategy_id`, `route_key`를 포함한다.
 - `route_key`는 `{topic_type}/{complexity_level}` 포맷을 사용한다.
 - `/qa` 요청은 반드시 `routing_hint`를 포함한다.
+- `/qa` 요청에서 `/search` 연계 전달 시 `use_search_results=true`와 `search_results[]`를 사용한다.
 - `/qa` 응답은 반드시 `routing_trace`, `structured_output`, `answer`, `citations`를 포함한다.
 - `routing_trace`에는 `topic_type`, `complexity_level`, `complexity_score`, `complexity_trace`가 포함되어야 한다.
 - 관측 필드는 시나리오 11장 기준으로 `latency_ms`, `quality_signals`를 유지한다.

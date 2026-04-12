@@ -19,14 +19,14 @@ from pydantic import BaseModel
 from typing import Literal
 
 class TopicAnalysis(BaseModel):
-    topic_type: Literal["welfare", "traffic", "environment", "safety", "general"]
+  topic_type: Literal["welfare", "traffic", "environment", "construction", "general"]
     topic_confidence: float
 ```
 
 ### TypeScript
 
 ```ts
-export type TopicType = "welfare" | "traffic" | "environment" | "safety" | "general";
+export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
 export interface TopicAnalysis {
   topic_type: TopicType;
@@ -79,7 +79,7 @@ from pydantic import BaseModel
 from typing import Literal, List, Optional
 
 class AnalyzerOutput(BaseModel):
-    topic_type: Literal["welfare", "traffic", "environment", "safety", "general"]
+  topic_type: Literal["welfare", "traffic", "environment", "construction", "general"]
     complexity_score: float
     complexity_level: Literal["low", "medium", "high"]
     intent_count: int
@@ -97,7 +97,7 @@ class AnalyzerOutput(BaseModel):
 
 ```ts
 export interface AnalyzerOutput {
-  topic_type: "welfare" | "traffic" | "environment" | "safety" | "general";
+  topic_type: "welfare" | "traffic" | "environment" | "construction" | "general";
   complexity_score: number;
   complexity_level: "low" | "medium" | "high";
   intent_count: number;
@@ -157,7 +157,7 @@ export interface ComplaintListItem {
   complaint_id: string;
   title: string;
   status: "pending" | "in_progress" | "review_completed";
-  topic_type?: "welfare" | "traffic" | "environment" | "safety" | "general";
+  topic_type?: "welfare" | "traffic" | "environment" | "construction" | "general";
   complexity_level?: "low" | "medium" | "high";
   complexity_score?: number;
 }
@@ -171,13 +171,14 @@ export interface ComplaintListItem {
 
 ```python
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 class RoutingTrace(BaseModel):
     topic_type: str
     complexity_level: str
     complexity_score: float
     complexity_trace: Dict[str, float | int | bool]
+  request_segments: List[str] = []
     route_reason: Optional[str] = None
 ```
 
@@ -189,6 +190,7 @@ export interface RoutingTrace {
   complexity_level: string;
   complexity_score: number;
   complexity_trace: Record<string, number | boolean>;
+  request_segments?: string[];
   route_reason?: string;
 }
 ```
