@@ -74,7 +74,15 @@ def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
     """answer 본문에 누락된 [[출처 n]] 토큰을 자동 보완한다."""
     rendered = (answer or "").strip()
     if not rendered:
-        rendered = "검색 근거 기반 답변을 생성했지만 본문이 비어 있어 요약 문장을 제공하지 못했습니다."
+        if citations:
+            snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
+            snippets = [text for text in snippets if text]
+            if snippets:
+                rendered = f"검색 근거 요약: {' / '.join(snippets)}"
+            else:
+                rendered = "검색 근거 기반으로 핵심 조치가 필요합니다."
+        else:
+            rendered = "검색 근거가 부족하여 일반 원칙 중심으로 답변합니다."
 
     missing_tokens: List[str] = []
     for citation in citations:

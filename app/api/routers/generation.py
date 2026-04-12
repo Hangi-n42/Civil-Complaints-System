@@ -152,6 +152,41 @@ def _log_success(*, endpoint: str, request_id: str, took_ms: int, retrieved_coun
         )
 
 
+def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
+    """모델 answer가 비거나 템플릿 문구일 때 근거 기반 최소 답변을 합성한다."""
+    raw_answer = str(result.get("answer", "") or "").strip()
+    fallback_marker = "본문이 비어 있어 요약 문장을 제공하지 못했습니다"
+    if raw_answer and fallback_marker not in raw_answer:
+        return raw_answer
+
+    structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
+    summary = str(structured.get("summary", "") or "").strip()
+    actions = structured.get("action_items") if isinstance(structured.get("action_items"), list) else []
+    actions = [str(item).strip() for item in actions if str(item).strip()]
+
+    parts: list[str] = []
+    if summary:
+        parts.append(summary)
+    if actions:
+        parts.append("우선 조치: " + ", ".join(actions[:3]))
+    elif summary:
+        parts.append("우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립")
+    if citations:
+        quote = str(citations[0].get("snippet", "") or "").strip()
+        if quote:
+            parts.append(f"근거: {quote[:160]}")
+
+    if parts:
+        return " ".join(parts)
+
+    if citations:
+        quote = str(citations[0].get("snippet", "") or "").strip()
+        if quote:
+            return f"우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립. 근거: {quote[:160]}"
+
+    return "우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립."
+
+
 @router.post("/qa", response_model=QAResponse)
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
@@ -366,7 +401,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
     took_ms = int((perf_counter() - start) * 1000)
     citations = normalize_citations(result.get("citations", []), context=context)
-    answer = ensure_citation_tokens(result.get("answer", ""), citations=citations)
+    answer = ensure_citation_tokens(_compose_answer_from_payload(result, citations), citations=citations)
     limitations = str(result.get("limitations", "")).strip() or "검색 범위 내 데이터에 기반한 답변입니다."
     validation = build_validation_result(
         answer=answer,

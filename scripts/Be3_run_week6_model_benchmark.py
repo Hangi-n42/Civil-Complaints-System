@@ -698,7 +698,7 @@ def run(
                     if repaired_answer:
                         answer_non_empty_repaired += 1
 
-                    repaired_cite_rate = _citation_match_rate(repaired_citations, case["context"])
+                    repaired_cite_rate = _citation_match_rate(repaired_citations, eval_context)
                     citation_rates_strict.append(strict_cite_rate)
                     citation_rates_repaired.append(repaired_cite_rate)
 
