@@ -1,0 +1,45 @@
+benchmark:
+  name: week6_be3_model_benchmark
+  description: BE3 direct benchmark across AX4, Exaone, Gemma3, and Gemma4 under identical RAG-QA conditions.
+  backend: ollama
+  base_url: http://localhost:11434
+  temperature: 0.2
+  num_predict: 128
+  num_ctx: 1024
+  timeout_sec: 90
+  repetitions_per_case: 1
+  response_format: json
+
+models:
+  - id: candidate_ax4_light
+    model_name: ax4-light-local:latest
+    role: candidate
+    note: SK Telecom A.X-4.0-Light (local GGUF model).
+
+  - id: candidate_exaone_3_5_7_8b
+    model_name: exaone3.5:7.8b-instruct
+    role: candidate
+    note: EXAONE 3.5 7.8B instruct model.
+
+  - id: candidate_gemma3_12b
+    model_name: gemma3:12b
+    role: candidate
+    note: Gemma3 12B instruct model.
+
+  - id: candidate_gemma4_26b
+    model_name: gemma4:26b
+    role: candidate
+    note: Gemma4 26B instruct model.
+
+metrics:
+  - parse_success_rate
+  - answer_non_empty_rate
+  - citation_match_rate
+  - avg_latency_sec
+  - p95_latency_sec
+  - scenario_slice_metrics
+
+outputs:
+  report_json: logs/evaluation/week6/be3_model_benchmark/model_benchmark_report_final.json
+  summary_md: logs/evaluation/week6/be3_model_benchmark/model_benchmark_summary.md
+  individual_results_dir: logs/evaluation/week6/be3_model_benchmark/
