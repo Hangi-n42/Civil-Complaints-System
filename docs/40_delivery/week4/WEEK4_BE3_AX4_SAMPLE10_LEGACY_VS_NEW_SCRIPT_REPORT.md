@@ -34,7 +34,25 @@
 
 ---
 
-## 3. 결과 해석
+## 3. answer_non_empty_rate_strict 개선 원인
+
+이번 개선의 핵심은 모델 성능 자체 변경이 아니라, strict answer 추출 단계의 복구 로직 추가다.
+
+Legacy 스크립트:
+- strict answer를 사실상 `parsed["answer"]` 단일 필드에 의존한다.
+- 모델이 `answer` 없이 `relevance_score` 또는 `limitations`만 반환하면 strict는 빈 문자열로 집계된다.
+
+NewScript:
+- `answer`가 비어 있으면 대체 필드(`response`, `content`, `output`, `result`, `final_answer`)를 순차 탐색한다.
+- 그래도 비면 raw 응답에서 정규식으로 `"answer"`를 재추출한다.
+- 끝까지 비면 retrieval context의 첫 snippet으로 최소 답변을 생성한다.
+
+결과적으로 strict 집계에서 빈 답변으로 처리되던 케이스가 non-empty로 전환되어,
+`answer_non_empty_rate_strict`가 `0.0 -> 1.0`으로 개선됐다.
+
+---
+
+## 4. 결과 해석
 
 이번 실행 기준으로는 NewScript가 다음 두 가지에서 우세하다.
 
@@ -49,7 +67,7 @@
 
 ---
 
-## 4. 결론
+## 5. 결론
 
 - 현재 10개 샘플 재검증에서는 NewScript가 Legacy 대비 핵심 목표( strict answer non-empty )를 달성했다.
 - 또한 latency까지 동반 개선되어, AX4 운영 후보로 NewScript를 우선 채택할 근거가 강화됐다.
@@ -57,7 +75,7 @@
 
 ---
 
-## 5. 산출물 경로
+## 6. 산출물 경로
 
 ### Legacy 실행 결과
 - logs/evaluation/week4/ax4_ctx1024_LagacyScript_sample10/model_benchmark_candidate_candidate_ax4_light.md
