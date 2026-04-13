@@ -9,6 +9,7 @@ Week 1 기준선 구현:
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List
 
 import httpx
@@ -83,8 +84,8 @@ class GenerationService:
                 "format": "json",
                 "options": {
                     "temperature": temperature,
-                    "num_predict": 96,
-                    "num_ctx": 2048,
+                    "num_predict": 128,
+                    "num_ctx": 1024,
                 },
             }
 
@@ -405,6 +406,117 @@ class GenerationService:
         self.logger.debug("JSON 응답 파싱")
         return parse_qa_json_response(text)
 
+    async def parse_json_response_relaxed(
+        self,
+        text: str,
+        context: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """strict 파싱 실패 시 Week6/모델 변형 응답을 완화 파싱한다."""
+        try:
+            json_str = self._extract_json_string(text)
+            payload = json.loads(json_str)
+        except GenerationError:
+            raise
+        except Exception as e:
+            raise GenerationError(
+                "모델 응답을 JSON으로 파싱하지 못했습니다.",
+                code="PARSE_JSON_DECODE_ERROR",
+                retryable=True,
+                details={"stage": "decode", "reason": str(e)},
+            ) from e
+
+        if not isinstance(payload, dict):
+            raise GenerationError(
+                "모델 응답 JSON이 객체 형식이 아닙니다.",
+                code="PARSE_SCHEMA_MISMATCH",
+                retryable=True,
+                details={"stage": "schema", "reason": "root_not_object"},
+            )
+
+        answer = str(payload.get("answer") or "").strip()
+        if not answer:
+            for key in ("response", "content", "output", "result", "final_answer"):
+                value = str(payload.get(key) or "").strip()
+                if value:
+                    answer = value
+                    break
+
+        raw_citations = payload.get("citations") if isinstance(payload.get("citations"), list) else []
+        citations: List[Dict[str, Any]] = []
+        for item in raw_citations:
+            if not isinstance(item, dict):
+                continue
+
+            snippet = str(item.get("snippet") or item.get("quote") or "").strip()
+            citation: Dict[str, Any] = {
+                "chunk_id": str(item.get("chunk_id") or ""),
+                "case_id": str(item.get("case_id") or item.get("doc_id") or ""),
+                "snippet": snippet,
+                "relevance_score": normalize_confidence(item.get("relevance_score", 0.5)),
+            }
+            doc_id = str(item.get("doc_id") or "").strip()
+            if doc_id:
+                citation["doc_id"] = doc_id
+            citations.append(citation)
+
+        if not citations and context:
+            first = context[0]
+            citations.append(
+                {
+                    "chunk_id": str(first.get("chunk_id", "")),
+                    "case_id": str(first.get("case_id", "")),
+                    "snippet": str(first.get("snippet", "")).strip()[:240],
+                    "relevance_score": normalize_confidence(first.get("score", 0.5)),
+                }
+            )
+
+        limitations_raw = payload.get("limitations")
+        if isinstance(limitations_raw, list):
+            limitations = "; ".join(
+                [str(item).strip() for item in limitations_raw if str(item).strip()]
+            )
+        else:
+            limitations = str(limitations_raw or "").strip()
+
+        if not limitations:
+            limitations = "검색 범위 및 데이터 품질에 따라 답변이 제한될 수 있습니다."
+
+        return {
+            "answer": answer,
+            "citations": citations,
+            "confidence": normalize_confidence(payload.get("confidence", 0.5)),
+            "limitations": limitations,
+        }
+
+    def _build_fast_fallback_from_context(self, context: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """모델 재호출 없이 즉시 사용할 수 있는 최소 응답을 구성한다."""
+        if context:
+            first = context[0]
+            snippet = str(first.get("snippet", "")).strip()
+            answer = (
+                f"요약: {snippet[:120]} "
+                "우선 조치: 현장 점검, 담당 부서 확인. "
+                "유의사항: 추가 사실관계 확인이 필요합니다."
+            ).strip()
+            citations = [
+                {
+                    "chunk_id": str(first.get("chunk_id", "")),
+                    "case_id": str(first.get("case_id", "")),
+                    "snippet": snippet[:240],
+                    "relevance_score": normalize_confidence(first.get("score", 0.5)),
+                }
+            ]
+        else:
+            answer = "요약: 확인 가능한 근거가 부족합니다. 우선 조치: 접수 내역 재확인, 관련 부서 검토. 유의사항: 추가 자료가 필요합니다."
+            citations = []
+
+        return {
+            "answer": answer,
+            "citations": citations,
+            "confidence": 0.35,
+            "limitations": "모델 응답 파싱 실패로 컨텍스트 기반 폴백을 사용했습니다.",
+        }
+
     async def build_citations(
         self, response: str, context: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -474,9 +586,7 @@ class GenerationService:
             parsed: Dict[str, Any] = {}
             last_parse_error: GenerationError | None = None
             retry_steps = [
-                {"stage": "preprocess", "mode": "default", "temperature": 0.3},
-                {"stage": "force_json", "mode": "force_json", "temperature": 0.1},
-                {"stage": "compact", "mode": "compact", "temperature": 0.0},
+                {"stage": "default_only", "mode": "default", "temperature": 0.2},
             ]
             retry_logs: List[Dict[str, Any]] = []
 
@@ -492,7 +602,25 @@ class GenerationService:
                         prompt,
                         temperature=float(step["temperature"]),
                     )
-                    parsed = await self.parse_json_response(response_text)
+                    try:
+                        parsed = await self.parse_json_response(response_text)
+                    except GenerationError as parse_error:
+                        if not str(getattr(parse_error, "code", "")).startswith("PARSE_"):
+                            raise
+                        self.logger.warning(
+                            "strict JSON 파싱 실패, 완화 파싱 시도: %s",
+                            str(parse_error),
+                        )
+                        try:
+                            parsed = await self.parse_json_response_relaxed(response_text, context)
+                        except GenerationError as relaxed_error:
+                            if not str(getattr(relaxed_error, "code", "")).startswith("PARSE_"):
+                                raise
+                            self.logger.warning(
+                                "완화 파싱도 실패하여 fast fallback 사용: %s",
+                                str(relaxed_error),
+                            )
+                            parsed = self._build_fast_fallback_from_context(context)
                     break
                 except GenerationError as e:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
