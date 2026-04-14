@@ -371,6 +371,7 @@ def _call_search_qa_api(
             raise ValueError(f"search failed: {search_body}")
 
         search_data = search_body.get("data", {})
+        search_request_id = str(search_body.get("request_id") or "").strip()
         routing_hint = search_data.get("routing_hint")
         retrieved_docs = search_data.get("retrieved_docs", [])
         if not isinstance(routing_hint, dict):
@@ -382,6 +383,7 @@ def _call_search_qa_api(
         use_search_results = bool(qa_search_results)
 
         qa_req = {
+            "request_id": search_request_id or f"BM-{complaint_id}",
             "complaint_id": complaint_id,
             "query": query,
             "routing_hint": routing_hint,

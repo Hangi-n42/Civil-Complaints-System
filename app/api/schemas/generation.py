@@ -33,6 +33,7 @@ class QAContextWindowPolicy(BaseModel):
 class QARequest(BaseModel):
     """QA 요청"""
 
+    request_id: Optional[str] = None
     complaint_id: Optional[str] = None
     query: str = Field(min_length=1)
     routing_hint: Optional[RoutingHint] = None
