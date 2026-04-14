@@ -190,7 +190,7 @@ def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
 @router.post("/qa", response_model=QAResponse)
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
-    request_id = make_request_id()
+    request_id = str(request.request_id or "").strip() or make_request_id()
     start = perf_counter()
     response.headers["X-Contract-Version"] = CONTRACT_VERSION
 
