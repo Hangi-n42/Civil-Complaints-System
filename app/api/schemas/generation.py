@@ -37,6 +37,7 @@ class QARequest(BaseModel):
     complaint_id: Optional[str] = None
     query: str = Field(min_length=1)
     routing_hint: Optional[RoutingHint] = None
+    routing_trace: Optional[RoutingTrace] = None
     top_k: int = Field(default=5, ge=1, le=50)
     filters: Optional[SearchFilters] = None
     use_search_results: bool = False

@@ -23,6 +23,12 @@ from app.generation.validators.qa_response_validator import (
     ensure_citation_tokens,
     normalize_citations,
 )
+from app.retrieval.router.adaptive_router import (
+    DEFAULT_COMPLEXITY_LEVEL,
+    build_route_key,
+    build_strategy_id,
+    parse_route_key,
+)
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
@@ -49,11 +55,14 @@ def _derive_request_segments(query: str) -> list[str]:
 
 
 def _is_strategy_consistent(strategy_id: str, route_key: str) -> bool:
-    if "/" not in route_key:
-        return False
-    topic, complexity = route_key.split("/", 1)
-    expected = f"topic_{topic}_{complexity}_v1"
+    topic, complexity = parse_route_key(route_key)
+    expected = build_strategy_id(topic, complexity)
     return strategy_id == expected
+
+
+def _normalize_route_key(route_key: str) -> str:
+    topic, complexity = parse_route_key(route_key)
+    return build_route_key(topic, complexity)
 
 
 def _validate_week6_qa_request(request: QARequest) -> str | None:
@@ -70,9 +79,14 @@ def _validate_week6_qa_request(request: QARequest) -> str | None:
         return "routing_hint.route_key is required"
     if "/" not in request.routing_hint.route_key:
         return "routing_hint.route_key must contain topic/complexity format"
+
+    normalized_route_key = _normalize_route_key(request.routing_hint.route_key)
+    if request.routing_hint.route_key.count("/") != 1:
+        return "routing_hint.route_key must contain exactly one slash (topic/complexity)"
+
     if not _is_strategy_consistent(
         request.routing_hint.strategy_id,
-        request.routing_hint.route_key,
+        normalized_route_key,
     ):
         return "routing_hint.strategy_id and routing_hint.route_key are inconsistent"
     if request.routing_hint.top_k < 1:
@@ -83,12 +97,7 @@ def _validate_week6_qa_request(request: QARequest) -> str | None:
 
 
 def _build_trace_from_route_key(route_key: str, query: str) -> dict:
-    topic_type = "general"
-    complexity_level = "medium"
-    if "/" in route_key:
-        parts = route_key.split("/", 1)
-        topic_type = parts[0] or "general"
-        complexity_level = parts[1] or "medium"
+    topic_type, complexity_level = parse_route_key(route_key)
 
     if complexity_level == "high":
         complexity_score = 0.8
@@ -322,8 +331,12 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
     try:
         generation_start = perf_counter()
-        route_key = request.routing_hint.route_key if request.routing_hint else "general/medium"
-        routing_trace = _build_trace_from_route_key(route_key, request.query)
+        route_key = _normalize_route_key(request.routing_hint.route_key) if request.routing_hint else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
+        routing_trace = (
+            request.routing_trace.model_dump()
+            if request.routing_trace is not None
+            else _build_trace_from_route_key(route_key, request.query)
+        )
         result = await generation_service.generate_qa(
             query=request.query,
             context=context,
@@ -461,9 +474,13 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             }
         )
 
-    route_key = request.routing_hint.route_key if request.routing_hint else "general/medium"
-    strategy_id = request.routing_hint.strategy_id if request.routing_hint else "topic_general_medium_v1"
-    routing_trace = _build_trace_from_route_key(route_key, request.query)
+    route_key = _normalize_route_key(request.routing_hint.route_key) if request.routing_hint else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
+    strategy_id = request.routing_hint.strategy_id if request.routing_hint else build_strategy_id("general", DEFAULT_COMPLEXITY_LEVEL)
+    routing_trace = (
+        request.routing_trace.model_dump()
+        if request.routing_trace is not None
+        else _build_trace_from_route_key(route_key, request.query)
+    )
 
     generated_structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
     unified_payload = normalize_response(

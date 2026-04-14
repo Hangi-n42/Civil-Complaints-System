@@ -178,6 +178,7 @@ class RoutingTrace(BaseModel):
     topic_type: str
     complexity_level: Literal["low", "medium", "high"]
     complexity_score: float = Field(ge=0.0, le=1.0)
+    request_segments: Optional[List[str]] = None
     complexity_trace: RoutingComplexityTrace
     route_reason: str
 

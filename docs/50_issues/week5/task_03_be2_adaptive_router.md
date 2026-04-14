@@ -42,3 +42,13 @@
   - `route_key={topic_type}/{complexity_level}` 포맷이 `/search`와 `/qa`에서 일관 유지된다.
   - `/search` 응답의 `routing_trace`에 `complexity_level`, `complexity_score`가 포함된다.
   - 기존 `length_bucket`/`is_multi` 미사용 상태에서도 라우팅 설명(`route_reason`)이 UI에서 이해 가능하게 노출된다.
+
+  - **구현 결과**:
+    - `ComplexityAnalyzer`와 `AdaptiveRouter`를 신규 모듈로 분리했다.
+    - `/search`는 analyzer 결과를 router에 전달해 `route_key`, `strategy_id`, `routing_hint`, `routing_trace`를 생성한다.
+    - `/qa`는 동일한 `route_key` 규칙을 공유하고, `routing_trace`가 전달되면 우선 계승한다.
+    - `route_reason`은 복잡도와 적용 파라미터를 포함하는 사용자 설명 문장으로 노출된다.
+    - 로그에 `route_key`, `strategy_id`, `complexity_level`, `complexity_score`, `router_latency`, `applied_params`를 추가했다.
+
+  - **편차**:
+    - `index` 엔드포인트는 문서 검색 라우팅 대상이 아니므로 적용 범위에서 제외했다.
