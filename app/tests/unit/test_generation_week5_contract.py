@@ -69,6 +69,30 @@ def test_qa_rejects_inconsistent_strategy_and_route_key(monkeypatch):
     assert body["error"]["code"] == "ROUTING_STRATEGY_INCONSISTENT"
 
 
+def test_qa_rejects_malformed_route_key(monkeypatch):
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-0003",
+            "query": "임대주택 보수 지연 관련 민원입니다.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high/extra",
+                "top_k": 1,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+        },
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "VALIDATION_ERROR"
+    assert "exactly one slash" in body["error"]["message"]
+
+
 def test_qa_week5_response_skeleton(monkeypatch):
     from app.api.routers import generation as generation_router
 
@@ -120,6 +144,10 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert data["strategy_id"] == "topic_welfare_high_v1"
     assert data["route_key"] == "welfare/high"
     assert isinstance(data["routing_trace"], dict)
+    assert data["routing_trace"]["complexity_level"] in {"low", "medium", "high"}
+    assert 0.0 <= float(data["routing_trace"]["complexity_score"]) <= 1.0
+    assert isinstance(data["routing_trace"]["route_reason"], str)
+    assert data["routing_trace"]["route_reason"]
     assert set(data["structured_output"].keys()) == {"summary", "action_items", "request_segments"}
     assert isinstance(data["answer"], str)
     assert isinstance(data["citations"], list)

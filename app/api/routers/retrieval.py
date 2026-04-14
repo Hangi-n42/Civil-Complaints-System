@@ -17,6 +17,8 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
+from app.retrieval.analyzers.complexity_analyzer import analyze as analyze_complexity
+from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["retrieval"])
@@ -91,6 +93,30 @@ def _log_perf_warning(*, endpoint: str, request_id: str, took_ms: int, threshold
         )
 
 
+def _log_routing_decision(
+    *,
+    endpoint: str,
+    request_id: str,
+    route_key: str,
+    strategy_id: str,
+    complexity_level: str,
+    complexity_score: float,
+    router_latency: int,
+    applied_params: dict,
+) -> None:
+    api_logger.info(
+        "routing_decision endpoint=%s request_id=%s route_key=%s strategy_id=%s complexity_level=%s complexity_score=%.3f router_latency_ms=%s applied_params=%s",
+        endpoint,
+        request_id,
+        route_key,
+        strategy_id,
+        complexity_level,
+        complexity_score,
+        router_latency,
+        applied_params,
+    )
+
+
 def _detect_topic_type(query: str) -> str:
     query_lower = query.lower()
     topic_keywords = {
@@ -105,47 +131,40 @@ def _detect_topic_type(query: str) -> str:
     return "general"
 
 
-def _build_routing_payload(query: str, top_k: int) -> dict:
+def _build_routing_payload(query: str) -> dict:
+    router_started = perf_counter()
     topic_type = _detect_topic_type(query)
-    query_len = len(query.strip())
-    intent_count = 1 + int("및" in query or "그리고" in query or "," in query)
-    constraint_count = sum(1 for token in ["기한", "예산", "법", "규정", "절차"] if token in query)
-    entity_diversity = min(3, max(1, sum(1 for token in ["기관", "부서", "주민", "사업자"] if token in query) + 1))
-    policy_reference_count = int("법" in query or "조례" in query or "규정" in query)
-    cross_sentence_dependency = any(token in query for token in ["또한", "한편", "다만", "그리고"])
-
-    score = min(
-        1.0,
-        round(
-            0.2
-            + min(0.3, query_len / 200.0)
-            + min(0.2, intent_count * 0.08)
-            + min(0.2, constraint_count * 0.08)
-            + (0.1 if cross_sentence_dependency else 0.0),
-            2,
-        ),
+    complexity_analysis = analyze_complexity(text=query, topic_type=topic_type)
+    routing_decision = route_adaptive(
+        topic_type=topic_type,
+        complexity_level=complexity_analysis.complexity_level,
+        complexity_score=complexity_analysis.complexity_score,
     )
-    if score >= 0.75:
-        complexity_level = "high"
-    elif score >= 0.5:
-        complexity_level = "medium"
-    else:
-        complexity_level = "low"
 
-    chunk_policy = "expanded" if complexity_level == "high" else ("balanced" if complexity_level == "medium" else "compact")
-    snippet_max_chars = 1100 if complexity_level == "high" else (900 if complexity_level == "medium" else 700)
-    strategy_id = f"topic_{topic_type}_{complexity_level}_v1"
-    route_key = f"{topic_type}/{complexity_level}"
+    intent_count = complexity_analysis.intent_count
+    constraint_count = complexity_analysis.constraint_count
+    entity_diversity = complexity_analysis.entity_diversity
+    policy_reference_count = complexity_analysis.policy_reference_count
+    cross_sentence_dependency = any(token in query for token in ["또한", "한편", "다만", "그리고"])
+    router_latency_ms = int((perf_counter() - router_started) * 1000)
+
+    complexity_level = complexity_analysis.complexity_level
+    score = complexity_analysis.complexity_score
+    applied_params = {
+        "top_k": routing_decision.applied_params.top_k,
+        "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
+        "chunk_policy": routing_decision.applied_params.chunk_policy,
+    }
 
     return {
-        "strategy_id": strategy_id,
-        "route_key": route_key,
+        "strategy_id": routing_decision.strategy_id,
+        "route_key": routing_decision.route_key,
         "routing_hint": {
-            "strategy_id": strategy_id,
-            "route_key": route_key,
-            "top_k": top_k,
-            "snippet_max_chars": snippet_max_chars,
-            "chunk_policy": chunk_policy,
+            "strategy_id": routing_decision.strategy_id,
+            "route_key": routing_decision.route_key,
+            "top_k": routing_decision.applied_params.top_k,
+            "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
+            "chunk_policy": routing_decision.applied_params.chunk_policy,
         },
         "routing_trace": {
             "topic_type": topic_type,
@@ -158,8 +177,10 @@ def _build_routing_payload(query: str, top_k: int) -> dict:
                 "policy_reference_count": policy_reference_count,
                 "cross_sentence_dependency": cross_sentence_dependency,
             },
-            "route_reason": f"{topic_type} 주제와 {complexity_level} 복잡도에 맞춰 {chunk_policy} 검색 전략을 선택했습니다.",
+            "route_reason": routing_decision.route_reason,
         },
+        "router_latency_ms": router_latency_ms,
+        "applied_params": applied_params,
     }
 
 
@@ -282,13 +303,14 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             status_code=400,
         )
 
+    routing = _build_routing_payload(request.query)
     service = get_retrieval_service()
 
     try:
         filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
         results = await service.search(
             query=request.query,
-            top_k=request.top_k,
+            top_k=routing["routing_hint"]["top_k"],
             filters=filters,
             collection_name=request.collection_name,
         )
@@ -342,7 +364,16 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         code="PERF_RETRIEVAL_SLOW",
     )
 
-    routing = _build_routing_payload(request.query, request.top_k)
+    _log_routing_decision(
+        endpoint="/api/v1/search",
+        request_id=request_id,
+        route_key=routing["route_key"],
+        strategy_id=routing["strategy_id"],
+        complexity_level=routing["routing_trace"]["complexity_level"],
+        complexity_score=routing["routing_trace"]["complexity_score"],
+        router_latency=routing["router_latency_ms"],
+        applied_params=routing["applied_params"],
+    )
 
     formatted_results = []
     for item in results:

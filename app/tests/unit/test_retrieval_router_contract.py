@@ -81,6 +81,17 @@ def test_search_response_is_wrapped(monkeypatch):
     assert isinstance(body["data"]["route_key"], str)
     assert isinstance(body["data"]["routing_hint"], dict)
     assert isinstance(body["data"]["routing_trace"], dict)
+    assert "/" in body["data"]["route_key"]
+    assert body["data"]["routing_trace"]["complexity_level"] in {"low", "medium", "high"}
+    assert 0.0 <= float(body["data"]["routing_trace"]["complexity_score"]) <= 1.0
+    assert isinstance(body["data"]["routing_trace"]["route_reason"], str)
+    assert body["data"]["routing_trace"]["route_reason"]
+    assert "complexity=" in body["data"]["routing_trace"]["route_reason"]
+    assert "top_k=" in body["data"]["routing_trace"]["route_reason"]
+    assert "chunk_policy=" in body["data"]["routing_trace"]["route_reason"]
+    assert body["data"]["routing_hint"]["top_k"] in {4, 6, 9}
+    assert body["data"]["routing_hint"]["snippet_max_chars"] in {400, 700, 1100}
+    assert body["data"]["routing_hint"]["chunk_policy"] in {"compact", "balanced", "expanded"}
     assert isinstance(body["data"]["retrieved_docs"], list)
     assert isinstance(body["data"]["results"], list)
     first = body["data"]["results"][0]
