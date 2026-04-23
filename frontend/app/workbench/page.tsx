@@ -200,18 +200,12 @@ function WorkbenchContent() {
     setDraftStage("loading");
     setDraftError(null);
 
-    if (!routingHint) {
-      setDraftStage("error");
-      setDraftError("먼저 유사민원검색을 실행해 routing_hint를 확보해주세요.");
-      return;
-    }
-
     try {
       const response = await runQaApi({
         complaintId: selectedCase.case_id,
         query: searchBundle?.query || searchQuery || buildDefaultQuery(selectedCase),
-        routingHint,
-        useSearchResults: true,
+        routingHint: routingHint || undefined,
+        useSearchResults: Boolean(searchBundle?.searchResults?.length),
         searchResults: searchBundle?.searchResults || [],
         filters: {
           region: searchRegion !== "전체" ? searchRegion : undefined,
