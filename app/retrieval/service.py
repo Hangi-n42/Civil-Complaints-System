@@ -440,6 +440,121 @@ class RetrievalService:
             max_length=max_length,
         )
 
+    def _normalize_request_segments(
+        self,
+        query: str,
+        request_segments: Optional[List[str]] = None,
+    ) -> List[str]:
+        raw_segments = request_segments or []
+        cleaned_segments = [
+            " ".join(str(segment or "").split())
+            for segment in raw_segments
+            if str(segment or "").strip()
+        ]
+        if cleaned_segments:
+            return cleaned_segments
+
+        segments = [str(query or "").strip()]
+        for delimiter in (" 및 ", " 그리고 ", ",", ";"):
+            next_segments: List[str] = []
+            for segment in segments:
+                next_segments.extend(segment.split(delimiter))
+            segments = next_segments
+
+        normalized = [" ".join(segment.split()) for segment in segments if segment.strip()]
+        if len(normalized) <= 1:
+            return []
+        return normalized
+
+    def _apply_retrieval_policy(
+        self,
+        results: List[Dict[str, Any]],
+        *,
+        topic_type: Optional[str],
+        retrieval_policy: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        policy = str(retrieval_policy or "general").strip() or "general"
+        if policy == "general":
+            for item in results:
+                metadata = item.setdefault("metadata", {})
+                metadata["retrieval_policy"] = policy
+                if topic_type:
+                    metadata["topic_type"] = topic_type
+            return results
+
+        policy_keywords = {
+            "admin_policy": ("법", "법령", "조례", "규정", "기준", "절차", "급여", "복지", "수급", "임대주택"),
+            "field_ops": ("현장", "점검", "보수", "공사", "도로", "시설", "소음", "악취", "가로등", "안전"),
+        }.get(policy, ())
+
+        boosted: List[Dict[str, Any]] = []
+        for item in results:
+            metadata = item.setdefault("metadata", {})
+            summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+            searchable = " ".join(
+                [
+                    str(item.get("title") or ""),
+                    str(item.get("snippet") or ""),
+                    str(metadata.get("category") or ""),
+                    str(summary.get("observation") or ""),
+                    str(summary.get("request") or ""),
+                ]
+            )
+            has_policy_match = any(keyword in searchable for keyword in policy_keywords)
+            boost = 0.04 if has_policy_match else 0.0
+            item["score"] = round(min(1.0, float(item.get("score", 0.0) or 0.0) + boost), 4)
+            metadata["retrieval_policy"] = policy
+            metadata["policy_boost"] = boost
+            if topic_type:
+                metadata["topic_type"] = topic_type
+            boosted.append(item)
+
+        boosted.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
+        for rank, item in enumerate(boosted, start=1):
+            item["rank"] = rank
+        return boosted
+
+    def _merge_segment_results(
+        self,
+        segment_results: List[tuple[str, List[Dict[str, Any]]]],
+        *,
+        top_k: int,
+    ) -> List[Dict[str, Any]]:
+        merged: Dict[str, Dict[str, Any]] = {}
+
+        for segment, results in segment_results:
+            for item in results:
+                key = f"{item.get('doc_id') or item.get('case_id')}::{item.get('chunk_id')}"
+                current = merged.get(key)
+                item_score = float(item.get("score", 0.0) or 0.0)
+                if current is None or item_score > float(current.get("score", 0.0) or 0.0):
+                    previous_segments = list((current or {}).get("matched_segments") or [])
+                    current = dict(item)
+                    current["metadata"] = dict(item.get("metadata") or {})
+                    current["matched_segments"] = previous_segments
+                    merged[key] = current
+
+                matched_segments = current.setdefault("matched_segments", [])
+                if segment not in matched_segments:
+                    matched_segments.append(segment)
+                metadata = current.setdefault("metadata", {})
+                metadata["matched_segments"] = list(matched_segments)
+
+        merged_results = list(merged.values())
+        for item in merged_results:
+            matched_count = len(item.get("matched_segments") or [])
+            if matched_count > 1:
+                item["score"] = round(
+                    min(1.0, float(item.get("score", 0.0) or 0.0) + min(0.1, 0.03 * (matched_count - 1))),
+                    4,
+                )
+
+        merged_results.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
+        results_list = merged_results[: max(1, top_k)]
+        for rank, item in enumerate(results_list, start=1):
+            item["rank"] = rank
+        return results_list
+
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
     ) -> List[str]:
@@ -536,6 +651,10 @@ class RetrievalService:
         threshold: float = 0.0,
         filters: Optional[Dict[str, Any]] = None,
         collection_name: Optional[str] = None,
+        topic_type: Optional[str] = None,
+        request_segments: Optional[List[str]] = None,
+        retrieval_policy: Optional[str] = None,
+        snippet_max_chars: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -557,13 +676,40 @@ class RetrievalService:
             if store.count(collection_key) == 0:
                 self._bootstrap_from_samples(collection_key)
 
-            results = store.query(
-                collection_name=collection_key,
-                query=query,
-                top_k=top_k,
-                filters=filters or {},
-                threshold=threshold,
-            )
+            effective_snippet_max_chars = max(120, int(snippet_max_chars or 140))
+            segments = self._normalize_request_segments(query, request_segments)
+            if len(segments) > 1:
+                segment_results = []
+                for segment in segments:
+                    results_for_segment = store.query(
+                        collection_name=collection_key,
+                        query=segment,
+                        top_k=top_k,
+                        filters=filters or {},
+                        threshold=threshold,
+                        snippet_max_chars=effective_snippet_max_chars,
+                    )
+                    results_for_segment = self._apply_retrieval_policy(
+                        results_for_segment,
+                        topic_type=topic_type,
+                        retrieval_policy=retrieval_policy,
+                    )
+                    segment_results.append((segment, results_for_segment))
+                results = self._merge_segment_results(segment_results, top_k=top_k)
+            else:
+                results = store.query(
+                    collection_name=collection_key,
+                    query=query,
+                    top_k=top_k,
+                    filters=filters or {},
+                    threshold=threshold,
+                    snippet_max_chars=effective_snippet_max_chars,
+                )
+                results = self._apply_retrieval_policy(
+                    results,
+                    topic_type=topic_type,
+                    retrieval_policy=retrieval_policy,
+                )
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results

@@ -195,6 +195,7 @@ class ChromaVectorStore:
         top_k: int,
         filters: Optional[Dict[str, Any]] = None,
         threshold: float = 0.0,
+        snippet_max_chars: int = 140,
     ) -> List[Dict[str, Any]]:
         collection = self._get_collection(collection_name)
         candidate_count = max(1, min(50, max(top_k, top_k * 5)))
@@ -290,7 +291,7 @@ class ChromaVectorStore:
                     "chunk_id": chunk_id,
                     "case_id": case_id,
                     "title": title,
-                    "snippet": self._build_snippet(doc_text, max_length=140),
+                    "snippet": self._build_snippet(doc_text, max_length=snippet_max_chars),
                     "summary": summary,
                     "metadata": {
                         "created_at": created_at,
