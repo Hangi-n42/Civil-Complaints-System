@@ -131,6 +131,22 @@ def _detect_topic_type(query: str) -> str:
     return "general"
 
 
+def _derive_request_segments(query: str) -> list[str]:
+    cleaned = str(query or "").strip()
+    if not cleaned:
+        return []
+
+    segments = [cleaned]
+    for delimiter in [" 및 ", " 그리고 ", ",", ";"]:
+        next_segments = []
+        for item in segments:
+            next_segments.extend(item.split(delimiter))
+        segments = next_segments
+
+    normalized = [item.strip() for item in segments if item.strip()]
+    return normalized if len(normalized) > 1 else []
+
+
 def _build_routing_payload(query: str) -> dict:
     router_started = perf_counter()
     topic_type = _detect_topic_type(query)
@@ -154,11 +170,17 @@ def _build_routing_payload(query: str) -> dict:
         "top_k": routing_decision.applied_params.top_k,
         "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
         "chunk_policy": routing_decision.applied_params.chunk_policy,
+        "retrieval_policy": routing_decision.retrieval_policy,
     }
+    request_segments = _derive_request_segments(query)
+    merge_policy = "dedupe_max_score" if len(request_segments) > 1 else "single_query"
 
     return {
         "strategy_id": routing_decision.strategy_id,
         "route_key": routing_decision.route_key,
+        "retrieval_policy": routing_decision.retrieval_policy,
+        "request_segments": request_segments,
+        "merge_policy": merge_policy,
         "routing_hint": {
             "strategy_id": routing_decision.strategy_id,
             "route_key": routing_decision.route_key,
@@ -170,6 +192,7 @@ def _build_routing_payload(query: str) -> dict:
             "topic_type": topic_type,
             "complexity_level": complexity_level,
             "complexity_score": score,
+            "request_segments": request_segments,
             "complexity_trace": {
                 "intent_count": intent_count,
                 "constraint_count": constraint_count,
@@ -178,6 +201,12 @@ def _build_routing_payload(query: str) -> dict:
                 "cross_sentence_dependency": cross_sentence_dependency,
             },
             "route_reason": routing_decision.route_reason,
+            "route_key": routing_decision.route_key,
+            "strategy_id": routing_decision.strategy_id,
+            "applied_filters": {},
+            "segment_count": len(request_segments) if request_segments else 1,
+            "merge_policy": merge_policy,
+            "retrieval_policy": routing_decision.retrieval_policy,
         },
         "router_latency_ms": router_latency_ms,
         "applied_params": applied_params,
@@ -308,11 +337,19 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
 
     try:
         filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
+        routing["routing_trace"]["applied_filters"] = filters
+        routing["applied_params"]["applied_filters"] = filters
+        routing["applied_params"]["segment_count"] = routing["routing_trace"]["segment_count"]
+        routing["applied_params"]["merge_policy"] = routing["merge_policy"]
         results = await service.search(
             query=request.query,
             top_k=routing["routing_hint"]["top_k"],
             filters=filters,
             collection_name=request.collection_name,
+            topic_type=routing["routing_trace"]["topic_type"],
+            request_segments=routing["request_segments"],
+            retrieval_policy=routing["retrieval_policy"],
+            snippet_max_chars=routing["routing_hint"]["snippet_max_chars"],
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
@@ -394,6 +431,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             "context": str(raw_content.get("context") or ""),
         }
         metadata = item.get("metadata") or {}
+        matched_segments = metadata.get("matched_segments") or item.get("matched_segments") or []
         formatted_results.append(
             {
                 "rank": int(item.get("rank", 0)),
@@ -407,6 +445,9 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "entity_labels": metadata.get("entity_labels", []),
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],
+                    "topic_type": routing["routing_trace"]["topic_type"],
+                    "retrieval_policy": routing["retrieval_policy"],
+                    "matched_segments": matched_segments,
                 },
                 "doc_id": doc_id,
                 "score": score,

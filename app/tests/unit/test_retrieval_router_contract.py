@@ -89,6 +89,12 @@ def test_search_response_is_wrapped(monkeypatch):
     assert "complexity=" in body["data"]["routing_trace"]["route_reason"]
     assert "top_k=" in body["data"]["routing_trace"]["route_reason"]
     assert "chunk_policy=" in body["data"]["routing_trace"]["route_reason"]
+    assert body["data"]["routing_trace"]["route_key"] == body["data"]["route_key"]
+    assert body["data"]["routing_trace"]["strategy_id"] == body["data"]["strategy_id"]
+    assert isinstance(body["data"]["routing_trace"]["applied_filters"], dict)
+    assert body["data"]["routing_trace"]["segment_count"] >= 1
+    assert body["data"]["routing_trace"]["merge_policy"] in {"single_query", "dedupe_max_score"}
+    assert body["data"]["routing_trace"]["retrieval_policy"] in {"admin_policy", "field_ops", "general"}
     assert body["data"]["routing_hint"]["top_k"] in {4, 6, 9}
     assert body["data"]["routing_hint"]["snippet_max_chars"] in {400, 700, 1100}
     assert body["data"]["routing_hint"]["chunk_policy"] in {"compact", "balanced", "expanded"}
@@ -106,6 +112,9 @@ def test_search_response_is_wrapped(monkeypatch):
         "entity_labels",
         "strategy_id",
         "route_key",
+        "topic_type",
+        "retrieval_policy",
+        "matched_segments",
     }
     assert first["doc_id"] == "DOC-1"
     assert isinstance(first["score"], float)
