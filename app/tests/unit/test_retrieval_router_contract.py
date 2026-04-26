@@ -92,6 +92,9 @@ def test_search_response_is_wrapped(monkeypatch):
     assert body["data"]["routing_trace"]["route_key"] == body["data"]["route_key"]
     assert body["data"]["routing_trace"]["strategy_id"] == body["data"]["strategy_id"]
     assert isinstance(body["data"]["routing_trace"]["applied_filters"], dict)
+    assert isinstance(body["data"]["routing_trace"]["request_segments"], list)
+    assert len(body["data"]["routing_trace"]["request_segments"]) >= 1
+    assert "cross_sentence_dependency" in body["data"]["routing_trace"]["complexity_trace"]
     assert body["data"]["routing_trace"]["segment_count"] >= 1
     assert body["data"]["routing_trace"]["merge_policy"] in {"single_query", "dedupe_max_score"}
     assert body["data"]["routing_trace"]["retrieval_policy"] in {"admin_policy", "field_ops", "general"}

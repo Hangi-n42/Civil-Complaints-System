@@ -43,6 +43,27 @@ class ComplexityAnalysis:
     complexity_trace: dict
 
 
+def build_analyzer_output(text: str, topic_type: str = "general") -> dict:
+    analysis = _DEFAULT_ANALYZER.analyze(text=text, topic_type=topic_type)
+    cleaned = str(text or "").strip()
+    request_segments = _build_request_segments(cleaned)
+
+    return {
+        "topic_type": analysis.complexity_trace.get("topic_type", _normalize_topic_type(topic_type)),
+        "complexity_level": analysis.complexity_level,
+        "complexity_score": analysis.complexity_score,
+        "intent_count": analysis.intent_count,
+        "constraint_count": analysis.constraint_count,
+        "entity_diversity": analysis.entity_diversity,
+        "policy_reference_count": analysis.policy_reference_count,
+        "cross_sentence_dependency": _detect_cross_sentence_dependency(cleaned),
+        "complexity_trace": analysis.complexity_trace,
+        "request_segments": request_segments,
+        "length_bucket": _build_length_bucket(len(cleaned)),
+        "is_multi": len(request_segments) > 1,
+    }
+
+
 class ComplexityAnalyzer:
     def analyze(self, text: str, topic_type: str) -> ComplexityAnalysis:
         cleaned = str(text or "").strip()
@@ -68,6 +89,7 @@ class ComplexityAnalyzer:
         constraint_count = _count_tokens(cleaned, _CONSTRAINT_TOKENS)
         entity_diversity = _count_entity_diversity(cleaned)
         policy_reference_count = _count_tokens(cleaned, _POLICY_TOKENS)
+        cross_sentence_dependency = _detect_cross_sentence_dependency(cleaned)
 
         score = _build_score(
             text_length=text_length,
@@ -92,6 +114,7 @@ class ComplexityAnalyzer:
                 "constraint_count": constraint_count,
                 "entity_diversity": entity_diversity,
                 "policy_reference_count": policy_reference_count,
+                "cross_sentence_dependency": cross_sentence_dependency,
                 "weights": {
                     "length": min(0.25, text_length / 400.0),
                     "intent": min(0.20, max(0, intent_count - 1) * 0.08),
@@ -113,6 +136,42 @@ def _count_tokens(text: str, tokens: tuple[str, ...]) -> int:
 
 def _count_entity_diversity(text: str) -> int:
     return sum(1 for token in _ENTITY_TOKENS if token in text)
+
+
+def _normalize_topic_type(topic_type: str) -> str:
+    cleaned = str(topic_type or "").strip().lower()
+    return cleaned or "general"
+
+
+def _build_request_segments(text: str) -> list[str]:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return []
+
+    segments = [cleaned]
+    for token in _INTENT_SPLIT_TOKENS:
+        next_segments: list[str] = []
+        for segment in segments:
+            next_segments.extend(segment.split(token))
+        segments = next_segments
+
+    normalized = [" ".join(segment.split()) for segment in segments if segment.strip()]
+    return normalized if normalized else [cleaned]
+
+
+def _detect_cross_sentence_dependency(text: str) -> bool:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return False
+    return any(token in cleaned for token in ("또한", "한편", "다만", "그리고"))
+
+
+def _build_length_bucket(text_length: int) -> Literal["short", "medium", "long"]:
+    if text_length < 40:
+        return "short"
+    if text_length < 120:
+        return "medium"
+    return "long"
 
 
 def _count_intents(text: str) -> int:
