@@ -337,8 +337,17 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
 
     try:
         filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
-        routing["routing_trace"]["applied_filters"] = filters
-        routing["applied_params"]["applied_filters"] = filters
+        applied_filters = {
+            **filters,
+            "topic_type": routing["routing_trace"]["topic_type"],
+            "route_key": routing["route_key"],
+            "strategy_id": routing["strategy_id"],
+            "retrieval_policy": routing["retrieval_policy"],
+            "segment_count": routing["routing_trace"]["segment_count"],
+            "merge_policy": routing["merge_policy"],
+        }
+        routing["routing_trace"]["applied_filters"] = applied_filters
+        routing["applied_params"]["applied_filters"] = applied_filters
         routing["applied_params"]["segment_count"] = routing["routing_trace"]["segment_count"]
         routing["applied_params"]["merge_policy"] = routing["merge_policy"]
         results = await service.search(
