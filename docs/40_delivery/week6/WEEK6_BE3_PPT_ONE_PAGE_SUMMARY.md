@@ -45,9 +45,9 @@
 
 ## 7. 성능 비교
 
-| 모델 | strict | repaired | avg_latency_sec | 의미 |
+| 모델 | strict | avg_latency_sec | 의미 |
 |---|---:|---:|---:|---|
-| ax4-light-local:latest | 1.0 | 1.0 | 13.2170 | 가장 빠른 시연 후보 |
-| exaone3.5:7.8b-instruct | 1.0 | 1.0 | 16.0846 | 안정적인 백업 기본 모델 |
-| gemma4:26b | 1.0 | 1.0 | 18.3473 | 중간 속도 실험군 |
-| gemma3:12b | 1.0 | 1.0 | 19.3726 | 가장 느린 편 |
+| ax4-light-local:latest | 1.0 | 13.2170 | 가장 빠른 시연 후보 |
+| exaone3.5:7.8b-instruct | 1.0 | 16.0846 | 안정적인 백업 기본 모델 |
+| gemma4:26b | 1.0 | 18.3473 | 중간 속도 실험군 |
+| gemma3:12b | 1.0 | 19.3726 | 가장 느린 편 |
