@@ -17,7 +17,7 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
-from app.retrieval.analyzers.complexity_analyzer import analyze as analyze_complexity
+from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
 
@@ -97,6 +97,7 @@ def _log_routing_decision(
     *,
     endpoint: str,
     request_id: str,
+    analyzer_latency: int,
     route_key: str,
     strategy_id: str,
     complexity_level: str,
@@ -105,9 +106,10 @@ def _log_routing_decision(
     applied_params: dict,
 ) -> None:
     api_logger.info(
-        "routing_decision endpoint=%s request_id=%s route_key=%s strategy_id=%s complexity_level=%s complexity_score=%.3f router_latency_ms=%s applied_params=%s",
+        "routing_decision endpoint=%s request_id=%s analyzer_latency_ms=%s route_key=%s strategy_id=%s complexity_level=%s complexity_score=%.3f router_latency_ms=%s applied_params=%s",
         endpoint,
         request_id,
+        analyzer_latency,
         route_key,
         strategy_id,
         complexity_level,
@@ -131,48 +133,28 @@ def _detect_topic_type(query: str) -> str:
     return "general"
 
 
-def _derive_request_segments(query: str) -> list[str]:
-    cleaned = str(query or "").strip()
-    if not cleaned:
-        return []
-
-    segments = [cleaned]
-    for delimiter in [" 및 ", " 그리고 ", ",", ";"]:
-        next_segments = []
-        for item in segments:
-            next_segments.extend(item.split(delimiter))
-        segments = next_segments
-
-    normalized = [item.strip() for item in segments if item.strip()]
-    return normalized if len(normalized) > 1 else []
-
-
 def _build_routing_payload(query: str) -> dict:
-    router_started = perf_counter()
     topic_type = _detect_topic_type(query)
-    complexity_analysis = analyze_complexity(text=query, topic_type=topic_type)
+    analyzer_started = perf_counter()
+    analyzer_output = build_analyzer_output(text=query, topic_type=topic_type)
+    analyzer_latency_ms = int((perf_counter() - analyzer_started) * 1000)
+
+    router_started = perf_counter()
     routing_decision = route_adaptive(
-        topic_type=topic_type,
-        complexity_level=complexity_analysis.complexity_level,
-        complexity_score=complexity_analysis.complexity_score,
+        topic_type=analyzer_output["topic_type"],
+        complexity_level=analyzer_output["complexity_level"],
+        complexity_score=analyzer_output["complexity_score"],
     )
 
-    intent_count = complexity_analysis.intent_count
-    constraint_count = complexity_analysis.constraint_count
-    entity_diversity = complexity_analysis.entity_diversity
-    policy_reference_count = complexity_analysis.policy_reference_count
-    cross_sentence_dependency = any(token in query for token in ["또한", "한편", "다만", "그리고"])
     router_latency_ms = int((perf_counter() - router_started) * 1000)
 
-    complexity_level = complexity_analysis.complexity_level
-    score = complexity_analysis.complexity_score
+    request_segments = analyzer_output["request_segments"]
     applied_params = {
         "top_k": routing_decision.applied_params.top_k,
         "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
         "chunk_policy": routing_decision.applied_params.chunk_policy,
         "retrieval_policy": routing_decision.retrieval_policy,
     }
-    request_segments = _derive_request_segments(query)
     merge_policy = "dedupe_max_score" if len(request_segments) > 1 else "single_query"
 
     return {
@@ -189,17 +171,11 @@ def _build_routing_payload(query: str) -> dict:
             "chunk_policy": routing_decision.applied_params.chunk_policy,
         },
         "routing_trace": {
-            "topic_type": topic_type,
-            "complexity_level": complexity_level,
-            "complexity_score": score,
+            "topic_type": analyzer_output["topic_type"],
+            "complexity_level": analyzer_output["complexity_level"],
+            "complexity_score": analyzer_output["complexity_score"],
             "request_segments": request_segments,
-            "complexity_trace": {
-                "intent_count": intent_count,
-                "constraint_count": constraint_count,
-                "entity_diversity": entity_diversity,
-                "policy_reference_count": policy_reference_count,
-                "cross_sentence_dependency": cross_sentence_dependency,
-            },
+            "complexity_trace": analyzer_output["complexity_trace"],
             "route_reason": routing_decision.route_reason,
             "route_key": routing_decision.route_key,
             "strategy_id": routing_decision.strategy_id,
@@ -208,6 +184,8 @@ def _build_routing_payload(query: str) -> dict:
             "merge_policy": merge_policy,
             "retrieval_policy": routing_decision.retrieval_policy,
         },
+        "analyzer_output": analyzer_output,
+        "analyzer_latency_ms": analyzer_latency_ms,
         "router_latency_ms": router_latency_ms,
         "applied_params": applied_params,
     }
@@ -417,6 +395,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         strategy_id=routing["strategy_id"],
         complexity_level=routing["routing_trace"]["complexity_level"],
         complexity_score=routing["routing_trace"]["complexity_score"],
+        analyzer_latency=routing["analyzer_latency_ms"],
         router_latency=routing["router_latency_ms"],
         applied_params=routing["applied_params"],
     )
