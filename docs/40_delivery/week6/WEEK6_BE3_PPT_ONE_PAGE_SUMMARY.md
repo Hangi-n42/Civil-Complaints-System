@@ -11,10 +11,10 @@
 
 ## 2. 모델 선정 이유
 
-- **ax4-light-local:latest**: 가장 빠르고, 새 로직 후 답변 안정성도 확보.
+- **ax4-light-local:latest**: 가장 응답 속도가 빠르고, 새 로직 적용 후 답변 안정성도 확보.
 - **exaone3.5:7.8b-instruct**: 품질과 안정성의 균형이 좋아 백업 기본 모델로 적합.
 - **gemma3:12b**: 품질은 충분하지만 속도 메리트가 작아 보조 후보.
-- **gemma4:26b / gemma4:e4b**: 운영 기본보다 비교·실험용 성격이 강함.
+- **gemma4:26b / gemma4:e4b**: 기본 운영 모델보다는 비교·실험용 성격이 강함.
 
 ## 3. 벤치마크 주요 로직 변경점
 
@@ -24,26 +24,25 @@
 - integrity gate와 compact 재시도로 빈 답변·citation 불일치 케이스를 한 번 더 복구한다.
 - 결과 출력은 raw responses / parsed answers / summary md / json으로 분리해 추적 가능하게 했다.
 
-## 4. 기본 세팅 값
+## 4. 주요 기본 세팅 값
 
 | 항목 | 값 | 의미 |
 |---|---:|---|
-| temperature | 0.2 | 응답 랜덤성 |
-| num_ctx | 1024 | 컨텍스트 길이 |
+| temperature | 0.2 | 응답 랜덤성. 낮을수록 더 안정적이고 보수적인 출력 |
+| num_ctx | 1024 | 한번에 참고할 수 있는 컨텍스트 길이 |
 | num_predict | 128 | 최대 생성 토큰 수 |
 | timeout_sec | 90 | 응답 대기 시간 |
-| repetitions_per_case | 1 | 케이스당 반복 횟수 |
 
 ## 5. 핵심 결과 한 줄
 
 - Week4 기준: `exaone3.5:7.8b-instruct`가 가장 안정적, `ax4-light-local:latest`는 속도 우선.
-- Week5 sample50 기준: 새 answer 복구 로직으로 `ax4-light-local:latest`가 strict answer 1.0과 최저 지연을 확보.
+- Week5 기준: 새 answer 복구 로직으로 `ax4-light-local:latest`가 strict answer 1.0과 최저 지연을 확보.
 
 ## 6. 발표용 메시지
 
 - "모델 자체를 바꾼 게 아니라, 답변을 복구하는 기준을 정교하게 만든 뒤 ax4가 가장 빠르고 안정적인 시연 후보임을 확인했다."
 
-## 7. 성능 비교
+## 7. 주요 모델 성능 비교
 
 | 모델 | strict | avg_latency_sec | 의미 |
 |---|---:|---:|---|
