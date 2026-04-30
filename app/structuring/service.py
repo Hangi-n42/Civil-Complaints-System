@@ -10,6 +10,7 @@
 from typing import Dict, Any, List, Union
 from datetime import datetime, timedelta, timezone
 import re
+import unicodedata
 from app.core.logging import pipeline_logger
 from app.core.exceptions import StructuringError
 
@@ -29,6 +30,112 @@ class StructuringService:
         self._time_pattern = re.compile(r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})")
         self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
         self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
+        self._season_time_keywords = ["봄", "여름", "가을", "겨울", "매일", "주말", "평일", "야간", "새벽", "여름마다"]
+        self._observation_keywords = [
+            "불법",
+            "위반",
+            "무단",
+            "점거",
+            "무단점용",
+            "불법주차",
+            "고장",
+            "파손",
+            "균열",
+            "침하",
+            "누수",
+            "역류",
+            "범람",
+            "악취",
+            "소음",
+            "진동",
+            "분진",
+            "위험",
+            "사고",
+            "불편",
+            "이용 불가",
+            "통행 불편",
+        ]
+        self._request_keywords = [
+            "요청",
+            "요구",
+            "건의",
+            "조치",
+            "시정",
+            "개선",
+            "보수",
+            "정비",
+            "복구",
+            "철거",
+            "교체",
+            "설치",
+            "보강",
+            "점검",
+            "단속",
+            "계도",
+            "행정처분",
+            "과태료",
+            "바랍니다",
+            "부탁드립니다",
+            "신속 처리",
+            "조속한 처리",
+            "해주시",
+        ]
+        self._context_keywords = [
+            "년",
+            "월",
+            "일",
+            "시",
+            "최근",
+            "지난",
+            "매일",
+            "상시",
+            "지속",
+            "반복",
+            "재차",
+            "기존",
+            "이전",
+            "신고",
+            "민원",
+            "시민",
+            "주민",
+            "시청",
+            "구청",
+            "도청",
+            "하천",
+            "산책로",
+            "공장",
+        ]
+        self._result_keywords = [
+            "답변",
+            "회신",
+            "안내",
+            "처리 결과",
+            "검토 결과",
+            "조치 결과",
+            "처리",
+            "조치",
+            "시행",
+            "이행",
+            "완료",
+            "종결",
+            "해소",
+            "진행",
+            "추진",
+            "착수",
+            "예정",
+            "계획",
+            "통보",
+            "명령",
+            "계고",
+            "행정처분",
+        ]
+        self._request_pattern = re.compile(
+            r"(요청|요구|건의|조치|개선|점검|정비|단속|시정|바랍니다|부탁드립니다|해주시)",
+            flags=re.IGNORECASE,
+        )
+        self._observation_pattern = re.compile(r"(발생|지속|심각|문제|불편|위험|있어요|하고 있어요)")
+        self._answer_like_pattern = re.compile(r"(귀하께서|아래와 같이 답변|처리 결과|회신|안내드립니다)")
+        self._result_statuses = {"present", "pending", "insufficient"}
         self._province_names = {
             "경기도",
             "강원도",
@@ -186,6 +293,161 @@ class StructuringService:
             "evidence_span": [safe_start, safe_end],
         }
 
+    def _build_result_field(
+        self, text: str, start: int, end: int, confidence: float, status: str
+    ) -> Dict[str, Any]:
+        field = self._build_field(text, start, end, confidence)
+        field["status"] = status if status in self._result_statuses else "pending"
+        return field
+
+    def _normalize_for_compare(self, value: str) -> str:
+        normalized = unicodedata.normalize("NFC", value or "")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
+    def _split_segments(self, text: str) -> Dict[str, Any]:
+        """원문을 question/answer로 분리하고 입력 타입을 추정한다."""
+        raw = text or ""
+        q_marker = re.search(r"Q\s*[:：]", raw, flags=re.IGNORECASE)
+        a_marker = re.search(r"A\s*[:：]", raw, flags=re.IGNORECASE)
+
+        if q_marker and a_marker and q_marker.start() < a_marker.start():
+            q_start = q_marker.end()
+            a_start = a_marker.end()
+            question = raw[q_start : a_marker.start()].strip()
+            answer = raw[a_start:].strip()
+            return {
+                "question": question,
+                "answer": answer,
+                "question_offset": q_start,
+                "answer_offset": a_start,
+                "input_type": "TYPE_A",
+            }
+
+        answer_heading = re.search(r"(답변|회신|처리결과|조치결과|검토의견)\s*[:：]", raw)
+        question_heading = re.search(r"(민원내용|문의내용|요청사항)\s*[:：]", raw)
+
+        if answer_heading:
+            q_start = question_heading.end() if question_heading else 0
+            a_start = answer_heading.end()
+            question = raw[q_start : answer_heading.start()].strip()
+            answer = raw[a_start:].strip()
+            input_type = "TYPE_A" if question and answer else "TYPE_C"
+            return {
+                "question": question or raw[: answer_heading.start()].strip(),
+                "answer": answer,
+                "question_offset": q_start,
+                "answer_offset": a_start,
+                "input_type": input_type,
+            }
+
+        input_type = "TYPE_B" if not self._answer_like_pattern.search(raw) else "TYPE_C"
+        return {
+            "question": raw.strip(),
+            "answer": "",
+            "question_offset": 0,
+            "answer_offset": 0,
+            "input_type": input_type,
+        }
+
+    def _sentence_candidates(self, text: str, base_offset: int = 0) -> List[Dict[str, Any]]:
+        """문장 후보를 원문 인덱스와 함께 생성한다."""
+        if not text:
+            return []
+
+        candidates: List[Dict[str, Any]] = []
+        for m in re.finditer(r"[^\n.!?。]+[.!?。]?", text):
+            start = m.start()
+            end = m.end()
+            raw_chunk = text[start:end]
+            stripped = raw_chunk.strip()
+            if len(stripped) < 5:
+                continue
+
+            leading = len(raw_chunk) - len(raw_chunk.lstrip())
+            trailing = len(raw_chunk) - len(raw_chunk.rstrip())
+            abs_start = base_offset + start + leading
+            abs_end = base_offset + end - trailing
+            candidates.append({"text": stripped, "start": abs_start, "end": abs_end})
+
+        if not candidates and text.strip():
+            stripped = text.strip()
+            lead = len(text) - len(text.lstrip())
+            trail = len(text) - len(text.rstrip())
+            candidates.append(
+                {
+                    "text": stripped,
+                    "start": base_offset + lead,
+                    "end": base_offset + len(text) - trail,
+                }
+            )
+
+        return candidates
+
+    def _keyword_hits(self, text: str, keywords: List[str]) -> int:
+        return sum(1 for k in keywords if k and k in text)
+
+    def _score_candidate(
+        self,
+        sentence: Dict[str, Any],
+        kind: str,
+        idx: int,
+        total: int,
+        in_answer_segment: bool = False,
+    ) -> float:
+        text = sentence.get("text", "")
+        length_score = min(len(text) / 80.0, 1.0)
+        pos_ratio = (idx + 1) / max(total, 1)
+
+        if kind == "observation":
+            kw = self._keyword_hits(text, self._observation_keywords)
+            pat = 1 if self._observation_pattern.search(text) else 0
+            seg = 0.0 if in_answer_segment else 1.0
+            pos = 1.0 - pos_ratio
+            penalty = 0.25 if self._request_pattern.search(text) else 0.0
+        elif kind == "request":
+            kw = self._keyword_hits(text, self._request_keywords)
+            pat = 1 if self._request_pattern.search(text) else 0
+            seg = 0.0 if in_answer_segment else 1.0
+            pos = pos_ratio
+            penalty = 0.0
+        elif kind == "context":
+            kw = self._keyword_hits(text, self._context_keywords)
+            pat = 1 if re.search(r"(년|월|일|시|최근|지난|매일|여름|겨울|봄|가을|신고|기존|이전)", text) else 0
+            seg = 0.2 if in_answer_segment else 1.0
+            pos = 1.0 - pos_ratio
+            penalty = 0.0
+        else:  # result
+            kw = self._keyword_hits(text, self._result_keywords)
+            pat = 1 if re.search(r"(답변|회신|처리|조치|완료|진행|예정|계획)", text) else 0
+            seg = 1.0 if in_answer_segment else 0.0
+            pos = pos_ratio
+            penalty = 0.0
+
+        return 0.35 * kw + 0.25 * pat + 0.20 * seg + 0.10 * length_score + 0.10 * pos - penalty
+
+    def _score_to_confidence(self, score: float) -> float:
+        if score >= 1.6:
+            return 0.9
+        if score >= 1.0:
+            return 0.78
+        if score >= 0.5:
+            return 0.66
+        return 0.55
+
+    def _pick_best(self, candidates: List[Dict[str, Any]], kind: str, in_answer_segment: bool = False) -> Dict[str, Any]:
+        if not candidates:
+            return {"text": "", "start": 0, "end": 0, "score": 0.0}
+
+        scored: List[Dict[str, Any]] = []
+        total = len(candidates)
+        for idx, sent in enumerate(candidates):
+            score = self._score_candidate(sent, kind, idx, total, in_answer_segment=in_answer_segment)
+            scored.append({**sent, "score": score})
+
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[0]
+
     def _normalize_entity_label(self, label: str) -> str:
         """비표준 entity label을 표준 label로 변환한다."""
         normalized = label.upper()
@@ -249,56 +511,56 @@ class StructuringService:
         """
         try:
             self.logger.info(f"4요소 추출: {text[:50]}...")
-            clean_text = "\n".join(line.strip() for line in text.splitlines() if line.strip())
-            q_match = re.search(r"Q\s*:\s*(.+?)(?:\n\s*A\s*:|$)", text, flags=re.DOTALL)
-            a_match = re.search(r"A\s*:\s*(.+)$", text, flags=re.DOTALL)
+            segments = self._split_segments(text)
+            question = segments["question"]
+            answer = segments["answer"]
 
-            question = (q_match.group(1).strip() if q_match else clean_text[:600].strip())
-            answer = (a_match.group(1).strip() if a_match else "")
+            q_candidates = self._sentence_candidates(question, base_offset=segments["question_offset"])
+            a_candidates = self._sentence_candidates(answer, base_offset=segments["answer_offset"])
 
-            sentences = [s.strip() for s in re.split(r"(?<=[.!?。])\s+|\n", question) if s.strip()]
-            request_candidates = [
-                s
-                for s in sentences
-                if re.search(r"요청|부탁|조치|개선|점검|정비|수리|바랍니다|해주시", s)
-            ]
+            best_obs = self._pick_best(q_candidates, "observation", in_answer_segment=False)
+            best_req = self._pick_best(q_candidates, "request", in_answer_segment=False)
+            best_ctx = self._pick_best(q_candidates, "context", in_answer_segment=False)
 
-            obs_text = sentences[0] if sentences else question[:220]
-            req_text = request_candidates[-1] if request_candidates else (sentences[-1] if sentences else question)
-            res_text = answer[:220] if answer else "답변 본문 미제공"
+            obs_conf = self._score_to_confidence(best_obs.get("score", 0.0))
+            req_conf = self._score_to_confidence(best_req.get("score", 0.0))
+            ctx_conf = self._score_to_confidence(best_ctx.get("score", 0.0))
 
-            if "제목" in text:
-                title_line = text.splitlines()[0][:140]
-                ctx_text = title_line
+            if answer.strip():
+                best_res = self._pick_best(a_candidates, "result", in_answer_segment=True)
+                if best_res.get("score", 0.0) >= 0.5 and best_res.get("text"):
+                    res_field = self._build_result_field(
+                        best_res["text"],
+                        best_res["start"],
+                        best_res["end"],
+                        self._score_to_confidence(best_res["score"]),
+                        "present",
+                    )
+                else:
+                    res_field = self._build_result_field("", 0, 0, 0.0, "insufficient")
             else:
-                context_candidates = [
-                    s
-                    for s in sentences
-                    if re.search(r"최근|지난|매일|주간|월간|년|월|일|시|구|동|읍|면|로|길", s)
-                ]
-                ctx_text = context_candidates[0] if context_candidates else clean_text[:140]
-
-            obs_text = re.sub(r"^\s*(제목\s*[:：]\s*)", "", obs_text).strip()
-            req_text = re.sub(r"^\s*(요청\s*[:：]\s*)", "", req_text).strip()
-            ctx_text = re.sub(r"^\s*(제목\s*[:：]\s*)", "", ctx_text).strip()
-
-            if not obs_text:
-                obs_text = clean_text[:160]
-            if not req_text:
-                req_text = clean_text[-160:] if clean_text else "요청 내용 확인 필요"
-            if not ctx_text:
-                ctx_text = clean_text[:120]
-
-            obs_start = text.find(obs_text) if obs_text else 0
-            req_start = text.find(req_text) if req_text else 0
-            res_start = text.find(res_text) if res_text and res_text != "답변 본문 미제공" else 0
-            ctx_start = text.find(ctx_text) if ctx_text else 0
+                res_field = self._build_result_field("", 0, 0, 0.0, "pending")
 
             return {
-                "observation": self._build_field(obs_text, obs_start, obs_start + len(obs_text), 0.72),
-                "result": self._build_field(res_text, res_start, res_start + len(res_text), 0.76),
-                "request": self._build_field(req_text, req_start, req_start + len(req_text), 0.71),
-                "context": self._build_field(ctx_text, ctx_start, ctx_start + len(ctx_text), 0.68),
+                "observation": self._build_field(
+                    best_obs.get("text", ""),
+                    best_obs.get("start", 0),
+                    best_obs.get("end", 0),
+                    obs_conf,
+                ),
+                "result": res_field,
+                "request": self._build_field(
+                    best_req.get("text", ""),
+                    best_req.get("start", 0),
+                    best_req.get("end", 0),
+                    req_conf,
+                ),
+                "context": self._build_field(
+                    best_ctx.get("text", ""),
+                    best_ctx.get("start", 0),
+                    best_ctx.get("end", 0),
+                    ctx_conf,
+                ),
             }
         except Exception as e:
             self.logger.error(f"4요소 추출 실패: {str(e)}")
@@ -333,6 +595,13 @@ class StructuringService:
                 if ent not in seen:
                     seen.add(ent)
                     entities.append({"label": ent[0], "text": ent[1]})
+
+            for keyword in self._season_time_keywords:
+                if keyword in text:
+                    ent = ("TIME", keyword)
+                    if ent not in seen:
+                        seen.add(ent)
+                        entities.append({"label": ent[0], "text": ent[1]})
 
             for keyword in self._facility_keywords:
                 if keyword in text:
@@ -402,6 +671,25 @@ class StructuringService:
                     errors.append(f"invalid_evidence_span:{field_name}")
                 elif any(not isinstance(v, int) for v in span):
                     errors.append(f"invalid_evidence_span_type:{field_name}")
+                else:
+                    start, end = span
+                    raw_text = str(data.get("raw_text") or "")
+                    text_len = len(raw_text)
+                    if field_name == "result" and field.get("status") == "pending":
+                        if span != [0, 0]:
+                            errors.append("invalid_pending_result_span")
+                    else:
+                        if not (0 <= start < end <= text_len):
+                            errors.append(f"invalid_evidence_span_range:{field_name}")
+                        else:
+                            sliced = raw_text[start:end]
+                            if self._normalize_for_compare(sliced) != self._normalize_for_compare(str(field.get("text") or "")):
+                                errors.append(f"evidence_text_mismatch:{field_name}")
+
+                if field_name == "result":
+                    status = field.get("status")
+                    if status is not None and status not in self._result_statuses:
+                        errors.append("invalid_result_status")
 
                 text_value = str(field.get("text") or "").strip()
                 if not text_value:
@@ -467,13 +755,30 @@ class StructuringService:
         """
         try:
             self.logger.debug("신뢰도 점수 계산")
-            base = 0.55
-            entity_bonus = min(len(data.get("entities", [])) * 0.03, 0.2)
-            field_bonus = 0.0
-            for key in ["observation", "result", "request", "context"]:
-                if data.get(key, {}).get("text"):
-                    field_bonus += 0.05
-            return max(0.0, min(1.0, base + entity_bonus + field_bonus))
+            weights = {
+                "observation": 0.30,
+                "request": 0.30,
+                "context": 0.25,
+                "result": 0.15,
+            }
+            result_status = str(data.get("result", {}).get("status") or "")
+
+            keys = ["observation", "request", "context", "result"]
+            if result_status == "pending":
+                keys = ["observation", "request", "context"]
+
+            total_weight = sum(weights[k] for k in keys)
+            if total_weight <= 0:
+                return 0.0
+
+            score = 0.0
+            for key in keys:
+                conf = float(data.get(key, {}).get("confidence") or 0.0)
+                score += weights[key] * conf
+
+            score = score / total_weight
+            entity_bonus = min(len(data.get("entities", [])) * 0.01, 0.05)
+            return max(0.0, min(1.0, score + entity_bonus))
         except Exception as e:
             self.logger.error(f"신뢰도 점수 계산 실패: {str(e)}")
             raise StructuringError(f"신뢰도 점수 계산 실패: {str(e)}") from e
