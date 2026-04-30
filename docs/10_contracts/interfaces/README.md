@@ -11,6 +11,7 @@
 - `week4/`: Week 4 인터페이스 계약
 - `week5/`: Week 5 인터페이스 계약
 - `week6/`: Week 6 인터페이스 계약
+- `week7/`: Week 7 인터페이스 계약
 
 ## 사용 규칙
 
@@ -26,6 +27,7 @@
 - Week 4 인덱스: `docs/10_contracts/interfaces/week4/README.md`
 - Week 5 인덱스: `docs/10_contracts/interfaces/week5/README.md`
 - Week 6 인덱스: `docs/10_contracts/interfaces/week6/README.md`
+- Week 7 인덱스: `docs/10_contracts/interfaces/week7/README.md`
 
 ## Week2 최신 버전 스냅샷 (2026-03-22)
 
@@ -64,3 +66,10 @@
 - BE2: `v1.0-week6-draft`
 - BE3: `v1.0-week6-draft`
 - FE: `v1.0-week6-draft`
+
+## Week7 최신 버전 스냅샷 (2026-05-01)
+
+- BE1: `v1.0-week7-draft`
+- BE2: `v1.0-week7-draft`
+- BE3: `v1.0-week7-draft`
+- FE: `v1.0-week7-draft`
