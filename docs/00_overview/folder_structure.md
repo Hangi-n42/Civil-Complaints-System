@@ -53,7 +53,7 @@ AI-Civil-Affairs-Systems/
 │  │  ├─ api-client.ts               # 공통 HTTP 클라이언트
 │  │  ├─ search.service.ts           # /search 호출
 │  │  └─ qa.service.ts               # /qa 호출 (routing_hint 전달)
-│  ├─ types/
+│  ├─ types/ 
 │  │  ├─ api.ts                      # API 계약 타입
 │  │  ├─ complaint.ts                # 민원 모델 타입
 │  │  └─ workbench.ts                # 화면 상태 타입
