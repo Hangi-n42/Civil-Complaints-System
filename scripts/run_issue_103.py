@@ -24,6 +24,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core.config import settings
+from app.evaluation.datasets import QrelRecord
+from app.evaluation.metrics import RunRecord, evaluate_run
 
 
 @dataclass
@@ -159,27 +161,33 @@ def _initialize_embedding_model(model_name: str, device: str):
 
 
 def _calculate_recall(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate Recall@k: |retrieved_top_k ∩ ground_truth| / |ground_truth|"""
-    if not ground_truth:
-        return 0.0
-    top_k = set(retrieved_chunks[:k])
-    return len(top_k & ground_truth) / len(ground_truth)
+    """Calculate Recall@k through the shared ir_measures evaluator."""
+    return _evaluate_binary_metric(retrieved_chunks, ground_truth, f"R@{k}")
 
 
 def _calculate_mrr(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate MRR@k (Mean Reciprocal Rank): 1 / (rank of first relevant result)"""
-    for rank, chunk_id in enumerate(retrieved_chunks[:k], start=1):
-        if chunk_id in ground_truth:
-            return 1.0 / rank
-    return 0.0
+    """Calculate MRR@k through the shared ir_measures evaluator."""
+    return _evaluate_binary_metric(retrieved_chunks, ground_truth, f"RR@{k}")
 
 
 def _calculate_precision(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate Precision@k: |retrieved_top_k ∩ ground_truth| / k"""
-    if k == 0:
+    """Calculate Precision@k through the shared ir_measures evaluator."""
+    return _evaluate_binary_metric(retrieved_chunks, ground_truth, f"P@{k}")
+
+
+def _evaluate_binary_metric(retrieved_chunks: List[str], ground_truth: Set[str], metric_name: str) -> float:
+    if not ground_truth:
         return 0.0
-    top_k = set(retrieved_chunks[:k])
-    return len(top_k & ground_truth) / k
+    qrels = [QrelRecord("q", docid, 1) for docid in ground_truth]
+    run = [
+        RunRecord("q", docid, score=float(len(retrieved_chunks) - index), rank=index + 1)
+        for index, docid in enumerate(retrieved_chunks)
+    ]
+    metrics = evaluate_run(qrels, run)
+    for key, value in metrics.items():
+        if key == metric_name or key.endswith(metric_name):
+            return value
+    return 0.0
 
 
 def _build_case_slice_index(cases: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
