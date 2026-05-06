@@ -102,7 +102,25 @@ def test_convert_aihub_source_dir(tmp_path):
                     ],
                 }
             ],
-        }
+        },
+        {
+            "source_id": "SRC-2",
+            "source": "aihub",
+            "consulting_date": "2026-01-02",
+            "consulting_category": "교통/도로",
+            "consulting_content": "민원인: 도로 균열이 커졌습니다.\n상담사: 보수 접수해드리겠습니다.",
+            "instructions": [
+                {
+                    "tuning_type": "질의응답",
+                    "data": [
+                        {
+                            "instruction": "도로 균열 민원 접수 방법은?",
+                            "input_length": "410",
+                        }
+                    ],
+                }
+            ],
+        },
     ]
     (source_dir / "sample.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
@@ -110,8 +128,9 @@ def test_convert_aihub_source_dir(tmp_path):
 
     assert stats["scanned_files"] == 1
     assert stats["used_files"] == 1
-    assert len(corpus) == 1
+    assert len(corpus) == 2
     assert queries[0]._id == "SRC-1__inst-0"
     assert queries[0].metadata["topic_type"] == "traffic"
-    assert qrels[0].relevance == 3
+    assert qrels[0].docid != "SRC-1__chunk-0"
+    assert qrels[0].relevance in {1, 2, 3}
 
