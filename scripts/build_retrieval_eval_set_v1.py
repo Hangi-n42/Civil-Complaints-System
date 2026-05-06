@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import json
 import re
+import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from app.structuring.service import StructuringService
 
 
 @dataclass(frozen=True)
@@ -167,6 +174,8 @@ def convert_aihub_source_dir(
     used_files = 0
     doc_records: dict[str, dict[str, Any]] = {}
     pending_queries: list[tuple[QueryRow, str]] = []
+    structuring_service = StructuringService()
+    structuring_service.logger.disabled = True
 
     for path in files:
         scanned_files += 1
@@ -184,10 +193,11 @@ def convert_aihub_source_dir(
         for row in rows:
             source_id = str(row.get("source_id") or path.stem).strip() or path.stem
             docid = f"{source_id}__chunk-0"
+            raw_text = str(row.get("consulting_content") or "").strip()
             if docid not in seen_docids:
                 seen_docids.add(docid)
                 category = str(row.get("consulting_category") or "")
-                text = str(row.get("consulting_content") or "").strip()
+                text = raw_text
                 corpus_row = CorpusRow(
                     _id=docid,
                     title=category or source_id,
@@ -208,30 +218,16 @@ def convert_aihub_source_dir(
                     "text_tokens": _tokenize(text),
                 }
 
-            generated = _queries_from_instruction_rows(row, docid=docid)
-            if not generated:
-                fallback_query = _fallback_query_from_content(str(row.get("consulting_content") or ""))
-                if fallback_query:
-                    qid = f"{source_id}__fallback-0"
-                    queries.append(
-                        QueryRow(
-                            _id=qid,
-                            text=fallback_query,
-                            metadata={
-                                "scenario_type": "unknown",
-                                "risk_level": "unknown",
-                                "topic_type": _normalize_topic(row.get("consulting_category")),
-                                "complexity_level": "medium",
-                                "source_case_id": source_id,
-                            },
-                        )
-                    )
-                    pending_queries.append((queries[-1], docid))
-                    local_has_query = True
-            else:
-                for query_row, _ in generated:
-                    queries.append(query_row)
-                    pending_queries.append((query_row, docid))
+            query_row = _build_four_element_query_row(
+                row=row,
+                source_id=source_id,
+                docid=docid,
+                raw_text=raw_text,
+                service=structuring_service,
+            )
+            if query_row is not None:
+                queries.append(query_row)
+                pending_queries.append((query_row, docid))
                 local_has_query = True
 
         if local_has_query:
@@ -313,45 +309,50 @@ def write_manifest(
     )
 
 
-def _queries_from_instruction_rows(row: dict[str, Any], *, docid: str) -> list[tuple[QueryRow, QrelRow]]:
-    source_id = str(row.get("source_id") or docid).strip() or docid
-    topic_type = _normalize_topic(row.get("consulting_category"))
-    instructions = row.get("instructions")
-    if not isinstance(instructions, list):
-        return []
+def _build_four_element_query_row(
+    *,
+    row: dict[str, Any],
+    source_id: str,
+    docid: str,
+    raw_text: str,
+    service: StructuringService,
+) -> QueryRow | None:
+    if not raw_text:
+        return None
 
-    results: list[tuple[QueryRow, QrelRow]] = []
-    query_index = 0
-    for instruction_block in instructions:
-        if not isinstance(instruction_block, dict):
-            continue
-        tuning_type = str(instruction_block.get("tuning_type") or "").strip()
-        data_items = instruction_block.get("data")
-        if not isinstance(data_items, list):
-            continue
-        for item in data_items:
-            if not isinstance(item, dict):
-                continue
-            instruction_text = str(item.get("instruction") or "").strip()
-            if not instruction_text:
-                continue
-            qid = f"{source_id}__inst-{query_index}"
-            query_index += 1
-            query = QueryRow(
-                _id=qid,
-                text=instruction_text,
-                metadata={
-                    "scenario_type": "unknown",
-                    "risk_level": "unknown",
-                    "topic_type": topic_type,
-                    "complexity_level": _complexity_from_instruction(item),
-                    "source_case_id": source_id,
-                    "tuning_type": tuning_type,
-                },
-            )
-            qrel = QrelRow(qid=qid, docid=docid, relevance=0)
-            results.append((query, qrel))
-    return results
+    four_elements = asyncio.run(service.extract_four_elements(raw_text))
+    entities = asyncio.run(service.extract_entities(raw_text))
+    observation = _clean_field_text(str((four_elements.get("observation") or {}).get("text") or ""))
+    result = _clean_field_text(str((four_elements.get("result") or {}).get("text") or ""))
+    request = _clean_field_text(str((four_elements.get("request") or {}).get("text") or ""))
+    context = _clean_field_text(str((four_elements.get("context") or {}).get("text") or ""))
+
+    if not any([observation, result, request, context]):
+        fallback = _fallback_query_from_content(raw_text)
+        if not fallback:
+            return None
+        observation = fallback
+
+    query_text = _format_four_element_query(observation, result, request, context)
+    entity_labels = sorted({str(item.get("label") or "").strip().upper() for item in entities if isinstance(item, dict)})
+
+    return QueryRow(
+        _id=f"{source_id}__case-0",
+        text=query_text,
+        metadata={
+            "scenario_type": "unknown",
+            "risk_level": "unknown",
+            "topic_type": _normalize_topic(row.get("consulting_category")),
+            "complexity_level": _complexity_from_text(query_text),
+            "source_case_id": source_id,
+            "query_observation": observation,
+            "query_result": result,
+            "query_request": request,
+            "query_context": context,
+            "query_entity_labels": entity_labels,
+            "query_docid": docid,
+        },
+    )
 
 
 def _fallback_query_from_content(content: str) -> str:
@@ -359,6 +360,37 @@ def _fallback_query_from_content(content: str) -> str:
         return ""
     first_line = content.splitlines()[0].strip()
     return first_line[:200]
+
+
+def _clean_field_text(value: str) -> str:
+    text = " ".join(str(value or "").split())
+    if not text:
+        return ""
+    greetings = (
+        "안녕하십니까",
+        "무엇을 도와드릴까요",
+        "여보세요",
+        "감사합니다",
+    )
+    for token in greetings:
+        text = text.replace(token, "").strip()
+    text = re.sub(r"^[고객상담원민원인답변자:\-\s]+", "", text).strip()
+    if len(text) < 6:
+        return ""
+    return text
+
+
+def _format_four_element_query(observation: str, result: str, request: str, context: str) -> str:
+    sections = []
+    if observation:
+        sections.append(f"관찰: {observation}")
+    if result:
+        sections.append(f"결과: {result}")
+    if request:
+        sections.append(f"요청: {request}")
+    if context:
+        sections.append(f"맥락: {context}")
+    return "\n".join(sections)
 
 
 def _normalize_topic(raw_category: Any) -> str:
@@ -384,6 +416,15 @@ def _complexity_from_instruction(item: dict[str, Any]) -> str:
             return "medium"
         return "low"
     return "medium"
+
+
+def _complexity_from_text(text: str) -> str:
+    length = len(str(text or ""))
+    if length >= 500:
+        return "high"
+    if length >= 180:
+        return "medium"
+    return "low"
 
 
 def _build_similar_case_qrels(
