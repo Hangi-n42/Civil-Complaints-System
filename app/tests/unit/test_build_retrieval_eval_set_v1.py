@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from scripts.build_retrieval_eval_set_v1 import (
+    convert_aihub_source_dir,
     convert_legacy_eval_set,
     write_eval_set,
     write_manifest,
@@ -55,7 +56,15 @@ def test_write_eval_set_and_manifest(tmp_path):
 
     write_eval_set(output_dir, corpus, queries, qrels)
     write_smoke_subset(output_dir / "smoke", queries, qrels, smoke_size=1)
-    write_manifest(output_dir, source_path, corpus, queries, qrels, smoke_size=1)
+    write_manifest(
+        output_dir,
+        source_descriptor={"source_mode": "legacy_evaluation_set", "source_file": str(source_path)},
+        source_hash="sha256:test",
+        corpus=corpus,
+        queries=queries,
+        qrels=qrels,
+        smoke_size=1,
+    )
 
     assert (output_dir / "corpus.jsonl").exists()
     assert (output_dir / "queries.jsonl").exists()
@@ -70,4 +79,39 @@ def test_write_eval_set_and_manifest(tmp_path):
     assert manifest["counts"]["queries"] == 2
     assert manifest["counts"]["smoke_size"] == 1
     assert manifest["files"]["qrels_tsv_sha256"].startswith("sha256:")
+
+
+def test_convert_aihub_source_dir(tmp_path):
+    source_dir = tmp_path / "Civil_complaints_data"
+    source_dir.mkdir(parents=True)
+    payload = [
+        {
+            "source_id": "SRC-1",
+            "source": "aihub",
+            "consulting_date": "2026-01-01",
+            "consulting_category": "교통/도로",
+            "consulting_content": "민원인: 도로 파손이 심합니다.\n상담사: 접수 도와드리겠습니다.",
+            "instructions": [
+                {
+                    "tuning_type": "질의응답",
+                    "data": [
+                        {
+                            "instruction": "도로 파손 신고 방법은?",
+                            "input_length": "420",
+                        }
+                    ],
+                }
+            ],
+        }
+    ]
+    (source_dir / "sample.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    corpus, queries, qrels, stats = convert_aihub_source_dir(source_dir, max_files=0)
+
+    assert stats["scanned_files"] == 1
+    assert stats["used_files"] == 1
+    assert len(corpus) == 1
+    assert queries[0]._id == "SRC-1__inst-0"
+    assert queries[0].metadata["topic_type"] == "traffic"
+    assert qrels[0].relevance == 3
 
