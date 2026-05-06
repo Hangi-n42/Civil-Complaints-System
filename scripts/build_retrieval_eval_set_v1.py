@@ -1,4 +1,4 @@
-"""AI Hub legacy evaluation_set을 BEIR 호환 검색 평가셋으로 변환한다."""
+"""AI Hub 원천 데이터 또는 legacy evaluation_set을 BEIR 호환 검색 평가셋으로 변환한다."""
 
 from __future__ import annotations
 
@@ -34,24 +34,45 @@ class QrelRow:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="검색 평가셋 v1 생성기(BEIR 호환)")
-    parser.add_argument("--source", type=str, required=True, help="legacy evaluation_set.json 경로")
+    parser.add_argument("--source", type=str, default="", help="legacy evaluation_set.json 경로")
+    parser.add_argument("--source-dir", type=str, default="", help="AI Hub 원천 JSON 디렉터리 경로")
     parser.add_argument("--output-dir", type=str, default="data/eval/retrieval/v1")
     parser.add_argument("--smoke-size", type=int, default=50, help="smoke subset query 수")
+    parser.add_argument("--max-files", type=int, default=0, help="source-dir 사용 시 최대 파일 수(0=전체)")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    source_path = Path(args.source)
     output_dir = Path(args.output_dir)
     smoke_size = max(1, int(args.smoke_size))
+    max_files = max(0, int(args.max_files))
 
-    with source_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, list):
-        raise SystemExit("source 파일은 list 형식의 evaluation_set 이어야 합니다.")
+    if args.source_dir:
+        source_root = Path(args.source_dir)
+        corpus, queries, qrels, source_stats = convert_aihub_source_dir(source_root, max_files=max_files)
+        source_descriptor = {
+            "source_mode": "aihub_source_dir",
+            "source_dir": str(source_root),
+            "scanned_files": source_stats["scanned_files"],
+            "used_files": source_stats["used_files"],
+        }
+        source_hash = ""
+    elif args.source:
+        source_path = Path(args.source)
+        with source_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, list):
+            raise SystemExit("source 파일은 list 형식의 evaluation_set 이어야 합니다.")
+        corpus, queries, qrels = convert_legacy_eval_set(payload)
+        source_descriptor = {
+            "source_mode": "legacy_evaluation_set",
+            "source_file": str(source_path),
+        }
+        source_hash = _sha256_file(source_path)
+    else:
+        raise SystemExit("--source 또는 --source-dir 중 하나는 반드시 지정해야 합니다.")
 
-    corpus, queries, qrels = convert_legacy_eval_set(payload)
     if not queries:
         raise SystemExit("변환 가능한 query가 없습니다.")
     if not qrels:
@@ -59,7 +80,15 @@ def main() -> int:
 
     write_eval_set(output_dir, corpus, queries, qrels)
     write_smoke_subset(output_dir / "smoke", queries, qrels, smoke_size=smoke_size)
-    write_manifest(output_dir, source_path, corpus, queries, qrels, smoke_size=smoke_size)
+    write_manifest(
+        output_dir,
+        source_descriptor=source_descriptor,
+        source_hash=source_hash,
+        corpus=corpus,
+        queries=queries,
+        qrels=qrels,
+        smoke_size=smoke_size,
+    )
     return 0
 
 
@@ -117,6 +146,93 @@ def convert_legacy_eval_set(
     return sorted(corpus_by_id.values(), key=lambda row: row._id), queries, unique_qrels
 
 
+def convert_aihub_source_dir(
+    source_dir: Path,
+    *,
+    max_files: int,
+) -> tuple[list[CorpusRow], list[QueryRow], list[QrelRow], dict[str, int]]:
+    if not source_dir.exists():
+        raise SystemExit(f"source-dir 경로가 존재하지 않습니다: {source_dir}")
+
+    files = sorted(source_dir.rglob("*.json"))
+    if max_files > 0:
+        files = files[:max_files]
+
+    corpus: list[CorpusRow] = []
+    queries: list[QueryRow] = []
+    qrels: list[QrelRow] = []
+    seen_docids: set[str] = set()
+    scanned_files = 0
+    used_files = 0
+
+    for path in files:
+        scanned_files += 1
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, list):
+            continue
+        rows = [row for row in payload if isinstance(row, dict)]
+        if not rows:
+            continue
+
+        local_has_query = False
+        for row in rows:
+            source_id = str(row.get("source_id") or path.stem).strip() or path.stem
+            docid = f"{source_id}__chunk-0"
+            if docid not in seen_docids:
+                seen_docids.add(docid)
+                corpus.append(
+                    CorpusRow(
+                        _id=docid,
+                        title=str(row.get("consulting_category") or source_id),
+                        text=str(row.get("consulting_content") or "").strip(),
+                        metadata={
+                            "source_id": source_id,
+                            "source": str(row.get("source") or "aihub"),
+                            "consulting_date": str(row.get("consulting_date") or ""),
+                            "consulting_category": str(row.get("consulting_category") or ""),
+                        },
+                    )
+                )
+
+            generated = _queries_from_instruction_rows(row, docid=docid)
+            if not generated:
+                fallback_query = _fallback_query_from_content(str(row.get("consulting_content") or ""))
+                if fallback_query:
+                    qid = f"{source_id}__fallback-0"
+                    queries.append(
+                        QueryRow(
+                            _id=qid,
+                            text=fallback_query,
+                            metadata={
+                                "scenario_type": "unknown",
+                                "risk_level": "unknown",
+                                "topic_type": _normalize_topic(row.get("consulting_category")),
+                                "complexity_level": "medium",
+                                "source_case_id": source_id,
+                            },
+                        )
+                    )
+                    qrels.append(QrelRow(qid=qid, docid=docid, relevance=2))
+                    local_has_query = True
+            else:
+                for query_row, qrel_row in generated:
+                    queries.append(query_row)
+                    qrels.append(qrel_row)
+                local_has_query = True
+
+        if local_has_query:
+            used_files += 1
+
+    unique_qrels = sorted(
+        {(row.qid, row.docid): row for row in qrels}.values(),
+        key=lambda row: (row.qid, row.docid),
+    )
+    return corpus, queries, unique_qrels, {"scanned_files": scanned_files, "used_files": used_files}
+
+
 def write_eval_set(
     output_dir: Path,
     corpus: list[CorpusRow],
@@ -146,7 +262,9 @@ def write_smoke_subset(output_dir: Path, queries: list[QueryRow], qrels: list[Qr
 
 def write_manifest(
     output_dir: Path,
-    source_path: Path,
+    *,
+    source_descriptor: dict[str, Any],
+    source_hash: str,
     corpus: list[CorpusRow],
     queries: list[QueryRow],
     qrels: list[QrelRow],
@@ -154,8 +272,8 @@ def write_manifest(
 ) -> None:
     manifest = {
         "dataset_version": "v1",
-        "source_file": str(source_path),
-        "source_file_sha256": _sha256_file(source_path),
+        **source_descriptor,
+        "source_file_sha256": source_hash,
         "counts": {
             "corpus": len(corpus),
             "queries": len(queries),
@@ -178,6 +296,80 @@ def write_manifest(
         json.dumps(manifest, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def _queries_from_instruction_rows(row: dict[str, Any], *, docid: str) -> list[tuple[QueryRow, QrelRow]]:
+    source_id = str(row.get("source_id") or docid).strip() or docid
+    topic_type = _normalize_topic(row.get("consulting_category"))
+    instructions = row.get("instructions")
+    if not isinstance(instructions, list):
+        return []
+
+    results: list[tuple[QueryRow, QrelRow]] = []
+    query_index = 0
+    for instruction_block in instructions:
+        if not isinstance(instruction_block, dict):
+            continue
+        tuning_type = str(instruction_block.get("tuning_type") or "").strip()
+        data_items = instruction_block.get("data")
+        if not isinstance(data_items, list):
+            continue
+        for item in data_items:
+            if not isinstance(item, dict):
+                continue
+            instruction_text = str(item.get("instruction") or "").strip()
+            if not instruction_text:
+                continue
+            qid = f"{source_id}__inst-{query_index}"
+            query_index += 1
+            query = QueryRow(
+                _id=qid,
+                text=instruction_text,
+                metadata={
+                    "scenario_type": "unknown",
+                    "risk_level": "unknown",
+                    "topic_type": topic_type,
+                    "complexity_level": _complexity_from_instruction(item),
+                    "source_case_id": source_id,
+                    "tuning_type": tuning_type,
+                },
+            )
+            relevance = 3 if tuning_type in {"요약", "질의응답", "qa", "Q&A"} else 2
+            qrel = QrelRow(qid=qid, docid=docid, relevance=relevance)
+            results.append((query, qrel))
+    return results
+
+
+def _fallback_query_from_content(content: str) -> str:
+    if not content:
+        return ""
+    first_line = content.splitlines()[0].strip()
+    return first_line[:200]
+
+
+def _normalize_topic(raw_category: Any) -> str:
+    value = str(raw_category or "").strip().lower()
+    if not value:
+        return "general"
+    if "교통" in value or "도로" in value:
+        return "traffic"
+    if "복지" in value or "지원" in value:
+        return "welfare"
+    if "환경" in value or "악취" in value or "소음" in value:
+        return "environment"
+    return "general"
+
+
+def _complexity_from_instruction(item: dict[str, Any]) -> str:
+    input_length = str(item.get("input_length") or "").strip()
+    if input_length.isdigit():
+        length = int(input_length)
+        if length >= 900:
+            return "high"
+        if length >= 300:
+            return "medium"
+        return "low"
+    return "medium"
 
 
 def _fallback_relevance(ctx: dict[str, Any]) -> int:
