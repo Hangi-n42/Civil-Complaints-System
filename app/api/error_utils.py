@@ -41,7 +41,8 @@ ERROR_POLICY: Dict[str, Dict[str, Any]] = {
     "INVALID_QA_REQUEST": {"status_code": 400, "retryable": False},  # 잘못된 QA 요청
     "GENERATION_TIMEOUT": {"status_code": 504, "retryable": True},  # 생성 타임아웃
     # Week 6 BE3 계약 확장
-    "PROMPT_BUILD_ERROR": {"status_code": 500, "retryable": True},
+        "PROMPT_BUILD_ERROR": {"status_code": 500, "retryable": True},
+        "RESPONSE_SCHEMA_MISMATCH": {"status_code": 422, "retryable": False},
     "NORMALIZE_RESPONSE_ERROR": {"status_code": 500, "retryable": True},
     "ROUTING_STRATEGY_INCONSISTENT": {"status_code": 400, "retryable": False},
 }
