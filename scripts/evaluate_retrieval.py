@@ -1,115 +1,124 @@
-"""
-평가 스크립트 - 검색 평가
-
-검색 시스템의 성능을 평가한다.
-
-Usage:
-    python scripts/evaluate_retrieval.py --queries data/annotations/queries.json
-"""
-
-import sys
 import json
+import subprocess
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.core.logging import evaluation_logger
-from scripts.run_issue_103 import (
-    _load_eval_set,
-    _extract_queries,
-    _initialize_chroma_client,
-    _initialize_embedding_model,
-    _evaluate_single_query,
-)
+from app.evaluation.artifacts import write_jsonl, write_trec_run
+from app.evaluation.datasets import load_eval_dataset, load_legacy_evaluation_set, sha256_file
+from app.evaluation.metrics import RunRecord, evaluate_run
+from app.evaluation.reporting import append_run_summary, build_gate, latency_summary
+from app.evaluation.slices import evaluate_slices
+from app.retrieval.pipeline.runner import RetrievalPipelineRunner, load_pipeline_spec
 
 
-def main(queries_file: str, system_file: str, output_file: str):
-    """메인 함수"""
-    logger = evaluation_logger
+def parse_args():
+    import argparse
 
+    parser = argparse.ArgumentParser(description="통합 검색 평가 실행기")
+    parser.add_argument("--eval-dir", type=str, help="corpus.jsonl, queries.jsonl, qrels.tsv가 있는 평가셋 디렉터리")
+    parser.add_argument("--legacy-eval-set", type=str, help="기존 evaluation_set.json 경로")
+    parser.add_argument("--pipeline", type=str, required=True, help="검색 파이프라인 YAML 명세 경로")
+    parser.add_argument("--output-dir", type=str, default="reports/retrieval")
+    parser.add_argument("--run-id", type=str, default="")
+    parser.add_argument("--issue-number", type=str, default="198")
+    parser.add_argument("--sample-size", type=int, default=0)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if not args.eval_dir and not args.legacy_eval_set:
+        raise SystemExit("--eval-dir 또는 --legacy-eval-set 중 하나는 반드시 필요합니다")
+
+    dataset = (
+        load_eval_dataset(args.eval_dir)
+        if args.eval_dir
+        else load_legacy_evaluation_set(args.legacy_eval_set, sample_size=args.sample_size)
+    )
+    queries = dataset.queries[: args.sample_size] if args.sample_size > 0 and args.eval_dir else dataset.queries
+    allowed_qids = {query.qid for query in queries}
+    qrels = [qrel for qrel in dataset.qrels if qrel.qid in allowed_qids]
+
+    spec = load_pipeline_spec(args.pipeline)
+    run_id = args.run_id or f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{spec.pipeline_id}"
+    output_dir = Path(args.output_dir)
+    artifact_dir = output_dir / "artifacts" / run_id
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    runner = RetrievalPipelineRunner(spec)
+    results = runner.run_sync(queries)
+
+    final_run: list[RunRecord] = []
+    stage_runs: dict[str, list[RunRecord]] = {}
+    for result in results:
+        for output in result.stage_outputs.values():
+            stage_rows = [doc.to_run_record() for doc in output.candidates]
+            stage_runs.setdefault(output.stage_name, []).extend(stage_rows)
+        final_run.extend(doc.to_run_record() for doc in result.final_docs)
+
+    stage_artifacts: dict[str, str] = {}
+    for stage_name, rows in stage_runs.items():
+        path = artifact_dir / f"{stage_name}.trec"
+        write_trec_run(path, rows, run_name=stage_name)
+        stage_artifacts[stage_name] = str(path)
+
+    final_path = artifact_dir / "final.trec"
+    write_trec_run(final_path, final_run, run_name="final")
+    write_jsonl(artifact_dir / "queries.jsonl", queries)
+    stage_artifacts["final"] = str(final_path)
+
+    metrics = evaluate_run(qrels, final_run)
+    slice_metrics = evaluate_slices(queries, qrels, final_run)
+    latency_ms = latency_summary([result.latency_ms for result in results])
+    gate = build_gate(metrics, latency_ms)
+
+    summary = {
+        "run_id": run_id,
+        "issue_number": str(args.issue_number),
+        "branch": _git_value(["branch", "--show-current"]),
+        "git_commit": _git_value(["rev-parse", "HEAD"]),
+        "pipeline_id": spec.pipeline_id,
+        "pipeline_hash": spec.pipeline_hash,
+        "pipeline_path": str(spec.source_path) if spec.source_path else "",
+        "eval_set_hash": dataset.eval_set_hash,
+        "seed": spec.seed,
+        "stage_artifacts": stage_artifacts,
+        "metrics": {key: round(value, 4) for key, value in metrics.items()},
+        "slice_metrics": slice_metrics,
+        "latency_ms": latency_ms,
+        "gate": gate,
+        "evaluation": {"total_queries": len(queries), "total_qrels": len(qrels)},
+    }
+    if spec.source_path:
+        summary["pipeline_file_hash"] = sha256_file(spec.source_path)
+
+    report_path = artifact_dir / "summary.json"
+    report_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    append_run_summary(output_dir / "runs.jsonl", summary)
+
+    print(json.dumps(summary["metrics"], ensure_ascii=False, indent=2))
+    print(f"[OK] run_id={run_id}")
+    print(f"[OK] 리포트={report_path}")
+    return 0 if gate["all_passed"] else 1
+
+
+def _git_value(args: list[str]) -> str:
     try:
-        logger.info(f"검색 평가 시작: queries={queries_file}, system={system_file}")
-
-        eval_set = _load_eval_set(Path(queries_file))
-        queries = _extract_queries(eval_set, sample_size=0)
-
-        _, collection = _initialize_chroma_client(
-            persist_dir=str(project_root / "data" / "chroma_db"),
-            collection_name="civil_cases_v1",
+        result = subprocess.run(
+            ["git", *args],
+            cwd=project_root,
+            check=True,
+            capture_output=True,
+            text=True,
         )
-        model = _initialize_embedding_model("BAAI/bge-m3", "cpu")
-
-        rows = []
-        for query_id, query_text, ground_truth in queries:
-            rows.append(
-                _evaluate_single_query(
-                    query_id=query_id,
-                    query_text=query_text,
-                    ground_truth=ground_truth,
-                    collection=collection,
-                    model=model,
-                    top_k=10,
-                )
-            )
-
-        total = len(rows)
-        recall_at_5 = sum(r.recall_at_5 for r in rows) / total if total else 0.0
-        recall_at_10 = sum(r.recall_at_10 for r in rows) / total if total else 0.0
-        mrr_at_5 = sum(r.mrr_at_5 for r in rows) / total if total else 0.0
-        mrr_at_10 = sum(r.mrr_at_10 for r in rows) / total if total else 0.0
-        avg_latency_ms = sum(r.latency_ms for r in rows) / total if total else 0.0
-
-        report = {
-            "status": "success",
-            "total_queries": total,
-            "recall_5": round(recall_at_5, 4),
-            "recall_10": round(recall_at_10, 4),
-            "mrr_5": round(mrr_at_5, 4),
-            "mrr_10": round(mrr_at_10, 4),
-            "avg_latency_ms": round(avg_latency_ms, 2),
-            "gate": {
-                "recall_5": {"target": 0.75, "passed": recall_at_5 >= 0.75},
-                "avg_latency_ms": {"target": 12000, "passed": avg_latency_ms <= 12000},
-            },
-        }
-
-        output_path = Path(output_file)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-
-        logger.info(f"검색 평가 완료: 결과 파일={output_file}")
-
-    except Exception as e:
-        logger.error(f"검색 평가 실패: {str(e)}")
-        sys.exit(1)
+        return result.stdout.strip()
+    except Exception:
+        return ""
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="검색 평가")
-    parser.add_argument(
-        "--queries",
-        type=str,
-        default="data/annotations/queries.json",
-        help="쿼리 파일 경로",
-    )
-    parser.add_argument(
-        "--system",
-        type=str,
-        required=True,
-        help="시스템 검색 결과 파일 경로",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="data/annotations/retrieval_eval_result.json",
-        help="평가 결과 출력 경로",
-    )
-    args = parser.parse_args()
-
-    main(args.queries, args.system, args.output)
+    sys.exit(main())
