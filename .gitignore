@@ -229,6 +229,7 @@ artifacts/**
 # Local editor/workspace settings
 .vscode/
 .idea/
+.clinerules
 
 # OS clutter
 .DS_Store

@@ -7,12 +7,20 @@ import AppSidebar from "@/components/AppSidebar";
 import {
   type RoutingHint,
   type RoutingTrace,
+  type TopicType,
   runQaApi,
   searchCasesApi,
   type QaResponseData,
   type RetrievedDoc,
   type SearchResponseData,
   type WorkbenchCaseContext,
+  loadPersistedRoutingInfo,
+  loadLastDraft,
+  saveDraftSnapshot,
+  loadDraftSnapshot,
+  clearDraftSnapshot,
+  getStatusUxMessage,
+  type StatusUxType,
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 
@@ -115,6 +123,50 @@ function WorkbenchContent() {
     setDraftError(null);
     setExpandedDocId(null);
     setIsRawCollapsed(true);
+    // Clear draft snapshot when switching cases
+    clearDraftSnapshot();
+  }, [selectedCaseId, selectedCase]);
+
+  // Restore persisted routing info and last draft when selecting a case + ensure center-right sync (no UI changes)
+  useEffect(() => {
+    try {
+      const persisted = loadPersistedRoutingInfo();
+      const last = loadLastDraft();
+
+      // Set default routing info based on selected case context for center-right sync
+      const defaultInfo = buildDefaultRoutingInfoFromCase(selectedCase);
+      setRoutingTrace(defaultInfo.routingTrace);
+      setStrategyId(defaultInfo.strategyId);
+      setRouteKey(defaultInfo.routeKey);
+
+      // Override with persisted routing info if available
+      if (persisted && persisted.routingTrace) {
+        setRoutingTrace((persisted as any).routingTrace);
+        setStrategyId((persisted as any).strategyId || null);
+        setRouteKey((persisted as any).routeKey || null);
+      }
+
+      // Restore last draft if it matches selected case
+      if (last && last.draft && last.draft.complaintId === selectedCase.case_id) {
+        setDraftResponse(last.draft as any);
+        setDraftStage("success");
+        setDraftError(null);
+
+        const respSegments = (last.draft as any).structuredOutput?.requestSegments || [];
+        const segMode: SegmentViewMode = respSegments.length > 1 ? "multi" : respSegments.length === 1 ? "single" : "empty";
+        const textarea = buildDraftTextareaValue({
+          draftStage: "success",
+          segmentViewMode: segMode,
+          answer: (last.draft as any).answer,
+          summary: (last.draft as any).structuredOutput?.summary,
+          actionItems: (last.draft as any).structuredOutput?.actionItems || [],
+          requestSegments: respSegments,
+        });
+        setDraftEditorValue(textarea);
+      }
+    } catch (e) {
+      // no-op: best-effort restore
+    }
   }, [selectedCaseId, selectedCase]);
 
   function persistStatuses(nextStatuses: Record<string, string>) {
@@ -222,6 +274,8 @@ function WorkbenchContent() {
 
       setDraftStage("success");
       setDraftResponse(response.data);
+      // Save draft snapshot for before/after comparison
+      saveDraftSnapshot(response.data);
     } catch (error: any) {
       setDraftStage("error");
       setDraftError(error?.message || "초안 생성 중 오류가 발생했습니다.");
@@ -532,6 +586,40 @@ function buildCaseContext(caseItem: any): WorkbenchCaseContext {
     summary: getCaseSummaryText(caseItem),
     priority: caseItem.priority,
   };
+}
+
+function buildDefaultRoutingInfoFromCase(caseItem: any): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
+  const category = caseItem.category || "일반";
+  const topic: TopicType = mapCategoryToTopicType(category);
+  const complexityLevel: "low" | "medium" | "high" = "medium";
+
+  const routingTrace: RoutingTrace = {
+    topicType: topic,
+    complexityLevel,
+    complexityScore: 0.58,
+    complexityTrace: {
+      intent_count: 1,
+      constraint_count: 1,
+      entity_diversity: 1,
+      policy_reference_count: 0,
+      cross_sentence_dependency: false,
+    },
+    routeReason: `선택된 민원 카테고리(${category})를 기반으로 기본 라우팅 정보를 설정했습니다.`,
+  };
+
+  const routeKey = `${topic}/${complexityLevel}`;
+  const strategyId = `topic_${topic}_${complexityLevel}_v1`;
+
+  return { routingTrace, strategyId, routeKey };
+}
+
+function mapCategoryToTopicType(category: string): TopicType {
+  const lower = (category || "").toLowerCase();
+  if (lower.includes("주거") || lower.includes("복지")) return "welfare";
+  if (lower.includes("교통")) return "traffic";
+  if (lower.includes("환경")) return "environment";
+  if (lower.includes("안전") || lower.includes("도로") || lower.includes("건설")) return "construction";
+  return "general";
 }
 
 function buildDefaultQuery(caseItem: any) {
