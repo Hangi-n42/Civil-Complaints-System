@@ -100,7 +100,7 @@ async def test_validate_schema_normalizes_nonstandard_entity_labels():
     }
 
     validation = await service.validate_schema(payload)
-
+    print("Validation result:", validation)
     assert validation["is_valid"] is True
     assert "invalid_entity_label:TYPE" not in validation["errors"]
     assert payload["entities"][0]["label"] == "HAZARD"

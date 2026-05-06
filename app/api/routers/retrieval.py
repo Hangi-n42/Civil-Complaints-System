@@ -434,11 +434,13 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],
                     "topic_type": routing["routing_trace"]["topic_type"],
+                    "complexity_level": routing["routing_trace"]["complexity_level"],
                     "retrieval_policy": routing["retrieval_policy"],
                     "matched_segments": matched_segments,
                 },
                 "doc_id": doc_id,
                 "score": score,
+                "source": item.get("source") or metadata.get("source") or "civil_db",
                 "chunk_id": chunk_id,
                 "title": item.get("title"),
                 "snippet": snippet,
@@ -452,19 +454,39 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             }
         )
 
+    # Issue #193, #191: Deduplication by doc_id and sort by score desc
+    formatted_results.sort(key=lambda x: x["score"], reverse=True)
+    seen_docs = set()
+    deduped_results = []
+    for r in formatted_results:
+        did = r["doc_id"]
+        if did not in seen_docs:
+            seen_docs.add(did)
+            deduped_results.append(r)
+
+    # Issue #191: Match top_k setting with panel card counts
+    final_results = deduped_results[:request.top_k]
+    for idx, r in enumerate(final_results, start=1):
+        r["rank"] = idx
+
+    result_count = len(final_results)
+
     data = SearchResponseData(
         complaint_id=request.complaint_id,
         strategy_id=routing["strategy_id"],
         route_key=routing["route_key"],
         routing_hint=routing["routing_hint"],
         routing_trace=routing["routing_trace"],
-        retrieved_docs=formatted_results,
-        results=formatted_results,
-        total_found=len(formatted_results),
+        retrieved_docs=final_results,
+        results=final_results,
+        items=final_results,
+        total_found=result_count,
+        result_count=result_count,
         elapsed_ms=took_ms,
+        retrieval_latency_ms=took_ms,
         query=request.query,
         top_k=request.top_k,
-        count=len(formatted_results),
+        count=result_count,
         took_ms=took_ms,
     )
     return SearchResponse(
