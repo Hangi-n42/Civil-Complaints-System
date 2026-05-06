@@ -1,4 +1,4 @@
-"""Dataset loading helpers for retrieval evaluation."""
+"""검색 평가 데이터셋 로더."""
 
 from __future__ import annotations
 
@@ -125,7 +125,7 @@ def load_qrels_tsv(path: str | Path) -> list[QrelRecord]:
                 continue
             parts = line.split("\t")
             if len(parts) < 3:
-                raise ValueError(f"Invalid qrels row at line {line_number}: {raw_line!r}")
+                raise ValueError(f"qrels.tsv {line_number}번째 줄 형식이 올바르지 않습니다: {raw_line!r}")
             if line_number == 1 and parts[0].lower() in {"qid", "query_id"}:
                 continue
             qid, docid, relevance = parts[:3]
@@ -137,7 +137,7 @@ def load_legacy_evaluation_set(path: str | Path, sample_size: int = 0) -> Retrie
     with Path(path).open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     if not isinstance(payload, list):
-        raise ValueError("legacy evaluation_set must be a list")
+        raise ValueError("legacy evaluation_set은 list 형식이어야 합니다")
 
     queries: list[EvalQuery] = []
     qrels: list[QrelRecord] = []
@@ -189,6 +189,6 @@ def _iter_jsonl(path: Path) -> Iterable[dict[str, Any]]:
                 continue
             row = json.loads(line)
             if not isinstance(row, dict):
-                raise ValueError(f"Expected object in {path} at line {line_number}")
+                raise ValueError(f"{path} {line_number}번째 줄은 JSON object여야 합니다")
             yield row
 

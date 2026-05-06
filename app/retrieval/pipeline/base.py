@@ -1,4 +1,4 @@
-"""Base contracts for retrieval evaluation pipelines."""
+"""검색 평가 파이프라인의 기본 계약."""
 
 from __future__ import annotations
 

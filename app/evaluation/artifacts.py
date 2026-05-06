@@ -1,4 +1,4 @@
-"""Artifact writers for retrieval evaluation runs."""
+"""검색 평가 실행 산출물 저장 유틸리티."""
 
 from __future__ import annotations
 

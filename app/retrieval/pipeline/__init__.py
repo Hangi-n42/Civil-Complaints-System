@@ -1,2 +1,2 @@
-"""Composable retrieval pipeline stages."""
+"""조합 가능한 검색 파이프라인 단계."""
 

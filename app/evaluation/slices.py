@@ -1,4 +1,4 @@
-"""Slice aggregation for retrieval evaluation metrics."""
+"""검색 평가 메트릭의 slice별 집계."""
 
 from __future__ import annotations
 

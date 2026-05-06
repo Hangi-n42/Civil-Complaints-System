@@ -1,2 +1,2 @@
-"""Built-in retrieval pipeline stages."""
+"""기본 제공 검색 파이프라인 단계."""
 

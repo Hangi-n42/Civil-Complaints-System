@@ -1,4 +1,4 @@
-"""Metric calculation for retrieval runs using ir_measures."""
+"""ir_measures 기반 검색 평가 메트릭 계산."""
 
 from __future__ import annotations
 

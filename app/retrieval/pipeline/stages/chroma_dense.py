@@ -1,4 +1,4 @@
-"""Chroma dense retrieval stage used by the baseline evaluation pipeline."""
+"""기준선 평가 파이프라인에서 사용하는 Chroma dense 검색 단계."""
 
 from __future__ import annotations
 

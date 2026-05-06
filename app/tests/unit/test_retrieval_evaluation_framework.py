@@ -13,7 +13,7 @@ from app.retrieval.pipeline.runner import load_pipeline_spec
 from app.retrieval.pipeline.stages.chroma_dense import ChromaDenseStage
 
 
-def test_load_eval_dataset_reads_beir_compatible_files(tmp_path):
+def test_beir_compatible_eval_dataset_loader(tmp_path):
     eval_dir = tmp_path / "eval"
     eval_dir.mkdir()
     (eval_dir / "corpus.jsonl").write_text(
@@ -35,7 +35,7 @@ def test_load_eval_dataset_reads_beir_compatible_files(tmp_path):
     assert dataset.eval_set_hash.startswith("sha256:")
 
 
-def test_evaluate_run_uses_ir_measures_for_core_metrics():
+def test_ir_measures_based_core_metrics():
     qrels = [QrelRecord("Q1", "D1", 3), QrelRecord("Q1", "D3", 2), QrelRecord("Q1", "D5", 1)]
     run = [
         RunRecord("Q1", "D1", 5.0, 1),
@@ -52,7 +52,7 @@ def test_evaluate_run_uses_ir_measures_for_core_metrics():
     assert "nDCG@5" in metrics
 
 
-def test_write_trec_run_creates_standard_rows(tmp_path):
+def test_trec_run_artifact_format(tmp_path):
     path = tmp_path / "run.trec"
 
     write_trec_run(path, [RunRecord("Q1", "D1", 2.5, 1)], run_name="test")
@@ -60,7 +60,7 @@ def test_write_trec_run_creates_standard_rows(tmp_path):
     assert path.read_text(encoding="utf-8").strip() == "Q1 Q0 D1 1 2.50000000 test"
 
 
-def test_load_pipeline_spec_hashes_declarative_config(tmp_path):
+def test_declarative_pipeline_spec_hash(tmp_path):
     spec_path = tmp_path / "pipeline.yaml"
     spec_path.write_text(
         """
@@ -85,7 +85,7 @@ final:
     assert spec.pipeline_hash.startswith("sha256:")
 
 
-def test_evaluate_slices_groups_by_query_metadata():
+def test_slice_metrics_are_grouped_by_query_metadata():
     queries = [
         _query("Q1", {"topic_type": "traffic", "complexity_level": "high"}),
         _query("Q2", {"topic_type": "welfare", "complexity_level": "low"}),
@@ -101,7 +101,7 @@ def test_evaluate_slices_groups_by_query_metadata():
 
 
 @pytest.mark.asyncio
-async def test_chroma_dense_stage_wraps_retrieval_service():
+async def test_chroma_dense_stage_uses_retrieval_service_adapter():
     service = _FakeRetrievalService()
     stage = ChromaDenseStage(name="dense_retriever", collection="civil_cases_v1", top_k=1, service=service)
     query = _query("Q1", {"topic_type": "traffic"})
