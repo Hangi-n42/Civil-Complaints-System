@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -164,6 +165,8 @@ def convert_aihub_source_dir(
     seen_docids: set[str] = set()
     scanned_files = 0
     used_files = 0
+    doc_records: dict[str, dict[str, Any]] = {}
+    pending_queries: list[tuple[QueryRow, str]] = []
 
     for path in files:
         scanned_files += 1
@@ -183,19 +186,27 @@ def convert_aihub_source_dir(
             docid = f"{source_id}__chunk-0"
             if docid not in seen_docids:
                 seen_docids.add(docid)
-                corpus.append(
-                    CorpusRow(
-                        _id=docid,
-                        title=str(row.get("consulting_category") or source_id),
-                        text=str(row.get("consulting_content") or "").strip(),
-                        metadata={
-                            "source_id": source_id,
-                            "source": str(row.get("source") or "aihub"),
-                            "consulting_date": str(row.get("consulting_date") or ""),
-                            "consulting_category": str(row.get("consulting_category") or ""),
-                        },
-                    )
+                category = str(row.get("consulting_category") or "")
+                text = str(row.get("consulting_content") or "").strip()
+                corpus_row = CorpusRow(
+                    _id=docid,
+                    title=category or source_id,
+                    text=text,
+                    metadata={
+                        "source_id": source_id,
+                        "source": str(row.get("source") or "aihub"),
+                        "consulting_date": str(row.get("consulting_date") or ""),
+                        "consulting_category": category,
+                        "topic_type": _normalize_topic(category),
+                    },
                 )
+                corpus.append(corpus_row)
+                doc_records[docid] = {
+                    "source_id": source_id,
+                    "topic_type": corpus_row.metadata["topic_type"],
+                    "category": category,
+                    "text_tokens": _tokenize(text),
+                }
 
             generated = _queries_from_instruction_rows(row, docid=docid)
             if not generated:
@@ -215,16 +226,20 @@ def convert_aihub_source_dir(
                             },
                         )
                     )
-                    qrels.append(QrelRow(qid=qid, docid=docid, relevance=2))
+                    pending_queries.append((queries[-1], docid))
                     local_has_query = True
             else:
-                for query_row, qrel_row in generated:
+                for query_row, _ in generated:
                     queries.append(query_row)
-                    qrels.append(qrel_row)
+                    pending_queries.append((query_row, docid))
                 local_has_query = True
 
         if local_has_query:
             used_files += 1
+
+    qrels = _build_similar_case_qrels(pending_queries, doc_records)
+    valid_qids = {row.qid for row in qrels}
+    queries = [row for row in queries if row._id in valid_qids]
 
     unique_qrels = sorted(
         {(row.qid, row.docid): row for row in qrels}.values(),
@@ -334,8 +349,7 @@ def _queries_from_instruction_rows(row: dict[str, Any], *, docid: str) -> list[t
                     "tuning_type": tuning_type,
                 },
             )
-            relevance = 3 if tuning_type in {"요약", "질의응답", "qa", "Q&A"} else 2
-            qrel = QrelRow(qid=qid, docid=docid, relevance=relevance)
+            qrel = QrelRow(qid=qid, docid=docid, relevance=0)
             results.append((query, qrel))
     return results
 
@@ -370,6 +384,62 @@ def _complexity_from_instruction(item: dict[str, Any]) -> str:
             return "medium"
         return "low"
     return "medium"
+
+
+def _build_similar_case_qrels(
+    pending_queries: list[tuple[QueryRow, str]],
+    doc_records: dict[str, dict[str, Any]],
+) -> list[QrelRow]:
+    qrels: list[QrelRow] = []
+    by_topic: dict[str, list[str]] = {}
+    for docid, info in doc_records.items():
+        topic = str(info.get("topic_type") or "general")
+        by_topic.setdefault(topic, []).append(docid)
+
+    for query_row, origin_docid in pending_queries:
+        query_tokens = _tokenize(query_row.text)
+        if not query_tokens:
+            continue
+        topic = str(query_row.metadata.get("topic_type") or "general")
+        candidate_ids = by_topic.get(topic, [])
+        scored: list[tuple[str, float]] = []
+        for docid in candidate_ids:
+            if docid == origin_docid:
+                continue
+            tokens = doc_records[docid]["text_tokens"]
+            score = _jaccard(query_tokens, tokens)
+            if score <= 0:
+                continue
+            scored.append((docid, score))
+        scored.sort(key=lambda item: item[1], reverse=True)
+        if not scored:
+            continue
+        top_candidates = scored[:3]
+        for docid, score in top_candidates:
+            qrels.append(QrelRow(qid=query_row._id, docid=docid, relevance=_score_to_relevance(score)))
+    return qrels
+
+
+def _tokenize(text: str) -> set[str]:
+    tokens = re.findall(r"[A-Za-z0-9가-힣_]+", str(text or "").lower())
+    return {token for token in tokens if len(token) >= 2}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    union = a | b
+    if not union:
+        return 0.0
+    return len(a & b) / len(union)
+
+
+def _score_to_relevance(score: float) -> int:
+    if score >= 0.18:
+        return 3
+    if score >= 0.1:
+        return 2
+    return 1
 
 
 def _fallback_relevance(ctx: dict[str, Any]) -> int:

@@ -45,4 +45,3 @@
 - BM25 + dense + hybrid 결과를 풀링한 qrels 보강
 - 사람 검토 로그를 표준 JSONL 포맷으로 저장
 - 라벨 불일치 케이스에 대한 adjudication 규칙 문서화
-

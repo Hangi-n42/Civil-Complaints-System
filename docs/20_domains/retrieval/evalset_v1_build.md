@@ -53,4 +53,5 @@ python scripts/evaluate_retrieval.py \
 - 팀 공유가 필요하면 검토 완료된 스냅샷만 별도 공유 저장소나 아티팩트 스토리지에 업로드한다.
 - relevance 기준 변경 시 `manifest.json`의 guideline도 함께 갱신한다.
 - 원천 데이터가 큰 경우 `--max-files`로 샘플링해 빠르게 초기 smoke 셋을 만든 뒤, 검토 완료 후 전체 생성으로 확장하는 것을 권장한다.
+- v1 생성기는 `qid(현재 민원)`에 대해 **동일 문서(self docid)를 qrels에서 제외**하고, 같은 주제군 내 유사 과거 민원을 qrels로 구성한다.
 
