@@ -1,4 +1,4 @@
-"""Declarative retrieval pipeline runner."""
+"""선언적 검색 파이프라인 실행기."""
 
 from __future__ import annotations
 
@@ -101,5 +101,5 @@ def _build_stage(stage_spec: dict[str, Any]):
             use_adaptive_router=bool(params.get("use_adaptive_router") or params.get("top_k_from_router")),
         )
 
-    raise ValueError(f"Unsupported retrieval stage type: {stage_type}")
+    raise ValueError(f"지원하지 않는 검색 단계 유형입니다: {stage_type}")
 

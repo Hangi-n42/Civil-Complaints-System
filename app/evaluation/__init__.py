@@ -1,2 +1,2 @@
-"""Shared retrieval evaluation utilities."""
+"""검색 평가 공통 유틸리티."""
 

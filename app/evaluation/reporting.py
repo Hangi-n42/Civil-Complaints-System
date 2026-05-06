@@ -1,4 +1,4 @@
-"""Run summary helpers for retrieval evaluation."""
+"""검색 평가 실행 요약 리포트 유틸리티."""
 
 from __future__ import annotations
 
@@ -27,9 +27,15 @@ def build_gate(metrics: dict[str, float], latency_ms: dict[str, float]) -> dict[
     ndcg_10 = metrics.get("nDCG@10", metrics.get("nDCG@10(rel=2)", 0.0))
     latency_p95 = latency_ms.get("p95", 0.0)
     checks = [
-        {"name": "recall_at_10_present", "passed": recall_10 >= 0.0, "value": recall_10},
-        {"name": "ndcg_at_10_present", "passed": ndcg_10 >= 0.0, "value": ndcg_10},
-        {"name": "latency_p95_budget", "passed": latency_p95 <= 12000, "value": latency_p95, "threshold": 12000},
+        {"name": "recall_at_10_present", "label": "Recall@10 산출 여부", "passed": recall_10 >= 0.0, "value": recall_10},
+        {"name": "ndcg_at_10_present", "label": "nDCG@10 산출 여부", "passed": ndcg_10 >= 0.0, "value": ndcg_10},
+        {
+            "name": "latency_p95_budget",
+            "label": "p95 지연 시간 예산 준수 여부",
+            "passed": latency_p95 <= 12000,
+            "value": latency_p95,
+            "threshold": 12000,
+        },
     ]
     return {"checks": checks, "all_passed": all(bool(check["passed"]) for check in checks)}
 

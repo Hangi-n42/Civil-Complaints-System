@@ -1,4 +1,4 @@
-"""System comparison helpers backed by ranx."""
+"""ranx 기반 검색 시스템 비교 유틸리티."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ def compare_runs(
     runs: dict[str, list[RunRecord]],
     metrics: list[str] | None = None,
 ):
-    """Return a ranx comparison report for named runs."""
+    """이름이 지정된 실행 결과들에 대한 ranx 비교 리포트를 반환한다."""
     from ranx import Qrels, Run, compare
 
     qrels_payload: dict[str, dict[str, int]] = {}

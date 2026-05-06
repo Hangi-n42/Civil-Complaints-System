@@ -18,10 +18,10 @@ from app.retrieval.pipeline.runner import RetrievalPipelineRunner, load_pipeline
 def parse_args():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Unified retrieval evaluation runner")
-    parser.add_argument("--eval-dir", type=str, help="Directory with corpus.jsonl, queries.jsonl, qrels.tsv")
-    parser.add_argument("--legacy-eval-set", type=str, help="Legacy evaluation_set.json path")
-    parser.add_argument("--pipeline", type=str, required=True, help="Retrieval pipeline YAML spec")
+    parser = argparse.ArgumentParser(description="통합 검색 평가 실행기")
+    parser.add_argument("--eval-dir", type=str, help="corpus.jsonl, queries.jsonl, qrels.tsv가 있는 평가셋 디렉터리")
+    parser.add_argument("--legacy-eval-set", type=str, help="기존 evaluation_set.json 경로")
+    parser.add_argument("--pipeline", type=str, required=True, help="검색 파이프라인 YAML 명세 경로")
     parser.add_argument("--output-dir", type=str, default="reports/retrieval")
     parser.add_argument("--run-id", type=str, default="")
     parser.add_argument("--issue-number", type=str, default="198")
@@ -32,7 +32,7 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     if not args.eval_dir and not args.legacy_eval_set:
-        raise SystemExit("Either --eval-dir or --legacy-eval-set is required")
+        raise SystemExit("--eval-dir 또는 --legacy-eval-set 중 하나는 반드시 필요합니다")
 
     dataset = (
         load_eval_dataset(args.eval_dir)
@@ -102,7 +102,7 @@ def main() -> int:
 
     print(json.dumps(summary["metrics"], ensure_ascii=False, indent=2))
     print(f"[OK] run_id={run_id}")
-    print(f"[OK] report={report_path}")
+    print(f"[OK] 리포트={report_path}")
     return 0 if gate["all_passed"] else 1
 
 
