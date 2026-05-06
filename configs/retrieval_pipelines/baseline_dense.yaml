@@ -1,0 +1,14 @@
+pipeline_id: baseline_dense_adaptive
+seed: 42
+
+stages:
+  - name: dense_retriever
+    type: chroma_dense
+    params:
+      collection: civil_cases_v1
+      top_k: 10
+      use_adaptive_router: true
+
+final:
+  take_top_k: 10
+
