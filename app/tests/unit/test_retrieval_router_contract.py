@@ -116,6 +116,7 @@ def test_search_response_is_wrapped(monkeypatch):
         "strategy_id",
         "route_key",
         "topic_type",
+        "complexity_level",
         "retrieval_policy",
         "matched_segments",
     }

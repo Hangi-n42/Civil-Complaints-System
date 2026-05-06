@@ -1,12 +1,17 @@
 {
   "permissions": {
     "allow": [
+<<<<<<< HEAD
       "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\AI-Civil-Affairs-Systems\\\\app\" -Recurse -Filter \"*.py\")",
       "Bash(Select-Object FullName)",
       "Bash(Sort-Object FullName)",
       "Bash(python -c \"from app.structuring.service import StructuringService, get_structuring_service; print\\('OK'\\)\")",
       "Bash(python -m pytest app/tests/unit/test_be1_week2_tasks.py -v --tb=short -k \"not structure_reads_raw\")",
       "Bash(python -m pytest app/tests/unit/test_be1_week2_tasks.py::test_structure_reads_raw_text_when_text_missing -v --tb=short)"
+=======
+      "Bash(ls \"C:/Users/alsrj/.claude/projects/c--Projects-AI-Civil-Affairs-Systems/memory/\" 2>/dev/null || echo \"no memory dir\")",
+      "Read(//c/Users/alsrj/.claude/projects/c--Projects-AI-Civil-Affairs-Systems/memory/**)"
+>>>>>>> 571e1d9 (feat: 유사 민원 패널 응답 형식 규격화 및 정렬/중복 제거 구현 (#193, #191))
     ]
   }
 }
