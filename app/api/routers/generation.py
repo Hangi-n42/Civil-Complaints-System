@@ -518,7 +518,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     if contract_missing:
         return error_response(
             request_id=request_id,
-            error_code="VALIDATION_ERROR",
+            error_code="RESPONSE_SCHEMA_MISMATCH",
             message="/qa unified response contract validation failed",
             status_code=500,
             retryable=False,
