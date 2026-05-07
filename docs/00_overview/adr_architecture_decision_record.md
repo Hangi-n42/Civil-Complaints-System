@@ -2,7 +2,7 @@
 
 문서 버전: v2.1  
 작성일: 2026-03-26  
-최신화: 2026-04-10 (복잡도 기반 라우팅 전환 반영)
+최신화: 2026-05-07 (하이브리드 구조화 아키텍처 반영)
 
 ## 1. 문서 목적
 
@@ -289,6 +289,47 @@
 - 후속
   - PRD/WBS/MVP/specs/issues/manual을 동일 기준으로 동기화한다.
   - `/search`, `/qa` 계약에서 `routing_trace` 내 complexity 필드를 필수화한다.
+
+## ARD-015: 구조화 서비스 하이브리드 아키텍처 전환 (Rule NER + LLM 4요소 추출)
+
+- 상태: 승인(Active)
+- 날짜: 2026-05-07
+
+### 1) Context (도입 배경)
+
+- 기존 4요소(observation/result/request/context) 추출은 단어 점수 기반 휴리스틱(`_score_candidate`, `_pick_best`, `_split_segments` 등)으로 구현되어 있었다.
+- 민원 표현의 다양성을 수용하지 못하고, 키워드 룰이 비대해지면서 유지보수 비용이 높아졌다.
+- LOCATION NER이 하드코딩된 6개 지명(`서울`, `경기`, `안양` 등)에만 의존하여 커버리지가 낮았다.
+- Rule-based 4요소 추출과 Rule-based NER이 동일 클래스에 혼재해 역할 경계가 불분명했다.
+- Week8 기준 Ollama 인프라가 안정화되어 로컬 경량 LLM을 구조화에 활용할 여건이 마련되었다.
+
+### 2) Decision (결정 사항)
+
+- 구조화 파이프라인을 3단계 하이브리드 구조로 전환한다.
+  - **Stage 1 — Rule-based Entity Extractor**: 정규식·키워드로 확실하게 추출 가능한 객관적 명사(ADMIN_UNIT/TIME/FACILITY/HAZARD/LOCATION)만 담당. LOCATION은 기존 하드코딩 목록을 `동·읍·면·리·로·길` 패턴 기반으로 교체.
+  - **Stage 2 — LLM Semantic Extractor**: Ollama EXAONE 3.0 (7.8B-Instruct)로 4요소를 JSON 추출. `format="json"` + `FourElementsLLMOutput.model_validate()` 조합으로 Instructor 없이 출력 규격 강제. 파싱 실패 시 temperature 0.1→0.0 재시도 1회 후 빈 Fallback 반환.
+  - **Stage 3 — ResultMerger**: Stage 1/2 결과를 병합. LLM 텍스트를 원문에서 exact→partial→inferred 순서로 탐색해 evidence_span 결정. non-null 필드 비율(4/3/2/1/0)로 confidence(0.90/0.82/0.75/0.70/0.0) 산정.
+- `validate_schema()`에 `extraction_method` 파라미터를 추가한다. `"hybrid"`/`"llm"`/`"fallback"` 모드에서 span 범위 오류 및 텍스트 불일치를 error에서 warning으로 완화한다. `"rule"` 모드는 기존과 동일하게 엄격 검증을 유지한다.
+- 구조화 전용 Ollama 모델(`STRUCTURING_MODEL`, 기본값 `exaone3:7.8b-instruct`)을 QA 생성 모델(`OLLAMA_MODEL`)과 분리한다. `STRUCTURING_TIMEOUT`, `STRUCTURING_MAX_TEXT_LEN`도 독립 환경 변수로 제어한다.
+- 신규 파일: `app/structuring/schemas.py`, `app/structuring/llm_extractor.py`, `app/structuring/merger.py`.
+- `service.py`에서 4요소 추출 관련 메서드(`extract_four_elements`, `_split_segments`, `_sentence_candidates`, `_score_candidate`, `_pick_best`, `_score_to_confidence` 등) 전량 제거. 880줄 → 310줄.
+
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - 민원 표현 다양성 대응: LLM이 문맥을 이해해 휴리스틱으로 잡기 어려운 4요소를 추출한다.
+  - 유지보수성 향상: 키워드 룰 비대 문제 해소. 도메인 확장 시 프롬프트 수정만으로 대응 가능.
+  - 역할 분리 명확화: NER(Rule)과 의미 추출(LLM)의 경계가 파일 수준으로 분리된다.
+  - Ollama 미기동·타임아웃 시 빈 4요소 Fallback으로 파이프라인이 중단되지 않는다.
+  - `structured_by`/`extraction_meta` 필드로 추출 경로와 LLM 지연·span 품질을 추적 가능.
+- 한계/트레이드오프
+  - Ollama EXAONE 모델 추가 로딩으로 구조화 지연이 증가한다(~1~3초).
+  - LLM이 원문과 다른 텍스트를 반환할 경우 evidence_span이 `inferred`가 되어 span 정확도가 낮아진다.
+  - Fallback 시 4요소가 모두 비어 있어 retrieval 인덱스의 chunk_text 품질이 저하될 수 있다.
+- 후속
+  - `span_source="inferred"` 비율을 운영 지표로 수집해 프롬프트 개선 여부를 판단한다.
+  - Fallback 발생률이 높을 경우 ConnectError에도 재시도 또는 대기 로직 도입을 검토한다.
+  - `result.status="insufficient"` 처리 통합 테스트를 추가한다.
 
 ## 4. 후속 액션
 

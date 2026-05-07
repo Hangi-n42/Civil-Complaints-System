@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\AI-Civil-Affairs-Systems\\\\app\" -Recurse -Filter \"*.py\")",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(python -c \"from app.structuring.service import StructuringService, get_structuring_service; print\\('OK'\\)\")",
+      "Bash(python -m pytest app/tests/unit/test_be1_week2_tasks.py -v --tb=short -k \"not structure_reads_raw\")",
+      "Bash(python -m pytest app/tests/unit/test_be1_week2_tasks.py::test_structure_reads_raw_text_when_text_missing -v --tb=short)"
+    ]
+  }
+}
