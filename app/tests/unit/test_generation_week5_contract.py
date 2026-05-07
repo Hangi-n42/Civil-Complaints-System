@@ -8,6 +8,7 @@ from app.api.main import app
 class _StubGenerationService:
     async def generate_qa(self, query, context, routing_trace=None):
         return {
+            # 내부 generation 결과(모델/파서 산출)는 API unified contract로 그대로 노출되면 안 된다.
             "answer": "요청하신 민원 처리 절차를 안내드립니다.",
             "citations": [
                 {
@@ -19,6 +20,8 @@ class _StubGenerationService:
                 }
             ],
             "limitations": "실제 처리 기간은 지자체 상황에 따라 달라질 수 있습니다.",
+            "confidence": 0.42,
+            "question": "임대주택 보수 지연 관련 민원입니다.",
             "model": "stub-model",
         }
 
@@ -152,6 +155,9 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert isinstance(data["answer"], str)
     assert isinstance(data["citations"], list)
     assert isinstance(data["limitations"], list)
+    assert "model" not in data
+    assert "confidence" not in data
+    assert "question" not in data
     assert set(data["latency_ms"].keys()) == {"analyzer", "router", "retrieval", "generation"}
     assert set(data["quality_signals"].keys()) == {
         "citation_coverage",

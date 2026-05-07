@@ -586,7 +586,9 @@ class GenerationService:
             parsed: Dict[str, Any] = {}
             last_parse_error: GenerationError | None = None
             retry_steps = [
-                {"stage": "default_only", "mode": "default", "temperature": 0.2},
+                {"stage": "default", "mode": "default", "temperature": 0.2},
+                {"stage": "force_json", "mode": "force_json", "temperature": 0.0},
+                {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
 
@@ -617,10 +619,11 @@ class GenerationService:
                             if not str(getattr(relaxed_error, "code", "")).startswith("PARSE_"):
                                 raise
                             self.logger.warning(
-                                "완화 파싱도 실패하여 fast fallback 사용: %s",
+                                "완화 파싱도 실패하여 재요청 단계로 전환: %s",
                                 str(relaxed_error),
                             )
-                            parsed = self._build_fast_fallback_from_context(context)
+                            last_parse_error = relaxed_error
+                            raise relaxed_error
                     break
                 except GenerationError as e:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
@@ -640,20 +643,8 @@ class GenerationService:
                     )
 
             if not parsed:
-                self.logger.warning("QA JSON 파싱 재시도 소진")
-                raise GenerationError(
-                    "모델 응답을 JSON으로 파싱하지 못했습니다.",
-                    code="PARSE_RETRY_EXHAUSTED",
-                    retryable=False,
-                    details={
-                        "retry_count": len(retry_steps),
-                        "stage": "decode",
-                        "last_error_code": (
-                            last_parse_error.code if last_parse_error else "PARSE_JSON_DECODE_ERROR"
-                        ),
-                        "attempts": retry_logs,
-                    },
-                )
+                self.logger.warning("QA JSON 파싱 재시도 소진: fast fallback 사용")
+                parsed = self._build_fast_fallback_from_context(context)
 
             citations = parsed.get("citations") or await self.build_citations("", context)
 

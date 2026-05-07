@@ -59,7 +59,9 @@ class _E2EStubGenerationService:
                     "relevance_score": 0.91,
                 }
             ],
-            "limitations": ["현장 확인 전 최종 확정은 어렵습니다."],
+            # 내부 generation 결과는 모델/파서 변형에 따라 string 또는 list가 올 수 있다.
+            # /api/v1/qa unified payload는 normalize_response를 통해 항상 list로 강제한다.
+            "limitations": "현장 확인 전 최종 확정은 어렵습니다.",
             "structured_output": {
                 "summary": f"{query[:40]} 관련 민원 요약",
                 "action_items": ["담당 부서 검토", "처리 일정 회신"],
@@ -161,6 +163,10 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
         assert qa_data["strategy_id"] == search_data["strategy_id"]
         assert qa_data["route_key"] == search_data["route_key"]
         assert isinstance(qa_data["routing_trace"], dict)
+        # 스펙 경계: 내부 generation 결과의 필드는 /qa unified contract에 노출되지 않는다.
+        assert "confidence" not in qa_data
+        assert "model" not in qa_data
+        assert "question" not in qa_data
         assert set(qa_data["structured_output"].keys()) == {
             "summary",
             "action_items",

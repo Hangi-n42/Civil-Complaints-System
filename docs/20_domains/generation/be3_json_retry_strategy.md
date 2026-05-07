@@ -213,6 +213,19 @@
 - error_code
 - recoverable
 - prompt_mode(base/repair/strict/compact)
+
+Week6 구현 기준 prompt_mode:
+
+- `default`: 기본 프롬프트(세그먼트/structured_output 포함)
+- `force_json`: **JSON 스키마(required 키) 준수**를 최우선으로 강제(설명/코드블록 완전 금지)
+- `compact`: 컨텍스트를 축소하고(상위 2개) 스니펫/출력 길이를 줄여 **파싱 성공률**을 우선
+
+권장 재시도 순서(GenerationService):
+
+1) `default`
+2) `force_json`
+3) `compact`
+4) 전부 실패 시 `fast fallback`(컨텍스트 기반 최소 답변, limitations에 "폴백" 표기)
 - context_size
 - top_k
 - latency_ms

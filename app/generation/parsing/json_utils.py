@@ -53,7 +53,9 @@ def parse_qa_json_response(text: str) -> Dict[str, Any]:
         json_str = extract_json_string(text)
         result = json.loads(json_str)
 
-        required = ["answer", "citations", "confidence", "limitations"]
+        # NOTE: confidence는 모델/프롬프트 변형에 따라 누락될 수 있어 optional로 취급한다.
+        #       (기본값 0.5로 정규화)
+        required = ["answer", "citations", "limitations"]
         missing = [field for field in required if field not in result]
         if missing:
             raise GenerationError(
@@ -71,7 +73,14 @@ def parse_qa_json_response(text: str) -> Dict[str, Any]:
                 details={"stage": "schema", "field": "citations"},
             )
 
-        limitations = str(result.get("limitations", "")).strip()
+        raw_limitations = result.get("limitations")
+        limitations = ""
+        if isinstance(raw_limitations, list):
+            parts = [str(item).strip() for item in raw_limitations if str(item).strip()]
+            limitations = " / ".join(parts)
+        else:
+            limitations = str(raw_limitations or "").strip()
+
         if not limitations:
             raise GenerationError(
                 "limitations 필드는 빈 문자열일 수 없습니다.",
@@ -99,7 +108,7 @@ def parse_qa_json_response(text: str) -> Dict[str, Any]:
             normalized_citations.append(citation)
 
         result["citations"] = normalized_citations
-        result["confidence"] = normalize_confidence(result.get("confidence"))
+        result["confidence"] = normalize_confidence(result.get("confidence", 0.5))
         result["limitations"] = limitations
 
         return result
