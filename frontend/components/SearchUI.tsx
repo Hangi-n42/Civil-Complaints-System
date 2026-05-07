@@ -10,7 +10,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
   };
   
   return (
-    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide ${styles[status] || styles['미처리']}`}>
+    <span className={`inline-flex whitespace-nowrap items-center px-2 py-0 rounded-full text-[10px] font-black tracking-wide leading-tight h-5 ${styles[status] || styles['미처리']}`}>
       {status || '미처리'}
     </span>
   );
@@ -25,7 +25,7 @@ export const PriorityBadge = ({ priority }: { priority: string }) => {
   };
   
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold ${styles[priority] || styles['보통']}`}>
+    <span className={`inline-flex items-center whitespace-nowrap px-2 py-0 rounded-md text-[10px] font-bold leading-tight h-5 ${styles[priority] || styles['보통']}`}>
       {priority || '보통'}
     </span>
   );

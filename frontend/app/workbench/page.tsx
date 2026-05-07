@@ -8,6 +8,8 @@ import {
   type RoutingHint,
   type RoutingTrace,
   type TopicType,
+  fetchUiCasesApi,
+  type AssignedCase,
   runQaApi,
   searchCasesApi,
   type QaResponseData,
@@ -17,16 +19,12 @@ import {
   loadPersistedRoutingInfo,
   loadLastDraft,
   saveDraftSnapshot,
-  loadDraftSnapshot,
   clearDraftSnapshot,
-  getStatusUxMessage,
-  type StatusUxType,
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
 const STATUS_OPTIONS = ["미처리", "검토중", "처리완료"] as const;
-const DEFAULT_CASE_LIST = mockAssignedCases as Array<any>;
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
@@ -38,7 +36,8 @@ function WorkbenchContent() {
   const searchParams = useSearchParams();
   const urlCaseId = searchParams.get("case_id");
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || DEFAULT_CASE_LIST[0]?.case_id || "");
+  const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || mockAssignedCases[0]?.case_id || "");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [searchRegion, setSearchRegion] = useState("전체");
@@ -57,12 +56,34 @@ function WorkbenchContent() {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [isRawCollapsed, setIsRawCollapsed] = useState(true);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchUiCasesApi()
+      .then((response) => {
+        if (!isMounted || response.error) {
+          return;
+        }
+
+        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
+          setCaseList(response.data.cases);
+        }
+      })
+      .catch(() => {
+        // keep the fallback mock list
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const selectedCase = useMemo(() => {
-    return DEFAULT_CASE_LIST.find((item) => item.case_id === selectedCaseId) || DEFAULT_CASE_LIST[0];
-  }, [selectedCaseId]);
+    return caseList.find((item) => item.case_id === selectedCaseId) || caseList[0];
+  }, [selectedCaseId, caseList]);
 
   const selectedIndex = useMemo(() => {
-    return DEFAULT_CASE_LIST.findIndex((item) => item.case_id === selectedCase.case_id);
+    return caseList.findIndex((item) => item.case_id === selectedCase.case_id);
   }, [selectedCase]);
 
   const caseContext = useMemo<WorkbenchCaseContext>(() => {
@@ -70,12 +91,28 @@ function WorkbenchContent() {
   }, [selectedCase]);
 
   const regionOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(DEFAULT_CASE_LIST.map((item) => item.region).filter(Boolean)))];
-  }, []);
+    return ["전체", ...Array.from(new Set(caseList.map((item) => item.region).filter(Boolean)))];
+  }, [caseList]);
 
   const categoryOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(DEFAULT_CASE_LIST.map((item) => item.category).filter(Boolean)))];
-  }, []);
+    return ["전체", ...Array.from(new Set(caseList.map((item) => item.category).filter(Boolean)))];
+  }, [caseList]);
+
+  useEffect(() => {
+    if (caseList.length === 0) {
+      return;
+    }
+
+    const selectedExists = caseList.some((item) => item.case_id === selectedCaseId);
+    if (selectedExists) {
+      return;
+    }
+
+    const nextSelectedId = urlCaseId && caseList.some((item) => item.case_id === urlCaseId) ? urlCaseId : caseList[0]?.case_id || "";
+    if (nextSelectedId && nextSelectedId !== selectedCaseId) {
+      setSelectedCaseId(nextSelectedId);
+    }
+  }, [caseList, selectedCaseId, urlCaseId]);
 
   useEffect(() => {
     try {
@@ -90,7 +127,7 @@ function WorkbenchContent() {
       }
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
-        setCaseStatuses(sanitizeCaseStatuses(parsed as Record<string, string>));
+        setCaseStatuses(sanitizeCaseStatuses(parsed as Record<string, string>, caseList.map((item) => item.case_id)));
       }
     } catch {
       setCaseStatuses({});
@@ -170,7 +207,7 @@ function WorkbenchContent() {
   }, [selectedCaseId, selectedCase]);
 
   function persistStatuses(nextStatuses: Record<string, string>) {
-    const sanitized = sanitizeCaseStatuses(nextStatuses);
+    const sanitized = sanitizeCaseStatuses(nextStatuses, caseList.map((item) => item.case_id));
     setCaseStatuses(sanitized);
     const serialized = JSON.stringify(sanitized);
     if (serialized.length > MAX_STATUS_STORAGE_BYTES) {
@@ -192,8 +229,8 @@ function WorkbenchContent() {
     const nextStatuses = { ...caseStatuses, [selectedCaseId]: newStatus };
     persistStatuses(nextStatuses);
 
-    if (newStatus === "처리완료" && selectedIndex >= 0) {
-      const nextCase = DEFAULT_CASE_LIST[selectedIndex + 1];
+    if ((newStatus === "처리완료" || newStatus === "검토중") && selectedIndex >= 0) {
+      const nextCase = caseList[selectedIndex + 1];
       if (nextCase) {
         navigateToCase(nextCase.case_id);
       }
@@ -232,7 +269,7 @@ function WorkbenchContent() {
 
     if (response.error) {
       setSearchStage("error");
-      setSearchError(response.error);
+      setSearchError(response.error.message);
       setRoutingTrace(null);
       setRoutingHint(null);
       setStrategyId(null);
@@ -257,8 +294,8 @@ function WorkbenchContent() {
         complaintId: selectedCase.case_id,
         query: searchBundle?.query || searchQuery || buildDefaultQuery(selectedCase),
         routingHint: routingHint || undefined,
-        useSearchResults: Boolean(searchBundle?.searchResults?.length),
-        searchResults: searchBundle?.searchResults || [],
+        useSearchResults: Boolean(searchBundle?.results?.length || searchBundle?.searchResults?.length),
+        searchResults: searchBundle?.results || searchBundle?.searchResults || [],
         filters: {
           region: searchRegion !== "전체" ? searchRegion : undefined,
           category: searchCategory !== "전체" ? searchCategory : undefined,
@@ -268,7 +305,7 @@ function WorkbenchContent() {
 
       if (response.error) {
         setDraftStage("error");
-        setDraftError(response.error);
+        setDraftError(response.error.message);
         return;
       }
 
@@ -286,7 +323,7 @@ function WorkbenchContent() {
   const structuredSummary = getCaseSummaryText(selectedCase) || "선택된 민원의 핵심 요약이 표시됩니다.";
   const summaryObservation = selectedCase.structured?.observation?.text || getCaseDisplayTitle(selectedCase, 80);
   const summaryAnalysis = selectedCase.structured?.result?.text || selectedCase.structured?.context?.text || structuredSummary || "분석 정보 없음";
-  const summaryRequest = selectedCase.structured?.request?.text || selectedCase.request || "처리 요청 확인 필요";
+  const summaryRequest = selectedCase.structured?.request?.text || selectedCase.summary || selectedCase.raw_text || "처리 요청 확인 필요";
 
   const responseSegments = draftResponse?.structuredOutput?.requestSegments || [];
   const fallbackSegments = buildFallbackSegments(selectedCase);
@@ -318,16 +355,15 @@ function WorkbenchContent() {
   }, [draftTextareaValue]);
 
   const currentStatus = caseStatuses[selectedCase.case_id] || selectedCase.status || "미처리";
-  const topDocs = searchBundle?.retrievedDocs || [];
+  const topDocs = searchBundle?.results || searchBundle?.retrievedDocs || [];
   const isPreSearchState = searchStage === "empty" && topDocs.length === 0;
-  const hasSearchResults = topDocs.length > 0;
 
   return (
     <div className="min-h-screen bg-[#eef2f7] text-slate-900">
       <div className="flex min-h-screen w-full">
         <AppSidebar activeMenu="workbench" />
 
-        <main className="min-w-0 flex h-screen flex-1 flex-col px-6 py-3 lg:px-12 xl:px-16">
+        <main className="min-w-0 flex min-h-screen flex-1 flex-col px-6 py-3 lg:px-12 xl:px-16">
           <div className="flex items-center justify-between pb-3 text-sm font-semibold text-slate-700">
             <div>
               <button type="button" onClick={() => router.push("/")} className="hover:text-slate-900">민원 목록으로</button>
@@ -337,8 +373,8 @@ function WorkbenchContent() {
             <div>상태: {currentStatus}</div>
           </div>
 
-          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.88fr)_minmax(720px,1.12fr)]">
-            <section className="flex h-full min-h-0 flex-col overflow-hidden border border-slate-300 bg-white">
+          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <section className="flex flex-col border border-slate-300 bg-white">
               <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
                 <div className="text-sm font-bold text-slate-900">민원 목록</div>
                 <button
@@ -350,7 +386,7 @@ function WorkbenchContent() {
                 </button>
               </div>
 
-              <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-2 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "2.05fr 0.95fr 0.75fr 0.55fr 0.55fr" }}>
+              <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-2 py-1.5 text-[11px] font-bold text-slate-700 items-center" style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gridAutoRows: "2.5rem", gap: "0.75rem" }}>
                 <div>제목</div>
                 <div>접수일</div>
                 <div>카테고리</div>
@@ -358,8 +394,8 @@ function WorkbenchContent() {
                 <div>상태</div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-auto">
-                {DEFAULT_CASE_LIST.map((item) => {
+              <div style={{ gridAutoRows: "2.5rem", gap: "0.75rem" }}>
+                {caseList.map((item) => {
                   const status = caseStatuses[item.case_id] || item.status || "미처리";
                   const selected = item.case_id === selectedCase.case_id;
                   return (
@@ -367,11 +403,11 @@ function WorkbenchContent() {
                       key={item.case_id}
                       type="button"
                       onClick={() => navigateToCase(item.case_id)}
-                      className={`grid w-full border-b border-slate-200 px-2 py-3 text-left text-[12px] transition ${selected ? "bg-white" : "bg-slate-100 hover:bg-slate-200"}`}
-                      style={{ gridTemplateColumns: "2.05fr 0.95fr 0.75fr 0.55fr 0.55fr" }}
+                      className={`grid w-full border-b border-slate-200 px-2 py-1.5 text-left text-[12px] transition items-center ${selected ? "bg-white" : "bg-slate-100 hover:bg-slate-200"}`}
+                      style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gap: "0.75rem" }}
                     >
-                      <div className="truncate pr-2 font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
-                      <div className="text-slate-600">{item.received_at || item.created_at || item.date || "-"}</div>
+                      <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
+                      <div className="text-slate-600">{item.received_at || "-"}</div>
                       <div className="text-slate-600">{item.category}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
@@ -443,7 +479,7 @@ function WorkbenchContent() {
                   <button
                     type="button"
                     onClick={handleSearch}
-                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                    className="inline-flex h-7 items-center whitespace-nowrap rounded border border-slate-300 bg-white px-2.5 text-[11px] font-semibold leading-none text-slate-700"
                   >
                     유사민원검색
                   </button>
@@ -478,17 +514,11 @@ function WorkbenchContent() {
 
                 {searchStage === "error" && <div className="px-3 py-2 text-xs text-red-600">{searchError}</div>}
 
-                <div
-                  className={hasSearchResults ? "overflow-auto" : "overflow-hidden"}
-                  style={{
-                    maxHeight: hasSearchResults ? "420px" : "320px",
-                    minHeight: hasSearchResults ? "280px" : "300px",
-                  }}
-                >
+                <div>
                   {searchStage === "loading" ? (
                     <div className="px-3 py-4 text-sm text-slate-500">유사 민원을 검색 중입니다...</div>
                   ) : topDocs.length === 0 ? (
-                    <div className={`flex items-center px-4 text-sm text-slate-500 ${isPreSearchState ? "min-h-72" : "min-h-64"}`}>
+                    <div className={`flex items-center px-4 py-4 text-sm text-slate-500 ${isPreSearchState ? "min-h-32" : "min-h-24"}`}>
                       유사 민원 결과가 표시됩니다.
                     </div>
                   ) : (
@@ -545,18 +575,18 @@ function WorkbenchContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 pb-2">
                 <button
                   type="button"
                   onClick={() => handleStatusChange("처리완료")}
-                  className="h-12 border-2 border-slate-900 bg-black text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
+                  className="inline-flex h-11 items-center justify-center whitespace-nowrap border-2 border-slate-900 bg-black px-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
                 >
                   처리완료
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStatusChange("검토중")}
-                  className="h-12 border-2 border-slate-900 bg-[#fafafa] text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50"
+                  className="inline-flex h-11 items-center justify-center whitespace-nowrap border-2 border-slate-900 bg-[#fafafa] px-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50"
                 >
                   검토중
                 </button>
@@ -737,12 +767,30 @@ function sanitizeTitle(value: string) {
 }
 
 function getAccordionDetail(doc: RetrievedDoc, index: number) {
+  const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
+  const complaint = doc.summary?.observation || doc.title;
+  const answer = doc.summary?.request || doc.snippet || "유사 민원 상세가 없습니다.";
+  const tracks = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
+    admin_unit: adminUnit,
+    complaint: complaint || doc.title,
+    answer: departmentAnswer || answer,
+    memoIndex,
+  }));
+
+  if (tracks.length > 0) {
+    return {
+      complaint: complaint || doc.title,
+      answer,
+      tracks,
+    };
+  }
+
   const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length];
   const matched = mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) || fallbackDetail;
 
   return {
-    complaint: matched?.complaint || doc.title,
-    answer: matched?.answer || doc.snippet || "유사 민원 상세가 없습니다.",
+    complaint: matched?.complaint || complaint || doc.title,
+    answer: matched?.answer || answer,
     tracks: matched?.department_tracks?.length
       ? matched.department_tracks
       : [
@@ -755,8 +803,8 @@ function getAccordionDetail(doc: RetrievedDoc, index: number) {
   };
 }
 
-function sanitizeCaseStatuses(value: Record<string, string>): Record<string, string> {
-  const allowedCaseIds = new Set(DEFAULT_CASE_LIST.map((item) => item.case_id));
+function sanitizeCaseStatuses(value: Record<string, string>, allowedCaseIdsInput: string[]): Record<string, string> {
+  const allowedCaseIds = new Set(allowedCaseIdsInput);
   const allowedStatuses = new Set<string>(STATUS_OPTIONS);
   const sanitized: Record<string, string> = {};
 

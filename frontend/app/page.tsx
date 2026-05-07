@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
+import { fetchUiCasesApi, type AssignedCase } from "@/lib/api";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
 const STATUS_OPTIONS = ["미처리", "검토중", "처리완료"] as const;
@@ -20,6 +21,29 @@ export default function QueuePage() {
   const [sortBy, setSortBy] = useState("우선순위");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
+  const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchUiCasesApi()
+      .then((response) => {
+        if (!isMounted || response.error) {
+          return;
+        }
+
+        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
+          setCaseList(response.data.cases);
+        }
+      })
+      .catch(() => {
+        // keep fallback mock data
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -47,7 +71,7 @@ export default function QueuePage() {
     let urgent = 0;
     let done = 0;
 
-    mockAssignedCases.forEach((c) => {
+    caseList.forEach((c) => {
       const status = getEffectiveStatus(c);
       if (status === "미처리" || status === "검토중") open++;
       if (c.priority === "매우급함" && (status === "미처리" || status === "검토중")) urgent++;
@@ -55,7 +79,7 @@ export default function QueuePage() {
     });
 
     return { open, urgent, done };
-  }, [caseStatuses]);
+  }, [caseStatuses, caseList]);
 
   // 필터 초기화 함수
   const resetFilters = () => {
@@ -67,7 +91,7 @@ export default function QueuePage() {
 
   // 필터 및 정렬 로직 적용
   const filteredCases = useMemo(() => {
-    let result = [...mockAssignedCases];
+    let result = [...caseList];
 
     // 상태 필터
     if (statusFilter !== "전체") {
@@ -102,7 +126,7 @@ export default function QueuePage() {
     }
 
     return result;
-  }, [priorityFilter, statusFilter, sortBy, searchKeyword]);
+  }, [priorityFilter, statusFilter, sortBy, searchKeyword, caseList, caseStatuses]);
 
   // 타이틀 생성 헬퍼
   const buildTitle = (c: any) => {
