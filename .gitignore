@@ -230,6 +230,8 @@ artifacts/**
 .vscode/
 .idea/
 .clinerules
+.claude/
+.tmp_issue_bodies/
 
 # OS clutter
 .DS_Store

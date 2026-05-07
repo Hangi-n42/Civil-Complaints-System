@@ -18,6 +18,7 @@ from app.api.schemas.retrieval import (
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
 from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.topic_analyzer import detect as detect_topic
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
 
@@ -119,22 +120,8 @@ def _log_routing_decision(
     )
 
 
-def _detect_topic_type(query: str) -> str:
-    query_lower = query.lower()
-    topic_keywords = {
-        "welfare": ["복지", "급여", "기초생활", "수급", "임대주택"],
-        "traffic": ["도로", "교통", "신호", "불법주정차", "가로등"],
-        "environment": ["환경", "소음", "악취", "미세먼지", "폐기물"],
-        "construction": ["공사", "건축", "안전", "보수", "시설"],
-    }
-    for topic, keywords in topic_keywords.items():
-        if any(keyword in query_lower for keyword in keywords):
-            return topic
-    return "general"
-
-
 def _build_routing_payload(query: str) -> dict:
-    topic_type = _detect_topic_type(query)
+    topic_type = detect_topic(query)
     analyzer_started = perf_counter()
     analyzer_output = build_analyzer_output(text=query, topic_type=topic_type)
     analyzer_latency_ms = int((perf_counter() - analyzer_started) * 1000)
