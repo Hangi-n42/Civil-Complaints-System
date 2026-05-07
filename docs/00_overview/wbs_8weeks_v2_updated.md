@@ -1,8 +1,8 @@
 # 8주 WBS 문서 (Adaptive RAG Demo Focus)
 
-문서 버전: v4.1  
+문서 버전: v4.2  
 작성일: 2026-03-11  
-최신화: 2026-04-10 (복잡도 기반 라우팅 기준 반영)
+최신화: 2026-05-07 (TopicAnalyzer 독립 클래스화 반영, 방향 B/C 로드맵 추가)
 
 ## 1. 문서 목적
 
@@ -125,8 +125,31 @@
 - E2E 시연 중 필요한 로그/추적 정보 최소 세트 유지.
 - 스키마 변경 금지, 버그 픽스만 허용.
 
+### BE1 — TopicAnalyzer 고도화 (방향 B: 임베딩 기반 fallback, P3)
+
+> 설계 근거: `docs/50_issues/week8/be1/topic.md` 방향 B
+
+- `TopicAnalyzer.analyze()` confidence < 0.40 케이스를 집계해 fallback 발동 임계 검증.
+- 각 토픽별 대표 민원 문장 20개 수집 → embedding → centroid 벡터 사전 계산.
+- `EmbeddingTopicClassifier` 구현: 앱 startup 시 centroid를 메모리에 캐시하고,
+  키워드 confidence < 0.40 쿼리에 한해 cosine 유사도 분류로 fallback.
+- `TopicAnalyzer.analyze()` 반환에 `fallback_used: bool` 필드 추가.
+- 임베딩 fallback 레이턴시를 `routing_trace`에 기록.
+
 ### 완료 기준
 - 데모 시나리오 3종이 동일 워크벤치 UX에서 연속 실행된다.
+- (BE1 추가) 임베딩 fallback 경로가 단위 테스트에서 동작 확인된다.
+
+---
+
+## (참고) TopicAnalyzer 중장기 로드맵
+
+| 단계 | 내용 | 목표 시기 |
+|---|---|---|
+| P0 | 독립 클래스 분리 + 키워드 가중치 + 기관명 필터 (방향 A) | Week8 완료 |
+| P1 | `confidence`, `is_ambiguous` → 라우터 보수적 파라미터 조정 연동 | Week8 |
+| P2 | 임베딩 토픽 센트로이드 fallback (방향 B) | Week8 (P3) |
+| P3 | LLM 기반 오프라인 레이블링으로 키워드 사전 자동 확장 (방향 C) | 프로젝트 종료 후 |
 
 ## 7. 주차 게이트 (기능 중심)
 

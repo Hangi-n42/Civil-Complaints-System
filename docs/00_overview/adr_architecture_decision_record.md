@@ -1,8 +1,8 @@
 # ARD (Architecture Decision Record)
 
-문서 버전: v2.1  
+문서 버전: v2.2  
 작성일: 2026-03-26  
-최신화: 2026-05-07 (하이브리드 구조화 아키텍처 반영)
+최신화: 2026-05-07 (하이브리드 구조화 아키텍처 반영, TopicAnalyzer 독립 클래스화 결정 추가)
 
 ## 1. 문서 목적
 
@@ -330,6 +330,49 @@
   - `span_source="inferred"` 비율을 운영 지표로 수집해 프롬프트 개선 여부를 판단한다.
   - Fallback 발생률이 높을 경우 ConnectError에도 재시도 또는 대기 로직 도입을 검토한다.
   - `result.status="insufficient"` 처리 통합 테스트를 추가한다.
+
+## ARD-016: TopicAnalyzer 독립 클래스화 및 점수 기반 분류 전환
+
+- 상태: 승인(Active)
+- 날짜: 2026-05-07
+
+### 1) Context (도입 배경)
+
+- 기존 `_detect_topic_type(query)` 함수는 `app/api/routers/retrieval.py:122`에 private 함수로 매몰되어 있어 단독 테스트·교체·고도화가 불가능했다.
+- 키워드 딕셔너리 순서(삽입 순서) 의존의 first-match 방식으로 인해 복합 맥락 쿼리에서 오분류가 발생했다.
+  - 예: "복지시설 건축 허가" → welfare 반환 (실제 의도: construction)
+- 카테고리당 키워드가 5개(총 25개)에 불과해 한국어 행정 민원 도메인 어휘를 극히 일부만 커버했다.
+- `ComplexityAnalyzer`와 달리 독립 클래스/파일이 없어 역할 경계가 불일치했다.
+- `topic_type`은 `retrieval_policy(admin_policy/field_ops/general)` 결정의 1차 입력이므로 오분류 시 검색 전략 전체가 틀어지는 고위험 컴포넌트였다.
+
+### 2) Decision (결정 사항)
+
+- `app/retrieval/analyzers/topic_analyzer.py`를 신규 파일로 생성하고 `TopicAnalyzer` 클래스를 독립 구현한다.
+- `_detect_topic_type` 함수를 `retrieval.py`에서 제거하고, `detect as detect_topic` import로 교체한다.
+- **점수 기반 집계**: first-match 대신 키워드별 가중치 합산 후 최고 점수 카테고리를 선택한다.
+- **키워드 대폭 확장**: 카테고리당 50개(총 200개+) 키워드로 확장. 고유성이 높은 키워드(예: `포트홀`, `터파기`, `긴급복지`)는 가중치 1.5, 공통 키워드(예: `도로`, `교통`)는 가중치 0.8~0.9.
+- **기관명 필터**: `환경부`, `교통공단`, `안전교육` 등 false-positive 유발 패턴을 분류 전 제거한다.
+- **신뢰도(confidence)**: 전체 점수 합 대비 top-1 점수 비율로 0~1 정규화. 0.40 미만 시 "general"로 강등.
+- **모호성(is_ambiguous)**: top-1과 top-2 점수 차이가 top-1의 15% 이하이면 `is_ambiguous=True`, `secondary_topic` 반환.
+- **띄어쓰기 정규화**: 키워드와 쿼리 모두 공백 제거 후 비교해 "기초 생활" / "기초생활" 동일 처리.
+- 모듈 레벨 `analyze(text)`, `detect(text)` 편의 함수를 제공해 `ComplexityAnalyzer`와 API 패턴을 통일한다.
+
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - `TopicAnalyzer`를 독립 단위 테스트로 검증 가능해진다.
+  - 키워드 확장·가중치 조정을 라우터 코드 변경 없이 수행할 수 있다.
+  - first-match 편향 제거로 복합 맥락 쿼리 분류 정확도 향상.
+  - 기관명 등 false-positive 오분류 차단.
+  - `confidence`, `is_ambiguous`를 라우터가 활용해 routing 파라미터를 보수적으로 조정할 수 있는 기반 마련.
+- 한계/트레이드오프
+  - 점수 기반 집계라도 키워드 기반의 본질적 한계(미등록 어휘, 신조어, 문맥 미감지)는 잔존한다.
+  - 가중치 초기값이 경험적으로 설정되어 있어 실제 민원 데이터로 검증·조정이 필요하다.
+- 후속
+  - confidence < 0.40 비율을 운영 지표로 수집해 임베딩 기반 fallback(방향 B) 도입 여부를 판단한다.
+  - `is_ambiguous` 케이스를 라우터에서 `top_k` 보수적 증가로 연동한다 (week8 P1).
+  - 부산시 행정 기관명 목록 기반으로 `_NEGATIVE_PATTERNS` 확장 (하드코딩 또는 크롤링, 추후 결정).
+  - 임베딩 토픽 센트로이드 fallback(`EmbeddingTopicClassifier`) 구현: week8 P2/P3 (WBS 방향 B 참조).
 
 ## 4. 후속 액션
 
