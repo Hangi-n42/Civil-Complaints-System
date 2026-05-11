@@ -41,6 +41,25 @@ def test_parse_qa_json_response_raises_on_missing_field():
     assert exc.value.code == "PARSE_SCHEMA_MISMATCH"
 
 
+def test_parse_qa_json_response_allows_missing_confidence_and_defaults():
+    raw = '{"answer":"x","citations":[],"limitations":"범위 제한"}'
+
+    parsed = parse_qa_json_response(raw)
+
+    assert parsed["answer"] == "x"
+    assert isinstance(parsed["confidence"], float)
+    assert 0.0 <= parsed["confidence"] <= 1.0
+    assert parsed["limitations"] == "범위 제한"
+
+
+def test_parse_qa_json_response_normalizes_limitations_list():
+    raw = '{"answer":"x","citations":[],"limitations":["현장 확인 필요","자료 부족"]}'
+
+    parsed = parse_qa_json_response(raw)
+
+    assert parsed["limitations"] == "현장 확인 필요 / 자료 부족"
+
+
 def test_normalize_citations_and_tokens():
     context = [
         {

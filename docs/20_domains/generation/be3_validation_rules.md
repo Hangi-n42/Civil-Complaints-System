@@ -17,6 +17,12 @@
 
 ## 2. 적용 범위
 
+⚠️ 참고(Week6+):
+
+- 본 문서는 v0.2(Week1~초기) 기준 메모로, **Week6 unified(`/api/v1/qa`) 응답 계약과 일치하지 않을 수 있다.**
+- Week6 `/qa`의 단일 기준은 `docs/60_specs/api_interface_spec.md`의 `/qa Response Schema (Success)`이다.
+- 특히 **`confidence`는 Week6 `/qa data` 계약 필드가 아니다**(내부 generation/품질 판단 용도로만 존재할 수 있음).
+
 이번 문서에서 우선 검증하는 대상은 아래 3종이다.
 
 - StructuredCivilCase
@@ -34,7 +40,7 @@
 - confidence 범위 위반
 - evidence_span 형식 오류
 - 허용되지 않은 entity label
-- QA 성공 응답의 request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation 누락
+- QA 성공 응답(legacy)의 request_id, timestamp, answer, citations, confidence, limitations, meta, qa_validation 누락
 - citation의 ref_id, chunk_id, case_id, snippet 누락
 
 ### P1. warning으로 기록하되 처리 계속 가능한 항목
@@ -196,7 +202,10 @@ error 규칙:
 
 ## 7. QAResponse 검증 규칙
 
-본 절의 QAResponse는 `success=true`인 QA API 응답 본문을 기준으로 한다.
+본 절의 QAResponse는 v0.2 기준(초기/legacy)의 `success=true`인 QA API 응답 본문을 기준으로 한다.
+
+Week6+의 `/api/v1/qa`는 응답 래퍼(`success/request_id/timestamp/data`) + unified `data` 스키마를 사용하며,
+필수 필드/타입은 `docs/60_specs/api_interface_spec.md`를 기준으로 검증한다.
 
 ### 7.1 루트 필드
 

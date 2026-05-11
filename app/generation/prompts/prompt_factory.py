@@ -42,6 +42,7 @@ class PromptFactory:
         complexity_guide = cls.COMPLEXITY_GUIDANCE.get(complexity_level, cls.COMPLEXITY_GUIDANCE["medium"])
         prompt_mode = str(routing_trace.get("prompt_mode") or "default").lower()
         is_compact = prompt_mode == "compact"
+        is_force_json = prompt_mode == "force_json"
 
         segment_guide = ""
         if request_segments:
@@ -68,26 +69,113 @@ class PromptFactory:
 
         if is_compact:
             instruction_block = (
-                "설명/코드블록/주석 금지.\n"
+                "설명/주석/마크다운/코드블록(``` 포함) 금지.\n"
+                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
+                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
+                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
                 "answer 형식: 1문장 요약 + 2개 조치 + 1개 유의사항.\n"
                 "structured_output.summary 필수, action_items 2개 이상 필수.\n"
-                "citations snippet은 answer와 직접 연결되는 근거만 사용.\n"
+                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
+                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
+                "citations snippet은 answer와 직접 연결되는 근거만 사용(컨텍스트 snippet에서 발췌).\n"
+                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
+            )
+        elif is_force_json:
+            instruction_block = (
+                "[force_json 모드] JSON만 강제합니다.\n"
+                "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
+                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
+                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
+                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
+                "아래 JSON Schema의 required 키를 절대 누락하지 마세요.\n"
+                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
+                "citations snippet은 컨텍스트 snippet에서 그대로 발췌(빈 문자열 금지).\n"
+                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
+                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
             )
         else:
             instruction_block = (
-                "설명/코드블록/주석은 절대 출력하지 마세요.\n"
+                "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
+                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
+                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
+                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
                 "answer 형식: 1문장 요약 + 2개 조치 + 1개 유의사항.\n"
                 "빈 문자열, 템플릿 문구, 근거 반복은 금지합니다.\n"
                 "structured_output.summary는 반드시 채우고 action_items는 2개 이상 작성하세요.\n"
                 "세그먼트가 있으면 각 세그먼트마다 1개 이상 action_items를 직접 대응시키세요.\n"
-                "citations snippet은 answer와 직접 연결되는 근거만 사용하세요.\n"
+                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
+                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
+                "citations snippet은 answer와 직접 연결되는 근거만 사용(컨텍스트 snippet에서 발췌).\n"
+                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
             )
+
+        json_schema = (
+            "출력 JSON 스키마(JSON Schema Draft 2020-12):\n"
+            "{"
+            "\"$schema\":\"https://json-schema.org/draft/2020-12/schema\","
+            "\"type\":\"object\","
+            "\"additionalProperties\":false,"
+            "\"required\":[\"answer\",\"citations\",\"limitations\",\"structured_output\"],"
+            "\"properties\":{"
+            "\"answer\":{\"type\":\"string\",\"minLength\":1},"
+            "\"citations\":{"
+            "\"type\":\"array\",\"minItems\":1,\"maxItems\":3,"
+            "\"items\":{"
+            "\"type\":\"object\",\"additionalProperties\":false,"
+            "\"required\":[\"chunk_id\",\"case_id\",\"snippet\",\"relevance_score\"],"
+            "\"properties\":{"
+            "\"chunk_id\":{\"type\":\"string\",\"minLength\":1},"
+            "\"case_id\":{\"type\":\"string\",\"minLength\":1},"
+            "\"doc_id\":{\"type\":\"string\"},"
+            "\"snippet\":{\"type\":\"string\",\"minLength\":1},"
+            "\"relevance_score\":{\"type\":\"number\",\"minimum\":0,\"maximum\":1}"
+            "}"
+            "}"
+            "},"
+            "\"limitations\":{"
+            "\"oneOf\":["
+            "{\"type\":\"string\",\"minLength\":1},"
+            "{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\",\"minLength\":1}}"
+            "]"
+            "},"
+            "\"structured_output\":{"
+            "\"type\":\"object\",\"additionalProperties\":false,"
+            "\"required\":[\"summary\",\"action_items\",\"request_segments\"],"
+            "\"properties\":{"
+            "\"summary\":{\"type\":\"string\",\"minLength\":1},"
+            "\"action_items\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\",\"minLength\":1}},"
+            "\"request_segments\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}"
+            "}"
+            "}"
+            "}"
+            "}"
+        )
+
+        example_json = (
+            "출력 예시(JSON):\n"
+            "{"
+            "\"answer\":\"요약 1문장. 조치 1. 조치 2. 유의사항 1.\","
+            "\"citations\":[{"
+            "\"chunk_id\":\"CASE-1__chunk-0\","
+            "\"case_id\":\"CASE-1\","
+            "\"doc_id\":\"DOC-001\","
+            "\"snippet\":\"관리비 이의제기 처리 절차는 접수 후 담당 부서에서 검토합니다.\","
+            "\"relevance_score\":0.9"
+            "}],"
+            "\"limitations\":[\"현장 확인이 필요할 수 있습니다.\"],"
+            "\"structured_output\":{"
+            "\"summary\":\"핵심 요약\","
+            "\"action_items\":[\"조치 1\",\"조치 2\"],"
+            "\"request_segments\":[\"세그먼트 1\"]"
+            "}"
+            "}\n"
+        )
 
         return (
             "검색 기반 QA입니다. 오직 단일 JSON 객체만 출력하세요.\n"
-            "스키마: "
-            "{\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],"
-            "\"limitations\":\"string 또는 string[]\",\"structured_output\":{\"summary\":\"string\",\"action_items\":[\"string\"],\"request_segments\":[\"string\"]}}\n"
+            + json_schema
+            + "\n"
+            + example_json
             + instruction_block
             + f"도메인 지시문: {topic_guide}\n"
             + f"복잡도 지시문: {complexity_guide}"
