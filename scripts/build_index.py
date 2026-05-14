@@ -27,20 +27,38 @@ from app.structuring.service import get_structuring_service
 
 
 def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any]) -> Dict[str, Any]:
-    obs_text = structured.get("observation", {}).get("text", "")
-    res_text = structured.get("result", {}).get("text", "")
-    req_text = structured.get("request", {}).get("text", "")
-    ctx_text = structured.get("context", {}).get("text", "")
+    obs = structured.get("observation", {})
+    res = structured.get("result", {})
+    req = structured.get("request", {})
+    ctx = structured.get("context", {})
+
+    obs_text = obs.get("text", "")
+    res_text = res.get("text", "")
+    req_text = req.get("request", "") or req.get("text", "")
+    ctx_text = ctx.get("text", "")
 
     entities = structured.get("entities", [])
 
-    combined_text = (
-        f"[원문]\n{normalized['text']}\n"
-        f"[관찰]\n{obs_text}\n"
-        f"[결과]\n{res_text}\n"
-        f"[요청]\n{req_text}\n"
-        f"[배경]\n{ctx_text}"
-    )
+    def _is_empty(text: str) -> bool:
+        stripped = text.strip() if text else ""
+        if not stripped:
+            return True
+        if stripped in ("없음", "해당없음", "없음.", "-", "N/A"):
+            return True
+        if stripped.startswith("없음 (") or stripped.startswith("없음("):
+            return True
+        return False
+
+    parts = [f"[원문]\n{normalized['text']}"]
+    if not _is_empty(obs_text):
+        parts.append(f"[관찰]\n{obs_text}")
+    if not _is_empty(res_text):
+        parts.append(f"[결과]\n{res_text}")
+    if not _is_empty(req_text):
+        parts.append(f"[요청]\n{req_text}")
+    if not _is_empty(ctx_text):
+        parts.append(f"[배경]\n{ctx_text}")
+    combined_text = "\n".join(parts)
 
     metadata: Dict[str, Any] = {
         "case_id": structured["case_id"],
@@ -52,6 +70,12 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "is_valid": structured.get("validation", {}).get("is_valid", False),
     }
 
+    def _field(raw: Dict[str, Any], text: str) -> Dict[str, Any]:
+        field: Dict[str, Any] = {"text": text}
+        if "confidence" in raw:
+            field["confidence"] = raw["confidence"]
+        return field
+
     return {
         "case_id": structured["case_id"],
         "id": structured["case_id"],
@@ -62,15 +86,17 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "region": structured.get("region") or normalized.get("region"),
         "text": combined_text,
         "structured_text": {
-            "observation": obs_text,
-            "result": res_text,
-            "request": req_text,
-            "context": ctx_text,
+            k: v for k, v in {
+                "observation": obs_text,
+                "result": res_text,
+                "request": req_text,
+                "context": ctx_text,
+            }.items() if not _is_empty(v)
         },
-        "observation": {"text": obs_text},
-        "result": {"text": res_text},
-        "request": {"text": req_text},
-        "context": {"text": ctx_text},
+        "observation": _field(obs, obs_text) if not _is_empty(obs_text) else {},
+        "result": _field(res, res_text) if not _is_empty(res_text) else {},
+        "request": _field(req, req_text) if not _is_empty(req_text) else {},
+        "context": _field(ctx, ctx_text) if not _is_empty(ctx_text) else {},
         "entities": entities,
         "metadata": metadata,
     }
@@ -161,7 +187,7 @@ async def _index_via_rest_api(
     )
 
 
-async def main(input_dir: str, api_url: str, collection_name: str, batch_size: int, rebuild: bool):
+async def main(input_dir: str, api_url: str, collection_name: str, batch_size: int, rebuild: bool, limit: int = 0):
     logger = pipeline_logger
     ingestion_svc = get_ingestion_service()
     structuring_svc = get_structuring_service()
@@ -172,7 +198,9 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
         sys.exit(1)
         
     json_files = list(data_dir.rglob("*.json"))
-    logger.info(f"인덱싱 시작. 찾은 JSON 파일 수: {len(json_files)}")
+    if limit > 0:
+        json_files = json_files[:limit]
+    logger.info(f"인덱싱 시작. 찾은 JSON 파일 수: {len(json_files)}{f' (limit={limit})' if limit > 0 else ''}")
 
     docs_to_index = []
     normalized_items = []
@@ -224,10 +252,10 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
         api_case_record = _build_api_case_record(normalized, structured)
         docs_to_index.append(api_case_record)
 
-        obs_text = api_case_record["structured_text"]["observation"]
-        res_text = api_case_record["structured_text"]["result"]
-        req_text = api_case_record["structured_text"]["request"]
-        ctx_text = api_case_record["structured_text"]["context"]
+        obs_text = api_case_record["structured_text"].get("observation", "")
+        res_text = api_case_record["structured_text"].get("result", "")
+        req_text = api_case_record["structured_text"].get("request", "")
+        ctx_text = api_case_record["structured_text"].get("context", "")
 
         # 터미널에 구조화 및 적재 대기 데이터 출력
         structured_by = structured.get("structured_by", "unknown")
@@ -298,6 +326,12 @@ if __name__ == "__main__":
         default=True,
         help="True(기본값): 1번 배치에서 컬렉션 초기화 후 재빌드. --no-rebuild: 전체 incremental 추가",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="처리할 최대 JSON 파일 수 (0: 제한 없음)",
+    )
     args = parser.parse_args()
 
-    asyncio.run(main(args.input_dir, args.api_url, args.collection_name, args.batch_size, args.rebuild))
+    asyncio.run(main(args.input_dir, args.api_url, args.collection_name, args.batch_size, args.rebuild, args.limit))
