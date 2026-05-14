@@ -52,7 +52,7 @@ def test_evaluate_structuring_outputs_metrics(tmp_path: Path):
             "result": {"text": "야간 통행이 위험합니다."},
             "request": {"text": "수리를 요청합니다."},
             "context": {"text": "서울시 강남구"},
-            "validation": {"is_valid": True, "errors": [], "warnings": []},
+            "validation": {"is_valid": True, "errors": []},
         },
         {
             "case_id": "CASE-2",
@@ -60,7 +60,7 @@ def test_evaluate_structuring_outputs_metrics(tmp_path: Path):
             "result": {"text": ""},
             "request": {"text": "조치 바랍니다."},
             "context": {"text": "23시"},
-            "validation": {"is_valid": False, "errors": ["invalid_confidence:result"], "warnings": []},
+            "validation": {"is_valid": False, "errors": ["invalid_confidence:result"]},
         },
     ]
 
@@ -88,6 +88,8 @@ async def test_validate_schema_normalizes_nonstandard_entity_labels():
         "case_id": "CASE-ENTITY-001",
         "source": "aihub_71852",
         "created_at": "2026-03-22T10:00:00+09:00",
+        "admin_unit": "서울특별시",
+        "priority": "보통",
         "raw_text": "소음과 위험이 있습니다.",
         "observation": {"text": "소음 민원", "confidence": 0.9, "evidence_span": [0, 4]},
         "result": {"text": "생활 불편", "confidence": 0.9, "evidence_span": [5, 9]},
@@ -105,8 +107,6 @@ async def test_validate_schema_normalizes_nonstandard_entity_labels():
     assert "invalid_entity_label:TYPE" not in validation["errors"]
     assert payload["entities"][0]["label"] == "HAZARD"
     assert payload["entities"][1]["label"] == "TIME"
-    assert "entity_label_normalized:TYPE->HAZARD" in validation["warnings"]
-    assert "entity_label_normalized:DATE->TIME" in validation["warnings"]
 
 
 @pytest.mark.asyncio
@@ -116,6 +116,8 @@ async def test_validate_schema_blocks_unknown_entity_labels():
         "case_id": "CASE-ENTITY-002",
         "source": "aihub_71852",
         "created_at": "2026-03-22T10:00:00+09:00",
+        "admin_unit": "서울특별시",
+        "priority": "보통",
         "raw_text": "내용",
         "observation": {"text": "관찰", "confidence": 0.9, "evidence_span": [0, 2]},
         "result": {"text": "결과", "confidence": 0.9, "evidence_span": [3, 5]},

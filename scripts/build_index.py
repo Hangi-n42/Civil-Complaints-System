@@ -47,7 +47,7 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "source": structured["source"],
         "category": structured["category"],
         "region": structured.get("region") or normalized.get("region"),
-        "created_at": normalized.get("created_at"),
+        "created_at": structured.get("created_at"),
         "structured_by": structured.get("structured_by", "fallback"),
         "is_valid": structured.get("validation", {}).get("is_valid", False),
     }
@@ -56,7 +56,7 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "case_id": structured["case_id"],
         "id": structured["case_id"],
         "source": structured["source"],
-        "created_at": normalized.get("created_at"),
+        "created_at": structured.get("created_at"),
         "submitted_at": normalized.get("submitted_at"),
         "category": structured["category"],
         "region": structured.get("region") or normalized.get("region"),
@@ -175,62 +175,77 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
     logger.info(f"인덱싱 시작. 찾은 JSON 파일 수: {len(json_files)}")
 
     docs_to_index = []
-    
+    normalized_items = []
+
     for file_path in json_files:
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             # JSON 파일이 리스트인 경우와 단일 딕셔너리인 경우 모두 처리
             if isinstance(data, dict):
                 data = [data]
-                
+
             for item in data:
-                # 모델명 및 필드 맵핑 보정 (AI 원천데이터 포맷 지원)
-                if "consulting_content" in item and "text" not in item:
-                    item["text"] = item["consulting_content"]
-                if "source_id" in item and "case_id" not in item:
-                    item["case_id"] = item["source_id"]
-                if "consulting_date" in item and "created_at" not in item:
-                    item["created_at"] = item["consulting_date"]
-                if "region" not in item and "source" in item:
-                    item["region"] = item["source"]
+                # AI Hub 원천데이터 정규화 (필드 호환 보장)
+                if "consulting_content" in item or "consulting_date" in item:
+                    normalized_items.append(
+                        ingestion_svc.normalize_aihub_record(item, source_file=str(file_path))
+                    )
+                else:
+                    normalized_items.append({
+                        "case_id": item.get("case_id") or item.get("id") or "",
+                        "source": item.get("source") or "unknown",
+                        "source_id": item.get("source_id") or "",
+                        "created_at": item.get("created_at") or item.get("submitted_at") or "",
+                        "submitted_at": item.get("submitted_at") or "",
+                        "category": item.get("category") or item.get("consulting_category") or "unknown",
+                        "region": item.get("region") or "unknown",
+                        "raw_text": item.get("raw_text") or item.get("text") or "",
+                        "text": item.get("text") or "",
+                        "metadata": item.get("metadata") or {},
+                        "instructions": item.get("instructions") if isinstance(item.get("instructions"), list) else [],
+                    })
 
-                # 1. Ingestion 전처리
-                normalized_list = await ingestion_svc.process([item])
-                normalized = normalized_list[0]
-                
-                # 2. Structuring 수행 (하이브리드 아키텍처)
-                structured = await structuring_svc.structure(normalized)
-
-                api_case_record = _build_api_case_record(normalized, structured)
-                docs_to_index.append(api_case_record)
-
-                obs_text = api_case_record["structured_text"]["observation"]
-                res_text = api_case_record["structured_text"]["result"]
-                req_text = api_case_record["structured_text"]["request"]
-                ctx_text = api_case_record["structured_text"]["context"]
-
-                # 터미널에 구조화 및 적재 대기 데이터 출력
-                structured_by = structured.get("structured_by", "unknown")
-                confidence = structured.get("confidence_score", 0.0)
-                validation = structured.get("validation", {})
-                warnings = validation.get("warnings", [])
-
-                print(f"\n[{len(docs_to_index)}번째 처리 완료] ID: {api_case_record['case_id']}")
-                print(f"--- [Metadata 요약] ---")
-                print(f"Category: {api_case_record['category']}")
-                print(f"structured_by={structured_by}, confidence={confidence:.2f}")
-                if warnings:
-                    print(f"[WARN] {', '.join(warnings)}")
-                print(f"Observation: {obs_text[:100]}..." if len(obs_text) > 100 else f"Observation: {obs_text}")
-                print(f"Result: {res_text[:100]}..." if len(res_text) > 100 else f"Result: {res_text}")
-                print(f"Request: {req_text[:100]}..." if len(req_text) > 100 else f"Request: {req_text}")
-                print(f"Context: {ctx_text[:100]}..." if len(ctx_text) > 100 else f"Context: {ctx_text}")
-                print("-----------------------\n")
-                
         except Exception as e:
             logger.error(f"파일 처리 중 오류 발생 ({file_path}): {e}")
+
+    # 1. Ingestion 전처리 (clean + mask + global dedup)
+    normalized_list = await ingestion_svc.process(normalized_items)
+
+    for normalized in normalized_list:
+        # 구조화 입력은 정제/마스킹된 텍스트로 맞춘다.
+        if normalized.get("text"):
+            normalized["raw_text"] = normalized["text"]
+
+        # 2. Structuring 수행 (하이브리드 아키텍처)
+        structured = await structuring_svc.structure(normalized)
+
+        api_case_record = _build_api_case_record(normalized, structured)
+        docs_to_index.append(api_case_record)
+
+        obs_text = api_case_record["structured_text"]["observation"]
+        res_text = api_case_record["structured_text"]["result"]
+        req_text = api_case_record["structured_text"]["request"]
+        ctx_text = api_case_record["structured_text"]["context"]
+
+        # 터미널에 구조화 및 적재 대기 데이터 출력
+        structured_by = structured.get("structured_by", "unknown")
+        confidence = structured.get("confidence_score", 0.0)
+        validation = structured.get("validation", {})
+        warnings = validation.get("warnings", [])
+
+        print(f"\n[{len(docs_to_index)}번째 처리 완료] ID: {api_case_record['case_id']}")
+        print(f"--- [Metadata 요약] ---")
+        print(f"Category: {api_case_record['category']}")
+        print(f"structured_by={structured_by}, confidence={confidence:.2f}")
+        if warnings:
+            print(f"[WARN] {', '.join(warnings)}")
+        print(f"Observation: {obs_text[:100]}..." if len(obs_text) > 100 else f"Observation: {obs_text}")
+        print(f"Result: {res_text[:100]}..." if len(res_text) > 100 else f"Result: {res_text}")
+        print(f"Request: {req_text[:100]}..." if len(req_text) > 100 else f"Request: {req_text}")
+        print(f"Context: {ctx_text[:100]}..." if len(ctx_text) > 100 else f"Context: {ctx_text}")
+        print("-----------------------\n")
 
     logger.info(f"변환 완료. 총 문서 수: {len(docs_to_index)}. BE2 REST 인덱싱 진행 중...")
     

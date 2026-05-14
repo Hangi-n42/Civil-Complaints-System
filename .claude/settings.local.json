@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls \"C:/Users/alsrj/.claude/projects/c--Projects-AI-Civil-Affairs-Systems/memory/\" 2>/dev/null || echo \"no memory dir\")",
-      "Read(//c/Users/alsrj/.claude/projects/c--Projects-AI-Civil-Affairs-Systems/memory/**)"
-    ]
-  }
-}

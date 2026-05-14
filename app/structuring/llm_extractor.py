@@ -63,8 +63,10 @@ class LLMSemanticExtractor:
         system = _SYSTEM_PROMPT + (_RETRY_SUFFIX if retry else "")
         return {
             "model": self.model,
-            "system": system,
-            "prompt": f"민원 텍스트:\n{text[: self.max_text_len]}",
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": f"민원 텍스트:\n{text[: self.max_text_len]}"},
+            ],
             "stream": False,
             "format": "json",
             "options": {
@@ -77,18 +79,23 @@ class LLMSemanticExtractor:
     async def _call_once(
         self, text: str, temperature: float, retry: bool = False
     ) -> Optional[FourElementsLLMOutput]:
-        """Ollama 를 한 번 호출하고 Pydantic 모델로 검증 후 반환한다.
+        """Ollama /api/chat 를 한 번 호출하고 Pydantic 모델로 검증 후 반환한다.
+
+        /api/chat 은 Ollama 가 모델별 chat template 을 자동 적용하므로
+        EXAONE 3.0 같은 instruct 모델에서 system 지시를 올바르게 처리한다.
 
         Returns None 이 아닌 FourElementsLLMOutput, 또는 파싱 실패 시 None.
         네트워크/타임아웃 예외는 호출부로 전파한다.
         """
         payload = self._build_payload(text, temperature, retry)
-        url = f"{self.ollama_url}/api/generate"
+        url = f"{self.ollama_url}/api/chat"
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(url, json=payload)
             response.raise_for_status()
-            raw = str(response.json().get("response", "")).strip()
+            raw = str(
+                response.json().get("message", {}).get("content", "")
+            ).strip()
 
         if not raw:
             return None
