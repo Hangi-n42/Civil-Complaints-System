@@ -63,8 +63,9 @@ class Settings:
     MAX_RETRY_COUNT: int = int(os.getenv("MAX_RETRY_COUNT", 3))
 
     # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
-    STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3:7.8b-instruct")
-    STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "30.0"))
+    # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b
+    STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3.5:7.8b")
+    STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
     STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
 
 

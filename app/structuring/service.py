@@ -19,7 +19,10 @@ import time
 import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+import yaml
 
 from app.core.config import settings
 from app.core.exceptions import StructuringError
@@ -45,14 +48,49 @@ class StructuringService:
         self._time_pattern = re.compile(
             r"(\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{1,2}시|\d{4}[./-]\d{1,2}[./-]\d{1,2})"
         )
-        # 동·읍·면·리·로·길 수준 위치명 (패턴 기반)
+        # 동·읍·면·리·길 수준 위치명 (패턴 기반)
+        # "가"(주격조사), "로"(방향조사) 제외 → 오추출 대폭 감소
         self._location_pattern = re.compile(
-            r"[가-힣]{2,5}(?:동|읍|면|리|가|로|길|대로|번길)"
+            r"[가-힣]{2,5}(?:동|읍|면|리)"
+            r"|[가-힣]{2,8}(?:대로|번길|길)"
             r"|[가-힣]{1,3}(?:구|군)\s*[가-힣]{1,5}(?:동|읍|면|리)"
         )
         self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
         self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
         self._season_time_keywords = ["봄", "여름", "가을", "겨울", "매일", "주말", "평일", "야간", "새벽", "여름마다"]
+
+        # ── LOCATION 비지명 오추출 필터 ────────────────────────────────
+        # 행정구역 접미사(동·리·면)와 형태가 같은 어미·복합어를 걸러낸다.
+        self._loc_nonplace_re = re.compile(
+            # ~동: 노동·운동·활동·행동·이동·자동·시동·진동·충동·감동 등 복합명사
+            r"(?:노|운|활|행|이|자|시|진|충|감|기|소|작|방|고)동$"
+            # ~면: 조건어미 (~없으면·있으면·않으면 / ~되면·하면·이면·그러면 등)
+            r"|(?:없|있|않)으면$"
+            r"|(?:되|하|이|그러|아니|이러|저러)면$"
+            r"|(?:으|야|려|지|시|내|다|라|니|해)면$"
+            # ~면: 면(面) 복합어 — 지표면·바닥면·측면·전면·후면 등
+            r"|(?:지표|바닥|측|전|후|상|하|좌|우|표|외|내|단|평|수|벽|마|노)면$"
+            r"|시간면$"
+            # ~리: 동사어미 드리다 / 복합어 관리·처리·정리·수리·소리·거리 등
+            r"|드리$"
+            r"|(?:관|처|정|수|소|거|다|모|기|나|마|하|오|아|이|사|주|가|보|청)리$"
+        )
+        # 소수 특정 오추출 리터럴 집합
+        self._loc_literal_blocklist: set = {
+            "콘크리",    # 콘크리트의 앞부분
+            "아스팔",    # 아스팔트의 앞부분
+            "이구동",    # 이구동성(異口同聲)의 일부
+            "결정도면",  # 도시계획 결정도면
+        }
+
+        # ── FACILITY 복합어 오추출 방지 ────────────────────────────────
+        # 법령·행정 문서 인용어에 키워드가 포함될 경우 단독 사용 여부를 확인한다.
+        self._facility_compound_exclusion: Dict[str, re.Pattern] = {
+            # 도로법·도로관리청·도로교통법·도로점용 등 법령 표현에서의 오추출 방지
+            "도로": re.compile(
+                r"도로(?:법|관리청|교통법|점용|구조령|노선|표지|설계기준|체계|계획|망|환경)"
+            ),
+        }
 
         # 엔티티 레이블 설정
         self._allowed_entity_labels = {"LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"}
@@ -64,6 +102,9 @@ class StructuringService:
             "AREA": "ADMIN_UNIT",
         }
         self._result_statuses = {"present", "pending", "insufficient"}
+        self._priority_labels = {"매우급함", "급함", "보통"}
+        self._priority_scale = ["보통", "급함", "매우급함"]
+        self._category_enum = self._load_category_enum()
         self._province_names = {
             "경기도", "강원도", "충청북도", "충청남도", "전라북도",
             "전라남도", "경상북도", "경상남도", "제주도", "제주특별자치도",
@@ -170,11 +211,10 @@ class StructuringService:
 
     def _sanitize_entities(self, entities: Any) -> Dict[str, Any]:
         errors: List[str] = []
-        warnings: List[str] = []
         normalized_entities: List[Dict[str, str]] = []
 
         if not isinstance(entities, list):
-            return {"entities": normalized_entities, "errors": ["invalid_type:entities"], "warnings": warnings}
+            return {"entities": normalized_entities, "errors": ["invalid_type:entities"]}
 
         for idx, entity in enumerate(entities):
             if not isinstance(entity, dict):
@@ -193,12 +233,9 @@ class StructuringService:
                 errors.append(f"invalid_entity_label:{raw_label.upper()}")
                 continue
 
-            if normalized_label != raw_label.upper():
-                warnings.append(f"entity_label_normalized:{raw_label.upper()}->{normalized_label}")
-
             normalized_entities.append({"label": normalized_label, "text": text})
 
-        return {"entities": normalized_entities, "errors": errors, "warnings": warnings}
+        return {"entities": normalized_entities, "errors": errors}
 
     def _normalize_for_compare(self, value: str) -> str:
         normalized = unicodedata.normalize("NFC", value or "")
@@ -217,6 +254,98 @@ class StructuringService:
         ):
             return True
         return False
+
+    def _pick_admin_unit(self, entities: Any, region: str) -> str:
+        if isinstance(entities, list):
+            for entity in entities:
+                if not isinstance(entity, dict):
+                    continue
+                if str(entity.get("label")) != "ADMIN_UNIT":
+                    continue
+                text = str(entity.get("text") or "").strip()
+                if text:
+                    return text
+        region_value = str(region or "").strip()
+        if region_value and region_value != "unknown":
+            return region_value
+        return "unknown"
+
+    def _load_category_enum(self) -> Dict[str, Dict[str, Any]]:
+        config_path = Path(__file__).resolve().parents[2] / "configs" / "CATEGORY_ENUM.yaml"
+        if not config_path.exists():
+            self.logger.warning("CATEGORY_ENUM.yaml not found: %s", config_path)
+            return {}
+
+        try:
+            with config_path.open("r", encoding="utf-8") as handle:
+                payload = yaml.safe_load(handle) or {}
+        except Exception as exc:
+            self.logger.warning("CATEGORY_ENUM.yaml load failed: %s", exc)
+            return {}
+
+        mapping: Dict[str, Dict[str, Any]] = {}
+        for key, config in payload.items():
+            if key in {"mapping_rules", "validation"}:
+                continue
+            if not isinstance(config, dict):
+                continue
+
+            names: set[str] = set()
+            if key:
+                names.add(str(key))
+            korean_name = str(config.get("korean_name") or "").strip()
+            if korean_name:
+                names.add(korean_name)
+            aliases = config.get("aliases", [])
+            if isinstance(aliases, list):
+                names.update(str(alias) for alias in aliases if alias)
+
+            for name in names:
+                mapping[name.lower()] = config
+
+        return mapping
+
+    def _priority_from_category(self, category: str) -> str:
+        key = str(category or "").strip().lower()
+        if not key:
+            return "보통"
+
+        config = self._category_enum.get(key)
+        if not config:
+            return "보통"
+
+        sla = config.get("response_time_sla")
+        if isinstance(sla, (int, float)):
+            if sla <= 24:
+                return "매우급함"
+            if sla <= 72:
+                return "급함"
+            return "보통"
+
+        level = str(config.get("priority") or "").lower()
+        if level == "critical":
+            return "매우급함"
+        if level == "high":
+            return "급함"
+        return "보통"
+
+    def _has_hazard_entity(self, entities: Any) -> bool:
+        if not isinstance(entities, list):
+            return False
+        return any(isinstance(entity, dict) and entity.get("label") == "HAZARD" for entity in entities)
+
+    def _compute_priority(self, category: str, entities: Any) -> str:
+        base = self._priority_from_category(category)
+        if not self._has_hazard_entity(entities):
+            return base
+
+        try:
+            index = self._priority_scale.index(base)
+        except ValueError:
+            return base
+
+        boosted = min(index + 1, len(self._priority_scale) - 1)
+        return self._priority_scale[boosted]
 
     # ──────────────────────────────────────────────────────────────────
     # Stage 1: Rule-based Entity Extraction
@@ -256,11 +385,18 @@ class StructuringService:
 
             # FACILITY
             for kw in self._facility_keywords:
-                if kw in text:
-                    ent = ("FACILITY", kw)
-                    if ent not in seen:
-                        seen.add(ent)
-                        entities.append({"label": "FACILITY", "text": kw})
+                if kw not in text:
+                    continue
+                # 복합어 오추출 방지: 법령·기관명 표현에서만 등장하면 건너뜀
+                excl = self._facility_compound_exclusion.get(kw)
+                if excl:
+                    cleaned = excl.sub("", text)
+                    if kw not in cleaned:
+                        continue  # 복합어에만 있고 단독 사용 없음
+                ent = ("FACILITY", kw)
+                if ent not in seen:
+                    seen.add(ent)
+                    entities.append({"label": "FACILITY", "text": kw})
 
             # HAZARD
             for kw in self._hazard_keywords:
@@ -274,6 +410,11 @@ class StructuringService:
             facility_hazard_tokens = set(self._facility_keywords + self._hazard_keywords)
             for m in self._location_pattern.finditer(text):
                 token = m.group(0).strip()
+                # 비지명 패턴 제거 (조건어미·복합어·특정 리터럴)
+                if self._loc_nonplace_re.search(token):
+                    continue
+                if token in self._loc_literal_blocklist:
+                    continue
                 if token in facility_hazard_tokens:
                     continue
                 ent = ("LOCATION", token)
@@ -359,12 +500,11 @@ class StructuringService:
 
         extraction_method:
           "rule"   — Rule-based 추출. span 검증 엄격 (error).
-          "hybrid" — LLM + Rule 혼합. span 불일치는 warning 으로 완화.
-          "llm"    — LLM 단독. span 검증 동일하게 완화.
-          "fallback" — LLM 실패로 빈 필드. span 검증 완화.
+                    "hybrid" — LLM + Rule 혼합. span 검증 완화.
+                    "llm"    — LLM 단독. span 검증 완화.
+                    "fallback" — LLM 실패로 빈 필드. span 검증 완화.
         """
         errors: List[str] = []
-        warnings: List[str] = []
         lax_span = extraction_method in ("hybrid", "llm", "fallback")
         span_sources: Dict[str, str] = (
             data.get("extraction_meta", {}).get("span_sources", {}) or {}
@@ -375,10 +515,18 @@ class StructuringService:
 
             # 필수 필드 존재 여부
             required = ["case_id", "source", "created_at", "raw_text",
-                        "observation", "result", "request", "context", "entities"]
+                        "observation", "result", "request", "context", "entities", "admin_unit", "priority"]
             for key in required:
                 if key not in data:
                     errors.append(f"missing:{key}")
+
+            admin_unit = data.get("admin_unit")
+            if not isinstance(admin_unit, str) or not admin_unit.strip():
+                errors.append("invalid_admin_unit")
+
+            priority = data.get("priority")
+            if not isinstance(priority, str) or priority not in self._priority_labels:
+                errors.append("invalid_priority")
 
             raw_text = str(data.get("raw_text") or "")
             text_len = len(raw_text)
@@ -409,35 +557,25 @@ class StructuringService:
                 # result.status pending/insufficient → span=[0,0] 정상
                 if field_name == "result" and field.get("status") in ("pending", "insufficient"):
                     if span != [0, 0]:
-                        warnings.append(f"unexpected_span_for_status:{field.get('status')}")
+                        errors.append(f"unexpected_span_for_status:{field.get('status')}")
                 else:
                     if span == [0, 0]:
                         # inferred span (LLM이 위치를 특정하지 못한 경우)
                         src = span_sources.get(field_name)
-                        if lax_span or src == "inferred":
-                            if field.get("text"):
-                                warnings.append(f"span_inferred:{field_name}")
-                        else:
-                            if field.get("text"):
-                                warnings.append(f"span_missing:{field_name}")
+                        if not (lax_span or src == "inferred") and field.get("text"):
+                            errors.append(f"span_missing:{field_name}")
                     else:
                         # 범위 유효성
                         range_ok = (0 <= start < end <= text_len)
                         if not range_ok:
-                            if lax_span:
-                                warnings.append(f"invalid_evidence_span_range:{field_name}")
-                            else:
-                                errors.append(f"invalid_evidence_span_range:{field_name}")
+                            errors.append(f"invalid_evidence_span_range:{field_name}")
                         else:
                             # 텍스트 일치 검사
                             sliced = raw_text[start:end]
                             if self._normalize_for_compare(sliced) != self._normalize_for_compare(
                                 str(field.get("text") or "")
                             ):
-                                if lax_span:
-                                    warnings.append(f"evidence_text_mismatch:{field_name}")
-                                else:
-                                    errors.append(f"evidence_text_mismatch:{field_name}")
+                                errors.append(f"evidence_text_mismatch:{field_name}")
 
                 # result.status 유효값
                 if field_name == "result":
@@ -447,40 +585,34 @@ class StructuringService:
 
                 # 빈 텍스트 경고
                 if not str(field.get("text") or "").strip():
-                    warnings.append(f"empty_field:{field_name}")
+                    errors.append(f"empty_field:{field_name}")
 
             # 엔티티 검증
             entity_result = self._sanitize_entities(data.get("entities", []))
             data["entities"] = entity_result["entities"]
             errors.extend(entity_result["errors"])
-            warnings.extend(entity_result["warnings"])
 
             # structured_by 유효값 검증 (신규 필드)
             if "structured_by" in data:
                 allowed_methods = {"hybrid", "llm_only", "fallback", "rule"}
                 if data["structured_by"] not in allowed_methods:
                     errors.append("invalid_structured_by_value")
-                if data["structured_by"] == "fallback":
-                    warnings.append("structuring_fallback_active")
 
             # extraction_meta 검증 (신규 필드)
             meta = data.get("extraction_meta")
             if meta is not None:
                 if not isinstance(meta.get("llm_latency_ms"), int):
-                    warnings.append("invalid_extraction_meta:llm_latency_ms")
+                    errors.append("invalid_extraction_meta:llm_latency_ms")
                 llm_count = meta.get("llm_non_null_count")
                 if llm_count is not None and not (0 <= llm_count <= 4):
                     errors.append("invalid_extraction_meta:llm_non_null_count")
 
-            if data.get("source") == "unknown":
-                warnings.append("source_is_unknown")
-
-            return {"is_valid": len(errors) == 0, "errors": errors, "warnings": warnings}
+            return {"is_valid": len(errors) == 0, "errors": errors}
 
         except Exception as exc:
             self.logger.error("스키마 검증 실패: %s", exc)
             errors.append(f"exception:{exc}")
-            return {"is_valid": False, "errors": errors, "warnings": warnings}
+            return {"is_valid": False, "errors": errors}
 
     # ──────────────────────────────────────────────────────────────────
     # 종합 파이프라인
@@ -491,7 +623,7 @@ class StructuringService:
 
         Returns:
             {
-                case_id, source, created_at, category, region, raw_text,
+                case_id, source, created_at, category, region, raw_text, admin_unit, priority,
                 observation, result, request, context,   # 4요소 (LLM)
                 entities,                                # NER (Rule)
                 supervision,                             # 라벨링 데이터 (선택)
@@ -540,6 +672,8 @@ class StructuringService:
                 "category": normalized["category"],
                 "region": normalized["region"],
                 "raw_text": text,
+                "admin_unit": self._pick_admin_unit(entities, normalized["region"]),
+                "priority": self._compute_priority(normalized["category"], entities),
                 **merged,
                 "metadata": normalized["metadata"],
             }
