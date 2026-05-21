@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from app.generation.normalization.response_normalizer import (
     normalize_response,
     validate_unified_contract,
@@ -67,6 +69,42 @@ def test_prompt_factory_force_json_mode_includes_mode_guidance():
     assert "[force_json 모드]" in prompt
 
 
+def test_prompt_factory_build_from_dataset_record_extracts_raw_content():
+    prompt = PromptFactory.build_from_dataset_record(
+        record={
+            "source_id": "800806",
+            "source": "성남시",
+            "consulting_date": "20240521",
+            "consulting_category": "대중교통과",
+            "consulting_turns": "2",
+            "consulting_length": 273,
+            "consulting_content": (
+                "제목 : 제2 판교 버스 문제\n\n"
+                "Q : 사람이 많이 모이는 ▲▲역에서 ▲▲▲▲쪽으로 가는 버스가 ▲▲번 하나밖에 없습니다.\n\n"
+                "출퇴근 시간에 해당 버스의 배차간격이 30~40분이고 위험한 상황이 많이 발생합니다.\n"
+                "사람이 몰리는 출퇴근 시간에 그 방향 버스가 하나밖에 없는데 사고가 크게 나기 전에 배차간격을 줄이면 좋을 것 같습니다."
+            ),
+        },
+        context=[
+            {
+                "chunk_id": "CASE-2026-001__chunk-1",
+                "case_id": "CASE-2026-001",
+                "score": 0.94,
+                "snippet": "야간 8시 이후 가로등 소등으로 보행자 전도 위험이 반복 발생한다는 민원이 접수됨.",
+            }
+        ],
+        routing_trace={},
+    )
+
+    assert "제2 판교 버스 문제" in prompt
+    assert "사람이 많이 모이는 ▲▲역" in prompt
+    assert "입력 레코드 정보" in prompt
+    assert "consulting_category=대중교통과" in prompt
+    assert "교통/도로 행정 기준" in prompt
+    assert "교통/도로 행정 기준과 현장 조치 절차" in prompt or "교통/도로 행정 기준" in prompt
+    assert "검색 컨텍스트" in prompt
+
+
 def test_normalize_response_enforces_week6_shape():
     payload = normalize_response(
         {
@@ -93,3 +131,52 @@ def test_validate_unified_contract_detects_missing():
     assert "routing_trace" in missing
     assert "structured_output" in missing
     assert "quality_signals" in missing
+
+
+class _DummyRetrievalService:
+    async def search(self, *args, **kwargs):
+        return [
+            {
+                "chunk_id": "CASE-2026-001__chunk-1",
+                "case_id": "CASE-2026-001",
+                "snippet": "야간 8시 이후 가로등 소등으로 보행자 전도 위험이 반복 발생한다는 민원이 접수됨.",
+                "score": 0.94,
+            },
+            {
+                "chunk_id": "CASE-2026-019__chunk-2",
+                "case_id": "CASE-2026-019",
+                "snippet": "교차로 조도 불량 구간에서 차량과 보행자 시야 확보가 어렵다는 신고가 다수 보고됨.",
+                "score": 0.88,
+            },
+        ]
+
+
+@pytest.mark.asyncio
+async def test_prompt_factory_autoretrieve_builds_prompt_and_context():
+    prompt, context, trace = await PromptFactory.build_from_dataset_record_autoretrieve(
+        record={
+            "source_id": "800806",
+            "source": "성남시",
+            "consulting_date": "20240521",
+            "consulting_category": "대중교통과",
+            "consulting_turns": "2",
+            "consulting_length": 273,
+            "consulting_content": (
+                "제목 : 제2 판교 버스 문제\n\n"
+                "Q : 사람이 많이 모이는 ▲▲역에서 ▲▲▲▲쪽으로 가는 버스가 ▲▲번 하나밖에 없습니다.\n\n"
+                "출퇴근 시간에 해당 버스의 배차간격이 30~40분이고 위험한 상황이 많이 발생합니다."
+            ),
+        },
+        routing_trace={},
+        retrieval_service=_DummyRetrievalService(),
+        top_k=2,
+        mode="compact",
+    )
+
+    assert isinstance(context, list)
+    assert len(context) == 2
+    assert context[0]["chunk_id"].startswith("CASE-")
+    assert "relevance_score" in context[0]
+    assert "검색 컨텍스트" in prompt
+    assert "제2 판교 버스 문제" in prompt
+    assert trace.get("topic_type") in {"traffic", "general", "welfare", "environment", "construction"}

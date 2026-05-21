@@ -393,6 +393,68 @@ class GenerationService:
                 details={"stage": "prompt"},
             ) from e
 
+    async def build_rag_prompt_from_record(
+        self,
+        record: Dict[str, Any],
+        context: List[Dict[str, Any]],
+        routing_trace: Dict[str, Any] | None = None,
+        mode: str = "default",
+    ) -> str:
+        """성남시_test_10 같은 원문 레코드 기반으로 RAG 프롬프트를 구성한다."""
+        try:
+            self.logger.info(f"원문 레코드 기반 RAG 프롬프트 구성: {len(context)}개 컨텍스트")
+            base_trace = dict(routing_trace or {})
+            if mode == "force_json":
+                base_trace["prompt_mode"] = "force_json"
+            elif mode == "compact":
+                base_trace["prompt_mode"] = "compact"
+
+            return PromptFactory.build_from_dataset_record(record=record, context=context, routing_trace=base_trace)
+        except Exception as e:
+            self.logger.error(f"원문 레코드 기반 프롬프트 구성 실패: {str(e)}")
+            raise GenerationError(
+                f"프롬프트 구성 실패: {str(e)}",
+                code="PROCESSING_ERROR",
+                retryable=False,
+                details={"stage": "prompt"},
+            ) from e
+
+    async def build_rag_prompt_from_record_autoretrieve(
+        self,
+        record: Dict[str, Any],
+        routing_trace: Dict[str, Any] | None = None,
+        mode: str = "default",
+        top_k: int | None = None,
+        collection_name: str = "civil_cases_v1",
+        filters: Dict[str, Any] | None = None,
+        threshold: float = 0.0,
+    ) -> tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+        """원문 레코드만 입력받아 (검색 포함) RAG 프롬프트를 구성한다.
+
+        Returns:
+            (prompt, context, derived_trace)
+        """
+        try:
+            prompt, context, derived_trace = await PromptFactory.build_from_dataset_record_autoretrieve(
+                record=record,
+                routing_trace=routing_trace,
+                top_k=top_k,
+                collection_name=collection_name,
+                filters=filters,
+                threshold=threshold,
+                mode=mode,
+            )
+            self.logger.info(f"원문 레코드 자동검색 RAG 프롬프트 구성 완료: {len(context)}개 컨텍스트")
+            return prompt, context, derived_trace
+        except Exception as e:
+            self.logger.error(f"원문 레코드 자동검색 프롬프트 구성 실패: {str(e)}")
+            raise GenerationError(
+                f"프롬프트 구성 실패: {str(e)}",
+                code="PROCESSING_ERROR",
+                retryable=False,
+                details={"stage": "prompt", "mode": mode},
+            ) from e
+
     async def parse_json_response(self, text: str) -> Dict[str, Any]:
         """
         JSON 응답 파싱
