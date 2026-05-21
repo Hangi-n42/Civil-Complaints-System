@@ -22,21 +22,80 @@ import {
   clearDraftSnapshot,
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
+import { readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const STATUS_OPTIONS = ["미처리", "검토중", "처리완료"] as const;
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
 type DraftStage = "idle" | "loading" | "success" | "error";
 type SegmentViewMode = "loading" | "error" | "empty" | "single" | "multi";
 
+type WorkbenchStructuredFields = {
+  observation?: { text?: string };
+  request?: { text?: string };
+  result?: { text?: string };
+  context?: { text?: string };
+};
+
+type WorkbenchCase = AssignedCase & {
+  case_id: string;
+  title?: string;
+  category?: string;
+  region?: string;
+  priority?: string;
+  received_at?: string;
+  raw_text?: string;
+  text?: string;
+  summary?: string;
+  description?: string;
+  structured?: WorkbenchStructuredFields;
+};
+
+type PersistedRoutingInfo = {
+  routingTrace?: RoutingTrace;
+  strategyId?: string | null;
+  routeKey?: string | null;
+};
+
+type DraftSnapshot = {
+  draft?: QaResponseData & {
+    complaintId?: string;
+    structuredOutput?: {
+      summary?: string;
+      actionItems?: string[];
+      requestSegments?: string[];
+    };
+    answer?: string;
+  };
+};
+
+type DepartmentTrack = {
+  admin_unit: string;
+  complaint: string;
+  answer: string;
+  memoIndex?: number;
+};
+
+type AccordionDetail = {
+  complaint: string;
+  answer: string;
+  tracks: DepartmentTrack[];
+};
+
+type MockWorkbenchSimilarCase = {
+  case_id?: string;
+  complaint?: string;
+  answer?: string;
+  department_tracks?: DepartmentTrack[];
+};
+
 function WorkbenchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlCaseId = searchParams.get("case_id");
 
-  const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+  const [caseList, setCaseList] = useState<WorkbenchCase[]>(mockAssignedCases as WorkbenchCase[]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || mockAssignedCases[0]?.case_id || "");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,10 +104,10 @@ function WorkbenchContent() {
   const [searchStage, setSearchStage] = useState<SearchStage>("empty");
   const [searchBundle, setSearchBundle] = useState<SearchResponseData | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [routingTrace, setRoutingTrace] = useState<RoutingTrace | null>(null);
+  const [, setRoutingTrace] = useState<RoutingTrace | null>(null);
   const [routingHint, setRoutingHint] = useState<RoutingHint | null>(null);
-  const [strategyId, setStrategyId] = useState<string | null>(null);
-  const [routeKey, setRouteKey] = useState<string | null>(null);
+  const [, setStrategyId] = useState<string | null>(null);
+  const [, setRouteKey] = useState<string | null>(null);
   const [draftStage, setDraftStage] = useState<DraftStage>("idle");
   const [draftResponse, setDraftResponse] = useState<QaResponseData | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
@@ -76,15 +135,15 @@ function WorkbenchContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [caseList]);
 
-  const selectedCase = useMemo(() => {
-    return caseList.find((item) => item.case_id === selectedCaseId) || caseList[0];
+  const selectedCase = useMemo<WorkbenchCase>(() => {
+    return (caseList.find((item) => item.case_id === selectedCaseId) || caseList[0]) as WorkbenchCase;
   }, [selectedCaseId, caseList]);
 
   const selectedIndex = useMemo(() => {
     return caseList.findIndex((item) => item.case_id === selectedCase.case_id);
-  }, [selectedCase]);
+  }, [selectedCase, caseList]);
 
   const caseContext = useMemo<WorkbenchCaseContext>(() => {
     return buildCaseContext(selectedCase);
@@ -115,24 +174,15 @@ function WorkbenchContent() {
   }, [caseList, selectedCaseId, urlCaseId]);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(CASE_STATUS_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-      if (raw.length > MAX_STATUS_STORAGE_BYTES) {
-        window.localStorage.removeItem(CASE_STATUS_STORAGE_KEY);
-        setCaseStatuses({});
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        setCaseStatuses(sanitizeCaseStatuses(parsed as Record<string, string>, caseList.map((item) => item.case_id)));
-      }
-    } catch {
-      setCaseStatuses({});
+    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
+      maxBytes: MAX_STATUS_STORAGE_BYTES,
+      removeOnOversize: true,
+    });
+
+    if (parsed) {
+      setCaseStatuses(sanitizeCaseStatuses(parsed, caseList.map((item) => item.case_id)));
     }
-  }, []);
+  }, [caseList]);
 
   useEffect(() => {
     if (urlCaseId && urlCaseId !== selectedCaseId) {
@@ -167,8 +217,8 @@ function WorkbenchContent() {
   // Restore persisted routing info and last draft when selecting a case + ensure center-right sync (no UI changes)
   useEffect(() => {
     try {
-      const persisted = loadPersistedRoutingInfo();
-      const last = loadLastDraft();
+      const persisted = loadPersistedRoutingInfo() as PersistedRoutingInfo | null;
+      const last = loadLastDraft() as DraftSnapshot | null;
 
       // Set default routing info based on selected case context for center-right sync
       const defaultInfo = buildDefaultRoutingInfoFromCase(selectedCase);
@@ -178,30 +228,30 @@ function WorkbenchContent() {
 
       // Override with persisted routing info if available
       if (persisted && persisted.routingTrace) {
-        setRoutingTrace((persisted as any).routingTrace);
-        setStrategyId((persisted as any).strategyId || null);
-        setRouteKey((persisted as any).routeKey || null);
+        setRoutingTrace(persisted.routingTrace);
+        setStrategyId(persisted.strategyId || null);
+        setRouteKey(persisted.routeKey || null);
       }
 
       // Restore last draft if it matches selected case
       if (last && last.draft && last.draft.complaintId === selectedCase.case_id) {
-        setDraftResponse(last.draft as any);
+        setDraftResponse(last.draft);
         setDraftStage("success");
         setDraftError(null);
 
-        const respSegments = (last.draft as any).structuredOutput?.requestSegments || [];
+        const respSegments = last.draft.structuredOutput?.requestSegments || [];
         const segMode: SegmentViewMode = respSegments.length > 1 ? "multi" : respSegments.length === 1 ? "single" : "empty";
         const textarea = buildDraftTextareaValue({
           draftStage: "success",
           segmentViewMode: segMode,
-          answer: (last.draft as any).answer,
-          summary: (last.draft as any).structuredOutput?.summary,
-          actionItems: (last.draft as any).structuredOutput?.actionItems || [],
+          answer: last.draft.answer,
+          summary: last.draft.structuredOutput?.summary,
+          actionItems: last.draft.structuredOutput?.actionItems || [],
           requestSegments: respSegments,
         });
         setDraftEditorValue(textarea);
       }
-    } catch (e) {
+    } catch {
       // no-op: best-effort restore
     }
   }, [selectedCaseId, selectedCase]);
@@ -313,13 +363,13 @@ function WorkbenchContent() {
       setDraftResponse(response.data);
       // Save draft snapshot for before/after comparison
       saveDraftSnapshot(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setDraftStage("error");
-      setDraftError(error?.message || "초안 생성 중 오류가 발생했습니다.");
+      setDraftError(error instanceof Error ? error.message : "초안 생성 중 오류가 발생했습니다.");
     }
   }
 
-  const rawText = selectedCase.raw_text || selectedCase.text || selectedCase.summary || "";
+  const rawText = safeString(selectedCase?.raw_text || selectedCase?.text || selectedCase?.summary).trim();
   const structuredSummary = getCaseSummaryText(selectedCase) || "선택된 민원의 핵심 요약이 표시됩니다.";
   const summaryObservation = selectedCase.structured?.observation?.text || getCaseDisplayTitle(selectedCase, 80);
   const summaryAnalysis = selectedCase.structured?.result?.text || selectedCase.structured?.context?.text || structuredSummary || "분석 정보 없음";
@@ -555,7 +605,7 @@ function WorkbenchContent() {
                             <div className="rounded border border-slate-300 bg-white p-2">
                               <div className="mb-1 text-[11px] font-bold text-slate-600">타부서 메모</div>
                               <div className="space-y-1">
-                                {getAccordionDetail(doc, index).tracks.map((track: any, memoIndex: number) => (
+                                {getAccordionDetail(doc, index).tracks.map((track: DepartmentTrack, memoIndex: number) => (
                                   <div key={`${doc.docId}-memo-${memoIndex}`} className="rounded border border-slate-200 bg-slate-50 p-2">
                                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
                                       <span>{track.admin_unit}</span>
@@ -607,7 +657,7 @@ export default function WorkbenchPage() {
   );
 }
 
-function buildCaseContext(caseItem: any): WorkbenchCaseContext {
+function buildCaseContext(caseItem: WorkbenchCase): WorkbenchCaseContext {
   return {
     caseId: caseItem.case_id,
     title: caseItem.title,
@@ -618,7 +668,7 @@ function buildCaseContext(caseItem: any): WorkbenchCaseContext {
   };
 }
 
-function buildDefaultRoutingInfoFromCase(caseItem: any): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
+function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
   const category = caseItem.category || "일반";
   const topic: TopicType = mapCategoryToTopicType(category);
   const complexityLevel: "low" | "medium" | "high" = "medium";
@@ -652,29 +702,11 @@ function mapCategoryToTopicType(category: string): TopicType {
   return "general";
 }
 
-function buildDefaultQuery(caseItem: any) {
+function buildDefaultQuery(caseItem: WorkbenchCase) {
   return getCaseSummaryText(caseItem) || getCaseDisplayTitle(caseItem, 120) || caseItem.raw_text || "";
 }
 
-function buildDraftPrompt(caseItem: any, query: string) {
-  return [
-    `민원 제목: ${getCaseDisplayTitle(caseItem, 120)}`,
-    `카테고리: ${caseItem.category}`,
-    `지역: ${caseItem.region}`,
-    `검색어: ${query}`,
-    `핵심 요약: ${getCaseSummaryText(caseItem)}`,
-  ].join("\n");
-}
-
-function formatComplexityTrace(trace: Record<string, number | boolean>) {
-  const intent = trace.intent_count;
-  const constraint = trace.constraint_count;
-  const entity = trace.entity_diversity;
-  const cross = trace.cross_sentence_dependency;
-  return `의도 ${intent ?? "-"}, 제약 ${constraint ?? "-"}, 엔티티 ${entity ?? "-"}, 문장연계 ${cross === true ? "Y" : cross === false ? "N" : "-"}`;
-}
-
-function buildFallbackSegments(caseItem: any): string[] {
+function buildFallbackSegments(caseItem: WorkbenchCase): string[] {
   const request = caseItem?.structured?.request?.text;
   if (typeof request === "string" && request.trim().length > 0) {
     return [request.trim()];
@@ -735,7 +767,7 @@ function buildDraftTextareaValue(params: {
   ].join("\n");
 }
 
-function getCaseDisplayTitle(caseItem: any, maxLength: number = 48) {
+function getCaseDisplayTitle(caseItem: WorkbenchCase, maxLength: number = 48) {
   if (caseItem.title && String(caseItem.title).trim().length > 0) {
     return sanitizeTitle(String(caseItem.title)).slice(0, maxLength);
   }
@@ -749,7 +781,7 @@ function getCaseDisplayTitle(caseItem: any, maxLength: number = 48) {
   return sanitizeTitle(String(fallback)).slice(0, maxLength);
 }
 
-function getCaseSummaryText(caseItem: any) {
+function getCaseSummaryText(caseItem: WorkbenchCase) {
   const observation = caseItem.structured?.observation?.text;
   const result = caseItem.structured?.result?.text || caseItem.structured?.context?.text;
   const request = caseItem.structured?.request?.text;
@@ -766,11 +798,11 @@ function sanitizeTitle(value: string) {
   return value.split(" - ")[0].trim();
 }
 
-function getAccordionDetail(doc: RetrievedDoc, index: number) {
+function getAccordionDetail(doc: RetrievedDoc, index: number): AccordionDetail {
   const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
   const complaint = doc.summary?.observation || doc.title;
   const answer = doc.summary?.request || doc.snippet || "유사 민원 상세가 없습니다.";
-  const tracks = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
+  const tracks: DepartmentTrack[] = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
     admin_unit: adminUnit,
     complaint: complaint || doc.title,
     answer: departmentAnswer || answer,
@@ -785,8 +817,8 @@ function getAccordionDetail(doc: RetrievedDoc, index: number) {
     };
   }
 
-  const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length];
-  const matched = mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) || fallbackDetail;
+  const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length] as MockWorkbenchSimilarCase | undefined;
+  const matched = (mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) as MockWorkbenchSimilarCase | undefined) || fallbackDetail;
 
   return {
     complaint: matched?.complaint || complaint || doc.title,
@@ -803,20 +835,3 @@ function getAccordionDetail(doc: RetrievedDoc, index: number) {
   };
 }
 
-function sanitizeCaseStatuses(value: Record<string, string>, allowedCaseIdsInput: string[]): Record<string, string> {
-  const allowedCaseIds = new Set(allowedCaseIdsInput);
-  const allowedStatuses = new Set<string>(STATUS_OPTIONS);
-  const sanitized: Record<string, string> = {};
-
-  for (const [caseId, status] of Object.entries(value || {})) {
-    if (!allowedCaseIds.has(caseId)) {
-      continue;
-    }
-    if (!allowedStatuses.has(String(status))) {
-      continue;
-    }
-    sanitized[caseId] = status;
-  }
-
-  return sanitized;
-}

@@ -1,15 +1,15 @@
 // src/app/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
 import { fetchUiCasesApi, type AssignedCase } from "@/lib/api";
+import { CASE_STATUS_OPTIONS, readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const STATUS_OPTIONS = ["미처리", "검토중", "처리완료"] as const;
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 export default function QueuePage() {
@@ -46,24 +46,20 @@ export default function QueuePage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(CASE_STATUS_STORAGE_KEY);
-      if (!raw) return;
-      if (raw.length > MAX_STATUS_STORAGE_BYTES) {
-        window.localStorage.removeItem(CASE_STATUS_STORAGE_KEY);
-        setCaseStatuses({});
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        setCaseStatuses(sanitizeCaseStatuses(parsed as Record<string, string>));
-      }
-    } catch {
-      setCaseStatuses({});
+    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
+      maxBytes: MAX_STATUS_STORAGE_BYTES,
+      removeOnOversize: true,
+    });
+
+    if (parsed) {
+      setCaseStatuses(sanitizeCaseStatuses(parsed, mockAssignedCases.map((item) => item.case_id)));
     }
   }, []);
 
-  const getEffectiveStatus = (c: any) => caseStatuses[c.case_id] || c.status || "미처리";
+  const getEffectiveStatus = useCallback(
+    (c: AssignedCase) => caseStatuses[c.case_id] || c.status || "미처리",
+    [caseStatuses],
+  );
 
   // KPI 계산
   const kpis = useMemo(() => {
@@ -79,7 +75,7 @@ export default function QueuePage() {
     });
 
     return { open, urgent, done };
-  }, [caseStatuses, caseList]);
+  }, [caseList, getEffectiveStatus]);
 
   // 필터 초기화 함수
   const resetFilters = () => {
@@ -126,14 +122,23 @@ export default function QueuePage() {
     }
 
     return result;
-  }, [priorityFilter, statusFilter, sortBy, searchKeyword, caseList, caseStatuses]);
+  }, [priorityFilter, statusFilter, sortBy, searchKeyword, caseList, getEffectiveStatus]);
 
   // 타이틀 생성 헬퍼
-  const buildTitle = (c: any) => {
-    if (c.structured?.observation?.text && c.structured?.request?.text) {
-      return `${c.structured.observation.text} - ${c.structured.request.text}`;
+  const buildTitle = (c: AssignedCase) => {
+    const observation = safeString(c?.structured?.observation?.text).trim();
+    const request = safeString(c?.structured?.request?.text).trim();
+
+    if (observation && request) {
+      return `${observation} - ${request}`;
     }
-    return c.raw_text.length > 40 ? c.raw_text.substring(0, 40) + "..." : c.raw_text;
+
+    const rawText = safeString(c?.raw_text).trim();
+    if (!rawText) {
+      return "제목 없음 민원";
+    }
+
+    return rawText.length > 40 ? `${rawText.substring(0, 40)}...` : rawText;
   };
 
   return (
@@ -201,10 +206,10 @@ export default function QueuePage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="전체">전체</option>
-                <option value="미처리">미처리</option>
-                <option value="검토중">검토중</option>
+                {CASE_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
                 <option value="보류">보류</option>
-                <option value="처리완료">처리완료</option>
               </select>
             </div>
             <div className="col-span-2">
@@ -299,22 +304,4 @@ export default function QueuePage() {
       </div>
     </div>
   );
-}
-
-function sanitizeCaseStatuses(value: Record<string, string>): Record<string, string> {
-  const allowedCaseIds = new Set(mockAssignedCases.map((item) => item.case_id));
-  const allowedStatuses = new Set<string>(STATUS_OPTIONS);
-  const sanitized: Record<string, string> = {};
-
-  for (const [caseId, status] of Object.entries(value || {})) {
-    if (!allowedCaseIds.has(caseId)) {
-      continue;
-    }
-    if (!allowedStatuses.has(String(status))) {
-      continue;
-    }
-    sanitized[caseId] = status;
-  }
-
-  return sanitized;
 }
