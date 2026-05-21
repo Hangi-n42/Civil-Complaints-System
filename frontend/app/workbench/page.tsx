@@ -8,6 +8,8 @@ import {
   type RoutingHint,
   type RoutingTrace,
   type TopicType,
+  fetchUiCasesApi,
+  type AssignedCase,
   runQaApi,
   searchCasesApi,
   type QaResponseData,
@@ -17,28 +19,84 @@ import {
   loadPersistedRoutingInfo,
   loadLastDraft,
   saveDraftSnapshot,
-  loadDraftSnapshot,
   clearDraftSnapshot,
-  getStatusUxMessage,
-  type StatusUxType,
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
+import { readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const STATUS_OPTIONS = ["미처리", "검토중", "처리완료"] as const;
-const DEFAULT_CASE_LIST = mockAssignedCases as Array<any>;
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
 type DraftStage = "idle" | "loading" | "success" | "error";
 type SegmentViewMode = "loading" | "error" | "empty" | "single" | "multi";
 
+type WorkbenchStructuredFields = {
+  observation?: { text?: string };
+  request?: { text?: string };
+  result?: { text?: string };
+  context?: { text?: string };
+};
+
+type WorkbenchCase = AssignedCase & {
+  case_id: string;
+  title?: string;
+  category?: string;
+  region?: string;
+  priority?: string;
+  received_at?: string;
+  raw_text?: string;
+  text?: string;
+  summary?: string;
+  description?: string;
+  structured?: WorkbenchStructuredFields;
+};
+
+type PersistedRoutingInfo = {
+  routingTrace?: RoutingTrace;
+  strategyId?: string | null;
+  routeKey?: string | null;
+};
+
+type DraftSnapshot = {
+  draft?: QaResponseData & {
+    complaintId?: string;
+    structuredOutput?: {
+      summary?: string;
+      actionItems?: string[];
+      requestSegments?: string[];
+    };
+    answer?: string;
+  };
+};
+
+type DepartmentTrack = {
+  admin_unit: string;
+  complaint: string;
+  answer: string;
+  memoIndex?: number;
+};
+
+type AccordionDetail = {
+  complaint: string;
+  answer: string;
+  tracks: DepartmentTrack[];
+};
+
+type MockWorkbenchSimilarCase = {
+  case_id?: string;
+  complaint?: string;
+  answer?: string;
+  department_tracks?: DepartmentTrack[];
+};
+
 function WorkbenchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlCaseId = searchParams.get("case_id");
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || DEFAULT_CASE_LIST[0]?.case_id || "");
+  const [caseList, setCaseList] = useState<WorkbenchCase[]>(mockAssignedCases as WorkbenchCase[]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || mockAssignedCases[0]?.case_id || "");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [searchRegion, setSearchRegion] = useState("전체");
@@ -46,10 +104,10 @@ function WorkbenchContent() {
   const [searchStage, setSearchStage] = useState<SearchStage>("empty");
   const [searchBundle, setSearchBundle] = useState<SearchResponseData | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [routingTrace, setRoutingTrace] = useState<RoutingTrace | null>(null);
+  const [, setRoutingTrace] = useState<RoutingTrace | null>(null);
   const [routingHint, setRoutingHint] = useState<RoutingHint | null>(null);
-  const [strategyId, setStrategyId] = useState<string | null>(null);
-  const [routeKey, setRouteKey] = useState<string | null>(null);
+  const [, setStrategyId] = useState<string | null>(null);
+  const [, setRouteKey] = useState<string | null>(null);
   const [draftStage, setDraftStage] = useState<DraftStage>("idle");
   const [draftResponse, setDraftResponse] = useState<QaResponseData | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
@@ -57,45 +115,74 @@ function WorkbenchContent() {
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [isRawCollapsed, setIsRawCollapsed] = useState(true);
 
-  const selectedCase = useMemo(() => {
-    return DEFAULT_CASE_LIST.find((item) => item.case_id === selectedCaseId) || DEFAULT_CASE_LIST[0];
-  }, [selectedCaseId]);
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchUiCasesApi()
+      .then((response) => {
+        if (!isMounted || response.error) {
+          return;
+        }
+
+        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
+          setCaseList(response.data.cases);
+        }
+      })
+      .catch(() => {
+        // keep the fallback mock list
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [caseList]);
+
+  const selectedCase = useMemo<WorkbenchCase>(() => {
+    return (caseList.find((item) => item.case_id === selectedCaseId) || caseList[0]) as WorkbenchCase;
+  }, [selectedCaseId, caseList]);
 
   const selectedIndex = useMemo(() => {
-    return DEFAULT_CASE_LIST.findIndex((item) => item.case_id === selectedCase.case_id);
-  }, [selectedCase]);
+    return caseList.findIndex((item) => item.case_id === selectedCase.case_id);
+  }, [selectedCase, caseList]);
 
   const caseContext = useMemo<WorkbenchCaseContext>(() => {
     return buildCaseContext(selectedCase);
   }, [selectedCase]);
 
   const regionOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(DEFAULT_CASE_LIST.map((item) => item.region).filter(Boolean)))];
-  }, []);
+    return ["전체", ...Array.from(new Set(caseList.map((item) => item.region).filter(Boolean)))];
+  }, [caseList]);
 
   const categoryOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(DEFAULT_CASE_LIST.map((item) => item.category).filter(Boolean)))];
-  }, []);
+    return ["전체", ...Array.from(new Set(caseList.map((item) => item.category).filter(Boolean)))];
+  }, [caseList]);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(CASE_STATUS_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-      if (raw.length > MAX_STATUS_STORAGE_BYTES) {
-        window.localStorage.removeItem(CASE_STATUS_STORAGE_KEY);
-        setCaseStatuses({});
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        setCaseStatuses(sanitizeCaseStatuses(parsed as Record<string, string>));
-      }
-    } catch {
-      setCaseStatuses({});
+    if (caseList.length === 0) {
+      return;
     }
-  }, []);
+
+    const selectedExists = caseList.some((item) => item.case_id === selectedCaseId);
+    if (selectedExists) {
+      return;
+    }
+
+    const nextSelectedId = urlCaseId && caseList.some((item) => item.case_id === urlCaseId) ? urlCaseId : caseList[0]?.case_id || "";
+    if (nextSelectedId && nextSelectedId !== selectedCaseId) {
+      setSelectedCaseId(nextSelectedId);
+    }
+  }, [caseList, selectedCaseId, urlCaseId]);
+
+  useEffect(() => {
+    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
+      maxBytes: MAX_STATUS_STORAGE_BYTES,
+      removeOnOversize: true,
+    });
+
+    if (parsed) {
+      setCaseStatuses(sanitizeCaseStatuses(parsed, caseList.map((item) => item.case_id)));
+    }
+  }, [caseList]);
 
   useEffect(() => {
     if (urlCaseId && urlCaseId !== selectedCaseId) {
@@ -130,8 +217,8 @@ function WorkbenchContent() {
   // Restore persisted routing info and last draft when selecting a case + ensure center-right sync (no UI changes)
   useEffect(() => {
     try {
-      const persisted = loadPersistedRoutingInfo();
-      const last = loadLastDraft();
+      const persisted = loadPersistedRoutingInfo() as PersistedRoutingInfo | null;
+      const last = loadLastDraft() as DraftSnapshot | null;
 
       // Set default routing info based on selected case context for center-right sync
       const defaultInfo = buildDefaultRoutingInfoFromCase(selectedCase);
@@ -141,36 +228,36 @@ function WorkbenchContent() {
 
       // Override with persisted routing info if available
       if (persisted && persisted.routingTrace) {
-        setRoutingTrace((persisted as any).routingTrace);
-        setStrategyId((persisted as any).strategyId || null);
-        setRouteKey((persisted as any).routeKey || null);
+        setRoutingTrace(persisted.routingTrace);
+        setStrategyId(persisted.strategyId || null);
+        setRouteKey(persisted.routeKey || null);
       }
 
       // Restore last draft if it matches selected case
       if (last && last.draft && last.draft.complaintId === selectedCase.case_id) {
-        setDraftResponse(last.draft as any);
+        setDraftResponse(last.draft);
         setDraftStage("success");
         setDraftError(null);
 
-        const respSegments = (last.draft as any).structuredOutput?.requestSegments || [];
+        const respSegments = last.draft.structuredOutput?.requestSegments || [];
         const segMode: SegmentViewMode = respSegments.length > 1 ? "multi" : respSegments.length === 1 ? "single" : "empty";
         const textarea = buildDraftTextareaValue({
           draftStage: "success",
           segmentViewMode: segMode,
-          answer: (last.draft as any).answer,
-          summary: (last.draft as any).structuredOutput?.summary,
-          actionItems: (last.draft as any).structuredOutput?.actionItems || [],
+          answer: last.draft.answer,
+          summary: last.draft.structuredOutput?.summary,
+          actionItems: last.draft.structuredOutput?.actionItems || [],
           requestSegments: respSegments,
         });
         setDraftEditorValue(textarea);
       }
-    } catch (e) {
+    } catch {
       // no-op: best-effort restore
     }
   }, [selectedCaseId, selectedCase]);
 
   function persistStatuses(nextStatuses: Record<string, string>) {
-    const sanitized = sanitizeCaseStatuses(nextStatuses);
+    const sanitized = sanitizeCaseStatuses(nextStatuses, caseList.map((item) => item.case_id));
     setCaseStatuses(sanitized);
     const serialized = JSON.stringify(sanitized);
     if (serialized.length > MAX_STATUS_STORAGE_BYTES) {
@@ -192,8 +279,8 @@ function WorkbenchContent() {
     const nextStatuses = { ...caseStatuses, [selectedCaseId]: newStatus };
     persistStatuses(nextStatuses);
 
-    if (newStatus === "처리완료" && selectedIndex >= 0) {
-      const nextCase = DEFAULT_CASE_LIST[selectedIndex + 1];
+    if ((newStatus === "처리완료" || newStatus === "검토중") && selectedIndex >= 0) {
+      const nextCase = caseList[selectedIndex + 1];
       if (nextCase) {
         navigateToCase(nextCase.case_id);
       }
@@ -232,7 +319,7 @@ function WorkbenchContent() {
 
     if (response.error) {
       setSearchStage("error");
-      setSearchError(response.error);
+      setSearchError(response.error.message);
       setRoutingTrace(null);
       setRoutingHint(null);
       setStrategyId(null);
@@ -257,8 +344,8 @@ function WorkbenchContent() {
         complaintId: selectedCase.case_id,
         query: searchBundle?.query || searchQuery || buildDefaultQuery(selectedCase),
         routingHint: routingHint || undefined,
-        useSearchResults: Boolean(searchBundle?.searchResults?.length),
-        searchResults: searchBundle?.searchResults || [],
+        useSearchResults: Boolean(searchBundle?.results?.length || searchBundle?.searchResults?.length),
+        searchResults: searchBundle?.results || searchBundle?.searchResults || [],
         filters: {
           region: searchRegion !== "전체" ? searchRegion : undefined,
           category: searchCategory !== "전체" ? searchCategory : undefined,
@@ -268,7 +355,7 @@ function WorkbenchContent() {
 
       if (response.error) {
         setDraftStage("error");
-        setDraftError(response.error);
+        setDraftError(response.error.message);
         return;
       }
 
@@ -276,17 +363,17 @@ function WorkbenchContent() {
       setDraftResponse(response.data);
       // Save draft snapshot for before/after comparison
       saveDraftSnapshot(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setDraftStage("error");
-      setDraftError(error?.message || "초안 생성 중 오류가 발생했습니다.");
+      setDraftError(error instanceof Error ? error.message : "초안 생성 중 오류가 발생했습니다.");
     }
   }
 
-  const rawText = selectedCase.raw_text || selectedCase.text || selectedCase.summary || "";
+  const rawText = safeString(selectedCase?.raw_text || selectedCase?.text || selectedCase?.summary).trim();
   const structuredSummary = getCaseSummaryText(selectedCase) || "선택된 민원의 핵심 요약이 표시됩니다.";
   const summaryObservation = selectedCase.structured?.observation?.text || getCaseDisplayTitle(selectedCase, 80);
   const summaryAnalysis = selectedCase.structured?.result?.text || selectedCase.structured?.context?.text || structuredSummary || "분석 정보 없음";
-  const summaryRequest = selectedCase.structured?.request?.text || selectedCase.request || "처리 요청 확인 필요";
+  const summaryRequest = selectedCase.structured?.request?.text || selectedCase.summary || selectedCase.raw_text || "처리 요청 확인 필요";
 
   const responseSegments = draftResponse?.structuredOutput?.requestSegments || [];
   const fallbackSegments = buildFallbackSegments(selectedCase);
@@ -318,16 +405,15 @@ function WorkbenchContent() {
   }, [draftTextareaValue]);
 
   const currentStatus = caseStatuses[selectedCase.case_id] || selectedCase.status || "미처리";
-  const topDocs = searchBundle?.retrievedDocs || [];
+  const topDocs = searchBundle?.results || searchBundle?.retrievedDocs || [];
   const isPreSearchState = searchStage === "empty" && topDocs.length === 0;
-  const hasSearchResults = topDocs.length > 0;
 
   return (
     <div className="min-h-screen bg-[#eef2f7] text-slate-900">
       <div className="flex min-h-screen w-full">
         <AppSidebar activeMenu="workbench" />
 
-        <main className="min-w-0 flex h-screen flex-1 flex-col px-6 py-3 lg:px-12 xl:px-16">
+        <main className="min-w-0 flex min-h-screen flex-1 flex-col px-6 py-3 lg:px-12 xl:px-16">
           <div className="flex items-center justify-between pb-3 text-sm font-semibold text-slate-700">
             <div>
               <button type="button" onClick={() => router.push("/")} className="hover:text-slate-900">민원 목록으로</button>
@@ -337,8 +423,8 @@ function WorkbenchContent() {
             <div>상태: {currentStatus}</div>
           </div>
 
-          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.88fr)_minmax(720px,1.12fr)]">
-            <section className="flex h-full min-h-0 flex-col overflow-hidden border border-slate-300 bg-white">
+          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <section className="flex flex-col border border-slate-300 bg-white">
               <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
                 <div className="text-sm font-bold text-slate-900">민원 목록</div>
                 <button
@@ -350,7 +436,7 @@ function WorkbenchContent() {
                 </button>
               </div>
 
-              <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-2 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "2.05fr 0.95fr 0.75fr 0.55fr 0.55fr" }}>
+              <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-2 py-1.5 text-[11px] font-bold text-slate-700 items-center" style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gridAutoRows: "2.5rem", gap: "0.75rem" }}>
                 <div>제목</div>
                 <div>접수일</div>
                 <div>카테고리</div>
@@ -358,8 +444,8 @@ function WorkbenchContent() {
                 <div>상태</div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-auto">
-                {DEFAULT_CASE_LIST.map((item) => {
+              <div style={{ gridAutoRows: "2.5rem", gap: "0.75rem" }}>
+                {caseList.map((item) => {
                   const status = caseStatuses[item.case_id] || item.status || "미처리";
                   const selected = item.case_id === selectedCase.case_id;
                   return (
@@ -367,11 +453,11 @@ function WorkbenchContent() {
                       key={item.case_id}
                       type="button"
                       onClick={() => navigateToCase(item.case_id)}
-                      className={`grid w-full border-b border-slate-200 px-2 py-3 text-left text-[12px] transition ${selected ? "bg-white" : "bg-slate-100 hover:bg-slate-200"}`}
-                      style={{ gridTemplateColumns: "2.05fr 0.95fr 0.75fr 0.55fr 0.55fr" }}
+                      className={`grid w-full border-b border-slate-200 px-2 py-1.5 text-left text-[12px] transition items-center ${selected ? "bg-white" : "bg-slate-100 hover:bg-slate-200"}`}
+                      style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gap: "0.75rem" }}
                     >
-                      <div className="truncate pr-2 font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
-                      <div className="text-slate-600">{item.received_at || item.created_at || item.date || "-"}</div>
+                      <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
+                      <div className="text-slate-600">{item.received_at || "-"}</div>
                       <div className="text-slate-600">{item.category}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
@@ -443,7 +529,7 @@ function WorkbenchContent() {
                   <button
                     type="button"
                     onClick={handleSearch}
-                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                    className="inline-flex h-7 items-center whitespace-nowrap rounded border border-slate-300 bg-white px-2.5 text-[11px] font-semibold leading-none text-slate-700"
                   >
                     유사민원검색
                   </button>
@@ -478,17 +564,11 @@ function WorkbenchContent() {
 
                 {searchStage === "error" && <div className="px-3 py-2 text-xs text-red-600">{searchError}</div>}
 
-                <div
-                  className={hasSearchResults ? "overflow-auto" : "overflow-hidden"}
-                  style={{
-                    maxHeight: hasSearchResults ? "420px" : "320px",
-                    minHeight: hasSearchResults ? "280px" : "300px",
-                  }}
-                >
+                <div>
                   {searchStage === "loading" ? (
                     <div className="px-3 py-4 text-sm text-slate-500">유사 민원을 검색 중입니다...</div>
                   ) : topDocs.length === 0 ? (
-                    <div className={`flex items-center px-4 text-sm text-slate-500 ${isPreSearchState ? "min-h-72" : "min-h-64"}`}>
+                    <div className={`flex items-center px-4 py-4 text-sm text-slate-500 ${isPreSearchState ? "min-h-32" : "min-h-24"}`}>
                       유사 민원 결과가 표시됩니다.
                     </div>
                   ) : (
@@ -525,7 +605,7 @@ function WorkbenchContent() {
                             <div className="rounded border border-slate-300 bg-white p-2">
                               <div className="mb-1 text-[11px] font-bold text-slate-600">타부서 메모</div>
                               <div className="space-y-1">
-                                {getAccordionDetail(doc, index).tracks.map((track: any, memoIndex: number) => (
+                                {getAccordionDetail(doc, index).tracks.map((track: DepartmentTrack, memoIndex: number) => (
                                   <div key={`${doc.docId}-memo-${memoIndex}`} className="rounded border border-slate-200 bg-slate-50 p-2">
                                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
                                       <span>{track.admin_unit}</span>
@@ -545,18 +625,18 @@ function WorkbenchContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 pb-2">
                 <button
                   type="button"
                   onClick={() => handleStatusChange("처리완료")}
-                  className="h-12 border-2 border-slate-900 bg-black text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
+                  className="inline-flex h-11 items-center justify-center whitespace-nowrap border-2 border-slate-900 bg-black px-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
                 >
                   처리완료
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStatusChange("검토중")}
-                  className="h-12 border-2 border-slate-900 bg-[#fafafa] text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50"
+                  className="inline-flex h-11 items-center justify-center whitespace-nowrap border-2 border-slate-900 bg-[#fafafa] px-3 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-50"
                 >
                   검토중
                 </button>
@@ -577,7 +657,7 @@ export default function WorkbenchPage() {
   );
 }
 
-function buildCaseContext(caseItem: any): WorkbenchCaseContext {
+function buildCaseContext(caseItem: WorkbenchCase): WorkbenchCaseContext {
   return {
     caseId: caseItem.case_id,
     title: caseItem.title,
@@ -588,7 +668,7 @@ function buildCaseContext(caseItem: any): WorkbenchCaseContext {
   };
 }
 
-function buildDefaultRoutingInfoFromCase(caseItem: any): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
+function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
   const category = caseItem.category || "일반";
   const topic: TopicType = mapCategoryToTopicType(category);
   const complexityLevel: "low" | "medium" | "high" = "medium";
@@ -622,29 +702,11 @@ function mapCategoryToTopicType(category: string): TopicType {
   return "general";
 }
 
-function buildDefaultQuery(caseItem: any) {
+function buildDefaultQuery(caseItem: WorkbenchCase) {
   return getCaseSummaryText(caseItem) || getCaseDisplayTitle(caseItem, 120) || caseItem.raw_text || "";
 }
 
-function buildDraftPrompt(caseItem: any, query: string) {
-  return [
-    `민원 제목: ${getCaseDisplayTitle(caseItem, 120)}`,
-    `카테고리: ${caseItem.category}`,
-    `지역: ${caseItem.region}`,
-    `검색어: ${query}`,
-    `핵심 요약: ${getCaseSummaryText(caseItem)}`,
-  ].join("\n");
-}
-
-function formatComplexityTrace(trace: Record<string, number | boolean>) {
-  const intent = trace.intent_count;
-  const constraint = trace.constraint_count;
-  const entity = trace.entity_diversity;
-  const cross = trace.cross_sentence_dependency;
-  return `의도 ${intent ?? "-"}, 제약 ${constraint ?? "-"}, 엔티티 ${entity ?? "-"}, 문장연계 ${cross === true ? "Y" : cross === false ? "N" : "-"}`;
-}
-
-function buildFallbackSegments(caseItem: any): string[] {
+function buildFallbackSegments(caseItem: WorkbenchCase): string[] {
   const request = caseItem?.structured?.request?.text;
   if (typeof request === "string" && request.trim().length > 0) {
     return [request.trim()];
@@ -705,7 +767,7 @@ function buildDraftTextareaValue(params: {
   ].join("\n");
 }
 
-function getCaseDisplayTitle(caseItem: any, maxLength: number = 48) {
+function getCaseDisplayTitle(caseItem: WorkbenchCase, maxLength: number = 48) {
   if (caseItem.title && String(caseItem.title).trim().length > 0) {
     return sanitizeTitle(String(caseItem.title)).slice(0, maxLength);
   }
@@ -719,7 +781,7 @@ function getCaseDisplayTitle(caseItem: any, maxLength: number = 48) {
   return sanitizeTitle(String(fallback)).slice(0, maxLength);
 }
 
-function getCaseSummaryText(caseItem: any) {
+function getCaseSummaryText(caseItem: WorkbenchCase) {
   const observation = caseItem.structured?.observation?.text;
   const result = caseItem.structured?.result?.text || caseItem.structured?.context?.text;
   const request = caseItem.structured?.request?.text;
@@ -736,13 +798,31 @@ function sanitizeTitle(value: string) {
   return value.split(" - ")[0].trim();
 }
 
-function getAccordionDetail(doc: RetrievedDoc, index: number) {
-  const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length];
-  const matched = mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) || fallbackDetail;
+function getAccordionDetail(doc: RetrievedDoc, index: number): AccordionDetail {
+  const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
+  const complaint = doc.summary?.observation || doc.title;
+  const answer = doc.summary?.request || doc.snippet || "유사 민원 상세가 없습니다.";
+  const tracks: DepartmentTrack[] = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
+    admin_unit: adminUnit,
+    complaint: complaint || doc.title,
+    answer: departmentAnswer || answer,
+    memoIndex,
+  }));
+
+  if (tracks.length > 0) {
+    return {
+      complaint: complaint || doc.title,
+      answer,
+      tracks,
+    };
+  }
+
+  const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length] as MockWorkbenchSimilarCase | undefined;
+  const matched = (mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) as MockWorkbenchSimilarCase | undefined) || fallbackDetail;
 
   return {
-    complaint: matched?.complaint || doc.title,
-    answer: matched?.answer || doc.snippet || "유사 민원 상세가 없습니다.",
+    complaint: matched?.complaint || complaint || doc.title,
+    answer: matched?.answer || answer,
     tracks: matched?.department_tracks?.length
       ? matched.department_tracks
       : [
@@ -755,20 +835,3 @@ function getAccordionDetail(doc: RetrievedDoc, index: number) {
   };
 }
 
-function sanitizeCaseStatuses(value: Record<string, string>): Record<string, string> {
-  const allowedCaseIds = new Set(DEFAULT_CASE_LIST.map((item) => item.case_id));
-  const allowedStatuses = new Set<string>(STATUS_OPTIONS);
-  const sanitized: Record<string, string> = {};
-
-  for (const [caseId, status] of Object.entries(value || {})) {
-    if (!allowedCaseIds.has(caseId)) {
-      continue;
-    }
-    if (!allowedStatuses.has(String(status))) {
-      continue;
-    }
-    sanitized[caseId] = status;
-  }
-
-  return sanitized;
-}
