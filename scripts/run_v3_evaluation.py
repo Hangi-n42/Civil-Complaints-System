@@ -207,20 +207,42 @@ def run_dense(queries: list[dict], collection_name: str = "civil_cases_v1") -> d
 def run_adaptive(queries: list[dict]) -> dict[str, list[RunRecord]]:
     from app.retrieval.service import RetrievalService
 
-    TOPIC_MAP = {
-        "복지": "welfare",
-        "교통": "traffic",
-        "환경": "environment",
-        "건설": "construction",
+    # category 키워드 → topic 매핑 (v3 평가셋 49개 쿼리 카테고리 전수 분석 기반)
+    CATEGORY_TOPIC_MAP = {
+        "건강증진": "environment",   # 흡연·금연·난임
+        "건설": "construction",       # 건설기계·건설산업과·건설과
         "도로": "traffic",
-        "주택": "welfare",
+        "교통": "traffic",
+        "경제": "traffic",            # 경제교통과
+        "환경": "environment",
+        "공원": "environment",
         "소음": "environment",
+        "복지": "welfare",
+        "의료": "welfare",
+        "금융": "welfare",
+        "주택": "welfare",
     }
 
-    def map_topic(category: str) -> str:
-        for ko, en in TOPIC_MAP.items():
-            if ko in (category or ""):
-                return en
+    # source → topic 폴백 (category가 비어있거나 '-'인 경우)
+    SOURCE_TOPIC_MAP = {
+        "고용노동부": "welfare",         # 노동·임금·실업급여
+        "국토교통부": "construction",    # 건설기계·도로
+        "중소벤처기업부": "general",
+        "국립아시아문화전당": "general",
+        "성남시": "general",
+        "안양시": "environment",         # 흡연·금연 민원 다수
+    }
+
+    def map_topic(category: str, source: str = "") -> str:
+        cat = category or ""
+        if cat and cat != "-":
+            for keyword, topic in CATEGORY_TOPIC_MAP.items():
+                if keyword in cat:
+                    return topic
+        # category로 매핑 실패 시 source 기반 폴백
+        for src_keyword, topic in SOURCE_TOPIC_MAP.items():
+            if src_keyword in (source or ""):
+                return topic
         return "general"
 
     print("[Adaptive] RetrievalService 초기화 중...")
@@ -230,7 +252,7 @@ def run_adaptive(queries: list[dict]) -> dict[str, list[RunRecord]]:
         runs: dict[str, list[RunRecord]] = {}
         for idx, q in enumerate(queries, 1):
             qid = q["query_id"]
-            topic = map_topic(q.get("category", ""))
+            topic = map_topic(q.get("category", ""), q.get("source", ""))
             results = await svc.search(
                 query=q["query"],
                 top_k=TOP_K * 3,
