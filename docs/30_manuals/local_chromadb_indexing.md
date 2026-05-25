@@ -44,6 +44,21 @@ data/Public_Civil_Service_LLM_Data/Training/01.원천데이터/
 
 ## 2. 실행 순서
 
+### (선택) 이미 `data/chroma_db`가 준비된 경우: 인덱싱 생략하고 바로 검증
+이미 `data/chroma_db`를 설치/복사해둔 상태라면, 인덱싱을 다시 돌리지 않아도 됩니다.
+
+1) FastAPI 서버 기동 (터미널 1)
+```powershell
+python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+```
+
+2) 컬렉션 존재/건수 확인 (터미널 2)
+```powershell
+python -c "import chromadb; c=chromadb.PersistentClient(path='data/chroma_db').get_collection('civil_cases_v1'); print('count=', c.count())"
+```
+
+`count`가 1 이상이면, 이미 검색 가능한 상태입니다. 이어서 `http://127.0.0.1:8000/docs`에서 `/api/v1/search`를 호출해 결과가 나오는지 확인하세요.
+
 ### Step 1. FastAPI 서버 기동 (터미널 1)
 ```powershell
 python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
@@ -76,7 +91,7 @@ python scripts/build_index.py `
 | `--limit` | `0` (전체) | 처리할 최대 JSON 파일 수 |
 | `--rebuild` / `--no-rebuild` | `--rebuild` | 컬렉션 초기화 후 재빌드 / 기존 위에 upsert |
 
-> ⚠️ 기본값(`--rebuild`)은 컬렉션을 **초기화 후 재빌드**합니다. 기존 데이터를 유지하려면 `--no-rebuild`를 붙이세요.
+> ⚠️ 기본값(`--rebuild`)은 **첫 배치에서 해당 컬렉션을 초기화**한 뒤 재인덱싱합니다. 기존 데이터를 유지하려면 `--no-rebuild`를 붙이세요.
 
 ---
 
@@ -88,6 +103,14 @@ python scripts/build_index.py `
 http://127.0.0.1:8000/docs
 ```
 `/api/v1/search` 엔드포인트로 테스트 검색이 가능합니다.
+
+추가로, ChromaDB 저장 내용을 FastAPI에서 바로 확인할 수 있는 read-only 디버그 엔드포인트가 있습니다.
+
+- `GET /api/v1/chroma/collections`: 컬렉션 목록
+- `GET /api/v1/chroma/collections/{collection_name}/count`: 컬렉션 count
+- `GET /api/v1/chroma/collections/{collection_name}/sample?limit=5`: 샘플 문서/메타데이터
+
+> ⚠️ `Error loading hnsw index`가 발생하는 환경에서도, `sample`은 sqlite 폴백으로 샘플을 반환하도록 구현되어 있습니다.
 
 검색 요청 예시:
 ```json
@@ -132,6 +155,39 @@ print('done')
 
 > ⚠️ PowerShell의 `>` 리다이렉션은 UTF-8 출력을 깨뜨리므로, Python 내부에서 파일에 직접 쓰는 위 방식을 사용하세요.
 
+### 3.3. (권장) 스크립트로 샘플/덤프 보기
+출력이 너무 길어지지 않게, 샘플/덤프를 위한 스크립트를 제공합니다.
+
+**컬렉션 목록**
+```powershell
+python scripts/inspect_chromadb.py list
+```
+
+**건수 확인**
+```powershell
+python scripts/inspect_chromadb.py count --collection civil_cases_v1
+```
+
+**샘플 5개(JSON) 출력**
+```powershell
+python scripts/inspect_chromadb.py sample --collection civil_cases_v1 --limit 5
+```
+
+**전체 덤프(JSONL, 문서+메타데이터)**
+```powershell
+python scripts/inspect_chromadb.py dump --collection civil_cases_v1 --output logs/chroma/civil_cases_v1.jsonl
+```
+
+**(폴백) HNSW 인덱스 로딩 오류가 나는 경우에도 sqlite로 내용 확인**
+```powershell
+python scripts/inspect_chromadb.py sqlite --action docs --collection civil_cases_v1 --limit 5
+```
+
+**(폴백) 컬렉션 전체를 JSONL로 덤프**
+```powershell
+python scripts/inspect_chromadb.py sqlite --action dump --collection civil_cases_v1 --output logs/chroma/civil_cases_v1.sqlite_dump.jsonl --limit 0
+```
+
 ---
 
 ## 4. 자주 발생하는 에러
@@ -139,6 +195,7 @@ print('done')
 | 에러 메시지 | 원인 | 해결 |
 |------------|------|------|
 | `Torch not compiled with CUDA enabled` | CPU 전용 PyTorch가 설치되어 있음 | CUDA PyTorch 재설치 또는 `$env:EMBEDDING_DEVICE="cpu"` 후 **FastAPI 재시작** |
+| `chromadb.errors.InternalError: Error loading hnsw index` | HNSW 인덱스 파일 손상/누락(혹은 버전 불일치 등) | (1) 데이터 확인은 `inspect_chromadb.py sqlite` 폴백 사용 (2) 검색 정상화는 HNSW 재생성이 가장 확실: `python scripts/repair_chromadb_hnsw.py --device cpu --target-persist-dir data/chroma_db_rebuilt` 실행 후 앱에서 `CHROMA_DB_PATH`를 새 경로로 전환 |
 | `model not found: exaone3.5:7.8b` | Ollama 모델 미설치 | `ollama pull exaone3.5:7.8b` |
 | `Connection refused (127.0.0.1:8000)` | FastAPI 서버 미기동 | Step 1 먼저 실행 |
 | `Connection refused (11434)` | Ollama 서버 미기동 | `ollama serve` 또는 Ollama Desktop 실행 |
