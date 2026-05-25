@@ -118,6 +118,7 @@ def _build_stage(stage_spec: dict[str, Any]):
             collection=str(params.get("collection") or "civil_cases_v1"),
             top_k=int(params.get("top_k") or 50),
             index_dir=str(params.get("index_dir") or "data/bm25_index"),
+            tokenizer=str(params.get("tokenizer") or "whitespace"),
         )
 
     if stage_type == "rrf_fusion":
