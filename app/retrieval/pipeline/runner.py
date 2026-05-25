@@ -13,8 +13,10 @@ import yaml
 
 from app.evaluation.datasets import EvalQuery
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
+from app.retrieval.pipeline.stages.bm25_retriever import BM25RetrieveStage
 from app.retrieval.pipeline.stages.chroma_dense import ChromaDenseStage
 from app.retrieval.pipeline.stages.cross_encoder_rerank import CrossEncoderRerankStage
+from app.retrieval.pipeline.stages.rrf_fusion import RRFFusionStage
 
 
 @dataclass(frozen=True)
@@ -69,7 +71,7 @@ class RetrievalPipelineRunner:
             output = await stage.run(current)
             outputs[output.stage_name] = output
             total_latency += output.latency_ms
-            current = StageInput(query=query, candidates=output.candidates, context=current.context)
+            current = StageInput(query=query, candidates=output.candidates, context={"stage_outputs": outputs})
 
         final_docs = list(current.candidates)[: self.spec.final_top_k]
         return PipelineResult(
@@ -108,6 +110,23 @@ def _build_stage(stage_spec: dict[str, Any]):
             model_name=str(params.get("model_name") or "BAAI/bge-reranker-v2-m3"),
             top_k=int(params.get("top_k") or 10),
             batch_size=int(params.get("batch_size") or 32),
+        )
+
+    if stage_type == "bm25_retriever":
+        return BM25RetrieveStage(
+            name=name,
+            collection=str(params.get("collection") or "civil_cases_v1"),
+            top_k=int(params.get("top_k") or 50),
+            index_dir=str(params.get("index_dir") or "data/bm25_index"),
+        )
+
+    if stage_type == "rrf_fusion":
+        source_stages = params.get("source_stages")
+        return RRFFusionStage(
+            name=name,
+            source_stages=list(source_stages) if source_stages else None,
+            top_k=int(params.get("top_k") or 10),
+            k=int(params.get("k") or 60),
         )
 
     raise ValueError(f"지원하지 않는 검색 단계 유형입니다: {stage_type}")
