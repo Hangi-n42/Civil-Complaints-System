@@ -104,7 +104,7 @@ def load_corpus_jsonl(path: str | Path) -> list[CorpusDocument]:
 def load_queries_jsonl(path: str | Path) -> list[EvalQuery]:
     queries: list[EvalQuery] = []
     for row in _iter_jsonl(Path(path)):
-        qid = str(row.get("_id") or row.get("qid") or row.get("id") or "").strip()
+        qid = str(row.get("_id") or row.get("qid") or row.get("query_id") or row.get("id") or "").strip()
         text = str(row.get("text") or row.get("query") or "").strip()
         if not qid or not text:
             continue

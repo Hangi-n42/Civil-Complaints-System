@@ -69,7 +69,7 @@ class ChromaDenseStage:
 
 
 def _result_docid(item: dict[str, Any]) -> str:
-    return str(item.get("chunk_id") or item.get("doc_id") or item.get("case_id") or "")
+    return str(item.get("case_id") or item.get("doc_id") or item.get("chunk_id") or "")
 
 
 def _result_metadata(item: dict[str, Any]) -> dict[str, Any]:
