@@ -1,0 +1,29 @@
+pipeline_id: hybrid_bm25_dense_rrf
+seed: 42
+
+stages:
+  - name: bm25_retriever
+    type: bm25_retriever
+    params:
+      collection: civil_cases_v1
+      top_k: 50
+      index_dir: data/bm25_index
+
+  - name: dense_retriever
+    type: chroma_dense
+    params:
+      collection: civil_cases_v1
+      top_k: 50
+      use_adaptive_router: false
+
+  - name: rrf_fusion
+    type: rrf_fusion
+    params:
+      source_stages:
+        - bm25_retriever
+        - dense_retriever
+      top_k: 10
+      k: 60
+
+final:
+  take_top_k: 10
