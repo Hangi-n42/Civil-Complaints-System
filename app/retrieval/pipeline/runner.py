@@ -14,6 +14,7 @@ import yaml
 from app.evaluation.datasets import EvalQuery
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
 from app.retrieval.pipeline.stages.chroma_dense import ChromaDenseStage
+from app.retrieval.pipeline.stages.cross_encoder_rerank import CrossEncoderRerankStage
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,14 @@ def _build_stage(stage_spec: dict[str, Any]):
             collection=str(params.get("collection") or "civil_cases_v1"),
             top_k=int(params.get("top_k") or params.get("default_top_k") or 10),
             use_adaptive_router=bool(params.get("use_adaptive_router") or params.get("top_k_from_router")),
+        )
+
+    if stage_type == "cross_encoder_rerank":
+        return CrossEncoderRerankStage(
+            name=name,
+            model_name=str(params.get("model_name") or "BAAI/bge-reranker-v2-m3"),
+            top_k=int(params.get("top_k") or 10),
+            batch_size=int(params.get("batch_size") or 32),
         )
 
     raise ValueError(f"지원하지 않는 검색 단계 유형입니다: {stage_type}")
