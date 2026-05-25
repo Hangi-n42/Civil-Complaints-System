@@ -12,9 +12,11 @@ qrels: data/evaluation/v3/qrels.tsv (CASE-XXXXXX 레벨)
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 import time
 from collections import Counter
@@ -336,10 +338,27 @@ def main() -> None:
 
     # ── JSON 리포트 저장 ──
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    try:
+        git_commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        git_commit = "unknown"
+
+    qrels_path = DATA_DIR / "qrels.tsv"
+    eval_set_hash = hashlib.md5(qrels_path.read_bytes()).hexdigest()[:8]
+
     report = {
         "run_id": run_id,
-        "eval_set": "V3 (qrels_final, 767쌍, 50쿼리)",
+        "eval_set": "V3 (qrels_final, 749쌍, 49쿼리, Q-0036 도메인 외 제외)",
         "top_k": TOP_K,
+        "meta": {
+            "git_commit": git_commit,
+            "eval_set_hash": eval_set_hash,
+            "embedding_model": "BAAI/bge-m3",
+            "query_count": len(queries),
+        },
         "results": {
             name: {k: round(v, 4) for k, v in metrics.items()}
             for name, metrics in all_results.items()
