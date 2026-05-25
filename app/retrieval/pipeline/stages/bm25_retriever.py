@@ -75,7 +75,7 @@ class BM25RetrieveStage:
                 score=float(scores[0, rank]),
                 rank=rank + 1,
                 stage=self.name,
-                metadata={},
+                metadata={"snippet": str(results[0, rank].get("text") or "")[:200]},
             )
             for rank in range(results.shape[1])
         ]

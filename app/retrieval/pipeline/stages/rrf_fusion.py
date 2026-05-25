@@ -59,8 +59,11 @@ class RRFFusionStage:
             for doc in candidates:
                 rank = doc.rank if doc.rank > 0 else 1
                 rrf_scores[doc.docid] = rrf_scores.get(doc.docid, 0.0) + 1.0 / (self.k + rank)
-                # 점수가 높은 원본 doc을 대표로 저장
-                if doc.docid not in doc_ref or doc.score > doc_ref[doc.docid].score:
+                # metadata가 더 풍부한 doc을 대표로 저장 (같으면 점수 높은 것 우선)
+                prev = doc_ref.get(doc.docid)
+                if prev is None or len(doc.metadata) > len(prev.metadata):
+                    doc_ref[doc.docid] = doc
+                elif len(doc.metadata) == len(prev.metadata) and doc.score > prev.score:
                     doc_ref[doc.docid] = doc
 
         ranked = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
