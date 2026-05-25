@@ -32,7 +32,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core.config import settings
 from app.evaluation.metrics import RunRecord, evaluate_run
-from app.evaluation.datasets import QrelRecord
+from app.evaluation.datasets import EvalQuery, QrelRecord, load_queries_jsonl
+from app.evaluation.slices import evaluate_slices
 
 DATA_DIR = PROJECT_ROOT / "data" / "evaluation" / "v3"
 REPORT_DIR = PROJECT_ROOT / "reports" / "retrieval" / "v3"
@@ -281,6 +282,68 @@ def compute_metrics(runs: dict[str, list[RunRecord]], qrels: list[QrelRecord]) -
     return evaluate_run(qrels, all_records)
 
 
+# source → topic_type 매핑 (slice 평가용)
+_SOURCE_TO_TOPIC = {
+    "고용노동부": "welfare",
+    "국토교통부": "construction",
+    "중소벤처기업부": "general",
+    "국립아시아문화전당": "general",
+    "성남시": "general",
+    "안양시": "environment",
+}
+
+
+def _build_eval_queries(queries: list[dict[str, Any]]) -> list[EvalQuery]:
+    """run_v3 쿼리 dict 목록을 EvalQuery 객체로 변환 (slice 평가용)."""
+    result = []
+    for q in queries:
+        source = q.get("source", "")
+        category = q.get("category") or ""
+        topic_type = _SOURCE_TO_TOPIC.get(source, "general")
+        result.append(EvalQuery(
+            qid=q["query_id"],
+            text=q["query"],
+            metadata={
+                "source": source,
+                "category": category if category and category != "-" else "기타",
+                "topic_type": topic_type,
+            },
+        ))
+    return result
+
+
+def print_slice_table(
+    slice_results: dict[str, dict[str, dict[str, dict[str, float | int]]]],
+    primary_metric: str = "nDCG@5",
+) -> None:
+    """slice별 nDCG@5 비교 테이블 출력."""
+    ir_key = "nDCG@5"
+    for slice_key, method_slices in slice_results.items():
+        groups = sorted(
+            {g for method_data in method_slices.values() for g in method_data}
+        )
+        methods = list(method_slices.keys())
+        print(f"\n── Slice: {slice_key} ──")
+        header = f"{'그룹':<20}" + "".join(f"{'cnt':>5}") + "".join(f"{m:>16}" for m in methods)
+        print(header)
+        print("-" * (20 + 5 + 16 * len(methods)))
+        for group in groups:
+            cnt = next(
+                (method_slices[m][group].get("count", 0) for m in methods if group in method_slices[m]),
+                0,
+            )
+            row = f"{group:<20}{cnt:>5}"
+            for method in methods:
+                group_data = method_slices[method].get(group, {})
+                val = None
+                for k, v in group_data.items():
+                    if ir_key.lower() in k.lower():
+                        val = v
+                        break
+                row += f"{val:>15.4f}" if val is not None else f"{'N/A':>15}"
+            print(row)
+
+
 def print_table(results: dict[str, dict[str, float]]) -> None:
     metrics_to_show = ["nDCG@5", "nDCG@10", "Recall@5", "Recall@10", "MRR@5", "MRR@10", "AP@10"]
     # ir_measures 메트릭명 정규화
@@ -368,6 +431,18 @@ def main() -> None:
     # ── 결과 출력 ──
     print_table(all_results)
 
+    # ── Slice 평가 ──
+    print("\n[5] Slice 평가 (source / topic_type 축)...")
+    eval_queries = _build_eval_queries(queries)
+    slice_results: dict[str, dict[str, dict[str, dict[str, float | int]]]] = {}
+    for method_name, method_runs in all_runs.items():
+        all_run_records = [r for records in method_runs.values() for r in records]
+        slice_results[method_name] = evaluate_slices(
+            eval_queries, qrels, all_run_records,
+            slice_keys=("source", "topic_type"),
+        )
+    print_slice_table(slice_results)
+
     # ── JSON 리포트 저장 ──
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
@@ -399,6 +474,16 @@ def main() -> None:
             "BM25": round(bm25_time, 2),
             "BGE-m3 Dense": round(dense_time, 2),
             "Adaptive": round(adaptive_time, 2),
+        },
+        "slice_results": {
+            method: {
+                slice_key: {
+                    group: {k: round(v, 4) if isinstance(v, float) else v for k, v in group_data.items()}
+                    for group, group_data in slice_data.items()
+                }
+                for slice_key, slice_data in method_slices.items()
+            }
+            for method, method_slices in slice_results.items()
         },
     }
     report_path = REPORT_DIR / f"comparison_{run_id}.json"
