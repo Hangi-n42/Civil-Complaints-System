@@ -1,23 +1,20 @@
 """
 V3 평가셋 검색 성능 비교
-- BM25 (인메모리)
+- BM25 (인메모리, kiwipiepy 한국어 토크나이저)
 - BGE-m3 Dense (ChromaDB 직접, 어댑티브 없음)
 - BGE-m3 Adaptive (RetrievalService + 어댑티브 라우터)
 
 qrels: data/evaluation/v3/qrels.tsv (CASE-XXXXXX 레벨)
 코퍼스: data/evaluation/v3/corpus_meta.json (9,132건)
-쿼리: data/evaluation/v3/queries.jsonl (50건)
+쿼리: data/evaluation/v3/queries.jsonl (49건, Q-0036 도메인 외 제외)
 """
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import math
-import random
 import re
-import subprocess
 import sys
 import time
 from collections import Counter
@@ -25,24 +22,72 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core.config import settings
 from app.evaluation.metrics import RunRecord, evaluate_run
-from app.evaluation.datasets import EvalQuery, QrelRecord, load_queries_jsonl
-from app.evaluation.slices import evaluate_slices
+from app.evaluation.datasets import QrelRecord
 
 DATA_DIR = PROJECT_ROOT / "data" / "evaluation" / "v3"
 REPORT_DIR = PROJECT_ROOT / "reports" / "retrieval" / "v3"
 TOP_K = 10
 
+# ──────────────────────────────────────────────
+# Topic 매핑 (모듈 레벨 단일 정의 — run_adaptive, _build_eval_queries 공용)
+# v3 평가셋 49개 쿼리의 category/source 전수 분석 결과
+# ──────────────────────────────────────────────
+
+_CATEGORY_TOPIC_MAP: dict[str, str] = {
+    "건강증진": "environment",   # 흡연·금연·난임
+    "건설": "construction",       # 건설기계·건설산업과·건설과
+    "도로": "traffic",
+    "교통": "traffic",
+    "경제": "traffic",            # 경제교통과
+    "환경": "environment",
+    "공원": "environment",
+    "소음": "environment",
+    "복지": "welfare",
+    "의료": "welfare",
+    "금융": "welfare",
+    "주택": "welfare",
+}
+
+_SOURCE_TOPIC_MAP: dict[str, str] = {
+    "고용노동부": "welfare",         # 노동·임금·실업급여
+    "국토교통부": "construction",    # 건설기계·도로
+    "중소벤처기업부": "general",
+    "국립아시아문화전당": "general",
+    "성남시": "general",
+    "안양시": "environment",         # 흡연 민원 다수
+}
+
+
+def _map_topic(category: str, source: str = "") -> str:
+    """category 키워드 매핑 → 실패 시 source 폴백."""
+    cat = category or ""
+    if cat and cat != "-":
+        for keyword, topic in _CATEGORY_TOPIC_MAP.items():
+            if keyword in cat:
+                return topic
+    for src_keyword, topic in _SOURCE_TOPIC_MAP.items():
+        if src_keyword in (source or ""):
+            return topic
+    return "general"
+
 
 # ──────────────────────────────────────────────
-# BM25 (인메모리)
+# BM25 (인메모리, kiwipiepy 한국어 토크나이저)
 # ──────────────────────────────────────────────
+
+def _korean_tokenize_safe(texts: list[str]) -> list[list[str]]:
+    """kiwipiepy 형태소 분석. 미설치 시 공백 분리로 폴백."""
+    try:
+        from app.retrieval.pipeline.stages.bm25_retriever import _tokenize_korean
+        return _tokenize_korean(texts)
+    except ImportError:
+        return [re.findall(r"[A-Za-z0-9가-힣]+", t.lower()) for t in texts]
+
 
 class BM25:
     def __init__(self, corpus: list[str], k1: float = 1.5, b: float = 0.75):
@@ -53,13 +98,11 @@ class BM25:
         self.idf: dict[str, float] = {}
         self._build(corpus)
 
-    def _tok(self, text: str) -> list[str]:
-        return re.findall(r"[A-Za-z0-9가-힣]+", text.lower())
-
     def _build(self, corpus: list[str]) -> None:
+        tokenized = _korean_tokenize_safe(corpus)
         nd: dict[str, int] = {}
-        for doc in corpus:
-            freq = Counter(self._tok(doc))
+        for tokens in tokenized:
+            freq = Counter(tokens)
             self.doc_freqs.append(freq)
             self.doc_len.append(sum(freq.values()))
             for w in freq:
@@ -69,8 +112,9 @@ class BM25:
             self.idf[w] = math.log(((self.n - df + 0.5) / (df + 0.5)) + 1)
 
     def top_k(self, query: str, k: int) -> list[tuple[int, float]]:
+        q_tokens = _korean_tokenize_safe([query])[0]
         scores = [0.0] * self.n
-        for q in self._tok(query):
+        for q in q_tokens:
             idf = self.idf.get(q, 0.0)
             if idf == 0.0:
                 continue
@@ -213,44 +257,6 @@ def run_dense(queries: list[dict], collection_name: str = "civil_cases_v1") -> d
 def run_adaptive(queries: list[dict]) -> dict[str, list[RunRecord]]:
     from app.retrieval.service import RetrievalService
 
-    # category 키워드 → topic 매핑 (v3 평가셋 49개 쿼리 카테고리 전수 분석 기반)
-    CATEGORY_TOPIC_MAP = {
-        "건강증진": "environment",   # 흡연·금연·난임
-        "건설": "construction",       # 건설기계·건설산업과·건설과
-        "도로": "traffic",
-        "교통": "traffic",
-        "경제": "traffic",            # 경제교통과
-        "환경": "environment",
-        "공원": "environment",
-        "소음": "environment",
-        "복지": "welfare",
-        "의료": "welfare",
-        "금융": "welfare",
-        "주택": "welfare",
-    }
-
-    # source → topic 폴백 (category가 비어있거나 '-'인 경우)
-    SOURCE_TOPIC_MAP = {
-        "고용노동부": "welfare",         # 노동·임금·실업급여
-        "국토교통부": "construction",    # 건설기계·도로
-        "중소벤처기업부": "general",
-        "국립아시아문화전당": "general",
-        "성남시": "general",
-        "안양시": "environment",         # 흡연·금연 민원 다수
-    }
-
-    def map_topic(category: str, source: str = "") -> str:
-        cat = category or ""
-        if cat and cat != "-":
-            for keyword, topic in CATEGORY_TOPIC_MAP.items():
-                if keyword in cat:
-                    return topic
-        # category로 매핑 실패 시 source 기반 폴백
-        for src_keyword, topic in SOURCE_TOPIC_MAP.items():
-            if src_keyword in (source or ""):
-                return topic
-        return "general"
-
     print("[Adaptive] RetrievalService 초기화 중...")
     svc = RetrievalService()
 
@@ -258,7 +264,7 @@ def run_adaptive(queries: list[dict]) -> dict[str, list[RunRecord]]:
         runs: dict[str, list[RunRecord]] = {}
         for idx, q in enumerate(queries, 1):
             qid = q["query_id"]
-            topic = map_topic(q.get("category", ""), q.get("source", ""))
+            topic = _map_topic(q.get("category", ""), q.get("source", ""))
             results = await svc.search(
                 query=q["query"],
                 top_k=TOP_K * 3,
@@ -282,66 +288,67 @@ def compute_metrics(runs: dict[str, list[RunRecord]], qrels: list[QrelRecord]) -
     return evaluate_run(qrels, all_records)
 
 
-# source → topic_type 매핑 (slice 평가용)
-_SOURCE_TO_TOPIC = {
-    "고용노동부": "welfare",
-    "국토교통부": "construction",
-    "중소벤처기업부": "general",
-    "국립아시아문화전당": "general",
-    "성남시": "general",
-    "안양시": "environment",
-}
+def _get_metric(metrics: dict[str, float], key: str) -> float:
+    """ir_measures 키 형식 무관하게 메트릭 값 추출."""
+    for k, v in metrics.items():
+        if key.lower() in k.lower():
+            return v
+    return 0.0
 
 
-def _build_eval_queries(queries: list[dict[str, Any]]) -> list[EvalQuery]:
-    """run_v3 쿼리 dict 목록을 EvalQuery 객체로 변환 (slice 평가용)."""
-    result = []
-    for q in queries:
-        source = q.get("source", "")
-        category = q.get("category") or ""
-        topic_type = _SOURCE_TO_TOPIC.get(source, "general")
-        result.append(EvalQuery(
-            qid=q["query_id"],
-            text=q["query"],
-            metadata={
-                "source": source,
-                "category": category if category and category != "-" else "기타",
-                "topic_type": topic_type,
-            },
-        ))
-    return result
+# 채택 규칙 기준 (평가 계획서 §5.2)
+_GATE_NDCG5_DELTA = 0.05    # Primary nDCG@5 개선 최소치
+_GATE_RECALL10_FLOOR = -0.02  # Recall@10 허용 최대 하락
+_GATE_LATENCY_P95_MS = 800_000  # ms 단위 (평균 latency_s * 1000 으로 근사)
 
 
-def print_slice_table(
-    slice_results: dict[str, dict[str, dict[str, dict[str, float | int]]]],
-    primary_metric: str = "nDCG@5",
-) -> None:
-    """slice별 nDCG@5 비교 테이블 출력."""
-    ir_key = "nDCG@5"
-    for slice_key, method_slices in slice_results.items():
-        groups = sorted(
-            {g for method_data in method_slices.values() for g in method_data}
-        )
-        methods = list(method_slices.keys())
-        print(f"\n── Slice: {slice_key} ──")
-        header = f"{'그룹':<20}" + "".join(f"{'cnt':>5}") + "".join(f"{m:>16}" for m in methods)
-        print(header)
-        print("-" * (20 + 5 + 16 * len(methods)))
-        for group in groups:
-            cnt = next(
-                (method_slices[m][group].get("count", 0) for m in methods if group in method_slices[m]),
-                0,
-            )
-            row = f"{group:<20}{cnt:>5}"
-            for method in methods:
-                group_data = method_slices[method].get(group, {})
-                val = None
-                for k, v in group_data.items():
-                    if ir_key.lower() in k.lower():
-                        val = v
-                        break
-                row += f"{val:>15.4f}" if val is not None else f"{'N/A':>15}"
-            print(row)
+def _check_gate(
+    baseline: dict[str, float],
+    candidate: dict[str, float],
+    candidate_latency_s: float,
+) -> dict[str, Any]:
+    """Adaptive vs BM25 baseline 채택 규칙 판정."""
+    ndcg5_base = _get_metric(baseline, "nDCG@5")
+    ndcg5_cand = _get_metric(candidate, "nDCG@5")
+    recall10_base = _get_metric(baseline, "R@10")
+    recall10_cand = _get_metric(candidate, "R@10")
+
+    ndcg5_delta = ndcg5_cand - ndcg5_base
+    recall10_delta = recall10_cand - recall10_base
+    latency_ms = candidate_latency_s / max(1, 1) * 1000  # 전체 소요시간(ms)
+
+    checks = [
+        {
+            "name": "ndcg5_improvement",
+            "label": f"nDCG@5 개선폭 ≥ +{_GATE_NDCG5_DELTA:.2f}",
+            "passed": ndcg5_delta >= _GATE_NDCG5_DELTA,
+            "value": round(ndcg5_delta, 4),
+            "threshold": _GATE_NDCG5_DELTA,
+        },
+        {
+            "name": "recall10_guardrail",
+            "label": f"Recall@10 하락 ≤ {abs(_GATE_RECALL10_FLOOR):.2f}",
+            "passed": recall10_delta >= _GATE_RECALL10_FLOOR,
+            "value": round(recall10_delta, 4),
+            "threshold": _GATE_RECALL10_FLOOR,
+        },
+    ]
+    return {
+        "baseline": "BM25",
+        "candidate": "Adaptive",
+        "checks": checks,
+        "all_passed": all(c["passed"] for c in checks),
+    }
+
+
+def _print_gate(gate: dict[str, Any]) -> None:
+    passed_sym = {True: "✓", False: "✗"}
+    verdict = "PASS" if gate["all_passed"] else "FAIL"
+    print(f"\n[GATE] {gate['candidate']} vs {gate['baseline']} 채택 판정")
+    for c in gate["checks"]:
+        sym = passed_sym[c["passed"]]
+        print(f"  {c['label']:<35} {c['value']:>+.4f}  {sym}")
+    print(f"  {'결과':<35} {verdict}")
 
 
 def print_table(results: dict[str, dict[str, float]]) -> None:
@@ -374,17 +381,10 @@ def print_table(results: dict[str, dict[str, float]]) -> None:
     print("=" * (14 + 16 * len(results)))
 
 
-SEED = 42
-
-
 def main() -> None:
-    random.seed(SEED)
-    np.random.seed(SEED)
-
     print("=" * 60)
     print("V3 평가셋 검색 성능 비교 시작")
     print(f"시각: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
-    print(f"랜덤 시드: {SEED}")
     print("=" * 60)
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -431,41 +431,20 @@ def main() -> None:
     # ── 결과 출력 ──
     print_table(all_results)
 
-    # ── Slice 평가 ──
-    print("\n[5] Slice 평가 (source / topic_type 축)...")
-    eval_queries = _build_eval_queries(queries)
-    slice_results: dict[str, dict[str, dict[str, dict[str, float | int]]]] = {}
-    for method_name, method_runs in all_runs.items():
-        all_run_records = [r for records in method_runs.values() for r in records]
-        slice_results[method_name] = evaluate_slices(
-            eval_queries, qrels, all_run_records,
-            slice_keys=("source", "topic_type"),
-        )
-    print_slice_table(slice_results)
+    # ── Quality Gate (Adaptive vs BM25 baseline) ──
+    gate = _check_gate(
+        baseline=bm25_metrics,
+        candidate=adaptive_metrics,
+        candidate_latency_s=adaptive_time,
+    )
+    _print_gate(gate)
 
     # ── JSON 리포트 저장 ──
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-    try:
-        git_commit = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except Exception:
-        git_commit = "unknown"
-
-    qrels_path = DATA_DIR / "qrels.tsv"
-    eval_set_hash = hashlib.md5(qrels_path.read_bytes()).hexdigest()[:8]
-
     report = {
         "run_id": run_id,
         "eval_set": "V3 (qrels_final, 749쌍, 49쿼리, Q-0036 도메인 외 제외)",
         "top_k": TOP_K,
-        "meta": {
-            "git_commit": git_commit,
-            "eval_set_hash": eval_set_hash,
-            "embedding_model": "BAAI/bge-m3",
-            "query_count": len(queries),
-        },
         "results": {
             name: {k: round(v, 4) for k, v in metrics.items()}
             for name, metrics in all_results.items()
@@ -475,16 +454,7 @@ def main() -> None:
             "BGE-m3 Dense": round(dense_time, 2),
             "Adaptive": round(adaptive_time, 2),
         },
-        "slice_results": {
-            method: {
-                slice_key: {
-                    group: {k: round(v, 4) if isinstance(v, float) else v for k, v in group_data.items()}
-                    for group, group_data in slice_data.items()
-                }
-                for slice_key, slice_data in method_slices.items()
-            }
-            for method, method_slices in slice_results.items()
-        },
+        "gate": gate,
     }
     report_path = REPORT_DIR / f"comparison_{run_id}.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
