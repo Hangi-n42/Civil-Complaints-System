@@ -104,7 +104,7 @@ def load_corpus_jsonl(path: str | Path) -> list[CorpusDocument]:
 def load_queries_jsonl(path: str | Path) -> list[EvalQuery]:
     queries: list[EvalQuery] = []
     for row in _iter_jsonl(Path(path)):
-        qid = str(row.get("_id") or row.get("qid") or row.get("id") or "").strip()
+        qid = str(row.get("_id") or row.get("qid") or row.get("query_id") or row.get("id") or "").strip()
         text = str(row.get("text") or row.get("query") or "").strip()
         if not qid or not text:
             continue
@@ -128,7 +128,11 @@ def load_qrels_tsv(path: str | Path) -> list[QrelRecord]:
                 raise ValueError(f"qrels.tsv {line_number}번째 줄 형식이 올바르지 않습니다: {raw_line!r}")
             if line_number == 1 and parts[0].lower() in {"qid", "query_id"}:
                 continue
-            qid, docid, relevance = parts[:3]
+            # 3컬럼(qid docid rel) 또는 TREC 4컬럼(qid iter docid rel) 모두 지원
+            if len(parts) >= 4:
+                qid, _, docid, relevance = parts[:4]
+            else:
+                qid, docid, relevance = parts[:3]
             qrels.append(QrelRecord(qid=str(qid), docid=str(docid), relevance=int(relevance)))
     return qrels
 
