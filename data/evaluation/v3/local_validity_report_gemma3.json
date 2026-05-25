@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-05-25T14:50:27",
+  "dataset": "V3",
+  "models": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "ax4-light-local:latest"
+  ],
+  "n_total_pairs": 767,
+  "n_fully_scored": 767,
+  "n_conflict": 2,
+  "conflict_rate": 0.0026,
+  "n_agree_original": 430,
+  "agree_original_rate": 0.5606,
+  "score_distribution": {
+    "0": 150,
+    "1": 315,
+    "2": 299,
+    "3": 3
+  },
+  "inter_rater_agreement": {
+    "fleiss_kappa": 0.5752,
+    "fleiss_kappa_grade": "moderate (≥0.4)",
+    "cohen_kappa_ex35_gem3": 0.7152,
+    "cohen_kappa_ex35_ax4": 0.6264,
+    "cohen_kappa_gem3_ax4": 0.6471
+  },
+  "correlation_with_original": {
+    "spearman_rho_final_vs_original": 0.7296,
+    "spearman_rho_ex35_vs_original": 0.6793
+  },
+  "validity_thresholds": {
+    "fleiss_kappa_min": 0.4,
+    "conflict_rate_max": 0.15
+  },
+  "verdict": "VALID",
+  "verdict_detail": "Fleiss κ=0.575 (moderate (≥0.4)), 충돌율=0.3%, 기존 qrels 일치율=56.1%"
+}

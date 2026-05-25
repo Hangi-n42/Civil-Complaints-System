@@ -1,173 +1,276 @@
-# RAG 검색 성능 평가 — 정확한 지표 산출 플랜
+# RAG 검색 성능 평가 — 졸업작품 친화 lite 플랜
 
-문서 버전: v1.0
-작성 일시: 2026-05-05
-범위: BE2 검색 / Adaptive RAG 코어의 검색 품질 측정 방법론
+문서 버전: v3.0 (Lite)
+이력: v1.0 (2026-05-05, 산업체 수준 초안) → v2.0 (2026-05-21, Two-tier 통합) → **v3.0 (2026-05-21, 졸업작품 친화로 단순화)**
+담당: BE2 (검색 / Adaptive RAG 코어)
+범위: 한정된 시간 내에 검색 변경의 효과를 "충분히 객관적으로" 비교할 수 있게 하는 최소 평가 체계
+
+> **이 문서의 자세 차이.** v2.0은 산업체 운영 기준의 빡빡한 규약(Kappa, bootstrap CI, nightly CI, 4종 베이스라인 등)을 담았다. v3.0은 그 중 *발표·시연 가치와 직결되는 항목*만 남기고, 검증 비용이 큰 항목은 spot check 수준으로 낮춘다. 더 정밀한 운영이 필요해지면 v2.0의 절차로 언제든 승급할 수 있다.
 
 ---
 
 ## 0. 배경
 
-현재 [scripts/run_issue_103.py](../../scripts/run_issue_103.py)에 Recall@K / MRR@K / Precision@5 / latency 지표와 slice별 집계, gate 통과 기준이 구현돼 있다. 다만 **"정확한"** 지표 산출 관점에서 다음과 같은 구조적 한계가 있어, 이를 보완하는 단계별 플랜을 정리한다.
+사용자가 "답변 초안 생성" 버튼을 누르면 현재 민원과 유사한 과거 민원을 검색해 컨텍스트로 쓰고 답변 초안을 만든다. 검색 변경마다 "정말 좋아졌는지"를 *대략적으로라도* 비교할 수 있는 기준선이 필요하다. 본 문서는 **2주 안에 한 번 만들어 두면 그 뒤로 검색 PR마다 같은 잣대로 비교할 수 있는 최소 평가셋과 메트릭 운영안**을 정의한다.
 
 ---
 
-## 1. 현재 평가 파이프라인의 한계 진단
+## 1. 핵심 원칙 (Lite 버전)
 
-| 영역 | 현재 상태 | 한계 |
-|------|----------|------|
-| **정답(ground truth) 정의** | `evaluation_set.json`의 `context[].chunk_id` 단일 집합 (이진 관련성) | 부분 관련 사례, 여러 등급의 관련성을 표현 불가 → nDCG 계산 불가 |
-| **메트릭 종류** | Recall@5/10, MRR@5/10, Precision@5, 평균 latency | nDCG@K, MAP, Hit Rate@K, p95/p99 latency 부재 |
-| **재현성** | `random.sample`이 시드 미고정 ([run_issue_103.py:140](../../scripts/run_issue_103.py#L140)) | 샘플링 시 결과가 매번 다름 |
-| **신뢰도** | 단일 평균값만 보고 | 신뢰구간(bootstrap CI) 없어 모델 비교 시 유의성 판단 불가 |
-| **Adaptive Router 반영** | top_k=10 고정으로 검색 ([run_issue_103.py:266](../../scripts/run_issue_103.py#L266)) | 라우터가 결정한 `top_k`/`chunk_policy`를 거치지 않은 측정 → 실제 운영 성능과 괴리 |
-| **베이스라인** | BGE-m3 단독 측정 | BM25 / 하이브리드 / 임베딩 모델 간 비교 가능한 공통 프레임 부재 |
-| **Slice 분석** | scenario_type / risk_level / multi_request / time_sensitivity ([run_issue_103.py:185-198](../../scripts/run_issue_103.py#L185-L198)) | `topic_type` × `complexity_level` 조합(라우팅 키) 슬라이스 부재 |
+1. **메트릭 2개만 본다.** Primary `nDCG@5`, Guardrail `Recall@10`. 그 외는 진단용.
+2. **통계 검정은 안 한다.** 평균값 비교만 한다. 5%p 이상 차이는 "유의미"로 간주.
+3. **라벨링은 작게 하되 깨끗이 한다.** 50 쿼리 × top-10 후보 = 500건만 사람이 본다.
+4. **자동화는 수동 실행까지만.** CI는 욕심내지 않는다. 대신 *재현성*(시드, hash)은 챙긴다.
+5. **발표에 쓰일 한 장의 표를 만든다.** Baseline 2종 + Ablation 3-mode의 비교표.
 
 ---
 
-## 2. 정답 데이터셋 품질 확보
+## 2. 현재 상태 (요약)
 
-`evaluation_set.json`이 결과의 정확도를 좌우하므로 가장 먼저 해결한다.
+### 2.1 이미 있는 것
 
-1. **Graded relevance 도입**
-   - `context[].chunk_id` 외에 `relevance: 0|1|2|3` 필드 추가
-   - 0 = 무관 / 1 = 약한 관련 / 2 = 관련 / 3 = 정답
-2. **이중 라벨링**
-   - 동일 쿼리를 2명이 라벨링 후 Cohen's κ ≥ 0.7 확보
-   - 불일치는 합의(adjudication) 라벨링
-3. **풀링(pooling) 전략**
-   - BGE-m3 + BM25 + 다국어 SBERT의 top-20 합집합을 평가 후보로 사용
-   - "정답인데 인덱스에 없음" 누락(missing relevant)을 줄임
-4. **분포 검증**
-   - `topic_type` × `complexity_level` 셀별 최소 30개 쿼리 확보 (slice 통계 신뢰도)
-   - 셀별 분포 표를 리포트에 포함
+- `app/evaluation/metrics.py` (Recall, P, MRR, nDCG, AP)
+- `app/evaluation/{datasets,slices,reporting}.py`
+- [scripts/evaluate_retrieval.py](../../scripts/evaluate_retrieval.py), [scripts/build_aihub_retrieval_eval_set.py](../../scripts/build_aihub_retrieval_eval_set.py)
+- `data/evaluation/`: 250 chunk pool, gold50, smoke10, manifest hash
 
----
+### 2.2 꼭 고쳐야 할 3가지 (퀵윈)
 
-## 3. 정확도 / 신뢰도가 보장되는 메트릭 산출
+| 항목 | 위치 | 조치 |
+|---|---|---|
+| Recall 분모 버그 | [run_issue_103.py:166](../../scripts/run_issue_103.py#L166) | 분모 `\|GT\|` → `min(\|GT\|, k)` |
+| 시드 미고정 | [run_issue_103.py:140](../../scripts/run_issue_103.py#L140) | `--seed` 인자 추가 + `random.seed`/`numpy.seed` |
+| Adaptive 우회 | [run_issue_103.py:266](../../scripts/run_issue_103.py#L266) | `top_k=10` 고정 대신 `RetrievalService.search()` 직접 호출 |
 
-[scripts/run_issue_103.py](../../scripts/run_issue_103.py)를 기반으로 다음을 추가한다.
+위 3개만 잡아도 평가 신뢰도가 즉시 올라간다.
 
-### 3.1 메트릭 확장
+### 2.3 현재 라벨의 약점 (꼭 해결)
 
-- **nDCG@5/10** — graded relevance를 활용한 순위 품질 지표
-- **MAP@10** — 다중 정답 시 평균 정밀도
-- **Hit Rate@K** — 최소 1개 정답 포함 여부 (binary)
-- **Recall@K 보정** — 분모를 `min(|GT|, k)`로 변경
-  - 현재 `_calculate_recall`은 `|GT|`로 나눠 GT가 k보다 크면 상한이 1 미만 → [run_issue_103.py:166](../../scripts/run_issue_103.py#L166) 수정 필요
-
-### 3.2 Latency 분해
-
-- 평균 외 **p50 / p95 / p99**
-- **임베딩 시간**과 **Chroma query 시간** 분리 측정
-- 콜드/워밍 상태 구분 (첫 N개 쿼리 제외)
-
-### 3.3 부트스트랩 신뢰구간
-
-- 쿼리 단위 결과 리스트를 1000회 resample → **95% CI** 산출
-- 모델 A/B 비교 시 **paired bootstrap**으로 차이의 유의성 검정
-
-### 3.4 재현성
-
-- `--seed` 인자 추가, `random.seed` / `numpy.seed` 고정
-- 리포트 메타데이터에 다음을 기록:
-  - eval_set 파일 해시
-  - 임베딩 모델 이름·버전
-  - Chroma collection size, persist_dir
-  - 실행 환경 (Python, OS, device)
+- gold50은 `review_status: auto_candidate_pending_BE1_BE2_human_review`
+- per query 정답 1개 (자기 source의 chunk) → **leak** 위험
+- → §4에서 multi-positive + leak 방지로 v2 라벨셋 구축
 
 ---
 
-## 4. Adaptive RAG 특화 평가
+## 3. Relevance 정의 (Lite)
 
-이 프로젝트의 핵심은 라우터이므로, "라우터 + 검색"을 묶어 평가해야 실제 성능이 측정된다.
+### 3.1 3단계 graded relevance
 
-### 4.1 End-to-end 모드
+| 등급 | 정의 | 판정 기준 |
+|---|---|---|
+| **2** | 답변에 그대로 인용 가능 | 같은 쟁점 + 같은 법령/제도 |
+| **1** | 답변 일부 근거로 활용 | 같은 카테고리·주제, 쟁점 일부 일치 |
+| **0** | 답변에 부적합 | 표면 키워드만 겹침 |
 
-[app/retrieval/service.py](../../app/retrieval/service.py)의 `RetrievalService.search()`를 직접 호출해 라우터가 정한 `top_k`, `snippet_max_chars`, `retrieval_policy`가 반영된 결과로 메트릭 산출.
+### 3.2 합의 절차 (Lite)
 
-### 4.2 Route-key 슬라이스
+- Cohen's Kappa는 **계산하지 않는다**.
+- 대신 BE1/BE2가 5건만 같이 라벨링하고 **모두 일치하면 OK**, 1건 이상 불일치하면 정의 한 줄 보강. (spot agreement)
+- 정의서: `docs/60_specs/retrieval_relevance_definition.md` (예시 5건 포함)
 
-`_aggregate_slice_metrics`에 다음 차원 추가:
-- `route_key` (= `{topic_type}/{complexity_level}`)
-- `strategy_id` (예: `topic_welfare_high_v1`)
+---
 
-### 4.3 라우팅 정확도
+## 4. Gold 평가셋 v2 구축 (Lite)
+re
+### 4.1 Pooling (축소판)
 
-- 라벨러가 부여한 "기대 route_key"와 실제 라우팅 결과의 일치율
-- **Top-1 라우팅 정확도** (별도 지표로 측정)
+1. 평가 쿼리 **50건** (기존 gold50 재사용)
+2. 후보 검색기 **2종** 실행: BM25 + BGE-m3
+3. 각 쿼리당 **top-10**씩 → 합집합 = 한 쿼리당 약 15건 풀
+4. 사람이 0/1/2 라벨링 (**총 ~750건**, 2인이면 1~2일)
+5. TREC qrels 포맷(`qid 0 docid relevance`)으로 저장
 
-### 4.4 Ablation 비교
+### 4.2 자동 후보 보강 (사람 부담 절감)
 
-같은 쿼리셋으로 다음 3개 모드를 비교해 라우팅 기여도를 정량화:
+- 같은 `source` + 같은 `consulting_category` → 1점 후보로 자동 추가
+- 사람은 등급 매김만
+
+### 4.3 Leak 방지 (필수)
+
+- 쿼리 `source_id` == 후보 `source_id` → **정답에서 제외**
+- "자기 자신"이 아닌 "다른 사례 중 유사한 것"만 정답
+
+### 4.4 산출물
+
+- `data/evaluation/v2/{corpus,queries}.jsonl`, `qrels.tsv`, `manifest.json`
+
+> v2.0의 2,000건 라벨링 → v3.0의 ~750건으로 60% 절감.
+
+---
+
+## 5. 메트릭 (Lite)
+
+### 5.1 2개만 본다
+
+| 역할 | 메트릭 | 의도 |
+|---|---|---|
+| **Primary** | `nDCG@5` | 답변 컨텍스트(K=3~5)에 들어가는 상위 결과 품질 |
+| **Guardrail** | `Recall@10` | 결정적 근거를 놓치지 않았는가 |
+
+그 외(MRR@10, MAP@10, P@5, Hit Rate@K)는 `evaluate_retrieval.py`가 어차피 계산하므로 리포트에 같이 나오게만 두고, *의사결정엔 쓰지 않는다*.
+
+### 5.2 채택 규칙 (Lite)
+
+- Primary가 **+0.05 이상** 개선 + Guardrail이 **−0.02 이내** + Latency p95 **≤ 800ms**
+- Bootstrap CI / paired bootstrap은 **하지 않는다**. 큰 차이만 본다.
+
+### 5.3 재현성 (필수)
+
+- `--seed` 인자, `random.seed`/`numpy.seed` 고정
+- 리포트 메타데이터: `eval_set_hash`, 임베딩 모델 이름, git commit hash
+
+---
+
+## 6. Slice 평가 (Lite, 2축만)
+
+평균만 보면 회귀를 놓친다. 다만 졸업작품 단계에서는 다축을 다 보지 않아도 된다. **2축만** 본다.
+
+| 축 | 버킷 |
+|---|---|
+| **`route_key`** | `{topic_type}/{complexity_level}` (Adaptive Router 핵심 키 — 발표 효과↑) |
+| **복잡도** | high / mid / low |
+
+기관별·카테고리별 slice는 v2.0 산업체 운영 단계에서 추가.
+
+---
+
+## 7. Adaptive Router 평가 (필수 — 프로젝트의 차별점)
+
+이 부분은 *졸업작품의 핵심 셀링 포인트*이므로 줄이지 않는다.
+
+### 7.1 End-to-end 모드 측정
+
+[app/retrieval/service.py](../../app/retrieval/service.py)의 `RetrievalService.search()`를 호출해 라우터가 정한 `top_k`/`retrieval_policy`가 반영된 결과로 메트릭 산출. `scripts/evaluate_retrieval.py`에 `--mode {raw,adaptive}` 인자 추가.
+
+### 7.2 Ablation 3-mode (발표용 1회)
+
+같은 쿼리셋으로 한 번만 측정해 발표 자료에 박는다.
 
 | 모드 | 설명 |
 |------|------|
-| ① Fixed top_k=5 | 라우팅 비활성, 단일 segment |
+| ① Fixed top_k=5 | 라우팅 비활성 |
 | ② Adaptive | 복잡도 기반 top_k 동적 조정 |
 | ③ Adaptive + segment merge | 복합 의도 분해 + 결과 병합 |
 
----
-
-## 5. 베이스라인 비교 및 회귀 방지
-
-### 5.1 베이스라인
-
-다음 4종을 같은 evaluation_set으로 평가해 표 한 장에 정리:
-
-- BM25 (`rank_bm25`)
-- 다국어 MiniLM (`paraphrase-multilingual-MiniLM-L12-v2`)
-- BGE-m3 (`BAAI/bge-m3`) — 현재 운영 모델
-- BGE-m3 + BM25 하이브리드 (RRF, Reciprocal Rank Fusion)
-
-### 5.2 회귀 게이트
-
-현재 `Recall@5 ≥ 0.75` 단일 게이트를 다음으로 확장:
-
-| 메트릭 | 임계값 | 현재 |
-|--------|--------|------|
-| `nDCG@10` | ≥ 0.70 | 미측정 |
-| `MRR@10` | ≥ 0.65 | 미측정 |
-| `p95 latency` | ≤ 800ms | 평균만 측정 |
-| `route_key 정확도` | ≥ 0.85 | 미측정 |
-
-### 5.3 CI 통합
-
-- [scripts/evaluate_retrieval.py](../../scripts/evaluate_retrieval.py)를 nightly로 실행
-- 결과를 `reports/retrieval/{date}/`에 시계열로 저장
-- 이전 베이스라인 대비 회귀 시 알림
+표 한 장에 nDCG@5 / Recall@10 / p95 latency를 모드별로 적는다.
 
 ---
 
-## 6. 산출물 (플랜 완료 시)
+## 8. Latency (Lite)
 
-| 산출물 | 경로 | 설명 |
+- **p95만 본다.** p50/p99는 같이 출력되지만 의사결정엔 안 씀.
+- 게이트: p95 ≤ **800ms**
+- 임베딩/Chroma 분리 측정은 v2.0 단계에서 추가.
+
+---
+
+## 9. 베이스라인 비교 (Lite, 2종만)
+
+발표용 표 한 장에 들어갈 비교군.
+
+| 베이스라인 | 비고 |
+|---|---|
+| BGE-m3 (현재 운영) | 단일 dense |
+| BGE-m3 + BM25 hybrid (RRF) | 본 프로젝트 권장안 |
+
+MiniLM, BM25 단독은 시간 남으면 추가.
+
+---
+
+## 10. End-to-end (답변 초안 품질, Lite)
+
+자동화된 LLM-as-judge는 **하지 않는다**. 대신:
+
+- 답변 **10건**을 BE1/BE2가 직접 눈으로 본다.
+- 각 답변에 대해 단일 척도로 표시: **Yes / Partial / No** — "이 답변이 검색된 민원을 제대로 근거로 활용했는가?"
+- 결과: Yes 비율을 baseline vs 변경 검색기에서 비교.
+
+산출물: `reports/retrieval/answer_spot_check_{date}.md` (한 페이지)
+
+> v2.0의 Faithfulness/Citation/Pairwise 자동화는 산업체 운영 단계로 미룬다.
+
+---
+
+## 11. 운영 규약 (Lite)
+
+### 11.1 Run 식별자
+
+`run_id = {pipeline_id}_{git_commit_short}_{eval_set_hash_short}`
+
+### 11.2 비교 조건
+
+두 run의 `eval_set_hash`가 다르면 비교 차단(스크립트 사전 검증).
+
+### 11.3 실행
+
+- **수동 실행**만. nightly CI 없음.
+- 검색 변경 PR마다 BE2가 `scripts/evaluate_retrieval.py`를 직접 돌려 PR 본문에 결과 표 첨부.
+- 발표 직전 1회 Ablation/Baseline 표 갱신.
+
+---
+
+## 12. 산출물 (Lite)
+
+| 산출물 | 경로 | 비고 |
 |--------|------|------|
-| Graded eval set | `data/annotations/evaluation_set_v2.json` | 이중 라벨링 + relevance 등급 |
-| 평가 공통 모듈 | `app/evaluation/metrics.py` | nDCG / MAP / Hit Rate / bootstrap CI |
-| 평가 스크립트 리팩터 | `scripts/evaluate_retrieval.py` | `--mode {raw,adaptive}`, `--seed`, `--baseline` 인자 |
-| 비교 리포트 | `reports/retrieval/{date}/{strategy}.json` | 시계열 회귀 추적 |
-| 비교 리포트 생성기 | `scripts/generate_retrieval_comparison.py` | 모델/전략 간 표 자동 생성 |
+| Relevance 정의서 | `docs/60_specs/retrieval_relevance_definition.md` | 5건 예시 |
+| Gold v2 | `data/evaluation/v2/` | ~750건 라벨 |
+| 평가 스크립트 보강 | `scripts/evaluate_retrieval.py` | `--mode`, `--seed`, `--baseline` |
+| Adaptive Ablation 표 | `reports/retrieval/ablation_3mode.md` | 발표용 |
+| Baseline 비교 표 | `reports/retrieval/baseline_2model.md` | 발표용 |
+| 답변 spot check | `reports/retrieval/answer_spot_check_{date}.md` | 10건 직접 평가 |
 
 ---
 
-## 7. 단계별 우선순위 및 일정 제안
+## 13. 실행 로드맵 (2주)
 
-| 단계 | 내용 | 예상 기간 | 우선순위 |
-|------|------|-----------|----------|
-| **Phase 1** | Recall@K 분모 보정 + 시드 고정 + p95/p99 latency 추가 | 0.5일 | 높음 (퀵윈) |
-| **Phase 2** | Adaptive 모드 평가 추가 (`--mode adaptive`) | 1일 | 높음 (발표 효과) |
-| **Phase 3** | nDCG / MAP / bootstrap CI 모듈화 | 2일 | 중간 |
-| **Phase 4** | Graded relevance 라벨링 + 이중 라벨링 검수 | 5일 | 중간 (인력 필요) |
-| **Phase 5** | BM25/하이브리드 베이스라인 비교 | 2일 | 중간 |
-| **Phase 6** | 다축 회귀 게이트 + nightly CI | 1일 | 낮음 (장기 운영) |
+| 주차 | 작업 | 산출물 |
+|---|---|---|
+| **W1** | (1) Recall 분모 보정 + 시드 고정 (퀵윈) ／ (2) Relevance 정의서 + 5건 spot agreement ／ (3) Pool 후보 추출 (BM25+BGE-m3 × top-10) ／ (4) 사람 라벨링 ~750건 | 정의서, `data/evaluation/v2/` |
+| **W2** | (5) `--mode adaptive` 추가 ／ (6) Ablation 3-mode 측정 ／ (7) Baseline 2종 측정 ／ (8) 답변 10건 spot check ／ (9) 발표용 표 정리 | Ablation 표, Baseline 표, spot check 리포트 |
 
 ---
 
-## 8. 참고 문서
+## 14. 함정 (Lite에서도 주의)
+
+- **Leak 방지(§4.3)는 반드시 지킨다.** 자기 source를 정답으로 두면 메트릭이 거짓말한다.
+- **시드 고정(§5.3) 없이는 비교가 의미 없다.** PR 비교의 전제 조건.
+- **메트릭 절대값에 집착하지 말 것.** 같은 평가셋에서 변경 전후 추세만 본다.
+- **답변 spot check를 빼먹지 말 것.** 검색 메트릭만 보면 답변 품질 회귀를 놓친다.
+
+---
+
+## 15. 산업체 운영 단계 승급 시 (v2.0으로 복귀할 항목)
+
+졸업 후 또는 산업체 운영으로 넘어갈 때 다음을 v2.0 수준으로 복원한다.
+
+- Cohen's Kappa 합의 절차 (현재 spot agreement만)
+- Bootstrap CI / paired bootstrap (현재 평균 비교만)
+- Pool 2,000건 라벨링 (현재 750건)
+- End-to-end LLM-as-judge 자동화 (현재 수동 10건)
+- 다축 slice (기관/카테고리 추가)
+- 베이스라인 4종 (MiniLM, BM25 단독 추가)
+- nightly CI + 다축 회귀 게이트
+
+이때 본 문서의 §3.2, §4.1, §5.2, §6, §9, §10, §11.3을 v2.0 기준으로 되돌리면 된다.
+
+---
+
+## 16. 참고 문서 및 코드
 
 - 기술 스택: [be2_retrieval_tech_stack.md](../00_overview/be2_retrieval_tech_stack.md)
 - Week5-6 액션 플랜: [week5_6_adaptive_rag_core_action_plan.md](week5_6_adaptive_rag_core_action_plan.md)
-- 현재 평가 스크립트: [scripts/run_issue_103.py](../../scripts/run_issue_103.py), [scripts/evaluate_retrieval.py](../../scripts/evaluate_retrieval.py)
-- 검색 서비스 구현: [app/retrieval/service.py](../../app/retrieval/service.py)
+- 평가 스크립트: [scripts/run_issue_103.py](../../scripts/run_issue_103.py), [scripts/evaluate_retrieval.py](../../scripts/evaluate_retrieval.py)
+- 평가셋 빌더: [scripts/build_aihub_retrieval_eval_set.py](../../scripts/build_aihub_retrieval_eval_set.py)
+- 검색 서비스: [app/retrieval/service.py](../../app/retrieval/service.py)
+- 평가 모듈: `app/evaluation/{metrics,datasets,slices,reporting}.py`
+
+---
+
+## 변경 이력
+
+| 버전 | 일자 | 변경 |
+|---|---|---|
+| v1.0 | 2026-05-05 | 최초 작성. Adaptive Router 검색기 단독 평가의 구체 액션 플랜 (6 phase) |
+| v2.0 | 2026-05-21 | "답변 초안 생성" 메인 기능 관점의 Two-tier 평가 체계로 확장 (Component + End-to-end). 5주 로드맵. |
+| **v3.0** | **2026-05-21** | **졸업작품 친화 lite 버전.** Kappa·bootstrap CI·nightly CI·4종 베이스라인·자동 judge 제거. Pool 2,000→750건, 5주→2주, slice 6축→2축으로 축소. 핵심(Adaptive Router 평가, leak 방지, 시드, Recall 분모 보정, Ablation 3-mode)은 그대로 유지. 산업체 운영 승급 시 v2.0 절차 §15에 명시. |

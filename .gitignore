@@ -218,8 +218,9 @@ __marimo__/
 # Local virtual environments
 Civil/
 
-# Local data directory (all subfolders/files)
-data/
+# 대용량 로컬 데이터 (원시 데이터 및 벡터DB)
+data/chroma_db/
+data/Public_Civil_Service_LLM_Data/
 
 # Runtime logs and generated artifacts
 logs/**
