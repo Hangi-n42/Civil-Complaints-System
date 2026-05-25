@@ -338,7 +338,7 @@ def main() -> None:
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "run_id": run_id,
-        "eval_set": "V3 (qrels_final, 767쌍, 50쿼리)",
+        "eval_set": "V3 (qrels_final, 749쌍, 49쿼리, Q-0036 도메인 외 제외)",
         "top_k": TOP_K,
         "results": {
             name: {k: round(v, 4) for k, v in metrics.items()}
