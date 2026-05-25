@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import random
 import re
 import sys
 import time
@@ -21,6 +22,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -284,10 +287,17 @@ def print_table(results: dict[str, dict[str, float]]) -> None:
     print("=" * (14 + 16 * len(results)))
 
 
+SEED = 42
+
+
 def main() -> None:
+    random.seed(SEED)
+    np.random.seed(SEED)
+
     print("=" * 60)
     print("V3 평가셋 검색 성능 비교 시작")
     print(f"시각: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"랜덤 시드: {SEED}")
     print("=" * 60)
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
