@@ -35,6 +35,7 @@ class RetrievalService:
         self.embedding_device = settings.EMBEDDING_DEVICE
         self.default_collection_name = "civil_cases_v1"
         self._vectorstore: Optional[ChromaVectorStore] = None
+        self._bm25_cache: Optional[Any] = None  # bm25s.BM25 인스턴스 캐시 (#258)
 
     def _get_vectorstore(self) -> ChromaVectorStore:
         if self._vectorstore is None:
@@ -560,6 +561,117 @@ class RetrievalService:
             item["rank"] = rank
         return results_list
 
+    def _bm25_top_k(
+        self,
+        query: str,
+        top_k: int,
+        collection_key: str,
+    ) -> List[tuple]:
+        """BM25로 상위 top_k (case_id, score) 목록을 반환한다.
+
+        bm25s 미설치 또는 검색 실패 시 빈 리스트를 반환한다. (issue #258)
+        인덱스는 인스턴스 수명 동안 _bm25_cache에 캐시된다.
+        """
+        try:
+            import bm25s
+            from app.retrieval.pipeline.stages.bm25_retriever import _load_corpus_from_chroma
+
+            if self._bm25_cache is None:
+                index_path = Path("data/bm25_index") / f"{collection_key}_whitespace"
+                if index_path.exists():
+                    retriever = bm25s.BM25.load(str(index_path), load_corpus=True)
+                    self.logger.info("BM25 인덱스 로드 완료")
+                else:
+                    self.logger.info("BM25 인덱스 구축 중 (최초 1회)...")
+                    doc_ids, texts = _load_corpus_from_chroma(collection_key)
+                    tokenized = bm25s.tokenize(texts, stopwords=None)
+                    retriever = bm25s.BM25()
+                    retriever.index(tokenized)
+                    corpus = [{"id": did, "text": text} for did, text in zip(doc_ids, texts)]
+                    retriever.corpus = corpus
+                    index_path.mkdir(parents=True, exist_ok=True)
+                    retriever.save(str(index_path), corpus=corpus)
+                    self.logger.info("BM25 인덱스 저장 완료")
+                self._bm25_cache = retriever
+
+            retriever = self._bm25_cache
+            tokenized_query = bm25s.tokenize([query], stopwords=None)
+            k = min(top_k, len(retriever.corpus))
+            results, scores = retriever.retrieve(tokenized_query, k=k)
+            return [(str(results[0, i]["id"]), float(scores[0, i])) for i in range(results.shape[1])]
+        except Exception as exc:
+            self.logger.warning(f"BM25 검색 실패 — hybrid 비활성화: {exc}")
+            return []
+
+    def _hybrid_rrf(
+        self,
+        *,
+        query: str,
+        dense_results: List[Dict[str, Any]],
+        top_k: int,
+        collection_key: str,
+        k: int = 60,
+    ) -> List[Dict[str, Any]]:
+        """Dense + BM25 결과를 RRF(Reciprocal Rank Fusion)로 합산한다.
+
+        BM25 실패 또는 결과 없을 시 Dense 결과를 top_k로 잘라 반환한다. (issue #258)
+        BM25-only 케이스는 Dense 메타데이터가 없으므로 skip하고 Dense 결과로 보충한다.
+        """
+        bm25_hits = self._bm25_top_k(query, top_k * 3, collection_key)
+        if not bm25_hits:
+            return dense_results[:top_k]
+
+        # Dense 청크를 case 레벨로 dedup (최고 점수 청크 유지)
+        seen_cases: set = set()
+        dense_case_hits: List[tuple] = []
+        case_to_chunk: Dict[str, Dict[str, Any]] = {}
+        for item in dense_results:
+            cid = str(item.get("case_id") or "")
+            if not cid:
+                raw = str(item.get("chunk_id") or "")
+                cid = raw.split("__chunk-")[0] if "__chunk-" in raw else raw
+            if not cid:
+                continue
+            score = float(item.get("score", 0.0) or 0.0)
+            if cid not in case_to_chunk or score > float(case_to_chunk[cid].get("score", 0.0)):
+                case_to_chunk[cid] = item
+            if cid not in seen_cases:
+                dense_case_hits.append((cid, score))
+                seen_cases.add(cid)
+
+        # RRF 점수 합산
+        rrf_scores: Dict[str, float] = {}
+        for ranked in [dense_case_hits, bm25_hits]:
+            for rank, (cid, _) in enumerate(ranked, start=1):
+                rrf_scores[cid] = rrf_scores.get(cid, 0.0) + 1.0 / (k + rank)
+
+        merged_cases = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
+
+        results: List[Dict[str, Any]] = []
+        included_cases: set = set()
+        for _, (cid, rrf_score) in enumerate(merged_cases):
+            if len(results) >= top_k:
+                break
+            if cid not in case_to_chunk:
+                continue  # BM25-only: Dense 메타데이터 없어 skip
+            item = dict(case_to_chunk[cid])
+            item["score"] = round(min(1.0, rrf_score), 4)
+            results.append(item)
+            included_cases.add(cid)
+
+        # top_k 미달 시 Dense 결과로 보충
+        for item in dense_results:
+            if len(results) >= top_k:
+                break
+            cid = str(item.get("case_id") or "")
+            if cid and cid not in included_cases:
+                results.append(dict(item))
+                included_cases.add(cid)
+
+        for rank, item in enumerate(results, start=1):
+            item["rank"] = rank
+        return results
+
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
     ) -> List[str]:
@@ -702,13 +814,19 @@ class RetrievalService:
                     segment_results.append((segment, results_for_segment))
                 results = self._merge_segment_results(segment_results, top_k=top_k)
             else:
-                results = store.query(
+                dense_results = store.query(
                     collection_name=collection_key,
                     query=query,
-                    top_k=top_k,
+                    top_k=top_k * 3,  # RRF 후보 확보를 위해 여유 있게 요청 (#258)
                     filters=filters or {},
                     threshold=threshold,
                     snippet_max_chars=effective_snippet_max_chars,
+                )
+                results = self._hybrid_rrf(
+                    query=query,
+                    dense_results=dense_results,
+                    top_k=top_k,
+                    collection_key=collection_key,
                 )
                 results = self._apply_retrieval_policy(
                     results,
