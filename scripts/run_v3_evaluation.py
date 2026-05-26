@@ -6,7 +6,7 @@ V3 평가셋 검색 성능 비교
 
 qrels: data/evaluation/v3/qrels.tsv (CASE-XXXXXX 레벨)
 코퍼스: data/evaluation/v3/corpus_meta.json (9,132건)
-쿼리: data/evaluation/v3/queries.jsonl (49건, Q-0036 도메인 외 제외)
+쿼리: data/evaluation/v3/queries.jsonl (112건, Q-0036 도메인 외 제외, Q-0051~Q-0113 신규)
 """
 
 from __future__ import annotations
