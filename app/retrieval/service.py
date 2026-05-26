@@ -454,6 +454,11 @@ class RetrievalService:
         if cleaned_segments:
             return cleaned_segments
 
+        # 4요소 구조화 쿼리(\n 구분)는 분할하지 않고 단일 임베딩으로 검색
+        # 쉼표 분할은 의미 맥락을 파괴하여 검색 품질을 저하시킴 (issue #255)
+        if "\n" in str(query or ""):
+            return []
+
         segments = [str(query or "").strip()]
         for delimiter in (" 및 ", " 그리고 ", ",", ";"):
             next_segments: List[str] = []
