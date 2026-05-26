@@ -342,7 +342,7 @@ def _check_gate(
 
 
 def _print_gate(gate: dict[str, Any]) -> None:
-    passed_sym = {True: "✓", False: "✗"}
+    passed_sym = {True: "O", False: "X"}
     verdict = "PASS" if gate["all_passed"] else "FAIL"
     print(f"\n[GATE] {gate['candidate']} vs {gate['baseline']} 채택 판정")
     for c in gate["checks"]:
