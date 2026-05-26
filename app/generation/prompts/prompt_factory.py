@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.core.exceptions import NoEvidenceError
 from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
 from app.retrieval.analyzers.topic_analyzer import analyze as analyze_topic
 from app.retrieval.router.adaptive_router import route
@@ -15,23 +16,88 @@ class PromptFactory:
     """routing_trace를 반영해 generation 프롬프트를 구성한다."""
 
     CATEGORY_TOPIC_KEYWORDS = {
-        "traffic": ("교통", "대중교통", "도로", "주차", "버스", "철도", "주정차", "차선", "신호", "보행"),
+        "traffic": (
+            "교통",
+            "대중교통",
+            "도로",
+            "주차",
+            "주차장",
+            "주정차",
+            "주차단속",
+            "버스",
+            "철도",
+            "차선",
+            "신호",
+            "횡단보도",
+            "도로표지판",
+            "보행",
+        ),
         "welfare": ("복지", "보건", "의료", "장애", "노인", "아동", "주거", "지원금"),
-        "environment": ("환경", "하천", "기후", "에너지", "폐기물", "쓰레기", "소음", "악취", "침수", "홍수", "배수", "제설"),
-        "construction": ("건설", "공사", "시설", "공원", "체육", "도시정비", "안전", "조명", "계단", "보도", "전기차"),
+        "environment": (
+            "환경",
+            "하천",
+            "기후",
+            "에너지",
+            "폐기물",
+            "쓰레기",
+            "재활용",
+            "분리수거",
+            "소음",
+            "악취",
+            "매연",
+            "침수",
+            "홍수",
+            "배수",
+            "제설",
+        ),
+        "construction": (
+            "건설",
+            "공사",
+            "시설",
+            "시설물",
+            "공원",
+            "체육",
+            "도시정비",
+            "안전",
+            "조명",
+            "보도",
+            "계단",
+            "일조권",
+            "아파트",
+            "공동주택",
+            "보수",
+            "재도색",
+            "부실",
+        ),
     }
 
     CATEGORY_POLICY_KEYWORDS = {
-        "field_ops": ("도로", "교통", "주차", "신호", "소음", "침수", "제설", "안전", "공사", "시설", "조명"),
-        "admin_policy": ("복지", "보건", "의료", "지원금", "주거", "행정", "신청", "서류"),
+        "field_ops": (
+            "도로",
+            "교통",
+            "주차",
+            "주정차",
+            "신호",
+            "소음",
+            "악취",
+            "매연",
+            "침수",
+            "제설",
+            "안전",
+            "공사",
+            "시설",
+            "조명",
+            "보수",
+        ),
+        "admin_policy": ("복지", "보건", "의료", "지원금", "주거", "행정", "신청", "서류", "예약", "추첨"),
     }
 
     TOPIC_GUIDANCE = {
-        "welfare": "복지 행정 맥락에서 제도/지원 기준과 실제 민원 처리 절차를 분리해 설명하세요.",
-        "traffic": "교통/도로 행정 기준과 현장 조치 절차를 분리해 설명하세요.",
-        "environment": "환경 민원 처리 절차와 측정/검증 한계를 명확히 안내하세요.",
-        "construction": "시설/공사 관련 책임 주체와 조치 순서를 단계별로 제시하세요.",
-        "general": "민원 답변 형식(요약-조치-유의사항)을 유지하세요.",
+        "welfare": "복지 행정 맥락에서 제도/지원 기준과 실제 민원 처리 절차를 분리해, 공문형 민원회신으로 작성하세요.",
+        "traffic": "교통/도로 행정 기준과 현장 조치 절차를 분리해, 공문형 민원회신으로 작성하세요.",
+        "environment": "환경 민원 처리 절차와 측정/검증 한계를 명확히 하고, 공문형 민원회신으로 작성하세요.",
+        "construction": "시설/공사 관련 책임 주체와 조치 순서를 단계별로 제시하되, 공문형 민원회신으로 작성하세요.",
+        "general": "요약문이 아니라 공문형 민원회신(1~4항)으로 작성하세요.",
     }
 
     COMPLEXITY_GUIDANCE = {
@@ -49,6 +115,107 @@ class PromptFactory:
     _TITLE_RE = re.compile(r"^\s*제목\s*[:：]\s*(.+)$", re.MULTILINE)
     _Q_RE = re.compile(r"^\s*Q\s*[:：]\s*(.+)$", re.MULTILINE)
     _ENUM_RE = re.compile(r"^\s*(?:[-*]|\d+[).])\s*(.+)$", re.MULTILINE)
+
+    _KEYWORD_TOKEN_RE = re.compile(r"[가-힣A-Za-z0-9][가-힣A-Za-z0-9_-]{1,30}")
+    _KEYWORD_STOPWORDS: set[str] = {
+        "민원",
+        "요청",
+        "불편",
+        "발생",
+        "확인",
+        "필요",
+        "조치",
+        "관련",
+        "안내",
+        "검토",
+        "가능",
+        "현재",
+        "지역",
+        "주민",
+        "시민",
+    }
+
+    @classmethod
+    def _extract_keyword_terms(
+        cls,
+        *,
+        record: Dict[str, Any],
+        query: str,
+        limit: int = 10,
+    ) -> List[str]:
+        """실데이터 메타 필드 기반으로 검색용 키워드(term)를 추출한다.
+
+        - 목적: ChromaDB 검색(query)에만 보조 키워드를 붙여 recall을 개선
+        - 주의: LLM에게 보여주는 질문(query) 자체는 변경하지 않는 것을 전제로 한다.
+        """
+
+        candidates: List[str] = []
+        for key in (
+            "region",
+            "source",
+            "consulting_category",
+            "category",
+            "title",
+            "summary_request",
+            "summary_observation",
+        ):
+            value = record.get(key)
+            if value is None:
+                continue
+            s = str(value).strip()
+            if s:
+                candidates.append(s)
+
+        candidates.append(str(query or "").strip())
+
+        seen: set[str] = set()
+        terms: List[str] = []
+        joined = " ".join(candidates)
+
+        if "REDACTED" in joined:
+            joined = joined.replace("REDACTED", "")
+        joined = joined.replace("[", " ").replace("]", " ")
+
+        for m in cls._KEYWORD_TOKEN_RE.finditer(joined):
+            token = m.group(0).strip()
+            if len(token) < 2:
+                continue
+            if token in cls._KEYWORD_STOPWORDS:
+                continue
+            if "http" in token.lower():
+                continue
+
+            key = token.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            terms.append(token)
+
+            if len(terms) >= int(limit):
+                break
+
+        return terms
+
+    @classmethod
+    def _build_search_query(cls, *, base_query: str, keyword_terms: List[str], max_chars: int = 650) -> str:
+        base = str(base_query or "").strip()
+        if not base:
+            base = "(빈 질의)"
+
+        parts: List[str] = [base]
+        base_lower = base.lower()
+        for term in keyword_terms or []:
+            t = str(term or "").strip()
+            if not t:
+                continue
+            if t.lower() in base_lower:
+                continue
+            parts.append(t)
+
+        merged = " ".join(parts).strip()
+        if len(merged) > int(max_chars):
+            merged = merged[: int(max_chars)].rstrip()
+        return merged
 
     @classmethod
     def _extract_query_from_raw_text(cls, raw_text: str) -> str:
@@ -265,6 +432,11 @@ class PromptFactory:
             routing_trace=base_trace,
         )
 
+        keyword_terms = cls._extract_keyword_terms(record=record, query=query, limit=10)
+        derived_trace.setdefault("keyword_terms", keyword_terms)
+        search_query = cls._build_search_query(base_query=query, keyword_terms=keyword_terms)
+        derived_trace.setdefault("search_query", search_query)
+
         decision = route(
             topic_type=str(derived_trace.get("topic_type") or "general"),
             complexity_level=str(derived_trace.get("complexity_level") or "medium"),
@@ -276,12 +448,17 @@ class PromptFactory:
         derived_trace.setdefault("retrieval_policy", decision.retrieval_policy)
 
         effective_top_k = int(top_k or decision.applied_params.top_k)
+        derived_trace.setdefault("collection_name", str(collection_name))
+        derived_trace.setdefault("effective_top_k", effective_top_k)
+        derived_trace.setdefault("filters", filters or {})
+        derived_trace.setdefault("threshold", float(threshold or 0.0))
+
         prompt_mode = str(derived_trace.get("prompt_mode") or "default").lower()
         snippet_max_chars = 120 if prompt_mode == "compact" else 200
 
         service = retrieval_service or get_retrieval_service()
         raw_context = await service.search(
-            query=query,
+            query=search_query,
             top_k=effective_top_k,
             threshold=float(threshold or 0.0),
             filters=filters or {},
@@ -302,8 +479,26 @@ class PromptFactory:
             context.append(normalized)
 
         if not context:
-            raise ValueError(
-                "retrieval returned empty context; ensure CHROMA_DB_PATH points to a populated ChromaDB collection"
+            details = {
+                "derived_query": derived_trace.get("derived_query"),
+                "search_query": derived_trace.get("search_query"),
+                "keyword_terms": derived_trace.get("keyword_terms"),
+                "collection_name": derived_trace.get("collection_name"),
+                "effective_top_k": derived_trace.get("effective_top_k"),
+                "filters": derived_trace.get("filters"),
+                "threshold": derived_trace.get("threshold"),
+                "topic_type": derived_trace.get("topic_type"),
+                "complexity_level": derived_trace.get("complexity_level"),
+                "request_segments": derived_trace.get("request_segments"),
+                "route_key": derived_trace.get("route_key"),
+                "strategy_id": derived_trace.get("strategy_id"),
+                "retrieval_policy": derived_trace.get("retrieval_policy"),
+                "prompt_mode": derived_trace.get("prompt_mode"),
+                "context_count": 0,
+            }
+            raise NoEvidenceError(
+                "검색 근거가 0개라 프롬프트를 구성할 수 없습니다. CHROMA_DB_PATH/collection_name을 확인하거나 top_k/threshold/filters를 조정하세요.",
+                details=details,
             )
 
         prompt = cls.build_from_dataset_record(record=record, context=context, routing_trace=derived_trace)
@@ -382,6 +577,20 @@ class PromptFactory:
         request_segments = routing_trace.get("request_segments") or []
         retrieval_policy = str(routing_trace.get("retrieval_policy") or "general")
 
+        if not context:
+            raise NoEvidenceError(
+                "근거 컨텍스트가 0개입니다. 근거 없이 답변을 생성하지 않도록 실패 처리합니다.",
+                details={
+                    "derived_query": routing_trace.get("derived_query"),
+                    "topic_type": topic_type,
+                    "complexity_level": complexity_level,
+                    "request_segments": request_segments,
+                    "retrieval_policy": retrieval_policy,
+                    "prompt_mode": routing_trace.get("prompt_mode"),
+                    "context_count": 0,
+                },
+            )
+
         if not isinstance(request_segments, list):
             request_segments = []
         request_segments = [str(item).strip() for item in request_segments if str(item).strip()]
@@ -403,7 +612,9 @@ class PromptFactory:
             )
 
         snippet_max_chars = 120 if is_compact else 200
+        citation_snippet_max_chars = 120 if is_compact else 200
         context_limit = 2 if is_compact else len(context)
+        citations_max = 2 if is_compact else 3
 
         context_lines: List[str] = []
         for idx, doc in enumerate(context[:context_limit], start=1):
@@ -417,49 +628,56 @@ class PromptFactory:
                 )
             )
 
-        if is_compact:
-            instruction_block = (
-                "설명/주석/마크다운/코드블록(``` 포함) 금지.\n"
-                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
-                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
-                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
-                "answer 형식: 1문장 요약 + 2개 조치 + 1개 유의사항.\n"
-                "조치(action_items)는 우선순위를 반영해 작성(예: '1순위: ...', '2순위: ...').\n"
-                "structured_output.summary 필수, action_items 2개 이상 필수.\n"
-                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
-                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
-                "citations snippet은 answer와 직접 연결되는 근거만 사용(컨텍스트 snippet에서 발췌).\n"
-                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
-            )
-        elif is_force_json:
-            instruction_block = (
+        base_rules = (
+            "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
+            "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
+            "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
+            "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
+            "추가 키 금지: JSON Schema의 additionalProperties=false를 반드시 지키세요(스키마에 없는 키 출력 금지).\n"
+            "필수 키 누락 금지: answer, citations, limitations, structured_output.\n"
+            "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
+            "structured_output.summary는 빈 문자열 금지, action_items는 2개 이상 필수, request_segments는 배열로 유지하세요.\n"
+            "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
+            f"citations는 1~{citations_max}개만 출력하세요.\n"
+            "각 citation은 chunk_id/case_id/snippet/relevance_score를 반드시 포함하세요.\n"
+            f"citation.snippet은 아래 컨텍스트의 snippet에서 그대로 발췌(부분 문자열 허용)하고 빈 문자열 금지, {citation_snippet_max_chars}자 이하로 유지하세요.\n"
+            "citation.relevance_score는 컨텍스트의 score 값을 그대로 사용(0~1).\n"
+            "answer에는 citations 개수 N에 대해 [[출처 1]]..[[출처 N]] 토큰을 각각 정확히 1회 포함하고, 그 외 [[출처 ...]] 토큰은 금지합니다.\n"
+        )
+
+        if is_force_json:
+            mode_rules = (
                 "[force_json 모드] JSON만 강제합니다.\n"
-                "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
-                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
-                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
-                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
-                "아래 JSON Schema의 required 키를 절대 누락하지 마세요.\n"
-                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
-                "citations snippet은 컨텍스트 snippet에서 그대로 발췌(빈 문자열 금지).\n"
-                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
-                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
+                "아래 JSON Schema의 required/형식을 절대 위반하지 마세요.\n"
+            )
+        elif is_compact:
+            mode_rules = (
+                "[compact 모드] 컨텍스트가 짧으니 과장/추측 금지.\n"
+                "answer 형식: 공문형 민원회신(1~4항)으로 간결하게 작성하세요(너무 길게 늘어지지 않게).\n"
+                "형식 가이드: 1. 인사/감사  2. 민원 요지  3. 검토 결과(가/나/다)  4. 추가 안내(담당 부서 문의).\n"
+                "구체 수치/날짜/조례/노선개편 등 사실은 컨텍스트에 있는 내용만 사용하고, 없으면 '검토/협의/모니터링' 등으로 표현하세요.\n"
+                "답변 톤: 행정기관 회신 문체(존댓말)로 작성하세요.\n"
+                "조치(action_items)는 우선순위를 반영해 2개 이상 작성(예: '1순위: ...', '2순위: ...').\n"
+                "compact에서는 제공되는 컨텍스트가 최대 2개이며 snippet이 짧습니다.\n"
             )
         else:
-            instruction_block = (
-                "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
-                "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
-                "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
-                "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
-                "answer 형식: 1문장 요약 + 2개 조치 + 1개 유의사항.\n"
-                "조치(action_items)는 우선순위를 반영해 작성(예: '1순위: ...', '2순위: ...').\n"
-                "빈 문자열, 템플릿 문구, 근거 반복은 금지합니다.\n"
-                "structured_output.summary는 반드시 채우고 action_items는 2개 이상 작성하세요.\n"
-                "세그먼트가 있으면 각 세그먼트마다 1개 이상 action_items를 직접 대응시키세요.\n"
-                "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
-                "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
-                "citations snippet은 answer와 직접 연결되는 근거만 사용(컨텍스트 snippet에서 발췌).\n"
-                "answer에는 citations 개수만큼 [[출처 1]] [[출처 2]] ... 토큰을 반드시 포함(문장 끝 권장).\n"
+            mode_rules = (
+                "answer 형식: 공문형 민원회신으로 작성하세요.\n"
+                "반드시 아래 구조를 따르세요(문장/문단 구분은 \"\\n\" 사용 권장):\n"
+                "1. 우리 시 시정 발전에 관심을 두셔서 감사드립니다... (인사/감사)\n"
+                "2. 귀하의 민원 내용은 \"...\"에 관한 것으로 이해됩니다. (민원 요지 1문단)\n"
+                "3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.\n"
+                "   가. (컨텍스트 근거 기반 사실/현황/조치)\n"
+                "   나. (한계/제약/절차 안내: 예산, 관계기관 협의, 현장 확인 등)\n"
+                "   다. (향후 계획/점검/개선 약속: 모니터링, 협의, 안내 등)\n"
+                "4. 추가 설명이 필요하시면 성남시 해당 업무 담당부서로 문의해 주시기 바랍니다. 감사합니다.\n"
+                "금지: '근거:'라는 라벨로 요약하는 답변, 1문장 요약만 제시하는 답변.\n"
+                "사실성 규칙: 구체 수치/날짜/조례/노선개편 등은 컨텍스트에 있는 내용만 단정적으로 쓰고, 없으면 '검토/확인/협의 예정'으로 표현하세요.\n"
+                "조치(action_items)는 우선순위를 반영해 2개 이상 작성(예: '1순위: ...', '2순위: ...').\n"
+                "세그먼트가 있으면 각 세그먼트마다 action_items 1개 이상을 직접 대응시키세요.\n"
             )
+
+        instruction_block = base_rules + mode_rules
 
         json_schema = (
             "출력 JSON 스키마(JSON Schema Draft 2020-12):\n"
@@ -471,7 +689,7 @@ class PromptFactory:
             "\"properties\":{"
             "\"answer\":{\"type\":\"string\",\"minLength\":1},"
             "\"citations\":{"
-            "\"type\":\"array\",\"minItems\":1,\"maxItems\":3,"
+            f"\"type\":\"array\",\"minItems\":1,\"maxItems\":{citations_max},"
             "\"items\":{"
             "\"type\":\"object\",\"additionalProperties\":false,"
             "\"required\":[\"chunk_id\",\"case_id\",\"snippet\",\"relevance_score\"],"
@@ -506,7 +724,7 @@ class PromptFactory:
         example_json = (
             "출력 예시(JSON):\n"
             "{"
-            "\"answer\":\"요약 1문장. 조치 1. 조치 2. 유의사항 1.\","
+            "\"answer\":\"1. 우리 시 시정 발전에 관심을 두셔서 감사드립니다.\\n\\n2. 귀하의 민원 내용은 \\\"...\\\"에 관한 것으로 이해됩니다.\\n\\n3. 검토 의견은 다음과 같습니다.\\n가. ...\\n나. ...\\n다. ...\\n\\n4. 추가 설명이 필요하시면 담당부서로 문의해 주시기 바랍니다. 감사합니다. [[출처 1]]\","
             "\"citations\":[{"
             "\"chunk_id\":\"CASE-1__chunk-0\","
             "\"case_id\":\"CASE-1\","

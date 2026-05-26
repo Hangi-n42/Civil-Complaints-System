@@ -27,6 +27,27 @@ class RetrievalError(AISystemException):
     pass
 
 
+class NoEvidenceError(RetrievalError):
+    """검색 근거(컨텍스트)가 0개일 때의 명시적 오류.
+
+    - 의도: RAG 파이프라인에서 근거 없이 생성(환각)을 진행하지 않도록 즉시 실패한다.
+    - details에 디버깅/재현에 필요한 필드를 담는다.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "NO_EVIDENCE",
+        retryable: bool = False,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+        self.details = details or {}
+
+
 class GenerationError(AISystemException):
     """응답 생성 오류"""
 
