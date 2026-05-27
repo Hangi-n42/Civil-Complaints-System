@@ -18,12 +18,14 @@ class ChromaDenseStage:
         collection: str = "civil_cases_v1",
         top_k: int = 10,
         use_adaptive_router: bool = False,
+        snippet_max_chars: int = 140,
         service: RetrievalService | None = None,
     ) -> None:
         self.name = name
         self.collection = collection
         self.top_k = top_k
         self.use_adaptive_router = use_adaptive_router
+        self.snippet_max_chars = snippet_max_chars
         self.service = service or get_retrieval_service()
 
     async def run(self, stage_input: StageInput) -> StageOutput:
@@ -31,7 +33,7 @@ class ChromaDenseStage:
         metadata = query.metadata
         top_k = self.top_k
         retrieval_policy = metadata.get("retrieval_policy")
-        snippet_max_chars = metadata.get("snippet_max_chars")
+        snippet_max_chars = metadata.get("snippet_max_chars") or self.snippet_max_chars
 
         if self.use_adaptive_router:
             decision = route(

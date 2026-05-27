@@ -102,6 +102,7 @@ def _build_stage(stage_spec: dict[str, Any]):
             collection=str(params.get("collection") or "civil_cases_v1"),
             top_k=int(params.get("top_k") or params.get("default_top_k") or 10),
             use_adaptive_router=bool(params.get("use_adaptive_router") or params.get("top_k_from_router")),
+            snippet_max_chars=int(params.get("snippet_max_chars") or 140),
         )
 
     if stage_type == "cross_encoder_rerank":

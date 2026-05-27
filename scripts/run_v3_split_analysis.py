@@ -28,9 +28,12 @@ from run_v3_evaluation import (  # noqa: E402
     run_bm25,
     run_dense,
     run_adaptive,
+    run_pipeline,
     compute_metrics,
     _get_metric,
 )
+
+PIPELINE_DIR = PROJECT_ROOT / "configs" / "retrieval_pipelines"
 from app.evaluation.datasets import QrelRecord
 
 DATA_DIR = PROJECT_ROOT / "data" / "evaluation" / "v3"
@@ -151,6 +154,30 @@ def main() -> None:
     print(f"  소요: {adaptive_time:.1f}초")
     print_split_table("Adaptive", adaptive_all, adaptive_old, adaptive_new)
 
+    # ── Dense + Reranker ──
+    print("\n[5] BGE-m3 Dense + CrossEncoder Reranker 평가...")
+    t0 = time.perf_counter()
+    reranked_runs = run_pipeline(queries, PIPELINE_DIR / "dense_reranked.yaml")
+    reranked_all = compute_metrics(reranked_runs, qrels)
+    reranked_old = slice_metrics(reranked_runs, qrels, old_qids)
+    reranked_new = slice_metrics(reranked_runs, qrels, new_qids)
+    reranked_time = time.perf_counter() - t0
+    all_results["Dense+Reranker"] = {"all": reranked_all, "old": reranked_old, "new": reranked_new}
+    print(f"  소요: {reranked_time:.1f}초")
+    print_split_table("Dense+Reranker", reranked_all, reranked_old, reranked_new)
+
+    # ── Hybrid + Reranker ──
+    print("\n[6] Hybrid BM25+Dense + CrossEncoder Reranker 평가...")
+    t0 = time.perf_counter()
+    hybrid_reranked_runs = run_pipeline(queries, PIPELINE_DIR / "hybrid_bm25_dense_rrf_reranked.yaml")
+    hybrid_reranked_all = compute_metrics(hybrid_reranked_runs, qrels)
+    hybrid_reranked_old = slice_metrics(hybrid_reranked_runs, qrels, old_qids)
+    hybrid_reranked_new = slice_metrics(hybrid_reranked_runs, qrels, new_qids)
+    hybrid_reranked_time = time.perf_counter() - t0
+    all_results["Hybrid+Reranker"] = {"all": hybrid_reranked_all, "old": hybrid_reranked_old, "new": hybrid_reranked_new}
+    print(f"  소요: {hybrid_reranked_time:.1f}초")
+    print_split_table("Hybrid+Reranker", hybrid_reranked_all, hybrid_reranked_old, hybrid_reranked_new)
+
     # ── 진단 요약 ──
     print("\n" + "=" * 60)
     print("진단 요약")
@@ -186,6 +213,8 @@ def main() -> None:
             "BM25": round(bm25_time, 2),
             "BGE-m3 Dense": round(dense_time, 2),
             "Adaptive": round(adaptive_time, 2),
+            "Dense+Reranker": round(reranked_time, 2),
+            "Hybrid+Reranker": round(hybrid_reranked_time, 2),
         },
     }
 
