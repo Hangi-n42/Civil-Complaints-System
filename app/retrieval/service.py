@@ -570,32 +570,38 @@ class RetrievalService:
         """BM25로 상위 top_k (case_id, score) 목록을 반환한다.
 
         bm25s 미설치 또는 검색 실패 시 빈 리스트를 반환한다. (issue #258)
+        kiwipiepy 형태소 분석 기반 Korean 토크나이저를 사용한다. (issue #260)
         인덱스는 인스턴스 수명 동안 _bm25_cache에 캐시된다.
         """
         try:
             import bm25s
-            from app.retrieval.pipeline.stages.bm25_retriever import _load_corpus_from_chroma
+            from app.retrieval.pipeline.stages.bm25_retriever import (
+                _load_corpus_from_chroma,
+                _tokenize_korean,
+                _to_bm25s_tokens,
+            )
 
             if self._bm25_cache is None:
-                index_path = Path("data/bm25_index") / f"{collection_key}_whitespace"
+                index_path = Path("data/bm25_index") / f"{collection_key}_korean"
                 if index_path.exists():
                     retriever = bm25s.BM25.load(str(index_path), load_corpus=True)
-                    self.logger.info("BM25 인덱스 로드 완료")
+                    self.logger.info("BM25 Korean 인덱스 로드 완료")
                 else:
-                    self.logger.info("BM25 인덱스 구축 중 (최초 1회)...")
+                    self.logger.info("BM25 Korean 인덱스 구축 중 (최초 1회)...")
                     doc_ids, texts = _load_corpus_from_chroma(collection_key)
-                    tokenized = bm25s.tokenize(texts, stopwords=None)
+                    tokenized_corpus = _tokenize_korean(texts)
                     retriever = bm25s.BM25()
-                    retriever.index(tokenized)
+                    retriever.index(_to_bm25s_tokens(tokenized_corpus))
                     corpus = [{"id": did, "text": text} for did, text in zip(doc_ids, texts)]
                     retriever.corpus = corpus
                     index_path.mkdir(parents=True, exist_ok=True)
                     retriever.save(str(index_path), corpus=corpus)
-                    self.logger.info("BM25 인덱스 저장 완료")
+                    self.logger.info("BM25 Korean 인덱스 저장 완료")
                 self._bm25_cache = retriever
 
             retriever = self._bm25_cache
-            tokenized_query = bm25s.tokenize([query], stopwords=None)
+            query_tokens = _tokenize_korean([query])[0]
+            tokenized_query = _to_bm25s_tokens([query_tokens])
             k = min(top_k, len(retriever.corpus))
             results, scores = retriever.retrieve(tokenized_query, k=k)
             return [(str(results[0, i]["id"]), float(scores[0, i])) for i in range(results.shape[1])]
