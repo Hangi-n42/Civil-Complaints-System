@@ -8,6 +8,7 @@ stages:
       collection: civil_cases_v1
       top_k: 50
       use_adaptive_router: false
+      snippet_max_chars: 600
 
   - name: cross_encoder_rerank
     type: cross_encoder_rerank

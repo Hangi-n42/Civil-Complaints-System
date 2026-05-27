@@ -283,6 +283,38 @@ def run_adaptive(queries: list[dict]) -> dict[str, list[RunRecord]]:
     return result
 
 
+def run_pipeline(queries: list[dict], pipeline_yaml: str | Path) -> dict[str, list[RunRecord]]:
+    """YAML 파이프라인으로 평가. dense_reranked, hybrid_reranked 등에 사용."""
+    from app.evaluation.datasets import EvalQuery
+    from app.retrieval.pipeline.runner import RetrievalPipelineRunner, load_pipeline_spec
+
+    spec = load_pipeline_spec(pipeline_yaml)
+    print(f"[{spec.pipeline_id}] 파이프라인 초기화...")
+
+    eval_queries = [
+        EvalQuery(
+            qid=q["query_id"],
+            text=q["query"],
+            metadata={"category": q.get("category", ""), "source": q.get("source", "")},
+        )
+        for q in queries
+    ]
+
+    runner = RetrievalPipelineRunner(spec)
+    results = runner.run_sync(eval_queries)
+
+    runs: dict[str, list[RunRecord]] = {}
+    for idx, result in enumerate(results, 1):
+        qid = result.query.qid
+        hits = [(doc.docid, doc.score) for doc in result.final_docs]
+        runs[qid] = build_run(qid, hits)
+        if idx % 10 == 0:
+            print(f"  {idx}/{len(queries)}")
+
+    print(f"[{spec.pipeline_id}] 완료 ({len(queries)}건)")
+    return runs
+
+
 def compute_metrics(runs: dict[str, list[RunRecord]], qrels: list[QrelRecord]) -> dict[str, float]:
     all_records = [r for records in runs.values() for r in records]
     return evaluate_run(qrels, all_records)
