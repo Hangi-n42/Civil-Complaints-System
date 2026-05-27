@@ -6,7 +6,7 @@ V3 평가셋 검색 성능 비교
 
 qrels: data/evaluation/v3/qrels.tsv (CASE-XXXXXX 레벨)
 코퍼스: data/evaluation/v3/corpus_meta.json (9,132건)
-쿼리: data/evaluation/v3/queries.jsonl (112건, Q-0036 도메인 외 제외, Q-0051~Q-0113 신규)
+쿼리: data/evaluation/v3/queries.jsonl (100건, 기존 49개+신규 51개, 동일 LLM 0~2 기준 재라벨링)
 """
 
 from __future__ import annotations
@@ -143,7 +143,7 @@ def load_queries() -> list[dict[str, Any]]:
 
 def load_qrels() -> list[QrelRecord]:
     qrels = []
-    with (DATA_DIR / "qrels.tsv").open("r", encoding="utf-8") as f:
+    with (DATA_DIR / "qrels.tsv").open("r", encoding="utf-8-sig") as f:
         for lineno, raw in enumerate(f, 1):
             line = raw.strip()
             if not line:
