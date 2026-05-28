@@ -45,6 +45,8 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
             return True
         if stripped in ("없음", "해당없음", "없음.", "-", "N/A"):
             return True
+        if stripped.lower() in ("null", "none", "n/a"):  # LLM 빈 요소 placeholder (issue #265)
+            return True
         if stripped.startswith("없음 (") or stripped.startswith("없음("):
             return True
         return False
