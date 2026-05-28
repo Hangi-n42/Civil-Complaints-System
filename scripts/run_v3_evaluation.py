@@ -33,6 +33,28 @@ DATA_DIR = PROJECT_ROOT / "data" / "evaluation" / "v3"
 REPORT_DIR = PROJECT_ROOT / "reports" / "retrieval" / "v3"
 TOP_K = 10
 
+
+def _pick_embedding_device() -> str:
+    """임베딩 디바이스 선택. EMBEDDING_DEVICE 환경변수 우선, 없으면 cuda>mps>cpu 자동 감지.
+
+    Apple Silicon(M칩)에서는 MPS(Metal)로 CPU 대비 수배 가속된다.
+    """
+    import os
+    import torch
+
+    env = os.getenv("EMBEDDING_DEVICE", "").strip().lower()
+    if env in ("cuda", "mps", "cpu"):
+        if env == "cuda" and not torch.cuda.is_available():
+            return "mps" if torch.backends.mps.is_available() else "cpu"
+        if env == "mps" and not torch.backends.mps.is_available():
+            return "cpu"
+        return env
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
 # ──────────────────────────────────────────────
 # Topic 매핑 (모듈 레벨 단일 정의 — run_adaptive, _build_eval_queries 공용)
 # v3 평가셋 49개 쿼리의 category/source 전수 분석 결과
@@ -225,7 +247,7 @@ def run_dense(queries: list[dict], collection_name: str = "civil_cases_v1") -> d
     client = chromadb.PersistentClient(path=settings.CHROMA_DB_PATH)
     col = client.get_collection(collection_name)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = _pick_embedding_device()
     print(f"[Dense] BGE-m3 임베딩 모델 로딩 ({device})...")
     model = SentenceTransformer("BAAI/bge-m3", device=device)
 

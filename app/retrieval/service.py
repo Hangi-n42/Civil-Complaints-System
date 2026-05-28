@@ -35,7 +35,6 @@ class RetrievalService:
         self.embedding_device = settings.EMBEDDING_DEVICE
         self.default_collection_name = "civil_cases_v1"
         self._vectorstore: Optional[ChromaVectorStore] = None
-        self._bm25_cache: Optional[Any] = None  # bm25s.BM25 인스턴스 캐시 (#258)
 
     def _get_vectorstore(self) -> ChromaVectorStore:
         if self._vectorstore is None:
@@ -479,46 +478,20 @@ class RetrievalService:
         topic_type: Optional[str],
         retrieval_policy: Optional[str],
     ) -> List[Dict[str, Any]]:
+        """topic/policy 메타데이터(라우팅 trace)만 부착한다.
+
+        과거에는 admin_policy/field_ops 정책에서 키워드 매칭 시 +0.04 점수 부스트를
+        적용했으나, V3 100쿼리 평가에서 부스트가 nDCG@10 −0.018, R@10 −0.024로
+        순위 품질을 악화시키는 것이 확인되어 제거했다. (#263,
+        reports/retrieval/v3/risk3c_policy_boost_impact.json)
+        """
         policy = str(retrieval_policy or "general").strip() or "general"
-        if policy == "general":
-            for item in results:
-                metadata = item.setdefault("metadata", {})
-                metadata["retrieval_policy"] = policy
-                if topic_type:
-                    metadata["topic_type"] = topic_type
-            return results
-
-        policy_keywords = {
-            "admin_policy": ("법", "법령", "조례", "규정", "기준", "절차", "급여", "복지", "수급", "임대주택"),
-            "field_ops": ("현장", "점검", "보수", "공사", "도로", "시설", "소음", "악취", "가로등", "안전"),
-        }.get(policy, ())
-
-        boosted: List[Dict[str, Any]] = []
         for item in results:
             metadata = item.setdefault("metadata", {})
-            summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
-            searchable = " ".join(
-                [
-                    str(item.get("title") or ""),
-                    str(item.get("snippet") or ""),
-                    str(metadata.get("category") or ""),
-                    str(summary.get("observation") or ""),
-                    str(summary.get("request") or ""),
-                ]
-            )
-            has_policy_match = any(keyword in searchable for keyword in policy_keywords)
-            boost = 0.04 if has_policy_match else 0.0
-            item["score"] = round(min(1.0, float(item.get("score", 0.0) or 0.0) + boost), 4)
             metadata["retrieval_policy"] = policy
-            metadata["policy_boost"] = boost
             if topic_type:
                 metadata["topic_type"] = topic_type
-            boosted.append(item)
-
-        boosted.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
-        for rank, item in enumerate(boosted, start=1):
-            item["rank"] = rank
-        return boosted
+        return results
 
     def _merge_segment_results(
         self,
@@ -560,123 +533,6 @@ class RetrievalService:
         for rank, item in enumerate(results_list, start=1):
             item["rank"] = rank
         return results_list
-
-    def _bm25_top_k(
-        self,
-        query: str,
-        top_k: int,
-        collection_key: str,
-    ) -> List[tuple]:
-        """BM25로 상위 top_k (case_id, score) 목록을 반환한다.
-
-        bm25s 미설치 또는 검색 실패 시 빈 리스트를 반환한다. (issue #258)
-        kiwipiepy 형태소 분석 기반 Korean 토크나이저를 사용한다. (issue #260)
-        인덱스는 인스턴스 수명 동안 _bm25_cache에 캐시된다.
-        """
-        try:
-            import bm25s
-            from app.retrieval.pipeline.stages.bm25_retriever import (
-                _load_corpus_from_chroma,
-                _tokenize_korean,
-                _to_bm25s_tokens,
-            )
-
-            if self._bm25_cache is None:
-                index_path = Path("data/bm25_index") / f"{collection_key}_korean"
-                if index_path.exists():
-                    retriever = bm25s.BM25.load(str(index_path), load_corpus=True)
-                    self.logger.info("BM25 Korean 인덱스 로드 완료")
-                else:
-                    self.logger.info("BM25 Korean 인덱스 구축 중 (최초 1회)...")
-                    doc_ids, texts = _load_corpus_from_chroma(collection_key)
-                    tokenized_corpus = _tokenize_korean(texts)
-                    retriever = bm25s.BM25()
-                    retriever.index(_to_bm25s_tokens(tokenized_corpus))
-                    corpus = [{"id": did, "text": text} for did, text in zip(doc_ids, texts)]
-                    retriever.corpus = corpus
-                    index_path.mkdir(parents=True, exist_ok=True)
-                    retriever.save(str(index_path), corpus=corpus)
-                    self.logger.info("BM25 Korean 인덱스 저장 완료")
-                self._bm25_cache = retriever
-
-            retriever = self._bm25_cache
-            query_tokens = _tokenize_korean([query])[0]
-            tokenized_query = _to_bm25s_tokens([query_tokens])
-            k = min(top_k, len(retriever.corpus))
-            results, scores = retriever.retrieve(tokenized_query, k=k)
-            return [(str(results[0, i]["id"]), float(scores[0, i])) for i in range(results.shape[1])]
-        except Exception as exc:
-            self.logger.warning(f"BM25 검색 실패 — hybrid 비활성화: {exc}")
-            return []
-
-    def _hybrid_rrf(
-        self,
-        *,
-        query: str,
-        dense_results: List[Dict[str, Any]],
-        top_k: int,
-        collection_key: str,
-        k: int = 60,
-    ) -> List[Dict[str, Any]]:
-        """Dense + BM25 결과를 RRF(Reciprocal Rank Fusion)로 합산한다.
-
-        BM25 실패 또는 결과 없을 시 Dense 결과를 top_k로 잘라 반환한다. (issue #258)
-        BM25-only 케이스는 Dense 메타데이터가 없으므로 skip하고 Dense 결과로 보충한다.
-        """
-        bm25_hits = self._bm25_top_k(query, top_k * 3, collection_key)
-        if not bm25_hits:
-            return dense_results[:top_k]
-
-        # Dense 청크를 case 레벨로 dedup (최고 점수 청크 유지)
-        seen_cases: set = set()
-        dense_case_hits: List[tuple] = []
-        case_to_chunk: Dict[str, Dict[str, Any]] = {}
-        for item in dense_results:
-            cid = str(item.get("case_id") or "")
-            if not cid:
-                raw = str(item.get("chunk_id") or "")
-                cid = raw.split("__chunk-")[0] if "__chunk-" in raw else raw
-            if not cid:
-                continue
-            score = float(item.get("score", 0.0) or 0.0)
-            if cid not in case_to_chunk or score > float(case_to_chunk[cid].get("score", 0.0)):
-                case_to_chunk[cid] = item
-            if cid not in seen_cases:
-                dense_case_hits.append((cid, score))
-                seen_cases.add(cid)
-
-        # RRF 점수 합산
-        rrf_scores: Dict[str, float] = {}
-        for ranked in [dense_case_hits, bm25_hits]:
-            for rank, (cid, _) in enumerate(ranked, start=1):
-                rrf_scores[cid] = rrf_scores.get(cid, 0.0) + 1.0 / (k + rank)
-
-        merged_cases = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
-
-        results: List[Dict[str, Any]] = []
-        included_cases: set = set()
-        for _, (cid, rrf_score) in enumerate(merged_cases):
-            if len(results) >= top_k:
-                break
-            if cid not in case_to_chunk:
-                continue  # BM25-only: Dense 메타데이터 없어 skip
-            item = dict(case_to_chunk[cid])
-            item["score"] = round(min(1.0, rrf_score), 4)
-            results.append(item)
-            included_cases.add(cid)
-
-        # top_k 미달 시 Dense 결과로 보충
-        for item in dense_results:
-            if len(results) >= top_k:
-                break
-            cid = str(item.get("case_id") or "")
-            if cid and cid not in included_cases:
-                results.append(dict(item))
-                included_cases.add(cid)
-
-        for rank, item in enumerate(results, start=1):
-            item["rank"] = rank
-        return results
 
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
@@ -823,19 +679,13 @@ class RetrievalService:
                 dense_results = store.query(
                     collection_name=collection_key,
                     query=query,
-                    top_k=top_k * 3,  # RRF 후보 확보를 위해 여유 있게 요청 (#258)
+                    top_k=top_k,
                     filters=filters or {},
                     threshold=threshold,
                     snippet_max_chars=effective_snippet_max_chars,
                 )
-                results = self._hybrid_rrf(
-                    query=query,
-                    dense_results=dense_results,
-                    top_k=top_k,
-                    collection_key=collection_key,
-                )
                 results = self._apply_retrieval_policy(
-                    results,
+                    dense_results,
                     topic_type=topic_type,
                     retrieval_policy=retrieval_policy,
                 )

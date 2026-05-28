@@ -113,7 +113,8 @@ def _format_query_text(structured: dict) -> str:
             text = (elem.get("text") or "").strip()
         else:
             text = str(elem or "").strip()
-        if text:
+        # LLM이 빈 요소를 "null"/"none" 문자열로 반환하는 경우 placeholder로 처리 (issue #265)
+        if text and text.lower() not in ("null", "none", "n/a"):
             parts.append(text)
     return "\n".join(parts)
 

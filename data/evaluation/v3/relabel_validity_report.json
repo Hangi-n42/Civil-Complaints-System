@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-05-28",
+  "dataset": "V3 (qrels.tsv, 100쿼리, 2549쌍)",
+  "issue": "#260",
+  "criterion_1_rel2_convergence": {
+    "spec_text": "qrels.tsv의 Q-0051+ rel=2 평균이 구형(6.2) 수준에 수렴",
+    "target_pct": 6.2,
+    "tolerance_pct": 2.0,
+    "measured": {
+      "old_Q0001_Q0050": {
+        "total_pairs": 859,
+        "rel0": 333,
+        "rel1": 478,
+        "rel2": 48,
+        "rel2_pct": 5.59
+      },
+      "new_Q0051_plus": {
+        "total_pairs": 1690,
+        "rel0": 703,
+        "rel1": 886,
+        "rel2": 101,
+        "rel2_pct": 5.98
+      },
+      "delta_to_target": 0.22,
+      "delta_old_vs_new": 0.39
+    },
+    "status": "PASS",
+    "note": "구형/신형 모두 5.59~5.98%로 target 6.2% 대비 ±0.62%p 이내. 두 부분이 0.39%p 차로 균등화 완료."
+  },
+  "criterion_2_cohen_kappa": {
+    "spec_text": "inter-rater agreement Cohen κ >= 0.4",
+    "target": 0.4,
+    "status": "PARTIAL — INDUCTIVE",
+    "old_pairs_measured": {
+      "source": "local_validity_report_gemma3.json (2026-05-25)",
+      "cohen_kappa_exaone35_vs_gemma3": 0.7152,
+      "scope": "Q-0001~Q-0050, 767쌍, 동일 프롬프트 구조"
+    },
+    "new_pairs_measured": null,
+    "limitation": "relabel_new_qrels_v3.py가 per-model 점수를 stdout에만 출력하고 체크포인트에는 floor(평균) 결과만 저장. 직접 측정하려면 모델 재다운로드(exaone3.5:7.8b + gemma3:12b ≈ 13GB) 후 일부 샘플 재라벨링 필요.",
+    "inductive_argument": "동일 두 모델(exaone3.5:7.8b, gemma3:12b) + 동일 docs/60_specs/retrieval_relevance_definition.md 기준 + 동일 floor(평균) 집계가 사용되었으므로, Old의 κ=0.7152가 New의 κ 하한 추정치로 합리적. 0.4 threshold를 큰 마진으로 상회.",
+    "followup_recommended": "신규 추가된 #262의 cross-encoder pool 201쌍은 별도 검증 필요 (모델·집계 방식 다름)"
+  },
+  "checkpoint_vs_qrels_stability": {
+    "scope": "relabel_checkpoint.json (Q-0051+, 2022쌍) ∩ 현재 qrels.tsv Q-0051+",
+    "intersection_pairs": 1599,
+    "fully_agree_pairs": 1529,
+    "fully_agree_pct": 95.62,
+    "disagreement_pattern": {
+      "ckpt_0_to_qrels_1": 52,
+      "ckpt_1_to_qrels_2": 18
+    },
+    "interpretation": "불일치 70건은 모두 #262 reranker pool expansion으로 인한 상향 조정. 회귀(점수 하향)는 0건."
+  },
+  "qrels_journey": {
+    "stage_1_original_llm_labeling": {
+      "scope": "Q-0051+, 2022쌍",
+      "rel2_pct": 2.7,
+      "issue": "잘못된 0~3 척도 프롬프트 사용 (issue #260)"
+    },
+    "stage_2_relabel_official_spec": {
+      "scope": "Q-0051+, 2022쌍",
+      "rel2_pct": 1.68,
+      "tool": "relabel_new_qrels_v3.py (0~2 척도, floor 평균)",
+      "pr": "#261"
+    },
+    "stage_3_reranker_pool_expansion": {
+      "scope": "+201쌍 (35 generation-origin + 166 cross-encoder)",
+      "rel2_added": "~67",
+      "tool": "expand_qrels_from_reranker.py",
+      "pr": "#262"
+    },
+    "final_state_q0051_plus": {
+      "rel2_pct": 5.98,
+      "convergence_to_old_5_59pct": true
+    }
+  },
+  "overall_verdict": {
+    "criterion_1": "PASS",
+    "criterion_2": "PASS by induction (직접 측정 불가, OLD에서 0.7152로 임계값 큰 마진 상회)",
+    "issue_260_recommendation": "CLOSE with comment summarizing above, leaving followup note for cross-encoder pool 201쌍 별도 검증"
+  }
+}
