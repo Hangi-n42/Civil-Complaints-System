@@ -162,7 +162,7 @@ def _log_success(*, endpoint: str, request_id: str, took_ms: int, retrieved_coun
 
 
 def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
-    """모델 answer가 비거나 템플릿 문구일 때 근거 기반 최소 답변을 합성한다."""
+    """모델 answer가 비거나 템플릿 문구일 때 공문형 최소 답변을 합성한다."""
     raw_answer = str(result.get("answer", "") or "").strip()
     fallback_marker = "본문이 비어 있어 요약 문장을 제공하지 못했습니다"
     if raw_answer and fallback_marker not in raw_answer:
@@ -173,27 +173,24 @@ def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
     actions = structured.get("action_items") if isinstance(structured.get("action_items"), list) else []
     actions = [str(item).strip() for item in actions if str(item).strip()]
 
-    parts: list[str] = []
+    action_phrase = ", ".join(actions[:3]) if actions else "현황 확인, 관계기관/운수업체 협의, 개선방안 검토"
+
+    # 공문형(민원회신) 기본 뼈대
+    parts: list[str] = [
+        "1. 우리 시 시정 발전에 관심을 두셔서 감사드리며, 귀 가정의 건강과 행복을 기원합니다.",
+    ]
     if summary:
-        parts.append(summary)
-    if actions:
-        parts.append("우선 조치: " + ", ".join(actions[:3]))
-    elif summary:
-        parts.append("우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립")
-    if citations:
-        quote = str(citations[0].get("snippet", "") or "").strip()
-        if quote:
-            parts.append(f"근거: {quote[:160]}")
+        parts.append(f"\n2. 귀하의 민원 내용은 \"{summary}\"에 관한 것으로 이해됩니다.")
+    else:
+        parts.append("\n2. 귀하의 민원 내용은 관련 불편사항 개선 요청에 관한 것으로 이해됩니다.")
 
-    if parts:
-        return " ".join(parts)
+    parts.append("\n3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.")
+    parts.append(f"\n   가. 관계 부서에서 사실관계 및 현황을 확인하겠습니다.")
+    parts.append(f"\n   나. 우선 조치/검토 사항: {action_phrase}.")
+    parts.append("\n   다. 일정 기간 모니터링 및 협의를 통해 불편이 최소화되도록 지속 점검하겠습니다.")
+    parts.append("\n\n4. 추가 설명이 필요하시면 성남시 해당 업무 담당부서로 문의해 주시면 안내드리겠습니다. 감사합니다.")
 
-    if citations:
-        quote = str(citations[0].get("snippet", "") or "").strip()
-        if quote:
-            return f"우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립. 근거: {quote[:160]}"
-
-    return "우선 조치: 현장 점검, 담당 부서 확인, 재발 방지 계획 수립."
+    return "".join(parts).strip()
 
 
 @router.post("/qa", response_model=QAResponse)

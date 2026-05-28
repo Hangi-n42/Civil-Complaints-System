@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.exceptions import NoEvidenceError
 from app.generation.normalization.response_normalizer import (
     normalize_response,
     validate_unified_contract,
@@ -67,6 +68,15 @@ def test_prompt_factory_force_json_mode_includes_mode_guidance():
     )
 
     assert "[force_json 모드]" in prompt
+
+
+def test_prompt_factory_raises_no_evidence_error_when_context_empty():
+    with pytest.raises(NoEvidenceError):
+        PromptFactory.build(
+            query="테스트 질문",
+            context=[],
+            routing_trace={"topic_type": "general", "complexity_level": "low"},
+        )
 
 
 def test_prompt_factory_build_from_dataset_record_extracts_raw_content():

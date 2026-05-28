@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -31,6 +32,43 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from app.core.config import settings
+
+
+def _normalize_persist_dir_for_chroma(persist_dir: str | Path) -> str:
+    """Chroma PersistentClient에 전달할 경로를 정규화한다.
+
+    Windows에서 한글이 포함된 절대 경로를 Rust 바인딩이 제대로 처리하지 못해
+    `Error loading hnsw index`가 재현되는 경우가 있어, 프로젝트 루트 내부 경로면
+    상대 경로로 우회한다.
+    """
+
+    path = Path(persist_dir)
+    client_path = str(path)
+
+    try:
+        resolved = path.resolve()
+    except Exception:
+        return client_path
+
+    # 1) CWD 기준 relpath를 우선 사용한다.
+    #    Chroma는 상대 경로를 현재 작업 디렉터리 기준으로 해석하므로,
+    #    상위 폴더에서 스크립트를 실행해도 올바른 persist 폴더를 가리키게 된다.
+    try:
+        cwd = Path.cwd().resolve()
+        client_path = os.path.relpath(str(resolved), start=str(cwd))
+    except Exception:
+        client_path = str(path)
+
+    # 2) 일부 환경에서 relpath 계산이 불가능하면(드라이브/UNC 등) 프로젝트 루트 기준도 시도한다.
+    if client_path == str(path):
+        try:
+            root = project_root.resolve()
+            if resolved == root or root in resolved.parents:
+                client_path = str(resolved.relative_to(root))
+        except Exception:
+            pass
+
+    return client_path
 
 
 def _try_import_chromadb():
@@ -541,7 +579,7 @@ def _iter_collection_get(
 def cmd_list(args: argparse.Namespace) -> int:
     chromadb = _try_import_chromadb()
 
-    client = chromadb.PersistentClient(path=str(args.persist_dir))
+    client = chromadb.PersistentClient(path=_normalize_persist_dir_for_chroma(args.persist_dir))
     collections = client.list_collections()
 
     if not collections:
@@ -558,7 +596,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 def cmd_count(args: argparse.Namespace) -> int:
     chromadb = _try_import_chromadb()
 
-    client = chromadb.PersistentClient(path=str(args.persist_dir))
+    client = chromadb.PersistentClient(path=_normalize_persist_dir_for_chroma(args.persist_dir))
     try:
         collection = client.get_collection(args.collection)
         print(collection.count())
@@ -575,7 +613,7 @@ def cmd_count(args: argparse.Namespace) -> int:
 def cmd_sample(args: argparse.Namespace) -> int:
     chromadb = _try_import_chromadb()
 
-    client = chromadb.PersistentClient(path=str(args.persist_dir))
+    client = chromadb.PersistentClient(path=_normalize_persist_dir_for_chroma(args.persist_dir))
     try:
         collection = client.get_collection(args.collection)
     except Exception as exc:
@@ -661,7 +699,7 @@ def cmd_dump(args: argparse.Namespace) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    client = chromadb.PersistentClient(path=str(args.persist_dir))
+    client = chromadb.PersistentClient(path=_normalize_persist_dir_for_chroma(args.persist_dir))
     try:
         collection = client.get_collection(args.collection)
     except Exception as exc:

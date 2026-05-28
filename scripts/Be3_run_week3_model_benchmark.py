@@ -26,6 +26,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.generation.parsing.json_utils import normalize_confidence, parse_qa_json_response
+from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
@@ -56,26 +57,16 @@ def _recover_minimal_response(raw_text: str) -> Dict[str, Any]:
 
 
 def _build_prompt(query: str, context: List[Dict[str, Any]], mode: str = "default") -> str:
-    context_lines = []
-    for i, row in enumerate(context, start=1):
-        context_lines.append(
-            f"[{i}] chunk_id={row['chunk_id']} case_id={row['case_id']} score={row.get('score', 0.0)}\\n"
-            f"snippet={row['snippet']}"
-        )
-
-    mode_hint = ""
-    if mode == "compact":
-        mode_hint = "\n재요청: compact JSON 한 줄만 출력하세요. 부가 설명/코드블록 금지."
-
-    return (
-        "검색 기반 QA입니다. 오직 JSON만 출력하세요.\\n"
-        "스키마: {\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],\"confidence\":\"low|medium|high\",\"limitations\":\"string\"}.\\n"
-        "주의: citations는 아래 근거 목록의 chunk_id/case_id/snippet만 사용하세요.\\n\\n"
-        + mode_hint
-        + "\\n\\n"
-        f"질문: {query}\\n\\n"
-        "검색 컨텍스트:\\n"
-        + "\\n".join(context_lines)
+    prompt_mode = "compact" if mode == "compact" else "default"
+    return PromptFactory.build(
+        query=query,
+        context=context,
+        routing_trace={
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "retrieval_policy": "general",
+            "prompt_mode": prompt_mode,
+        },
     )
 
 

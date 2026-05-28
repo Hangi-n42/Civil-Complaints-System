@@ -8,7 +8,7 @@ ex) 실행 예시:
 direct 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode direct 
---config configs/week3_model_benchmark.yaml 
+--config configs/week6_Be3_model_benchmark.yaml 
 --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
 --output-dir logs/evaluation/week6/ax4_direct_eval10
 
@@ -16,14 +16,14 @@ python scripts/Be3_run_week6_model_benchmark.py
 api 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode api --api-base-url http://127.0.0.1:8000 
---config configs/week3_model_benchmark.yaml 
+--config configs/week6_Be3_model_benchmark.yaml 
 --cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
 --output-dir logs/evaluation/week6/ax4_direct_eval10
 
 
 Usage:
     python scripts/Be3_run_week6_model_benchmark.py \
-    --config configs/week3_model_benchmark.yaml \
+    --config configs/week6_Be3_model_benchmark.yaml \
     --cases docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
 """
 
@@ -51,6 +51,7 @@ from app.generation.parsing.json_utils import (
     normalize_confidence,
     parse_qa_json_response,
 )
+from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
@@ -206,26 +207,16 @@ def _derive_non_empty_answer(parsed: Dict[str, Any], raw_response: str, context:
 
 
 def _build_prompt(query: str, context: List[Dict[str, Any]], mode: str = "default") -> str:
-    context_lines = []
-    for i, row in enumerate(context, start=1):
-        context_lines.append(
-            f"[{i}] chunk_id={row['chunk_id']} case_id={row['case_id']} score={row.get('score', 0.0)}\n"
-            f"snippet={row['snippet']}"
-        )
-
-    mode_hint = ""
-    if mode == "compact":
-        mode_hint = "\n재요청: compact JSON 한 줄만 출력하세요. 부가 설명/코드블록 금지."
-
-    return (
-        "검색 기반 QA입니다. 오직 JSON만 출력하세요.\n"
-        "스키마: {\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],\"confidence\":\"low|medium|high\",\"limitations\":\"string\"}.\n"
-        "주의: citations는 아래 근거 목록의 chunk_id/case_id/snippet만 사용하세요.\n\n"
-        + mode_hint
-        + "\n\n"
-        f"질문: {query}\n\n"
-        "검색 컨텍스트:\n"
-        + "\n".join(context_lines)
+    prompt_mode = "compact" if mode == "compact" else "default"
+    return PromptFactory.build(
+        query=query,
+        context=context,
+        routing_trace={
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "retrieval_policy": "general",
+            "prompt_mode": prompt_mode,
+        },
     )
 
 
@@ -616,7 +607,6 @@ def run(
 
         for case_idx, case in enumerate(cases, start=1):
             for rep in range(repetitions):
-                prompt = _build_prompt(case["query"], case["context"], mode="default")
                 record: Dict[str, Any] = {
                     "model_id": model_id,
                     "model_name": model_name,
@@ -636,6 +626,7 @@ def run(
                             timeout_sec=timeout_sec,
                         )
                     else:
+                        prompt = _build_prompt(case["query"], case["context"], mode="default")
                         parsed_final, latency, raw_response = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -875,7 +866,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/week3_model_benchmark.yaml",
+        default="configs/week6_Be3_model_benchmark.yaml",
         help="벤치마크 설정 파일 경로",
     )
     parser.add_argument(
@@ -912,6 +903,26 @@ def main() -> None:
     args = parser.parse_args()
 
     config_path = (PROJECT_ROOT / args.config).resolve()
+    cfg: Dict[str, Any] = {}
+    outputs: Optional[Dict[str, Any]] = None
+    try:
+        loaded = _read_yaml(config_path) or {}
+        if isinstance(loaded, dict):
+            cfg = loaded
+            maybe_outputs = cfg.get("outputs")
+            if isinstance(maybe_outputs, dict):
+                outputs = maybe_outputs
+    except Exception:
+        pass
+
+    # config.outputs.individual_results_dir를 기본 output_dir로 사용할 수 있도록 지원
+    # (단, 사용자가 --output-dir를 명시하지 않은 경우에만 적용)
+    output_dir_arg_provided = "--output-dir" in sys.argv
+    if not output_dir_arg_provided:
+        candidate = outputs.get("individual_results_dir") if isinstance(outputs, dict) else None
+        if isinstance(candidate, str) and candidate.strip():
+            args.output_dir = candidate.strip()
+
     cases_path = (PROJECT_ROOT / args.cases).resolve()
     output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -936,10 +947,22 @@ def main() -> None:
         model_id = args.model
         report_json = output_dir / f"model_benchmark_candidate_{model_id}.json"
     else:
-        # 모든 모델 운영: model_benchmark_report.json
+        # 모든 모델 운영: 기본값은 output_dir/model_benchmark_report.json
+        # 단, --output-dir를 명시하지 않았고 config.outputs.report_json가 있으면 그 경로를 사용
         report_json = output_dir / "model_benchmark_report.json"
+        if not output_dir_arg_provided and isinstance(outputs, dict):
+            candidate_report = outputs.get("report_json")
+            if isinstance(candidate_report, str) and candidate_report.strip():
+                report_json = (PROJECT_ROOT / candidate_report.strip()).resolve()
 
     summary_md = report_json.with_suffix(".md")
+    if not args.model and not output_dir_arg_provided and isinstance(outputs, dict):
+        candidate_summary = outputs.get("summary_md")
+        if isinstance(candidate_summary, str) and candidate_summary.strip():
+            summary_md = (PROJECT_ROOT / candidate_summary.strip()).resolve()
+
+    report_json.parent.mkdir(parents=True, exist_ok=True)
+    summary_md.parent.mkdir(parents=True, exist_ok=True)
 
     report_json.write_text(
         json.dumps(report, ensure_ascii=False, indent=2),

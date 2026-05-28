@@ -13,6 +13,7 @@ import json
 import re
 import statistics
 import time
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -21,6 +22,10 @@ import httpx
 import yaml
 
 PROJECT_ROOT = Path(__file__).parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from app.generation.prompts.prompt_factory import PromptFactory
 
 
 def _read_yaml(path: Path) -> Dict[str, Any]:
@@ -101,23 +106,15 @@ def _normalize_confidence(value: Any) -> float:
 
 
 def _build_prompt(query: str, context: List[Dict[str, Any]]) -> str:
-    context_lines = []
-    for i, row in enumerate(context, start=1):
-        snippet = str(row["snippet"]).replace("\n", " ").strip()
-        snippet = snippet[:180]
-        context_lines.append(
-            f"[{i}] chunk_id={row['chunk_id']} case_id={row['case_id']} score={row.get('score', 0.0)}\\n"
-            f"snippet={snippet}"
-        )
-
-    return (
-        "검색 기반 QA입니다. 반드시 JSON 객체 1개만 출력하세요(설명 금지).\\n"
-        "스키마: {\"answer\":\"string\",\"citations\":[{\"chunk_id\":\"string\",\"case_id\":\"string\",\"snippet\":\"string\",\"relevance_score\":0.0}],\"confidence\":\"low|medium|high\",\"limitations\":\"string\"}.\\n"
-        "제약: answer는 2문장 이내, citations는 최대 2개.\\n"
-        "주의: citations는 아래 근거 목록의 chunk_id/case_id/snippet만 사용하세요.\\n\\n"
-        f"질문: {query}\\n\\n"
-        "검색 컨텍스트:\\n"
-        + "\\n".join(context_lines)
+    return PromptFactory.build(
+        query=query,
+        context=context,
+        routing_trace={
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "retrieval_policy": "general",
+            "prompt_mode": "compact",
+        },
     )
 
 

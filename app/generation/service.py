@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import httpx
 
 from app.core.logging import pipeline_logger
-from app.core.exceptions import GenerationError
+from app.core.exceptions import GenerationError, RetrievalError
 from app.core.config import settings
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.parsing.json_utils import (
@@ -410,6 +410,8 @@ class GenerationService:
                 base_trace["prompt_mode"] = "compact"
 
             return PromptFactory.build_from_dataset_record(record=record, context=context, routing_trace=base_trace)
+        except RetrievalError:
+            raise
         except Exception as e:
             self.logger.error(f"원문 레코드 기반 프롬프트 구성 실패: {str(e)}")
             raise GenerationError(
@@ -444,8 +446,19 @@ class GenerationService:
                 threshold=threshold,
                 mode=mode,
             )
+            derived_query = str(derived_trace.get("derived_query") or "")
+            search_query = str(derived_trace.get("search_query") or "")
+            self.logger.info(
+                "autoretrieve trace: derived_query=%s, search_query=%s, collection=%s, top_k=%s",
+                derived_query,
+                search_query,
+                str(derived_trace.get("collection_name") or collection_name),
+                str(derived_trace.get("effective_top_k") or top_k),
+            )
             self.logger.info(f"원문 레코드 자동검색 RAG 프롬프트 구성 완료: {len(context)}개 컨텍스트")
             return prompt, context, derived_trace
+        except RetrievalError:
+            raise
         except Exception as e:
             self.logger.error(f"원문 레코드 자동검색 프롬프트 구성 실패: {str(e)}")
             raise GenerationError(

@@ -38,7 +38,7 @@ class Settings:
 
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
-    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cuda")
+    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
     # 데이터 경로
     RAW_DATA_PATH: str = str(DATA_DIR / "raw")
