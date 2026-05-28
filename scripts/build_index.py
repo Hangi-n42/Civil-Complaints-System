@@ -51,15 +51,19 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
             return True
         return False
 
-    parts = [f"[원문]\n{normalized['text']}"]
+    # 임베딩 텍스트 = 라벨 없는 4요소 줄바꿈 결합 (운영 코퍼스 civil_cases_v1 및
+    # 평가 쿼리 포맷과 동일). 과거에는 [원문] 전문 + [관찰]/[결과] 등 라벨을 포함했으나,
+    # V3 100쿼리 A/B에서 [원문] 포함이 nDCG@5 −0.054, R@10 −0.091로 검색을 악화시켜
+    # 제거했다. (#264, reports/retrieval/v3/risk264_raw_ab.json)
+    parts = []
     if not _is_empty(obs_text):
-        parts.append(f"[관찰]\n{obs_text}")
+        parts.append(obs_text)
     if not _is_empty(res_text):
-        parts.append(f"[결과]\n{res_text}")
+        parts.append(res_text)
     if not _is_empty(req_text):
-        parts.append(f"[요청]\n{req_text}")
+        parts.append(req_text)
     if not _is_empty(ctx_text):
-        parts.append(f"[배경]\n{ctx_text}")
+        parts.append(ctx_text)
     combined_text = "\n".join(parts)
 
     metadata: Dict[str, Any] = {
