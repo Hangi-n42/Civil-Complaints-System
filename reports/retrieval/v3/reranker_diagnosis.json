@@ -1,0 +1,165 @@
+{
+  "metrics": {
+    "dense": {
+      "R@10": 0.5916090078995235,
+      "nDCG@10": 0.8931777194566041,
+      "RR@5": 1.0,
+      "RR@10": 1.0,
+      "P@5": 0.8099999999999997,
+      "R@5": 0.3747932477826554,
+      "nDCG@5": 0.8973349672393958,
+      "AP@10": 0.5472918735467714
+    },
+    "reranker": {
+      "R@10": 0.49471339999499747,
+      "nDCG@10": 0.800803527702201,
+      "RR@5": 0.995,
+      "RR@10": 0.995,
+      "P@5": 0.7019999999999996,
+      "R@5": 0.33044527111644584,
+      "nDCG@5": 0.8241732775521734,
+      "AP@10": 0.43831004108513916
+    }
+  },
+  "unjudged_rate": {
+    "top5": {
+      "dense": 0.002,
+      "reranker": 0.16
+    },
+    "top10": {
+      "dense": 0.001,
+      "reranker": 0.241
+    }
+  },
+  "rank_displacement": {
+    "kept_top5": 207,
+    "demoted_in_top10": 54,
+    "dropped_out_top10": 144,
+    "total_positives": 405
+  },
+  "displacement_examples": [
+    {
+      "qid": "Q-0001",
+      "docid": "CASE-700524",
+      "dense_rank": 2,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0001",
+      "docid": "CASE-500516",
+      "dense_rank": 5,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0002",
+      "docid": "CASE-001589",
+      "dense_rank": 2,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0002",
+      "docid": "CASE-002298",
+      "dense_rank": 3,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0005",
+      "docid": "CASE-800375",
+      "dense_rank": 2,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0005",
+      "docid": "CASE-80412",
+      "dense_rank": 3,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0005",
+      "docid": "CASE-800191",
+      "dense_rank": 5,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    },
+    {
+      "qid": "Q-0006",
+      "docid": "CASE-501042",
+      "dense_rank": 2,
+      "rel": 1,
+      "reranker_rank": "dropped"
+    }
+  ],
+  "per_query": {
+    "reranker_wins": 9,
+    "reranker_losses": 53,
+    "ties": 38,
+    "worst_losses": [
+      [
+        "Q-0060",
+        -0.493,
+        1.0,
+        0.507
+      ],
+      [
+        "Q-0024",
+        -0.471,
+        0.95,
+        0.48
+      ],
+      [
+        "Q-0012",
+        -0.395,
+        1.0,
+        0.605
+      ],
+      [
+        "Q-0049",
+        -0.382,
+        0.956,
+        0.575
+      ],
+      [
+        "Q-0019",
+        -0.367,
+        1.0,
+        0.633
+      ],
+      [
+        "Q-0048",
+        -0.334,
+        0.84,
+        0.507
+      ],
+      [
+        "Q-0058",
+        -0.298,
+        0.902,
+        0.605
+      ],
+      [
+        "Q-0091",
+        -0.286,
+        0.902,
+        0.616
+      ],
+      [
+        "Q-0063",
+        -0.275,
+        0.807,
+        0.532
+      ],
+      [
+        "Q-0073",
+        -0.269,
+        1.0,
+        0.731
+      ]
+    ]
+  }
+}
