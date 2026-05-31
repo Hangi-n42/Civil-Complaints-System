@@ -67,20 +67,31 @@ class CrossEncoderRerankStage:
 
 
 def _get_text(doc: RetrievedDoc) -> str:
+    """리랭커 입력 텍스트.
+
+    Dense가 임베딩한 전체 4요소 본문(snippet)과 소관 분야/관할 신호(category·region)를
+    함께 사용한다. 기존에는 observation+request(4요소 중 2개)만 써서 입력이 빈약했고,
+    이는 관련성 판단(같은 법령·관할의 선례인지)에 불리했다.
+    """
     meta = doc.metadata
-    title = str(meta.get("title") or "")
 
-    summary = meta.get("summary") or {}
-    if isinstance(summary, dict):
-        observation = str(summary.get("observation") or "")
-        request = str(summary.get("request") or "")
-        body = " ".join(part for part in (observation, request) if part)
-    else:
-        body = ""
-
+    # 본문: snippet(전체 4요소)을 우선 사용, 없으면 summary observation+request로 폴백
+    body = str(meta.get("snippet") or "")
     if not body:
-        body = str(meta.get("snippet") or "")
+        summary = meta.get("summary") or {}
+        if isinstance(summary, dict):
+            body = " ".join(
+                part for part in (
+                    str(summary.get("observation") or ""),
+                    str(summary.get("request") or ""),
+                ) if part
+            )
+    if not body:
+        body = str(meta.get("title") or "")
 
-    if title and body:
-        return f"{title} {body}"
-    return title or body or doc.docid
+    # 소관 분야/관할 신호 (관련성의 핵심: 같은 분야·지역인가)
+    domain = " ".join(
+        part for part in (str(meta.get("category") or ""), str(meta.get("region") or "")) if part
+    )
+    text = f"[{domain}] {body}".strip() if domain else body
+    return text or doc.docid
