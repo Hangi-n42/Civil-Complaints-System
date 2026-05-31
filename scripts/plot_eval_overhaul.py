@@ -144,8 +144,38 @@ def fig4_judges():
     fig.savefig(FIG / "fig4_judge_agreement.png"); plt.close(fig)
 
 
+def fig5_all_methods():
+    """전체 5개 방법 종합 비교 (NO-self, 3채점관). 최종 결론 그래프."""
+    base = load("eval_noself.json")["no_self"]          # BM25, Dense, Dense+Reranker
+    hyb = load("eval_hybrid_noself.json")["no_self"]     # Hybrid(RRF)
+    hyrr = load("eval_hybrid_reranked_noself.json")["no_self"]  # Hybrid+Reranker
+    methods = {
+        "BM25": base["BM25"],
+        "Dense": base["Dense"],
+        "Hybrid": hyb["Hybrid(RRF)"],
+        "Dense+Rerank": base["Dense+Reranker"],
+        "Hybrid+Rerank": hyrr["Hybrid+Reranker"],
+    }
+    colors = {"BM25": C["BM25"], "Dense": C["Dense"], "Hybrid": "#1a9850",
+              "Dense+Rerank": C["Reranker"], "Hybrid+Rerank": "#984ea3"}
+    keys = ["nDCG@10", "AP@10", "RR@5", "nDCG@5", "P@5"]
+    fig, ax = plt.subplots(figsize=(11, 5))
+    names = list(methods)
+    x = range(len(keys)); w = 0.16
+    for i, name in enumerate(names):
+        vals = [g(methods[name], k) for k in keys]
+        bars = ax.bar([xx + (i - 2) * w for xx in x], vals, w, label=name, color=colors[name])
+        annotate(ax, bars, "{:.2f}")
+    ax.set_xticks(list(x)); ax.set_xticklabels(keys)
+    ax.set_title("Final method comparison (no-self, 3-judge median qrels) — Hybrid wins, reranker hurts",
+                 fontweight="bold")
+    ax.set_ylabel("score"); ax.legend(ncol=5, fontsize=9, loc="upper center", bbox_to_anchor=(0.5, -0.08))
+    fig.tight_layout()
+    fig.savefig(FIG / "fig5_all_methods.png"); plt.close(fig)
+
+
 if __name__ == "__main__":
-    fig1_pooling(); fig2_self_ref(); fig3_final(); fig4_judges()
+    fig1_pooling(); fig2_self_ref(); fig3_final(); fig4_judges(); fig5_all_methods()
     print("figures →", FIG)
     for p in sorted(FIG.glob("*.png")):
         print(" ", p.name)
