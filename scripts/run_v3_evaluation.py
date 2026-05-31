@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import os
 import re
 import sys
 import time
@@ -165,7 +166,8 @@ def load_queries() -> list[dict[str, Any]]:
 
 def load_qrels() -> list[QrelRecord]:
     qrels = []
-    with (DATA_DIR / "qrels.tsv").open("r", encoding="utf-8-sig") as f:
+    qrels_file = os.getenv("QRELS_FILE", "qrels.tsv")
+    with (DATA_DIR / qrels_file).open("r", encoding="utf-8-sig") as f:
         for lineno, raw in enumerate(f, 1):
             line = raw.strip()
             if not line:

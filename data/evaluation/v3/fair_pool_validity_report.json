@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-05-30T16:14:54",
+  "dataset": "V3 신규 공정 풀 (pool_to_judge, 5508쌍)",
+  "models": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "ax4-light-local:latest"
+  ],
+  "scale": "0~2 (공식 retrieval_relevance_definition.md)",
+  "n_total_pairs": 5508,
+  "n_fully_scored": 4169,
+  "n_conflict": 3,
+  "conflict_rate": 0.0007,
+  "score_distribution": {
+    "exaone3.5": {
+      "0": 3039,
+      "1": 1130
+    },
+    "gemma3": {
+      "0": 2637,
+      "1": 1523,
+      "2": 9
+    },
+    "ax4": {
+      "0": 3630,
+      "1": 523,
+      "2": 16
+    }
+  },
+  "inter_rater_agreement": {
+    "fleiss_kappa": 0.4914,
+    "cohen_kappa_ex35_gem3": 0.6637,
+    "cohen_kappa_ex35_ax4": 0.4665,
+    "cohen_kappa_gem3_ax4": 0.3705
+  },
+  "validity_thresholds": {
+    "fleiss_kappa_min": 0.4,
+    "conflict_rate_max": 0.15
+  },
+  "baseline_original": {
+    "fleiss_kappa": 0.5752,
+    "cohen_kappa_ex35_gem3": 0.7152,
+    "note": "local_validity_report_gemma3.json (옛 50쿼리 767쌍, 0~3 척도)"
+  },
+  "verdict": "VALID"
+}
