@@ -1,0 +1,21 @@
+{
+  "source_qrels": "qrels_pooled_3judge.tsv",
+  "seed": 42,
+  "test_ratio": 0.2,
+  "n_queries_total": 100,
+  "n_train_queries": 80,
+  "n_test_queries": 20,
+  "n_train_pairs": 6456,
+  "train_label_dist": {
+    "0": 3902,
+    "1": 2431,
+    "2": 123
+  },
+  "test_label_dist": {
+    "0": 1063,
+    "1": 511,
+    "2": 27
+  },
+  "skipped_missing_text": 0,
+  "note": "쿼리 단위 분할(누수 방지). self-doc(gen-origin rel=2)도 학습에 포함. 평가는 test_qids로만."
+}
