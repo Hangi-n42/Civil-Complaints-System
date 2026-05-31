@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-05-31T10:29:06",
+  "judges": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "qwen2.5:14b"
+  ],
+  "aggregation": "median(3 judges), floor on tie",
+  "n_pool": 5508,
+  "n_qwen_scored": 5508,
+  "n_triple_valid": 5508,
+  "rel_distribution": {
+    "0": 3929,
+    "1": 1578,
+    "2": 1
+  },
+  "inter_rater_agreement": {
+    "fleiss_kappa": 0.5666,
+    "cohen_kappa_ex_gem": 0.666,
+    "cohen_kappa_ex_qwen": 0.5696,
+    "cohen_kappa_gem_qwen": 0.484
+  },
+  "added_pairs": 5508,
+  "note": "ax4(검증자) 폐기. 3 채점관 중앙값이 라벨, 상호 κ가 검증 지표."
+}
