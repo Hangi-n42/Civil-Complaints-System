@@ -109,7 +109,8 @@ async def test_chroma_dense_stage_uses_retrieval_service_adapter():
     output = await stage.run(StageInput(query=query))
 
     assert output.stage_name == "dense_retriever"
-    assert output.candidates[0].docid == "D1"
+    # #202 이후 평가 정답셋이 case 단위 → docid는 case_id 우선 (chunk_id 아님)
+    assert output.candidates[0].docid == "C1"
     assert output.candidates[0].rank == 1
     assert service.calls[0]["query"] == "BRT 언제"
 
