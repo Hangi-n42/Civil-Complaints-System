@@ -1,0 +1,15 @@
+# 텍스트 파일 줄바꿈을 LF로 고정한다.
+# (Windows 데스크톱에서 파일을 열고 닫으며 CRLF로 바뀌어 git이 전체 변경으로
+#  오인하는 churn을 방지 — 평가 qrels/queries 등에서 반복 발생했음)
+*.tsv   text eol=lf
+*.jsonl text eol=lf
+*.json  text eol=lf
+*.csv   text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+
+# 바이너리 (정규화 금지)
+*.png binary
+*.bin binary
