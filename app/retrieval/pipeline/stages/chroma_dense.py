@@ -53,6 +53,7 @@ class ChromaDenseStage:
             topic_type=str(metadata.get("topic_type") or "general"),
             retrieval_policy=str(retrieval_policy or "general"),
             snippet_max_chars=int(snippet_max_chars or 140),
+            strategy="dense",  # dense 전용 단계 — 전역 hybrid 기본값에 영향받지 않도록 고정
         )
         latency_ms = (time.perf_counter() - started_at) * 1000
 
