@@ -35,6 +35,7 @@ class RetrievalService:
         self.embedding_device = settings.EMBEDDING_DEVICE
         self.default_collection_name = "civil_cases_v1"
         self._vectorstore: Optional[ChromaVectorStore] = None
+        self._hybrid = None  # HybridRetriever (lazy)
 
     def _get_vectorstore(self) -> ChromaVectorStore:
         if self._vectorstore is None:
@@ -44,6 +45,14 @@ class RetrievalService:
                 embedding_device=self.embedding_device,
             )
         return self._vectorstore
+
+    def _get_hybrid(self):
+        """Hybrid(BM25+Dense RRF) 리트리버 (lazy). BM25 인덱스는 첫 호출 시 빌드·캐시."""
+        if self._hybrid is None:
+            from app.retrieval.search.hybrid import HybridRetriever
+
+            self._hybrid = HybridRetriever(self._get_vectorstore(), rrf_k=settings.RRF_K)
+        return self._hybrid
 
     def _bootstrap_from_samples(self, collection_name: Optional[str] = None) -> None:
         """샘플 데이터가 존재하면 ChromaDB 컬렉션을 초기화한다."""
@@ -634,6 +643,7 @@ class RetrievalService:
         request_segments: Optional[List[str]] = None,
         retrieval_policy: Optional[str] = None,
         snippet_max_chars: Optional[int] = None,
+        strategy: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -676,16 +686,31 @@ class RetrievalService:
                     segment_results.append((segment, results_for_segment))
                 results = self._merge_segment_results(segment_results, top_k=top_k)
             else:
+                # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
+                effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
+                use_hybrid = effective_strategy == "hybrid" and not (filters or {})
+                fanout = max(top_k, settings.HYBRID_FANOUT) if use_hybrid else top_k
                 dense_results = store.query(
                     collection_name=collection_key,
                     query=query,
-                    top_k=top_k,
+                    top_k=fanout,
                     filters=filters or {},
                     threshold=threshold,
                     snippet_max_chars=effective_snippet_max_chars,
                 )
+                if use_hybrid:
+                    try:
+                        results = self._get_hybrid().search(
+                            collection_key, query, top_k, dense_results,
+                            fanout=settings.HYBRID_FANOUT,
+                        )
+                    except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
+                        self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
+                        results = dense_results[:top_k]
+                else:
+                    results = dense_results[:top_k]
                 results = self._apply_retrieval_policy(
-                    dense_results,
+                    results,
                     topic_type=topic_type,
                     retrieval_policy=retrieval_policy,
                 )

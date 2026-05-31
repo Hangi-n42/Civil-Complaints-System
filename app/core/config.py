@@ -40,6 +40,11 @@ class Settings:
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
+    # 검색 전략 (교정 평가 #273: Hybrid이 전 지표 1위 → 기본값 hybrid)
+    RETRIEVAL_STRATEGY: str = os.getenv("RETRIEVAL_STRATEGY", "hybrid")  # "hybrid" | "dense"
+    RRF_K: int = int(os.getenv("RRF_K", 60))
+    HYBRID_FANOUT: int = int(os.getenv("HYBRID_FANOUT", 50))
+
     # 데이터 경로
     RAW_DATA_PATH: str = str(DATA_DIR / "raw")
     INTERIM_DATA_PATH: str = str(DATA_DIR / "interim")
