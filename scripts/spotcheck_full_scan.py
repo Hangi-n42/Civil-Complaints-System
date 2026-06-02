@@ -28,6 +28,7 @@ import random
 import sys
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,6 +129,7 @@ def main() -> None:
     ap.add_argument("--smoke", type=int, default=0, help="스모크: 앞 N쿼리만")
     ap.add_argument("--max-docs", type=int, default=0, help="스모크: 쿼리당 코퍼스 앞 N건만")
     ap.add_argument("--aggregate-only", action="store_true")
+    ap.add_argument("--workers", type=int, default=3, help="동시 요청 수(병렬). temp=0이라 결과 동일.")
     args = ap.parse_args()
 
     corpus = load_corpus()
@@ -150,16 +152,22 @@ def main() -> None:
         print(f"쿼리: {[q['query_id'] for q in sel]}")
         print("=" * 64)
 
+        workers = max(1, args.workers)
+        batch = workers * 10                      # 배치마다 체크포인트(≤batch건만 손실 위험)
         started = time.perf_counter()
-        for i, (qid, qtext, docid) in enumerate(todo, 1):
-            done[f"{qid}::{docid}"] = call_scanner(build_fast_prompt(qtext, corpus[docid]))
-            if i % CHECKPOINT_EVERY == 0 or i == len(todo):
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for start in range(0, len(todo), batch):
+                chunk = todo[start:start + batch]
+                scores = list(ex.map(
+                    lambda t: call_scanner(build_fast_prompt(t[1], corpus[t[2]])), chunk))
+                for (qid, _qt, docid), s in zip(chunk, scores):
+                    done[f"{qid}::{docid}"] = s
+                n = start + len(chunk)
                 SCAN_CKPT.parent.mkdir(parents=True, exist_ok=True)
                 SCAN_CKPT.write_text(json.dumps(done, ensure_ascii=False), encoding="utf-8")
-                rate = i / (time.perf_counter() - started)
-                eta = (len(todo) - i) / rate / 60 if rate else 0
-                print(f"  [{i}/{len(todo)}] {qid}::{docid}={done[f'{qid}::{docid}']} | {rate:.2f}쌍/s ETA {eta:.0f}분")
-        SCAN_CKPT.write_text(json.dumps(done, ensure_ascii=False), encoding="utf-8")
+                rate = n / (time.perf_counter() - started)
+                eta = (len(todo) - n) / rate / 60 if rate else 0
+                print(f"  [{n}/{len(todo)}] {chunk[-1][0]}::{chunk[-1][2]}={scores[-1]} | {rate:.2f}쌍/s ETA {eta:.0f}분")
 
     report = aggregate(sel, corpus, done)
     OUT_REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
