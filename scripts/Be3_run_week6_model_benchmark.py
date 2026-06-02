@@ -9,27 +9,28 @@ direct 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode direct 
 --config configs/week6_Be3_model_benchmark.yaml 
---cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
---output-dir logs/evaluation/week6/ax4_direct_eval10
+--cases ../40_delivery/week3/model_test_assets/evaluation_set.json
+--output-dir logs/evaluation/week6/be3_model_benchmark
 
 
 api 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode api --api-base-url http://127.0.0.1:8000 
 --config configs/week6_Be3_model_benchmark.yaml 
---cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
---output-dir logs/evaluation/week6/ax4_direct_eval10
+--cases ../40_delivery/week3/model_test_assets/evaluation_set.json
+--output-dir logs/evaluation/week6/be3_model_benchmark_api
 
 
 Usage:
     python scripts/Be3_run_week6_model_benchmark.py \
     --config configs/week6_Be3_model_benchmark.yaml \
-    --cases docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
+    --cases ../40_delivery/week3/model_test_assets/evaluation_set.json
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import re
 import statistics
@@ -206,17 +207,68 @@ def _derive_non_empty_answer(parsed: Dict[str, Any], raw_response: str, context:
     return "관련 근거를 확인했으나 모델 answer가 비어 제한 응답으로 대체합니다."
 
 
-def _build_prompt(query: str, context: List[Dict[str, Any]], mode: str = "default") -> str:
-    prompt_mode = "compact" if mode == "compact" else "default"
-    return PromptFactory.build(
-        query=query,
-        context=context,
-        routing_trace={
-            "topic_type": "general",
-            "complexity_level": "medium",
-            "retrieval_policy": "general",
-            "prompt_mode": prompt_mode,
-        },
+def _case_identifier(case: Dict[str, Any], fallback_index: int) -> str:
+    return str(
+        case.get("case_id")
+        or case.get("source_id")
+        or case.get("complaint_id")
+        or f"CASE-{fallback_index:04d}"
+    )
+
+
+def _case_query(case: Dict[str, Any]) -> str:
+    return PromptFactory._derive_query_from_record(case) or "(빈 질의)"
+
+
+def _case_context(case: Dict[str, Any]) -> List[Dict[str, Any]]:
+    context = case.get("context")
+    if not isinstance(context, list):
+        return []
+    return [item for item in context if isinstance(item, dict)]
+
+
+def _build_prompt_context_from_case(
+    case: Dict[str, Any],
+    *,
+    mode: str = "default",
+    context_override: List[Dict[str, Any]] | None = None,
+    routing_trace: Dict[str, Any] | None = None,
+) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+    """벤치마크 프롬프트는 PromptFactory 단일 경로로 구성한다.
+
+    기존 평가셋처럼 context가 있으면 record 기반 PromptFactory 경로를 사용하고,
+    원문 레코드만 있으면 PromptFactory auto-retrieve로 근거를 붙인다.
+    """
+    context = context_override if context_override is not None else _case_context(case)
+
+    mode_norm = str(mode or "default").strip().lower()
+    prompt_mode = "compact" if mode_norm == "compact" else "force_json" if mode_norm == "force_json" else "default"
+    trace = dict(routing_trace or {})
+    trace["prompt_mode"] = prompt_mode
+
+    if context:
+        prompt = PromptFactory.build_from_dataset_record(
+            record=dict(case),
+            context=context,
+            routing_trace=trace,
+        )
+        return prompt, context, trace
+
+    top_k = int(case.get("top_k") or 5)
+    collection_name = str(case.get("collection_name") or "civil_cases_v1")
+    filters = case.get("filters") if isinstance(case.get("filters"), dict) else None
+    threshold = float(case.get("threshold") or 0.0)
+
+    return asyncio.run(
+        PromptFactory.build_from_dataset_record_autoretrieve(
+            record=dict(case),
+            routing_trace=trace,
+            top_k=top_k,
+            collection_name=collection_name,
+            filters=filters,
+            threshold=threshold,
+            mode=prompt_mode,
+        )
     )
 
 
@@ -607,26 +659,29 @@ def run(
 
         for case_idx, case in enumerate(cases, start=1):
             for rep in range(repetitions):
+                case_id = _case_identifier(case, case_idx)
                 record: Dict[str, Any] = {
                     "model_id": model_id,
                     "model_name": model_name,
-                    "case_id": case["case_id"],
+                    "case_id": case_id,
+                    "source_id": case.get("source_id"),
                     "run_index": rep + 1,
                 }
                 try:
-                    eval_context = case["context"]
+                    eval_context = _case_context(case)
+                    routing_trace: Dict[str, Any] = {}
                     if benchmark_mode == "api":
-                        complaint_id = str(case.get("complaint_id") or f"BM-{case.get('case_id', case_idx)}")
-                        top_k = int(case.get("top_k") or max(1, min(10, len(case.get("context", [])) or 5)))
+                        complaint_id = str(case.get("complaint_id") or f"BM-{case_id}")
+                        top_k = int(case.get("top_k") or max(1, min(10, len(eval_context) or 5)))
                         parsed_final, latency, raw_response, eval_context = _call_search_qa_api(
                             api_base_url=api_base_url,
-                            query=case["query"],
+                            query=_case_query(case),
                             complaint_id=complaint_id,
                             top_k=top_k,
                             timeout_sec=timeout_sec,
                         )
                     else:
-                        prompt = _build_prompt(case["query"], case["context"], mode="default")
+                        prompt, eval_context, routing_trace = _build_prompt_context_from_case(case, mode="default")
                         parsed_final, latency, raw_response = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -652,7 +707,12 @@ def run(
                     if not integrity_passed_initial and benchmark_mode == "direct":
                         retry_reason = "INTEGRITY_GATE_FAILED"
                         retry_stage = "compact"
-                        compact_prompt = _build_prompt(case["query"], case["context"], mode="compact")
+                        compact_prompt, eval_context, routing_trace = _build_prompt_context_from_case(
+                            case,
+                            mode="compact",
+                            context_override=eval_context,
+                            routing_trace=routing_trace,
+                        )
                         parsed_compact, latency_compact, raw_response_compact = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -723,6 +783,8 @@ def run(
                             "retry_reason": retry_reason,
                             "retry_stage": retry_stage,
                             "benchmark_mode": benchmark_mode,
+                            "derived_query": routing_trace.get("derived_query") or _case_query(case),
+                            "retrieved_context_count": len(eval_context),
                         }
                     )
                 except Exception as e:
@@ -872,7 +934,7 @@ def main() -> None:
     parser.add_argument(
         "--cases",
         type=str,
-        default="docs/40_delivery/week3/model_test_assets/evaluation_set.json",
+        default="../40_delivery/week3/model_test_assets/evaluation_set.json",
         help="벤치마크 케이스 파일 경로",
     )
     parser.add_argument(

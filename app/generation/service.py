@@ -384,6 +384,8 @@ class GenerationService:
                 base_trace["prompt_mode"] = "compact"
 
             return PromptFactory.build(query=query, context=context, routing_trace=base_trace)
+        except RetrievalError:
+            raise
         except Exception as e:
             self.logger.error(f"프롬프트 구성 실패: {str(e)}")
             raise GenerationError(
@@ -449,15 +451,27 @@ class GenerationService:
             derived_query = str(derived_trace.get("derived_query") or "")
             search_query = str(derived_trace.get("search_query") or "")
             self.logger.info(
-                "autoretrieve trace: derived_query=%s, search_query=%s, collection=%s, top_k=%s",
+                "autoretrieve trace: derived_query=%s, search_query=%s, collection=%s, top_k=%s, filters=%s, threshold=%s, topic=%s, complexity=%s, route=%s, strategy=%s, policy=%s",
                 derived_query,
                 search_query,
                 str(derived_trace.get("collection_name") or collection_name),
                 str(derived_trace.get("effective_top_k") or top_k),
+                str(derived_trace.get("filters") or filters or {}),
+                str(derived_trace.get("threshold") or threshold),
+                str(derived_trace.get("topic_type") or ""),
+                str(derived_trace.get("complexity_level") or ""),
+                str(derived_trace.get("route_key") or ""),
+                str(derived_trace.get("strategy_id") or ""),
+                str(derived_trace.get("retrieval_policy") or ""),
             )
             self.logger.info(f"원문 레코드 자동검색 RAG 프롬프트 구성 완료: {len(context)}개 컨텍스트")
             return prompt, context, derived_trace
-        except RetrievalError:
+        except RetrievalError as e:
+            self.logger.warning(
+                "원문 레코드 자동검색 프롬프트 구성 실패(retrieval): %s details=%s",
+                str(e),
+                str(getattr(e, "details", {})),
+            )
             raise
         except Exception as e:
             self.logger.error(f"원문 레코드 자동검색 프롬프트 구성 실패: {str(e)}")
