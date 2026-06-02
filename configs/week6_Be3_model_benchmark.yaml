@@ -4,9 +4,9 @@ benchmark:
   backend: ollama
   base_url: http://localhost:11434
   temperature: 0.2
-  num_predict: 128
-  num_ctx: 1024
-  timeout_sec: 90
+  num_predict: 512
+  num_ctx: 2048
+  timeout_sec: 120
   repetitions_per_case: 1
   response_format: json
 

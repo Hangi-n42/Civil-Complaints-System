@@ -241,6 +241,9 @@ class PromptFactory:
             "- The response must start with '{' and end with '}'. Do not emit any text outside the JSON object.\n"
             "- Use double quotes for JSON keys/strings. Do not use trailing commas, NaN, or Infinity.\n"
             "- Follow additionalProperties=false: do not add keys outside the schema.\n"
+            "- Top-level keys must be exactly: citations, answer, limitations, structured_output.\n"
+            "- Output keys in this exact order so citations are completed before the long answer: citations first, answer second, limitations third, structured_output fourth.\n"
+            "- Do not create numbered top-level keys such as \"1\", \"2\", \"3\", and do not use top-level keys such as reply, response, action_items, request_segments, confidence, or routing_trace.\n"
             "- Required keys must never be omitted: answer, citations, limitations, structured_output.\n"
             "- limitations must be non-empty. structured_output.summary must be non-empty.\n"
             "- structured_output.action_items must contain at least 2 items; structured_output.request_segments must be an array.\n"
@@ -251,9 +254,14 @@ class PromptFactory:
             "- citations must be selected only from the provided '검색 컨텍스트'. Do not invent external sources.\n"
             f"- Output 1 to {citations_max} citations.\n"
             "- Every citation must include chunk_id, case_id, snippet, and relevance_score.\n"
+            "- Use chunk_id, case_id, score, and relevance_score only inside citations. Never expose these metadata strings inside answer.\n"
+            "- The answer must cite with human-readable [[출처 n]] tokens only; do not write text such as chunk_id=..., case_id=..., score=..., or CASE-...__chunk-... in answer.\n"
             f"- citation.snippet must be copied from a context snippet, may be a substring, must be non-empty, and must be <= {citation_snippet_max_chars} chars.\n"
             "- citation.relevance_score must use the context score/relevance_score value normalized to 0..1.\n"
             "- If citations has N items, answer must contain exactly one source token for each citation: [[출처 1]] through [[출처 N]].\n"
+            "- Put each source token inside the answer string at the end of the sentence supported by that citation. Use the exact token shape [[출처 1]], not ([출처 1]) or [출처 1].\n"
+            "- citations[0] corresponds to [[출처 1]], citations[1] corresponds to [[출처 2]], and citations[2] corresponds to [[출처 3]].\n"
+            "- The answer is invalid if it has citations but lacks [[출처 n]] tokens, or if it has [[출처 n]] tokens but the citations array is missing.\n"
             "- Do not include any extra [[출처 ...]] token beyond the citations count.\n"
         )
 
@@ -263,6 +271,10 @@ class PromptFactory:
                 "[RAW COMPLAINT REPLY RULES]\n"
                 "- Treat '민원 원문' as the citizen's actual request and write a factual official reply to that complaint.\n"
                 "- Do not answer as an evaluator, benchmark summarizer, or generic context summarizer.\n"
+                "- The answer must be a civil-affairs reply letter, not a retrieval report. Do not start with a meta sentence about checking evidence.\n"
+                "- Use this reply structure: 1. 감사/접수 안내, 2. '귀하의 민원 내용은 ...에 관한 것으로 이해됩니다.', 3. 검토 의견은 다음과 같습니다(가/나/다), 4. 추가 문의 안내, '감사합니다. 끝.'\n"
+                "- Match the tone of Korean public-agency replies: polite, plain, numbered paragraphs, no Markdown headings, no bullet-heavy action-plan style unless the complaint explicitly asks for a list.\n"
+                "- Write enough detail for a real reply: summarize the complaint, explain the applicable review basis, describe possible handling or limits, and give a follow-up/contact path.\n"
                 "- Separate the citizen's requested facts, safety concerns, inconvenience, and proposed actions before drafting the answer.\n"
                 "- Use '검색 컨텍스트' only as grounding for administrative handling, similar cases, procedures, and limitations.\n"
                 "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
@@ -284,11 +296,13 @@ class PromptFactory:
                 "- JSON-only is mandatory. Never violate the schema even when information is uncertain.\n"
                 "- Prevent required-key omissions by filling limitations with the missing/uncertain points.\n"
                 "- Answer only from the context; if context is insufficient, state the limitation inside limitations.\n"
+                "- Keep answer substantive: usually 5 to 8 Korean sentences across 4 numbered paragraphs unless the context is extremely limited.\n"
             )
         elif prompt_mode == "compact":
             mode_rules = (
                 "[compact MODE]\n"
-                "- Keep answer concise as an official civil-affairs reply with 1 to 4 numbered paragraphs.\n"
+                "- Keep answer compact but complete as an official civil-affairs reply with 3 to 4 numbered paragraphs and usually 3 to 5 Korean sentences.\n"
+                "- Do not use meta phrases about evidence checking; write directly as an institutional reply.\n"
                 "- Use stronger JSON-only discipline than default: no Markdown, no headings outside JSON, no explanatory wrapper.\n"
                 "- action_items must contain at least 2 prioritized actions.\n"
             )
@@ -296,7 +310,9 @@ class PromptFactory:
             mode_rules = (
                 "[default MODE]\n"
                 "- Write answer as an official civil-affairs reply, not as a loose summary.\n"
+                "- Do not use meta phrases about evidence checking; write directly as an institutional reply.\n"
                 "- Recommended answer structure: 1. greeting, 2. complaint summary, 3. review result, 4. next guidance.\n"
+                "- Make the answer reasonably detailed: usually 5 to 8 Korean sentences, with at least 2 sentences in the review-result paragraph when context allows.\n"
                 "- Facts must come from context. If context lacks a detail, write that it requires confirmation/review.\n"
                 "- action_items must contain at least 2 prioritized actions.\n"
             )
@@ -887,16 +903,23 @@ class PromptFactory:
         )
 
         example_json = (
+            "반드시 아래와 같은 최상위 구조만 사용하세요. reply 또는 번호 키를 만들지 마세요.\n"
             "출력 예시(JSON):\n"
             "{"
-            "\"answer\":\"1. 우리 시 시정 발전에 관심을 두셔서 감사드립니다.\\n\\n2. 귀하의 민원 내용은 \\\"...\\\"에 관한 것으로 이해됩니다.\\n\\n3. 검토 의견은 다음과 같습니다.\\n가. ...\\n나. ...\\n다. ...\\n\\n4. 추가 설명이 필요하시면 담당부서로 문의해 주시기 바랍니다. 감사합니다. [[출처 1]]\","
             "\"citations\":[{"
             "\"chunk_id\":\"CASE-1__chunk-0\","
             "\"case_id\":\"CASE-1\","
             "\"doc_id\":\"DOC-001\","
             "\"snippet\":\"관리비 이의제기 처리 절차는 접수 후 담당 부서에서 검토합니다.\","
             "\"relevance_score\":0.9"
+            "},{"
+            "\"chunk_id\":\"CASE-1__chunk-1\","
+            "\"case_id\":\"CASE-1\","
+            "\"doc_id\":\"DOC-002\","
+            "\"snippet\":\"현장 확인이 필요한 사항은 담당 부서 검토 후 안내합니다.\","
+            "\"relevance_score\":0.8"
             "}],"
+            "\"answer\":\"1. 우리 시정에 관심을 두시고 의견을 주셔서 감사드립니다. 접수하신 민원 사항에 대하여 확인 가능한 자료를 바탕으로 답변드립니다.\\n\\n2. 귀하의 민원 내용은 \\\"...\\\"에 관한 것으로 이해됩니다. 특히 제기하신 불편 사항과 조치 요청의 취지를 함께 고려하여 검토하였습니다. [[출처 1]]\\n\\n3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.\\n가. ...\\n나. ...\\n다. ...\\n다만 현장 여건이나 세부 행정 절차에 따라 추가 확인이 필요한 사항은 담당부서 검토 후 안내드릴 수 있습니다. [[출처 2]]\\n\\n4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 관련 절차와 검토 결과를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\","
             "\"limitations\":[\"현장 확인이 필요할 수 있습니다.\"],"
             "\"structured_output\":{"
             "\"summary\":\"핵심 요약\","
@@ -917,6 +940,9 @@ class PromptFactory:
             + f"\n운영 정책 지시문: {policy_guide}"
             + record_guide
             + f"{segment_guide}\n\n"
+            + "최종 점검: 출력 직전에 최상위 키가 citations/answer/limitations/structured_output 네 개뿐인지 확인하고, citations 키를 가장 먼저 출력하세요. "
+            + "citations가 2개이면 answer 안에 [[출처 1]]과 [[출처 2]]가 정확히 한 번씩 있어야 합니다. "
+            + "출처 토큰은 반드시 대괄호 두 쌍 형식([[출처 1]])으로만 쓰세요.\n\n"
             + f"질문: {query}\n\n"
             + (f"민원 원문:\n{raw_complaint_text[:1800]}\n\n" if has_raw_complaint else "")
             + "검색 컨텍스트:\n"

@@ -199,7 +199,12 @@ def _apply_answer_quality_guard(answer: str, citations: List[Dict[str, Any]]) ->
     """빈 answer를 제한 응답 템플릿으로 보정하고 citation 토큰을 보장한다."""
     base = (answer or "").strip()
     if not base:
-        base = "검색 근거를 기반으로 요약을 생성했으나 모델 응답 본문이 비어 제한 응답으로 대체합니다."
+        base = (
+            "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+            "2. 현재 모델 응답 본문이 충분히 구성되지 않아 담당부서 확인 및 추가 검토가 필요합니다.\n\n"
+            "3. 접수 내용과 관련 자료를 확인한 뒤 필요한 조치 가능 여부를 검토하겠습니다.\n\n"
+            "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+        )
     return ensure_citation_tokens(base, citations)
 
 
