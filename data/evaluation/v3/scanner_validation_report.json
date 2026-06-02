@@ -1,0 +1,157 @@
+{
+  "ceiling": {
+    "mode": "ceiling (기존 체크포인트, LLM 호출 없음)",
+    "n_pairs": 5508,
+    "median_dist": {
+      "0": 3929,
+      "1": 1578,
+      "2": 1
+    },
+    "note": "각 full-config 채점관이 3채점관 median을 얼마나 재현하는가 = 단일 스캐너 상한선",
+    "judges": [
+      {
+        "judge": "exaone3.5:7.8b",
+        "graded_cohen_kappa": 0.8941,
+        "exact_agreement": 0.9566,
+        "n": 5508,
+        "rel>=1_recall": 0.9272,
+        "rel>=1_precision": 0.9225,
+        "binary_accuracy": 0.9568,
+        "binary_cohen_kappa": 0.8945,
+        "confusion_pred_x_gold": [
+          [
+            3806,
+            115,
+            0
+          ],
+          [
+            123,
+            1463,
+            1
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "tp_fp_fn_tn": [
+          1464,
+          123,
+          115,
+          3806
+        ]
+      },
+      {
+        "judge": "gemma3:12b",
+        "graded_cohen_kappa": 0.7613,
+        "exact_agreement": 0.8914,
+        "n": 5508,
+        "rel>=1_recall": 0.9911,
+        "rel>=1_precision": 0.7327,
+        "binary_accuracy": 0.8938,
+        "binary_cohen_kappa": 0.7651,
+        "confusion_pred_x_gold": [
+          [
+            3358,
+            14,
+            0
+          ],
+          [
+            571,
+            1551,
+            0
+          ],
+          [
+            0,
+            13,
+            1
+          ]
+        ],
+        "tp_fp_fn_tn": [
+          1565,
+          571,
+          14,
+          3358
+        ]
+      },
+      {
+        "judge": "qwen2.5:14b",
+        "graded_cohen_kappa": 0.6875,
+        "exact_agreement": 0.8858,
+        "n": 5508,
+        "rel>=1_recall": 0.6213,
+        "rel>=1_precision": 0.9694,
+        "binary_accuracy": 0.8858,
+        "binary_cohen_kappa": 0.6872,
+        "confusion_pred_x_gold": [
+          [
+            3898,
+            598,
+            0
+          ],
+          [
+            31,
+            980,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "tp_fp_fn_tn": [
+          981,
+          31,
+          598,
+          3898
+        ]
+      }
+    ]
+  },
+  "scan": {
+    "mode": "scan (빠른 스캐너 num_predict=24, score-only, exaone3.5:7.8b)",
+    "n_sample": 267,
+    "n_scored": 267,
+    "n_abstain_or_fail": 0,
+    "median_dist": {
+      "0": 133,
+      "1": 133,
+      "2": 1
+    },
+    "fast_exaone_vs_median": {
+      "judge": "exaone3.5:7.8b (fast)",
+      "graded_cohen_kappa": 0.8365,
+      "exact_agreement": 0.9176,
+      "n": 267,
+      "rel>=1_recall": 0.8806,
+      "rel>=1_precision": 0.9593,
+      "binary_accuracy": 0.9213,
+      "binary_cohen_kappa": 0.8427,
+      "confusion_pred_x_gold": [
+        [
+          128,
+          16,
+          0
+        ],
+        [
+          5,
+          117,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "tp_fp_fn_tn": [
+        118,
+        5,
+        16,
+        128
+      ]
+    }
+  }
+}
