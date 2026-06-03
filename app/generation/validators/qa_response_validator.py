@@ -11,6 +11,16 @@ _DEBUG_METADATA_PATTERN = re.compile(
     r"\s*\(?\s*(?:chunk_id=)?CASE-\d+__chunk-\d+(?:\s+case_id=CASE?-\d+|\s+case_id=\d+)?(?:\s+score=[0-9.]+)?\s*\)?",
     flags=re.IGNORECASE,
 )
+_CIVIL_REPLY_PREFIX_1 = "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다."
+_CIVIL_REPLY_PREFIX_2 = (
+    "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
+    "접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다."
+)
+_CIVIL_REPLY_PREFIX_3 = "3. 검토 의견은 다음과 같습니다."
+_CIVIL_REPLY_CLOSING = (
+    "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 "
+    "후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+)
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -39,6 +49,72 @@ def sanitize_answer_text(answer: str) -> str:
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
     rendered = re.sub(r"[ \t]{2,}", " ", rendered)
     return rendered.strip()
+
+
+def _strip_citation_tokens(text: str) -> str:
+    rendered = _CITE_TOKEN_PATTERN.sub("", text or "")
+    rendered = re.sub(r"\[출처\s*\d+\]", "", rendered)
+    rendered = re.sub(r"\n{3,}", "\n\n", rendered)
+    rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    return rendered.strip()
+
+
+def _strip_standard_reply_shell(text: str) -> str:
+    rendered = text or ""
+    patterns = [
+        re.escape(_CIVIL_REPLY_PREFIX_1),
+        re.escape(_CIVIL_REPLY_PREFIX_2),
+        re.escape(_CIVIL_REPLY_PREFIX_3),
+        re.escape(_CIVIL_REPLY_CLOSING),
+        r"1\.\s*귀하께서\s*신청하신\s*민원에\s*대한\s*검토\s*결과를\s*다음과\s*같이\s*답변드립니다\.",
+        r"2\.\s*귀하의\s*민원\s*내용은.*?처리\s*방향을\s*검토하는\s*사안입니다\.",
+        r"3\.\s*검토\s*의견은\s*다음과\s*같습니다\.?",
+        r"4\.\s*답변\s*내용에\s*대한\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.\s*끝\.?",
+        r"4\.\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.\s*끝\.?",
+    ]
+    for pattern in patterns:
+        rendered = re.sub(pattern, "", rendered, flags=re.DOTALL)
+    rendered = re.sub(r"(?m)^\s*[가-하]\.\s*", "", rendered)
+    rendered = re.sub(r"\n{3,}", "\n\n", rendered)
+    rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    return rendered.strip(" \n;")
+
+
+def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
+    snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
+    snippets = [text for text in snippets if text]
+    if snippets:
+        return (
+            f"{' / '.join(snippets)} "
+            "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤 "
+            "필요한 조치 가능 여부를 판단할 수 있습니다."
+        )
+    return (
+        "접수 내용과 관련 자료를 확인한 뒤 현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 "
+        "검토하겠습니다. 확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다."
+    )
+
+
+def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> str:
+    """민원 회신문 answer를 고정 1~4항 구조와 마지막 출처 토큰 줄로 정규화한다."""
+    rendered = sanitize_answer_text(answer)
+    rendered = _strip_citation_tokens(rendered)
+    body = _strip_standard_reply_shell(rendered)
+    if not body:
+        body = _fallback_review_body(citations)
+
+    tokens = [f"[[출처 {citation['ref_id']}]]" for citation in citations]
+    token_block = "\n".join(tokens)
+
+    reply = (
+        f"{_CIVIL_REPLY_PREFIX_1}\n\n"
+        f"{_CIVIL_REPLY_PREFIX_2}\n\n"
+        f"{_CIVIL_REPLY_PREFIX_3} {body}\n\n"
+        f"{_CIVIL_REPLY_CLOSING}"
+    )
+    if token_block:
+        reply = f"{reply}\n{token_block}"
+    return reply.strip()
 
 
 def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -101,42 +177,13 @@ def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
     rendered = sanitize_answer_text(answer)
     if not rendered:
         if citations:
-            snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
-            snippets = [text for text in snippets if text]
-            if snippets:
-                rendered = (
-                    "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
-                    "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
-                    "접수된 취지와 확인 가능한 자료를 함께 고려하여 처리 가능 여부를 검토하는 사안입니다.\n\n"
-                    f"3. 검토 의견은 다음과 같습니다. {' / '.join(snippets)} "
-                    "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 필요한 후속 절차를 종합적으로 확인할 수 있습니다.\n\n"
-                    "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
-                )
-            else:
-                rendered = (
-                    "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
-                    "2. 현재 인용 근거의 세부 내용이 충분하지 않아 담당부서 검토가 필요합니다.\n\n"
-                    "3. 접수 내용과 관련 자료를 확인한 뒤 필요한 조치 가능 여부와 후속 안내 사항을 검토하겠습니다.\n\n"
-                    "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 친절히 안내해 드리겠습니다. 감사합니다. 끝."
-                )
+            rendered = _fallback_review_body(citations)
         else:
             rendered = (
-                "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
-                "2. 현재 확인 가능한 자료가 충분하지 않아 담당부서 확인 및 추가 검토가 필요합니다.\n\n"
-                "3. 민원 취지, 발생 장소, 관련 자료가 확인되면 현장 여건과 행정 처리 기준을 종합적으로 검토하겠습니다.\n\n"
-                "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+                "현재 확인 가능한 자료가 충분하지 않아 담당부서 확인 및 추가 검토가 필요합니다. "
+                "민원 취지, 발생 장소, 관련 자료가 확인되면 현장 여건과 행정 처리 기준을 종합적으로 검토하겠습니다."
             )
-
-    missing_tokens: List[str] = []
-    for citation in citations:
-        token = f"[[출처 {citation['ref_id']}]]"
-        if token not in rendered:
-            missing_tokens.append(token)
-
-    if missing_tokens:
-        rendered = rendered + " " + " ".join(missing_tokens)
-
-    return rendered
+    return format_civil_reply_answer(rendered, citations)
 
 
 def build_validation_result(

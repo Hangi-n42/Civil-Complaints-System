@@ -67,7 +67,7 @@ def _read_yaml(path: Path) -> Dict[str, Any]:
 
 
 def _read_json(path: Path) -> List[Dict[str, Any]]:
-    with path.open("r", encoding="utf-8") as f:
+    with path.open("r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 
