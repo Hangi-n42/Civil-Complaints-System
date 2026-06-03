@@ -1,0 +1,44 @@
+pipeline_id: hybrid_bm25_dense_rrf_llmfilter
+seed: 42
+
+# RAG grounding용: Hybrid(BM25+Dense RRF) 위에 LLM 관련성 필터(0점 제거)를 얹어
+# 답변 초안 근거에서 해로운(rel0) 선례를 배제한다. (#299: 해로움 23%→4%)
+
+stages:
+  - name: bm25_retriever
+    type: bm25_retriever
+    params:
+      collection: civil_cases_v1
+      top_k: 50
+      index_dir: data/bm25_index
+      tokenizer: korean
+
+  - name: dense_retriever
+    type: chroma_dense
+    params:
+      collection: civil_cases_v1
+      top_k: 50
+      use_adaptive_router: false
+      snippet_max_chars: 600
+
+  - name: rrf_fusion
+    type: rrf_fusion
+    params:
+      source_stages:
+        - bm25_retriever
+        - dense_retriever
+      top_k: 50
+      k: 60
+
+  - name: llm_relevance_filter
+    type: llm_relevance_filter
+    params:
+      # model 미지정 시 settings.OLLAMA_MODEL 사용
+      rerank_pool: 10   # 상위 10개만 채점(비용)
+      min_score: 1      # rel0(해로운) 제거, rel>=1만 통과
+      top_k: 5          # generator에 넘길 최종 근거 수
+      max_chars: 600
+      max_concurrency: 4
+
+final:
+  take_top_k: 5
