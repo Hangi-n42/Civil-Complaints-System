@@ -6,6 +6,8 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.exceptions import NoEvidenceError
+from app.core.logging import pipeline_logger
+from app.core.config import settings
 from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
 from app.retrieval.analyzers.topic_analyzer import analyze as analyze_topic
 from app.retrieval.router.adaptive_router import route
@@ -135,6 +137,195 @@ class PromptFactory:
         "시민",
     }
 
+    _SUPPORTED_PROMPT_MODES = {"default", "compact", "force_json"}
+
+    @classmethod
+    def _normalize_prompt_mode(cls, mode: str | None) -> str:
+        candidate = str(mode or "default").strip().lower() or "default"
+        return candidate if candidate in cls._SUPPORTED_PROMPT_MODES else "default"
+
+    @classmethod
+    def _build_no_evidence_details(
+        cls,
+        *,
+        routing_trace: Dict[str, Any],
+        collection_name: str | None = None,
+    ) -> Dict[str, Any]:
+        collection = str(
+            collection_name
+            or routing_trace.get("collection_name")
+            or "civil_cases_v1"
+        )
+        effective_top_k = routing_trace.get("effective_top_k")
+        routing_summary = {
+            "topic_type": routing_trace.get("topic_type"),
+            "complexity_level": routing_trace.get("complexity_level"),
+            "route_key": routing_trace.get("route_key"),
+            "strategy_id": routing_trace.get("strategy_id"),
+            "retrieval_policy": routing_trace.get("retrieval_policy"),
+            "prompt_mode": routing_trace.get("prompt_mode"),
+        }
+
+        details = {
+            **{k: routing_trace.get(k) for k in (
+                "derived_query",
+                "search_query",
+                "keyword_terms",
+                "collection_name",
+                "effective_top_k",
+                "filters",
+                "threshold",
+                "topic_type",
+                "complexity_level",
+                "request_segments",
+                "route_key",
+                "strategy_id",
+                "retrieval_policy",
+                "prompt_mode",
+            )},
+            "query": routing_trace.get("derived_query") or routing_trace.get("search_query"),
+            "top_k": effective_top_k,
+            "routing_trace_summary": routing_summary,
+            "context_count": 0,
+            "chroma_db_path": str(getattr(settings, "CHROMA_DB_PATH", "")),
+            "hints": {
+                "checklist": [
+                    "Check that CHROMA_DB_PATH points to the populated persist directory.",
+                    "Check that collection_name matches an existing Chroma collection.",
+                    "Check whether filters, threshold, or top_k are too restrictive.",
+                    "Compare derived_query/search_query with the source record to catch query extraction issues.",
+                ],
+                "repro_commands": [
+                    "python scripts/inspect_chromadb.py list",
+                    f"python scripts/inspect_chromadb.py count --collection {collection}",
+                    f"python scripts/inspect_chromadb.py sample --collection {collection} --limit 3",
+                ],
+                "api_debug_endpoints": [
+                    "GET /api/v1/chroma/collections",
+                    f"GET /api/v1/chroma/collections/{collection}/count",
+                    f"GET /api/v1/chroma/collections/{collection}/sample?limit=3",
+                ],
+            },
+        }
+        details["collection_name"] = collection
+        details["effective_top_k"] = effective_top_k
+        return details
+
+    @classmethod
+    def _raise_no_evidence(cls, *, message: str, routing_trace: Dict[str, Any], collection_name: str | None = None) -> None:
+        raise NoEvidenceError(
+            message,
+            details=cls._build_no_evidence_details(
+                routing_trace=routing_trace,
+                collection_name=collection_name,
+            ),
+        )
+
+    @classmethod
+    def _build_instruction_block(
+        cls,
+        *,
+        prompt_mode: str,
+        citations_max: int,
+        context_limit: int,
+        snippet_max_chars: int,
+        citation_snippet_max_chars: int,
+        request_segments: List[str],
+        has_raw_complaint: bool = False,
+    ) -> str:
+        """Build non-conflicting mode rules for schema, citations, and context use."""
+
+        base_json_rules = (
+            "[COMMON JSON RULES]\n"
+            "- Output exactly one JSON object. JSON-only means no prose, no comments, no Markdown, and no code fences.\n"
+            "- The response must start with '{' and end with '}'. Do not emit any text outside the JSON object.\n"
+            "- Use double quotes for JSON keys/strings. Do not use trailing commas, NaN, or Infinity.\n"
+            "- Follow additionalProperties=false: do not add keys outside the schema.\n"
+            "- Top-level keys must be exactly: citations, answer, limitations, structured_output.\n"
+            "- Output keys in this exact order so citations are completed before the long answer: citations first, answer second, limitations third, structured_output fourth.\n"
+            "- Do not create numbered top-level keys such as \"1\", \"2\", \"3\", and do not use top-level keys such as reply, response, action_items, request_segments, confidence, or routing_trace.\n"
+            "- Required keys must never be omitted: answer, citations, limitations, structured_output.\n"
+            "- limitations must be non-empty. structured_output.summary must be non-empty.\n"
+            "- structured_output.action_items must contain at least 2 items; structured_output.request_segments must be an array.\n"
+        )
+
+        citation_rules = (
+            "[CITATION RULES]\n"
+            "- citations must be selected only from the provided '검색 컨텍스트'. Do not invent external sources.\n"
+            f"- Output 1 to {citations_max} citations.\n"
+            "- Every citation must include chunk_id, case_id, snippet, and relevance_score.\n"
+            "- Use chunk_id, case_id, score, and relevance_score only inside citations. Never expose these metadata strings inside answer.\n"
+            "- The answer must cite with human-readable [[출처 n]] tokens only; do not write text such as chunk_id=..., case_id=..., score=..., or CASE-...__chunk-... in answer.\n"
+            f"- citation.snippet must be copied from a context snippet, may be a substring, must be non-empty, and must be <= {citation_snippet_max_chars} chars.\n"
+            "- citation.relevance_score must use the context score/relevance_score value normalized to 0..1.\n"
+            "- If citations has N items, answer must contain exactly one source token for each citation: [[출처 1]] through [[출처 N]].\n"
+            "- Put each source token inside the answer string at the end of the sentence supported by that citation. Use the exact token shape [[출처 1]], not ([출처 1]) or [출처 1].\n"
+            "- citations[0] corresponds to [[출처 1]], citations[1] corresponds to [[출처 2]], and citations[2] corresponds to [[출처 3]].\n"
+            "- The answer is invalid if it has citations but lacks [[출처 n]] tokens, or if it has [[출처 n]] tokens but the citations array is missing.\n"
+            "- Do not include any extra [[출처 ...]] token beyond the citations count.\n"
+        )
+
+        complaint_rules = ""
+        if has_raw_complaint:
+            complaint_rules = (
+                "[RAW COMPLAINT REPLY RULES]\n"
+                "- Treat '민원 원문' as the citizen's actual request and write a factual official reply to that complaint.\n"
+                "- Do not answer as an evaluator, benchmark summarizer, or generic context summarizer.\n"
+                "- The answer must be a civil-affairs reply letter, not a retrieval report. Do not start with a meta sentence about checking evidence.\n"
+                "- Use this reply structure: 1. 감사/접수 안내, 2. '귀하의 민원 내용은 ...에 관한 것으로 이해됩니다.', 3. 검토 의견은 다음과 같습니다(가/나/다), 4. 추가 문의 안내, '감사합니다. 끝.'\n"
+                "- Match the tone of Korean public-agency replies: polite, plain, numbered paragraphs, no Markdown headings, no bullet-heavy action-plan style unless the complaint explicitly asks for a list.\n"
+                "- Write enough detail for a real reply: summarize the complaint, explain the applicable review basis, describe possible handling or limits, and give a follow-up/contact path.\n"
+                "- Separate the citizen's requested facts, safety concerns, inconvenience, and proposed actions before drafting the answer.\n"
+                "- Use '검색 컨텍스트' only as grounding for administrative handling, similar cases, procedures, and limitations.\n"
+                "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
+                "- If the context does not prove a concrete policy, schedule, ordinance, or responsible agency, state that 담당부서 확인/현장 검토가 필요합니다.\n"
+            )
+
+        compact_context_rules = ""
+        if prompt_mode == "compact":
+            compact_context_rules = (
+                "[COMPACT CONTEXT LIMIT]\n"
+                f"- The provided context is capped at {context_limit} chunks and each snippet is capped at {snippet_max_chars} chars.\n"
+                "- Do not assert numbers, dates, ordinances, routes, or agency names that are absent from the context.\n"
+            )
+
+        mode_rules: str
+        if prompt_mode == "force_json":
+            mode_rules = (
+                "[force_json MODE]\n"
+                "- JSON-only is mandatory. Never violate the schema even when information is uncertain.\n"
+                "- Prevent required-key omissions by filling limitations with the missing/uncertain points.\n"
+                "- Answer only from the context; if context is insufficient, state the limitation inside limitations.\n"
+                "- Keep answer substantive: usually 5 to 8 Korean sentences across 4 numbered paragraphs unless the context is extremely limited.\n"
+            )
+        elif prompt_mode == "compact":
+            mode_rules = (
+                "[compact MODE]\n"
+                "- Keep answer compact but complete as an official civil-affairs reply with 3 to 4 numbered paragraphs and usually 3 to 5 Korean sentences.\n"
+                "- Do not use meta phrases about evidence checking; write directly as an institutional reply.\n"
+                "- Use stronger JSON-only discipline than default: no Markdown, no headings outside JSON, no explanatory wrapper.\n"
+                "- action_items must contain at least 2 prioritized actions.\n"
+            )
+        else:
+            mode_rules = (
+                "[default MODE]\n"
+                "- Write answer as an official civil-affairs reply, not as a loose summary.\n"
+                "- Do not use meta phrases about evidence checking; write directly as an institutional reply.\n"
+                "- Recommended answer structure: 1. greeting, 2. complaint summary, 3. review result, 4. next guidance.\n"
+                "- Make the answer reasonably detailed: usually 5 to 8 Korean sentences, with at least 2 sentences in the review-result paragraph when context allows.\n"
+                "- Facts must come from context. If context lacks a detail, write that it requires confirmation/review.\n"
+                "- action_items must contain at least 2 prioritized actions.\n"
+            )
+
+        segment_rules = ""
+        if request_segments:
+            segment_rules = (
+                "[REQUEST SEGMENT RULE]\n"
+                "- When request_segments are provided, answer each segment and map at least one action_item to each segment.\n"
+            )
+
+        return base_json_rules + citation_rules + complaint_rules + compact_context_rules + mode_rules + segment_rules
+
     @classmethod
     def _extract_keyword_terms(
         cls,
@@ -247,6 +438,46 @@ class PromptFactory:
         return fallback[:500].strip()
 
     @classmethod
+    def _looks_like_raw_complaint_text(cls, text: str) -> bool:
+        """query 필드가 평가 지시문이 아니라 원문 민원 전체인지 판정한다."""
+        value = str(text or "").strip()
+        if not value:
+            return False
+        has_title_or_q = bool(cls._TITLE_RE.search(value) or cls._Q_RE.search(value))
+        has_multiline_body = value.count("\n") >= 2 and len(value) >= 80
+        return has_title_or_q or has_multiline_body
+
+    @classmethod
+    def _get_raw_complaint_text(cls, record: Dict[str, Any], query: str = "") -> str:
+        """원문 민원 텍스트를 record/query에서 찾는다."""
+        raw_text = str(
+            record.get("consulting_content")
+            or record.get("raw_text")
+            or record.get("text")
+            or ""
+        ).strip()
+        if raw_text:
+            return raw_text
+
+        for candidate in (record.get("query"), query):
+            query_text = str(candidate or "").strip()
+            if cls._looks_like_raw_complaint_text(query_text):
+                return query_text
+        return ""
+
+    @classmethod
+    def _derive_query_from_record(cls, record: Dict[str, Any]) -> str:
+        """record가 평가 query 또는 원문 민원 중 무엇을 담든 일관된 질의를 만든다."""
+        query = str(record.get("query") or "").strip()
+        if query and not cls._looks_like_raw_complaint_text(query):
+            return query
+
+        raw_text = cls._get_raw_complaint_text(record, query=query)
+        if raw_text:
+            return cls._extract_query_from_raw_text(raw_text)
+        return query
+
+    @classmethod
     def _extract_request_segments_from_raw_text(cls, raw_text: str) -> List[str]:
         """원문에서 다중 요청 단위를 추출한다."""
         text = str(raw_text or "").strip()
@@ -355,16 +586,7 @@ class PromptFactory:
         if not isinstance(record, dict):
             raise TypeError("record must be a dict")
 
-        query = str(record.get("query") or "").strip()
-        if not query:
-            raw_text = (
-                record.get("consulting_content")
-                or record.get("raw_text")
-                or record.get("text")
-                or ""
-            )
-            query = cls._extract_query_from_raw_text(str(raw_text))
-
+        query = cls._derive_query_from_record(record)
         if not query:
             query = "(빈 질의)"
 
@@ -376,7 +598,7 @@ class PromptFactory:
         )
 
         request_segments = cls._extract_request_segments_from_raw_text(
-            str(record.get("consulting_content") or record.get("raw_text") or record.get("text") or "")
+            cls._get_raw_complaint_text(record, query=query)
         )
         if request_segments and not derived_trace.get("request_segments"):
             derived_trace["request_segments"] = request_segments
@@ -414,15 +636,7 @@ class PromptFactory:
         elif mode == "compact":
             base_trace["prompt_mode"] = "compact"
 
-        query = str(record.get("query") or "").strip()
-        if not query:
-            raw_text = (
-                record.get("consulting_content")
-                or record.get("raw_text")
-                or record.get("text")
-                or ""
-            )
-            query = cls._extract_query_from_raw_text(str(raw_text))
+        query = cls._derive_query_from_record(record)
         if not query:
             query = "(빈 질의)"
 
@@ -430,6 +644,13 @@ class PromptFactory:
             record=record,
             query=query,
             routing_trace=base_trace,
+        )
+
+        derived_trace.setdefault("chroma_db_path", str(getattr(settings, "CHROMA_DB_PATH", "")))
+        pipeline_logger.info(
+            "autoretrieve start: derived_query=%s mode=%s",
+            str(derived_trace.get("derived_query") or query),
+            str(derived_trace.get("prompt_mode") or "default"),
         )
 
         keyword_terms = cls._extract_keyword_terms(record=record, query=query, limit=10)
@@ -469,6 +690,15 @@ class PromptFactory:
             snippet_max_chars=int(snippet_max_chars),
         )
 
+        pipeline_logger.info(
+            "autoretrieve search_done: derived_query=%s search_query=%s context_count=%s collection=%s top_k=%s",
+            str(derived_trace.get("derived_query") or ""),
+            str(derived_trace.get("search_query") or ""),
+            str(len(raw_context) if isinstance(raw_context, list) else 0),
+            str(collection_name),
+            str(effective_top_k),
+        )
+
         context: List[Dict[str, Any]] = []
         for item in raw_context:
             if not isinstance(item, dict):
@@ -479,26 +709,14 @@ class PromptFactory:
             context.append(normalized)
 
         if not context:
-            details = {
-                "derived_query": derived_trace.get("derived_query"),
-                "search_query": derived_trace.get("search_query"),
-                "keyword_terms": derived_trace.get("keyword_terms"),
-                "collection_name": derived_trace.get("collection_name"),
-                "effective_top_k": derived_trace.get("effective_top_k"),
-                "filters": derived_trace.get("filters"),
-                "threshold": derived_trace.get("threshold"),
-                "topic_type": derived_trace.get("topic_type"),
-                "complexity_level": derived_trace.get("complexity_level"),
-                "request_segments": derived_trace.get("request_segments"),
-                "route_key": derived_trace.get("route_key"),
-                "strategy_id": derived_trace.get("strategy_id"),
-                "retrieval_policy": derived_trace.get("retrieval_policy"),
-                "prompt_mode": derived_trace.get("prompt_mode"),
-                "context_count": 0,
-            }
-            raise NoEvidenceError(
-                "검색 근거가 0개라 프롬프트를 구성할 수 없습니다. CHROMA_DB_PATH/collection_name을 확인하거나 top_k/threshold/filters를 조정하세요.",
-                details=details,
+            cls._raise_no_evidence(
+                message=(
+                    "검색 근거가 0개라 프롬프트를 구성할 수 없습니다. "
+                    "CHROMA_DB_PATH/collection_name을 확인하거나 top_k/threshold/filters를 조정하세요. "
+                    "(inspect_chromadb 또는 /api/v1/chroma 디버그 엔드포인트로 즉시 점검 가능)"
+                ),
+                routing_trace=derived_trace,
+                collection_name=str(collection_name),
             )
 
         prompt = cls.build_from_dataset_record(record=record, context=context, routing_trace=derived_trace)
@@ -578,16 +796,18 @@ class PromptFactory:
         retrieval_policy = str(routing_trace.get("retrieval_policy") or "general")
 
         if not context:
-            raise NoEvidenceError(
-                "근거 컨텍스트가 0개입니다. 근거 없이 답변을 생성하지 않도록 실패 처리합니다.",
-                details={
-                    "derived_query": routing_trace.get("derived_query"),
+            cls._raise_no_evidence(
+                message=(
+                    "근거 컨텍스트가 0개입니다. 근거 없이 답변을 생성하지 않도록 즉시 실패 처리합니다. "
+                    "CHROMA_DB_PATH/collection_name 및 검색 조건(top_k/threshold/filters)을 점검하세요."
+                ),
+                routing_trace={
+                    **dict(routing_trace or {}),
                     "topic_type": topic_type,
                     "complexity_level": complexity_level,
                     "request_segments": request_segments,
                     "retrieval_policy": retrieval_policy,
                     "prompt_mode": routing_trace.get("prompt_mode"),
-                    "context_count": 0,
                 },
             )
 
@@ -598,10 +818,12 @@ class PromptFactory:
         topic_guide = cls.TOPIC_GUIDANCE.get(topic_type, cls.TOPIC_GUIDANCE["general"])
         complexity_guide = cls.COMPLEXITY_GUIDANCE.get(complexity_level, cls.COMPLEXITY_GUIDANCE["medium"])
         policy_guide = cls.POLICY_GUIDANCE.get(retrieval_policy, cls.POLICY_GUIDANCE["general"])
-        prompt_mode = str(routing_trace.get("prompt_mode") or "default").lower()
+        prompt_mode = cls._normalize_prompt_mode(str(routing_trace.get("prompt_mode") or "default"))
         is_compact = prompt_mode == "compact"
         is_force_json = prompt_mode == "force_json"
         record_guide = cls._build_record_guide(record or {}) if record else ""
+        raw_complaint_text = cls._get_raw_complaint_text(record or {}, query=query) if record else ""
+        has_raw_complaint = bool(raw_complaint_text)
 
         segment_guide = ""
         if request_segments:
@@ -628,56 +850,15 @@ class PromptFactory:
                 )
             )
 
-        base_rules = (
-            "설명/주석/마크다운/코드블록(``` 포함)은 절대 출력하지 마세요.\n"
-            "출력은 반드시 '{' 로 시작하고 '}' 로 끝나야 합니다.\n"
-            "JSON 객체 외의 다른 텍스트를 절대 출력하지 마세요.\n"
-            "JSON 유효성: 키/문자열은 큰따옴표(\")만 사용, trailing comma(끝 콤마) 금지, NaN/Infinity 금지.\n"
-            "추가 키 금지: JSON Schema의 additionalProperties=false를 반드시 지키세요(스키마에 없는 키 출력 금지).\n"
-            "필수 키 누락 금지: answer, citations, limitations, structured_output.\n"
-            "limitations는 빈 문자열 금지(필요 시 1개 이상 작성).\n"
-            "structured_output.summary는 빈 문자열 금지, action_items는 2개 이상 필수, request_segments는 배열로 유지하세요.\n"
-            "citations는 아래 검색 컨텍스트에서만 선택하고 chunk_id/case_id를 그대로 복사하세요.\n"
-            f"citations는 1~{citations_max}개만 출력하세요.\n"
-            "각 citation은 chunk_id/case_id/snippet/relevance_score를 반드시 포함하세요.\n"
-            f"citation.snippet은 아래 컨텍스트의 snippet에서 그대로 발췌(부분 문자열 허용)하고 빈 문자열 금지, {citation_snippet_max_chars}자 이하로 유지하세요.\n"
-            "citation.relevance_score는 컨텍스트의 score 값을 그대로 사용(0~1).\n"
-            "answer에는 citations 개수 N에 대해 [[출처 1]]..[[출처 N]] 토큰을 각각 정확히 1회 포함하고, 그 외 [[출처 ...]] 토큰은 금지합니다.\n"
+        instruction_block = cls._build_instruction_block(
+            prompt_mode=prompt_mode,
+            citations_max=citations_max,
+            context_limit=context_limit,
+            snippet_max_chars=snippet_max_chars,
+            citation_snippet_max_chars=citation_snippet_max_chars,
+            request_segments=request_segments,
+            has_raw_complaint=has_raw_complaint,
         )
-
-        if is_force_json:
-            mode_rules = (
-                "[force_json 모드] JSON만 강제합니다.\n"
-                "아래 JSON Schema의 required/형식을 절대 위반하지 마세요.\n"
-            )
-        elif is_compact:
-            mode_rules = (
-                "[compact 모드] 컨텍스트가 짧으니 과장/추측 금지.\n"
-                "answer 형식: 공문형 민원회신(1~4항)으로 간결하게 작성하세요(너무 길게 늘어지지 않게).\n"
-                "형식 가이드: 1. 인사/감사  2. 민원 요지  3. 검토 결과(가/나/다)  4. 추가 안내(담당 부서 문의).\n"
-                "구체 수치/날짜/조례/노선개편 등 사실은 컨텍스트에 있는 내용만 사용하고, 없으면 '검토/협의/모니터링' 등으로 표현하세요.\n"
-                "답변 톤: 행정기관 회신 문체(존댓말)로 작성하세요.\n"
-                "조치(action_items)는 우선순위를 반영해 2개 이상 작성(예: '1순위: ...', '2순위: ...').\n"
-                "compact에서는 제공되는 컨텍스트가 최대 2개이며 snippet이 짧습니다.\n"
-            )
-        else:
-            mode_rules = (
-                "answer 형식: 공문형 민원회신으로 작성하세요.\n"
-                "반드시 아래 구조를 따르세요(문장/문단 구분은 \"\\n\" 사용 권장):\n"
-                "1. 우리 시 시정 발전에 관심을 두셔서 감사드립니다... (인사/감사)\n"
-                "2. 귀하의 민원 내용은 \"...\"에 관한 것으로 이해됩니다. (민원 요지 1문단)\n"
-                "3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.\n"
-                "   가. (컨텍스트 근거 기반 사실/현황/조치)\n"
-                "   나. (한계/제약/절차 안내: 예산, 관계기관 협의, 현장 확인 등)\n"
-                "   다. (향후 계획/점검/개선 약속: 모니터링, 협의, 안내 등)\n"
-                "4. 추가 설명이 필요하시면 성남시 해당 업무 담당부서로 문의해 주시기 바랍니다. 감사합니다.\n"
-                "금지: '근거:'라는 라벨로 요약하는 답변, 1문장 요약만 제시하는 답변.\n"
-                "사실성 규칙: 구체 수치/날짜/조례/노선개편 등은 컨텍스트에 있는 내용만 단정적으로 쓰고, 없으면 '검토/확인/협의 예정'으로 표현하세요.\n"
-                "조치(action_items)는 우선순위를 반영해 2개 이상 작성(예: '1순위: ...', '2순위: ...').\n"
-                "세그먼트가 있으면 각 세그먼트마다 action_items 1개 이상을 직접 대응시키세요.\n"
-            )
-
-        instruction_block = base_rules + mode_rules
 
         json_schema = (
             "출력 JSON 스키마(JSON Schema Draft 2020-12):\n"
@@ -722,16 +903,23 @@ class PromptFactory:
         )
 
         example_json = (
+            "반드시 아래와 같은 최상위 구조만 사용하세요. reply 또는 번호 키를 만들지 마세요.\n"
             "출력 예시(JSON):\n"
             "{"
-            "\"answer\":\"1. 우리 시 시정 발전에 관심을 두셔서 감사드립니다.\\n\\n2. 귀하의 민원 내용은 \\\"...\\\"에 관한 것으로 이해됩니다.\\n\\n3. 검토 의견은 다음과 같습니다.\\n가. ...\\n나. ...\\n다. ...\\n\\n4. 추가 설명이 필요하시면 담당부서로 문의해 주시기 바랍니다. 감사합니다. [[출처 1]]\","
             "\"citations\":[{"
             "\"chunk_id\":\"CASE-1__chunk-0\","
             "\"case_id\":\"CASE-1\","
             "\"doc_id\":\"DOC-001\","
             "\"snippet\":\"관리비 이의제기 처리 절차는 접수 후 담당 부서에서 검토합니다.\","
             "\"relevance_score\":0.9"
+            "},{"
+            "\"chunk_id\":\"CASE-1__chunk-1\","
+            "\"case_id\":\"CASE-1\","
+            "\"doc_id\":\"DOC-002\","
+            "\"snippet\":\"현장 확인이 필요한 사항은 담당 부서 검토 후 안내합니다.\","
+            "\"relevance_score\":0.8"
             "}],"
+            "\"answer\":\"1. 우리 시정에 관심을 두시고 의견을 주셔서 감사드립니다. 접수하신 민원 사항에 대하여 확인 가능한 자료를 바탕으로 답변드립니다.\\n\\n2. 귀하의 민원 내용은 \\\"...\\\"에 관한 것으로 이해됩니다. 특히 제기하신 불편 사항과 조치 요청의 취지를 함께 고려하여 검토하였습니다. [[출처 1]]\\n\\n3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.\\n가. ...\\n나. ...\\n다. ...\\n다만 현장 여건이나 세부 행정 절차에 따라 추가 확인이 필요한 사항은 담당부서 검토 후 안내드릴 수 있습니다. [[출처 2]]\\n\\n4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 관련 절차와 검토 결과를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\","
             "\"limitations\":[\"현장 확인이 필요할 수 있습니다.\"],"
             "\"structured_output\":{"
             "\"summary\":\"핵심 요약\","
@@ -742,7 +930,7 @@ class PromptFactory:
         )
 
         return (
-            "검색 기반 QA입니다. 오직 단일 JSON 객체만 출력하세요.\n"
+            f"검색 기반 QA입니다. prompt_mode={prompt_mode}. 오직 단일 JSON 객체만 출력하세요.\n"
             + json_schema
             + "\n"
             + example_json
@@ -752,7 +940,11 @@ class PromptFactory:
             + f"\n운영 정책 지시문: {policy_guide}"
             + record_guide
             + f"{segment_guide}\n\n"
+            + "최종 점검: 출력 직전에 최상위 키가 citations/answer/limitations/structured_output 네 개뿐인지 확인하고, citations 키를 가장 먼저 출력하세요. "
+            + "citations가 2개이면 answer 안에 [[출처 1]]과 [[출처 2]]가 정확히 한 번씩 있어야 합니다. "
+            + "출처 토큰은 반드시 대괄호 두 쌍 형식([[출처 1]])으로만 쓰세요.\n\n"
             + f"질문: {query}\n\n"
+            + (f"민원 원문:\n{raw_complaint_text[:1800]}\n\n" if has_raw_complaint else "")
             + "검색 컨텍스트:\n"
             + "\n".join(context_lines)
         )

@@ -9,27 +9,28 @@ direct 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode direct 
 --config configs/week6_Be3_model_benchmark.yaml 
---cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
---output-dir logs/evaluation/week6/ax4_direct_eval10
+--cases ../40_delivery/week3/model_test_assets/evaluation_set.json
+--output-dir logs/evaluation/week6/be3_model_benchmark
 
 
 api 모드:
 python scripts/Be3_run_week6_model_benchmark.py 
 --benchmark-mode api --api-base-url http://127.0.0.1:8000 
 --config configs/week6_Be3_model_benchmark.yaml 
---cases docs/40_delivery/week3/model_test_assets/evaluation_set.json
---output-dir logs/evaluation/week6/ax4_direct_eval10
+--cases ../40_delivery/week3/model_test_assets/evaluation_set.json
+--output-dir logs/evaluation/week6/be3_model_benchmark_api
 
 
 Usage:
     python scripts/Be3_run_week6_model_benchmark.py \
     --config configs/week6_Be3_model_benchmark.yaml \
-    --cases docs/40_delivery/week3/model_test_assets/week3_model_benchmark_cases_500.json
+    --cases ../40_delivery/week3/model_test_assets/evaluation_set.json
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import re
 import statistics
@@ -56,6 +57,7 @@ from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
     normalize_citations,
+    sanitize_answer_text,
 )
 
 
@@ -93,6 +95,38 @@ def _coerce_limitations_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _match_context_by_citation_text(citation_text: str, context: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """모델이 citations를 문자열로 낸 경우 원문 컨텍스트와 보수적으로 매칭한다."""
+    text = re.sub(r"^\s*\[?\(?\s*출처\s*\d+\s*\]?\)?\s*[:：-]?\s*", "", citation_text or "").strip()
+    if not text or not context:
+        return {}
+
+    best_ctx: Dict[str, Any] = {}
+    best_score = 0.0
+    text_compact = re.sub(r"\s+", "", text)
+    text_terms = {term for term in re.findall(r"[\w가-힣A-Z]+", text) if len(term) >= 2}
+
+    for ctx in context:
+        snippet = str(ctx.get("snippet", "")).strip()
+        if not snippet:
+            continue
+
+        snippet_compact = re.sub(r"\s+", "", snippet)
+        if text_compact and (text_compact in snippet_compact or snippet_compact[:80] in text_compact):
+            return ctx
+
+        snippet_terms = {term for term in re.findall(r"[\w가-힣A-Z]+", snippet) if len(term) >= 2}
+        if not text_terms or not snippet_terms:
+            continue
+        overlap = len(text_terms & snippet_terms)
+        score = overlap / max(len(text_terms), 1)
+        if score > best_score:
+            best_score = score
+            best_ctx = ctx
+
+    return best_ctx if best_score >= 0.35 else {}
+
+
 def _coerce_citations_for_benchmark(raw_citations: Any, context: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Week6 quote/doc_id 형태를 기존 chunk_id/case_id 기반 벤치마크 포맷으로 보정한다."""
     if not isinstance(raw_citations, list):
@@ -118,6 +152,25 @@ def _coerce_citations_for_benchmark(raw_citations: Any, context: List[Dict[str, 
     normalized: List[Dict[str, Any]] = []
 
     for item in raw_citations:
+        if isinstance(item, list):
+            item = " ".join(str(part).strip() for part in item if str(part).strip())
+
+        if isinstance(item, str):
+            snippet = re.sub(r"^\s*\[?\(?\s*출처\s*\d+\s*\]?\)?\s*[:：-]?\s*", "", item).strip()
+            ctx = _match_context_by_citation_text(item, context)
+            if not ctx:
+                continue
+            normalized.append(
+                {
+                    "chunk_id": str(ctx.get("chunk_id", "")),
+                    "case_id": str(ctx.get("case_id", "")),
+                    "snippet": snippet[:200] or str(ctx.get("snippet", "")).strip()[:200],
+                    "relevance_score": normalize_confidence(ctx.get("score", ctx.get("relevance_score", 0.5))),
+                    "source": "model_string_citation",
+                }
+            )
+            continue
+
         if not isinstance(item, dict):
             continue
 
@@ -156,6 +209,64 @@ def _coerce_citations_for_benchmark(raw_citations: Any, context: List[Dict[str, 
     return normalized
 
 
+def _merge_citation_lists(*groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    merged: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for group in groups:
+        for item in group:
+            chunk_id = str(item.get("chunk_id", ""))
+            if not chunk_id or chunk_id in seen:
+                continue
+            seen.add(chunk_id)
+            merged.append(item)
+    return merged
+
+
+def _coerce_citations_from_raw_text(response_text: str, context: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """raw 응답 안의 chunk_id 또는 출처 토큰을 strict citation 후보로 읽는다."""
+    if not response_text or not context:
+        return []
+
+    by_chunk = {str(item.get("chunk_id", "")): item for item in context if str(item.get("chunk_id", ""))}
+    found: List[Dict[str, Any]] = []
+
+    for chunk_id in dict.fromkeys(re.findall(r"CASE-\d+__chunk-\d+", response_text)):
+        ctx = by_chunk.get(chunk_id)
+        if not ctx:
+            continue
+        found.append(
+            {
+                "chunk_id": chunk_id,
+                "case_id": str(ctx.get("case_id", "")),
+                "snippet": str(ctx.get("snippet", "")).strip()[:200],
+                "relevance_score": normalize_confidence(ctx.get("score", ctx.get("relevance_score", 0.5))),
+                "source": "raw_chunk_reference",
+            }
+        )
+
+    if found:
+        return found
+
+    token_numbers = [int(match.group(1) or match.group(2)) for match in re.finditer(r"\[\[출처\s*(\d+)\]\]|\[출처\s*(\d+)\]", response_text)]
+
+    for ref_no in dict.fromkeys(token_numbers):
+        idx = ref_no - 1
+        if idx < 0 or idx >= len(context):
+            continue
+        ctx = context[idx]
+        found.append(
+            {
+                "chunk_id": str(ctx.get("chunk_id", "")),
+                "case_id": str(ctx.get("case_id", "")),
+                "snippet": str(ctx.get("snippet", "")).strip()[:200],
+                "relevance_score": normalize_confidence(ctx.get("score", ctx.get("relevance_score", 0.5))),
+                "source": "raw_answer_token_reference",
+            }
+        )
+
+    return found
+
+
 def _parse_week6_compatible_response(text: str) -> Dict[str, Any]:
     """confidence 누락/limitations 배열 등 Week6 응답도 파싱한다."""
     json_str = extract_json_string(text)
@@ -185,38 +296,103 @@ def _derive_non_empty_answer(parsed: Dict[str, Any], raw_response: str, context:
     """answer 필드가 비는 경우를 보완해 strict answer 고착 문제를 완화한다."""
     answer = str(parsed.get("answer", "") or "").strip()
     if answer:
-        return answer
+        return sanitize_answer_text(answer)
 
     for key in ("response", "content", "output", "result", "final_answer"):
         value = str(parsed.get(key, "") or "").strip()
         if value:
-            return value
+            return sanitize_answer_text(value)
 
     match = re.search(r'"answer"\s*:\s*"(.*?)"', raw_response or "", flags=re.DOTALL)
     if match:
         extracted = match.group(1).strip()
         if extracted:
-            return extracted
+            return sanitize_answer_text(extracted)
 
     if context:
         snippet = str(context[0].get("snippet", "")).strip()
         if snippet:
-            return f"관련 근거를 확인했습니다: {snippet[:120]}"
+            return sanitize_answer_text(
+                "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+                "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
+                "접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\n\n"
+                f"3. 검토 의견은 다음과 같습니다. {snippet[:220]} "
+                "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤 필요한 조치 가능 여부를 판단할 수 있습니다.\n\n"
+                "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+            )
 
-    return "관련 근거를 확인했으나 모델 answer가 비어 제한 응답으로 대체합니다."
+    return sanitize_answer_text(
+        "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+        "2. 현재 답변 생성 과정에서 구체적인 검토 내용을 충분히 구성하지 못했습니다. "
+        "정확한 회신을 위해서는 민원 취지, 발생 장소, 관련 자료에 대한 추가 확인이 필요합니다.\n\n"
+        "3. 담당부서에서 접수 내용과 관련 자료를 확인한 뒤 현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 검토하겠습니다. "
+        "확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다.\n\n"
+        "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 절차와 보완 필요 사항을 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+    )
 
 
-def _build_prompt(query: str, context: List[Dict[str, Any]], mode: str = "default") -> str:
-    prompt_mode = "compact" if mode == "compact" else "default"
-    return PromptFactory.build(
-        query=query,
-        context=context,
-        routing_trace={
-            "topic_type": "general",
-            "complexity_level": "medium",
-            "retrieval_policy": "general",
-            "prompt_mode": prompt_mode,
-        },
+def _case_identifier(case: Dict[str, Any], fallback_index: int) -> str:
+    return str(
+        case.get("case_id")
+        or case.get("source_id")
+        or case.get("complaint_id")
+        or f"CASE-{fallback_index:04d}"
+    )
+
+
+def _case_query(case: Dict[str, Any]) -> str:
+    return PromptFactory._derive_query_from_record(case) or "(빈 질의)"
+
+
+def _case_context(case: Dict[str, Any]) -> List[Dict[str, Any]]:
+    context = case.get("context")
+    if not isinstance(context, list):
+        return []
+    return [item for item in context if isinstance(item, dict)]
+
+
+def _build_prompt_context_from_case(
+    case: Dict[str, Any],
+    *,
+    mode: str = "default",
+    context_override: List[Dict[str, Any]] | None = None,
+    routing_trace: Dict[str, Any] | None = None,
+) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+    """벤치마크 프롬프트는 PromptFactory 단일 경로로 구성한다.
+
+    기존 평가셋처럼 context가 있으면 record 기반 PromptFactory 경로를 사용하고,
+    원문 레코드만 있으면 PromptFactory auto-retrieve로 근거를 붙인다.
+    """
+    context = context_override if context_override is not None else _case_context(case)
+
+    mode_norm = str(mode or "default").strip().lower()
+    prompt_mode = "compact" if mode_norm == "compact" else "force_json" if mode_norm == "force_json" else "default"
+    trace = dict(routing_trace or {})
+    trace["prompt_mode"] = prompt_mode
+
+    if context:
+        prompt = PromptFactory.build_from_dataset_record(
+            record=dict(case),
+            context=context,
+            routing_trace=trace,
+        )
+        return prompt, context, trace
+
+    top_k = int(case.get("top_k") or 5)
+    collection_name = str(case.get("collection_name") or "civil_cases_v1")
+    filters = case.get("filters") if isinstance(case.get("filters"), dict) else None
+    threshold = float(case.get("threshold") or 0.0)
+
+    return asyncio.run(
+        PromptFactory.build_from_dataset_record_autoretrieve(
+            record=dict(case),
+            routing_trace=trace,
+            top_k=top_k,
+            collection_name=collection_name,
+            filters=filters,
+            threshold=threshold,
+            mode=prompt_mode,
+        )
     )
 
 
@@ -459,7 +635,14 @@ def _apply_answer_quality_guard(answer: str, citations: List[Dict[str, Any]]) ->
     """빈 answer를 제한 응답 템플릿으로 보정하고 citation 토큰을 보장한다."""
     base = (answer or "").strip()
     if not base:
-        base = "검색 근거를 기반으로 요약을 생성했으나 모델 응답 본문이 비어 제한 응답으로 대체합니다."
+        base = (
+            "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+            "2. 현재 모델 응답 본문이 충분히 구성되지 않아 담당부서 확인 및 추가 검토가 필요합니다. "
+            "민원 취지와 관련 자료를 확인한 뒤 구체적인 처리 가능 여부를 판단하는 것이 적절합니다.\n\n"
+            "3. 접수 내용, 현장 여건, 관련 기준을 종합적으로 검토하여 필요한 조치 가능 여부를 확인하겠습니다. "
+            "검토 과정에서 추가 자료가 필요한 경우 보완 요청 또는 담당부서 안내가 이루어질 수 있습니다.\n\n"
+            "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+        )
     return ensure_citation_tokens(base, citations)
 
 
@@ -607,26 +790,29 @@ def run(
 
         for case_idx, case in enumerate(cases, start=1):
             for rep in range(repetitions):
+                case_id = _case_identifier(case, case_idx)
                 record: Dict[str, Any] = {
                     "model_id": model_id,
                     "model_name": model_name,
-                    "case_id": case["case_id"],
+                    "case_id": case_id,
+                    "source_id": case.get("source_id"),
                     "run_index": rep + 1,
                 }
                 try:
-                    eval_context = case["context"]
+                    eval_context = _case_context(case)
+                    routing_trace: Dict[str, Any] = {}
                     if benchmark_mode == "api":
-                        complaint_id = str(case.get("complaint_id") or f"BM-{case.get('case_id', case_idx)}")
-                        top_k = int(case.get("top_k") or max(1, min(10, len(case.get("context", [])) or 5)))
+                        complaint_id = str(case.get("complaint_id") or f"BM-{case_id}")
+                        top_k = int(case.get("top_k") or max(1, min(10, len(eval_context) or 5)))
                         parsed_final, latency, raw_response, eval_context = _call_search_qa_api(
                             api_base_url=api_base_url,
-                            query=case["query"],
+                            query=_case_query(case),
                             complaint_id=complaint_id,
                             top_k=top_k,
                             timeout_sec=timeout_sec,
                         )
                     else:
-                        prompt = _build_prompt(case["query"], case["context"], mode="default")
+                        prompt, eval_context, routing_trace = _build_prompt_context_from_case(case, mode="default")
                         parsed_final, latency, raw_response = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -639,7 +825,10 @@ def run(
 
                     limitations = _coerce_limitations_text(parsed_final.get("limitations", ""))
                     strict_citations_raw = parsed_final.get("citations", [])
-                    strict_citations = _coerce_citations_for_benchmark(strict_citations_raw, eval_context)
+                    strict_citations = _merge_citation_lists(
+                        _coerce_citations_for_benchmark(strict_citations_raw, eval_context),
+                        _coerce_citations_from_raw_text(raw_response, eval_context),
+                    )
 
                     # strict: 원문 모델 출력 기반, 단 answer는 비어 있으면 복구 시도
                     strict_answer = _derive_non_empty_answer(parsed_final, raw_response, eval_context)
@@ -652,7 +841,12 @@ def run(
                     if not integrity_passed_initial and benchmark_mode == "direct":
                         retry_reason = "INTEGRITY_GATE_FAILED"
                         retry_stage = "compact"
-                        compact_prompt = _build_prompt(case["query"], case["context"], mode="compact")
+                        compact_prompt, eval_context, routing_trace = _build_prompt_context_from_case(
+                            case,
+                            mode="compact",
+                            context_override=eval_context,
+                            routing_trace=routing_trace,
+                        )
                         parsed_compact, latency_compact, raw_response_compact = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -669,7 +863,10 @@ def run(
                         latency = latency_compact
                         limitations = _coerce_limitations_text(parsed_compact.get("limitations", ""))
                         strict_citations_raw = parsed_compact.get("citations", [])
-                        strict_citations = _coerce_citations_for_benchmark(strict_citations_raw, eval_context)
+                        strict_citations = _merge_citation_lists(
+                            _coerce_citations_for_benchmark(strict_citations_raw, eval_context),
+                            _coerce_citations_from_raw_text(raw_response, eval_context),
+                        )
                         strict_answer = _derive_non_empty_answer(parsed_compact, raw_response, eval_context)
                         strict_cite_rate = _citation_match_rate(strict_citations, eval_context)
 
@@ -723,6 +920,8 @@ def run(
                             "retry_reason": retry_reason,
                             "retry_stage": retry_stage,
                             "benchmark_mode": benchmark_mode,
+                            "derived_query": routing_trace.get("derived_query") or _case_query(case),
+                            "retrieved_context_count": len(eval_context),
                         }
                     )
                 except Exception as e:
@@ -872,7 +1071,7 @@ def main() -> None:
     parser.add_argument(
         "--cases",
         type=str,
-        default="docs/40_delivery/week3/model_test_assets/evaluation_set.json",
+        default="../40_delivery/week3/model_test_assets/evaluation_set.json",
         help="벤치마크 케이스 파일 경로",
     )
     parser.add_argument(

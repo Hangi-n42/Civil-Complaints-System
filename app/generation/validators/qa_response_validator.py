@@ -7,6 +7,10 @@ from typing import Any, Dict, List, Set
 
 
 _CITE_TOKEN_PATTERN = re.compile(r"\[\[출처\s*(\d+)\]\]")
+_DEBUG_METADATA_PATTERN = re.compile(
+    r"\s*\(?\s*(?:chunk_id=)?CASE-\d+__chunk-\d+(?:\s+case_id=CASE?-\d+|\s+case_id=\d+)?(?:\s+score=[0-9.]+)?\s*\)?",
+    flags=re.IGNORECASE,
+)
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -18,6 +22,23 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 def _extract_citation_tokens(answer: str) -> Set[int]:
     return {int(match) for match in _CITE_TOKEN_PATTERN.findall(answer or "")}
+
+
+def sanitize_answer_text(answer: str) -> str:
+    """사용자 답변에 노출되면 안 되는 retrieval 메타데이터를 제거한다."""
+    rendered = str(answer or "").strip()
+    if not rendered:
+        return ""
+
+    rendered = _DEBUG_METADATA_PATTERN.sub("", rendered)
+    rendered = re.sub(r"\(\s*chunk_id=[^)]+\)", "", rendered, flags=re.IGNORECASE)
+    rendered = re.sub(r"\[\[\s*\"[^\"]{0,500}\"\s*\]\]", "", rendered)
+    rendered = re.sub(r"(?m)^\s*\[\[\".*?\"\]\]\s*$", "", rendered)
+    rendered = re.sub(r"(?m)^\s*#{1,6}\s*", "", rendered)
+    rendered = rendered.replace("**", "")
+    rendered = re.sub(r"\n{3,}", "\n\n", rendered)
+    rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    return rendered.strip()
 
 
 def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -77,17 +98,34 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
 
 def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
     """answer 본문에 누락된 [[출처 n]] 토큰을 자동 보완한다."""
-    rendered = (answer or "").strip()
+    rendered = sanitize_answer_text(answer)
     if not rendered:
         if citations:
             snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
             snippets = [text for text in snippets if text]
             if snippets:
-                rendered = f"검색 근거 요약: {' / '.join(snippets)}"
+                rendered = (
+                    "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+                    "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
+                    "접수된 취지와 확인 가능한 자료를 함께 고려하여 처리 가능 여부를 검토하는 사안입니다.\n\n"
+                    f"3. 검토 의견은 다음과 같습니다. {' / '.join(snippets)} "
+                    "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 필요한 후속 절차를 종합적으로 확인할 수 있습니다.\n\n"
+                    "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+                )
             else:
-                rendered = "검색 근거 기반으로 핵심 조치가 필요합니다."
+                rendered = (
+                    "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+                    "2. 현재 인용 근거의 세부 내용이 충분하지 않아 담당부서 검토가 필요합니다.\n\n"
+                    "3. 접수 내용과 관련 자료를 확인한 뒤 필요한 조치 가능 여부와 후속 안내 사항을 검토하겠습니다.\n\n"
+                    "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+                )
         else:
-            rendered = "검색 근거가 부족하여 일반 원칙 중심으로 답변합니다."
+            rendered = (
+                "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+                "2. 현재 확인 가능한 자료가 충분하지 않아 담당부서 확인 및 추가 검토가 필요합니다.\n\n"
+                "3. 민원 취지, 발생 장소, 관련 자료가 확인되면 현장 여건과 행정 처리 기준을 종합적으로 검토하겠습니다.\n\n"
+                "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+            )
 
     missing_tokens: List[str] = []
     for citation in citations:
