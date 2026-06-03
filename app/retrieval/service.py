@@ -644,6 +644,7 @@ class RetrievalService:
         retrieval_policy: Optional[str] = None,
         snippet_max_chars: Optional[int] = None,
         strategy: Optional[str] = None,
+        grounding_filter: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -666,6 +667,9 @@ class RetrievalService:
                 self._bootstrap_from_samples(collection_key)
 
             effective_snippet_max_chars = max(120, int(snippet_max_chars or 140))
+            grounding_on = (
+                settings.GROUNDING_FILTER_ENABLED if grounding_filter is None else grounding_filter
+            )
             segments = self._normalize_request_segments(query, request_segments)
             if len(segments) > 1:
                 segment_results = []
@@ -689,7 +693,9 @@ class RetrievalService:
                 # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
                 effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
                 use_hybrid = effective_strategy == "hybrid" and not (filters or {})
-                fanout = max(top_k, settings.HYBRID_FANOUT) if use_hybrid else top_k
+                # grounding 필터 시엔 채점 후 줄어드므로 후보 풀을 더 확보
+                retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
+                fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
                 dense_results = store.query(
                     collection_name=collection_key,
                     query=query,
@@ -701,19 +707,22 @@ class RetrievalService:
                 if use_hybrid:
                     try:
                         results = self._get_hybrid().search(
-                            collection_key, query, top_k, dense_results,
+                            collection_key, query, retrieve_k, dense_results,
                             fanout=settings.HYBRID_FANOUT,
                         )
                     except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
                         self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
-                        results = dense_results[:top_k]
+                        results = dense_results[:retrieve_k]
                 else:
-                    results = dense_results[:top_k]
+                    results = dense_results[:retrieve_k]
                 results = self._apply_retrieval_policy(
                     results,
                     topic_type=topic_type,
                     retrieval_policy=retrieval_policy,
                 )
+
+            if grounding_on and results:
+                results = await self._apply_grounding_filter(query, results, top_k)
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results
@@ -721,6 +730,52 @@ class RetrievalService:
         except Exception as e:
             self.logger.error(f"검색 실패: {str(e)}")
             raise RetrievalError(f"검색 실패: {str(e)}") from e
+
+    @staticmethod
+    def _grounding_text(item: Dict[str, Any]) -> str:
+        """grounding 필터 입력 텍스트: 본문(snippet) + 소관 분야/관할(category·region).
+
+        cross_encoder_rerank._get_text와 동일 의도(같은 관련성 신호)."""
+        body = str(item.get("snippet") or "")
+        if not body:
+            summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+            body = " ".join(
+                part for part in (str(summary.get("observation") or ""), str(summary.get("request") or "")) if part
+            )
+        if not body:
+            body = str(item.get("title") or "")
+        meta = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        domain = " ".join(
+            part for part in (str(meta.get("category") or ""), str(meta.get("region") or "")) if part
+        )
+        text = f"[{domain}] {body}".strip() if domain else body
+        return text or str(item.get("case_id") or "")
+
+    async def _apply_grounding_filter(
+        self, query: str, results: List[Dict[str, Any]], top_k: int
+    ) -> List[Dict[str, Any]]:
+        """LLM 관련성 필터로 해로운(rel0) 선례를 근거에서 제거 (#305).
+
+        통과 0개면 빈 리스트 반환 → 호출부(be3)에서 "유사 사례 없음" 폴백.
+        """
+        from app.retrieval.grounding_filter import filter_by_relevance, score_relevance
+
+        model = settings.GROUNDING_FILTER_MODEL or settings.OLLAMA_MODEL
+
+        async def score_fn(q: str, text: str) -> Optional[int]:
+            return await score_relevance(q, text, model=model)
+
+        kept = await filter_by_relevance(
+            query, results,
+            get_text=self._grounding_text, score_fn=score_fn,
+            min_score=settings.GROUNDING_FILTER_MIN_SCORE,
+            rerank_pool=settings.GROUNDING_FILTER_POOL,
+            top_k=top_k,
+            max_concurrency=settings.GROUNDING_FILTER_MAX_CONCURRENCY,
+        )
+        filtered = [item for item, _ in kept]
+        self.logger.info(f"grounding 필터: {len(results)}→{len(filtered)}개 (해로운 선례 제거)")
+        return filtered
 
 
 # 싱글톤
