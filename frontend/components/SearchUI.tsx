@@ -26,6 +26,8 @@ function MappedBadge({
   );
 }
 
+const BADGE_BASE_CLASS = "inline-flex items-center justify-center whitespace-nowrap px-2 py-0 text-[10px] leading-tight h-5 min-w-[64px]";
+
 // 1. 상태 배지 (StatusBadge)
 export const StatusBadge = ({ status }: { status: string }) => (
   <MappedBadge
@@ -37,7 +39,7 @@ export const StatusBadge = ({ status }: { status: string }) => (
         처리완료: "bg-white text-slate-500 border border-slate-400",
       },
       fallbackValue: "미처리",
-      defaultClassName: "inline-flex whitespace-nowrap items-center px-2 py-0 rounded-full text-[10px] font-black tracking-wide leading-tight h-5",
+      defaultClassName: `${BADGE_BASE_CLASS} rounded-full font-black tracking-wide`,
     }}
   />
 );
@@ -53,7 +55,7 @@ export const PriorityBadge = ({ priority }: { priority: string }) => (
         보통: "bg-blue-50 text-blue-800 border border-blue-200",
       },
       fallbackValue: "보통",
-      defaultClassName: "inline-flex items-center whitespace-nowrap px-2 py-0 rounded-md text-[10px] font-bold leading-tight h-5",
+      defaultClassName: `${BADGE_BASE_CLASS} rounded-md font-bold`,
     }}
   />
 );

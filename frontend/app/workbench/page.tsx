@@ -430,9 +430,15 @@ function WorkbenchContent() {
                 <button
                   type="button"
                   onClick={handleRefreshStatuses}
-                  className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                  aria-label="갱신"
                 >
-                  갱신
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-4 w-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 10a6 6 0 0 1 10.2-4.2L16 7.6" />
+                    <path d="M16 4.8v2.8h-2.8" />
+                    <path d="M16 10a6 6 0 0 1-10.2 4.2L4 12.4" />
+                    <path d="M4 15.2v-2.8h2.8" />
+                  </svg>
                 </button>
               </div>
 

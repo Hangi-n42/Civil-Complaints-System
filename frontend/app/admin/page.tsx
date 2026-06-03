@@ -57,8 +57,18 @@ export default function AdminDashboardPage() {
               <option>전체</option>
             </select>
           </div>
-          <button className="px-6 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800 transition-colors">
-            새로고침
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white transition-colors hover:bg-slate-800"
+            aria-label="새로고침"
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-4 w-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 10a6 6 0 0 1 10.2-4.2L16 7.6" />
+              <path d="M16 4.8v2.8h-2.8" />
+              <path d="M16 10a6 6 0 0 1-10.2 4.2L4 12.4" />
+              <path d="M4 15.2v-2.8h2.8" />
+            </svg>
           </button>
         </div>
 
@@ -190,56 +200,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* 주간 AI 모델 성능 벤치마크 */}
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mt-8">
-          <div className="flex justify-between items-end border-b border-slate-100 pb-3 mb-4">
-            <h3 className="text-lg font-black text-blue-900">주간 AI 모델 성능 벤치마크</h3>
-            <div className="text-xs font-bold text-slate-500">
-              모델: {benchmark.model_info.llm_model} | 임베딩: {benchmark.model_info.embedding_model}
-            </div>
-          </div>
-
-          {/* AI KPI */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg text-center">
-              <div className="text-xs font-bold text-slate-500 mb-1">구조화 F1 Score</div>
-              <div className="text-2xl font-black text-slate-800">{(benchmark.summary.average_f1_score * 100).toFixed(1)}%</div>
-            </div>
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg text-center">
-              <div className="text-xs font-bold text-slate-500 mb-1">검색 명중률 (Recall@5)</div>
-              <div className="text-2xl font-black text-slate-800">{(benchmark.summary.average_recall_at_5 * 100).toFixed(1)}%</div>
-            </div>
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg text-center">
-              <div className="text-xs font-bold text-slate-500 mb-1">평균 추론 지연</div>
-              <div className="text-2xl font-black text-slate-800">{benchmark.summary.average_latency_sec.toFixed(2)}s</div>
-            </div>
-          </div>
-
-          {/* AI 시나리오별 표 */}
-          <table className="w-full text-left text-sm border border-slate-200 rounded-lg overflow-hidden">
-            <thead className="bg-slate-100 text-slate-600">
-              <tr>
-                <th className="py-3 px-4 font-bold border-b border-slate-200">시나리오</th>
-                <th className="py-3 px-4 font-bold border-b border-slate-200 text-center">F1 Score</th>
-                <th className="py-3 px-4 font-bold border-b border-slate-200 text-center">Recall@5</th>
-                <th className="py-3 px-4 font-bold border-b border-slate-200 text-right">지연(초)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {benchmark.scenarios.map((scen, idx) => (
-                <tr key={idx} className="hover:bg-slate-50">
-                  <td className="py-3 px-4 font-bold text-slate-700">{scen.name}</td>
-                  <td className="py-3 px-4 text-center font-medium text-blue-600">{scen.f1_score.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-center font-medium text-emerald-600">{scen.recall_at_5.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-right font-medium text-slate-500">{scen.latency_sec.toFixed(2)}s</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="text-right mt-2 text-[10px] text-slate-400">
-            출처: logs/evaluation/week3/model_benchmark_report_final.json
-          </div>
-        </div>
 
           </div>
         </main>
