@@ -45,6 +45,14 @@ class Settings:
     RRF_K: int = int(os.getenv("RRF_K", 60))
     HYBRID_FANOUT: int = int(os.getenv("HYBRID_FANOUT", 50))
 
+    # RAG grounding LLM 관련성 필터 (#305): 답변 근거에서 해로운(rel0) 선례 차단.
+    # 기본 OFF → 현재 검색 동작 불변. be3가 search(grounding_filter=True) 또는 env로 켬.
+    GROUNDING_FILTER_ENABLED: bool = os.getenv("GROUNDING_FILTER_ENABLED", "false").lower() == "true"
+    GROUNDING_FILTER_MODEL: str = os.getenv("GROUNDING_FILTER_MODEL", "")  # 빈값이면 OLLAMA_MODEL
+    GROUNDING_FILTER_MIN_SCORE: int = int(os.getenv("GROUNDING_FILTER_MIN_SCORE", 1))
+    GROUNDING_FILTER_POOL: int = int(os.getenv("GROUNDING_FILTER_POOL", 10))
+    GROUNDING_FILTER_MAX_CONCURRENCY: int = int(os.getenv("GROUNDING_FILTER_MAX_CONCURRENCY", 4))
+
     # 데이터 경로
     RAW_DATA_PATH: str = str(DATA_DIR / "raw")
     INTERIM_DATA_PATH: str = str(DATA_DIR / "interim")

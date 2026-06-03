@@ -52,10 +52,29 @@ LLM 리랭커(qwen2.5:14b, 관련성 루브릭으로 top-10 후보를 0/1/2 채�
 - 비용: 후보당 LLM 채점 → 쿼리당 ~2초 지연. 실시간 검색 아닌 답변 초안 용도엔 수용 가능.
 - generator(BE3) 연계 사항이라 적용은 **핸드오프 필요**.
 
-## 6. 한계 · 향후
+## 6. 프로덕션 통합 (#305)
+
+필터는 두 곳에서 동일 코어(`app/retrieval/grounding_filter.py`)를 공유한다:
+- **eval**: `LLMRelevanceFilterStage` + `hybrid_bm25_dense_rrf_llmfilter.yaml`
+- **프로덕션**: `RetrievalService.search(query, top_k, grounding_filter=True)` — 답변 생성(be3)이 호출하는 실제 경로
+
+**사용법 (be3)**
+```python
+results = await retrieval_service.search(query, top_k=5, grounding_filter=True)
+# results == [] 이면 "유사 사례 없음" → grounding 없이 답변 정책 적용
+```
+또는 환경변수 `GROUNDING_FILTER_ENABLED=true`로 전역 활성화. 모델은 `GROUNDING_FILTER_MODEL`(미지정 시 `OLLAMA_MODEL`).
+
+- 기본값 **OFF** → 켜기 전 검색 동작 불변.
+- 켜지면 후보 `GROUNDING_FILTER_POOL`(10)개를 LLM 채점 → `rel0` 제거 → `top_k` 반환. 통과 0개면 빈 리스트(폴백 신호).
+- LLM 장애 시 permissive(원본 유지) → 검색이 멈추지 않음.
+- end-to-end 검증(#303): 실제 파이프라인에서 해로움 27.8%→0.9%. 단위·통합 테스트 포함.
+
+## 7. 한계 · 향후
 
 - 잔여 4% 추가 감소: 도메인 적응 임베딩(1단계 개선), 법령/관할 구조화 필드 1차 필터, 3채점관 필터(느림). 수확체감.
 - 필터 임계값(0점만 제거 vs 1점 미만 제거)·K·폴백 정책은 generator 측 end-to-end 품질로 튜닝 필요.
+- 멀티세그먼트 경로는 후보 풀이 작아 필터 효과 제한적(단일세그먼트 위주 적용).
 
 ## 7. 산출물
 
@@ -64,4 +83,5 @@ LLM 리랭커(qwen2.5:14b, 관련성 루브릭으로 top-10 후보를 0/1/2 채�
 | 스크립트 | `scripts/grounding_topk_breakdown.py`, `scripts/grounding_filter_effect.py` |
 | 리포트 | `reports/retrieval/v3/{grounding_topk_breakdown,grounding_filter_effect,eval_llm_reranker_full}.json` |
 | LLM 점수 캐시 | `data/evaluation/v3/checkpoints/llm_rerank_full.json` |
-| 이슈 | #299 |
+| 공유 코어 · 스테이지 · 서비스 | `app/retrieval/grounding_filter.py`, `app/retrieval/pipeline/stages/llm_relevance_filter.py`, `RetrievalService.search(grounding_filter=...)` |
+| 이슈 | #299, #301, #303, #305 |
