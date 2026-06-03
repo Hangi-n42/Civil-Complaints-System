@@ -7,6 +7,7 @@ from app.generation.parsing.json_utils import parse_qa_json_response
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
+    format_civil_reply_answer,
     normalize_citations,
 )
 
@@ -77,6 +78,55 @@ def test_normalize_citations_and_tokens():
     assert len(citations) == 1
     assert citations[0]["ref_id"] == 1
     assert "[[출처 1]]" in answer
+
+
+def test_normalize_citations_falls_back_when_model_returns_nested_list():
+    context = [
+        {
+            "chunk_id": "C1",
+            "case_id": "CASE-1",
+            "snippet": "근거 문장",
+            "score": 0.9,
+        }
+    ]
+
+    citations = normalize_citations([["not", "a", "citation", "object"]], context)
+
+    assert len(citations) == 1
+    assert citations[0]["chunk_id"] == "C1"
+    assert citations[0]["case_id"] == "CASE-1"
+
+
+def test_format_civil_reply_moves_citations_to_final_lines():
+    citations = [
+        {"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거 1"},
+        {"ref_id": 2, "chunk_id": "C2", "case_id": "CASE-2", "snippet": "근거 2"},
+    ]
+
+    answer = format_civil_reply_answer(
+        "[[출처 1]] 현장 여건을 확인한 뒤 조치 가능 여부를 검토하겠습니다. [[출처 2]]",
+        citations,
+    )
+
+    assert answer.startswith("1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.")
+    assert "3. 검토 의견은 다음과 같습니다. 현장 여건을 확인한 뒤 조치 가능 여부를 검토하겠습니다." in answer
+    assert "감사합니다. 끝.\n[[출처 1]]\n[[출처 2]]" in answer
+    assert answer.count("[[출처 1]]") == 1
+    assert answer.count("[[출처 2]]") == 1
+
+
+def test_format_civil_reply_converts_structured_string_to_natural_text():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "[{'section': '섹션 1', 'content': '주차 안심번호 서비스 도입을 검토할 수 있습니다.', "
+        "'action_items': ['서비스 이용 안내', '홍보 강화']}]",
+        citations,
+    )
+
+    assert "[{" not in answer
+    assert "주차 안심번호 서비스 도입을 검토할 수 있습니다." in answer
+    assert "서비스 이용 안내, 홍보 강화" in answer
 
 
 def test_build_validation_result_detects_mismatch():
