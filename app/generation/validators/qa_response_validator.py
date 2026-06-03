@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from typing import Any, Dict, List, Set
 
@@ -80,6 +81,40 @@ def _strip_standard_reply_shell(text: str) -> str:
     return rendered.strip(" \n;")
 
 
+def _stringify_structured_answer(value: Any) -> str:
+    parts: List[str] = []
+    if isinstance(value, list):
+        for item in value:
+            text = _stringify_structured_answer(item)
+            if text:
+                parts.append(text)
+    elif isinstance(value, dict):
+        section = str(value.get("section") or value.get("title") or "").strip()
+        content = str(value.get("content") or value.get("text") or value.get("answer") or "").strip()
+        if section and content:
+            parts.append(f"{section}: {content}")
+        elif content:
+            parts.append(content)
+        action_items = value.get("action_items")
+        if isinstance(action_items, list):
+            actions = [str(item).strip() for item in action_items if str(item).strip()]
+            if actions:
+                parts.append("필요한 후속 조치는 " + ", ".join(actions) + "입니다.")
+    return " ".join(parts).strip()
+
+
+def _normalize_structured_answer_text(text: str) -> str:
+    rendered = (text or "").strip()
+    if not rendered or rendered[0] not in "[{":
+        return rendered
+    try:
+        parsed = ast.literal_eval(rendered)
+    except (SyntaxError, ValueError):
+        return rendered
+    normalized = _stringify_structured_answer(parsed)
+    return normalized or rendered
+
+
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
     snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
     snippets = [text for text in snippets if text]
@@ -99,6 +134,7 @@ def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> s
     """민원 회신문 answer를 고정 1~4항 구조와 마지막 출처 토큰 줄로 정규화한다."""
     rendered = sanitize_answer_text(answer)
     rendered = _strip_citation_tokens(rendered)
+    rendered = _normalize_structured_answer_text(rendered)
     body = _strip_standard_reply_shell(rendered)
     if not body:
         body = _fallback_review_body(citations)
@@ -129,6 +165,9 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
     normalized: List[Dict[str, Any]] = []
 
     for item in source:
+        if not isinstance(item, dict):
+            continue
+
         raw_chunk_id = str(item.get("chunk_id") or "")
         ctx = context_by_chunk.get(raw_chunk_id, {})
 

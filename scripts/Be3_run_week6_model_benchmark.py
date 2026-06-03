@@ -1185,16 +1185,18 @@ def main() -> None:
             "case_id": row.get("case_id"),
             "run_index": row.get("run_index"),
             "status": row.get("status"),
-            "parsed_answer_strict": row.get("parsed_answer_strict", ""),
+            # 기본 답변은 회신문 형식으로 보정된 최종 답변을 먼저 노출한다.
+            "parsed_answer": row.get("parsed_answer", ""),
             "parsed_answer_repaired": row.get("parsed_answer_repaired", ""),
+            # 모델 원출력에 가까운 strict 답변은 분석용 필드로 보존한다.
+            "parsed_answer_model_raw": row.get("parsed_answer_strict", ""),
+            "parsed_answer_strict": row.get("parsed_answer_strict", ""),
+            "citations_count": row.get("citations_count", 0),
             "citations_count_strict": row.get("citations_count_strict", 0),
             "citations_count_repaired": row.get("citations_count_repaired", 0),
+            "citation_match_rate": row.get("citation_match_rate", 0.0),
             "citation_match_rate_strict": row.get("citation_match_rate_strict", 0.0),
             "citation_match_rate_repaired": row.get("citation_match_rate_repaired", 0.0),
-            # Backward compatibility
-            "parsed_answer": row.get("parsed_answer", ""),
-            "citations_count": row.get("citations_count", 0),
-            "citation_match_rate": row.get("citation_match_rate", 0.0),
         }
         _append_jsonl(raw_response_jsonl, raw_response_row)
         _append_jsonl(parsed_answer_jsonl, parsed_answer_row)

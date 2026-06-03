@@ -80,6 +80,23 @@ def test_normalize_citations_and_tokens():
     assert "[[출처 1]]" in answer
 
 
+def test_normalize_citations_falls_back_when_model_returns_nested_list():
+    context = [
+        {
+            "chunk_id": "C1",
+            "case_id": "CASE-1",
+            "snippet": "근거 문장",
+            "score": 0.9,
+        }
+    ]
+
+    citations = normalize_citations([["not", "a", "citation", "object"]], context)
+
+    assert len(citations) == 1
+    assert citations[0]["chunk_id"] == "C1"
+    assert citations[0]["case_id"] == "CASE-1"
+
+
 def test_format_civil_reply_moves_citations_to_final_lines():
     citations = [
         {"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거 1"},
@@ -96,6 +113,20 @@ def test_format_civil_reply_moves_citations_to_final_lines():
     assert "감사합니다. 끝.\n[[출처 1]]\n[[출처 2]]" in answer
     assert answer.count("[[출처 1]]") == 1
     assert answer.count("[[출처 2]]") == 1
+
+
+def test_format_civil_reply_converts_structured_string_to_natural_text():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "[{'section': '섹션 1', 'content': '주차 안심번호 서비스 도입을 검토할 수 있습니다.', "
+        "'action_items': ['서비스 이용 안내', '홍보 강화']}]",
+        citations,
+    )
+
+    assert "[{" not in answer
+    assert "주차 안심번호 서비스 도입을 검토할 수 있습니다." in answer
+    assert "서비스 이용 안내, 홍보 강화" in answer
 
 
 def test_build_validation_result_detects_mismatch():

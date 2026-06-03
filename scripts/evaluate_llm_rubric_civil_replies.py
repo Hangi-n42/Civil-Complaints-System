@@ -80,6 +80,35 @@ def _source_token_count(text: str) -> int:
     return len(re.findall(r"\[\[출처\s*\d+\]\]", text or ""))
 
 
+def _has_real_reply_specificity(answer: str) -> bool:
+    """실제 지자체 답변 표본의 최고점 특징: 구체 담당/일정/법령/불가 사유 중 일부가 존재."""
+    text = answer or ""
+    signals = [
+        bool(re.search(r"\d{4}\.\s*\d{1,2}\.\s*\d{1,2}|'\d{2}\.\s*\d{1,2}\.\s*\d{1,2}|\d{1,2}월|\d{1,2}일", text)),
+        bool(re.search(r"「[^」]+」|법률|조례|규칙|규정|지침|예산|계획", text)),
+        bool(re.search(r"주무관|담당자|담당부서|[\w가-힣]+과|[\w가-힣]+팀", text)),
+        bool(re.search(r"어려움|어렵|불가|양해|검토\s*중|추후|순차|현장\s*확인|관계\s*부서", text)),
+        bool(re.search(r"가\.\s|나\.\s|다\.\s|○|- ", text)),
+    ]
+    return sum(signals) >= 2
+
+
+def _generic_reply_penalty(answer: str) -> tuple[int, List[str]]:
+    generic_phrases = [
+        "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤",
+        "필요한 조치 가능 여부를 판단할 수 있습니다",
+        "접수 내용과 관련 자료를 확인한 뒤",
+        "현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 검토하겠습니다",
+        "확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다",
+    ]
+    hits = [phrase for phrase in generic_phrases if phrase in (answer or "")]
+    if len(hits) >= 2:
+        return 2, ["템플릿성 일반 문구가 과다함"]
+    if hits:
+        return 1, ["템플릿성 일반 문구 포함"]
+    return 0, []
+
+
 def _has_debug_noise(text: str) -> bool:
     return bool(
         re.search(
@@ -122,19 +151,26 @@ def _score_q1_naturalness(answer: str) -> tuple[int, List[str]]:
     if len(answer.strip()) < 120:
         score -= 1
         reasons.append("회신 본문이 지나치게 짧음")
+    penalty, penalty_reasons = _generic_reply_penalty(answer)
+    if penalty:
+        score -= penalty
+        reasons.extend(penalty_reasons)
     return max(1, score), reasons
 
 
-def _score_q2_source_adequacy(row: Dict[str, Any]) -> tuple[int, List[str]]:
+def _score_q2_source_adequacy(row: Dict[str, Any], answer: str) -> tuple[int, List[str]]:
     strict = float(row.get("citation_match_rate_strict") or 0.0)
     repaired = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
     count = int(row.get("citations_count_repaired") or row.get("citations_count") or 0)
+    specific = _has_real_reply_specificity(answer)
+    if strict >= 0.8 and count > 0 and specific:
+        return 4, ["strict 기준 근거 매칭이 충분하고 실제 답변 수준의 구체성이 있음"]
     if strict >= 0.8 and count > 0:
-        return 4, ["strict 기준 근거 매칭이 충분함"]
+        return 3, ["strict 기준 근거 매칭은 충분하지만 구체성이 부족함"]
     if repaired >= 0.8 and count > 0:
-        return 3, ["보정 후 근거 매칭은 충분하지만 strict 근거는 약함"]
+        return 2, ["보정 후 근거 매칭은 충분하지만 strict 근거 또는 구체성이 약함"]
     if count > 0:
-        return 2, ["근거는 있으나 컨텍스트 매칭률이 낮음"]
+        return 1, ["근거는 있으나 컨텍스트 매칭률이 낮음"]
     return 1, ["사용 가능한 근거가 없음"]
 
 
@@ -163,6 +199,18 @@ def _score_by_rate(rate: float, label: str) -> tuple[int, List[str]]:
     return 1, [f"{label}=0.00"]
 
 
+def _score_q4_citation_accuracy(strict_rate: float, repaired_rate: float) -> tuple[int, List[str]]:
+    if strict_rate >= 0.95:
+        return 4, [f"strict citation_match_rate={strict_rate:.2f}"]
+    if strict_rate >= 0.5:
+        return 3, [f"strict citation_match_rate={strict_rate:.2f}"]
+    if repaired_rate >= 0.95:
+        return 2, [f"strict citation은 약하지만 repaired citation_match_rate={repaired_rate:.2f}"]
+    if repaired_rate > 0:
+        return 2, [f"repaired citation_match_rate={repaired_rate:.2f}"]
+    return 1, ["citation_match_rate=0.00"]
+
+
 def _score_q6_redundancy(answer: str) -> tuple[int, List[str]]:
     ratio = _repetition_ratio(answer)
     reasons: List[str] = []
@@ -179,17 +227,22 @@ def _score_q6_redundancy(answer: str) -> tuple[int, List[str]]:
     if answer.count("[[출처") > 4:
         score -= 1
         reasons.append("출처 토큰이 과도하게 반복됨")
+    penalty, penalty_reasons = _generic_reply_penalty(answer)
+    if penalty:
+        score -= penalty
+        reasons.extend(penalty_reasons)
     return max(1, score), reasons
 
 
 def _score_q7_conciseness(answer: str) -> tuple[int, List[str]]:
     length = len(answer)
     sentences = _sentence_count(answer)
-    if 250 <= length <= 900 and 4 <= sentences <= 12:
-        return 4, [f"적정 길이({length}자, {sentences}문장)"]
-    if 120 <= length < 250 or 900 < length <= 1300:
+    # VS_지방행정기관 실제 답변 표본 기준: 중앙값 약 460자, IQR 약 360~590자.
+    if 360 <= length <= 650 and 5 <= sentences <= 14:
+        return 4, [f"실제 답변 표본에 가까운 길이({length}자, {sentences}문장)"]
+    if 250 <= length < 360 or 650 < length <= 900:
         return 3, [f"약간 짧거나 김({length}자)"]
-    if 60 <= length < 120 or 1300 < length <= 1800:
+    if 120 <= length < 250 or 900 < length <= 1300:
         return 2, [f"회신 길이 부적정({length}자)"]
     return 1, [f"매우 짧거나 과도하게 김({length}자)"]
 
@@ -199,10 +252,16 @@ def _score_q8_efficiency(answer: str) -> tuple[int, List[str]]:
     has_review = "검토" in answer or "의견" in answer or "알려드립니다" in answer
     has_followup = "문의" in answer or "추가 설명" in answer or "담당부서" in answer
     points = sum([has_summary, has_review, has_followup])
-    if points == 3:
+    specific = _has_real_reply_specificity(answer)
+    penalty, penalty_reasons = _generic_reply_penalty(answer)
+    if points == 3 and specific and not penalty:
         return 4, ["요지-검토-후속 안내가 모두 포함됨"]
     if points == 2:
         return 3, ["핵심 회신 요소 중 하나가 부족함"]
+    if points == 3:
+        reasons = ["요지-검토-후속 안내는 있으나 실제 답변 수준의 구체성이 부족함"]
+        reasons.extend(penalty_reasons)
+        return 3, reasons
     if points == 1:
         return 2, ["회신 흐름이 부분적으로만 구성됨"]
     return 1, ["민원 회신 흐름이 거의 없음"]
@@ -212,11 +271,11 @@ def evaluate_row(row: Dict[str, Any], case: Dict[str, Any], answer_field: str) -
     answer = _answer_from_row(row, answer_field)
 
     q1, q1_reasons = _score_q1_naturalness(answer)
-    q2, q2_reasons = _score_q2_source_adequacy(row)
+    q2, q2_reasons = _score_q2_source_adequacy(row, answer)
     q3, q3_reasons = _score_q3_citation_coverage(answer, row)
     strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
     repaired_rate = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
-    q4, q4_reasons = _score_by_rate(repaired_rate, "citation_match_rate_repaired")
+    q4, q4_reasons = _score_q4_citation_accuracy(strict_rate, repaired_rate)
     q5, q5_reasons = _score_by_rate(strict_rate if strict_rate > 0 else repaired_rate * 0.75, "best_source_proxy")
     q6, q6_reasons = _score_q6_redundancy(answer)
     q7, q7_reasons = _score_q7_conciseness(answer)
