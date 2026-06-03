@@ -1,0 +1,107 @@
+{
+  "eval_set": "qrels_pooled_3judge, NO-self",
+  "n_queries": 100,
+  "rerank_pool": 10,
+  "by_k": {
+    "3": {
+      "Hybrid": {
+        "k": 3,
+        "n_queries": 100,
+        "total_slots": 300,
+        "slots": {
+          "rel2": 20,
+          "rel1": 220,
+          "rel0": 60,
+          "unjudged": 0
+        },
+        "harmful_rate": 0.2,
+        "useful_rate": 0.8,
+        "queries_with_harmful_pct": 0.35,
+        "queries_empty_grounding": 0,
+        "avg_filled_slots": 3.0
+      },
+      "Hybrid+LLM-rerank": {
+        "k": 3,
+        "n_queries": 100,
+        "total_slots": 300,
+        "slots": {
+          "rel2": 23,
+          "rel1": 230,
+          "rel0": 47,
+          "unjudged": 0
+        },
+        "harmful_rate": 0.1567,
+        "useful_rate": 0.8433,
+        "queries_with_harmful_pct": 0.25,
+        "queries_empty_grounding": 0,
+        "avg_filled_slots": 3.0
+      },
+      "Hybrid+LLM-filter": {
+        "k": 3,
+        "n_queries": 100,
+        "total_slots": 250,
+        "slots": {
+          "rel2": 23,
+          "rel1": 216,
+          "rel0": 11,
+          "unjudged": 0
+        },
+        "harmful_rate": 0.044,
+        "useful_rate": 0.956,
+        "queries_with_harmful_pct": 0.1,
+        "queries_empty_grounding": 7,
+        "avg_filled_slots": 2.5
+      }
+    },
+    "5": {
+      "Hybrid": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 500,
+        "slots": {
+          "rel2": 28,
+          "rel1": 355,
+          "rel0": 116,
+          "unjudged": 1
+        },
+        "harmful_rate": 0.232,
+        "useful_rate": 0.766,
+        "queries_with_harmful_pct": 0.45,
+        "queries_empty_grounding": 0,
+        "avg_filled_slots": 5.0
+      },
+      "Hybrid+LLM-rerank": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 500,
+        "slots": {
+          "rel2": 27,
+          "rel1": 373,
+          "rel0": 99,
+          "unjudged": 1
+        },
+        "harmful_rate": 0.198,
+        "useful_rate": 0.8,
+        "queries_with_harmful_pct": 0.38,
+        "queries_empty_grounding": 0,
+        "avg_filled_slots": 5.0
+      },
+      "Hybrid+LLM-filter": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 384,
+        "slots": {
+          "rel2": 27,
+          "rel1": 341,
+          "rel0": 16,
+          "unjudged": 0
+        },
+        "harmful_rate": 0.0417,
+        "useful_rate": 0.9583,
+        "queries_with_harmful_pct": 0.14,
+        "queries_empty_grounding": 7,
+        "avg_filled_slots": 3.84
+      }
+    }
+  }
+}
