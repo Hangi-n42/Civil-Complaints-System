@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from app.core.config import PROJECT_ROOT
 from app.core.title_builder import build_case_title
 
 
@@ -69,16 +71,43 @@ class ChromaVectorStore:
             import chromadb
 
             self.persist_directory.mkdir(parents=True, exist_ok=True)
-            self._client = chromadb.PersistentClient(path=str(self.persist_directory))
+
+            # Windows에서 한글이 포함된 절대 경로를 Rust 바인딩이 제대로 처리하지 못해
+            # HNSW 로딩 오류가 간헐적으로 발생할 수 있다.
+            # 프로젝트 루트 내부 경로라면 상대 경로로 우회한다.
+            client_path = str(self.persist_directory)
+            try:
+                resolved = self.persist_directory.resolve()
+                cwd = Path.cwd().resolve()
+                try:
+                    client_path = os.path.relpath(resolved, start=cwd)
+                except ValueError:
+                    project_root = PROJECT_ROOT.resolve()
+                    if resolved == project_root or project_root in resolved.parents:
+                        client_path = str(resolved.relative_to(project_root))
+            except Exception:
+                client_path = str(self.persist_directory)
+
+            self._client = chromadb.PersistentClient(path=client_path)
         return self._client
 
     def _get_embedding_model(self):
         if self._embedding_model is None:
+            device = str(self.embedding_device or "cpu").strip().lower()
+            if device == "cuda":
+                try:
+                    import torch
+
+                    if not torch.cuda.is_available():
+                        device = "cpu"
+                except Exception:
+                    device = "cpu"
+
             from sentence_transformers import SentenceTransformer
 
             self._embedding_model = SentenceTransformer(
                 self.embedding_model_name,
-                device=self.embedding_device,
+                device=device,
             )
         return self._embedding_model
 
@@ -86,10 +115,15 @@ class ChromaVectorStore:
         key = collection_name.strip() if collection_name else "civil_cases_v1"
         if key not in self._collections:
             client = self._get_client()
-            self._collections[key] = client.get_or_create_collection(
-                name=key,
-                metadata={"hnsw:space": "cosine"},
-            )
+            # 기존 컬렉션은 get_or_create_collection 경로에서 내부 backfill/compactor 동작으로
+            # 간헐적인 HNSW 로딩 오류가 발생할 수 있어, 우선 get_collection을 시도한다.
+            try:
+                self._collections[key] = client.get_collection(name=key)
+            except Exception:
+                self._collections[key] = client.get_or_create_collection(
+                    name=key,
+                    metadata={"hnsw:space": "cosine"},
+                )
         return self._collections[key]
 
     def reset_collection(self, collection_name: str) -> None:
@@ -195,6 +229,7 @@ class ChromaVectorStore:
         top_k: int,
         filters: Optional[Dict[str, Any]] = None,
         threshold: float = 0.0,
+        snippet_max_chars: int = 140,
     ) -> List[Dict[str, Any]]:
         collection = self._get_collection(collection_name)
         candidate_count = max(1, min(50, max(top_k, top_k * 5)))
@@ -290,7 +325,7 @@ class ChromaVectorStore:
                     "chunk_id": chunk_id,
                     "case_id": case_id,
                     "title": title,
-                    "snippet": self._build_snippet(doc_text, max_length=140),
+                    "snippet": self._build_snippet(doc_text, max_length=snippet_max_chars),
                     "summary": summary,
                     "metadata": {
                         "created_at": created_at,

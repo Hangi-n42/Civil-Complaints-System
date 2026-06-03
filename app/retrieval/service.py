@@ -35,6 +35,7 @@ class RetrievalService:
         self.embedding_device = settings.EMBEDDING_DEVICE
         self.default_collection_name = "civil_cases_v1"
         self._vectorstore: Optional[ChromaVectorStore] = None
+        self._hybrid = None  # HybridRetriever (lazy)
 
     def _get_vectorstore(self) -> ChromaVectorStore:
         if self._vectorstore is None:
@@ -44,6 +45,14 @@ class RetrievalService:
                 embedding_device=self.embedding_device,
             )
         return self._vectorstore
+
+    def _get_hybrid(self):
+        """Hybrid(BM25+Dense RRF) 리트리버 (lazy). BM25 인덱스는 첫 호출 시 빌드·캐시."""
+        if self._hybrid is None:
+            from app.retrieval.search.hybrid import HybridRetriever
+
+            self._hybrid = HybridRetriever(self._get_vectorstore(), rrf_k=settings.RRF_K)
+        return self._hybrid
 
     def _bootstrap_from_samples(self, collection_name: Optional[str] = None) -> None:
         """샘플 데이터가 존재하면 ChromaDB 컬렉션을 초기화한다."""
@@ -440,6 +449,100 @@ class RetrievalService:
             max_length=max_length,
         )
 
+    def _normalize_request_segments(
+        self,
+        query: str,
+        request_segments: Optional[List[str]] = None,
+    ) -> List[str]:
+        raw_segments = request_segments or []
+        cleaned_segments = [
+            " ".join(str(segment or "").split())
+            for segment in raw_segments
+            if str(segment or "").strip()
+        ]
+        if cleaned_segments:
+            return cleaned_segments
+
+        # 4요소 구조화 쿼리(\n 구분)는 분할하지 않고 단일 임베딩으로 검색
+        # 쉼표 분할은 의미 맥락을 파괴하여 검색 품질을 저하시킴 (issue #255)
+        if "\n" in str(query or ""):
+            return []
+
+        segments = [str(query or "").strip()]
+        for delimiter in (" 및 ", " 그리고 ", ",", ";"):
+            next_segments: List[str] = []
+            for segment in segments:
+                next_segments.extend(segment.split(delimiter))
+            segments = next_segments
+
+        normalized = [" ".join(segment.split()) for segment in segments if segment.strip()]
+        if len(normalized) <= 1:
+            return []
+        return normalized
+
+    def _apply_retrieval_policy(
+        self,
+        results: List[Dict[str, Any]],
+        *,
+        topic_type: Optional[str],
+        retrieval_policy: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """topic/policy 메타데이터(라우팅 trace)만 부착한다.
+
+        과거에는 admin_policy/field_ops 정책에서 키워드 매칭 시 +0.04 점수 부스트를
+        적용했으나, V3 100쿼리 평가에서 부스트가 nDCG@10 −0.018, R@10 −0.024로
+        순위 품질을 악화시키는 것이 확인되어 제거했다. (#263,
+        reports/retrieval/v3/risk3c_policy_boost_impact.json)
+        """
+        policy = str(retrieval_policy or "general").strip() or "general"
+        for item in results:
+            metadata = item.setdefault("metadata", {})
+            metadata["retrieval_policy"] = policy
+            if topic_type:
+                metadata["topic_type"] = topic_type
+        return results
+
+    def _merge_segment_results(
+        self,
+        segment_results: List[tuple[str, List[Dict[str, Any]]]],
+        *,
+        top_k: int,
+    ) -> List[Dict[str, Any]]:
+        merged: Dict[str, Dict[str, Any]] = {}
+
+        for segment, results in segment_results:
+            for item in results:
+                key = f"{item.get('doc_id') or item.get('case_id')}::{item.get('chunk_id')}"
+                current = merged.get(key)
+                item_score = float(item.get("score", 0.0) or 0.0)
+                if current is None or item_score > float(current.get("score", 0.0) or 0.0):
+                    previous_segments = list((current or {}).get("matched_segments") or [])
+                    current = dict(item)
+                    current["metadata"] = dict(item.get("metadata") or {})
+                    current["matched_segments"] = previous_segments
+                    merged[key] = current
+
+                matched_segments = current.setdefault("matched_segments", [])
+                if segment not in matched_segments:
+                    matched_segments.append(segment)
+                metadata = current.setdefault("metadata", {})
+                metadata["matched_segments"] = list(matched_segments)
+
+        merged_results = list(merged.values())
+        for item in merged_results:
+            matched_count = len(item.get("matched_segments") or [])
+            if matched_count > 1:
+                item["score"] = round(
+                    min(1.0, float(item.get("score", 0.0) or 0.0) + min(0.1, 0.03 * (matched_count - 1))),
+                    4,
+                )
+
+        merged_results.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
+        results_list = merged_results[: max(1, top_k)]
+        for rank, item in enumerate(results_list, start=1):
+            item["rank"] = rank
+        return results_list
+
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
     ) -> List[str]:
@@ -536,6 +639,11 @@ class RetrievalService:
         threshold: float = 0.0,
         filters: Optional[Dict[str, Any]] = None,
         collection_name: Optional[str] = None,
+        topic_type: Optional[str] = None,
+        request_segments: Optional[List[str]] = None,
+        retrieval_policy: Optional[str] = None,
+        snippet_max_chars: Optional[int] = None,
+        strategy: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -557,13 +665,55 @@ class RetrievalService:
             if store.count(collection_key) == 0:
                 self._bootstrap_from_samples(collection_key)
 
-            results = store.query(
-                collection_name=collection_key,
-                query=query,
-                top_k=top_k,
-                filters=filters or {},
-                threshold=threshold,
-            )
+            effective_snippet_max_chars = max(120, int(snippet_max_chars or 140))
+            segments = self._normalize_request_segments(query, request_segments)
+            if len(segments) > 1:
+                segment_results = []
+                for segment in segments:
+                    results_for_segment = store.query(
+                        collection_name=collection_key,
+                        query=segment,
+                        top_k=top_k,
+                        filters=filters or {},
+                        threshold=threshold,
+                        snippet_max_chars=effective_snippet_max_chars,
+                    )
+                    results_for_segment = self._apply_retrieval_policy(
+                        results_for_segment,
+                        topic_type=topic_type,
+                        retrieval_policy=retrieval_policy,
+                    )
+                    segment_results.append((segment, results_for_segment))
+                results = self._merge_segment_results(segment_results, top_k=top_k)
+            else:
+                # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
+                effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
+                use_hybrid = effective_strategy == "hybrid" and not (filters or {})
+                fanout = max(top_k, settings.HYBRID_FANOUT) if use_hybrid else top_k
+                dense_results = store.query(
+                    collection_name=collection_key,
+                    query=query,
+                    top_k=fanout,
+                    filters=filters or {},
+                    threshold=threshold,
+                    snippet_max_chars=effective_snippet_max_chars,
+                )
+                if use_hybrid:
+                    try:
+                        results = self._get_hybrid().search(
+                            collection_key, query, top_k, dense_results,
+                            fanout=settings.HYBRID_FANOUT,
+                        )
+                    except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
+                        self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
+                        results = dense_results[:top_k]
+                else:
+                    results = dense_results[:top_k]
+                results = self._apply_retrieval_policy(
+                    results,
+                    topic_type=topic_type,
+                    retrieval_policy=retrieval_policy,
+                )
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results

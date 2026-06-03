@@ -15,6 +15,8 @@ import argparse
 import json
 import sys
 import time
+import random
+import asyncio
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +26,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core.config import settings
+from app.evaluation.datasets import QrelRecord
+from app.evaluation.metrics import RunRecord, evaluate_run
 
 
 @dataclass
@@ -92,6 +96,19 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Number of queries to sample (0=all)",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="raw",
+        choices=["raw", "adaptive"],
+        help="Evaluation mode: 'raw' (direct Chroma query) or 'adaptive' (RetrievalService.search())",
+    )
     return parser.parse_args()
 
 
@@ -137,7 +154,6 @@ def _extract_queries(cases: List[Dict[str, Any]], sample_size: int = 0) -> List[
             queries.append((query_id, query_text, ground_truth))
     
     if sample_size > 0 and len(queries) > sample_size:
-        import random
         queries = random.sample(queries, sample_size)
     
     return queries
@@ -159,27 +175,43 @@ def _initialize_embedding_model(model_name: str, device: str):
 
 
 def _calculate_recall(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate Recall@k: |retrieved_top_k ∩ ground_truth| / |ground_truth|"""
+    """Calculate Recall@k with corrected denominator: min(|GT|, k).
+
+    Standard IR Recall uses |GT| as denominator, which penalises queries
+    whose ground-truth set is larger than k.  Using min(|GT|, k) caps the
+    denominator so that perfect retrieval within the budget yields 1.0.
+    """
     if not ground_truth:
         return 0.0
-    top_k = set(retrieved_chunks[:k])
-    return len(top_k & ground_truth) / len(ground_truth)
+    top_k_chunks = retrieved_chunks[:k]
+    hits = len(set(top_k_chunks) & ground_truth)
+    denominator = min(len(ground_truth), k)
+    return hits / denominator if denominator > 0 else 0.0
 
 
 def _calculate_mrr(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate MRR@k (Mean Reciprocal Rank): 1 / (rank of first relevant result)"""
-    for rank, chunk_id in enumerate(retrieved_chunks[:k], start=1):
-        if chunk_id in ground_truth:
-            return 1.0 / rank
-    return 0.0
+    """Calculate MRR@k through the shared ir_measures evaluator."""
+    return _evaluate_binary_metric(retrieved_chunks, ground_truth, f"RR@{k}")
 
 
 def _calculate_precision(retrieved_chunks: List[str], ground_truth: Set[str], k: int) -> float:
-    """Calculate Precision@k: |retrieved_top_k ∩ ground_truth| / k"""
-    if k == 0:
+    """Calculate Precision@k through the shared ir_measures evaluator."""
+    return _evaluate_binary_metric(retrieved_chunks, ground_truth, f"P@{k}")
+
+
+def _evaluate_binary_metric(retrieved_chunks: List[str], ground_truth: Set[str], metric_name: str) -> float:
+    if not ground_truth:
         return 0.0
-    top_k = set(retrieved_chunks[:k])
-    return len(top_k & ground_truth) / k
+    qrels = [QrelRecord("q", docid, 1) for docid in ground_truth]
+    run = [
+        RunRecord("q", docid, score=float(len(retrieved_chunks) - index), rank=index + 1)
+        for index, docid in enumerate(retrieved_chunks)
+    ]
+    metrics = evaluate_run(qrels, run)
+    for key, value in metrics.items():
+        if key == metric_name or key.endswith(metric_name):
+            return value
+    return 0.0
 
 
 def _build_case_slice_index(cases: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
@@ -297,38 +329,102 @@ def _evaluate_single_query(
     )
 
 
+def _evaluate_single_query_adaptive(
+    query_id: str,
+    query_text: str,
+    ground_truth: Set[str],
+    service,
+    top_k: int = 10,
+    collection_name: str = "civil_cases_v1",
+) -> QueryResult:
+    """Evaluate a single query via RetrievalService.search() (Adaptive RAG)."""
+    start = time.perf_counter()
+
+    search_results = asyncio.run(
+        service.search(query_text, top_k=top_k, collection_name=collection_name)
+    )
+
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    retrieved_chunks = [
+        str(item.get("chunk_id", "unknown")) for item in search_results
+    ]
+
+    recall_at_5 = _calculate_recall(retrieved_chunks, ground_truth, 5)
+    recall_at_10 = _calculate_recall(retrieved_chunks, ground_truth, 10)
+    mrr_at_5 = _calculate_mrr(retrieved_chunks, ground_truth, 5)
+    mrr_at_10 = _calculate_mrr(retrieved_chunks, ground_truth, 10)
+    precision_at_5 = _calculate_precision(retrieved_chunks, ground_truth, 5)
+
+    return QueryResult(
+        query_id=query_id,
+        query_text=query_text,
+        ground_truth_chunks=ground_truth,
+        retrieved_chunks=retrieved_chunks,
+        latency_ms=elapsed_ms,
+        recall_at_5=recall_at_5,
+        recall_at_10=recall_at_10,
+        mrr_at_5=mrr_at_5,
+        mrr_at_10=mrr_at_10,
+        precision_at_5=precision_at_5,
+    )
+
+
 def main():
     args = parse_args()
+
+    # ── Seed initialization for reproducibility ──
+    random.seed(args.seed)
+    try:
+        import numpy as np
+        np.random.seed(args.seed)
+    except ImportError:
+        pass
+
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    print("[*] Issue #103 검색 성능 메트릭 평가 시작")
-    
+
+    print(f"[*] Issue #103 검색 성능 메트릭 평가 시작 (mode={args.mode}, seed={args.seed})")
+
     # Load evaluation set
     eval_set = _load_eval_set(Path(args.eval_set))
     queries = _extract_queries(eval_set, args.sample_size)
     slice_index = _build_case_slice_index(eval_set)
     print(f"[*] 평가 쿼리 {len(queries)}개 로드")
-    
-    # Initialize Chroma and model
-    print(f"[*] ChromaDB 로드: {args.collection}")
-    client, collection = _initialize_chroma_client(args.persist_dir, args.collection)
-    print(f"[*] embedding 모델 로드: {args.embed_model}")
-    model = _initialize_embedding_model(args.embed_model, args.device)
-    
+
+    # Initialize based on mode
+    if args.mode == "adaptive":
+        from app.retrieval.service import get_retrieval_service
+        service = get_retrieval_service()
+        print("[*] Adaptive 모드: RetrievalService 초기화 완료")
+    else:
+        print(f"[*] ChromaDB 로드: {args.collection}")
+        client, collection = _initialize_chroma_client(args.persist_dir, args.collection)
+        print(f"[*] embedding 모델 로드: {args.embed_model}")
+        model = _initialize_embedding_model(args.embed_model, args.device)
+
     # Evaluate all queries
     results: List[QueryResult] = []
     for idx, (query_id, query_text, ground_truth) in enumerate(queries, 1):
-        result = _evaluate_single_query(
-            query_id=query_id,
-            query_text=query_text,
-            ground_truth=ground_truth,
-            collection=collection,
-            model=model,
-            top_k=args.top_k,
-        )
+        if args.mode == "adaptive":
+            result = _evaluate_single_query_adaptive(
+                query_id=query_id,
+                query_text=query_text,
+                ground_truth=ground_truth,
+                service=service,
+                top_k=args.top_k,
+                collection_name=args.collection,
+            )
+        else:
+            result = _evaluate_single_query(
+                query_id=query_id,
+                query_text=query_text,
+                ground_truth=ground_truth,
+                collection=collection,
+                model=model,
+                top_k=args.top_k,
+            )
         results.append(result)
-        
+
         if idx % 50 == 0 or idx == len(queries):
             print(f"[*] {idx}/{len(queries)} queries evaluated")
     
@@ -352,6 +448,8 @@ def main():
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "pipeline_phase": "issue_103",
         "collection": args.collection,
+        "mode": args.mode,
+        "seed": args.seed,
         "recall_5": round(avg_recall_at_5, 4),
         "recall_10": round(avg_recall_at_10, 4),
         "avg_latency_ms": round(avg_latency_ms, 2),
@@ -395,6 +493,7 @@ def main():
     
     # Print summary
     print(f"\n[OK] 검색 성능 메트릭 평가 완료")
+    print(f"[OK] mode={args.mode}, seed={args.seed}")
     print(f"[OK] recall_at_5: {avg_recall_at_5:.4f} (target: >= 0.75)")
     print(f"[OK] avg_latency: {avg_latency_ms:.2f}ms (target: <= 12000ms)")
     print(f"[OK] gate_passed: {all_passed}")

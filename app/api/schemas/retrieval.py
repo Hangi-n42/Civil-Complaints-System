@@ -181,6 +181,12 @@ class RoutingTrace(BaseModel):
     request_segments: Optional[List[str]] = None
     complexity_trace: RoutingComplexityTrace
     route_reason: str
+    route_key: Optional[str] = None
+    strategy_id: Optional[str] = None
+    applied_filters: Dict[str, Any] = Field(default_factory=dict)
+    segment_count: Optional[int] = None
+    merge_policy: Optional[str] = None
+    retrieval_policy: Optional[str] = None
 
 
 class SearchSummary(BaseModel):
@@ -199,6 +205,10 @@ class SearchResultMetadata(BaseModel):
     entity_labels: List[str] = Field(default_factory=list)
     strategy_id: Optional[str] = None
     route_key: Optional[str] = None
+    topic_type: Optional[str] = None
+    complexity_level: Optional[str] = None
+    retrieval_policy: Optional[str] = None
+    matched_segments: List[str] = Field(default_factory=list)
 
 
 class SearchResultItem(BaseModel):
@@ -211,6 +221,7 @@ class SearchResultItem(BaseModel):
     metadata: SearchResultMetadata
     doc_id: str
     score: float
+    source: Optional[str] = None
     chunk_id: str
     snippet: str
     summary: SearchSummary
@@ -231,8 +242,11 @@ class SearchResponseData(BaseModel):
     routing_trace: RoutingTrace
     retrieved_docs: List[SearchResultItem]
     results: List[SearchResultItem] = Field(default_factory=list)
+    items: List[SearchResultItem] = Field(default_factory=list)
     total_found: int
+    result_count: int = 0
     elapsed_ms: int
+    retrieval_latency_ms: int = 0
 
     # Backward compatibility fields
     query: Optional[str] = None

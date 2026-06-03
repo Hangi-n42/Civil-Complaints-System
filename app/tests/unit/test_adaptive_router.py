@@ -4,6 +4,7 @@ from app.retrieval.router.adaptive_router import (
     DEFAULT_COMPLEXITY_LEVEL,
     ROUTING_PARAMS_BY_COMPLEXITY,
     route,
+    resolve_retrieval_policy,
 )
 
 
@@ -43,3 +44,14 @@ def test_route_is_deterministic_for_same_input():
     second = route(topic_type="construction", complexity_level="high", complexity_score=0.9123)
 
     assert first == second
+
+
+def test_route_derives_topic_aware_retrieval_policy():
+    welfare = route(topic_type="welfare", complexity_level="medium", complexity_score=0.52)
+    traffic = route(topic_type="traffic", complexity_level="medium", complexity_score=0.52)
+    general = route(topic_type="unknown", complexity_level="medium", complexity_score=0.52)
+
+    assert welfare.retrieval_policy == "admin_policy"
+    assert traffic.retrieval_policy == "field_ops"
+    assert general.retrieval_policy == "general"
+    assert resolve_retrieval_policy("construction") == "field_ops"

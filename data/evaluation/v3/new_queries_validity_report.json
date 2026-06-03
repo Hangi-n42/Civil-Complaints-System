@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-05-27T00:29:08",
+  "dataset": "V3_new_queries (Q-0051+)",
+  "models": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "ax4-light-local:latest"
+  ],
+  "n_total_pairs": 2022,
+  "n_sampled": 200,
+  "n_fully_scored": 173,
+  "n_conflict": 1,
+  "conflict_rate": 0.0058,
+  "score_distribution": {
+    "0": 117,
+    "1": 53,
+    "2": 3
+  },
+  "inter_rater_agreement_3models": {
+    "fleiss_kappa": -0.0315,
+    "fleiss_kappa_grade": "slight (<0.2)",
+    "cohen_kappa_exao_gemm": 0.574,
+    "cohen_kappa_exao_ax4-": 0.0263,
+    "cohen_kappa_gemm_ax4-": 0.0142,
+    "note": "ax4-light-local이 숫자 대신 한국어 텍스트를 반환하여 Fleiss κ가 인위적으로 낮아짐"
+  },
+  "inter_rater_agreement_2models": {
+    "models": ["exaone3.5:7.8b", "gemma3:12b"],
+    "cohen_kappa": 0.574,
+    "cohen_kappa_grade": "moderate (>=0.4)",
+    "note": "ax4-light-local 제외. 기존 v3 검증(Fleiss κ=0.575)과 동등한 수준"
+  },
+  "ax4_format_issue": {
+    "model": "ax4-light-local:latest",
+    "issue": "첫 줄에 숫자(0/1/2) 대신 한국어 텍스트 반환. 본문 내 숫자가 잘못 파싱됨.",
+    "example_responses": ["음성", "필요", "주민자치회의 해당 시간을 확인하거나 문의하는 방법을 사용해야 합니다."],
+    "excluded_from_primary_verdict": true
+  },
+  "validity_thresholds": {
+    "primary_metric": "cohen_kappa_2models",
+    "cohen_kappa_min": 0.4,
+    "conflict_rate_max": 0.15
+  },
+  "verdict": "VALID",
+  "verdict_detail": "exaone+gemma Cohen κ=0.574 (moderate), ax4-light-local 포맷 비준수로 제외. 기존 v3 검증(κ=0.575)과 동등.",
+  "note": "전체 2022쌍 중 173쌍 샘플 기반 추정치"
+}

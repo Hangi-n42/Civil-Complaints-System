@@ -1,0 +1,21 @@
+pipeline_id: dense_reranked_bge
+seed: 42
+
+stages:
+  - name: dense_retriever
+    type: chroma_dense
+    params:
+      collection: civil_cases_v1
+      top_k: 50
+      use_adaptive_router: false
+      snippet_max_chars: 600
+
+  - name: cross_encoder_rerank
+    type: cross_encoder_rerank
+    params:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 10
+      batch_size: 32
+
+final:
+  take_top_k: 10

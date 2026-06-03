@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 import httpx
 
 from app.core.logging import pipeline_logger
-from app.core.exceptions import GenerationError
+from app.core.exceptions import GenerationError, RetrievalError
 from app.core.config import settings
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.parsing.json_utils import (
@@ -393,6 +393,81 @@ class GenerationService:
                 details={"stage": "prompt"},
             ) from e
 
+    async def build_rag_prompt_from_record(
+        self,
+        record: Dict[str, Any],
+        context: List[Dict[str, Any]],
+        routing_trace: Dict[str, Any] | None = None,
+        mode: str = "default",
+    ) -> str:
+        """성남시_test_10 같은 원문 레코드 기반으로 RAG 프롬프트를 구성한다."""
+        try:
+            self.logger.info(f"원문 레코드 기반 RAG 프롬프트 구성: {len(context)}개 컨텍스트")
+            base_trace = dict(routing_trace or {})
+            if mode == "force_json":
+                base_trace["prompt_mode"] = "force_json"
+            elif mode == "compact":
+                base_trace["prompt_mode"] = "compact"
+
+            return PromptFactory.build_from_dataset_record(record=record, context=context, routing_trace=base_trace)
+        except RetrievalError:
+            raise
+        except Exception as e:
+            self.logger.error(f"원문 레코드 기반 프롬프트 구성 실패: {str(e)}")
+            raise GenerationError(
+                f"프롬프트 구성 실패: {str(e)}",
+                code="PROCESSING_ERROR",
+                retryable=False,
+                details={"stage": "prompt"},
+            ) from e
+
+    async def build_rag_prompt_from_record_autoretrieve(
+        self,
+        record: Dict[str, Any],
+        routing_trace: Dict[str, Any] | None = None,
+        mode: str = "default",
+        top_k: int | None = None,
+        collection_name: str = "civil_cases_v1",
+        filters: Dict[str, Any] | None = None,
+        threshold: float = 0.0,
+    ) -> tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+        """원문 레코드만 입력받아 (검색 포함) RAG 프롬프트를 구성한다.
+
+        Returns:
+            (prompt, context, derived_trace)
+        """
+        try:
+            prompt, context, derived_trace = await PromptFactory.build_from_dataset_record_autoretrieve(
+                record=record,
+                routing_trace=routing_trace,
+                top_k=top_k,
+                collection_name=collection_name,
+                filters=filters,
+                threshold=threshold,
+                mode=mode,
+            )
+            derived_query = str(derived_trace.get("derived_query") or "")
+            search_query = str(derived_trace.get("search_query") or "")
+            self.logger.info(
+                "autoretrieve trace: derived_query=%s, search_query=%s, collection=%s, top_k=%s",
+                derived_query,
+                search_query,
+                str(derived_trace.get("collection_name") or collection_name),
+                str(derived_trace.get("effective_top_k") or top_k),
+            )
+            self.logger.info(f"원문 레코드 자동검색 RAG 프롬프트 구성 완료: {len(context)}개 컨텍스트")
+            return prompt, context, derived_trace
+        except RetrievalError:
+            raise
+        except Exception as e:
+            self.logger.error(f"원문 레코드 자동검색 프롬프트 구성 실패: {str(e)}")
+            raise GenerationError(
+                f"프롬프트 구성 실패: {str(e)}",
+                code="PROCESSING_ERROR",
+                retryable=False,
+                details={"stage": "prompt", "mode": mode},
+            ) from e
+
     async def parse_json_response(self, text: str) -> Dict[str, Any]:
         """
         JSON 응답 파싱
@@ -586,7 +661,9 @@ class GenerationService:
             parsed: Dict[str, Any] = {}
             last_parse_error: GenerationError | None = None
             retry_steps = [
-                {"stage": "default_only", "mode": "default", "temperature": 0.2},
+                {"stage": "default", "mode": "default", "temperature": 0.2},
+                {"stage": "force_json", "mode": "force_json", "temperature": 0.0},
+                {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
 
@@ -617,10 +694,11 @@ class GenerationService:
                             if not str(getattr(relaxed_error, "code", "")).startswith("PARSE_"):
                                 raise
                             self.logger.warning(
-                                "완화 파싱도 실패하여 fast fallback 사용: %s",
+                                "완화 파싱도 실패하여 재요청 단계로 전환: %s",
                                 str(relaxed_error),
                             )
-                            parsed = self._build_fast_fallback_from_context(context)
+                            last_parse_error = relaxed_error
+                            raise relaxed_error
                     break
                 except GenerationError as e:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
@@ -640,20 +718,8 @@ class GenerationService:
                     )
 
             if not parsed:
-                self.logger.warning("QA JSON 파싱 재시도 소진")
-                raise GenerationError(
-                    "모델 응답을 JSON으로 파싱하지 못했습니다.",
-                    code="PARSE_RETRY_EXHAUSTED",
-                    retryable=False,
-                    details={
-                        "retry_count": len(retry_steps),
-                        "stage": "decode",
-                        "last_error_code": (
-                            last_parse_error.code if last_parse_error else "PARSE_JSON_DECODE_ERROR"
-                        ),
-                        "attempts": retry_logs,
-                    },
-                )
+                self.logger.warning("QA JSON 파싱 재시도 소진: fast fallback 사용")
+                parsed = self._build_fast_fallback_from_context(context)
 
             citations = parsed.get("citations") or await self.build_citations("", context)
 

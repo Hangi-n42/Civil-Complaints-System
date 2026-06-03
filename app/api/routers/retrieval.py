@@ -17,7 +17,8 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
-from app.retrieval.analyzers.complexity_analyzer import analyze as analyze_complexity
+from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.topic_analyzer import detect as detect_topic
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
 
@@ -97,6 +98,7 @@ def _log_routing_decision(
     *,
     endpoint: str,
     request_id: str,
+    analyzer_latency: int,
     route_key: str,
     strategy_id: str,
     complexity_level: str,
@@ -105,9 +107,10 @@ def _log_routing_decision(
     applied_params: dict,
 ) -> None:
     api_logger.info(
-        "routing_decision endpoint=%s request_id=%s route_key=%s strategy_id=%s complexity_level=%s complexity_score=%.3f router_latency_ms=%s applied_params=%s",
+        "routing_decision endpoint=%s request_id=%s analyzer_latency_ms=%s route_key=%s strategy_id=%s complexity_level=%s complexity_score=%.3f router_latency_ms=%s applied_params=%s",
         endpoint,
         request_id,
+        analyzer_latency,
         route_key,
         strategy_id,
         complexity_level,
@@ -117,48 +120,36 @@ def _log_routing_decision(
     )
 
 
-def _detect_topic_type(query: str) -> str:
-    query_lower = query.lower()
-    topic_keywords = {
-        "welfare": ["복지", "급여", "기초생활", "수급", "임대주택"],
-        "traffic": ["도로", "교통", "신호", "불법주정차", "가로등"],
-        "environment": ["환경", "소음", "악취", "미세먼지", "폐기물"],
-        "construction": ["공사", "건축", "안전", "보수", "시설"],
-    }
-    for topic, keywords in topic_keywords.items():
-        if any(keyword in query_lower for keyword in keywords):
-            return topic
-    return "general"
-
-
 def _build_routing_payload(query: str) -> dict:
+    topic_type = detect_topic(query)
+    analyzer_started = perf_counter()
+    analyzer_output = build_analyzer_output(text=query, topic_type=topic_type)
+    analyzer_latency_ms = int((perf_counter() - analyzer_started) * 1000)
+
     router_started = perf_counter()
-    topic_type = _detect_topic_type(query)
-    complexity_analysis = analyze_complexity(text=query, topic_type=topic_type)
     routing_decision = route_adaptive(
-        topic_type=topic_type,
-        complexity_level=complexity_analysis.complexity_level,
-        complexity_score=complexity_analysis.complexity_score,
+        topic_type=analyzer_output["topic_type"],
+        complexity_level=analyzer_output["complexity_level"],
+        complexity_score=analyzer_output["complexity_score"],
     )
 
-    intent_count = complexity_analysis.intent_count
-    constraint_count = complexity_analysis.constraint_count
-    entity_diversity = complexity_analysis.entity_diversity
-    policy_reference_count = complexity_analysis.policy_reference_count
-    cross_sentence_dependency = any(token in query for token in ["또한", "한편", "다만", "그리고"])
     router_latency_ms = int((perf_counter() - router_started) * 1000)
 
-    complexity_level = complexity_analysis.complexity_level
-    score = complexity_analysis.complexity_score
+    request_segments = analyzer_output["request_segments"]
     applied_params = {
         "top_k": routing_decision.applied_params.top_k,
         "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
         "chunk_policy": routing_decision.applied_params.chunk_policy,
+        "retrieval_policy": routing_decision.retrieval_policy,
     }
+    merge_policy = "dedupe_max_score" if len(request_segments) > 1 else "single_query"
 
     return {
         "strategy_id": routing_decision.strategy_id,
         "route_key": routing_decision.route_key,
+        "retrieval_policy": routing_decision.retrieval_policy,
+        "request_segments": request_segments,
+        "merge_policy": merge_policy,
         "routing_hint": {
             "strategy_id": routing_decision.strategy_id,
             "route_key": routing_decision.route_key,
@@ -167,18 +158,21 @@ def _build_routing_payload(query: str) -> dict:
             "chunk_policy": routing_decision.applied_params.chunk_policy,
         },
         "routing_trace": {
-            "topic_type": topic_type,
-            "complexity_level": complexity_level,
-            "complexity_score": score,
-            "complexity_trace": {
-                "intent_count": intent_count,
-                "constraint_count": constraint_count,
-                "entity_diversity": entity_diversity,
-                "policy_reference_count": policy_reference_count,
-                "cross_sentence_dependency": cross_sentence_dependency,
-            },
+            "topic_type": analyzer_output["topic_type"],
+            "complexity_level": analyzer_output["complexity_level"],
+            "complexity_score": analyzer_output["complexity_score"],
+            "request_segments": request_segments,
+            "complexity_trace": analyzer_output["complexity_trace"],
             "route_reason": routing_decision.route_reason,
+            "route_key": routing_decision.route_key,
+            "strategy_id": routing_decision.strategy_id,
+            "applied_filters": {},
+            "segment_count": len(request_segments) if request_segments else 1,
+            "merge_policy": merge_policy,
+            "retrieval_policy": routing_decision.retrieval_policy,
         },
+        "analyzer_output": analyzer_output,
+        "analyzer_latency_ms": analyzer_latency_ms,
         "router_latency_ms": router_latency_ms,
         "applied_params": applied_params,
     }
@@ -308,11 +302,28 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
 
     try:
         filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
+        applied_filters = {
+            **filters,
+            "topic_type": routing["routing_trace"]["topic_type"],
+            "route_key": routing["route_key"],
+            "strategy_id": routing["strategy_id"],
+            "retrieval_policy": routing["retrieval_policy"],
+            "segment_count": routing["routing_trace"]["segment_count"],
+            "merge_policy": routing["merge_policy"],
+        }
+        routing["routing_trace"]["applied_filters"] = applied_filters
+        routing["applied_params"]["applied_filters"] = applied_filters
+        routing["applied_params"]["segment_count"] = routing["routing_trace"]["segment_count"]
+        routing["applied_params"]["merge_policy"] = routing["merge_policy"]
         results = await service.search(
             query=request.query,
             top_k=routing["routing_hint"]["top_k"],
             filters=filters,
             collection_name=request.collection_name,
+            topic_type=routing["routing_trace"]["topic_type"],
+            request_segments=routing["request_segments"],
+            retrieval_policy=routing["retrieval_policy"],
+            snippet_max_chars=routing["routing_hint"]["snippet_max_chars"],
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
@@ -371,6 +382,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         strategy_id=routing["strategy_id"],
         complexity_level=routing["routing_trace"]["complexity_level"],
         complexity_score=routing["routing_trace"]["complexity_score"],
+        analyzer_latency=routing["analyzer_latency_ms"],
         router_latency=routing["router_latency_ms"],
         applied_params=routing["applied_params"],
     )
@@ -394,6 +406,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             "context": str(raw_content.get("context") or ""),
         }
         metadata = item.get("metadata") or {}
+        matched_segments = metadata.get("matched_segments") or item.get("matched_segments") or []
         formatted_results.append(
             {
                 "rank": int(item.get("rank", 0)),
@@ -407,9 +420,14 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "entity_labels": metadata.get("entity_labels", []),
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],
+                    "topic_type": routing["routing_trace"]["topic_type"],
+                    "complexity_level": routing["routing_trace"]["complexity_level"],
+                    "retrieval_policy": routing["retrieval_policy"],
+                    "matched_segments": matched_segments,
                 },
                 "doc_id": doc_id,
                 "score": score,
+                "source": item.get("source") or metadata.get("source") or "civil_db",
                 "chunk_id": chunk_id,
                 "title": item.get("title"),
                 "snippet": snippet,
@@ -423,19 +441,39 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             }
         )
 
+    # Issue #193, #191: Deduplication by doc_id and sort by score desc
+    formatted_results.sort(key=lambda x: x["score"], reverse=True)
+    seen_docs = set()
+    deduped_results = []
+    for r in formatted_results:
+        did = r["doc_id"]
+        if did not in seen_docs:
+            seen_docs.add(did)
+            deduped_results.append(r)
+
+    # Issue #191: Match top_k setting with panel card counts
+    final_results = deduped_results[:request.top_k]
+    for idx, r in enumerate(final_results, start=1):
+        r["rank"] = idx
+
+    result_count = len(final_results)
+
     data = SearchResponseData(
         complaint_id=request.complaint_id,
         strategy_id=routing["strategy_id"],
         route_key=routing["route_key"],
         routing_hint=routing["routing_hint"],
         routing_trace=routing["routing_trace"],
-        retrieved_docs=formatted_results,
-        results=formatted_results,
-        total_found=len(formatted_results),
+        retrieved_docs=final_results,
+        results=final_results,
+        items=final_results,
+        total_found=result_count,
+        result_count=result_count,
         elapsed_ms=took_ms,
+        retrieval_latency_ms=took_ms,
         query=request.query,
         top_k=request.top_k,
-        count=len(formatted_results),
+        count=result_count,
         took_ms=took_ms,
     )
     return SearchResponse(

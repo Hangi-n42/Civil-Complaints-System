@@ -1,8 +1,8 @@
 # ARD (Architecture Decision Record)
 
-문서 버전: v2.1  
+문서 버전: v2.2  
 작성일: 2026-03-26  
-최신화: 2026-04-10 (복잡도 기반 라우팅 전환 반영)
+최신화: 2026-05-07 (하이브리드 구조화 아키텍처 반영, TopicAnalyzer 독립 클래스화 결정 추가)
 
 ## 1. 문서 목적
 
@@ -289,6 +289,90 @@
 - 후속
   - PRD/WBS/MVP/specs/issues/manual을 동일 기준으로 동기화한다.
   - `/search`, `/qa` 계약에서 `routing_trace` 내 complexity 필드를 필수화한다.
+
+## ARD-015: 구조화 서비스 하이브리드 아키텍처 전환 (Rule NER + LLM 4요소 추출)
+
+- 상태: 승인(Active)
+- 날짜: 2026-05-07
+
+### 1) Context (도입 배경)
+
+- 기존 4요소(observation/result/request/context) 추출은 단어 점수 기반 휴리스틱(`_score_candidate`, `_pick_best`, `_split_segments` 등)으로 구현되어 있었다.
+- 민원 표현의 다양성을 수용하지 못하고, 키워드 룰이 비대해지면서 유지보수 비용이 높아졌다.
+- LOCATION NER이 하드코딩된 6개 지명(`서울`, `경기`, `안양` 등)에만 의존하여 커버리지가 낮았다.
+- Rule-based 4요소 추출과 Rule-based NER이 동일 클래스에 혼재해 역할 경계가 불분명했다.
+- Week8 기준 Ollama 인프라가 안정화되어 로컬 경량 LLM을 구조화에 활용할 여건이 마련되었다.
+
+### 2) Decision (결정 사항)
+
+- 구조화 파이프라인을 3단계 하이브리드 구조로 전환한다.
+  - **Stage 1 — Rule-based Entity Extractor**: 정규식·키워드로 확실하게 추출 가능한 객관적 명사(ADMIN_UNIT/TIME/FACILITY/HAZARD/LOCATION)만 담당. LOCATION은 기존 하드코딩 목록을 `동·읍·면·리·로·길` 패턴 기반으로 교체.
+  - **Stage 2 — LLM Semantic Extractor**: Ollama EXAONE 3.0 (7.8B-Instruct)로 4요소를 JSON 추출. `format="json"` + `FourElementsLLMOutput.model_validate()` 조합으로 Instructor 없이 출력 규격 강제. 파싱 실패 시 temperature 0.1→0.0 재시도 1회 후 빈 Fallback 반환.
+  - **Stage 3 — ResultMerger**: Stage 1/2 결과를 병합. LLM 텍스트를 원문에서 exact→partial→inferred 순서로 탐색해 evidence_span 결정. non-null 필드 비율(4/3/2/1/0)로 confidence(0.90/0.82/0.75/0.70/0.0) 산정.
+- `validate_schema()`에 `extraction_method` 파라미터를 추가한다. `"hybrid"`/`"llm"`/`"fallback"` 모드에서 span 범위 오류 및 텍스트 불일치를 error에서 warning으로 완화한다. `"rule"` 모드는 기존과 동일하게 엄격 검증을 유지한다.
+- 구조화 전용 Ollama 모델(`STRUCTURING_MODEL`, 기본값 `exaone3:7.8b-instruct`)을 QA 생성 모델(`OLLAMA_MODEL`)과 분리한다. `STRUCTURING_TIMEOUT`, `STRUCTURING_MAX_TEXT_LEN`도 독립 환경 변수로 제어한다.
+- 신규 파일: `app/structuring/schemas.py`, `app/structuring/llm_extractor.py`, `app/structuring/merger.py`.
+- `service.py`에서 4요소 추출 관련 메서드(`extract_four_elements`, `_split_segments`, `_sentence_candidates`, `_score_candidate`, `_pick_best`, `_score_to_confidence` 등) 전량 제거. 880줄 → 310줄.
+
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - 민원 표현 다양성 대응: LLM이 문맥을 이해해 휴리스틱으로 잡기 어려운 4요소를 추출한다.
+  - 유지보수성 향상: 키워드 룰 비대 문제 해소. 도메인 확장 시 프롬프트 수정만으로 대응 가능.
+  - 역할 분리 명확화: NER(Rule)과 의미 추출(LLM)의 경계가 파일 수준으로 분리된다.
+  - Ollama 미기동·타임아웃 시 빈 4요소 Fallback으로 파이프라인이 중단되지 않는다.
+  - `structured_by`/`extraction_meta` 필드로 추출 경로와 LLM 지연·span 품질을 추적 가능.
+- 한계/트레이드오프
+  - Ollama EXAONE 모델 추가 로딩으로 구조화 지연이 증가한다(~1~3초).
+  - LLM이 원문과 다른 텍스트를 반환할 경우 evidence_span이 `inferred`가 되어 span 정확도가 낮아진다.
+  - Fallback 시 4요소가 모두 비어 있어 retrieval 인덱스의 chunk_text 품질이 저하될 수 있다.
+- 후속
+  - `span_source="inferred"` 비율을 운영 지표로 수집해 프롬프트 개선 여부를 판단한다.
+  - Fallback 발생률이 높을 경우 ConnectError에도 재시도 또는 대기 로직 도입을 검토한다.
+  - `result.status="insufficient"` 처리 통합 테스트를 추가한다.
+
+## ARD-016: TopicAnalyzer 독립 클래스화 및 점수 기반 분류 전환
+
+- 상태: 승인(Active)
+- 날짜: 2026-05-07
+
+### 1) Context (도입 배경)
+
+- 기존 `_detect_topic_type(query)` 함수는 `app/api/routers/retrieval.py:122`에 private 함수로 매몰되어 있어 단독 테스트·교체·고도화가 불가능했다.
+- 키워드 딕셔너리 순서(삽입 순서) 의존의 first-match 방식으로 인해 복합 맥락 쿼리에서 오분류가 발생했다.
+  - 예: "복지시설 건축 허가" → welfare 반환 (실제 의도: construction)
+- 카테고리당 키워드가 5개(총 25개)에 불과해 한국어 행정 민원 도메인 어휘를 극히 일부만 커버했다.
+- `ComplexityAnalyzer`와 달리 독립 클래스/파일이 없어 역할 경계가 불일치했다.
+- `topic_type`은 `retrieval_policy(admin_policy/field_ops/general)` 결정의 1차 입력이므로 오분류 시 검색 전략 전체가 틀어지는 고위험 컴포넌트였다.
+
+### 2) Decision (결정 사항)
+
+- `app/retrieval/analyzers/topic_analyzer.py`를 신규 파일로 생성하고 `TopicAnalyzer` 클래스를 독립 구현한다.
+- `_detect_topic_type` 함수를 `retrieval.py`에서 제거하고, `detect as detect_topic` import로 교체한다.
+- **점수 기반 집계**: first-match 대신 키워드별 가중치 합산 후 최고 점수 카테고리를 선택한다.
+- **키워드 대폭 확장**: 카테고리당 50개(총 200개+) 키워드로 확장. 고유성이 높은 키워드(예: `포트홀`, `터파기`, `긴급복지`)는 가중치 1.5, 공통 키워드(예: `도로`, `교통`)는 가중치 0.8~0.9.
+- **기관명 필터**: `환경부`, `교통공단`, `안전교육` 등 false-positive 유발 패턴을 분류 전 제거한다.
+- **신뢰도(confidence)**: 전체 점수 합 대비 top-1 점수 비율로 0~1 정규화. 0.40 미만 시 "general"로 강등.
+- **모호성(is_ambiguous)**: top-1과 top-2 점수 차이가 top-1의 15% 이하이면 `is_ambiguous=True`, `secondary_topic` 반환.
+- **띄어쓰기 정규화**: 키워드와 쿼리 모두 공백 제거 후 비교해 "기초 생활" / "기초생활" 동일 처리.
+- 모듈 레벨 `analyze(text)`, `detect(text)` 편의 함수를 제공해 `ComplexityAnalyzer`와 API 패턴을 통일한다.
+
+### 3) Consequences (기대 효과 및 한계)
+
+- 기대 효과
+  - `TopicAnalyzer`를 독립 단위 테스트로 검증 가능해진다.
+  - 키워드 확장·가중치 조정을 라우터 코드 변경 없이 수행할 수 있다.
+  - first-match 편향 제거로 복합 맥락 쿼리 분류 정확도 향상.
+  - 기관명 등 false-positive 오분류 차단.
+  - `confidence`, `is_ambiguous`를 라우터가 활용해 routing 파라미터를 보수적으로 조정할 수 있는 기반 마련.
+- 한계/트레이드오프
+  - 점수 기반 집계라도 키워드 기반의 본질적 한계(미등록 어휘, 신조어, 문맥 미감지)는 잔존한다.
+  - 가중치 초기값이 경험적으로 설정되어 있어 실제 민원 데이터로 검증·조정이 필요하다.
+- 후속
+  - confidence < 0.40 비율을 운영 지표로 수집해 임베딩 기반 fallback(방향 B) 도입 여부를 판단한다.
+  - `is_ambiguous` 케이스를 라우터에서 `top_k` 보수적 증가로 연동한다 (week8 P1).
+  - 부산시 행정 기관명 목록 기반으로 `_NEGATIVE_PATTERNS` 확장 (하드코딩 또는 크롤링, 추후 결정).
+  - 임베딩 토픽 센트로이드 fallback(`EmbeddingTopicClassifier`) 구현: week8 P2/P3 (WBS 방향 B 참조).
 
 ## 4. 후속 액션
 

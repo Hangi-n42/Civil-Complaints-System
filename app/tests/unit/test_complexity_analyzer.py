@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.retrieval.analyzers.complexity_analyzer import (
     COMPLEXITY_LEVEL_HIGH_THRESHOLD,
     COMPLEXITY_LEVEL_MEDIUM_THRESHOLD,
+    build_analyzer_output,
     analyze,
 )
 
@@ -56,3 +57,27 @@ def test_analyze_returns_high_for_rich_constraints():
     assert result.complexity_level == "high"
     assert result.policy_reference_count >= 2
     assert result.constraint_count >= 3
+
+
+def test_build_analyzer_output_aligns_with_routing_contract():
+    text = "복지 예산과 절차 및 기한을 검토하고, 조례와 법령 근거를 확인한 뒤 담당 부서 및 기관 협의 조건을 함께 제시해 주세요."
+
+    output = build_analyzer_output(text, "welfare")
+
+    assert output["topic_type"] == "welfare"
+    assert output["complexity_level"] in {"low", "medium", "high"}
+    assert 0.0 <= float(output["complexity_score"]) <= 1.0
+    assert set(output["complexity_trace"].keys()) >= {
+        "topic_type",
+        "text_length",
+        "intent_count",
+        "constraint_count",
+        "entity_diversity",
+        "policy_reference_count",
+        "cross_sentence_dependency",
+        "weights",
+    }
+    assert isinstance(output["request_segments"], list)
+    assert len(output["request_segments"]) >= 1
+    assert output["length_bucket"] in {"short", "medium", "long"}
+    assert isinstance(output["is_multi"], bool)

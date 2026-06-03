@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from app.api.error_utils import error_response, make_request_id
 from app.core.config import settings
 from app.core.logging import api_logger
-from app.api.routers import generation_router, retrieval_router, ui_router
+from app.api.routers import chroma_debug_router, generation_router, retrieval_router, ui_router
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 # API 라우터 등록
 app.include_router(retrieval_router)
 app.include_router(generation_router)
+app.include_router(chroma_debug_router)
 app.include_router(ui_router)
 
 

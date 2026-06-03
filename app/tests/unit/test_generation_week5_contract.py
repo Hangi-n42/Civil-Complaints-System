@@ -8,6 +8,7 @@ from app.api.main import app
 class _StubGenerationService:
     async def generate_qa(self, query, context, routing_trace=None):
         return {
+            # 내부 generation 결과(모델/파서 산출)는 API unified contract로 그대로 노출되면 안 된다.
             "answer": "요청하신 민원 처리 절차를 안내드립니다.",
             "citations": [
                 {
@@ -19,6 +20,8 @@ class _StubGenerationService:
                 }
             ],
             "limitations": "실제 처리 기간은 지자체 상황에 따라 달라질 수 있습니다.",
+            "confidence": 0.42,
+            "question": "임대주택 보수 지연 관련 민원입니다.",
             "model": "stub-model",
         }
 
@@ -152,9 +155,68 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert isinstance(data["answer"], str)
     assert isinstance(data["citations"], list)
     assert isinstance(data["limitations"], list)
+    assert "model" not in data
+    assert "confidence" not in data
+    assert "question" not in data
     assert set(data["latency_ms"].keys()) == {"analyzer", "router", "retrieval", "generation"}
     assert set(data["quality_signals"].keys()) == {
         "citation_coverage",
         "hallucination_flag",
         "segment_coverage",
     }
+
+
+def test_qa_returns_response_schema_mismatch_when_unified_payload_is_incomplete(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: _StubGenerationService(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "normalize_response",
+        lambda payload: {
+            key: value
+            for key, value in payload.items()
+            if key != "structured_output"
+        },
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-0004",
+            "query": "임대주택 보수 지연 관련 민원입니다.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high",
+                "top_k": 1,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "use_search_results": True,
+            "search_results": [
+                {
+                    "doc_id": "DOC-001",
+                    "chunk_id": "CASE-1__chunk-0",
+                    "case_id": "CASE-1",
+                    "snippet": "민원 처리 절차는 접수 후 담당 부서에서 검토합니다.",
+                    "score": 0.91,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 500
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "RESPONSE_SCHEMA_MISMATCH"
+    assert "structured_output" in body["error"]["details"]["missing_fields"]

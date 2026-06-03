@@ -1,0 +1,63 @@
+{
+  "run_id": "20260526T062817Z",
+  "eval_set": "V3 (qrels_final, 749쌍, 49쿼리, Q-0036 도메인 외 제외)",
+  "top_k": 10,
+  "results": {
+    "BM25": {
+      "nDCG@5": 0.397,
+      "AP@10": 0.2448,
+      "R@10": 0.3846,
+      "R@5": 0.2093,
+      "P@5": 0.5179,
+      "nDCG@10": 0.435,
+      "RR@5": 0.3946,
+      "RR@10": 0.4017
+    },
+    "BGE-m3 Dense": {
+      "nDCG@5": 0.4829,
+      "AP@10": 0.3481,
+      "R@10": 0.5319,
+      "R@5": 0.2696,
+      "P@5": 0.5893,
+      "nDCG@10": 0.5665,
+      "RR@5": 0.442,
+      "RR@10": 0.4472
+    },
+    "Adaptive": {
+      "nDCG@5": 0.4439,
+      "AP@10": 0.2805,
+      "R@10": 0.4597,
+      "R@5": 0.2592,
+      "P@5": 0.5429,
+      "nDCG@10": 0.4938,
+      "RR@5": 0.4195,
+      "RR@10": 0.4234
+    }
+  },
+  "latency_seconds": {
+    "BM25": 9.18,
+    "BGE-m3 Dense": 18.62,
+    "Adaptive": 14.67
+  },
+  "gate": {
+    "baseline": "BM25",
+    "candidate": "Adaptive",
+    "checks": [
+      {
+        "name": "ndcg5_improvement",
+        "label": "nDCG@5 개선폭 ≥ +0.05",
+        "passed": false,
+        "value": 0.0469,
+        "threshold": 0.05
+      },
+      {
+        "name": "recall10_guardrail",
+        "label": "Recall@10 하락 ≤ 0.02",
+        "passed": true,
+        "value": 0.0751,
+        "threshold": -0.02
+      }
+    ],
+    "all_passed": false
+  }
+}

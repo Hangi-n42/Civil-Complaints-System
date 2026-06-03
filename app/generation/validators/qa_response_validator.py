@@ -67,6 +67,11 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
 
         normalized.append(citation)
 
+    # 모델이 citations를 반환했더라도(=raw_citations 존재) 전부 무효로 필터링되면
+    # 컨텍스트 기반 fallback을 사용해 최소 1개 citation을 확보한다.
+    if raw_citations and not normalized and context:
+        return normalize_citations([], context)
+
     return normalized
 
 

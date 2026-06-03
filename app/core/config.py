@@ -38,7 +38,12 @@ class Settings:
 
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
-    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cuda")
+    EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
+
+    # 검색 전략 (교정 평가 #273: Hybrid이 전 지표 1위 → 기본값 hybrid)
+    RETRIEVAL_STRATEGY: str = os.getenv("RETRIEVAL_STRATEGY", "hybrid")  # "hybrid" | "dense"
+    RRF_K: int = int(os.getenv("RRF_K", 60))
+    HYBRID_FANOUT: int = int(os.getenv("HYBRID_FANOUT", 50))
 
     # 데이터 경로
     RAW_DATA_PATH: str = str(DATA_DIR / "raw")
@@ -61,6 +66,12 @@ class Settings:
     # 검증 설정
     MIN_CONFIDENCE_SCORE: float = float(os.getenv("MIN_CONFIDENCE_SCORE", 0.5))
     MAX_RETRY_COUNT: int = int(os.getenv("MAX_RETRY_COUNT", 3))
+
+    # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
+    # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b
+    STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3.5:7.8b")
+    STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
+    STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
 
 
 settings = Settings()
