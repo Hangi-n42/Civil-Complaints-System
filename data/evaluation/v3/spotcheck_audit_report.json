@@ -1,0 +1,26 @@
+{
+  "mode": "audit",
+  "judges": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "qwen2.5:14b"
+  ],
+  "in_pool_recall": 0.9049,
+  "in_pool_pos": 284,
+  "in_pool_hit": 257,
+  "n_negatives_total": 90268,
+  "n_sampled": 800,
+  "n_false_neg": 0,
+  "fn_rate": 0.0,
+  "fn_rate_ci95": [
+    0.0,
+    0.00478
+  ],
+  "est_missed_in_long_tail": 0.0,
+  "est_missed_ci95": [
+    0.0,
+    431.4
+  ],
+  "false_neg_examples": [],
+  "note": "풀밖 음성의 FN은 희소 → 표본이 0이면 상한만 의미. in_pool_recall은 top-50 근접문서 기준 별도 재현율."
+}
