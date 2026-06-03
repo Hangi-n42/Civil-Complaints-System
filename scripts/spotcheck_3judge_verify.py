@@ -106,7 +106,8 @@ def run_confirm(resume: bool) -> dict:
     for q in sel:
         qid = q["query_id"]; judged = pool.get(qid, {})
         for docid in corpus:
-            if scan.get(f"{qid}::{docid}", 0) >= 1 and docid not in judged and docid != self_doc[qid]:
+            s = scan.get(f"{qid}::{docid}")
+            if s is not None and s >= 1 and docid not in judged and docid != self_doc[qid]:
                 pairs.append((qid, docid))
     print(f"[confirm] 신규 후보 {len(pairs)}쌍 × 3채점관 full")
     done = judge_pairs_3(pairs, qtext, corpus, CKPT_DIR / "verify_confirm.json")
@@ -150,7 +151,8 @@ def run_audit(sample_n: int, resume: bool) -> dict:
     for q in sel:
         qid = q["query_id"]; judged = pool.get(qid, {})
         for docid in corpus:
-            if scan.get(f"{qid}::{docid}") == 0 and docid not in judged and docid != self_doc[qid]:
+            s = scan.get(f"{qid}::{docid}")
+            if s == 0 and docid not in judged and docid != self_doc[qid]:
                 negatives.append((qid, docid))
     rng = random.Random(SEED)
     sample = rng.sample(negatives, min(sample_n, len(negatives)))
