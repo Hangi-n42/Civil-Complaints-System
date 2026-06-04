@@ -1,0 +1,112 @@
+{
+  "mode": "confirm",
+  "judges": [
+    "exaone3.5:7.8b",
+    "gemma3:12b",
+    "qwen2.5:14b"
+  ],
+  "n_candidates": 248,
+  "n_confirmed": 195,
+  "scanner_precision_on_new": 0.7863,
+  "totals": {
+    "pool_positive": 294,
+    "confirmed_new": 195,
+    "incompleteness_confirmed": 0.3988
+  },
+  "per_query": [
+    {
+      "qid": "Q-0004",
+      "n_candidates": 2,
+      "n_confirmed": 0,
+      "n_pool_pos": 4,
+      "confirmed_rel_dist": {},
+      "incompleteness_confirmed": 0.0
+    },
+    {
+      "qid": "Q-0014",
+      "n_candidates": 109,
+      "n_confirmed": 97,
+      "n_pool_pos": 70,
+      "confirmed_rel_dist": {
+        "1": 97
+      },
+      "incompleteness_confirmed": 0.5808
+    },
+    {
+      "qid": "Q-0015",
+      "n_candidates": 1,
+      "n_confirmed": 0,
+      "n_pool_pos": 2,
+      "confirmed_rel_dist": {},
+      "incompleteness_confirmed": 0.0
+    },
+    {
+      "qid": "Q-0018",
+      "n_candidates": 0,
+      "n_confirmed": 0,
+      "n_pool_pos": 2,
+      "confirmed_rel_dist": {},
+      "incompleteness_confirmed": 0.0
+    },
+    {
+      "qid": "Q-0029",
+      "n_candidates": 22,
+      "n_confirmed": 15,
+      "n_pool_pos": 38,
+      "confirmed_rel_dist": {
+        "1": 15
+      },
+      "incompleteness_confirmed": 0.283
+    },
+    {
+      "qid": "Q-0032",
+      "n_candidates": 39,
+      "n_confirmed": 26,
+      "n_pool_pos": 43,
+      "confirmed_rel_dist": {
+        "1": 26
+      },
+      "incompleteness_confirmed": 0.3768
+    },
+    {
+      "qid": "Q-0037",
+      "n_candidates": 2,
+      "n_confirmed": 1,
+      "n_pool_pos": 2,
+      "confirmed_rel_dist": {
+        "1": 1
+      },
+      "incompleteness_confirmed": 0.3333
+    },
+    {
+      "qid": "Q-0088",
+      "n_candidates": 59,
+      "n_confirmed": 46,
+      "n_pool_pos": 56,
+      "confirmed_rel_dist": {
+        "1": 46
+      },
+      "incompleteness_confirmed": 0.451
+    },
+    {
+      "qid": "Q-0093",
+      "n_candidates": 8,
+      "n_confirmed": 5,
+      "n_pool_pos": 26,
+      "confirmed_rel_dist": {
+        "1": 5
+      },
+      "incompleteness_confirmed": 0.1613
+    },
+    {
+      "qid": "Q-0103",
+      "n_candidates": 6,
+      "n_confirmed": 5,
+      "n_pool_pos": 51,
+      "confirmed_rel_dist": {
+        "1": 5
+      },
+      "incompleteness_confirmed": 0.0893
+    }
+  ]
+}

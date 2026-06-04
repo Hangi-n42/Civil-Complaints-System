@@ -131,8 +131,8 @@ def test_convert_aihub_source_dir(tmp_path):
     assert len(corpus) == 2
     assert queries[0]._id == "SRC-1__case-0"
     assert queries[0].metadata["topic_type"] == "traffic"
-    assert "관찰:" in queries[0].text
     assert "요청:" in queries[0].text
+    assert "도로 파손 신고 방법은?" in queries[0].text
     assert qrels[0].docid != "SRC-1__chunk-0"
     assert qrels[0].relevance in {1, 2, 3}
 

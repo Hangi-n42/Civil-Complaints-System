@@ -136,3 +136,44 @@ QRELS_POOLED_FILE=qrels_pooled_3judge.tsv python scripts/eval_hybrid_reranked_no
 # 4) 그래프
 python scripts/plot_eval_overhaul.py
 ```
+
+## 7. 풀 불완전성 검증 (스폿체크, 2026-06)
+
+§2의 공정 풀은 `Dense top-50 ∪ BM25 top-50`로 구성된다. "그래도 두 검색기 모두 top-50 밖으로 밀어낸 유사 문서가 누락됐을 수 있다"는 의문(풀 불완전성)을 **전수 스캔**으로 검증했다.
+
+### 7.1 방법 (3단계)
+| 단계 | 내용 | 산출 |
+|---|---|---|
+| 1. 스캐너 검증 (#288) | 빠른 단일 스캐너(exaone3.5, score-only, num_predict=24)가 3채점관 median을 재현하는지 측정 | recall 0.88, binary κ 0.84 → 통과 |
+| 2. 전수 스캔 (#290) | 10쿼리(seed=42) × 코퍼스 전체(9,132) 빠른 채점 (91,310쌍). 스캐너 rel≥1 & 풀 밖 = 신규 후보 | 신규 후보 248, raw 불완전성 45.8% |
+| 3. 3채점관 검증 (#293) | confirm(신규 후보→정식 median), audit(스캐너 0 표본 검산), 재평가 | 아래 |
+
+- 스캐너는 단일 빠른 LLM이나, 결과는 정식 3채점관(`confirm`)으로 확정 → 신뢰도 보강.
+- 무거운 LLM 연산은 Tailscale로 Windows GPU. 병렬(`--workers`)로 스캔 ~3.8x 가속(qwen14b는 VRAM 한계로 직렬).
+
+### 7.2 결과
+**confirm — 확정 불완전성 39.9%**
+신규 후보 248 중 **195개**가 정식 3채점관 median≥1로 확정(신규 정밀도 0.786). 기존 풀 양성 294 + 신규 195 → **불완전성 39.9%**. 쿼리 편차 큼: Q-0014 58% / Q-0088 45% / Q-0032 38% vs Q-0004·0015·0018 0%. **흔한 주제일수록 유사 사례가 많아 top-50으론 못 담음.**
+
+**audit — 스캐너 long-tail 누락 ≈ 0**
+스캐너가 0으로 버린 풀 밖 음성 800 표본을 3채점관이 재채점 → **false-negative 0** (FN율 0%, 95% CI 0~0.48%). in-pool recall 90.5%(257/284). → 스캐너가 버린 long-tail은 진짜 무관, 확정 39.9%는 견고(희소 이벤트라 CI 상한은 느슨).
+
+**재평가 — 누락 보강이 결론을 바꾸는가 (10쿼리, OLD vs NEW=+195)**
+| 지표 | 변화 | 해석 |
+|---|---|---|
+| RR@5 / nDCG@5 / P@5 | **0.0000** | 누락 문서는 top-10 밖 → 상위권 점수 불변 |
+| R@10 / AP@10 | 전 방법 균일 −0.035 | 분모(전체 양성)↑ → recall 과대평가였음 |
+
+순위(nDCG@10) OLD/NEW에서 Dense 최하 동일, BM25↔Hybrid는 이 10쿼리(broad 편중)에서 박빙(±0.01, 노이즈).
+
+### 7.3 결론
+1. **정답표 라벨은 정확**(κ 0.84)하나 **~40% 불완전**(top-50 밖 유사 문서 누락).
+2. **불완전성은 방법 비교(순위)를 왜곡하지 않음** — 누락 문서는 어떤 방법도 top-10에 올리지 못해 precision계열 불변. **§3~4의 상대 결론(Hybrid 1위)은 견고.** 단 **절대 recall 수치는 과대평가**였고 보강 시 정확해짐.
+3. **검색기의 실제 recall 한계를 드러냄** — broad 쿼리(유사 사례 50~167개)에선 top-10이 전체의 ~10%만 포착. "참고용 소수 검색"엔 충분(상위 정확도 양호)하나 "전수 검색"엔 부족 → 후속 과제(후보 깊이↑/쿼리확장/임베딩 비교).
+
+### 7.4 산출물 (스폿체크)
+| 종류 | 경로 |
+|---|---|
+| 스크립트 | `scripts/spotcheck_{scanner_validation,full_scan,3judge_verify,reeval}.py` |
+| 리포트 | `data/evaluation/v3/{scanner_validation,full_scan_incompleteness,spotcheck_confirm,spotcheck_audit}_report.json`, `reports/retrieval/v3/spotcheck_reeval.json` |
+| 이슈/PR | #288/#289, #290/#292, #293/#298 |

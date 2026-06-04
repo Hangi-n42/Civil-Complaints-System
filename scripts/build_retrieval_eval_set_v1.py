@@ -320,12 +320,15 @@ def _build_four_element_query_row(
     if not raw_text:
         return None
 
-    four_elements = asyncio.run(service.extract_four_elements(raw_text))
-    entities = asyncio.run(service.extract_entities(raw_text))
-    observation = _clean_field_text(str((four_elements.get("observation") or {}).get("text") or ""))
-    result = _clean_field_text(str((four_elements.get("result") or {}).get("text") or ""))
-    request = _clean_field_text(str((four_elements.get("request") or {}).get("text") or ""))
-    context = _clean_field_text(str((four_elements.get("context") or {}).get("text") or ""))
+    structured = asyncio.run(service.structure(raw_text))
+    observation = _clean_field_text(str((structured.get("observation") or {}).get("text") or ""))
+    result = _clean_field_text(str((structured.get("result") or {}).get("text") or ""))
+    request = _clean_field_text(str((structured.get("request") or {}).get("text") or ""))
+    context = _clean_field_text(str((structured.get("context") or {}).get("text") or ""))
+    entities = structured.get("entities") or []
+
+    if not request:
+        request = _extract_instruction_text(row)
 
     if not any([observation, result, request, context]):
         fallback = _fallback_query_from_content(raw_text)
@@ -353,6 +356,20 @@ def _build_four_element_query_row(
             "query_docid": docid,
         },
     )
+
+
+def _extract_instruction_text(row: dict[str, Any]) -> str:
+    instructions = row.get("instructions") or []
+    for instruction_group in instructions:
+        if not isinstance(instruction_group, dict):
+            continue
+        for item in instruction_group.get("data") or []:
+            if not isinstance(item, dict):
+                continue
+            candidate = _clean_field_text(str(item.get("instruction") or ""))
+            if candidate:
+                return candidate
+    return ""
 
 
 def _fallback_query_from_content(content: str) -> str:

@@ -16,6 +16,7 @@ from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
 from app.retrieval.pipeline.stages.bm25_retriever import BM25RetrieveStage
 from app.retrieval.pipeline.stages.chroma_dense import ChromaDenseStage
 from app.retrieval.pipeline.stages.cross_encoder_rerank import CrossEncoderRerankStage
+from app.retrieval.pipeline.stages.llm_relevance_filter import LLMRelevanceFilterStage
 from app.retrieval.pipeline.stages.rrf_fusion import RRFFusionStage
 
 
@@ -120,6 +121,17 @@ def _build_stage(stage_spec: dict[str, Any]):
             top_k=int(params.get("top_k") or 50),
             index_dir=str(params.get("index_dir") or "data/bm25_index"),
             tokenizer=str(params.get("tokenizer") or "whitespace"),
+        )
+
+    if stage_type == "llm_relevance_filter":
+        return LLMRelevanceFilterStage(
+            name=name,
+            model=params.get("model"),
+            top_k=int(params.get("top_k") or 5),
+            min_score=int(params.get("min_score") or 1),
+            rerank_pool=int(params.get("rerank_pool") or 10),
+            max_chars=int(params.get("max_chars") or 600),
+            max_concurrency=int(params.get("max_concurrency") or 4),
         )
 
     if stage_type == "rrf_fusion":
