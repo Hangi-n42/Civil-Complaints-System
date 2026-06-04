@@ -35,6 +35,11 @@ router = APIRouter(prefix="/api/v1", tags=["generation"])
 
 CONTRACT_VERSION = "qa-v1.1"
 QA_LATENCY_WARN_MS = 8000
+QA_GROUNDING_TOP_K = 5
+NO_SIMILAR_CASE_LIMITATION = (
+    "LLM 관련성 필터 적용 결과 참고할 만한 유사 민원 근거가 충분하지 않아 "
+    "과거 사례 citation 없이 일반 민원 회신 원칙에 따라 작성했습니다."
+)
 
 
 def _derive_request_segments(query: str) -> list[str]:
@@ -193,6 +198,84 @@ def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
     return "".join(parts).strip()
 
 
+def _build_no_similar_case_answer(query: str) -> str:
+    """유사 사례가 없을 때 citation 없이 제공하는 최소 회신문."""
+    cleaned_query = str(query or "").strip()
+    if cleaned_query:
+        understood = f'귀하의 민원 내용은 "{cleaned_query}"에 관한 사항으로 이해됩니다.'
+    else:
+        understood = "귀하의 민원 내용은 접수된 불편사항에 대한 검토 요청으로 이해됩니다."
+
+    return (
+        "1. 우리 시 시정 발전에 관심을 두셔서 감사드리며, 귀 가정의 건강과 행복을 기원합니다.\n\n"
+        f"2. {understood}\n\n"
+        "3. 현재 검색된 과거 민원 중 답변 근거로 삼을 만큼 충분히 유사한 사례는 확인되지 않았습니다. "
+        "따라서 담당부서에서는 접수 내용의 사실관계, 현장 여건, 관련 법령 및 내부 처리 기준을 우선 확인한 뒤 "
+        "조치 가능 여부와 처리 방향을 안내드릴 예정입니다.\n\n"
+        "4. 추가 설명이 필요하시면 해당 업무 담당부서로 문의해 주시면 세부 검토 절차를 안내해 드리겠습니다. 감사합니다."
+    )
+
+
+def _build_no_similar_case_payload(
+    *,
+    request: QARequest,
+    route_key: str,
+    strategy_id: str,
+    routing_trace: dict,
+    retrieval_elapsed_ms: int,
+) -> dict:
+    request_segments = routing_trace.get("request_segments") or _derive_request_segments(request.query)
+    return normalize_response(
+        {
+            "complaint_id": request.complaint_id,
+            "strategy_id": strategy_id,
+            "route_key": route_key,
+            "routing_trace": routing_trace,
+            "structured_output": {
+                "summary": str(request.query).strip(),
+                "action_items": [
+                    "담당부서 사실관계 확인",
+                    "관련 법령 및 처리 기준 검토",
+                    "검토 결과와 후속 절차 안내",
+                ],
+                "request_segments": request_segments,
+            },
+            "answer": _build_no_similar_case_answer(request.query),
+            "citations": [],
+            "limitations": [NO_SIMILAR_CASE_LIMITATION],
+            "latency_ms": {
+                "analyzer": 0,
+                "router": 0,
+                "retrieval": retrieval_elapsed_ms,
+                "generation": 0,
+            },
+            "quality_signals": {
+                "citation_coverage": 0.0,
+                "hallucination_flag": False,
+                "segment_coverage": 1.0 if request_segments else 0.0,
+            },
+        }
+    )
+
+
+async def _apply_qa_grounding_filter(
+    *,
+    retrieval_service,
+    query: str,
+    raw_context: list[dict],
+    top_k: int,
+) -> list[dict]:
+    """QA 답변 grounding에 쓰기 전 참고 선례를 BE2 LLM 필터로 정밀화한다."""
+    if not raw_context:
+        return []
+
+    apply_filter = getattr(retrieval_service, "_apply_grounding_filter", None)
+    if apply_filter is None:
+        return raw_context[:top_k]
+
+    return await apply_filter(query, raw_context, top_k)
+
+
 @router.post("/qa", response_model=QAResponse)
 async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
@@ -231,14 +314,22 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     try:
         retrieval_start = perf_counter()
         effective_top_k = request.routing_hint.top_k if request.routing_hint else request.top_k
+        grounding_top_k = max(1, min(QA_GROUNDING_TOP_K, int(effective_top_k)))
         if request.use_search_results and request.search_results:
             raw_context = [item.model_dump() for item in request.search_results]
+            raw_context = await _apply_qa_grounding_filter(
+                retrieval_service=retrieval_service,
+                query=request.query,
+                raw_context=raw_context,
+                top_k=grounding_top_k,
+            )
         else:
             filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
             raw_context = await retrieval_service.search(
                 query=request.query,
-                top_k=effective_top_k,
+                top_k=grounding_top_k,
                 filters=filters,
+                grounding_filter=True,
             )
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
     except RetrievalError as e:
@@ -285,7 +376,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     )
     context, _context_trace = map_retrieval_to_qa_context(
         retrieval_results=raw_context,
-        top_k=effective_top_k,
+        top_k=grounding_top_k,
         policy=context_policy,
     )
 
@@ -309,21 +400,52 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 headers={"X-Contract-Version": CONTRACT_VERSION},
             )
 
-        _log_error(
-            endpoint="/api/v1/qa",
-            request_id=request_id,
-            error_code="RESOURCE_NOT_FOUND",
-            retryable=False,
-            took_ms=took_ms,
-            message="질문과 관련된 검색 결과를 찾지 못했습니다.",
+        route_key = (
+            _normalize_route_key(request.routing_hint.route_key)
+            if request.routing_hint
+            else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
         )
-        return error_response(
+        strategy_id = (
+            request.routing_hint.strategy_id
+            if request.routing_hint
+            else build_strategy_id("general", DEFAULT_COMPLEXITY_LEVEL)
+        )
+        routing_trace = (
+            request.routing_trace.model_dump()
+            if request.routing_trace is not None
+            else _build_trace_from_route_key(route_key, request.query)
+        )
+        unified_payload = _build_no_similar_case_payload(
+            request=request,
+            route_key=route_key,
+            strategy_id=strategy_id,
+            routing_trace=routing_trace,
+            retrieval_elapsed_ms=retrieval_elapsed_ms,
+        )
+        contract_missing = validate_unified_contract(unified_payload)
+        if contract_missing:
+            return error_response(
+                request_id=request_id,
+                error_code="RESPONSE_SCHEMA_MISMATCH",
+                message="/qa no-evidence fallback response contract validation failed",
+                status_code=500,
+                retryable=False,
+                details={"missing_fields": contract_missing},
+                headers={"X-Contract-Version": CONTRACT_VERSION},
+            )
+
+        api_logger.info(
+            "qa_no_similar_case_fallback endpoint=%s request_id=%s latency_ms=%s grounding_filter=%s",
+            "/api/v1/qa",
+            request_id,
+            took_ms,
+            True,
+        )
+        return QAResponse(
+            success=True,
             request_id=request_id,
-            error_code="RESOURCE_NOT_FOUND",
-            message="질문과 관련된 검색 결과를 찾지 못했습니다.",
-            retryable=False,
-            details={"query": request.query},
-            headers={"X-Contract-Version": CONTRACT_VERSION},
+            timestamp=now_iso(),
+            data=unified_payload,
         )
 
     try:

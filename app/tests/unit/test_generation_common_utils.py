@@ -129,6 +129,60 @@ def test_format_civil_reply_converts_structured_string_to_natural_text():
     assert "서비스 이용 안내, 홍보 강화" in answer
 
 
+def test_format_civil_reply_removes_generic_bridge_phrase():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "주차장 설치 요청 취지를 확인했습니다. 위 내용을 바탕으로 담당부서에서는 현장 여건, "
+        "관련 기준, 유사 처리 사례를 확인한 뒤 필요한 조치 가능 여부를 판단할 수 있습니다.",
+        citations,
+    )
+
+    assert "위 내용을 바탕으로 담당부서에서는 현장 여건" not in answer
+    assert "주차장 설치 요청 취지를 확인했습니다." in answer
+    assert answer.endswith("[[출처 1]]")
+
+
+def test_format_civil_reply_trims_incomplete_tail_after_complete_sentence():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거 문장"}]
+
+    answer = format_civil_reply_answer(
+        "현장 확인 결과 통행 불편이 확인되었습니다. 위 내용을 바탕으로 담당부서에서는 현장 여건, "
+        "관련 기준, 유사 처리 사례를 확인한 뒤 필요한 조치 가능 여부를 판단할 수 있습니다. 추가로 왔습",
+        citations,
+    )
+
+    assert "추가로 왔습" not in answer
+    assert "현장 확인 결과 통행 불편이 확인되었습니다." in answer
+    assert answer.endswith("[[출처 1]]")
+
+
+def test_format_civil_reply_replaces_fully_incomplete_body_with_fallback():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "도로 파손 민원은 현장 확인 후 보수 여부를 검토합니다."}]
+
+    answer = format_civil_reply_answer("담당부서 검토 결과 주변", citations)
+
+    assert "담당부서 검토 결과 주변" not in answer
+    assert "도로 파손 민원은 현장 확인 후 보수 여부를 검토합니다." in answer
+    assert answer.endswith("[[출처 1]]")
+
+
+def test_format_civil_reply_strips_html_and_trims_list_fragment():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "공원 방역은 현장 확인 후 조치합니다."}]
+
+    answer = format_civil_reply_answer(
+        "<strong>1.</strong> 공원 내 바퀴벌레 문제에 대해 공감합니다. "
+        "2.<strong>2.</strong> 즉시 조치로는 다음 활동을 진행하겠습니다. <ul><li>공원 내 주요",
+        citations,
+    )
+
+    assert "<strong>" not in answer
+    assert "<ul>" not in answer
+    assert "공원 내 주요" not in answer
+    assert "즉시 조치로는 다음 활동을 진행하겠습니다." in answer
+    assert answer.endswith("[[출처 1]]")
+
+
 def test_build_validation_result_detects_mismatch():
     context = [{"chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
     citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-2", "snippet": "근거"}]
