@@ -47,6 +47,8 @@ def sanitize_answer_text(answer: str) -> str:
     rendered = re.sub(r"(?m)^\s*\[\[\".*?\"\]\]\s*$", "", rendered)
     rendered = re.sub(r"(?m)^\s*#{1,6}\s*", "", rendered)
     rendered = rendered.replace("**", "")
+    rendered = re.sub(r"</?(?:strong|b|ul|ol|li|p|br)\b[^>]*>", " ", rendered, flags=re.IGNORECASE)
+    rendered = re.sub(r"<[^>]+>", " ", rendered)
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
     rendered = re.sub(r"[ \t]{2,}", " ", rendered)
     return rendered.strip()
@@ -115,18 +117,67 @@ def _normalize_structured_answer_text(text: str) -> str:
     return normalized or rendered
 
 
+def _remove_generic_bridge_phrases(text: str) -> str:
+    rendered = text or ""
+    patterns = [
+        r"\s*위\s*내용을\s*바탕으로\s*담당부서에서는\s*현장\s*여건,\s*관련\s*기준,\s*유사\s*처리\s*사례를\s*확인한\s*뒤\s*필요한\s*조치\s*가능\s*여부를\s*판단할\s*수\s*있습니다\.?",
+        r"\s*담당부서에서는\s*접수\s*내용,\s*현장\s*여건,\s*관련\s*기준과\s*유사\s*처리\s*사례를\s*종합적으로\s*확인한\s*뒤\s*필요한\s*조치\s*가능\s*여부를\s*검토할\s*수\s*있습니다\.?",
+        r"\s*다만\s*구체적인\s*조치\s*범위와\s*일정은\s*현장\s*확인\s*및\s*관계\s*부서\s*검토\s*결과에\s*따라\s*달라질\s*수\s*있습니다\.?",
+    ]
+    for pattern in patterns:
+        rendered = re.sub(pattern, "", rendered)
+    rendered = re.sub(r"\s+([.?!])", r"\1", rendered)
+    rendered = re.sub(r"\n{3,}", "\n\n", rendered)
+    rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    return rendered.strip()
+
+
+def _has_complete_sentence_end(text: str) -> bool:
+    rendered = (text or "").strip()
+    if not rendered:
+        return False
+    if rendered.endswith((".", "!", "?", "。", "！", "？")):
+        return True
+    return bool(
+        re.search(
+            r"(습니다|드립니다|됩니다|합니다|바랍니다|있습니다|없습니다|입니다|니다)\s*$",
+            rendered,
+        )
+    )
+
+
+def _trim_incomplete_trailing_sentence(text: str, citations: List[Dict[str, Any]]) -> str:
+    """모델 출력이 길이 제한으로 끊긴 경우 마지막 미완성 조각을 제거한다."""
+    rendered = (text or "").strip()
+    if not rendered or _has_complete_sentence_end(rendered):
+        return rendered
+
+    end_positions = [
+        match.end()
+        for match in re.finditer(
+            r"(?:[.!?。！？]|(?:습니다|드립니다|됩니다|합니다|바랍니다|있습니다|없습니다|입니다|니다)(?:[.!?])?)(?=\s|$)",
+            rendered,
+        )
+    ]
+    if end_positions:
+        candidate = rendered[: end_positions[-1]].strip()
+        if candidate and _has_complete_sentence_end(candidate):
+            return candidate
+
+    return _fallback_review_body(citations)
+
+
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
     snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
     snippets = [text for text in snippets if text]
     if snippets:
         return (
             f"{' / '.join(snippets)} "
-            "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤 "
-            "필요한 조치 가능 여부를 판단할 수 있습니다."
+            "다만 구체적인 처리 가능 여부와 조치 일정은 담당부서의 현장 확인과 관계 기준 검토 후 안내드릴 수 있습니다."
         )
     return (
-        "접수 내용과 관련 자료를 확인한 뒤 현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 "
-        "검토하겠습니다. 확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다."
+        "접수 내용과 관련 자료를 우선 확인하고, 담당부서 검토를 거쳐 처리 가능 여부와 후속 안내 사항을 "
+        "정리해 안내드리겠습니다."
     )
 
 
@@ -135,9 +186,11 @@ def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> s
     rendered = sanitize_answer_text(answer)
     rendered = _strip_citation_tokens(rendered)
     rendered = _normalize_structured_answer_text(rendered)
+    rendered = _remove_generic_bridge_phrases(rendered)
     body = _strip_standard_reply_shell(rendered)
     if not body:
         body = _fallback_review_body(citations)
+    body = _trim_incomplete_trailing_sentence(body, citations)
 
     tokens = [f"[[출처 {citation['ref_id']}]]" for citation in citations]
     token_block = "\n".join(tokens)
