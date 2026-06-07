@@ -170,8 +170,9 @@ function WorkbenchContent() {
     const nextSelectedId = urlCaseId && caseList.some((item) => item.case_id === urlCaseId) ? urlCaseId : caseList[0]?.case_id || "";
     if (nextSelectedId && nextSelectedId !== selectedCaseId) {
       setSelectedCaseId(nextSelectedId);
+      router.replace(`/workbench?case_id=${encodeURIComponent(nextSelectedId)}`);
     }
-  }, [caseList, selectedCaseId, urlCaseId]);
+  }, [caseList, router, selectedCaseId, urlCaseId]);
 
   useEffect(() => {
     const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
@@ -426,7 +427,7 @@ function WorkbenchContent() {
           <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <section className="flex flex-col border border-slate-300 bg-white">
               <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
-                <div className="text-sm font-bold text-slate-900">민원 목록</div>
+                <div className="text-sm font-bold text-slate-900">처리대기 민원</div>
                 <button
                   type="button"
                   onClick={handleRefreshStatuses}
@@ -443,7 +444,7 @@ function WorkbenchContent() {
               </div>
 
               <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-2 py-1.5 text-[11px] font-bold text-slate-700 items-center" style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gridAutoRows: "2.5rem", gap: "0.75rem" }}>
-                <div>제목</div>
+                <div>문의 요지</div>
                 <div>접수일</div>
                 <div>카테고리</div>
                 <div>우선순위</div>

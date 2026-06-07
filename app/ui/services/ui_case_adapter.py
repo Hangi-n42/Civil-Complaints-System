@@ -151,7 +151,7 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     }
 
 
-def load_ui_cases_from_week2_sample(sample_path: Path) -> List[Dict[str, Any]]:
+def load_ui_cases_from_json(sample_path: Path) -> List[Dict[str, Any]]:
     if not sample_path.exists():
         return []
 
@@ -170,3 +170,7 @@ def load_ui_cases_from_week2_sample(sample_path: Path) -> List[Dict[str, Any]]:
         cases.append(to_ui_queue_case(item, index=index))
 
     return cases
+
+
+def load_ui_cases_from_week2_sample(sample_path: Path) -> List[Dict[str, Any]]:
+    return load_ui_cases_from_json(sample_path)
