@@ -206,6 +206,9 @@ cython_debug/
 
 Training/
 Validation/
+# data/{processed,raw_data,laws,urgency} 는 Git LFS 로 추적한다(.gitattributes 참조).
+# (이전엔 무시했으나 재현성 위해 LFS 로 버전관리. model.joblib·민원 원문 포함)
+
 .cursorignore
 .cursorindexingignore
 

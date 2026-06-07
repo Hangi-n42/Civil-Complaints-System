@@ -1,0 +1,145 @@
+# BE2 핸드오프 — BE1 구조화 고도화 산출물 (검색 rerank 신호)
+
+BE2가 요청한 6개 항목을 BE1 구조화 결과(`StructuringService.structure()`)에 추가 완료했습니다.
+이 문서는 **무엇이 어떻게 구현됐고, BE2가 어떻게 받아 soft-rerank에 쓰는지**를 설명합니다.
+
+---
+
+## 1. 요청 ↔ 구현 매핑
+
+| BE2 요청 | 구현 필드(키) | 상태 | 비고 |
+| --- | --- | --- | --- |
+| ① normalized_entities | **`entity_texts`** | ✅ | 이름만 다름(아래 주의 참고) |
+| ② legal_refs | **`legal_refs`** | ✅ | `law_id`·`source` 추가(더 풍부) |
+| ③ responsible_unit | **`responsible_unit`** | ✅ | 플래그 on + 인덱스 필요(아래) |
+| ④ issue_type | **`issue_type`** | ✅ | 요청 형식 그대로 |
+| ⑤ key_terms | **`key_terms`** | ✅ | 랭킹된 문자열 3~8개 |
+| ⑥ confidence + evidence | 모든 추론 필드 포함 | ✅ | 미보정(soft 신호 전용) |
+| (보너스) 긴급도 | **`urgency`** | ✅ | Track B 산출(검색엔 선택) |
+
+MVP 4개(① ② ③ ④) 모두 제공됩니다.
+
+---
+
+## 0. 입력 정합 — **민원인 원문만** 사용 (중요)
+
+원천 `consulting_content` = `제목 + Q(민원인) + A(상담사)`. 구조화·긴급도는 **민원인이 작성한 부분만** 입력해야 합니다(상담사 답변 제외).
+
+- 전처리 산출물: `data/processed/processed_consulting_data.json` (3,280건, 파싱 100%). 규칙: `docs/QUICK_START.md`.
+- **어댑터 사용**: `app.structuring.preprocessing.to_structuring_record(rec)` → `structure()` 입력 dict 생성.
+  - 입력 텍스트 = `title + client_question` (둘 다 민원인 작성). `consultant_answer`는 제외.
+  - Q가 비면 title 사용, Q가 제목을 참조("제목 내용처럼")해도 중복 없이 결합.
+- ⚠️ `structure()`에 **`consulting_content`(상담사 포함) 전체를 넣지 마세요.** 어댑터(또는 `text=client_question`)로 넣으면 `prompt_factory` 폴백이 자동으로 민원인 원문을 씁니다(역호환).
+- **긴급도 모델 재학습 완료**: 입력을 상담사 포함 → 민원인 원문으로 교정하니 macro-F1 0.583 → **0.599**(보통 recall 균형). `urgency/dataset.py`가 processed 파일을 조인.
+
+```python
+from app.structuring.preprocessing import load_processed, to_structuring_record
+recs = load_processed("data/processed/processed_consulting_data.json")
+out  = await structuring_service.structure(to_structuring_record(recs[0]))
+```
+
+---
+
+## 2. 실제 산출 예시 (검증된 출력)
+
+입력 민원: *"3톤 미만 지게차 조종 면허 적성검사 갱신 절차가 궁금합니다. 1종 보통 면허도 있어야 하나요?"* (category=건설기계과)
+
+```jsonc
+{
+  "case_id": "CASE-EX",
+  // ① 정규화 객체 (요청의 normalized_entities)
+  "entity_texts": [
+    {"text": "지게차", "label": "OBJECT", "confidence": 0.9, "evidence": ["미만 지게차"]}
+  ],
+  // ② 법령 후보
+  "legal_refs": [
+    {"name": "건설기계관리법", "confidence": 0.6, "evidence": ["지게차"],
+     "source": "domain", "law_id": "000239"}
+  ],
+  // ③ 담당부서 후보 (플래그 on 시 채워짐)
+  "responsible_unit": [],
+  // ④ 쟁점 유형
+  "issue_type": [
+    {"name": "면허/자격", "confidence": 0.95, "evidence": ["면허", "적성검사", "조종"]},
+    {"name": "갱신/연장", "confidence": 0.64, "evidence": ["갱신"]}
+  ],
+  // ⑤ 핵심 키워드
+  "key_terms": ["지게차", "적성검사", "면허", "갱신", "조종"]
+}
+```
+
+---
+
+## 3. 필드별 상세 스키마
+
+### ① `entity_texts` (= normalized_entities)
+```jsonc
+[{"text": "지게차",        // ← 정규화된 표준 객체명 (요청의 canonical)
+  "label": "OBJECT"|"FACILITY",  // ← 요청의 type
+  "confidence": 0.8~0.9,
+  "evidence": ["미만 지게차"]}]  // ← 원문 근거 span (요청의 raw 표현)
+```
+- "3톤 미만 지게차" / "소형 지게차" → `text: "지게차"` 로 정규화. evidence에 원문 표현.
+- ⚠️ **이름 차이**: 우리는 `entity_texts`로 명명(요청은 normalized_entities). 의미는 동일. BE2에서 `text=canonical, label=type, evidence[0]=raw`로 매핑하면 됩니다. (원하면 별칭 키 추가 가능 — 요청 주세요.)
+- confidence: canonical 직접 등장 0.9 / 변이 정규화 0.85 / 규칙 NER 흡수 0.8.
+
+### ② `legal_refs`
+```jsonc
+[{"name": "건설기계관리법", "confidence": 0.6~0.95,
+  "evidence": ["지게차"],
+  "law_id": "000239",     // ★ Phase B 조문 검색의 법령 필터 키 (요청엔 없던 보너스)
+  "source": "name_match|abbr_match|ordinance|domain"}]  // 매칭 경로
+```
+- 법제처 현행법령 사전(5,585) + 부산 자치법규(9,086) 직접 매칭 + 도메인 트리거(18법령) 병합.
+- `source`: 법령명/약칭 직접 등장(name/abbr_match), 부산 조례(ordinance), 어휘 추론(domain).
+- `law_id`는 BE3의 조문 인용에 직결됩니다(BE2는 무시해도 됨).
+
+### ③ `responsible_unit`
+```jsonc
+[{"name": "건설기계과", "confidence": 0.78, "evidence": ["지게차", "건설기계"], "law_id": "..."}]
+```
+- **부산시 실제 부서명**(busan_departments_master.json 116부서)을 bge-m3+BM25로 검색해 반환 → 환각 0.
+- ⚠️ **기본 비활성**: 임베딩 인덱스(bge-m3/Chroma)가 무거워 `ENABLE_RESPONSIBLE_UNIT=false`가 기본이라 `[]`로 나옵니다. 켜는 법:
+  ```bash
+  python -c "from app.structuring.department_assigner import get_department_assigner as g; print(g().build_index(rebuild=True))"
+  export ENABLE_RESPONSIBLE_UNIT=true   # (선택) RESPONSIBLE_UNIT_USE_LLM=true 로 LLM 재랭킹
+  ```
+- 미가용/실패 시 `[]`로 안전 폴백(파이프라인 영향 없음).
+
+### ④ `issue_type`
+```jsonc
+[{"name": "면허/자격", "confidence": 0.5~0.95, "evidence": ["면허", "적성검사", "조종"]}]
+```
+- 10유형: 면허/자격·허가/등록·갱신/연장·보상/배상·단속/점검·지원금/급여·증빙/서류·예매/예약·시설 개선/보수·법령 해석. 상위 3개.
+- BE2의 "단어는 같지만 쟁점이 다른 민원" 강등 용도에 직접 사용.
+
+### ⑤ `key_terms`
+```jsonc
+["지게차", "적성검사", "면허", "갱신", "조종"]   // 중요도 순 랭킹 문자열 3~8개
+```
+- entity_texts(객체) > 행정어 사전 > issue_type 근거 > legal_refs 근거 순 가중. "신청/문의/절차" 같은 일반어 배제.
+- 추출 필드라 항목별 confidence 대신 **순위가 중요도**를 인코딩.
+
+---
+
+## 4. BE2 연결 방법 (soft rerank)
+
+1. **호출**: BE1 `structure(record)` → 위 필드가 포함된 dict 반환. (별도 API/엔드포인트는 기존 /search 파이프라인의 구조화 단계 산출물에 그대로 추가됨.)
+2. **rerank 신호 사용**(BE2가 밝힌 soft-rerank 의도대로 — hard filter 아님):
+   - **같은 `legal_refs.name`(또는 `law_id`)** → 후보 가점.
+   - **같은 `issue_type.name`** → 가점("단어 같고 쟁점 다른" 케이스 강등).
+   - **`entity_texts.text` 겹침** → 객체 일치 가점.
+   - **같은 `responsible_unit.name`** → 가점.
+   - **`key_terms` 겹침** → BM25/키워드 부스트.
+   - 각 신호를 **confidence로 가중**(높으면 강하게, 낮으면 약하게/무시) — 요청대로.
+3. **임베딩/색인**: BE2가 민원을 인덱싱할 때 위 필드를 metadata로 넣어두면 rerank가 쉬워집니다(예: issue_type/entity_texts/law_id를 chunk metadata로).
+
+---
+
+## 5. 주의 (정직)
+
+- **모든 confidence는 미보정(uncalibrated) 휴리스틱**입니다(법령/부서 정답셋 없음). 절대 임계값 말고 **상대 강도·soft rerank**로만 — BE2의 설계 의도와 일치합니다.
+- `legal_refs`·`responsible_unit`은 "검색 보조 후보"입니다. 틀릴 수 있어 hard filter 금지.
+- `entity_texts` 이름이 요청의 `normalized_entities`와 다릅니다. 별칭이 필요하면 한 줄로 추가해 드립니다.
+
+관련 상세 설계: `docs/60_specs/responsible_unit_assigner.md`.
