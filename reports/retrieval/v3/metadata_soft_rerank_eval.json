@@ -1,34 +1,62 @@
 {
-  "generated_at": "2026-06-07T16:57:55.696612+00:00",
+  "generated_at": "2026-06-07T17:32:45.920054+00:00",
   "eval_set": "qrels_pooled_3judge, NO-self",
   "n_queries": 100,
   "depth": 50,
   "rrf_k": 60,
-  "sidecar": {
-    "reason": "evaluation corpus/query files do not contain PR #314 metadata fields",
+  "signals": {
+    "query_signal_source": "deterministic_sidecar",
+    "query_signal_reason": "evaluation query files do not contain PR #314 metadata fields",
     "query_signal_coverage": {
       "n": 100,
       "non_empty_by_field": {
         "entity_texts": 16,
-        "legal_ref_names": 30,
-        "legal_ref_ids": 0,
+        "legal_ref_names": 42,
+        "legal_ref_ids": 42,
         "issue_types": 68,
-        "key_terms": 75,
+        "key_terms": 77,
         "responsible_units": 100
       }
     },
-    "candidate_signal_coverage": {
+    "candidate_signal_source": "chroma_metadata_with_sidecar_fallback",
+    "reason": "candidate case에 Chroma 검색 신호 metadata가 있으면 우선 사용하고, 누락 case만 deterministic sidecar로 보완",
+    "candidate_cases": 4356,
+    "candidate_cases_with_chroma_metadata_signals": 4356,
+    "candidate_cases_with_sidecar_fallback": 0,
+    "chroma_signal_coverage": {
       "n": 4356,
       "non_empty_by_field": {
         "entity_texts": 472,
-        "legal_ref_names": 1424,
-        "legal_ref_ids": 0,
+        "legal_ref_names": 1876,
+        "legal_ref_ids": 1876,
         "issue_types": 3360,
-        "key_terms": 3590,
+        "key_terms": 3636,
         "responsible_units": 4356
       }
     },
-    "responsible_units_source": "category + source deterministic fallback"
+    "sidecar_fallback_coverage": {
+      "n": 0,
+      "non_empty_by_field": {
+        "entity_texts": 0,
+        "legal_ref_names": 0,
+        "legal_ref_ids": 0,
+        "issue_types": 0,
+        "key_terms": 0,
+        "responsible_units": 0
+      }
+    },
+    "final_candidate_signal_coverage": {
+      "n": 4356,
+      "non_empty_by_field": {
+        "entity_texts": 472,
+        "legal_ref_names": 1876,
+        "legal_ref_ids": 1876,
+        "issue_types": 3360,
+        "key_terms": 3636,
+        "responsible_units": 4356
+      }
+    },
+    "responsible_units_source": "Chroma metadata 우선, 누락 시 category + source deterministic fallback"
   },
   "general_search": {
     "metrics": [
@@ -39,31 +67,31 @@
     ],
     "systems": {
       "Hybrid": {
-        "RR@10": 0.8761666666666666,
-        "AP@10": 0.26041210936340164,
-        "nDCG@5": 0.7521892438384596,
+        "RR@10": 0.8761666666666668,
+        "R@10": 0.31339438662451846,
+        "R@5": 0.20284450954252506,
         "nDCG@10": 0.7374728661151957,
-        "R@5": 0.2028445095425251,
-        "R@10": 0.31339438662451835,
-        "P@5": 0.7659999999999999,
-        "RR@5": 0.8761666666666666
+        "P@5": 0.7660000000000001,
+        "nDCG@5": 0.7521892438384593,
+        "AP@10": 0.2604121093634017,
+        "RR@5": 0.8761666666666668
       },
       "Hybrid+metadata_soft_rerank": {
-        "RR@10": 0.8806666666666666,
-        "AP@10": 0.2671642245746869,
-        "nDCG@5": 0.7551639718623357,
-        "nDCG@10": 0.7449514335088905,
-        "R@5": 0.20193602746079076,
-        "R@10": 0.31549893207906377,
-        "P@5": 0.762,
-        "RR@5": 0.8806666666666666
+        "RR@10": 0.8806666666666668,
+        "R@10": 0.3172379856611407,
+        "R@5": 0.2041860274607907,
+        "nDCG@10": 0.7428446116147933,
+        "P@5": 0.7660000000000002,
+        "nDCG@5": 0.7541615284976736,
+        "AP@10": 0.26435773001442997,
+        "RR@5": 0.8806666666666668
       }
     },
     "delta": {
-      "nDCG@5": 0.002975,
-      "nDCG@10": 0.007479,
-      "P@5": -0.004,
-      "R@10": 0.002105
+      "nDCG@5": 0.001972,
+      "nDCG@10": 0.005372,
+      "P@5": 0.0,
+      "R@10": 0.003844
     }
   },
   "grounding": {
@@ -93,12 +121,12 @@
         "total_slots": 500,
         "slots": {
           "rel2": 27,
-          "rel1": 354,
-          "rel0": 118,
+          "rel1": 356,
+          "rel0": 116,
           "unjudged": 1
         },
-        "rel0_rate": 0.236,
-        "useful_rate": 0.762,
+        "rel0_rate": 0.232,
+        "useful_rate": 0.766,
         "harmful_query_rate": 0.45,
         "empty_result_rate": 0.0,
         "queries_empty": 0,
@@ -109,14 +137,14 @@
         "n_queries": 100,
         "total_slots": 424,
         "slots": {
-          "rel2": 28,
-          "rel1": 347,
+          "rel2": 27,
+          "rel1": 348,
           "rel0": 47,
           "unjudged": 2
         },
         "rel0_rate": 0.1108,
         "useful_rate": 0.8844,
-        "harmful_query_rate": 0.35,
+        "harmful_query_rate": 0.36,
         "empty_result_rate": 0.0,
         "queries_empty": 0,
         "avg_filled": 4.24
@@ -125,9 +153,9 @@
     "llm_cache": {
       "path": "data/evaluation/v3/checkpoints/llm_rerank_full.json",
       "pool_total": 1000,
-      "scored": 878,
-      "missing": 122,
-      "coverage": 0.878
+      "scored": 876,
+      "missing": 124,
+      "coverage": 0.876
     },
     "existing_hybrid_llm_filter_baseline": {
       "k": 5,

@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import scripts.run_v3_evaluation as R
+from app.core.config import settings
 from app.evaluation.datasets import QrelRecord
 from app.evaluation.metrics import RunRecord, evaluate_run
 from app.retrieval.service import RetrievalService
@@ -45,6 +46,7 @@ RRF_K = 60
 GROUNDING_K = 5
 LLM_FILTER_POOL = 10
 METRIC_KEYS = ["nDCG@5", "nDCG@10", "P@5", "R@10"]
+SIGNAL_FIELDS = ["entity_texts", "legal_ref_names", "legal_ref_ids", "issue_types", "key_terms", "responsible_units"]
 
 
 def _clean_list(values: list[Any]) -> list[str]:
@@ -60,6 +62,20 @@ def _clean_list(values: list[Any]) -> list[str]:
         seen.add(key)
         out.append(text)
     return out
+
+
+def _split_signal_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = [item for item in value.split("|") if item]
+    else:
+        raw_items = []
+    return _clean_list(raw_items)
+
+
+def _has_any_signal(signals: dict[str, list[str]]) -> bool:
+    return any(signals.get(field) for field in SIGNAL_FIELDS)
 
 
 def load_qrels_3judge() -> list[QrelRecord]:
@@ -125,9 +141,87 @@ def build_signals(text: str, *, category: str = "", source: str = "") -> dict[st
 
 
 def signal_coverage(signals: dict[str, dict[str, list[str]]]) -> dict[str, Any]:
-    fields = ["entity_texts", "legal_ref_names", "legal_ref_ids", "issue_types", "key_terms", "responsible_units"]
-    counts = {field: sum(1 for sig in signals.values() if sig.get(field)) for field in fields}
+    counts = {field: sum(1 for sig in signals.values() if sig.get(field)) for field in SIGNAL_FIELDS}
     return {"n": len(signals), "non_empty_by_field": counts}
+
+
+def load_chroma_signal_map(collection_name: str = "civil_cases_v1") -> dict[str, dict[str, list[str]]]:
+    import chromadb
+
+    client = chromadb.PersistentClient(path=str(settings.CHROMA_DB_PATH))
+    collection = client.get_collection(collection_name)
+    total = collection.count()
+    signals_by_case: dict[str, dict[str, list[str]]] = {}
+
+    for offset in range(0, total, 1000):
+        got = collection.get(
+            limit=min(1000, total - offset),
+            offset=offset,
+            include=["metadatas"],
+        )
+        ids = got.get("ids") or []
+        metadatas = got.get("metadatas") or []
+        for storage_id, metadata in zip(ids, metadatas):
+            meta = metadata or {}
+            case_id = str(meta.get("case_id") or meta.get("doc_id") or "").strip()
+            if not case_id:
+                case_id = str(storage_id).split("::", 1)[0].strip()
+            if not case_id:
+                continue
+
+            slot = signals_by_case.setdefault(case_id, {field: [] for field in SIGNAL_FIELDS})
+            for field in SIGNAL_FIELDS:
+                slot[field].extend(_split_signal_values(meta.get(field)))
+
+    return {
+        cid: {field: _clean_list(values) for field, values in signals.items()}
+        for cid, signals in signals_by_case.items()
+    }
+
+
+def build_candidate_doc_signals(
+    candidate_cases: set[str],
+    case_map: dict[str, dict[str, str]],
+    chroma_signals: dict[str, dict[str, list[str]]],
+) -> tuple[dict[str, dict[str, list[str]]], dict[str, Any]]:
+    sidecar_signals: dict[str, dict[str, list[str]]] = {}
+    actual_count = 0
+    merged: dict[str, dict[str, list[str]]] = {}
+
+    for cid in sorted(candidate_cases):
+        actual = chroma_signals.get(cid, {})
+        if _has_any_signal(actual):
+            merged[cid] = actual
+            actual_count += 1
+            continue
+
+        doc = case_map.get(cid, {})
+        sidecar = build_signals(
+            doc.get("text", ""),
+            category=doc.get("category", ""),
+            source=doc.get("source", ""),
+        )
+        sidecar_signals[cid] = sidecar
+        merged[cid] = sidecar
+
+    if actual_count:
+        source = "chroma_metadata_with_sidecar_fallback"
+        reason = "candidate case에 Chroma 검색 신호 metadata가 있으면 우선 사용하고, 누락 case만 deterministic sidecar로 보완"
+    else:
+        source = "deterministic_sidecar"
+        reason = "Chroma 후보 metadata에 PR #314/#318 검색 신호가 없어 deterministic sidecar만 사용"
+
+    return merged, {
+        "candidate_signal_source": source,
+        "reason": reason,
+        "candidate_cases": len(candidate_cases),
+        "candidate_cases_with_chroma_metadata_signals": actual_count,
+        "candidate_cases_with_sidecar_fallback": len(candidate_cases) - actual_count,
+        "chroma_signal_coverage": signal_coverage({cid: chroma_signals.get(cid, {}) for cid in candidate_cases}),
+        "sidecar_fallback_coverage": signal_coverage(sidecar_signals),
+        "final_candidate_signal_coverage": signal_coverage(merged),
+        "responsible_units_source": "Chroma metadata 우선, 누락 시 category + source deterministic fallback",
+    }
 
 
 def apply_metadata_rerank(
@@ -257,32 +351,49 @@ def load_existing_llm_filter_baseline() -> dict[str, Any] | None:
 def write_summary(report: dict[str, Any]) -> None:
     general = report["general_search"]
     grounding = report["grounding"]
+    signals = report["signals"]
     base = general["systems"]["Hybrid"]
     meta = general["systems"]["Hybrid+metadata_soft_rerank"]
     delta = general["delta"]
     g_base = grounding["systems"]["Hybrid"]
     g_meta = grounding["systems"]["Hybrid+metadata_soft_rerank"]
     g_filter = grounding["systems"]["Hybrid+metadata_soft_rerank+LLM_filter_cache_projection"]
+    p5_delta_text = "그대로였다" if abs(delta["P@5"]) < 0.000001 else f"{delta['P@5']:+.4f} 변했다"
+    rel0_delta = round(g_meta["rel0_rate"] - g_base["rel0_rate"], 6)
+    if abs(rel0_delta) < 0.000001:
+        rel0_text = "같았다"
+    elif rel0_delta < 0:
+        rel0_text = "감소했다"
+    else:
+        rel0_text = "증가했다"
 
     lines = [
         "# 메타데이터 soft rerank 평가 요약",
         "",
         f"- 평가셋: {report['eval_set']}",
         f"- 후보 깊이: Hybrid RRF top-{report['depth']}, RRF k={report['rrf_k']}",
-        "- 평가 데이터에 PR #314 메타데이터가 없어 BE1 deterministic enrichment sidecar를 생성해 사용함",
+        f"- 쿼리 신호: {signals['query_signal_source']} ({signals['query_signal_reason']})",
+        f"- 후보 문서 신호: {signals['candidate_signal_source']} ({signals['reason']})",
+        (
+            f"- Chroma metadata 신호 사용 후보: "
+            f"{signals['candidate_cases_with_chroma_metadata_signals']}/{signals['candidate_cases']}건"
+        ),
         "",
         "## 결론",
         "",
         (
             f"- 일반 검색은 `nDCG@10` {delta['nDCG@10']:+.4f}, "
-            f"`R@10` {delta['R@10']:+.4f}로 소폭 개선됐지만 `P@5`는 {delta['P@5']:+.4f} 하락했다."
+            f"`R@10` {delta['R@10']:+.4f}로 소폭 개선됐고 `P@5`는 {p5_delta_text}."
         ),
         (
             f"- 답변 초안 grounding에서는 metadata 단독 rel0 비율이 "
-            f"{g_base['rel0_rate']:.4f} -> {g_meta['rel0_rate']:.4f}로 소폭 악화됐다."
+            f"{g_base['rel0_rate']:.4f} -> {g_meta['rel0_rate']:.4f}로 {rel0_text}."
         ),
         "- 따라서 grounding 기본값은 여전히 `Hybrid + LLM relevance filter`가 필요하다.",
-        "- `legal_ref_ids` coverage가 0이라 실제 PR #314 재인덱싱 후에는 법령 ID 효과를 다시 봐야 한다.",
+        (
+            "- `legal_ref_ids` 후보 coverage: "
+            f"{signals['final_candidate_signal_coverage']['non_empty_by_field'].get('legal_ref_ids', 0)}건"
+        ),
         "",
         "## 일반 검색",
         "",
@@ -358,15 +469,9 @@ def main() -> None:
     hybrid = rrf([bm25, dense], k=RRF_K)
 
     candidate_cases = {rec.docid for recs in hybrid.values() for rec in recs}
-    print(f"[5] sidecar doc signals... ({len(candidate_cases)} cases)")
-    doc_signals = {}
-    for cid in sorted(candidate_cases):
-        doc = case_map.get(cid, {})
-        doc_signals[cid] = build_signals(
-            doc.get("text", ""),
-            category=doc.get("category", ""),
-            source=doc.get("source", ""),
-        )
+    print(f"[5] Chroma metadata doc signals... ({len(candidate_cases)} cases)")
+    chroma_signals = load_chroma_signal_map("civil_cases_v1")
+    doc_signals, signal_report = build_candidate_doc_signals(candidate_cases, case_map, chroma_signals)
 
     print("[6] metadata soft rerank...")
     hybrid_meta = apply_metadata_rerank(hybrid, query_signals, doc_signals)
@@ -388,11 +493,11 @@ def main() -> None:
         "n_queries": len(queries),
         "depth": DEPTH,
         "rrf_k": RRF_K,
-        "sidecar": {
-            "reason": "evaluation corpus/query files do not contain PR #314 metadata fields",
+        "signals": {
+            "query_signal_source": "deterministic_sidecar",
+            "query_signal_reason": "evaluation query files do not contain PR #314 metadata fields",
             "query_signal_coverage": signal_coverage(query_signals),
-            "candidate_signal_coverage": signal_coverage(doc_signals),
-            "responsible_units_source": "category + source deterministic fallback",
+            **signal_report,
         },
         "general_search": {
             "metrics": METRIC_KEYS,
