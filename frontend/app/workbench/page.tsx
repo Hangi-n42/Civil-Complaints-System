@@ -135,7 +135,7 @@ function WorkbenchContent() {
     return () => {
       isMounted = false;
     };
-  }, [caseList]);
+  }, []);
 
   const selectedCase = useMemo<WorkbenchCase>(() => {
     return (caseList.find((item) => item.case_id === selectedCaseId) || caseList[0]) as WorkbenchCase;
@@ -185,10 +185,10 @@ function WorkbenchContent() {
   }, [caseList]);
 
   useEffect(() => {
-    if (urlCaseId && urlCaseId !== selectedCaseId) {
+    if (urlCaseId && urlCaseId !== selectedCaseId && caseList.some((item) => item.case_id === urlCaseId)) {
       setSelectedCaseId(urlCaseId);
     }
-  }, [selectedCaseId, urlCaseId]);
+  }, [caseList, selectedCaseId, urlCaseId]);
 
   useEffect(() => {
     if (!selectedCase) {
@@ -840,4 +840,3 @@ function getAccordionDetail(doc: RetrievedDoc, index: number): AccordionDetail {
         ],
   };
 }
-
