@@ -13,6 +13,14 @@
 - 따라서 grounding 기본값은 여전히 `Hybrid + LLM relevance filter`가 필요하다.
 - `legal_ref_ids` 후보 coverage: 1876건
 
+## 평가 신뢰도 해석
+
+- 현재 지표는 `data/evaluation/v3/qrels_pooled_3judge.tsv`의 100개 쿼리, 8057개 판정쌍을 기준으로 계산했다.
+- relevance 분포: rel0=4965, rel1=2942, rel2=150.
+- 3-채점관 median, no-self 제거, Dense/BM25 공정 풀링을 사용해 기존 평가보다 방법론은 개선됐다.
+- 그래도 이 수치는 운영 품질의 최종 보증이 아니라, 검색 변경의 회귀 여부를 보는 방향성 지표로 해석해야 한다.
+- 이유: 쿼리가 실제 신규 민원 held-out이 아니고, query_signals는 실제 BE1 출력이 아니라 deterministic sidecar이며, 정답표는 top-50 풀 기반이라 long-tail 불완전성이 남아 있다.
+
 ## 일반 검색
 
 | 지표 | Hybrid | Hybrid+metadata | 변화 |

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-07T17:32:45.920054+00:00",
+  "generated_at": "2026-06-07T17:43:28.362151+00:00",
   "eval_set": "qrels_pooled_3judge, NO-self",
   "n_queries": 100,
   "depth": 50,
@@ -67,24 +67,24 @@
     ],
     "systems": {
       "Hybrid": {
-        "RR@10": 0.8761666666666668,
+        "nDCG@10": 0.7374728661151956,
+        "nDCG@5": 0.7521892438384594,
+        "AP@10": 0.26041210936340187,
+        "RR@5": 0.8761666666666668,
         "R@10": 0.31339438662451846,
-        "R@5": 0.20284450954252506,
-        "nDCG@10": 0.7374728661151957,
-        "P@5": 0.7660000000000001,
-        "nDCG@5": 0.7521892438384593,
-        "AP@10": 0.2604121093634017,
-        "RR@5": 0.8761666666666668
+        "R@5": 0.20284450954252514,
+        "RR@10": 0.8761666666666668,
+        "P@5": 0.7659999999999997
       },
       "Hybrid+metadata_soft_rerank": {
-        "RR@10": 0.8806666666666668,
+        "nDCG@10": 0.7428446116147931,
+        "nDCG@5": 0.7541615284976737,
+        "AP@10": 0.26435773001443,
+        "RR@5": 0.8806666666666668,
         "R@10": 0.3172379856611407,
-        "R@5": 0.2041860274607907,
-        "nDCG@10": 0.7428446116147933,
-        "P@5": 0.7660000000000002,
-        "nDCG@5": 0.7541615284976736,
-        "AP@10": 0.26435773001442997,
-        "RR@5": 0.8806666666666668
+        "R@5": 0.2041860274607908,
+        "RR@10": 0.8806666666666668,
+        "P@5": 0.7659999999999997
       }
     },
     "delta": {
@@ -173,5 +173,47 @@
       "queries_empty_grounding": 7,
       "avg_filled_slots": 3.84
     }
+  },
+  "reliability": {
+    "interpretation": "directional regression benchmark, not final production quality proof",
+    "qrels_stats": {
+      "qrels_path": "data/evaluation/v3/qrels_pooled_3judge.tsv",
+      "judged_pairs": 8057,
+      "queries": 100,
+      "rel_distribution": {
+        "0": 4965,
+        "1": 2942,
+        "2": 150
+      },
+      "judged_per_query": {
+        "min": 59,
+        "median": 82,
+        "max": 95
+      },
+      "positive_per_query": {
+        "min": 1,
+        "median": 35,
+        "max": 80
+      },
+      "queries_without_positive": 0
+    },
+    "strengths": [
+      "3-judge median relevance labels",
+      "NO-self evaluation removes source document shortcut",
+      "Dense top-50 and BM25 top-50 fair pooling reduces pooling bias"
+    ],
+    "limits": [
+      "Queries are still evaluation-set structured complaints, not fresh production held-out complaints",
+      "query_signals are deterministic sidecar signals because eval queries do not contain PR #314 BE1 output",
+      "qrels are top-50 pool based and spotcheck reports remaining long-tail incompleteness",
+      "LLM filter numbers use cache projection and should be validated with live production filter runs",
+      "No human gold-seed agreement or statistical significance test is included in this PR"
+    ],
+    "recommended_next_checks": [
+      "Build a 50-100 pair human gold-seed set",
+      "Run evaluation on real BE1 structured query_signals after BE1 pipeline is available for held-out complaints",
+      "Add bootstrap confidence intervals or paired significance tests for metric deltas",
+      "Track production/offline failure cases by issue type, legal reference, department, and rel0 cause"
+    ]
   }
 }

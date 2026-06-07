@@ -92,6 +92,38 @@ def load_qrels_3judge() -> list[QrelRecord]:
     return qrels
 
 
+def qrels_stats(qrels: list[QrelRecord]) -> dict[str, Any]:
+    by_query: dict[str, list[QrelRecord]] = {}
+    rel_distribution: Counter[int] = Counter()
+    for row in qrels:
+        by_query.setdefault(row.qid, []).append(row)
+        rel_distribution[int(row.relevance)] += 1
+
+    judged_counts = sorted(len(rows) for rows in by_query.values())
+    positive_counts = sorted(sum(1 for row in rows if row.relevance >= 1) for rows in by_query.values())
+
+    def median(values: list[int]) -> int:
+        return values[len(values) // 2] if values else 0
+
+    return {
+        "qrels_path": str(QRELS_PATH.relative_to(ROOT)),
+        "judged_pairs": len(qrels),
+        "queries": len(by_query),
+        "rel_distribution": {str(key): rel_distribution.get(key, 0) for key in [0, 1, 2]},
+        "judged_per_query": {
+            "min": judged_counts[0] if judged_counts else 0,
+            "median": median(judged_counts),
+            "max": judged_counts[-1] if judged_counts else 0,
+        },
+        "positive_per_query": {
+            "min": positive_counts[0] if positive_counts else 0,
+            "median": median(positive_counts),
+            "max": positive_counts[-1] if positive_counts else 0,
+        },
+        "queries_without_positive": sum(1 for count in positive_counts if count == 0),
+    }
+
+
 def build_case_map(corpus: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
     by_case: dict[str, dict[str, Any]] = {}
     for row in corpus:
@@ -352,6 +384,8 @@ def write_summary(report: dict[str, Any]) -> None:
     general = report["general_search"]
     grounding = report["grounding"]
     signals = report["signals"]
+    reliability = report["reliability"]
+    qrels = reliability["qrels_stats"]
     base = general["systems"]["Hybrid"]
     meta = general["systems"]["Hybrid+metadata_soft_rerank"]
     delta = general["delta"]
@@ -394,6 +428,20 @@ def write_summary(report: dict[str, Any]) -> None:
             "- `legal_ref_ids` 후보 coverage: "
             f"{signals['final_candidate_signal_coverage']['non_empty_by_field'].get('legal_ref_ids', 0)}건"
         ),
+        "",
+        "## 평가 신뢰도 해석",
+        "",
+        (
+            f"- 현재 지표는 `{qrels['qrels_path']}`의 {qrels['queries']}개 쿼리, "
+            f"{qrels['judged_pairs']}개 판정쌍을 기준으로 계산했다."
+        ),
+        (
+            f"- relevance 분포: rel0={qrels['rel_distribution']['0']}, "
+            f"rel1={qrels['rel_distribution']['1']}, rel2={qrels['rel_distribution']['2']}."
+        ),
+        "- 3-채점관 median, no-self 제거, Dense/BM25 공정 풀링을 사용해 기존 평가보다 방법론은 개선됐다.",
+        "- 그래도 이 수치는 운영 품질의 최종 보증이 아니라, 검색 변경의 회귀 여부를 보는 방향성 지표로 해석해야 한다.",
+        "- 이유: 쿼리가 실제 신규 민원 held-out이 아니고, query_signals는 실제 BE1 출력이 아니라 deterministic sidecar이며, 정답표는 top-50 풀 기반이라 long-tail 불완전성이 남아 있다.",
         "",
         "## 일반 검색",
         "",
@@ -517,6 +565,28 @@ def main() -> None:
             },
             "llm_cache": {"path": str(LLM_CACHE.relative_to(ROOT)), **cache_stats},
             "existing_hybrid_llm_filter_baseline": load_existing_llm_filter_baseline(),
+        },
+        "reliability": {
+            "interpretation": "directional regression benchmark, not final production quality proof",
+            "qrels_stats": qrels_stats(qrels),
+            "strengths": [
+                "3-judge median relevance labels",
+                "NO-self evaluation removes source document shortcut",
+                "Dense top-50 and BM25 top-50 fair pooling reduces pooling bias",
+            ],
+            "limits": [
+                "Queries are still evaluation-set structured complaints, not fresh production held-out complaints",
+                "query_signals are deterministic sidecar signals because eval queries do not contain PR #314 BE1 output",
+                "qrels are top-50 pool based and spotcheck reports remaining long-tail incompleteness",
+                "LLM filter numbers use cache projection and should be validated with live production filter runs",
+                "No human gold-seed agreement or statistical significance test is included in this PR",
+            ],
+            "recommended_next_checks": [
+                "Build a 50-100 pair human gold-seed set",
+                "Run evaluation on real BE1 structured query_signals after BE1 pipeline is available for held-out complaints",
+                "Add bootstrap confidence intervals or paired significance tests for metric deltas",
+                "Track production/offline failure cases by issue type, legal reference, department, and rel0 cause",
+            ],
         },
     }
     OUT_JSON.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
