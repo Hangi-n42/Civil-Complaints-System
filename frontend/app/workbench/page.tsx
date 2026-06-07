@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { mockAssignedCases, mockWorkbenchSimilarCases } from "@/lib/mockData";
+import { mockAssignedCases } from "@/lib/mockData";
 import AppSidebar from "@/components/AppSidebar";
 import {
   type RoutingHint,
@@ -81,13 +81,6 @@ type AccordionDetail = {
   complaint: string;
   answer: string;
   tracks: DepartmentTrack[];
-};
-
-type MockWorkbenchSimilarCase = {
-  case_id?: string;
-  complaint?: string;
-  answer?: string;
-  department_tracks?: DepartmentTrack[];
 };
 
 function WorkbenchContent() {
@@ -605,13 +598,13 @@ function WorkbenchContent() {
                           <div className="grid gap-2 border-t border-slate-200 bg-[#f7f9fc] px-2 py-2 md:grid-cols-[1.1fr_0.9fr]">
                             <div className="rounded border border-slate-300 bg-white p-2">
                               <div className="mb-1 text-[11px] font-bold text-slate-600">유사민원</div>
-                              <div className="text-[12px] font-semibold text-slate-900">{getAccordionDetail(doc, index).complaint}</div>
-                              <div className="mt-2 text-[12px] leading-6 text-slate-600">{getAccordionDetail(doc, index).answer}</div>
+                              <div className="text-[12px] font-semibold text-slate-900">{getAccordionDetail(doc).complaint}</div>
+                              <div className="mt-2 text-[12px] leading-6 text-slate-600">{getAccordionDetail(doc).answer}</div>
                             </div>
                             <div className="rounded border border-slate-300 bg-white p-2">
                               <div className="mb-1 text-[11px] font-bold text-slate-600">타부서 메모</div>
                               <div className="space-y-1">
-                                {getAccordionDetail(doc, index).tracks.map((track: DepartmentTrack, memoIndex: number) => (
+                                {getAccordionDetail(doc).tracks.map((track: DepartmentTrack, memoIndex: number) => (
                                   <div key={`${doc.docId}-memo-${memoIndex}`} className="rounded border border-slate-200 bg-slate-50 p-2">
                                     <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
                                       <span>{track.admin_unit}</span>
@@ -804,10 +797,10 @@ function sanitizeTitle(value: string) {
   return value.split(" - ")[0].trim();
 }
 
-function getAccordionDetail(doc: RetrievedDoc, index: number): AccordionDetail {
+function getAccordionDetail(doc: RetrievedDoc): AccordionDetail {
   const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
   const complaint = doc.summary?.observation || doc.title;
-  const answer = doc.summary?.request || doc.snippet || "유사 민원 상세가 없습니다.";
+  const answer = doc.summary?.request ? `요청사항: ${doc.summary.request}` : doc.snippet || "유사 민원 상세가 없습니다.";
   const tracks: DepartmentTrack[] = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
     admin_unit: adminUnit,
     complaint: complaint || doc.title,
@@ -823,20 +816,15 @@ function getAccordionDetail(doc: RetrievedDoc, index: number): AccordionDetail {
     };
   }
 
-  const fallbackDetail = mockWorkbenchSimilarCases[index % mockWorkbenchSimilarCases.length] as MockWorkbenchSimilarCase | undefined;
-  const matched = (mockWorkbenchSimilarCases.find((item) => item.case_id === doc.caseId) as MockWorkbenchSimilarCase | undefined) || fallbackDetail;
-
   return {
-    complaint: matched?.complaint || complaint || doc.title,
-    answer: matched?.answer || answer,
-    tracks: matched?.department_tracks?.length
-      ? matched.department_tracks
-      : [
-          {
-            admin_unit: "참고부서",
-            complaint: doc.title,
-            answer: doc.snippet || "추가 메모가 없습니다.",
-          },
-        ],
+    complaint: complaint || doc.title,
+    answer,
+    tracks: [
+      {
+        admin_unit: "과거 답변",
+        complaint: doc.title,
+        answer: "이 검색 결과에는 별도 과거 답변 또는 부서 메모가 저장되어 있지 않습니다.",
+      },
+    ],
   };
 }
