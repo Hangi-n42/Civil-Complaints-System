@@ -141,6 +141,59 @@ class IndexResponseData(BaseModel):
     took_ms: Optional[int] = None
 
 
+class SearchQuerySignals(BaseModel):
+    """검색 soft rerank용 구조화 신호"""
+
+    entity_texts: List[str] = Field(default_factory=list)
+    legal_ref_names: List[str] = Field(default_factory=list)
+    legal_ref_ids: List[str] = Field(default_factory=list)
+    issue_types: List[str] = Field(default_factory=list)
+    key_terms: List[str] = Field(default_factory=list)
+    responsible_units: List[str] = Field(default_factory=list)
+
+    @field_validator(
+        "entity_texts",
+        "legal_ref_names",
+        "legal_ref_ids",
+        "issue_types",
+        "key_terms",
+        "responsible_units",
+        mode="before",
+    )
+    @classmethod
+    def normalize_signal_list_input(cls, value: Any) -> List[Any]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [item for item in value.split("|") if item]
+        if isinstance(value, list):
+            return value
+        return [value]
+
+    @field_validator(
+        "entity_texts",
+        "legal_ref_names",
+        "legal_ref_ids",
+        "issue_types",
+        "key_terms",
+        "responsible_units",
+    )
+    @classmethod
+    def dedupe_signal_values(cls, value: List[str]) -> List[str]:
+        normalized: List[str] = []
+        seen = set()
+        for item in value:
+            text = " ".join(str(item or "").split())
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(text)
+        return normalized
+
+
 class SearchRequest(BaseModel):
     """검색 요청"""
 
@@ -149,6 +202,7 @@ class SearchRequest(BaseModel):
     query: str
     top_k: int = 5
     filters: Optional[SearchFilters] = None
+    query_signals: Optional[SearchQuerySignals] = None
     collection_name: str = "civil_cases_v1"
 
 

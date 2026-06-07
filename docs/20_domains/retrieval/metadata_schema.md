@@ -41,6 +41,40 @@
 - `responsible_unit`은 BE1 기본값이 비활성일 수 있어 필수 신호로 보지 않는다.
 - 누락된 값은 빈 배열 또는 빈 문자열로 보존한다.
 
+### `/api/v1/search.query_signals`
+
+신규 민원 구조화 결과를 검색 쿼리와 함께 넘길 때는 `filters`가 아니라
+`query_signals`를 사용한다. 이 값은 후보를 제외하지 않고 순서만 살짝 조정한다.
+
+```json
+{
+  "query": "가로등 점검 요청",
+  "top_k": 5,
+  "query_signals": {
+    "entity_texts": ["가로등"],
+    "legal_ref_names": ["도로법"],
+    "legal_ref_ids": ["001706"],
+    "issue_types": ["시설보수"],
+    "key_terms": ["가로등", "점검"],
+    "responsible_units": ["도로관리과"]
+  }
+}
+```
+
+Soft rerank 점수 정책:
+
+| 신호 | boost |
+| --- | --- |
+| `legal_ref_ids` 일치 | `+0.08` |
+| `legal_ref_names` 일치 | `+0.06` |
+| `issue_types` 일치 | `+0.05` |
+| `entity_texts` 일치 | `+0.04` |
+| `responsible_units` 일치 | `+0.03` |
+| `key_terms` 겹침 | `+0.01 * overlap_count`, 최대 `+0.04` |
+
+전체 boost는 최대 `+0.20`이며, 최종 점수는 `base_score * (1 + boost)`로 계산한다.
+적용 순서는 `Hybrid -> metadata soft rerank -> grounding_filter -> top_k`이다.
+
 ## 3. 검색 API 필터 키 매핑
 
 `POST /api/v1/search`에서 아래 키를 사용한다.
