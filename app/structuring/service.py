@@ -27,8 +27,19 @@ import yaml
 from app.core.config import settings
 from app.core.exceptions import StructuringError
 from app.core.logging import pipeline_logger
+from app.structuring.enrichment import (
+    FACILITY_KEYWORDS,
+    build_key_terms,
+    classify_issue_type,
+    normalize_entity_texts,
+)
+from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.llm_extractor import LLMSemanticExtractor
 from app.structuring.merger import ResultMerger
+from app.structuring.structured_extractor import StructuredExtractor
+from app.structuring.structured_merge import merge_structured
+from app.structuring.verifier import make_ollama_verifier
+from app.structuring.urgency.scorer import get_urgency_scorer
 from app.structuring.schemas import RuleBasedNERResult
 
 
@@ -55,7 +66,8 @@ class StructuringService:
             r"|[가-힣]{2,8}(?:대로|번길|길)"
             r"|[가-힣]{1,3}(?:구|군)\s*[가-힣]{1,5}(?:동|읍|면|리)"
         )
-        self._facility_keywords = ["도로", "정류장", "가로등", "하수구", "교차로", "공사", "정수장", "놀이터"]
+        # 시설 체크리스트 고도화: enrichment.FACILITY_KEYWORDS (기존 8개 → 확장)
+        self._facility_keywords = list(FACILITY_KEYWORDS)
         self._hazard_keywords = ["소음", "분진", "악취", "위험", "정체", "사고", "누수", "파손"]
         self._season_time_keywords = ["봄", "여름", "가을", "겨울", "매일", "주말", "평일", "야간", "새벽", "여름마다"]
 
@@ -129,6 +141,13 @@ class StructuringService:
             max_text_len=settings.STRUCTURING_MAX_TEXT_LEN,
         )
         self._merger = ResultMerger()
+        # ① 제약 디코딩 추출기 (STRUCTURING_CONSTRAINED 플래그로 사용)
+        self._structured_extractor = StructuredExtractor(
+            ollama_url=settings.OLLAMA_BASE_URL,
+            model=settings.STRUCTURING_MODEL,
+            timeout=settings.STRUCTURING_TIMEOUT,
+            max_text_len=settings.STRUCTURING_MAX_TEXT_LEN,
+        )
 
     # ──────────────────────────────────────────────────────────────────
     # 입력 정규화 헬퍼
@@ -618,6 +637,54 @@ class StructuringService:
     # 종합 파이프라인
     # ──────────────────────────────────────────────────────────────────
 
+    def _assign_responsible_unit(
+        self,
+        text: str,
+        entity_texts: List[Dict[str, Any]],
+        key_terms: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """담당부서 후보(responsible_unit)를 도출한다 (요청 #3).
+
+        ENABLE_RESPONSIBLE_UNIT 플래그가 꺼져 있거나 임베딩 인덱스/모델이
+        미가용이면 빈 리스트로 안전 폴백한다(기존 파이프라인 영향 없음).
+        """
+        if not getattr(settings, "ENABLE_RESPONSIBLE_UNIT", False):
+            return []
+        try:
+            from app.structuring.department_assigner import (
+                build_query_text,
+                get_department_assigner,
+            )
+
+            query = build_query_text(
+                raw_text=text,
+                entity_texts=[e.get("text", "") for e in entity_texts if e.get("text")],
+                key_terms=key_terms or [],
+            )
+            return get_department_assigner().assign(
+                query, use_llm=getattr(settings, "RESPONSIBLE_UNIT_USE_LLM", False)
+            )
+        except Exception as exc:  # 인프라 미가용 시 구조화 자체는 계속 진행
+            self.logger.warning("responsible_unit 도출 생략(인프라 미가용): %s", exc)
+            return []
+
+    def _category_urgency_floor(self, category: str) -> Optional[str]:
+        """category SLA → 긴급도 floor(과소평가 방지). 매우급함→높음 / 급함→보통."""
+        p = self._priority_from_category(category)
+        return {"매우급함": "높음", "급함": "보통"}.get(p)
+
+    def _score_urgency(self, text: str, category: str) -> Dict[str, Any]:
+        """긴급도 산출(Track B). 모델 부재 시 규칙 폴백, 예외 시 안전 기본값."""
+        try:
+            return get_urgency_scorer().score(
+                text, category=category or "",
+                category_floor=self._category_urgency_floor(category or ""),
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning("긴급도 산출 실패, 기본값: %s", exc)
+            return {"level": "보통", "score": 0.0, "factors": {}, "evidence": [],
+                    "override": None, "method": "error"}
+
     async def structure(self, record: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """민원 원문을 구조화된 JSON으로 변환한다.
 
@@ -650,17 +717,31 @@ class StructuringService:
             ner_latency_ms = int((time.monotonic() - ner_started) * 1000)
             ner_result = RuleBasedNERResult(entities=entities, extraction_latency_ms=ner_latency_ms)
 
-            # Stage 2: LLM 4요소 추출
-            llm_output, llm_latency_ms = await self._llm_extractor.extract(text)
-
-            # Stage 3: 병합
-            merged = self._merger.merge(
-                raw_text=text,
-                ner_result=ner_result,
-                llm_output=llm_output,
-                llm_latency_ms=llm_latency_ms,
-                llm_model=settings.STRUCTURING_MODEL,
-            )
+            # Stage 2/3: ① 제약 디코딩 경로(플래그) 또는 기존 자유 JSON 경로
+            if getattr(settings, "STRUCTURING_CONSTRAINED", False):
+                structured, llm_latency_ms = await self._structured_extractor.extract(text)
+                verify_fn = None
+                if getattr(settings, "ENABLE_SELF_VERIFY", False):
+                    verify_fn = make_ollama_verifier(
+                        settings.OLLAMA_BASE_URL, settings.STRUCTURING_MODEL,
+                        timeout=settings.STRUCTURING_TIMEOUT,
+                    )
+                merged = merge_structured(
+                    raw_text=text, ner_result=ner_result, structured=structured,
+                    llm_latency_ms=llm_latency_ms, llm_model=settings.STRUCTURING_MODEL,
+                    verify_fn=verify_fn,
+                )
+            else:
+                # Stage 2: LLM 4요소 추출
+                llm_output, llm_latency_ms = await self._llm_extractor.extract(text)
+                # Stage 3: 병합
+                merged = self._merger.merge(
+                    raw_text=text,
+                    ner_result=ner_result,
+                    llm_output=llm_output,
+                    llm_latency_ms=llm_latency_ms,
+                    llm_model=settings.STRUCTURING_MODEL,
+                )
 
             # supervision (라벨링 데이터)
             supervision = await self.extract_supervision(normalized)
@@ -679,6 +760,21 @@ class StructuringService:
             }
             if supervision:
                 candidate["supervision"] = supervision
+
+            # BE1 고도화 — 검색 신호 보강 필드 (규칙 #6: confidence + evidence 포함)
+            candidate["entity_texts"] = normalize_entity_texts(entities, text)   # 요청 #1
+            candidate["issue_type"] = classify_issue_type(text)                  # 요청 #4
+            candidate["legal_refs"] = get_legal_ref_matcher().match(text)        # 요청 #2 (사전+도메인)
+            candidate["key_terms"] = build_key_terms(                            # 요청 #5
+                text,
+                candidate["entity_texts"],
+                candidate["issue_type"],
+                candidate["legal_refs"],
+            )
+            candidate["responsible_unit"] = self._assign_responsible_unit(       # 요청 #3
+                text, candidate["entity_texts"], candidate["key_terms"]
+            )
+            candidate["urgency"] = self._score_urgency(text, normalized["category"])  # 긴급도(Track B)
 
             # 신뢰도 점수
             candidate["confidence_score"] = await self.compute_confidence_score(candidate)

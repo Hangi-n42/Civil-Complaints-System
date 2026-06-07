@@ -73,5 +73,17 @@ class Settings:
     STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
     STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
 
+    # responsible_unit 도출 (요청 #3) — bge-m3/Chroma 인덱스 필요. 기본 off.
+    # 인덱스 빌드(build_index) 후 true 로 켤 것. true 라도 인프라 미가용 시 빈 리스트로 폴백.
+    ENABLE_RESPONSIBLE_UNIT: bool = os.getenv("ENABLE_RESPONSIBLE_UNIT", "false").lower() == "true"
+    RESPONSIBLE_UNIT_USE_LLM: bool = os.getenv("RESPONSIBLE_UNIT_USE_LLM", "false").lower() == "true"
+
+    # 구조화 고도화(Track A): ① 제약 디코딩 / ② 자기검증 (기본 off, 점진 전환)
+    STRUCTURING_CONSTRAINED: bool = os.getenv("STRUCTURING_CONSTRAINED", "false").lower() == "true"
+    ENABLE_SELF_VERIFY: bool = os.getenv("ENABLE_SELF_VERIFY", "false").lower() == "true"
+
+    # BE3 법령 조문 인용 그라운딩(Phase B). 인덱스/모델 미가용 시 자동 무동작.
+    ENABLE_LEGAL_CITATIONS: bool = os.getenv("ENABLE_LEGAL_CITATIONS", "true").lower() == "true"
+
 
 settings = Settings()

@@ -1,0 +1,301 @@
+{
+  "source_departments": 150,
+  "source_tasks": 3368,
+  "master_departments": 116,
+  "master_tasks": 1998,
+  "dropped_departments": 34,
+  "boilerplate_tasks_removed": 781,
+  "min_tasks_threshold": 2,
+  "dropped_detail": [
+    {
+      "department": "자치경찰위원회",
+      "reason": "blacklist",
+      "src_tasks": 23
+    },
+    {
+      "department": "사무국",
+      "reason": "blacklist",
+      "src_tasks": 23
+    },
+    {
+      "department": "자치경찰행정과",
+      "reason": "blacklist",
+      "src_tasks": 23
+    },
+    {
+      "department": "자치경찰관리과",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "감사위원회",
+      "reason": "blacklist",
+      "src_tasks": 20
+    },
+    {
+      "department": "감사담당관",
+      "reason": "blacklist",
+      "src_tasks": 19
+    },
+    {
+      "department": "청렴담당관",
+      "reason": "blacklist",
+      "src_tasks": 9
+    },
+    {
+      "department": "대변인",
+      "reason": "blacklist",
+      "src_tasks": 25
+    },
+    {
+      "department": "홍보담당관",
+      "reason": "blacklist",
+      "src_tasks": 25
+    },
+    {
+      "department": "공보담당관",
+      "reason": "blacklist",
+      "src_tasks": 40
+    },
+    {
+      "department": "행정부시장",
+      "reason": "blacklist",
+      "src_tasks": 1
+    },
+    {
+      "department": "기획조정실",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "기획관",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "기획담당관",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "조직담당관",
+      "reason": "blacklist",
+      "src_tasks": 25
+    },
+    {
+      "department": "법무담당관",
+      "reason": "blacklist",
+      "src_tasks": 9
+    },
+    {
+      "department": "예산담당관",
+      "reason": "blacklist",
+      "src_tasks": 12
+    },
+    {
+      "department": "공공기관담당관",
+      "reason": "blacklist",
+      "src_tasks": 14
+    },
+    {
+      "department": "재정협력담당관",
+      "reason": "blacklist",
+      "src_tasks": 27
+    },
+    {
+      "department": "세정정책담당관",
+      "reason": "blacklist",
+      "src_tasks": 9
+    },
+    {
+      "department": "세정운영담당관",
+      "reason": "blacklist",
+      "src_tasks": 16
+    },
+    {
+      "department": "회계재산담당관",
+      "reason": "blacklist",
+      "src_tasks": 24
+    },
+    {
+      "department": "행정자치국",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "자치행정과",
+      "reason": "blacklist",
+      "src_tasks": 23
+    },
+    {
+      "department": "총무과",
+      "reason": "blacklist",
+      "src_tasks": 21
+    },
+    {
+      "department": "인사과",
+      "reason": "blacklist",
+      "src_tasks": 31
+    },
+    {
+      "department": "정보화정책과",
+      "reason": "blacklist",
+      "src_tasks": 31
+    },
+    {
+      "department": "미래혁신부시장",
+      "reason": "blacklist",
+      "src_tasks": 1
+    },
+    {
+      "department": "교통혁신국",
+      "reason": "too_few_after_clean",
+      "src_tasks": 13,
+      "cleaned_tasks": 1
+    },
+    {
+      "department": "교통혁신과",
+      "reason": "too_few_after_clean",
+      "src_tasks": 13,
+      "cleaned_tasks": 1
+    },
+    {
+      "department": "소방재난본부장",
+      "reason": "blacklist",
+      "src_tasks": 1
+    },
+    {
+      "department": "소방행정과",
+      "reason": "blacklist",
+      "src_tasks": 10
+    },
+    {
+      "department": "소방감사담당관",
+      "reason": "blacklist",
+      "src_tasks": 10
+    },
+    {
+      "department": "회계장비담당관",
+      "reason": "blacklist",
+      "src_tasks": 10
+    }
+  ],
+  "kept_departments": [
+    "권익보호담당관",
+    "금융창업정책관",
+    "창업벤처담당관",
+    "금융블록체인담당관",
+    "인구정책담당관",
+    "시민안전실",
+    "안전정책과",
+    "중대재해예방과",
+    "자연재난과",
+    "사회재난과",
+    "원자력안전과",
+    "특별사법경찰과",
+    "디지털경제실",
+    "경제정책과",
+    "일자리노동과",
+    "중소상공인지원과",
+    "투자유치과",
+    "기업지원과",
+    "산업입지과",
+    "첨단산업국",
+    "산업정책과",
+    "반도체신소재과",
+    "미래에너지산업과",
+    "미래기술전략국",
+    "연구개발과",
+    "인공지능소프트웨어과",
+    "바이오헬스과",
+    "빅테이터과",
+    "청년산학국",
+    "청년정책과",
+    "지산학협력과",
+    "창조교육과",
+    "문화국",
+    "문화예술과",
+    "문화유산과",
+    "영상콘텐츠산업과",
+    "체육국",
+    "체육정책과",
+    "생활체육과",
+    "전국체전기획단",
+    "관광마이스국",
+    "관광정책과",
+    "관광마이스산업과",
+    "국제협력과",
+    "사회복지국",
+    "복지정책과",
+    "돌봄복지과",
+    "장애인복지과",
+    "노인복지과",
+    "시민건강국",
+    "건강정책과",
+    "보건위생과",
+    "감염병관리과",
+    "여성가족국",
+    "여성가족과",
+    "출산보육과",
+    "아동청소년과",
+    "통합민원과",
+    "부울경초광역경제동맹추진본부",
+    "초광역기획과",
+    "초광역사업과",
+    "도시혁신균형실",
+    "미래혁신기획과",
+    "철도시설과",
+    "북항재개발추진과",
+    "도시인프라개발과",
+    "건설행정과",
+    "미래공간전략국",
+    "도시공간전략과",
+    "15분도시과",
+    "생활공간혁신과",
+    "도시계획국",
+    "도시계획과",
+    "시설계획과",
+    "도로계획과",
+    "도로안전과",
+    "기술심사과",
+    "토지정보과",
+    "주택건축국",
+    "주택정책과",
+    "건축정책과",
+    "도시정비과",
+    "도시공간활력과",
+    "미래디자인본부",
+    "대중교통과",
+    "택시운수과",
+    "트라이포트기획과",
+    "신공항추진본부",
+    "공항기획과",
+    "신공항도시과",
+    "신공항사업지원단",
+    "환경물정책실",
+    "환경정책과",
+    "맑은물정책과",
+    "탄소중립정책과",
+    "자원순환과",
+    "하천관리과",
+    "공공하수인프라과",
+    "푸른도시국",
+    "공원여가정책과",
+    "공원도시과",
+    "푸른숲도시과",
+    "반려동물과",
+    "해양농수산국",
+    "해양수도정책과",
+    "해운항만과",
+    "수산정책과",
+    "수산진흥과",
+    "농축산유통과",
+    "소방재난본부",
+    "방호조사과",
+    "구조구급과",
+    "119종합상황실",
+    "재난예방담당관",
+    "119특수대응단",
+    "119안전체험관"
+  ]
+}
