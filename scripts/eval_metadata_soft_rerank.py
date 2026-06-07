@@ -4,8 +4,8 @@
   - 일반 검색: Hybrid vs Hybrid + metadata soft rerank
   - grounding: Hybrid vs Hybrid + metadata soft rerank vs LLM-filter cache projection
 
-평가 데이터에는 PR #314 신규 메타데이터가 없으므로, BE1 deterministic enrichment와
-category/source를 sidecar signals로 생성해 사용한다.
+평가 query에는 PR #314 신규 메타데이터가 없으므로, query signal은 BE1
+deterministic enrichment sidecar로 생성해 사용한다.
 
 산출:
   - reports/retrieval/v3/metadata_soft_rerank_eval.json
@@ -13,6 +13,7 @@ category/source를 sidecar signals로 생성해 사용한다.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from collections import Counter
@@ -38,6 +39,7 @@ from scripts.run_v3_evaluation import load_corpus, load_queries, run_bm25, run_d
 OUT_JSON = ROOT / "reports" / "retrieval" / "v3" / "metadata_soft_rerank_eval.json"
 OUT_MD = ROOT / "reports" / "retrieval" / "v3" / "metadata_soft_rerank_summary.md"
 QRELS_PATH = ROOT / "data" / "evaluation" / "v3" / "qrels_pooled_3judge.tsv"
+EVAL_SET_LABEL = "qrels_pooled_3judge, NO-self"
 LLM_CACHE = ROOT / "data" / "evaluation" / "v3" / "checkpoints" / "llm_rerank_full.json"
 EXISTING_GROUNDING = ROOT / "reports" / "retrieval" / "v3" / "grounding_filter_effect.json"
 
@@ -78,6 +80,13 @@ def _has_any_signal(signals: dict[str, list[str]]) -> bool:
     return any(signals.get(field) for field in SIGNAL_FIELDS)
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def load_qrels_3judge() -> list[QrelRecord]:
     qrels: list[QrelRecord] = []
     with QRELS_PATH.open(encoding="utf-8-sig") as f:
@@ -106,7 +115,7 @@ def qrels_stats(qrels: list[QrelRecord]) -> dict[str, Any]:
         return values[len(values) // 2] if values else 0
 
     return {
-        "qrels_path": str(QRELS_PATH.relative_to(ROOT)),
+        "qrels_path": _display_path(QRELS_PATH),
         "judged_pairs": len(qrels),
         "queries": len(by_query),
         "rel_distribution": {str(key): rel_distribution.get(key, 0) for key in [0, 1, 2]},
@@ -495,6 +504,20 @@ def write_summary(report: dict[str, Any]) -> None:
 
 
 def main() -> None:
+    global OUT_JSON, OUT_MD, QRELS_PATH, EVAL_SET_LABEL
+
+    parser = argparse.ArgumentParser(description="metadata soft rerank 평가")
+    parser.add_argument("--qrels-path", type=Path, default=QRELS_PATH)
+    parser.add_argument("--out-json", type=Path, default=OUT_JSON)
+    parser.add_argument("--out-md", type=Path, default=OUT_MD)
+    parser.add_argument("--eval-set-label", default=EVAL_SET_LABEL)
+    args = parser.parse_args()
+
+    QRELS_PATH = args.qrels_path if args.qrels_path.is_absolute() else ROOT / args.qrels_path
+    OUT_JSON = args.out_json if args.out_json.is_absolute() else ROOT / args.out_json
+    OUT_MD = args.out_md if args.out_md.is_absolute() else ROOT / args.out_md
+    EVAL_SET_LABEL = args.eval_set_label
+
     R.TOP_K = DEPTH
     queries = load_queries()
     corpus = load_corpus()
@@ -537,7 +560,7 @@ def main() -> None:
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "eval_set": "qrels_pooled_3judge, NO-self",
+        "eval_set": EVAL_SET_LABEL,
         "n_queries": len(queries),
         "depth": DEPTH,
         "rrf_k": RRF_K,
