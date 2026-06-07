@@ -203,6 +203,13 @@ class SearchResultMetadata(BaseModel):
     category: Optional[str] = None
     region: Optional[str] = None
     entity_labels: List[str] = Field(default_factory=list)
+    entity_texts: List[str] = Field(default_factory=list)
+    legal_ref_names: List[str] = Field(default_factory=list)
+    legal_ref_ids: List[str] = Field(default_factory=list)
+    issue_types: List[str] = Field(default_factory=list)
+    key_terms: List[str] = Field(default_factory=list)
+    responsible_units: List[str] = Field(default_factory=list)
+    urgency_level: Optional[str] = None
     strategy_id: Optional[str] = None
     route_key: Optional[str] = None
     topic_type: Optional[str] = None

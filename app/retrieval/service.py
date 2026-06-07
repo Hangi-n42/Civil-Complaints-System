@@ -258,6 +258,74 @@ class RetrievalService:
 
         return str(record.get("text", "")).strip()
 
+    def _dedupe_strings(self, values: List[Any]) -> List[str]:
+        normalized: List[str] = []
+        seen = set()
+        for value in values:
+            text = " ".join(str(value or "").split())
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(text)
+        return normalized
+
+    def _extract_signal_values(
+        self,
+        value: Any,
+        *,
+        keys: tuple[str, ...] = ("name", "text"),
+    ) -> List[str]:
+        if value is None:
+            return []
+
+        if isinstance(value, str):
+            return self._dedupe_strings([item for item in value.split("|") if item])
+
+        if isinstance(value, dict):
+            raw_items = [value]
+        elif isinstance(value, list):
+            raw_items = value
+        else:
+            raw_items = [value]
+
+        extracted: List[Any] = []
+        for item in raw_items:
+            if isinstance(item, dict):
+                for key in keys:
+                    if item.get(key):
+                        extracted.append(item.get(key))
+                        break
+            else:
+                extracted.append(item)
+        return self._dedupe_strings(extracted)
+
+    def _extract_legal_ref_signals(self, value: Any) -> tuple[List[str], List[str]]:
+        if value is None:
+            return [], []
+
+        raw_items = value if isinstance(value, list) else [value]
+        names: List[Any] = []
+        law_ids: List[Any] = []
+        for item in raw_items:
+            if isinstance(item, dict):
+                names.append(item.get("name"))
+                law_ids.append(item.get("law_id"))
+            else:
+                names.append(item)
+
+        return self._dedupe_strings(names), self._dedupe_strings(law_ids)
+
+    def _extract_urgency_level(self, value: Any) -> str:
+        if isinstance(value, dict):
+            return " ".join(str(value.get("level") or "").split())
+        if isinstance(value, list):
+            values = self._extract_signal_values(value, keys=("level", "name", "text"))
+            return values[0] if values else ""
+        return " ".join(str(value or "").split())
+
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
@@ -276,6 +344,52 @@ class RetrievalService:
             region = metadata.get("region")
 
         entity_labels, entity_texts, confidence = self._extract_entities(record)
+        search_entity_texts = (
+            self._extract_signal_values(
+                record.get("entity_texts", metadata.get("entity_texts")),
+                keys=("text", "name"),
+            )
+            or entity_texts
+        )
+        legal_ref_names, legal_ref_ids = self._extract_legal_ref_signals(
+            record.get("legal_refs", metadata.get("legal_refs"))
+        )
+        legal_ref_names = legal_ref_names or self._extract_signal_values(
+            record.get("legal_ref_names", metadata.get("legal_ref_names")),
+            keys=("name", "text"),
+        )
+        legal_ref_ids = legal_ref_ids or self._extract_signal_values(
+            record.get("legal_ref_ids", metadata.get("legal_ref_ids")),
+            keys=("law_id", "id", "text", "name"),
+        )
+        issue_type_value = record.get(
+            "issue_type",
+            record.get("issue_types", metadata.get("issue_type", metadata.get("issue_types"))),
+        )
+        issue_types = self._extract_signal_values(
+            issue_type_value,
+            keys=("name", "text"),
+        )
+        key_terms = self._extract_signal_values(
+            record.get("key_terms", metadata.get("key_terms")),
+            keys=("term", "text", "name"),
+        )
+        responsible_unit_value = record.get(
+            "responsible_unit",
+            record.get(
+                "responsible_units",
+                metadata.get("responsible_unit", metadata.get("responsible_units")),
+            ),
+        )
+        responsible_units = self._extract_signal_values(
+            responsible_unit_value,
+            keys=("name", "unit", "text"),
+        )
+        urgency_value = record.get(
+            "urgency",
+            record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
+        )
+        urgency_level = self._extract_urgency_level(urgency_value)
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
@@ -306,6 +420,13 @@ class RetrievalService:
             "title": title,
             "entity_labels": entity_labels,
             "entity_texts": entity_texts,
+            "search_entity_texts": search_entity_texts,
+            "legal_ref_names": legal_ref_names,
+            "legal_ref_ids": legal_ref_ids,
+            "issue_types": issue_types,
+            "key_terms": key_terms,
+            "responsible_units": responsible_units,
+            "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),
                 "request": self._get_request_text(record),

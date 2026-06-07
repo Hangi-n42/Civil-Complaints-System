@@ -39,6 +39,16 @@ async def test_retrieval_service_indexes_and_searches_via_chroma(tmp_path, monke
             "category": "도로안전",
             "region": "서울시 강남구",
             "entity_labels": ["FACILITY", "HAZARD"],
+            "entities": [
+                {"label": "FACILITY", "text": "가로등"},
+                {"label": "HAZARD", "text": "야간 보행 위험"},
+            ],
+            "entity_texts": [{"text": "가로등", "confidence": 0.9}],
+            "legal_refs": [{"name": "도로법", "law_id": "001706"}],
+            "issue_type": [{"name": "시설보수"}],
+            "key_terms": ["가로등", "조명", "점검"],
+            "responsible_unit": [{"name": "도로관리과"}],
+            "urgency": {"level": "높음"},
             "summary": {
                 "observation": "가로등 점멸",
                 "request": "조명 점검 요청",
@@ -88,4 +98,11 @@ async def test_retrieval_service_indexes_and_searches_via_chroma(tmp_path, monke
     assert results[0]["chunk_id"] == "CASE-2026-000101__chunk-0"
     assert results[0]["summary"]["observation"] == "가로등 점멸"
     assert results[0]["metadata"]["entity_labels"] == ["FACILITY", "HAZARD"]
+    assert results[0]["metadata"]["entity_texts"] == ["가로등"]
+    assert results[0]["metadata"]["legal_ref_names"] == ["도로법"]
+    assert results[0]["metadata"]["legal_ref_ids"] == ["001706"]
+    assert results[0]["metadata"]["issue_types"] == ["시설보수"]
+    assert results[0]["metadata"]["key_terms"] == ["가로등", "조명", "점검"]
+    assert results[0]["metadata"]["responsible_units"] == ["도로관리과"]
+    assert results[0]["metadata"]["urgency_level"] == "높음"
     assert results[0]["rank"] == 1

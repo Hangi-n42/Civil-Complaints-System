@@ -1,7 +1,7 @@
 # 검색 메타데이터 구조 초안 (Week 1, BE2)
 
-문서 버전: v1.0  
-작성일: 2026-03-17  
+문서 버전: v1.1
+작성일: 2026-06-08
 담당: BE2 (민건)
 
 ## 1. 목적
@@ -18,6 +18,28 @@
 | `category` | string | N | BE1 (우선), BE2 어댑터(보정) | 카테고리 필터 |
 | `region` | string | N | BE1 (우선), BE2 어댑터(보정) | 지역 필터 |
 | `entity_labels` | array[string] | N | BE1 | NER 태그 목록 |
+
+## 2-1. 검색 rerank 보조 신호
+
+아래 키는 PR #314 이후 BE1 구조화 결과에서 넘어오는 검색 보조 신호다. BE2는 ChromaDB
+메타데이터 제약 때문에 인덱싱 시 `|` 구분 문자열로 저장하고, 검색 결과에서는 다시
+`array[string]`으로 복원한다. 현재 단계에서는 hard filter가 아니라 후속 soft rerank
+신호로만 사용한다.
+
+| BE1 원본 필드 | Chroma 메타데이터 키 | 검색 결과 타입 | 설명 |
+| --- | --- | --- | --- |
+| `entity_texts[].text` | `entity_texts` | array[string] | 정규화된 대상/시설/개념명 |
+| `legal_refs[].name` | `legal_ref_names` | array[string] | 관련 법령명 |
+| `legal_refs[].law_id` | `legal_ref_ids` | array[string] | 법령 식별자 |
+| `issue_type[].name` | `issue_types` | array[string] | 쟁점 유형 |
+| `key_terms` | `key_terms` | array[string] | 핵심 키워드 |
+| `responsible_unit[].name` | `responsible_units` | array[string] | 후보 담당부서/소관기관 |
+| `urgency.level` | `urgency_level` | string | 긴급도 레벨 |
+
+운영 주의:
+- `confidence`는 아직 보정되지 않았으므로 절대 임계값 필터로 쓰지 않는다.
+- `responsible_unit`은 BE1 기본값이 비활성일 수 있어 필수 신호로 보지 않는다.
+- 누락된 값은 빈 배열 또는 빈 문자열로 보존한다.
 
 ## 3. 검색 API 필터 키 매핑
 
