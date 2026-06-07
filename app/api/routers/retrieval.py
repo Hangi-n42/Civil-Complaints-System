@@ -324,6 +324,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             request_segments=routing["request_segments"],
             retrieval_policy=routing["retrieval_policy"],
             snippet_max_chars=routing["routing_hint"]["snippet_max_chars"],
+            query_signals=request.query_signals.model_dump() if request.query_signals else None,
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)

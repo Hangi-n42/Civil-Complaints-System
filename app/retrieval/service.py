@@ -24,6 +24,18 @@ from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
 from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 
 
+METADATA_SOFT_RERANK_WEIGHTS = {
+    "legal_ref_ids": 0.08,
+    "legal_ref_names": 0.06,
+    "issue_types": 0.05,
+    "entity_texts": 0.04,
+    "responsible_units": 0.03,
+}
+METADATA_SOFT_RERANK_KEY_TERM_WEIGHT = 0.01
+METADATA_SOFT_RERANK_KEY_TERM_MAX = 0.04
+METADATA_SOFT_RERANK_MAX_BOOST = 0.20
+
+
 class RetrievalService:
     """검색 서비스"""
 
@@ -664,6 +676,77 @@ class RetrievalService:
             item["rank"] = rank
         return results_list
 
+    def _normalize_query_signals(
+        self,
+        query_signals: Optional[Dict[str, Any]],
+    ) -> Dict[str, List[str]]:
+        if not isinstance(query_signals, dict):
+            return {}
+
+        normalized: Dict[str, List[str]] = {}
+        for field in (
+            "entity_texts",
+            "legal_ref_names",
+            "legal_ref_ids",
+            "issue_types",
+            "key_terms",
+            "responsible_units",
+        ):
+            values = self._extract_signal_values(query_signals.get(field))
+            if values:
+                normalized[field] = values
+        return normalized
+
+    def _overlap_count(self, left: List[str], right: List[str]) -> int:
+        left_set = {str(item).casefold() for item in left if str(item).strip()}
+        right_set = {str(item).casefold() for item in right if str(item).strip()}
+        return len(left_set.intersection(right_set))
+
+    def _metadata_soft_boost(
+        self,
+        query_signals: Dict[str, List[str]],
+        item: Dict[str, Any],
+    ) -> float:
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        boost = 0.0
+
+        for field, weight in METADATA_SOFT_RERANK_WEIGHTS.items():
+            candidate_values = self._extract_signal_values(metadata.get(field))
+            if self._overlap_count(query_signals.get(field, []), candidate_values) > 0:
+                boost += weight
+
+        key_term_overlap = self._overlap_count(
+            query_signals.get("key_terms", []),
+            self._extract_signal_values(metadata.get("key_terms")),
+        )
+        boost += min(
+            METADATA_SOFT_RERANK_KEY_TERM_MAX,
+            METADATA_SOFT_RERANK_KEY_TERM_WEIGHT * key_term_overlap,
+        )
+        return min(METADATA_SOFT_RERANK_MAX_BOOST, boost)
+
+    def _apply_metadata_soft_rerank(
+        self,
+        results: List[Dict[str, Any]],
+        query_signals: Optional[Dict[str, List[str]]],
+    ) -> List[Dict[str, Any]]:
+        if not query_signals or not any(query_signals.values()):
+            return results
+
+        reranked: List[Dict[str, Any]] = []
+        for item in results:
+            updated = dict(item)
+            updated["metadata"] = dict(item.get("metadata") or {})
+            boost = self._metadata_soft_boost(query_signals, updated)
+            base_score = float(updated.get("score", 0.0) or 0.0)
+            updated["score"] = round(base_score * (1.0 + boost), 6)
+            reranked.append(updated)
+
+        reranked.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
+        for rank, item in enumerate(reranked, start=1):
+            item["rank"] = rank
+        return reranked
+
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
     ) -> List[str]:
@@ -766,6 +849,7 @@ class RetrievalService:
         snippet_max_chars: Optional[int] = None,
         strategy: Optional[str] = None,
         grounding_filter: Optional[bool] = None,
+        query_signals: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -791,6 +875,8 @@ class RetrievalService:
             grounding_on = (
                 settings.GROUNDING_FILTER_ENABLED if grounding_filter is None else grounding_filter
             )
+            normalized_query_signals = self._normalize_query_signals(query_signals)
+            metadata_rerank_on = bool(normalized_query_signals)
             segments = self._normalize_request_segments(query, request_segments)
             if len(segments) > 1:
                 segment_results = []
@@ -810,12 +896,15 @@ class RetrievalService:
                     )
                     segment_results.append((segment, results_for_segment))
                 results = self._merge_segment_results(segment_results, top_k=top_k)
+                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
             else:
                 # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
                 effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
                 use_hybrid = effective_strategy == "hybrid" and not (filters or {})
                 # grounding 필터 시엔 채점 후 줄어드므로 후보 풀을 더 확보
                 retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
+                if metadata_rerank_on:
+                    retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
                 fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
                 dense_results = store.query(
                     collection_name=collection_key,
@@ -841,9 +930,12 @@ class RetrievalService:
                     topic_type=topic_type,
                     retrieval_policy=retrieval_policy,
                 )
+                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
 
             if grounding_on and results:
                 results = await self._apply_grounding_filter(query, results, top_k)
+            elif metadata_rerank_on:
+                results = results[: max(1, top_k)]
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results
