@@ -194,6 +194,11 @@ def test_normalize_response_enforces_week6_shape():
         "hallucination_flag",
         "segment_coverage",
     }
+    assert payload["generation_metadata"] == {
+        "fallback_used": False,
+        "parse_retry_count": 0,
+        "generation_mode": "default",
+    }
 
 
 def test_validate_unified_contract_detects_missing():
@@ -201,6 +206,7 @@ def test_validate_unified_contract_detects_missing():
     assert "routing_trace" in missing
     assert "structured_output" in missing
     assert "quality_signals" in missing
+    assert "generation_metadata" in missing
 
 
 class _DummyRetrievalService:

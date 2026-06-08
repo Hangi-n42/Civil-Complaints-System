@@ -254,6 +254,11 @@ def _build_no_similar_case_payload(
                 "hallucination_flag": False,
                 "segment_coverage": 1.0 if request_segments else 0.0,
             },
+            "generation_metadata": {
+                "fallback_used": True,
+                "parse_retry_count": 0,
+                "generation_mode": "no_evidence_fallback",
+            },
         }
     )
 
@@ -630,6 +635,14 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 "hallucination_flag": False,
                 "segment_coverage": 1.0 if routing_trace.get("request_segments") else 0.0,
             },
+            "generation_metadata": result.get(
+                "generation_metadata",
+                {
+                    "fallback_used": False,
+                    "parse_retry_count": 0,
+                    "generation_mode": "default",
+                },
+            ),
         }
     )
 
