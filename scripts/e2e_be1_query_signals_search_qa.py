@@ -72,43 +72,6 @@ def _extract_field_values(items: Any, field: str) -> list[str]:
     return _clean_values([item.get(field) for item in items if isinstance(item, dict)])
 
 
-def _safe_non_negative_int(value: Any) -> int:
-    try:
-        return max(0, int(value or 0))
-    except (TypeError, ValueError):
-        return 0
-
-
-def normalize_generation_metadata(value: Any) -> dict[str, Any]:
-    """BE3 generation_metadata를 E2E 리포트용 기본 형태로 정규화한다."""
-
-    metadata = value if isinstance(value, dict) else {}
-    return {
-        "fallback_used": bool(metadata.get("fallback_used", False)),
-        "parse_retry_count": _safe_non_negative_int(metadata.get("parse_retry_count")),
-        "generation_mode": _clean_text(metadata.get("generation_mode")) or "default",
-        "legal_grounding_status": (
-            _clean_text(metadata.get("legal_grounding_status")) or "not_requested"
-        ),
-        "legal_grounding_error": _clean_text(metadata.get("legal_grounding_error")),
-    }
-
-
-def build_generation_warnings(
-    *,
-    answer_chars: int,
-    generation_metadata: dict[str, Any],
-) -> list[str]:
-    warnings: list[str] = []
-    if answer_chars <= 0:
-        warnings.append("empty_answer")
-    if generation_metadata.get("fallback_used"):
-        warnings.append("fallback_used")
-    if generation_metadata.get("legal_grounding_status") == "error":
-        warnings.append("legal_grounding_error")
-    return warnings
-
-
 def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
     """BE1 구조화 출력에서 /search query_signals payload를 만든다."""
 
@@ -286,23 +249,12 @@ async def maybe_generate_answer(
         },
         query_signals=query_signals,
     )
-    answer_chars = len(str(result.get("answer") or ""))
-    generation_metadata = normalize_generation_metadata(
-        result.get("generation_metadata")
-    )
-    warnings = build_generation_warnings(
-        answer_chars=answer_chars,
-        generation_metadata=generation_metadata,
-    )
     return {
-        "status": "warning" if warnings else "ok",
-        "warnings": warnings,
-        "answer_chars": answer_chars,
+        "status": "ok",
+        "answer_chars": len(str(result.get("answer") or "")),
         "answer_preview": _clean_text(result.get("answer"))[:240],
         "citation_count": len(result.get("citations") or []),
         "model": result.get("model"),
-        "generation_metadata": generation_metadata,
-        "generation_warnings": warnings,
         "context_trace": context_trace,
     }
 
@@ -407,18 +359,6 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         and int(row["with_signals_top"][0].get("metadata_overlap_total") or 0) > 0
     )
     grounding_runs = [row for row in successful if row.get("grounding_top") or row.get("grounding_error")]
-    generation_rows = [
-        row.get("generation", {})
-        for row in successful
-        if row.get("generation", {}).get("status") != "skipped"
-    ]
-    generation_mode_counts: dict[str, int] = {}
-    for item in generation_rows:
-        mode = normalize_generation_metadata(
-            item.get("generation_metadata")
-        )["generation_mode"]
-        generation_mode_counts[mode] = generation_mode_counts.get(mode, 0) + 1
-
     return {
         "records": len(rows),
         "successful_records": len(successful),
@@ -435,37 +375,9 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "grounding_run_count": len(grounding_runs),
         "grounding_error_count": sum(1 for row in successful if row.get("grounding_error")),
-        "generation_run_count": len(generation_rows),
-        "generation_warning_count": sum(
-            len(item.get("warnings") or item.get("generation_warnings") or [])
-            for item in generation_rows
+        "generation_run_count": sum(
+            1 for row in successful if row.get("generation", {}).get("status") != "skipped"
         ),
-        "generation_error_count": sum(
-            1 for item in generation_rows if item.get("status") == "error"
-        ),
-        "generation_empty_answer_count": sum(
-            1
-            for item in generation_rows
-            if item.get("status") in {"ok", "warning"}
-            and _safe_non_negative_int(item.get("answer_chars")) <= 0
-        ),
-        "generation_fallback_count": sum(
-            1
-            for item in generation_rows
-            if normalize_generation_metadata(
-                item.get("generation_metadata")
-            )["fallback_used"]
-        ),
-        "generation_max_parse_retry_count": max(
-            (
-                normalize_generation_metadata(
-                    item.get("generation_metadata")
-                )["parse_retry_count"]
-                for item in generation_rows
-            ),
-            default=0,
-        ),
-        "generation_mode_counts": generation_mode_counts,
     }
 
 
@@ -496,12 +408,6 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- baseline 빈 결과: {summary['baseline_empty_count']}건",
         f"- query_signals 적용 후 빈 결과: {summary['with_signals_empty_count']}건",
         f"- grounding filter 오류: {summary['grounding_error_count']}건",
-        f"- 답변 생성 경고: {summary['generation_warning_count']}건",
-        f"- 답변 생성 오류: {summary['generation_error_count']}건",
-        f"- 빈 답변: {summary['generation_empty_answer_count']}건",
-        f"- fallback 사용: {summary['generation_fallback_count']}건",
-        f"- 최대 JSON 파싱 재시도: {summary['generation_max_parse_retry_count']}회",
-        f"- 답변 생성 모드: `{summary['generation_mode_counts']}`",
         "",
         "## 신호 생성 커버리지",
         "",

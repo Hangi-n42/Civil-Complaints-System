@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from scripts.e2e_be1_query_signals_search_qa import (
-    build_generation_warnings,
     build_summary,
     compare_rankings,
     extract_query_signals,
-    normalize_generation_metadata,
     overlap_by_field,
     render_markdown,
 )
@@ -35,30 +33,6 @@ def test_extract_query_signals_from_be1_structured_output():
         "responsible_units": ["교통국"],
         "urgency_level": "높음",
     }
-
-
-def test_generation_metadata_merge_helpers():
-    metadata = normalize_generation_metadata(
-        {
-            "fallback_used": True,
-            "parse_retry_count": "2",
-            "generation_mode": " compact ",
-            "legal_grounding_status": "error",
-            "legal_grounding_error": "store unavailable",
-        }
-    )
-
-    assert metadata == {
-        "fallback_used": True,
-        "parse_retry_count": 2,
-        "generation_mode": "compact",
-        "legal_grounding_status": "error",
-        "legal_grounding_error": "store unavailable",
-    }
-    assert build_generation_warnings(
-        answer_chars=0,
-        generation_metadata=metadata,
-    ) == ["empty_answer", "fallback_used", "legal_grounding_error"]
 
 
 def test_overlap_by_field_accepts_pipe_encoded_metadata():
@@ -136,18 +110,6 @@ def test_build_summary_and_markdown_are_korean_report_ready():
                     "baseline_top1": "A",
                     "with_signals_top1": "B",
                 },
-                "generation": {
-                    "status": "warning",
-                    "warnings": ["empty_answer"],
-                    "answer_chars": 0,
-                    "citation_count": 1,
-                    "generation_metadata": {
-                        "fallback_used": False,
-                        "parse_retry_count": 1,
-                        "generation_mode": "force_json",
-                    },
-                    "generation_warnings": ["fallback_used"],
-                },
             }
         ],
     }
@@ -157,11 +119,5 @@ def test_build_summary_and_markdown_are_korean_report_ready():
 
     assert report["summary"]["successful_records"] == 1
     assert report["summary"]["top1_changed_count"] == 1
-    assert report["summary"]["generation_warning_count"] == 1
-    assert report["summary"]["generation_empty_answer_count"] == 1
-    assert report["summary"]["generation_mode_counts"] == {"force_json": 1}
     assert "BE1 query_signals 검색 E2E 검증 요약" in markdown
     assert "해석 주의" in markdown
-    assert "답변 생성 건축" not in markdown
-    assert "빈 답변" in markdown
-    assert "empty_answer" not in markdown
