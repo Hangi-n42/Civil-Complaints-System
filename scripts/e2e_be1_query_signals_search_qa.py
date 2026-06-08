@@ -290,17 +290,19 @@ async def maybe_generate_answer(
     generation_metadata = normalize_generation_metadata(
         result.get("generation_metadata")
     )
+    warnings = build_generation_warnings(
+        answer_chars=answer_chars,
+        generation_metadata=generation_metadata,
+    )
     return {
-        "status": "ok",
+        "status": "warning" if warnings else "ok",
+        "warnings": warnings,
         "answer_chars": answer_chars,
         "answer_preview": _clean_text(result.get("answer"))[:240],
         "citation_count": len(result.get("citations") or []),
         "model": result.get("model"),
         "generation_metadata": generation_metadata,
-        "generation_warnings": build_generation_warnings(
-            answer_chars=answer_chars,
-            generation_metadata=generation_metadata,
-        ),
+        "generation_warnings": warnings,
         "context_trace": context_trace,
     }
 
@@ -405,6 +407,18 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         and int(row["with_signals_top"][0].get("metadata_overlap_total") or 0) > 0
     )
     grounding_runs = [row for row in successful if row.get("grounding_top") or row.get("grounding_error")]
+    generation_rows = [
+        row.get("generation", {})
+        for row in successful
+        if row.get("generation", {}).get("status") != "skipped"
+    ]
+    generation_mode_counts: dict[str, int] = {}
+    for item in generation_rows:
+        mode = normalize_generation_metadata(
+            item.get("generation_metadata")
+        )["generation_mode"]
+        generation_mode_counts[mode] = generation_mode_counts.get(mode, 0) + 1
+
     return {
         "records": len(rows),
         "successful_records": len(successful),
@@ -421,13 +435,37 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "grounding_run_count": len(grounding_runs),
         "grounding_error_count": sum(1 for row in successful if row.get("grounding_error")),
-        "generation_run_count": sum(
-            1 for row in successful if row.get("generation", {}).get("status") != "skipped"
-        ),
+        "generation_run_count": len(generation_rows),
         "generation_warning_count": sum(
-            len(row.get("generation", {}).get("generation_warnings") or [])
-            for row in successful
+            len(item.get("warnings") or item.get("generation_warnings") or [])
+            for item in generation_rows
         ),
+        "generation_error_count": sum(
+            1 for item in generation_rows if item.get("status") == "error"
+        ),
+        "generation_empty_answer_count": sum(
+            1
+            for item in generation_rows
+            if item.get("status") in {"ok", "warning"}
+            and _safe_non_negative_int(item.get("answer_chars")) <= 0
+        ),
+        "generation_fallback_count": sum(
+            1
+            for item in generation_rows
+            if normalize_generation_metadata(
+                item.get("generation_metadata")
+            )["fallback_used"]
+        ),
+        "generation_max_parse_retry_count": max(
+            (
+                normalize_generation_metadata(
+                    item.get("generation_metadata")
+                )["parse_retry_count"]
+                for item in generation_rows
+            ),
+            default=0,
+        ),
+        "generation_mode_counts": generation_mode_counts,
     }
 
 
@@ -459,6 +497,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- query_signals 적용 후 빈 결과: {summary['with_signals_empty_count']}건",
         f"- grounding filter 오류: {summary['grounding_error_count']}건",
         f"- 답변 생성 경고: {summary['generation_warning_count']}건",
+        f"- 답변 생성 오류: {summary['generation_error_count']}건",
+        f"- 빈 답변: {summary['generation_empty_answer_count']}건",
+        f"- fallback 사용: {summary['generation_fallback_count']}건",
+        f"- 최대 JSON 파싱 재시도: {summary['generation_max_parse_retry_count']}회",
+        f"- 답변 생성 모드: `{summary['generation_mode_counts']}`",
         "",
         "## 신호 생성 커버리지",
         "",

@@ -137,7 +137,15 @@ def test_build_summary_and_markdown_are_korean_report_ready():
                     "with_signals_top1": "B",
                 },
                 "generation": {
-                    "status": "ok",
+                    "status": "warning",
+                    "warnings": ["empty_answer"],
+                    "answer_chars": 0,
+                    "citation_count": 1,
+                    "generation_metadata": {
+                        "fallback_used": False,
+                        "parse_retry_count": 1,
+                        "generation_mode": "force_json",
+                    },
                     "generation_warnings": ["fallback_used"],
                 },
             }
@@ -150,5 +158,10 @@ def test_build_summary_and_markdown_are_korean_report_ready():
     assert report["summary"]["successful_records"] == 1
     assert report["summary"]["top1_changed_count"] == 1
     assert report["summary"]["generation_warning_count"] == 1
+    assert report["summary"]["generation_empty_answer_count"] == 1
+    assert report["summary"]["generation_mode_counts"] == {"force_json": 1}
     assert "BE1 query_signals 검색 E2E 검증 요약" in markdown
     assert "해석 주의" in markdown
+    assert "답변 생성 건축" not in markdown
+    assert "빈 답변" in markdown
+    assert "empty_answer" not in markdown
