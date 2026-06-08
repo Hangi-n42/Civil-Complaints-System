@@ -77,6 +77,24 @@ def test_metadata_soft_rerank_lifts_matching_metadata_candidate():
     assert reranked[0]["score"] == pytest.approx(0.096 * 1.20)
 
 
+def test_metadata_soft_rerank_responsible_units_only_is_soft_signal():
+    service = RetrievalService()
+    query_signals = service._normalize_query_signals(
+        {"responsible_units": ["도로관리과"]}
+    )
+    results = [
+        _result("CASE-NOMATCH", 0.100, {"responsible_units": ["공원관리과"]}),
+        _result("CASE-MATCH", 0.098, {"responsible_units": ["도로관리과"]}),
+    ]
+
+    reranked = service._apply_metadata_soft_rerank(results, query_signals)
+
+    assert [item["case_id"] for item in reranked] == ["CASE-MATCH", "CASE-NOMATCH"]
+    assert [item["rank"] for item in reranked] == [1, 2]
+    assert reranked[0]["score"] == pytest.approx(0.098 * 1.03)
+    assert reranked[1]["score"] == pytest.approx(0.100)
+
+
 def test_metadata_soft_rerank_boost_is_capped():
     service = RetrievalService()
     query_signals = service._normalize_query_signals(
