@@ -73,7 +73,6 @@ python scripts/e2e_be1_query_signals_search_qa.py \
 | `with_signals_top1_has_metadata_overlap_count` | 1등 후보가 query_signals와 실제 metadata를 공유하는 샘플 수 |
 | `with_signals_empty_count` | 신호 적용 후 빈 결과가 생겼는지 |
 | `grounding_error_count` | grounding filter 실행 중 오류가 있었는지 |
-
 좋은 결과는 “빈 결과는 늘지 않고, metadata overlap이 있는 후보가 조금 더 위로 올라가는 것”이다.
 반대로 top1이 자주 바뀌는데 overlap 근거가 약하면 boost가 검색을 흔드는지 확인해야 한다.
 
