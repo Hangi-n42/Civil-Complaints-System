@@ -42,6 +42,13 @@ def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").split())
 
 
+def _safe_non_negative_int(value: Any) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _clean_values(values: Any) -> list[str]:
     if values is None:
         raw_values: list[Any] = []
@@ -249,12 +256,20 @@ async def maybe_generate_answer(
         },
         query_signals=query_signals,
     )
+    answer = _clean_text(result.get("answer"))
+    generation_metadata = normalize_generation_metadata(result.get("generation_metadata"))
+    warnings = build_generation_warnings(
+        answer_chars=len(answer),
+        generation_metadata=generation_metadata,
+    )
     return {
-        "status": "ok",
-        "answer_chars": len(str(result.get("answer") or "")),
-        "answer_preview": _clean_text(result.get("answer"))[:240],
+        "status": "warning" if warnings else "ok",
+        "warnings": warnings,
+        "answer_chars": len(answer),
+        "answer_preview": answer[:240],
         "citation_count": len(result.get("citations") or []),
         "model": result.get("model"),
+        "generation_metadata": generation_metadata,
         "context_trace": context_trace,
     }
 
@@ -359,6 +374,17 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         and int(row["with_signals_top"][0].get("metadata_overlap_total") or 0) > 0
     )
     grounding_runs = [row for row in successful if row.get("grounding_top") or row.get("grounding_error")]
+    generation_rows = [
+        row.get("generation", {})
+        for row in successful
+        if row.get("generation", {}).get("status") != "skipped"
+    ]
+    generation_mode_counts: dict[str, int] = {}
+    for generation in generation_rows:
+        metadata = normalize_generation_metadata(generation.get("generation_metadata"))
+        mode = str(metadata.get("generation_mode") or "default")
+        generation_mode_counts[mode] = generation_mode_counts.get(mode, 0) + 1
+
     return {
         "records": len(rows),
         "successful_records": len(successful),
@@ -375,9 +401,35 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         ),
         "grounding_run_count": len(grounding_runs),
         "grounding_error_count": sum(1 for row in successful if row.get("grounding_error")),
-        "generation_run_count": sum(
-            1 for row in successful if row.get("generation", {}).get("status") != "skipped"
+        "generation_run_count": len(generation_rows),
+        "generation_ok_count": sum(1 for item in generation_rows if item.get("status") == "ok"),
+        "generation_warning_count": sum(
+            1 for item in generation_rows if item.get("status") == "warning"
         ),
+        "generation_error_count": sum(1 for item in generation_rows if item.get("status") == "error"),
+        "generation_empty_answer_count": sum(
+            1
+            for item in generation_rows
+            if item.get("status") in {"ok", "warning"}
+            and _safe_non_negative_int(item.get("answer_chars")) <= 0
+        ),
+        "generation_fallback_count": sum(
+            1
+            for item in generation_rows
+            if normalize_generation_metadata(item.get("generation_metadata")).get("fallback_used")
+        ),
+        "generation_max_parse_retry_count": max(
+            [
+                _safe_non_negative_int(
+                    normalize_generation_metadata(item.get("generation_metadata")).get(
+                        "parse_retry_count"
+                    )
+                )
+                for item in generation_rows
+            ],
+            default=0,
+        ),
+        "generation_mode_counts": generation_mode_counts,
     }
 
 
@@ -427,6 +479,45 @@ def render_markdown(report: dict[str, Any]) -> str:
                 "- 실제 BE1 구조화까지 검증하려면 `--structuring-mode actual`로 다시 실행해야 합니다.",
             ]
         )
+
+    if args["run_generation"]:
+        mode_counts = summary.get("generation_mode_counts", {})
+        mode_text = ", ".join(
+            f"{mode}: {count}" for mode, count in sorted(mode_counts.items())
+        ) or "-"
+        lines.extend(
+            [
+                "",
+                "## 답변 생성 관측",
+                "",
+                f"- 답변 생성 실행 건수: {summary.get('generation_run_count', 0)}건",
+                f"- 정상 생성: {summary.get('generation_ok_count', 0)}건",
+                f"- 생성 경고: {summary.get('generation_warning_count', 0)}건",
+                f"- 생성 오류: {summary.get('generation_error_count', 0)}건",
+                f"- 빈 답변: {summary.get('generation_empty_answer_count', 0)}건",
+                f"- fallback 사용: {summary.get('generation_fallback_count', 0)}건",
+                f"- 최대 JSON 파싱 재시도: {summary.get('generation_max_parse_retry_count', 0)}회",
+                f"- generation mode 분포: {mode_text}",
+                "",
+                "| case_id | 상태 | mode | fallback | retry | 답변 글자 수 | 경고 |",
+                "| --- | --- | --- | --- | ---: | ---: | --- |",
+            ]
+        )
+        for row in rows[:30]:
+            generation = row.get("generation", {})
+            metadata = normalize_generation_metadata(generation.get("generation_metadata"))
+            warnings = ", ".join(generation.get("warnings") or [])
+            lines.append(
+                "| {case_id} | {status} | {mode} | {fallback} | {retry} | {answer_chars} | {warnings} |".format(
+                    case_id=row.get("case_id", ""),
+                    status=generation.get("status", ""),
+                    mode=metadata.get("generation_mode", "default"),
+                    fallback="예" if metadata.get("fallback_used") else "아니오",
+                    retry=metadata.get("parse_retry_count", 0),
+                    answer_chars=_safe_non_negative_int(generation.get("answer_chars")),
+                    warnings=warnings or "-",
+                )
+            )
 
     lines.extend(
         [
