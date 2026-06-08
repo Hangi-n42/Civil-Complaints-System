@@ -65,6 +65,15 @@ def parse_qa_json_response(text: str) -> Dict[str, Any]:
                 details={"stage": "schema", "missing_fields": missing},
             )
 
+        answer = str(result.get("answer") or "").strip()
+        if not answer:
+            raise GenerationError(
+                "answer 필드는 빈 문자열일 수 없습니다.",
+                code="PARSE_SCHEMA_MISMATCH",
+                retryable=True,
+                details={"stage": "schema", "field": "answer"},
+            )
+
         if not isinstance(result.get("citations"), list):
             raise GenerationError(
                 "citations 필드는 배열이어야 합니다.",
@@ -107,6 +116,7 @@ def parse_qa_json_response(text: str) -> Dict[str, Any]:
 
             normalized_citations.append(citation)
 
+        result["answer"] = answer
         result["citations"] = normalized_citations
         result["confidence"] = normalize_confidence(result.get("confidence", 0.5))
         result["limitations"] = limitations

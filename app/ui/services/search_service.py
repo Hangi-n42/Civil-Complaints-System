@@ -134,6 +134,8 @@ def normalize_qa_response_from_api(payload: Dict[str, Any]) -> Dict[str, Any]:
             "success": False,
             "answer": "",
             "citations": [],
+            "legal_citations": [],
+            "legal_citation_warnings": [],
             "limitations": None,
             "confidence": None,
             "meta": {},
@@ -148,39 +150,106 @@ def normalize_qa_response_from_api(payload: Dict[str, Any]) -> Dict[str, Any]:
     success = bool(root_success) if root_success is not None else bool(src.get("answer") or src.get("citations"))
     citations = src.get("citations")
     citations = citations if isinstance(citations, list) else []
+    legal_citations = src.get("legal_citations")
+    legal_citations = legal_citations if isinstance(legal_citations, list) else []
+    legal_warnings = src.get("legal_citation_warnings")
+    legal_warnings = legal_warnings if isinstance(legal_warnings, list) else []
 
     return {
         "success": success,
         "answer": str(src.get("answer", "") or ""),
         "citations": citations,
+        "legal_citations": legal_citations,
+        "legal_citation_warnings": legal_warnings,
         "limitations": src.get("limitations"),
         "confidence": src.get("confidence"),
         "meta": src.get("meta", {}) if isinstance(src.get("meta"), dict) else {},
-        "qa_validation": src.get("qa_validation") if isinstance(src.get("qa_validation"), dict) else None,
+        "qa_validation": (
+            payload.get("qa_validation")
+            if isinstance(payload.get("qa_validation"), dict)
+            else src.get("qa_validation")
+            if isinstance(src.get("qa_validation"), dict)
+            else None
+        ),
+        "search_trace": payload.get("search_trace") if isinstance(payload.get("search_trace"), dict) else None,
+        "citation_validation": (
+            payload.get("citation_validation")
+            if isinstance(payload.get("citation_validation"), dict)
+            else None
+        ),
         "error": payload.get("error") if isinstance(payload.get("error"), dict) else None,
+    }
+
+
+def build_qa_query_signals(case: Dict[str, Any] | None) -> Dict[str, Any]:
+    """UI 케이스의 BE1 구조화 결과를 /qa query_signals 계약으로 변환한다."""
+
+    case = case if isinstance(case, dict) else {}
+    structured = case.get("structured")
+    structured = structured if isinstance(structured, dict) else {}
+
+    def _values(value: Any, key: str | None = None) -> list[str]:
+        items = value if isinstance(value, list) else []
+        result: list[str] = []
+        seen = set()
+        for item in items:
+            raw = item.get(key) if key and isinstance(item, dict) else item
+            text = " ".join(str(raw or "").split())
+            if not text or text.casefold() in seen:
+                continue
+            seen.add(text.casefold())
+            result.append(text)
+        return result
+
+    urgency = structured.get("urgency")
+    urgency_level = urgency.get("level") if isinstance(urgency, dict) else urgency
+    signals = {
+        "entity_texts": _values(structured.get("entity_texts"), "text"),
+        "legal_ref_names": _values(structured.get("legal_refs"), "name"),
+        "legal_ref_ids": _values(structured.get("legal_refs"), "law_id"),
+        "issue_types": _values(structured.get("issue_type"), "name"),
+        "key_terms": _values(structured.get("key_terms")),
+        "responsible_units": _values(structured.get("responsible_unit"), "name"),
+        "urgency_level": " ".join(str(urgency_level or "").split()),
+    }
+    return {
+        key: value
+        for key, value in signals.items()
+        if value
     }
 
 
 def run_qa_via_api(
     *,
+    complaint_id: str,
     query: str,
+    routing_hint: dict[str, Any],
     top_k: int,
     use_search_results: bool,
     search_results: list[dict[str, Any]] | None,
     filters: dict[str, Any] | None,
+    query_signals: dict[str, Any] | None = None,
     timeout: float = 35.0,
 ) -> tuple[Dict[str, Any], str | None]:
     """/api/v1/qa를 호출하고 (normalized_payload, friendly_error) 를 반환한다."""
 
     payload = {
+        "complaint_id": str(complaint_id or "").strip(),
         "query": query,
+        "routing_hint": routing_hint,
         "top_k": int(top_k or 5),
         "use_search_results": bool(use_search_results),
         "search_results": search_results or [],
         "filters": filters or None,
+        "query_signals": query_signals or None,
     }
 
-    res, status_code, err = post_json(st.session_state.api_base_url, "/api/v1/qa", payload, timeout=timeout)
+    res, status_code, err = post_json(
+        st.session_state.get("api_base_url", "http://localhost:8000"),
+        "/api/v1/qa",
+        payload,
+        timeout=timeout,
+    )
     if err and not res:
         return {}, get_friendly_error_message_for_api("qa", int(status_code or 0), str(err))
 
@@ -269,6 +338,8 @@ def search_cases_via_api_with_filters(
     region: str,
     category: str,
     entity_labels: List[str],
+    complaint_id: str | None = None,
+    query_signals: dict[str, Any] | None = None,
 ) -> tuple[List[Dict[str, Any]], str | None]:
     """지정된 필터로 /api/v1/search를 호출한다.
 
@@ -294,18 +365,41 @@ def search_cases_via_api_with_filters(
     if entity_labels:
         filters["entity_labels"] = entity_labels
 
+    if not complaint_id or query_signals is None:
+        selected_id = str(st.session_state.get("selected_case_id") or "").strip()
+        for case in st.session_state.get("mock_cases", []):
+            if not isinstance(case, dict) or str(case.get("case_id") or "") != selected_id:
+                continue
+            complaint_id = complaint_id or selected_id
+            query_signals = query_signals if query_signals is not None else build_qa_query_signals(case)
+            break
+
     payload = {
+        "complaint_id": str(complaint_id or "").strip() or None,
         "query": query,
         "top_k": top_k,
         "filters": filters or None,
+        "query_signals": query_signals or None,
     }
 
-    res, status_code, err = post_json(st.session_state.api_base_url, "/api/v1/search", payload, timeout=25.0)
+    res, status_code, err = post_json(
+        st.session_state.get("api_base_url", "http://localhost:8000"),
+        "/api/v1/search",
+        payload,
+        timeout=25.0,
+    )
 
     if err:
         return [], get_friendly_error_message(int(status_code or 0), str(err))
 
     if isinstance(res, dict) and res.get("success") is True:
+        data = res.get("data") if isinstance(res.get("data"), dict) else {}
+        st.session_state["last_search_contract"] = {
+            "complaint_id": data.get("complaint_id") or complaint_id,
+            "routing_hint": data.get("routing_hint"),
+            "routing_trace": data.get("routing_trace"),
+            "query_signals": query_signals or None,
+        }
         return normalize_search_results_from_api(res), None
 
     raw_msg = (

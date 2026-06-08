@@ -5,6 +5,7 @@ import json
 import pytest
 
 from app.core.config import settings
+from app.core.exceptions import GenerationError
 from app.generation.service import GenerationService
 
 
@@ -67,6 +68,8 @@ async def test_generate_qa_reports_retry_then_force_json_success(monkeypatch):
         "fallback_used": False,
         "parse_retry_count": 1,
         "generation_mode": "force_json",
+        "legal_grounding_status": "no_candidates",
+        "legal_grounding_error": "",
     }
 
 
@@ -89,5 +92,61 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
         "fallback_used": True,
         "parse_retry_count": 3,
         "generation_mode": "fast_fallback",
+        "legal_grounding_status": "no_candidates",
+        "legal_grounding_error": "",
     }
     assert "폴백" in result["limitations"]
+
+
+@pytest.mark.asyncio
+async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
+    service = GenerationService()
+    empty_answer = json.dumps(
+        {
+            "answer": "",
+            "citations": [],
+            "limitations": "근거 제한",
+        },
+        ensure_ascii=False,
+    )
+    responses = iter([empty_answer, _valid_response()])
+
+    async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
+        return f"mode={mode}"
+
+    async def fake_call_ollama(prompt, temperature=0.7):
+        return next(responses)
+
+    monkeypatch.setattr(service, "build_rag_prompt", fake_build_rag_prompt)
+    monkeypatch.setattr(service, "call_ollama", fake_call_ollama)
+
+    result = await service.generate_qa("처리 기준을 알려주세요.", CONTEXT)
+
+    assert result["answer"]
+    assert result["generation_metadata"] == {
+        "fallback_used": False,
+        "parse_retry_count": 1,
+        "generation_mode": "force_json",
+        "legal_grounding_status": "no_candidates",
+        "legal_grounding_error": "",
+    }
+
+
+@pytest.mark.asyncio
+async def test_relaxed_parser_rejects_empty_answer_directly():
+    service = GenerationService()
+    payload = json.dumps(
+        {
+            "answer": "",
+            "citations": [],
+            "limitations": "근거 제한",
+        },
+        ensure_ascii=False,
+    )
+
+    with pytest.raises(GenerationError) as exc_info:
+        await service.parse_json_response_relaxed(payload, CONTEXT)
+
+    error = exc_info.value
+    assert getattr(error, "code", "") == "PARSE_SCHEMA_MISMATCH"
+    assert getattr(error, "details", {}).get("field") == "answer"

@@ -72,9 +72,11 @@ def _extract_field_values(items: Any, field: str) -> list[str]:
     return _clean_values([item.get(field) for item in items if isinstance(item, dict)])
 
 
-def extract_query_signals(structured: dict[str, Any]) -> dict[str, list[str]]:
+def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
     """BE1 구조화 출력에서 /search query_signals payload를 만든다."""
 
+    urgency = structured.get("urgency")
+    urgency_level = urgency.get("level") if isinstance(urgency, dict) else urgency
     return {
         "entity_texts": _extract_field_values(structured.get("entity_texts"), "text"),
         "legal_ref_names": _extract_field_values(structured.get("legal_refs"), "name"),
@@ -82,6 +84,7 @@ def extract_query_signals(structured: dict[str, Any]) -> dict[str, list[str]]:
         "issue_types": _extract_field_values(structured.get("issue_type"), "name"),
         "key_terms": _clean_values(structured.get("key_terms")),
         "responsible_units": _extract_field_values(structured.get("responsible_unit"), "name"),
+        "urgency_level": _clean_text(urgency_level),
     }
 
 
@@ -224,6 +227,7 @@ async def maybe_generate_answer(
     query: str,
     search_results: list[dict[str, Any]],
     top_k: int,
+    query_signals: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from app.generation.service import get_generation_service
 
@@ -243,6 +247,7 @@ async def maybe_generate_answer(
             "complexity_level": "medium",
             "complexity_score": 0.5,
         },
+        query_signals=query_signals,
     )
     return {
         "status": "ok",
@@ -310,6 +315,7 @@ async def run_one(
                 query=query,
                 search_results=grounding_results or with_signals,
                 top_k=top_k,
+                query_signals=query_signals,
             )
         except Exception as exc:  # noqa: BLE001
             generation = {"status": "error", "reason": str(exc)}

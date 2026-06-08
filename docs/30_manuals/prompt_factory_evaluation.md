@@ -42,6 +42,10 @@ python scripts/Be3_run_week6_model_benchmark.py \
 
 검색 컨텍스트가 0개면 `NoEvidenceError`로 즉시 실패한다. 에러 details에는 `derived_query`, `collection_name`, `top_k/effective_top_k`, `filters`, `threshold`, `topic_type`, `complexity_level`, `route_key`, `strategy_id`, `retrieval_policy`가 포함된다.
 
+이 fail-fast 규칙은 평가·벤치마크용 PromptFactory autoretrieve 경로에 적용된다.
+사용자용 `/api/v1/qa`는 같은 상황에서 근거 없는 사실 단정을 하지 않는
+`no_evidence_fallback` 응답을 반환하므로 두 경로를 구분해서 해석한다.
+
 우선 아래 순서로 확인한다.
 
 ```bash

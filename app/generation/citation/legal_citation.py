@@ -102,7 +102,7 @@ def ground_legal_citations(
     Returns:
         {
           "answer": 검증 후 답변(환각 인용 제거),
-          "valid": [...검증된 인용(+source_url/law_id)...],
+          "valid": [...검증된 인용(+public_url/law_id, source_url 제외)...],
           "invalid": [...환각 인용...],
           "warnings": ["미검증 인용 제거: ..."],
         }
@@ -119,7 +119,11 @@ def ground_legal_citations(
     def _clean(items: List[Dict[str, Any]], add_public: bool = False) -> List[Dict[str, Any]]:
         result = []
         for c in items:
-            c = {k: v for k, v in c.items() if k != "_span"}
+            c = {
+                k: v
+                for k, v in c.items()
+                if k not in {"_span", "source_url"}
+            }
             if add_public:
                 c["public_url"] = public_law_url(
                     c.get("law_name", ""), c.get("article_no", ""), c.get("doc_type", "law"))

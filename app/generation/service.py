@@ -529,6 +529,13 @@ class GenerationService:
                 if value:
                     answer = value
                     break
+        if not answer:
+            raise GenerationError(
+                "answer 및 대체 응답 필드가 모두 비어 있습니다.",
+                code="PARSE_SCHEMA_MISMATCH",
+                retryable=True,
+                details={"stage": "schema", "field": "answer"},
+            )
 
         raw_citations = payload.get("citations") if isinstance(payload.get("citations"), list) else []
         citations: List[Dict[str, Any]] = []
@@ -656,12 +663,35 @@ class GenerationService:
                 retryable=True,
             ) from e
 
-    def _prepare_legal_context(self, query: str):
-        """질의 → 법령 후보(law_id) → 조문 검색 + 프롬프트 주입 블록. 미가용 시 ([], "")."""
+    @staticmethod
+    def _normalize_generation_signals(
+        query_signals: Dict[str, Any] | None,
+    ) -> Dict[str, Any]:
+        signals = dict(query_signals or {})
+        for key in (
+            "legal_ref_ids",
+            "legal_ref_names",
+            "key_terms",
+            "responsible_units",
+        ):
+            value = signals.get(key)
+            signals[key] = value if isinstance(value, list) else []
+        urgency = signals.get("urgency_level")
+        if isinstance(urgency, dict):
+            urgency = urgency.get("level")
+        signals["urgency_level"] = str(urgency or "").strip()
+        return signals
+
+    def _prepare_legal_context(
+        self,
+        query: str,
+        query_signals: Dict[str, Any] | None = None,
+    ):
+        """질의 → 법령 후보 → 조문 검색 결과와 관측 상태를 반환한다."""
         try:
             from app.core.config import settings as _st
             if not getattr(_st, "ENABLE_LEGAL_CITATIONS", True):
-                return [], ""
+                return [], "", {"status": "disabled", "error": ""}
             from app.structuring.legal_dictionary import get_legal_ref_matcher
             from app.structuring.enrichment import (
                 build_key_terms, classify_issue_type, normalize_entity_texts,
@@ -669,22 +699,87 @@ class GenerationService:
             from app.generation.citation.legal_citation import (
                 retrieve_legal_context, build_legal_context_block, LEGAL_CITATION_INSTRUCTION,
             )
-            refs = get_legal_ref_matcher().match(query)
-            et = normalize_entity_texts([], query)
-            it = classify_issue_type(query)
-            kt = build_key_terms(query, et, it, refs)
+            signals = self._normalize_generation_signals(query_signals)
+            ref_ids = [
+                str(item).strip()
+                for item in signals["legal_ref_ids"]
+                if str(item).strip()
+            ]
+            ref_names = [
+                str(item).strip()
+                for item in signals["legal_ref_names"]
+                if str(item).strip()
+            ]
+            if ref_ids:
+                names_are_aligned = len(ref_names) == len(ref_ids)
+                refs = [
+                    {
+                        "law_id": law_id,
+                        "name": ref_names[index] if names_are_aligned else "",
+                        "source": "be1_query_signals",
+                    }
+                    for index, law_id in enumerate(ref_ids)
+                ]
+            else:
+                refs = get_legal_ref_matcher().match(query)
+
+            kt = [
+                str(item).strip()
+                for item in signals["key_terms"]
+                if str(item).strip()
+            ]
+            if not kt:
+                et = normalize_entity_texts([], query)
+                it = classify_issue_type(query)
+                kt = build_key_terms(query, et, it, refs)
             articles = retrieve_legal_context(query, refs, key_terms=kt, top_k=5)
             if not articles:
-                return [], ""
+                return [], "", {"status": "no_candidates", "error": ""}
             extra = "\n\n" + LEGAL_CITATION_INSTRUCTION + "\n" + build_legal_context_block(articles)
-            return articles, extra
+            return articles, extra, {"status": "grounded", "error": ""}
         except Exception as e:  # noqa: BLE001
             self.logger.warning("법령 그라운딩 준비 생략: %s", e)
-            return [], ""
+            return [], "", {
+                "status": "error",
+                "error": f"{type(e).__name__}: legal grounding unavailable",
+            }
 
-    def _apply_legal_grounding(self, result: Dict[str, Any], articles) -> Dict[str, Any]:
+    def _build_urgency_context(
+        self,
+        query_signals: Dict[str, Any] | None = None,
+    ) -> str:
+        """BE1 긴급도 신호를 과단정 없이 답변 안전 안내에 반영한다."""
+        signals = self._normalize_generation_signals(query_signals)
+        level = signals["urgency_level"]
+        if level not in {"긴급", "높음"}:
+            return ""
+
+        units = [
+            str(item).strip()
+            for item in signals["responsible_units"]
+            if str(item).strip()
+        ]
+        unit_hint = f" 담당부서 후보는 {', '.join(units[:2])}입니다." if units else ""
+        return (
+            "\n\n[긴급도 보조 신호]\n"
+            f"- BE1 긴급도 후보: {level}.{unit_hint}\n"
+            "- 이 값은 미보정 보조 신호이므로 긴급성을 확정하거나 점수를 노출하지 마세요.\n"
+            "- 민원 원문에 생명·신체·화재·가스·붕괴 등 즉시 위험 근거가 있을 때만 "
+            "현장 접근 중단과 112/119 등 긴급 신고를 답변 서두에 안내하세요.\n"
+            "- 즉시 위험 근거가 부족하면 담당부서의 신속한 현장 확인과 연락 방법을 우선 안내하고, "
+            "확인되지 않은 부서명·전화번호·처리기한은 만들지 마세요."
+        )
+
+    def _apply_legal_grounding(
+        self,
+        result: Dict[str, Any],
+        articles,
+        grounding_status: Dict[str, str],
+    ) -> Dict[str, Any]:
         """답변의 법령 인용을 검색 조문과 대조 → 환각 제거 + legal_citations 부착."""
         try:
+            result.setdefault("legal_citations", [])
+            result.setdefault("legal_citation_warnings", [])
             if not articles:
                 return result
             from app.generation.citation.legal_citation import ground_legal_citations
@@ -694,6 +789,10 @@ class GenerationService:
             result["legal_citation_warnings"] = g["warnings"]
         except Exception as e:  # noqa: BLE001
             self.logger.warning("법령 인용 검증 생략: %s", e)
+            grounding_status["status"] = "error"
+            grounding_status["error"] = (
+                f"{type(e).__name__}: legal citation validation unavailable"
+            )
         return result
 
     async def generate_qa(
@@ -701,6 +800,7 @@ class GenerationService:
         query: str,
         context: List[Dict[str, Any]],
         routing_trace: Dict[str, Any] | None = None,
+        query_signals: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         """
         QA 응답 생성 (RAG)
@@ -731,7 +831,11 @@ class GenerationService:
                 {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
-            legal_articles, legal_extra = self._prepare_legal_context(query)  # Phase B 조문 그라운딩
+            legal_articles, legal_extra, legal_grounding = self._prepare_legal_context(
+                query,
+                query_signals=query_signals,
+            )
+            urgency_extra = self._build_urgency_context(query_signals)
 
             for attempt_index, step in enumerate(retry_steps, start=1):
                 try:
@@ -743,6 +847,8 @@ class GenerationService:
                     )
                     if legal_extra:
                         prompt = prompt + legal_extra
+                    if urgency_extra:
+                        prompt = prompt + urgency_extra
                     response_text = await self.call_ollama(
                         prompt,
                         temperature=float(step["temperature"]),
@@ -808,10 +914,22 @@ class GenerationService:
                     "fallback_used": fallback_used,
                     "parse_retry_count": len(retry_logs),
                     "generation_mode": generation_mode,
+                    "legal_grounding_status": legal_grounding["status"],
+                    "legal_grounding_error": legal_grounding["error"],
                 },
             }
 
-            result = self._apply_legal_grounding(result, legal_articles)
+            result = self._apply_legal_grounding(
+                result,
+                legal_articles,
+                legal_grounding,
+            )
+            result["generation_metadata"].update(
+                {
+                    "legal_grounding_status": legal_grounding["status"],
+                    "legal_grounding_error": legal_grounding["error"],
+                }
+            )
             self.logger.info("QA 응답 생성 완료")
             return result
 
