@@ -13,6 +13,7 @@ REQUIRED_KEYS = {
     "limitations",
     "latency_ms",
     "quality_signals",
+    "generation_metadata",
 }
 
 
@@ -81,6 +82,21 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
         "segment_coverage": float(quality.get("segment_coverage", 0.0) or 0.0),
     }
 
+    generation_metadata = (
+        data.get("generation_metadata")
+        if isinstance(data.get("generation_metadata"), dict)
+        else {}
+    )
+    generation_mode = str(generation_metadata.get("generation_mode") or "default").strip()
+    data["generation_metadata"] = {
+        "fallback_used": bool(generation_metadata.get("fallback_used", False)),
+        "parse_retry_count": max(
+            0,
+            int(generation_metadata.get("parse_retry_count", 0) or 0),
+        ),
+        "generation_mode": generation_mode or "default",
+    }
+
     return data
 
 
@@ -99,5 +115,7 @@ def validate_unified_contract(payload: Dict[str, Any]) -> List[str]:
         missing.append("latency_ms")
     if not isinstance(payload.get("quality_signals"), dict):
         missing.append("quality_signals")
+    if not isinstance(payload.get("generation_metadata"), dict):
+        missing.append("generation_metadata")
 
     return sorted(set(missing))

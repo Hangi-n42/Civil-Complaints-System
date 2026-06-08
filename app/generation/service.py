@@ -84,8 +84,8 @@ class GenerationService:
                 "format": "json",
                 "options": {
                     "temperature": temperature,
-                    "num_predict": 128,
-                    "num_ctx": 1024,
+                    "num_predict": settings.GENERATION_NUM_PREDICT,
+                    "num_ctx": settings.GENERATION_NUM_CTX,
                 },
             }
 
@@ -715,7 +715,7 @@ class GenerationService:
                 "answer": "...",
                 "confidence": 0.85,
                 "citations": [...],
-                "model": "qwen2.5:7b-instruct"
+                "model": "exaone3.5:7.8b"
             }
         """
         try:
@@ -723,6 +723,8 @@ class GenerationService:
 
             parsed: Dict[str, Any] = {}
             last_parse_error: GenerationError | None = None
+            generation_mode = "default"
+            fallback_used = False
             retry_steps = [
                 {"stage": "default", "mode": "default", "temperature": 0.2},
                 {"stage": "force_json", "mode": "force_json", "temperature": 0.0},
@@ -765,6 +767,7 @@ class GenerationService:
                             )
                             last_parse_error = relaxed_error
                             raise relaxed_error
+                    generation_mode = str(step["mode"])
                     break
                 except GenerationError as e:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
@@ -786,6 +789,8 @@ class GenerationService:
             if not parsed:
                 self.logger.warning("QA JSON 파싱 재시도 소진: fast fallback 사용")
                 parsed = self._build_fast_fallback_from_context(context)
+                generation_mode = "fast_fallback"
+                fallback_used = True
 
             citations = parsed.get("citations") or await self.build_citations("", context)
 
@@ -799,6 +804,11 @@ class GenerationService:
                     or "검색 범위 및 데이터 품질에 따라 답변이 제한될 수 있습니다."
                 ),
                 "model": self.model,
+                "generation_metadata": {
+                    "fallback_used": fallback_used,
+                    "parse_retry_count": len(retry_logs),
+                    "generation_mode": generation_mode,
+                },
             }
 
             result = self._apply_legal_grounding(result, legal_articles)

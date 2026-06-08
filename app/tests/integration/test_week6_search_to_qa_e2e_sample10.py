@@ -186,4 +186,9 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
             "hallucination_flag",
             "segment_coverage",
         }
+        assert qa_data["generation_metadata"] == {
+            "fallback_used": False,
+            "parse_retry_count": 0,
+            "generation_mode": "default",
+        }
         assert len(qa_data["structured_output"]["request_segments"]) >= 1

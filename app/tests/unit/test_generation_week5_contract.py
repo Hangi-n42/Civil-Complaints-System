@@ -213,6 +213,11 @@ def test_qa_week5_response_skeleton(monkeypatch):
         "hallucination_flag",
         "segment_coverage",
     }
+    assert data["generation_metadata"] == {
+        "fallback_used": False,
+        "parse_retry_count": 0,
+        "generation_mode": "default",
+    }
 
 
 def test_qa_internal_search_enables_grounding_filter(monkeypatch):
@@ -369,6 +374,11 @@ def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypat
     data = body["data"]
     assert data["citations"] == []
     assert data["quality_signals"]["citation_coverage"] == 0.0
+    assert data["generation_metadata"] == {
+        "fallback_used": True,
+        "parse_retry_count": 0,
+        "generation_mode": "no_evidence_fallback",
+    }
     assert "유사 민원 근거가 충분하지 않아" in data["limitations"][0]
     assert "충분히 유사한 사례는 확인되지 않았습니다" in data["answer"]
     assert retrieval_service.calls[0]["grounding_filter"] is True

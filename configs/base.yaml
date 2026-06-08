@@ -6,7 +6,7 @@ LOG_LEVEL: INFO
 
 # Ollama 설정
 OLLAMA_BASE_URL: http://localhost:11434
-OLLAMA_MODEL: qwen2.5:7b-instruct
+OLLAMA_MODEL: exaone3.5:7.8b
 OLLAMA_TIMEOUT: 120
 
 # 벡터DB 설정
