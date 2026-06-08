@@ -42,6 +42,16 @@ def test_parse_qa_json_response_raises_on_missing_field():
     assert exc.value.code == "PARSE_SCHEMA_MISMATCH"
 
 
+def test_parse_qa_json_response_rejects_empty_answer():
+    raw = '{"answer":"   ","citations":[],"limitations":"근거 제한"}'
+
+    with pytest.raises(GenerationError) as exc:
+        parse_qa_json_response(raw)
+
+    assert exc.value.code == "PARSE_SCHEMA_MISMATCH"
+    assert exc.value.details["field"] == "answer"
+
+
 def test_parse_qa_json_response_allows_missing_confidence_and_defaults():
     raw = '{"answer":"x","citations":[],"limitations":"범위 제한"}'
 

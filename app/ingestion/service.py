@@ -308,38 +308,32 @@ class IngestionService:
         Returns:
             중복이 제거된 문서 리스트
         """
-        # try:
-        #     total = len(documents)
-        #     self.logger.info(f"중복 제거 시작: {total}개 문서")
-        #     unique_docs: List[Dict[str, Any]] = []
-        #     seen_signatures = set()
-        #     near_duplicate_texts: List[str] = []
-        #     last_logged_pct = -1
-        #
-        #     for i, doc in enumerate(documents):
-        #         text = str(doc.get("text") or "").strip()
-        #         signature = self._document_signature(text)
-        #         if signature in seen_signatures:
-        #             continue
-        #
-        #         if any(self._is_near_duplicate(text, seen_text) for seen_text in near_duplicate_texts):
-        #             continue
-        #
-        #         seen_signatures.add(signature)
-        #         near_duplicate_texts.append(text)
-        #         unique_docs.append(doc)
-        #
-        #         pct = int((i + 1) / total * 100) if total else 100
-        #         if pct % 10 == 0 and pct != last_logged_pct:
-        #             self.logger.info(f"중복 제거 진행: {pct}% ({i + 1}/{total}), 고유 문서: {len(unique_docs)}개")
-        #             last_logged_pct = pct
-        #
-        #     self.logger.info(f"중복 제거 완료: {total} -> {len(unique_docs)}")
-        #     return unique_docs
-        # except Exception as e:
-        #     self.logger.error(f"중복 제거 실패: {str(e)}")
-        #     raise IngestionError(f"중복 제거 실패: {str(e)}") from e
-        return documents
+        try:
+            total = len(documents)
+            self.logger.info(f"중복 제거 시작: {total}개 문서")
+            unique_docs: List[Dict[str, Any]] = []
+            seen_signatures = set()
+            near_duplicate_texts: List[str] = []
+
+            for doc in documents:
+                text = str(doc.get("text") or "").strip()
+                signature = self._document_signature(text)
+                if signature in seen_signatures:
+                    continue
+                if any(
+                    self._is_near_duplicate(text, seen_text)
+                    for seen_text in near_duplicate_texts
+                ):
+                    continue
+                seen_signatures.add(signature)
+                near_duplicate_texts.append(text)
+                unique_docs.append(doc)
+
+            self.logger.info(f"중복 제거 완료: {total} -> {len(unique_docs)}")
+            return unique_docs
+        except Exception as e:
+            self.logger.error(f"중복 제거 실패: {str(e)}")
+            raise IngestionError(f"중복 제거 실패: {str(e)}") from e
 
     # ──────────────────────────────────────────────────────────────────
     # AI Hub 원천데이터 정규화

@@ -10,6 +10,8 @@ REQUIRED_KEYS = {
     "structured_output",
     "answer",
     "citations",
+    "legal_citations",
+    "legal_citation_warnings",
     "limitations",
     "latency_ms",
     "quality_signals",
@@ -45,6 +47,21 @@ def _normalize_citations(value: Any) -> List[Dict[str, str]]:
     return normalized
 
 
+def _normalize_legal_citations(value: Any) -> List[Dict[str, Any]]:
+    """Public API에 노출 가능한 법령 인용 필드만 통과시킨다."""
+    items = value if isinstance(value, list) else []
+    allowed = ("law_name", "article_no", "law_id", "public_url", "verified")
+    normalized: List[Dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        citation = {key: item.get(key) for key in allowed if item.get(key) is not None}
+        if "verified" in citation:
+            citation["verified"] = bool(citation["verified"])
+        normalized.append(citation)
+    return normalized
+
+
 def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
     data = dict(payload)
 
@@ -65,6 +82,10 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     data["answer"] = str(data.get("answer") or "")
     data["citations"] = _normalize_citations(data.get("citations"))
+    data["legal_citations"] = _normalize_legal_citations(data.get("legal_citations"))
+    data["legal_citation_warnings"] = _as_string_list(
+        data.get("legal_citation_warnings")
+    )
     data["limitations"] = _as_string_list(data.get("limitations"))
 
     latency_ms = data.get("latency_ms") if isinstance(data.get("latency_ms"), dict) else {}
@@ -95,6 +116,12 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
             int(generation_metadata.get("parse_retry_count", 0) or 0),
         ),
         "generation_mode": generation_mode or "default",
+        "legal_grounding_status": str(
+            generation_metadata.get("legal_grounding_status") or "not_requested"
+        ),
+        "legal_grounding_error": str(
+            generation_metadata.get("legal_grounding_error") or ""
+        ),
     }
 
     return data
@@ -109,6 +136,10 @@ def validate_unified_contract(payload: Dict[str, Any]) -> List[str]:
         missing.append("structured_output")
     if not isinstance(payload.get("citations"), list):
         missing.append("citations")
+    if not isinstance(payload.get("legal_citations"), list):
+        missing.append("legal_citations")
+    if not isinstance(payload.get("legal_citation_warnings"), list):
+        missing.append("legal_citation_warnings")
     if not isinstance(payload.get("limitations"), list):
         missing.append("limitations")
     if not isinstance(payload.get("latency_ms"), dict):

@@ -13,11 +13,15 @@
 | `LEGAL_CITATION_INSTRUCTION` | "목록에 있는 조문만 인용" 프롬프트 지시 문자열. |
 | `ground_legal_citations(answer_text, retrieved_articles)` | 답변 인용 추출→검증→**환각 제거+경고**. `{answer, valid, invalid, warnings}` 반환. |
 
-**정책(합의)**: 환각 인용은 **제거 + 경고 플래그**(`[미검증 인용 제거]` 치환 + `warnings`). 그라운딩은 **legal_refs 있을 때만**.
+**정책(합의)**: 환각 인용은 **제거 + 경고 플래그**(`[미검증 인용 제거]` 치환 + `warnings`).
+BE1의 `legal_ref_ids`가 있으면 이를 우선 사용하고, 없으면 하위 호환을 위해
+질의에서 법령 후보를 재매칭한다.
 
-## BE3 가 해야 할 배선 (3곳)
+## BE3 배선 상태 (완료)
 
-`app/generation/service.py` 의 `generate_qa(query, context, routing_trace)` 기준. BE1 구조화 결과(`legal_refs`, `key_terms`)를 generate_qa 로 전달할 수 있어야 한다(아래 `be1` 가정).
+`app/generation/service.py`의
+`generate_qa(query, context, routing_trace, query_signals=None)`에 배선됐다.
+BE1 구조화 결과는 `/api/v1/qa`의 `query_signals`로 전달한다.
 
 ```python
 from app.generation.citation.legal_citation import (
@@ -27,7 +31,10 @@ from app.generation.citation.legal_citation import (
 
 # ── (1) 생성 전: 조문 검색 + 프롬프트 주입 ────────────────────────────────
 legal_articles = retrieve_legal_context(
-    query, be1.get("legal_refs", []), key_terms=be1.get("key_terms"), top_k=5,
+    query,
+    [{"law_id": law_id} for law_id in query_signals.get("legal_ref_ids", [])],
+    key_terms=query_signals.get("key_terms"),
+    top_k=5,
 )
 extra_prompt = ""
 if legal_articles:                                  # legal_refs 있을 때만
@@ -41,17 +48,23 @@ if legal_articles:                                  # legal_refs 있을 때만
 if legal_articles:
     grounded = ground_legal_citations(parsed["answer"], legal_articles)
     parsed["answer"] = grounded["answer"]            # 환각 인용 제거된 답변
-    parsed["legal_citations"] = grounded["valid"]    # source_url 포함
+    parsed["legal_citations"] = grounded["valid"]    # public_url 포함, source_url 제거
     parsed["legal_citation_warnings"] = grounded["warnings"]
 ```
 
-배선 위치 요약: `build_rag_prompt`(프롬프트 끝에 `extra_prompt` append) → 기존 생성 → 응답 dict 에 `legal_citations`/`legal_citation_warnings` 추가.
+배선 위치 요약: `build_rag_prompt`(프롬프트 끝에 `extra_prompt` append) → 기존 생성
+→ 응답 dict에 `legal_citations`/`legal_citation_warnings` 추가
+→ `/api/v1/qa` 통합 응답까지 전달.
 
 ## 입력 계약 (BE1 → BE3)
 
-- `legal_refs`: `[{"name","confidence","evidence","law_id","source"}]` — **`law_id` 필수**(조문 필터 키). 도메인 매칭도 사전에서 law_id 가 채워진다.
-- `key_terms`: `["3톤 미만 지게차", ...]` — BM25 정확용어 부스트.
-현재 generate_qa 는 이 둘을 받지 않으므로, 파이프라인에서 BE1 산출물을 generate_qa 로 넘기는 경로 추가가 필요하다.
+- `query_signals.legal_ref_ids`: `["001823", ...]` — 조문 필터 키.
+- `query_signals.legal_ref_names`: `["건축법", ...]` — 법령명 메타.
+- `query_signals.key_terms`: `["3톤 미만 지게차", ...]` — BM25 정확용어 부스트.
+- `query_signals.urgency_level`: `"긴급" | "높음" | "보통" | "낮음"` — 답변 안전 안내 보조 신호.
+- `query_signals.responsible_units`: 담당부서 후보. 확정 부서로 단정하지 않는다.
+
+`query_signals`가 없는 기존 호출은 질의 텍스트 기반 후보 추출로 호환 동작한다.
 
 ## 반환 계약 (BE3 → FE)
 
@@ -60,16 +73,25 @@ if legal_articles:
   "answer": "… 건축법 제80조에 따라 … [미검증 인용 제거]에 따라 …",
   "legal_citations": [
     {"law_name": "건축법", "article_no": "제80조", "law_id": "001823",
-     "source_url": "http://www.law.go.kr/DRF/lawService.do?...&ID=001823", "verified": true}
+     "public_url": "https://www.law.go.kr/법령/건축법/제80조", "verified": true}
   ],
   "legal_citation_warnings": ["미검증 인용 제거: 건축법 제999조"]
 }
 ```
 
+법령 그라운딩 미가용 시에도 `/api/v1/qa`는 아래처럼 안정적인 빈 배열 계약을 유지한다.
+
+```json
+{
+  "legal_citations": [],
+  "legal_citation_warnings": []
+}
+```
+
 **FE 렌더링 메모**
-- `legal_citations` 의 각 항목을 `source_url` 링크로 표시(검증된 조문만).
+- `legal_citations`의 각 항목은 반드시 `public_url` 링크로 표시한다(검증된 조문만).
 - `legal_citation_warnings` 가 있으면 "초안에서 미검증 법령 인용이 제거됨"을 검토자에게 노출.
-- ⚠️ `source_url` 에 **크롤 OC 키가 포함**된다(`OC=donga…`). 사용자 노출용으로는 공개 URL 형식(`https://www.law.go.kr/법령/건축법`)으로 치환 권장.
+- 공개 API는 내부 수집용 `source_url`과 OC 키를 제거한다. FE는 `public_url`만 렌더링한다.
 
 ## 선행 조건 / 한계
 
@@ -82,4 +104,4 @@ if legal_articles:
 ```bash
 python -m pytest app/tests/unit/test_legal_citation.py -q     # 10 passed (모델 불필요)
 ```
-검증된 동작(실 코퍼스 17,759조문, BM25): "무허가 가설건축물 이행강제금" → 건축법 제80조/제20조 검색·주입 → 초안의 `제999조`(환각) 제거, 제80조/제20조 valid+source_url 유지.
+검증된 동작(실 코퍼스 17,759조문, BM25): "무허가 가설건축물 이행강제금" → 건축법 제80조/제20조 검색·주입 → 초안의 `제999조`(환각) 제거, 제80조/제20조 valid+public_url 유지.

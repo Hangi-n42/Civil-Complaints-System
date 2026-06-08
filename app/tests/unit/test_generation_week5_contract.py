@@ -6,7 +6,7 @@ from app.api.main import app
 
 
 class _StubGenerationService:
-    async def generate_qa(self, query, context, routing_trace=None):
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
         return {
             # 내부 generation 결과(모델/파서 산출)는 API unified contract로 그대로 노출되면 안 된다.
             "answer": "요청하신 민원 처리 절차를 안내드립니다.",
@@ -23,6 +23,17 @@ class _StubGenerationService:
             "confidence": 0.42,
             "question": "임대주택 보수 지연 관련 민원입니다.",
             "model": "stub-model",
+            "legal_citations": [
+                {
+                    "law_name": "건축법",
+                    "article_no": "제80조",
+                    "law_id": "001823",
+                    "public_url": "https://www.law.go.kr/법령/건축법/제80조",
+                    "verified": True,
+                    "source_url": "http://www.law.go.kr/DRF/lawService.do?OC=secret",
+                }
+            ],
+            "legal_citation_warnings": ["미검증 인용 제거: 건축법 제999조"],
         }
 
 
@@ -58,10 +69,36 @@ class _TrackingRetrievalService:
         )
         return self.results[:top_k]
 
+    def _normalize_query_signals(self, query_signals):
+        return query_signals or {}
+
+    def _apply_metadata_soft_rerank(self, results, query_signals):
+        self.calls.append(
+            {
+                "metadata_soft_rerank": True,
+                "query_signals": query_signals,
+            }
+        )
+        return results
+
 
 class _FailIfCalledGenerationService:
-    async def generate_qa(self, query, context, routing_trace=None):
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
         raise AssertionError("generation service must not be called for no-evidence fallback")
+
+
+class _EmptyAnswerGenerationService:
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
+        return {
+            "answer": "   ",
+            "citations": [],
+            "limitations": "모델 출력 확인이 필요합니다.",
+            "generation_metadata": {
+                "fallback_used": False,
+                "parse_retry_count": 1,
+                "generation_mode": "force_json",
+            },
+        }
 
 
 def test_qa_requires_routing_hint(monkeypatch):
@@ -203,6 +240,9 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert set(data["structured_output"].keys()) == {"summary", "action_items", "request_segments"}
     assert isinstance(data["answer"], str)
     assert isinstance(data["citations"], list)
+    assert data["legal_citations"][0]["public_url"].endswith("/건축법/제80조")
+    assert "source_url" not in data["legal_citations"][0]
+    assert data["legal_citation_warnings"] == ["미검증 인용 제거: 건축법 제999조"]
     assert isinstance(data["limitations"], list)
     assert "model" not in data
     assert "confidence" not in data
@@ -217,7 +257,13 @@ def test_qa_week5_response_skeleton(monkeypatch):
         "fallback_used": False,
         "parse_retry_count": 0,
         "generation_mode": "default",
+        "legal_grounding_status": "not_requested",
+        "legal_grounding_error": "",
     }
+    assert body["qa_validation"]["is_valid"] is True
+    assert body["search_trace"]["retrieved_count"] == 1
+    assert body["citation_validation"]["is_valid"] is True
+    assert data["quality_signals"]["hallucination_flag"] is True
 
 
 def test_qa_internal_search_enables_grounding_filter(monkeypatch):
@@ -327,13 +373,18 @@ def test_qa_reused_search_results_are_filtered_before_generation(monkeypatch):
                     "score": 0.91,
                 }
             ],
+            "query_signals": {"legal_ref_ids": ["001823"]},
         },
     )
 
     assert response.status_code == 200
-    assert retrieval_service.calls
-    assert retrieval_service.calls[0]["grounding_filter_applied_to_existing_results"] is True
-    assert retrieval_service.calls[0]["top_k"] == 5
+    assert any(call.get("metadata_soft_rerank") for call in retrieval_service.calls)
+    grounding_call = next(
+        call
+        for call in retrieval_service.calls
+        if call.get("grounding_filter_applied_to_existing_results")
+    )
+    assert grounding_call["top_k"] == 5
 
 
 def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypatch):
@@ -373,15 +424,158 @@ def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypat
     assert body["success"] is True
     data = body["data"]
     assert data["citations"] == []
+    assert data["legal_citations"] == []
+    assert data["legal_citation_warnings"] == []
     assert data["quality_signals"]["citation_coverage"] == 0.0
     assert data["generation_metadata"] == {
         "fallback_used": True,
         "parse_retry_count": 0,
         "generation_mode": "no_evidence_fallback",
+        "legal_grounding_status": "not_requested",
+        "legal_grounding_error": "",
     }
     assert "유사 민원 근거가 충분하지 않아" in data["limitations"][0]
     assert "충분히 유사한 사례는 확인되지 않았습니다" in data["answer"]
     assert retrieval_service.calls[0]["grounding_filter"] is True
+
+
+def test_qa_marks_api_fallback_when_generation_answer_is_empty(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "민원 처리 절차는 접수 후 담당 부서에서 검토합니다.",
+                "score": 0.91,
+            }
+        ]
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: _EmptyAnswerGenerationService(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-0008",
+            "query": "임대주택 보수 지연 관련 민원입니다.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high",
+                "top_k": 1,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["answer"].strip()
+    assert data["generation_metadata"] == {
+        "fallback_used": True,
+        "parse_retry_count": 1,
+        "generation_mode": "api_answer_fallback",
+        "legal_grounding_status": "not_requested",
+        "legal_grounding_error": "",
+    }
+    assert any("API 안전 폴백" in item for item in data["limitations"])
+
+
+def test_qa_passes_be1_query_signals_to_retrieval_and_generation(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "건축법상 이행강제금 관련 처리 기준을 검토합니다.",
+                "score": 0.91,
+            }
+        ]
+    )
+
+    class _TrackingGenerationService(_StubGenerationService):
+        def __init__(self):
+            self.query_signals = None
+
+        async def generate_qa(
+            self,
+            query,
+            context,
+            routing_trace=None,
+            query_signals=None,
+        ):
+            self.query_signals = query_signals
+            return await super().generate_qa(
+                query,
+                context,
+                routing_trace=routing_trace,
+                query_signals=query_signals,
+            )
+
+    generation_service = _TrackingGenerationService()
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: generation_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-LEGAL-1",
+            "query": "무허가 가설건축물 이행강제금 문의",
+            "routing_hint": {
+                "strategy_id": "topic_general_high_v1",
+                "route_key": "general/high",
+                "top_k": 1,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "query_signals": {
+                "legal_ref_names": ["건축법"],
+                "legal_ref_ids": ["001823"],
+                "key_terms": ["가설건축물", "이행강제금"],
+                "responsible_units": ["건축과"],
+                "urgency_level": {"level": "높음"},
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert retrieval_service.calls[0]["query_signals"]["legal_ref_ids"] == ["001823"]
+    assert generation_service.query_signals["legal_ref_ids"] == ["001823"]
+    assert generation_service.query_signals["urgency_level"] == "높음"
 
 
 def test_qa_returns_response_schema_mismatch_when_unified_payload_is_incomplete(monkeypatch):

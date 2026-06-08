@@ -587,14 +587,16 @@ class StructuringService:
                         # 범위 유효성
                         range_ok = (0 <= start < end <= text_len)
                         if not range_ok:
-                            errors.append(f"invalid_evidence_span_range:{field_name}")
+                            if not lax_span:
+                                errors.append(f"invalid_evidence_span_range:{field_name}")
                         else:
                             # 텍스트 일치 검사
                             sliced = raw_text[start:end]
                             if self._normalize_for_compare(sliced) != self._normalize_for_compare(
                                 str(field.get("text") or "")
                             ):
-                                errors.append(f"evidence_text_mismatch:{field_name}")
+                                if not lax_span:
+                                    errors.append(f"evidence_text_mismatch:{field_name}")
 
                 # result.status 유효값
                 if field_name == "result":

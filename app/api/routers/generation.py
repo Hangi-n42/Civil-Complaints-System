@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from time import perf_counter
 
 from fastapi import APIRouter, Response
@@ -269,16 +270,52 @@ async def _apply_qa_grounding_filter(
     query: str,
     raw_context: list[dict],
     top_k: int,
+    query_signals: dict | None = None,
 ) -> list[dict]:
     """QA 답변 grounding에 쓰기 전 참고 선례를 BE2 LLM 필터로 정밀화한다."""
     if not raw_context:
         return []
+
+    normalize_signals = getattr(retrieval_service, "_normalize_query_signals", None)
+    apply_soft_rerank = getattr(retrieval_service, "_apply_metadata_soft_rerank", None)
+    if query_signals and callable(normalize_signals) and callable(apply_soft_rerank):
+        raw_context = apply_soft_rerank(raw_context, normalize_signals(query_signals))
 
     apply_filter = getattr(retrieval_service, "_apply_grounding_filter", None)
     if apply_filter is None:
         return raw_context[:top_k]
 
     return await apply_filter(query, raw_context, top_k)
+
+
+def _citation_coverage(answer: str, citation_count: int) -> float:
+    if citation_count <= 0:
+        return 0.0
+    token_ids = {
+        int(value)
+        for value in re.findall(
+            r"(?:\[\[CITE:|\[\[출처\s*|\[출처\s*)(\d+)(?:\]\]|\])",
+            answer or "",
+        )
+    }
+    return round(min(1.0, len(token_ids) / citation_count), 4)
+
+
+def _segment_coverage(answer: str, request_segments: list[str]) -> float:
+    segments = [str(item).strip() for item in request_segments if str(item).strip()]
+    if not segments:
+        return 0.0
+    normalized_answer = " ".join(str(answer or "").casefold().split())
+    covered = 0
+    for segment in segments:
+        terms = [
+            token
+            for token in re.findall(r"[0-9a-zA-Z가-힣]{2,}", segment.casefold())
+            if token not in {"민원", "요청", "문의"}
+        ]
+        if terms and any(term in normalized_answer for term in terms):
+            covered += 1
+    return round(covered / len(segments), 4)
 
 
 @router.post("/qa", response_model=QAResponse)
@@ -315,6 +352,11 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
 
     retrieval_service = get_retrieval_service()
     generation_service = get_generation_service()
+    query_signals = (
+        request.query_signals.model_dump(exclude_none=True)
+        if request.query_signals is not None
+        else None
+    )
 
     try:
         retrieval_start = perf_counter()
@@ -327,6 +369,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 query=request.query,
                 raw_context=raw_context,
                 top_k=grounding_top_k,
+                query_signals=query_signals,
             )
         else:
             filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
@@ -335,6 +378,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 top_k=grounding_top_k,
                 filters=filters,
                 grounding_filter=True,
+                query_signals=query_signals,
             )
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
     except RetrievalError as e:
@@ -465,6 +509,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             query=request.query,
             context=context,
             routing_trace=routing_trace,
+            query_signals=query_signals,
         )
         generation_elapsed_ms = int((perf_counter() - generation_start) * 1000)
     except GenerationError as e:
@@ -537,9 +582,30 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         )
 
     took_ms = int((perf_counter() - start) * 1000)
+    raw_generation_answer_empty = not str(result.get("answer", "") or "").strip()
     citations = normalize_citations(result.get("citations", []), context=context)
     answer = ensure_citation_tokens(_compose_answer_from_payload(result, citations), citations=citations)
     limitations = str(result.get("limitations", "")).strip() or "검색 범위 내 데이터에 기반한 답변입니다."
+    generation_metadata = dict(
+        result.get("generation_metadata")
+        if isinstance(result.get("generation_metadata"), dict)
+        else {}
+    )
+    if raw_generation_answer_empty:
+        generation_metadata.update(
+            {
+                "fallback_used": True,
+                "generation_mode": "api_answer_fallback",
+            }
+        )
+        limitations = (
+            f"{limitations} 생성 결과의 answer가 비어 API 안전 폴백 답변으로 대체했습니다."
+        )
+        api_logger.warning(
+            "qa_empty_answer_fallback request_id=%s parse_retry_count=%s",
+            request_id,
+            generation_metadata.get("parse_retry_count", 0),
+        )
     validation = build_validation_result(
         answer=answer,
         citations=citations,
@@ -607,6 +673,9 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
     )
 
     generated_structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
+    request_segments = routing_trace.get("request_segments") or []
+    legal_warnings = result.get("legal_citation_warnings", [])
+    hallucination_flag = (not is_valid) or bool(legal_warnings)
     unified_payload = normalize_response(
         {
             "complaint_id": request.complaint_id,
@@ -623,7 +692,12 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             },
             "answer": answer,
             "citations": response_citations,
-            "limitations": result.get("limitations", [limitations]),
+            "legal_citations": result.get("legal_citations", []),
+            "legal_citation_warnings": result.get(
+                "legal_citation_warnings",
+                [],
+            ),
+            "limitations": [limitations],
             "latency_ms": {
                 "analyzer": 0,
                 "router": 0,
@@ -631,18 +705,15 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 "generation": generation_elapsed_ms,
             },
             "quality_signals": {
-                "citation_coverage": 1.0 if response_citations else 0.0,
-                "hallucination_flag": False,
-                "segment_coverage": 1.0 if routing_trace.get("request_segments") else 0.0,
+                "citation_coverage": _citation_coverage(answer, len(response_citations)),
+                "hallucination_flag": hallucination_flag,
+                "segment_coverage": _segment_coverage(answer, request_segments),
             },
-            "generation_metadata": result.get(
-                "generation_metadata",
-                {
-                    "fallback_used": False,
-                    "parse_retry_count": 0,
-                    "generation_mode": "default",
-                },
-            ),
+            "generation_metadata": generation_metadata or {
+                "fallback_used": False,
+                "parse_retry_count": 0,
+                "generation_mode": "default",
+            },
         }
     )
 
@@ -663,4 +734,18 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         request_id=request_id,
         timestamp=now_iso(),
         data=unified_payload,
+        qa_validation=validation,
+        search_trace={
+            "used_top_k": grounding_top_k,
+            "retrieved_count": len(context),
+            "context_budget_chars": _context_trace.get("context_budget_chars"),
+            "context_used_chars": _context_trace.get("context_used_chars"),
+            "context_truncated_count": _context_trace.get("truncated_count"),
+            "context_dropped_count": _context_trace.get("dropped_count"),
+        },
+        citation_validation={
+            "is_valid": is_valid,
+            "mismatch_count": mismatch_count,
+            "details": {"mismatches": mismatch_details},
+        },
     )

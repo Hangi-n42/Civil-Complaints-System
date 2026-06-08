@@ -1,6 +1,6 @@
 # Week 6 BE3 인터페이스 문서
 
-문서 버전: v1.0-week6-draft  
+문서 버전: v1.1
 작성일: 2026-04-10  
 책임: BE3  
 협업: BE1, BE2, FE
@@ -117,9 +117,21 @@ Week 6에서 BE3는 topic-aware generation과 응답 정규화 레이어를 고�
 - `structured_output`
 - `answer`
 - `citations`
+- `legal_citations`
+- `legal_citation_warnings`
 - `limitations`
 - `latency_ms`
 - `quality_signals`
+- `generation_metadata`
+
+공개 API의 `legal_citations`에는 `source_url`, OC 키, 내부 수집 URL을 포함하지 않는다.
+클라이언트는 검증된 공개 링크인 `public_url`만 사용한다.
+
+### 근거 0개 정책
+
+- 사용자용 `/api/v1/qa`: 사실 단정을 피하는 `no_evidence_fallback` 성공 응답을 반환한다.
+- 평가·벤치마크용 PromptFactory autoretrieve: `NoEvidenceError`로 즉시 실패한다.
+- 두 경로의 차이는 의도된 정책이며 평가 결과와 사용자 응답을 혼용하지 않는다.
 
 ---
 

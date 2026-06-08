@@ -6,7 +6,12 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.api.schemas.retrieval import RoutingHint, RoutingTrace, SearchFilters
+from app.api.schemas.retrieval import (
+    RoutingHint,
+    RoutingTrace,
+    SearchFilters,
+    SearchQuerySignals,
+)
 
 
 class SearchInputResult(BaseModel):
@@ -40,6 +45,7 @@ class QARequest(BaseModel):
     routing_trace: Optional[RoutingTrace] = None
     top_k: int = Field(default=5, ge=1, le=50)
     filters: Optional[SearchFilters] = None
+    query_signals: Optional[SearchQuerySignals] = None
     use_search_results: bool = False
     search_results: List[SearchInputResult] = Field(default_factory=list)
     context_window_policy: Optional[QAContextWindowPolicy] = None
@@ -123,7 +129,22 @@ class GenerationMetadata(BaseModel):
 
     fallback_used: bool = False
     parse_retry_count: int = Field(default=0, ge=0)
-    generation_mode: Literal["default", "force_json", "compact", "fast_fallback", "no_evidence_fallback"] = "default"
+    generation_mode: Literal[
+        "default",
+        "force_json",
+        "compact",
+        "fast_fallback",
+        "no_evidence_fallback",
+        "api_answer_fallback",
+    ] = "default"
+    legal_grounding_status: Literal[
+        "not_requested",
+        "disabled",
+        "no_candidates",
+        "grounded",
+        "error",
+    ] = "not_requested"
+    legal_grounding_error: str = ""
 
 
 class QAResponseData(BaseModel):
@@ -136,10 +157,19 @@ class QAResponseData(BaseModel):
     structured_output: Dict[str, Any] = Field(default_factory=dict)
     answer: str
     citations: List[Dict[str, Any]] = Field(default_factory=list)
+    legal_citations: List[Dict[str, Any]] = Field(default_factory=list)
+    legal_citation_warnings: List[str] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
     latency_ms: Dict[str, int] = Field(default_factory=dict)
     quality_signals: Dict[str, Any] = Field(default_factory=dict)
     generation_metadata: GenerationMetadata = Field(default_factory=GenerationMetadata)
+
+    @field_validator("answer")
+    @classmethod
+    def validate_answer_not_blank(cls, value: str) -> str:
+        if not str(value or "").strip():
+            raise ValueError("answer는 공백일 수 없습니다.")
+        return value
 
 
 class ErrorInfo(BaseModel):

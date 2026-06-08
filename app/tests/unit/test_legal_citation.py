@@ -43,7 +43,8 @@ def test_ground_removes_hallucinated_citation():
     answer = "건축법 제80조에 따라 이행강제금을 부과하며, 건축법 제999조도 적용됩니다."
     out = ground_legal_citations(answer, RETRIEVED)
     assert len(out["valid"]) == 1 and out["valid"][0]["article_no"] == "제80조"
-    assert out["valid"][0]["source_url"] == "u80"
+    assert "source_url" not in out["valid"][0]
+    assert out["valid"][0]["public_url"].startswith("https://")
     assert len(out["invalid"]) == 1 and out["invalid"][0]["article_no"] == "제999조"
     assert CITATION_REMOVED_MARKER in out["answer"]      # 환각 인용 제거됨
     assert "제999조" not in out["answer"]

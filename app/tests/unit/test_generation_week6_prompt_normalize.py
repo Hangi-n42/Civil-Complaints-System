@@ -198,6 +198,8 @@ def test_normalize_response_enforces_week6_shape():
         "fallback_used": False,
         "parse_retry_count": 0,
         "generation_mode": "default",
+        "legal_grounding_status": "not_requested",
+        "legal_grounding_error": "",
     }
 
 

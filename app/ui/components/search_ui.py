@@ -363,6 +363,38 @@ def render_citations_block(
             )
 
 
+def render_legal_citations_block(
+    citations: list[dict[str, Any]] | None,
+    warnings: list[str] | None = None,
+    *,
+    expanded: bool = False,
+) -> None:
+    """검증된 법령 조문 링크와 미검증 인용 제거 경고를 표시한다."""
+
+    citations = citations if isinstance(citations, list) else []
+    warnings = warnings if isinstance(warnings, list) else []
+    if not citations and not warnings:
+        return
+
+    with st.expander(f"법령 근거 ({len(citations)}개)", expanded=expanded):
+        for citation in citations:
+            if not isinstance(citation, dict):
+                continue
+            law_name = str(citation.get("law_name") or "").strip()
+            article_no = str(citation.get("article_no") or "").strip()
+            public_url = str(citation.get("public_url") or "").strip()
+            label = " ".join(part for part in (law_name, article_no) if part) or "법령 조문"
+            if public_url.startswith("https://www.law.go.kr/"):
+                st.markdown(f"- [{html.escape(label)} ↗]({public_url})")
+            else:
+                st.markdown(f"- {html.escape(label)}")
+
+        if warnings:
+            st.warning("초안에 근거가 확인되지 않은 법령 인용이 있어 자동 제거되었습니다.")
+            for warning in warnings:
+                st.caption(str(warning))
+
+
 def render_limitations_block(
     limitations: Any,
     *,

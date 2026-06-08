@@ -150,6 +150,7 @@ class SearchQuerySignals(BaseModel):
     issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
+    urgency_level: Optional[str] = None
 
     @field_validator(
         "entity_texts",
@@ -192,6 +193,14 @@ class SearchQuerySignals(BaseModel):
             seen.add(key)
             normalized.append(text)
         return normalized
+
+    @field_validator("urgency_level", mode="before")
+    @classmethod
+    def normalize_urgency_level(cls, value: Any) -> Optional[str]:
+        if isinstance(value, dict):
+            value = value.get("level")
+        text = " ".join(str(value or "").split())
+        return text or None
 
 
 class SearchRequest(BaseModel):

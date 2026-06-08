@@ -9,7 +9,11 @@ from app.api.main import app
 
 
 class _E2EStubRetrievalService:
+    def __init__(self):
+        self.calls = []
+
     async def search(self, query, top_k=5, filters=None, collection_name=None, **kwargs):
+        self.calls.append({"query": query, **kwargs})
         safe_query = str(query).strip() or "민원"
         case_key = abs(hash(safe_query)) % 10000
         case_id = f"CASE-{case_key:04d}"
@@ -39,7 +43,11 @@ class _E2EStubRetrievalService:
 
 
 class _E2EStubGenerationService:
-    async def generate_qa(self, query, context, routing_trace=None):
+    def __init__(self):
+        self.query_signals = []
+
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
+        self.query_signals.append(query_signals)
         first = context[0]
         segments = []
         if isinstance(routing_trace, dict):
@@ -99,20 +107,22 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
     from app.api.routers import generation as generation_router
     from app.api.routers import retrieval as retrieval_router
 
+    retrieval_service = _E2EStubRetrievalService()
+    generation_service = _E2EStubGenerationService()
     monkeypatch.setattr(
         retrieval_router,
         "get_retrieval_service",
-        lambda: _E2EStubRetrievalService(),
+        lambda: retrieval_service,
     )
     monkeypatch.setattr(
         generation_router,
         "get_retrieval_service",
-        lambda: _E2EStubRetrievalService(),
+        lambda: retrieval_service,
     )
     monkeypatch.setattr(
         generation_router,
         "get_generation_service",
-        lambda: _E2EStubGenerationService(),
+        lambda: generation_service,
     )
     monkeypatch.setattr(
         generation_router,
@@ -126,6 +136,12 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
     client = TestClient(app)
 
     for case in cases:
+        query_signals = {
+            "entity_texts": ["시설"],
+            "key_terms": [case["query"].split()[0]],
+            "legal_ref_ids": ["001823"],
+            "legal_ref_names": ["건축법"],
+        }
         search_res = client.post(
             "/api/v1/search",
             json={
@@ -133,6 +149,7 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
                 "complaint_id": case["complaint_id"],
                 "query": case["query"],
                 "top_k": case["top_k"],
+                "query_signals": query_signals,
             },
         )
         assert search_res.status_code == 200
@@ -152,6 +169,7 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
                 "routing_hint": search_data["routing_hint"],
                 "use_search_results": True,
                 "search_results": _to_qa_search_results(search_data["retrieved_docs"]),
+                "query_signals": query_signals,
             },
         )
         assert qa_res.status_code == 200
@@ -190,5 +208,11 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
             "fallback_used": False,
             "parse_retry_count": 0,
             "generation_mode": "default",
+            "legal_grounding_status": "not_requested",
+            "legal_grounding_error": "",
         }
         assert len(qa_data["structured_output"]["request_segments"]) >= 1
+
+    assert retrieval_service.calls
+    assert retrieval_service.calls[0]["query_signals"]["legal_ref_ids"] == ["001823"]
+    assert all(item["legal_ref_ids"] == ["001823"] for item in generation_service.query_signals)

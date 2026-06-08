@@ -20,9 +20,15 @@ from app.ui.components.search_ui import (
     render_search_result_card,
     render_standard_status_banner,
     render_citations_block,
+    render_legal_citations_block,
     render_limitations_block,
 )
-from app.ui.services.search_service import post_json, run_qa_via_api, search_cases_via_api_with_filters
+from app.ui.services.search_service import (
+    build_qa_query_signals,
+    post_json,
+    run_qa_via_api,
+    search_cases_via_api_with_filters,
+)
 
 
 def load_model_benchmark_report() -> Dict[str, Any]:
@@ -2300,10 +2306,31 @@ def build_search_results_payload_from_session() -> List[Dict[str, Any]]:
     return payload
 
 
+def resolve_qa_contract(case: Dict[str, Any], top_k: int = 5) -> Dict[str, Any]:
+    """검색 응답의 라우팅 계약을 QA 호출에 계승한다."""
+    complaint_id = str(case.get("case_id") or case.get("complaint_id") or "").strip()
+    search_contract = st.session_state.get("last_search_contract")
+    search_contract = search_contract if isinstance(search_contract, dict) else {}
+    contract_complaint_id = str(search_contract.get("complaint_id") or "").strip()
+    if contract_complaint_id and contract_complaint_id != complaint_id:
+        search_contract = {}
+    routing_hint = search_contract.get("routing_hint")
+    if not isinstance(routing_hint, dict):
+        routing_hint = {
+            "strategy_id": "topic_general_medium_v1",
+            "route_key": "general/medium",
+            "top_k": max(1, int(top_k or 5)),
+            "snippet_max_chars": 1100,
+            "chunk_policy": "balanced",
+        }
+    return {"complaint_id": complaint_id, "routing_hint": routing_hint}
+
+
 def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
     """통합 워크벤치에서 검색결과 기반 QA를 실행한다."""
     search_results_payload = build_search_results_payload_from_session()
     qa_payload = {
+        **resolve_qa_contract(case, top_k=5),
         "query": prompt,
         "top_k": 5,
         "use_search_results": bool(search_results_payload),
@@ -2313,6 +2340,7 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
             "category": case.get("category"),
             "entity_labels": ["FACILITY", "HAZARD"],
         },
+        "query_signals": build_qa_query_signals(case),
     }
 
     st.session_state.chat_history.append({"role": "user", "content": prompt})
@@ -2320,11 +2348,14 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
     with st.spinner("AI 어시스턴트가 답변을 생성 중입니다... (약 8~12초)"):
         start_ts = time.time()
         qa_data, qa_err = run_qa_via_api(
+            complaint_id=str(qa_payload.get("complaint_id") or ""),
             query=str(qa_payload.get("query") or ""),
+            routing_hint=dict(qa_payload.get("routing_hint") or {}),
             top_k=int(qa_payload.get("top_k") or 5),
             use_search_results=bool(qa_payload.get("use_search_results")),
             search_results=qa_payload.get("search_results") or [],
             filters=qa_payload.get("filters") if isinstance(qa_payload.get("filters"), dict) else None,
+            query_signals=qa_payload.get("query_signals"),
             timeout=35.0,
         )
         elapsed = time.time() - start_ts
@@ -2332,27 +2363,18 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
             time.sleep(8.0 - elapsed)
 
     if qa_err and not qa_data:
-        fallback_answer = (
-            "서버 지연으로 샘플 초안을 표시합니다. 현장 안전조치, 원인 점검, 후속 일정 공유 순으로 대응하세요. [출처 1]"
-        )
-        fallback_citations = [
-            {
-                "ref_id": 1,
-                "case_id": "CASE-2025-1024",
-                "chunk_id": "CASE-2025-1024__chunk-0",
-                "doc_id": "DOC-2025-1024",
-                "snippet": "포트홀 긴급 복구 및 후속 배수 개선 사례",
-            }
-        ]
         st.session_state.chat_history.append(
             {
                 "role": "assistant",
-                "content": render_answer_with_citations(fallback_answer, fallback_citations),
-                "citations": fallback_citations,
-                "meta": {"processing_time": 8.0, "model": "fallback-sample"},
+                "content": (
+                    "<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; "
+                    f"border-radius:8px; padding:12px;'>답변을 생성하지 못했습니다. {html.escape(qa_err)}</div>"
+                ),
+                "citations": [],
+                "meta": {"generation_mode": "error"},
             }
         )
-        st.session_state.single_call_notice = f"QA API 폴백 사용: {qa_err}"
+        st.session_state.single_call_notice = f"QA API 호출 실패: {qa_err}"
         return
 
     if qa_data.get("success") is True:
@@ -2363,6 +2385,8 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
                 "role": "assistant",
                 "content": rendered_answer,
                 "citations": citations,
+                "legal_citations": qa_data.get("legal_citations", []),
+                "legal_citation_warnings": qa_data.get("legal_citation_warnings", []),
                 "meta": qa_data.get("meta", {}),
                 "limitations": qa_data.get("limitations"),
                 "confidence": qa_data.get("confidence"),
@@ -2523,6 +2547,7 @@ def build_single_call_qa_payload(case: Dict[str, Any]) -> Dict[str, Any]:
     query = " ".join([t for t in query_terms if t]).strip() or case.get("raw_text", "")[:60]
 
     return {
+        **resolve_qa_contract(case, top_k=5),
         "query": f"{query} 민원에 대한 대응 방안을 공문체로 작성해줘.",
         "top_k": 5,
         "use_search_results": False,
@@ -2531,6 +2556,7 @@ def build_single_call_qa_payload(case: Dict[str, Any]) -> Dict[str, Any]:
             "category": case.get("category"),
             "entity_labels": ["FACILITY", "HAZARD"],
         },
+        "query_signals": build_qa_query_signals(case),
     }
 
 
@@ -2557,11 +2583,14 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
     with st.spinner("내부 검색 모드로 /api/v1/qa 호출 중... (약 8~12초)"):
         start_ts = time.time()
         qa_data, qa_err = run_qa_via_api(
+            complaint_id=str(payload.get("complaint_id") or ""),
             query=str(payload.get("query") or ""),
+            routing_hint=resolve_qa_contract(case, top_k=5)["routing_hint"],
             top_k=int(payload.get("top_k") or 5),
             use_search_results=bool(payload.get("use_search_results")),
             search_results=payload.get("search_results") or [],
             filters=payload.get("filters") if isinstance(payload.get("filters"), dict) else None,
+            query_signals=payload.get("query_signals"),
             timeout=35.0,
         )
         elapsed = time.time() - start_ts
@@ -2569,25 +2598,15 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
             time.sleep(delay_seconds - elapsed)
 
     if qa_err and not qa_data:
-        fallback_answer = (
-            "내부망 QA 서버 연결이 지연되어 샘플 대응안을 표시합니다. "
-            "현장 안전조치 및 임시복구를 우선 진행하고, 후속 정비계획을 3일 이내 제출하세요. [출처 1]"
-        )
-        citations = [
-            {
-                "ref_id": 1,
-                "case_id": "CASE-2025-1024",
-                "chunk_id": "CASE-2025-1024__chunk-0",
-                "doc_id": "DOC-2025-1024",
-                "snippet": "폭우 이후 배수 불량으로 발생한 포트홀 긴급 복구 사례",
-            }
-        ]
         st.session_state.chat_history.append(
             {
                 "role": "assistant",
-                "content": render_answer_with_citations(fallback_answer, citations),
-                "citations": citations,
-                "meta": {"model": "fallback-sample", "processing_time": round(delay_seconds, 2)},
+                "content": (
+                    "<div style='background:#fee2e2; color:#991b1b; border:1px solid #fecaca; "
+                    f"border-radius:8px; padding:12px;'>답변을 생성하지 못했습니다. {html.escape(qa_err)}</div>"
+                ),
+                "citations": [],
+                "meta": {"generation_mode": "error", "processing_time": round(delay_seconds, 2)},
             }
         )
         st.session_state.single_call_notice = f"QA API 연결 실패: {qa_err}"
@@ -2601,6 +2620,8 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
                 "role": "assistant",
                 "content": rendered_answer,
                 "citations": citations,
+                "legal_citations": qa_data.get("legal_citations", []),
+                "legal_citation_warnings": qa_data.get("legal_citation_warnings", []),
                 "meta": qa_data.get("meta", {}),
                 "limitations": qa_data.get("limitations"),
                 "confidence": qa_data.get("confidence"),
@@ -3116,6 +3137,11 @@ def render_selected_case_detail_and_workbench(selected_case: Dict[str, Any]) -> 
                     st.warning("QA 응답 검증에서 문제가 감지되었습니다. (qa_validation.is_valid=false)")
                 citations = message.get("citations", [])
                 render_citations_block(citations if isinstance(citations, list) else [], expanded=False)
+                render_legal_citations_block(
+                    message.get("legal_citations"),
+                    message.get("legal_citation_warnings"),
+                    expanded=False,
+                )
 
                 limitations = message.get("limitations")
                 has_limitations = bool(str(limitations).strip()) if isinstance(limitations, str) else bool(limitations)
@@ -4062,6 +4088,11 @@ def render_tab1_assigned_cases():
                         st.markdown(f"<div class='chat-message-assistant'>{message.get('content', '')}</div>", unsafe_allow_html=True)
                         citations = message.get("citations", [])
                         render_citations_block(citations if isinstance(citations, list) else [], expanded=False)
+                        render_legal_citations_block(
+                            message.get("legal_citations"),
+                            message.get("legal_citation_warnings"),
+                            expanded=False,
+                        )
 
                         qa_validation = message.get("qa_validation")
                         if isinstance(qa_validation, dict) and qa_validation.get("is_valid") is False:
