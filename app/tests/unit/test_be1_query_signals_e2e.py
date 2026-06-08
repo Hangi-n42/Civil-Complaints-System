@@ -88,6 +88,8 @@ def test_generation_metadata_defaults_and_warnings():
             "fallback_used": True,
             "parse_retry_count": "2",
             "generation_mode": "fast_fallback",
+            "legal_grounding_status": "grounded",
+            "legal_grounding_error": "",
         }
     )
 
@@ -100,6 +102,8 @@ def test_generation_metadata_defaults_and_warnings():
         "fallback_used": True,
         "parse_retry_count": 2,
         "generation_mode": "fast_fallback",
+        "legal_grounding_status": "grounded",
+        "legal_grounding_error": "",
     }
     assert warnings == ["empty_answer", "fallback_used"]
 
@@ -143,6 +147,8 @@ def test_build_summary_and_markdown_are_korean_report_ready():
                         "fallback_used": False,
                         "parse_retry_count": 1,
                         "generation_mode": "force_json",
+                        "legal_grounding_status": "no_candidates",
+                        "legal_grounding_error": "",
                     },
                 },
             }
@@ -157,7 +163,9 @@ def test_build_summary_and_markdown_are_korean_report_ready():
     assert report["summary"]["generation_warning_count"] == 1
     assert report["summary"]["generation_empty_answer_count"] == 1
     assert report["summary"]["generation_mode_counts"] == {"force_json": 1}
+    assert report["summary"]["generation_legal_grounding_status_counts"] == {"no_candidates": 1}
     assert "BE1 query_signals 검색 E2E 검증 요약" in markdown
     assert "해석 주의" in markdown
     assert "답변 생성 관측" in markdown
     assert "empty_answer" in markdown
+    assert "법령 grounding 상태 분포" in markdown
