@@ -29,8 +29,10 @@ class Settings:
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")
     OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 120))
+    GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 768))
+    GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 2048))
 
     # ChromaDB 설정
     CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "chroma_db"))
@@ -80,6 +82,18 @@ class Settings:
     STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3.5:7.8b")
     STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
     STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
+
+    # responsible_unit 도출 (요청 #3) — bge-m3/Chroma 인덱스 필요. 기본 off.
+    # 인덱스 빌드(build_index) 후 true 로 켤 것. true 라도 인프라 미가용 시 빈 리스트로 폴백.
+    ENABLE_RESPONSIBLE_UNIT: bool = os.getenv("ENABLE_RESPONSIBLE_UNIT", "false").lower() == "true"
+    RESPONSIBLE_UNIT_USE_LLM: bool = os.getenv("RESPONSIBLE_UNIT_USE_LLM", "false").lower() == "true"
+
+    # 구조화 고도화(Track A): ① 제약 디코딩 / ② 자기검증 (기본 off, 점진 전환)
+    STRUCTURING_CONSTRAINED: bool = os.getenv("STRUCTURING_CONSTRAINED", "false").lower() == "true"
+    ENABLE_SELF_VERIFY: bool = os.getenv("ENABLE_SELF_VERIFY", "false").lower() == "true"
+
+    # BE3 법령 조문 인용 그라운딩(Phase B). 인덱스/모델 미가용 시 자동 무동작.
+    ENABLE_LEGAL_CITATIONS: bool = os.getenv("ENABLE_LEGAL_CITATIONS", "true").lower() == "true"
 
 
 settings = Settings()

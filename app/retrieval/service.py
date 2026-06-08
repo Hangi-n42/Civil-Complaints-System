@@ -24,6 +24,18 @@ from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
 from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 
 
+METADATA_SOFT_RERANK_WEIGHTS = {
+    "legal_ref_ids": 0.08,
+    "legal_ref_names": 0.06,
+    "issue_types": 0.05,
+    "entity_texts": 0.04,
+    "responsible_units": 0.03,
+}
+METADATA_SOFT_RERANK_KEY_TERM_WEIGHT = 0.01
+METADATA_SOFT_RERANK_KEY_TERM_MAX = 0.04
+METADATA_SOFT_RERANK_MAX_BOOST = 0.20
+
+
 class RetrievalService:
     """검색 서비스"""
 
@@ -258,6 +270,74 @@ class RetrievalService:
 
         return str(record.get("text", "")).strip()
 
+    def _dedupe_strings(self, values: List[Any]) -> List[str]:
+        normalized: List[str] = []
+        seen = set()
+        for value in values:
+            text = " ".join(str(value or "").split())
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(text)
+        return normalized
+
+    def _extract_signal_values(
+        self,
+        value: Any,
+        *,
+        keys: tuple[str, ...] = ("name", "text"),
+    ) -> List[str]:
+        if value is None:
+            return []
+
+        if isinstance(value, str):
+            return self._dedupe_strings([item for item in value.split("|") if item])
+
+        if isinstance(value, dict):
+            raw_items = [value]
+        elif isinstance(value, list):
+            raw_items = value
+        else:
+            raw_items = [value]
+
+        extracted: List[Any] = []
+        for item in raw_items:
+            if isinstance(item, dict):
+                for key in keys:
+                    if item.get(key):
+                        extracted.append(item.get(key))
+                        break
+            else:
+                extracted.append(item)
+        return self._dedupe_strings(extracted)
+
+    def _extract_legal_ref_signals(self, value: Any) -> tuple[List[str], List[str]]:
+        if value is None:
+            return [], []
+
+        raw_items = value if isinstance(value, list) else [value]
+        names: List[Any] = []
+        law_ids: List[Any] = []
+        for item in raw_items:
+            if isinstance(item, dict):
+                names.append(item.get("name"))
+                law_ids.append(item.get("law_id"))
+            else:
+                names.append(item)
+
+        return self._dedupe_strings(names), self._dedupe_strings(law_ids)
+
+    def _extract_urgency_level(self, value: Any) -> str:
+        if isinstance(value, dict):
+            return " ".join(str(value.get("level") or "").split())
+        if isinstance(value, list):
+            values = self._extract_signal_values(value, keys=("level", "name", "text"))
+            return values[0] if values else ""
+        return " ".join(str(value or "").split())
+
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
@@ -276,6 +356,52 @@ class RetrievalService:
             region = metadata.get("region")
 
         entity_labels, entity_texts, confidence = self._extract_entities(record)
+        search_entity_texts = (
+            self._extract_signal_values(
+                record.get("entity_texts", metadata.get("entity_texts")),
+                keys=("text", "name"),
+            )
+            or entity_texts
+        )
+        legal_ref_names, legal_ref_ids = self._extract_legal_ref_signals(
+            record.get("legal_refs", metadata.get("legal_refs"))
+        )
+        legal_ref_names = legal_ref_names or self._extract_signal_values(
+            record.get("legal_ref_names", metadata.get("legal_ref_names")),
+            keys=("name", "text"),
+        )
+        legal_ref_ids = legal_ref_ids or self._extract_signal_values(
+            record.get("legal_ref_ids", metadata.get("legal_ref_ids")),
+            keys=("law_id", "id", "text", "name"),
+        )
+        issue_type_value = record.get(
+            "issue_type",
+            record.get("issue_types", metadata.get("issue_type", metadata.get("issue_types"))),
+        )
+        issue_types = self._extract_signal_values(
+            issue_type_value,
+            keys=("name", "text"),
+        )
+        key_terms = self._extract_signal_values(
+            record.get("key_terms", metadata.get("key_terms")),
+            keys=("term", "text", "name"),
+        )
+        responsible_unit_value = record.get(
+            "responsible_unit",
+            record.get(
+                "responsible_units",
+                metadata.get("responsible_unit", metadata.get("responsible_units")),
+            ),
+        )
+        responsible_units = self._extract_signal_values(
+            responsible_unit_value,
+            keys=("name", "unit", "text"),
+        )
+        urgency_value = record.get(
+            "urgency",
+            record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
+        )
+        urgency_level = self._extract_urgency_level(urgency_value)
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
@@ -306,6 +432,13 @@ class RetrievalService:
             "title": title,
             "entity_labels": entity_labels,
             "entity_texts": entity_texts,
+            "search_entity_texts": search_entity_texts,
+            "legal_ref_names": legal_ref_names,
+            "legal_ref_ids": legal_ref_ids,
+            "issue_types": issue_types,
+            "key_terms": key_terms,
+            "responsible_units": responsible_units,
+            "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),
                 "request": self._get_request_text(record),
@@ -543,6 +676,77 @@ class RetrievalService:
             item["rank"] = rank
         return results_list
 
+    def _normalize_query_signals(
+        self,
+        query_signals: Optional[Dict[str, Any]],
+    ) -> Dict[str, List[str]]:
+        if not isinstance(query_signals, dict):
+            return {}
+
+        normalized: Dict[str, List[str]] = {}
+        for field in (
+            "entity_texts",
+            "legal_ref_names",
+            "legal_ref_ids",
+            "issue_types",
+            "key_terms",
+            "responsible_units",
+        ):
+            values = self._extract_signal_values(query_signals.get(field))
+            if values:
+                normalized[field] = values
+        return normalized
+
+    def _overlap_count(self, left: List[str], right: List[str]) -> int:
+        left_set = {str(item).casefold() for item in left if str(item).strip()}
+        right_set = {str(item).casefold() for item in right if str(item).strip()}
+        return len(left_set.intersection(right_set))
+
+    def _metadata_soft_boost(
+        self,
+        query_signals: Dict[str, List[str]],
+        item: Dict[str, Any],
+    ) -> float:
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        boost = 0.0
+
+        for field, weight in METADATA_SOFT_RERANK_WEIGHTS.items():
+            candidate_values = self._extract_signal_values(metadata.get(field))
+            if self._overlap_count(query_signals.get(field, []), candidate_values) > 0:
+                boost += weight
+
+        key_term_overlap = self._overlap_count(
+            query_signals.get("key_terms", []),
+            self._extract_signal_values(metadata.get("key_terms")),
+        )
+        boost += min(
+            METADATA_SOFT_RERANK_KEY_TERM_MAX,
+            METADATA_SOFT_RERANK_KEY_TERM_WEIGHT * key_term_overlap,
+        )
+        return min(METADATA_SOFT_RERANK_MAX_BOOST, boost)
+
+    def _apply_metadata_soft_rerank(
+        self,
+        results: List[Dict[str, Any]],
+        query_signals: Optional[Dict[str, List[str]]],
+    ) -> List[Dict[str, Any]]:
+        if not query_signals or not any(query_signals.values()):
+            return results
+
+        reranked: List[Dict[str, Any]] = []
+        for item in results:
+            updated = dict(item)
+            updated["metadata"] = dict(item.get("metadata") or {})
+            boost = self._metadata_soft_boost(query_signals, updated)
+            base_score = float(updated.get("score", 0.0) or 0.0)
+            updated["score"] = round(base_score * (1.0 + boost), 6)
+            reranked.append(updated)
+
+        reranked.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
+        for rank, item in enumerate(reranked, start=1):
+            item["rank"] = rank
+        return reranked
+
     async def chunk_text(
         self, text: str, chunk_size: int = 500, overlap: int = 100
     ) -> List[str]:
@@ -645,6 +849,7 @@ class RetrievalService:
         snippet_max_chars: Optional[int] = None,
         strategy: Optional[str] = None,
         grounding_filter: Optional[bool] = None,
+        query_signals: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -670,6 +875,8 @@ class RetrievalService:
             grounding_on = (
                 settings.GROUNDING_FILTER_ENABLED if grounding_filter is None else grounding_filter
             )
+            normalized_query_signals = self._normalize_query_signals(query_signals)
+            metadata_rerank_on = bool(normalized_query_signals)
             segments = self._normalize_request_segments(query, request_segments)
             if len(segments) > 1:
                 segment_results = []
@@ -689,12 +896,15 @@ class RetrievalService:
                     )
                     segment_results.append((segment, results_for_segment))
                 results = self._merge_segment_results(segment_results, top_k=top_k)
+                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
             else:
                 # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
                 effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
                 use_hybrid = effective_strategy == "hybrid" and not (filters or {})
                 # grounding 필터 시엔 채점 후 줄어드므로 후보 풀을 더 확보
                 retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
+                if metadata_rerank_on:
+                    retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
                 fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
                 dense_results = store.query(
                     collection_name=collection_key,
@@ -720,9 +930,12 @@ class RetrievalService:
                     topic_type=topic_type,
                     retrieval_policy=retrieval_policy,
                 )
+                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
 
             if grounding_on and results:
                 results = await self._apply_grounding_filter(query, results, top_k)
+            elif metadata_rerank_on:
+                results = results[: max(1, top_k)]
 
             self.logger.info(f"검색 완료: {len(results)}개 결과")
             return results

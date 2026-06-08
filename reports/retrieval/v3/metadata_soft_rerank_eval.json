@@ -1,0 +1,219 @@
+{
+  "generated_at": "2026-06-07T17:43:28.362151+00:00",
+  "eval_set": "qrels_pooled_3judge, NO-self",
+  "n_queries": 100,
+  "depth": 50,
+  "rrf_k": 60,
+  "signals": {
+    "query_signal_source": "deterministic_sidecar",
+    "query_signal_reason": "evaluation query files do not contain PR #314 metadata fields",
+    "query_signal_coverage": {
+      "n": 100,
+      "non_empty_by_field": {
+        "entity_texts": 16,
+        "legal_ref_names": 42,
+        "legal_ref_ids": 42,
+        "issue_types": 68,
+        "key_terms": 77,
+        "responsible_units": 100
+      }
+    },
+    "candidate_signal_source": "chroma_metadata_with_sidecar_fallback",
+    "reason": "candidate case에 Chroma 검색 신호 metadata가 있으면 우선 사용하고, 누락 case만 deterministic sidecar로 보완",
+    "candidate_cases": 4356,
+    "candidate_cases_with_chroma_metadata_signals": 4356,
+    "candidate_cases_with_sidecar_fallback": 0,
+    "chroma_signal_coverage": {
+      "n": 4356,
+      "non_empty_by_field": {
+        "entity_texts": 472,
+        "legal_ref_names": 1876,
+        "legal_ref_ids": 1876,
+        "issue_types": 3360,
+        "key_terms": 3636,
+        "responsible_units": 4356
+      }
+    },
+    "sidecar_fallback_coverage": {
+      "n": 0,
+      "non_empty_by_field": {
+        "entity_texts": 0,
+        "legal_ref_names": 0,
+        "legal_ref_ids": 0,
+        "issue_types": 0,
+        "key_terms": 0,
+        "responsible_units": 0
+      }
+    },
+    "final_candidate_signal_coverage": {
+      "n": 4356,
+      "non_empty_by_field": {
+        "entity_texts": 472,
+        "legal_ref_names": 1876,
+        "legal_ref_ids": 1876,
+        "issue_types": 3360,
+        "key_terms": 3636,
+        "responsible_units": 4356
+      }
+    },
+    "responsible_units_source": "Chroma metadata 우선, 누락 시 category + source deterministic fallback"
+  },
+  "general_search": {
+    "metrics": [
+      "nDCG@5",
+      "nDCG@10",
+      "P@5",
+      "R@10"
+    ],
+    "systems": {
+      "Hybrid": {
+        "nDCG@10": 0.7374728661151956,
+        "nDCG@5": 0.7521892438384594,
+        "AP@10": 0.26041210936340187,
+        "RR@5": 0.8761666666666668,
+        "R@10": 0.31339438662451846,
+        "R@5": 0.20284450954252514,
+        "RR@10": 0.8761666666666668,
+        "P@5": 0.7659999999999997
+      },
+      "Hybrid+metadata_soft_rerank": {
+        "nDCG@10": 0.7428446116147931,
+        "nDCG@5": 0.7541615284976737,
+        "AP@10": 0.26435773001443,
+        "RR@5": 0.8806666666666668,
+        "R@10": 0.3172379856611407,
+        "R@5": 0.2041860274607908,
+        "RR@10": 0.8806666666666668,
+        "P@5": 0.7659999999999997
+      }
+    },
+    "delta": {
+      "nDCG@5": 0.001972,
+      "nDCG@10": 0.005372,
+      "P@5": 0.0,
+      "R@10": 0.003844
+    }
+  },
+  "grounding": {
+    "top_k": 5,
+    "llm_filter_pool": 10,
+    "systems": {
+      "Hybrid": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 500,
+        "slots": {
+          "rel2": 28,
+          "rel1": 355,
+          "rel0": 116,
+          "unjudged": 1
+        },
+        "rel0_rate": 0.232,
+        "useful_rate": 0.766,
+        "harmful_query_rate": 0.45,
+        "empty_result_rate": 0.0,
+        "queries_empty": 0,
+        "avg_filled": 5.0
+      },
+      "Hybrid+metadata_soft_rerank": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 500,
+        "slots": {
+          "rel2": 27,
+          "rel1": 356,
+          "rel0": 116,
+          "unjudged": 1
+        },
+        "rel0_rate": 0.232,
+        "useful_rate": 0.766,
+        "harmful_query_rate": 0.45,
+        "empty_result_rate": 0.0,
+        "queries_empty": 0,
+        "avg_filled": 5.0
+      },
+      "Hybrid+metadata_soft_rerank+LLM_filter_cache_projection": {
+        "k": 5,
+        "n_queries": 100,
+        "total_slots": 424,
+        "slots": {
+          "rel2": 27,
+          "rel1": 348,
+          "rel0": 47,
+          "unjudged": 2
+        },
+        "rel0_rate": 0.1108,
+        "useful_rate": 0.8844,
+        "harmful_query_rate": 0.36,
+        "empty_result_rate": 0.0,
+        "queries_empty": 0,
+        "avg_filled": 4.24
+      }
+    },
+    "llm_cache": {
+      "path": "data/evaluation/v3/checkpoints/llm_rerank_full.json",
+      "pool_total": 1000,
+      "scored": 876,
+      "missing": 124,
+      "coverage": 0.876
+    },
+    "existing_hybrid_llm_filter_baseline": {
+      "k": 5,
+      "n_queries": 100,
+      "total_slots": 384,
+      "slots": {
+        "rel2": 27,
+        "rel1": 341,
+        "rel0": 16,
+        "unjudged": 0
+      },
+      "harmful_rate": 0.0417,
+      "useful_rate": 0.9583,
+      "queries_with_harmful_pct": 0.14,
+      "queries_empty_grounding": 7,
+      "avg_filled_slots": 3.84
+    }
+  },
+  "reliability": {
+    "interpretation": "directional regression benchmark, not final production quality proof",
+    "qrels_stats": {
+      "qrels_path": "data/evaluation/v3/qrels_pooled_3judge.tsv",
+      "judged_pairs": 8057,
+      "queries": 100,
+      "rel_distribution": {
+        "0": 4965,
+        "1": 2942,
+        "2": 150
+      },
+      "judged_per_query": {
+        "min": 59,
+        "median": 82,
+        "max": 95
+      },
+      "positive_per_query": {
+        "min": 1,
+        "median": 35,
+        "max": 80
+      },
+      "queries_without_positive": 0
+    },
+    "strengths": [
+      "3-judge median relevance labels",
+      "NO-self evaluation removes source document shortcut",
+      "Dense top-50 and BM25 top-50 fair pooling reduces pooling bias"
+    ],
+    "limits": [
+      "Queries are still evaluation-set structured complaints, not fresh production held-out complaints",
+      "query_signals are deterministic sidecar signals because eval queries do not contain PR #314 BE1 output",
+      "qrels are top-50 pool based and spotcheck reports remaining long-tail incompleteness",
+      "LLM filter numbers use cache projection and should be validated with live production filter runs",
+      "No human gold-seed agreement or statistical significance test is included in this PR"
+    ],
+    "recommended_next_checks": [
+      "Build a 50-100 pair human gold-seed set",
+      "Run evaluation on real BE1 structured query_signals after BE1 pipeline is available for held-out complaints",
+      "Add bootstrap confidence intervals or paired significance tests for metric deltas",
+      "Track production/offline failure cases by issue type, legal reference, department, and rel0 cause"
+    ]
+  }
+}

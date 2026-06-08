@@ -35,6 +35,37 @@ def _split_entity_labels(value: Any) -> List[str]:
     return labels
 
 
+def _split_metadata_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = [item for item in value.split("|") if item]
+    else:
+        raw_items = []
+
+    items: List[str] = []
+    seen = set()
+    for item in raw_items:
+        text = _normalize_text(item)
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(text)
+    return items
+
+
+def _join_metadata_list(value: Any) -> str:
+    return "|".join(_split_metadata_list(value))
+
+
+def _first_metadata_value(value: Any) -> str:
+    items = _split_metadata_list(value)
+    return items[0] if items else _normalize_text(value)
+
+
 def _to_iso_datetime(value: Any) -> Optional[datetime]:
     if not value:
         return None
@@ -159,6 +190,9 @@ class ChromaVectorStore:
         metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
         summary = record.get("summary") if isinstance(record.get("summary"), dict) else {}
         labels = record.get("entity_labels") or []
+        entity_texts = record.get("search_entity_texts")
+        if entity_texts is None:
+            entity_texts = record.get("entity_texts") or []
 
         try:
             chunk_index = int(record.get("chunk_index", 0))
@@ -179,6 +213,13 @@ class ChromaVectorStore:
             "category": str(record.get("category") or ""),
             "region": str(record.get("region") or ""),
             "entity_labels": "|".join(str(label).strip().upper() for label in labels if str(label).strip()),
+            "entity_texts": _join_metadata_list(entity_texts),
+            "legal_ref_names": _join_metadata_list(record.get("legal_ref_names")),
+            "legal_ref_ids": _join_metadata_list(record.get("legal_ref_ids")),
+            "issue_types": _join_metadata_list(record.get("issue_types")),
+            "key_terms": _join_metadata_list(record.get("key_terms")),
+            "responsible_units": _join_metadata_list(record.get("responsible_units")),
+            "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
             "summary_observation": _normalize_text(summary.get("observation")),
             "summary_request": _normalize_text(summary.get("request")),
@@ -281,6 +322,12 @@ class ChromaVectorStore:
             region = str(metadata.get("region") or "")
             category = str(metadata.get("category") or "")
             entity_labels = _split_entity_labels(metadata.get("entity_labels"))
+            entity_texts = _split_metadata_list(metadata.get("entity_texts"))
+            legal_ref_names = _split_metadata_list(metadata.get("legal_ref_names"))
+            legal_ref_ids = _split_metadata_list(metadata.get("legal_ref_ids"))
+            issue_types = _split_metadata_list(metadata.get("issue_types"))
+            key_terms = _split_metadata_list(metadata.get("key_terms"))
+            responsible_units = _split_metadata_list(metadata.get("responsible_units"))
             created_at = str(metadata.get("created_at") or "")
             created_at_ts = metadata.get("created_at_ts")
 
@@ -332,6 +379,13 @@ class ChromaVectorStore:
                         "category": category,
                         "region": region,
                         "entity_labels": entity_labels,
+                        "entity_texts": entity_texts,
+                        "legal_ref_names": legal_ref_names,
+                        "legal_ref_ids": legal_ref_ids,
+                        "issue_types": issue_types,
+                        "key_terms": key_terms,
+                        "responsible_units": responsible_units,
+                        "urgency_level": str(metadata.get("urgency_level") or ""),
                         "created_at_ts": int(created_at_ts or 0),
                     },
                 }

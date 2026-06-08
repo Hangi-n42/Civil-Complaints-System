@@ -84,8 +84,8 @@ class GenerationService:
                 "format": "json",
                 "options": {
                     "temperature": temperature,
-                    "num_predict": 128,
-                    "num_ctx": 1024,
+                    "num_predict": settings.GENERATION_NUM_PREDICT,
+                    "num_ctx": settings.GENERATION_NUM_CTX,
                 },
             }
 
@@ -656,6 +656,46 @@ class GenerationService:
                 retryable=True,
             ) from e
 
+    def _prepare_legal_context(self, query: str):
+        """질의 → 법령 후보(law_id) → 조문 검색 + 프롬프트 주입 블록. 미가용 시 ([], "")."""
+        try:
+            from app.core.config import settings as _st
+            if not getattr(_st, "ENABLE_LEGAL_CITATIONS", True):
+                return [], ""
+            from app.structuring.legal_dictionary import get_legal_ref_matcher
+            from app.structuring.enrichment import (
+                build_key_terms, classify_issue_type, normalize_entity_texts,
+            )
+            from app.generation.citation.legal_citation import (
+                retrieve_legal_context, build_legal_context_block, LEGAL_CITATION_INSTRUCTION,
+            )
+            refs = get_legal_ref_matcher().match(query)
+            et = normalize_entity_texts([], query)
+            it = classify_issue_type(query)
+            kt = build_key_terms(query, et, it, refs)
+            articles = retrieve_legal_context(query, refs, key_terms=kt, top_k=5)
+            if not articles:
+                return [], ""
+            extra = "\n\n" + LEGAL_CITATION_INSTRUCTION + "\n" + build_legal_context_block(articles)
+            return articles, extra
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning("법령 그라운딩 준비 생략: %s", e)
+            return [], ""
+
+    def _apply_legal_grounding(self, result: Dict[str, Any], articles) -> Dict[str, Any]:
+        """답변의 법령 인용을 검색 조문과 대조 → 환각 제거 + legal_citations 부착."""
+        try:
+            if not articles:
+                return result
+            from app.generation.citation.legal_citation import ground_legal_citations
+            g = ground_legal_citations(result.get("answer", ""), articles)
+            result["answer"] = g["answer"]
+            result["legal_citations"] = g["valid"]
+            result["legal_citation_warnings"] = g["warnings"]
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning("법령 인용 검증 생략: %s", e)
+        return result
+
     async def generate_qa(
         self,
         query: str,
@@ -675,7 +715,7 @@ class GenerationService:
                 "answer": "...",
                 "confidence": 0.85,
                 "citations": [...],
-                "model": "qwen2.5:7b-instruct"
+                "model": "exaone3.5:7.8b"
             }
         """
         try:
@@ -683,12 +723,15 @@ class GenerationService:
 
             parsed: Dict[str, Any] = {}
             last_parse_error: GenerationError | None = None
+            generation_mode = "default"
+            fallback_used = False
             retry_steps = [
                 {"stage": "default", "mode": "default", "temperature": 0.2},
                 {"stage": "force_json", "mode": "force_json", "temperature": 0.0},
                 {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
+            legal_articles, legal_extra = self._prepare_legal_context(query)  # Phase B 조문 그라운딩
 
             for attempt_index, step in enumerate(retry_steps, start=1):
                 try:
@@ -698,6 +741,8 @@ class GenerationService:
                         routing_trace=routing_trace,
                         mode=str(step["mode"]),
                     )
+                    if legal_extra:
+                        prompt = prompt + legal_extra
                     response_text = await self.call_ollama(
                         prompt,
                         temperature=float(step["temperature"]),
@@ -722,6 +767,7 @@ class GenerationService:
                             )
                             last_parse_error = relaxed_error
                             raise relaxed_error
+                    generation_mode = str(step["mode"])
                     break
                 except GenerationError as e:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
@@ -743,6 +789,8 @@ class GenerationService:
             if not parsed:
                 self.logger.warning("QA JSON 파싱 재시도 소진: fast fallback 사용")
                 parsed = self._build_fast_fallback_from_context(context)
+                generation_mode = "fast_fallback"
+                fallback_used = True
 
             citations = parsed.get("citations") or await self.build_citations("", context)
 
@@ -756,8 +804,14 @@ class GenerationService:
                     or "검색 범위 및 데이터 품질에 따라 답변이 제한될 수 있습니다."
                 ),
                 "model": self.model,
+                "generation_metadata": {
+                    "fallback_used": fallback_used,
+                    "parse_retry_count": len(retry_logs),
+                    "generation_mode": generation_mode,
+                },
             }
 
+            result = self._apply_legal_grounding(result, legal_articles)
             self.logger.info("QA 응답 생성 완료")
             return result
 

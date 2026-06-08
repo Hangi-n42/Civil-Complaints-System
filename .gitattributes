@@ -13,3 +13,14 @@
 # 바이너리 (정규화 금지)
 *.png binary
 *.bin binary
+
+# === Git LFS (대용량 데이터/모델) ===
+# 아래 경로는 LFS 포인터로 저장한다. 위의 *.json/*.csv text 규칙보다 나중에
+# 와야(경로 한정) 우선 적용된다. `-text` 로 줄바꿈 정규화는 끈다.
+# 적용: 로컬에서 `git lfs install` 후 git add 하면 자동으로 LFS 로 들어간다.
+data/raw_data/**                          filter=lfs diff=lfs merge=lfs -text
+data/processed/**                         filter=lfs diff=lfs merge=lfs -text
+data/laws/law_articles.json               filter=lfs diff=lfs merge=lfs -text
+data/laws/busan_ordinances.json           filter=lfs diff=lfs merge=lfs -text
+data/laws/law_dictionary.json             filter=lfs diff=lfs merge=lfs -text
+*.joblib                                  filter=lfs diff=lfs merge=lfs -text

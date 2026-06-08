@@ -21,6 +21,30 @@ def _tokenize(text: str) -> list[str]:
     return _TOKEN.findall(text.lower())
 
 
+def _split_pipe_list(value: Any, *, uppercase: bool = False) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = [item for item in value.split("|") if item]
+    else:
+        raw_items = []
+
+    items: list[str] = []
+    seen = set()
+    for item in raw_items:
+        text = " ".join(str(item or "").split())
+        if uppercase:
+            text = text.upper()
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(text)
+    return items
+
+
 class InvertedBM25:
     """역색인 기반 BM25 (build_fair_pool_qrels.py 검증 구현과 동일 공식)."""
 
@@ -100,6 +124,14 @@ class HybridRetriever:
                 "category": str(meta.get("category") or ""),
                 "region": str(meta.get("region") or ""),
                 "created_at": str(meta.get("created_at") or ""),
+                "entity_labels": _split_pipe_list(meta.get("entity_labels"), uppercase=True),
+                "entity_texts": _split_pipe_list(meta.get("entity_texts")),
+                "legal_ref_names": _split_pipe_list(meta.get("legal_ref_names")),
+                "legal_ref_ids": _split_pipe_list(meta.get("legal_ref_ids")),
+                "issue_types": _split_pipe_list(meta.get("issue_types")),
+                "key_terms": _split_pipe_list(meta.get("key_terms")),
+                "responsible_units": _split_pipe_list(meta.get("responsible_units")),
+                "urgency_level": str(meta.get("urgency_level") or ""),
             },
             "rank": rank,
             "retrieval": "hybrid",

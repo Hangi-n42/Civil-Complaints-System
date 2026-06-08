@@ -118,6 +118,14 @@ class CitationValidation(BaseModel):
     details: Optional[Dict[str, Any]] = None
 
 
+class GenerationMetadata(BaseModel):
+    """QA 생성 및 파싱 재시도 관측 정보"""
+
+    fallback_used: bool = False
+    parse_retry_count: int = Field(default=0, ge=0)
+    generation_mode: Literal["default", "force_json", "compact", "fast_fallback", "no_evidence_fallback"] = "default"
+
+
 class QAResponseData(BaseModel):
     """QA 응답 본체"""
 
@@ -131,6 +139,7 @@ class QAResponseData(BaseModel):
     limitations: List[str] = Field(default_factory=list)
     latency_ms: Dict[str, int] = Field(default_factory=dict)
     quality_signals: Dict[str, Any] = Field(default_factory=dict)
+    generation_metadata: GenerationMetadata = Field(default_factory=GenerationMetadata)
 
 
 class ErrorInfo(BaseModel):

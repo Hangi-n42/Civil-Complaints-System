@@ -1,0 +1,261 @@
+{
+  "persist_dir": "/Users/lmg/Projects/Civil-Complaints-System/data/chroma_db",
+  "collection": "civil_cases_v1",
+  "collection_count": 9132,
+  "processed": 9132,
+  "dry_run": false,
+  "coverage": {
+    "entity_texts": 1007,
+    "legal_ref_names": 3885,
+    "legal_ref_ids": 3885,
+    "issue_types": 6726,
+    "key_terms": 7379,
+    "responsible_units": 9132,
+    "urgency_level": 9132
+  },
+  "before_samples": [
+    {
+      "id": "CASE-000012::CASE-000012__chunk-0",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-000021::CASE-000021__chunk-1",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-001555::CASE-001555__chunk-2",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002465::CASE-002465__chunk-3",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002466::CASE-002466__chunk-4",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002467::CASE-002467__chunk-5",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002468::CASE-002468__chunk-6",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002469::CASE-002469__chunk-7",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002470::CASE-002470__chunk-8",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    },
+    {
+      "id": "CASE-002471::CASE-002471__chunk-9",
+      "metadata": {
+        "entity_texts": null,
+        "legal_ref_names": null,
+        "legal_ref_ids": null,
+        "issue_types": null,
+        "key_terms": null,
+        "responsible_units": null,
+        "urgency_level": null
+      }
+    }
+  ],
+  "after_samples": [
+    {
+      "id": "CASE-000012::CASE-000012__chunk-0",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "증빙/서류|예매/예약",
+        "key_terms": "예매|증빙",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "보통"
+      }
+    },
+    {
+      "id": "CASE-000021::CASE-000021__chunk-1",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "",
+        "key_terms": "",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-001555::CASE-001555__chunk-2",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "",
+        "key_terms": "",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002465::CASE-002465__chunk-3",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예약|예매",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002466::CASE-002466__chunk-4",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예매",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002467::CASE-002467__chunk-5",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예약|예매",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002468::CASE-002468__chunk-6",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예매",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002469::CASE-002469__chunk-7",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예약",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002470::CASE-002470__chunk-8",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "예매/예약",
+        "key_terms": "예매",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    },
+    {
+      "id": "CASE-002471::CASE-002471__chunk-9",
+      "metadata": {
+        "entity_texts": "",
+        "legal_ref_names": "",
+        "legal_ref_ids": "",
+        "issue_types": "",
+        "key_terms": "",
+        "responsible_units": "문화관광|국립아시아문화전당",
+        "urgency_level": "낮음"
+      }
+    }
+  ],
+  "responsible_units_note": "category/source fallback; BE1 responsible_unit 확정값 아님"
+}

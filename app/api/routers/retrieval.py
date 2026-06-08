@@ -324,6 +324,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             request_segments=routing["request_segments"],
             retrieval_policy=routing["retrieval_policy"],
             snippet_max_chars=routing["routing_hint"]["snippet_max_chars"],
+            query_signals=request.query_signals.model_dump() if request.query_signals else None,
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
@@ -418,6 +419,13 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "category": metadata.get("category"),
                     "region": metadata.get("region"),
                     "entity_labels": metadata.get("entity_labels", []),
+                    "entity_texts": metadata.get("entity_texts", []),
+                    "legal_ref_names": metadata.get("legal_ref_names", []),
+                    "legal_ref_ids": metadata.get("legal_ref_ids", []),
+                    "issue_types": metadata.get("issue_types", []),
+                    "key_terms": metadata.get("key_terms", []),
+                    "responsible_units": metadata.get("responsible_units", []),
+                    "urgency_level": metadata.get("urgency_level"),
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],
                     "topic_type": routing["routing_trace"]["topic_type"],
