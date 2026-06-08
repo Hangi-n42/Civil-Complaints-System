@@ -87,6 +87,8 @@ def normalize_generation_metadata(value: Any) -> dict[str, Any]:
         "fallback_used": bool(metadata.get("fallback_used", False)),
         "parse_retry_count": _safe_non_negative_int(metadata.get("parse_retry_count")),
         "generation_mode": _clean_text(metadata.get("generation_mode")) or "default",
+        "legal_grounding_status": _clean_text(metadata.get("legal_grounding_status")) or "not_requested",
+        "legal_grounding_error": _clean_text(metadata.get("legal_grounding_error")),
     }
 
 
@@ -404,10 +406,15 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if row.get("generation", {}).get("status") != "skipped"
     ]
     generation_mode_counts: dict[str, int] = {}
+    legal_grounding_status_counts: dict[str, int] = {}
     for generation in generation_rows:
         metadata = normalize_generation_metadata(generation.get("generation_metadata"))
         mode = str(metadata.get("generation_mode") or "default")
         generation_mode_counts[mode] = generation_mode_counts.get(mode, 0) + 1
+        legal_status = str(metadata.get("legal_grounding_status") or "not_requested")
+        legal_grounding_status_counts[legal_status] = (
+            legal_grounding_status_counts.get(legal_status, 0) + 1
+        )
 
     return {
         "records": len(rows),
@@ -454,6 +461,7 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
             default=0,
         ),
         "generation_mode_counts": generation_mode_counts,
+        "generation_legal_grounding_status_counts": legal_grounding_status_counts,
     }
 
 
@@ -509,6 +517,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         mode_text = ", ".join(
             f"{mode}: {count}" for mode, count in sorted(mode_counts.items())
         ) or "-"
+        legal_status_counts = summary.get("generation_legal_grounding_status_counts", {})
+        legal_status_text = ", ".join(
+            f"{status}: {count}" for status, count in sorted(legal_status_counts.items())
+        ) or "-"
         lines.extend(
             [
                 "",
@@ -522,9 +534,10 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"- fallback 사용: {summary.get('generation_fallback_count', 0)}건",
                 f"- 최대 JSON 파싱 재시도: {summary.get('generation_max_parse_retry_count', 0)}회",
                 f"- generation mode 분포: {mode_text}",
+                f"- 법령 grounding 상태 분포: {legal_status_text}",
                 "",
-                "| case_id | 상태 | mode | fallback | retry | 답변 글자 수 | 경고 |",
-                "| --- | --- | --- | --- | ---: | ---: | --- |",
+                "| case_id | 상태 | mode | 법령 grounding | fallback | retry | 답변 글자 수 | 경고 |",
+                "| --- | --- | --- | --- | --- | ---: | ---: | --- |",
             ]
         )
         for row in rows[:30]:
@@ -532,10 +545,11 @@ def render_markdown(report: dict[str, Any]) -> str:
             metadata = normalize_generation_metadata(generation.get("generation_metadata"))
             warnings = ", ".join(generation.get("warnings") or [])
             lines.append(
-                "| {case_id} | {status} | {mode} | {fallback} | {retry} | {answer_chars} | {warnings} |".format(
+                "| {case_id} | {status} | {mode} | {legal_status} | {fallback} | {retry} | {answer_chars} | {warnings} |".format(
                     case_id=row.get("case_id", ""),
                     status=generation.get("status", ""),
                     mode=metadata.get("generation_mode", "default"),
+                    legal_status=metadata.get("legal_grounding_status", "not_requested"),
                     fallback="예" if metadata.get("fallback_used") else "아니오",
                     retry=metadata.get("parse_retry_count", 0),
                     answer_chars=_safe_non_negative_int(generation.get("answer_chars")),
