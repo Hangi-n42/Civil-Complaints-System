@@ -247,8 +247,14 @@ FE 금지사항:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest app/tests/unit -q -p no:cacheprovider
 .\.venv\Scripts\python.exe -m pytest app/tests/integration/test_week6_search_to_qa_e2e_sample10.py -q -p no:cacheprovider
+python scripts/e2e_be1_query_signals_search_qa.py --limit 5 --structuring-mode actual --grounding-filter --run-generation
 python scripts/check_law_index.py
 ```
+
+`e2e_be1_query_signals_search_qa.py`의 `generation_warnings`는 API 응답 필드가 아니라
+검증 리포트 전용 진단값이다. `empty_answer`, `fallback_used`,
+`legal_grounding_error`를 집계하며, 원본 `/qa` 상태는 함께 저장되는
+`generation_metadata`를 기준으로 확인한다.
 
 상세 계약:
 
