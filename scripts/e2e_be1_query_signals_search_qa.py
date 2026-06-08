@@ -79,6 +79,30 @@ def _extract_field_values(items: Any, field: str) -> list[str]:
     return _clean_values([item.get(field) for item in items if isinstance(item, dict)])
 
 
+def normalize_generation_metadata(value: Any) -> dict[str, Any]:
+    """BE3 generation_metadata를 E2E 리포트용 기본 형태로 정규화한다."""
+
+    metadata = value if isinstance(value, dict) else {}
+    return {
+        "fallback_used": bool(metadata.get("fallback_used", False)),
+        "parse_retry_count": _safe_non_negative_int(metadata.get("parse_retry_count")),
+        "generation_mode": _clean_text(metadata.get("generation_mode")) or "default",
+    }
+
+
+def build_generation_warnings(
+    *,
+    answer_chars: int,
+    generation_metadata: dict[str, Any],
+) -> list[str]:
+    warnings: list[str] = []
+    if answer_chars <= 0:
+        warnings.append("empty_answer")
+    if generation_metadata.get("fallback_used"):
+        warnings.append("fallback_used")
+    return warnings
+
+
 def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
     """BE1 구조화 출력에서 /search query_signals payload를 만든다."""
 
