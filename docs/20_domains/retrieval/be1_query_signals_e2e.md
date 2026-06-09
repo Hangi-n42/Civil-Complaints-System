@@ -52,6 +52,18 @@ python scripts/e2e_be1_query_signals_search_qa.py \
   --run-generation
 ```
 
+`--run-generation`을 켜면 BE3가 반환한 `generation_metadata`도 함께 기록한다.
+이 값은 검색 품질 점수가 아니라 답변 생성 단계의 상태 표시등이다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `fallback_used` | BE3가 fast fallback 또는 no-evidence fallback을 사용했는지 |
+| `parse_retry_count` | QA JSON 파싱 실패 후 재시도한 횟수 |
+| `generation_mode` | 최종 생성 모드(`default`, `force_json`, `compact`, `fast_fallback`, `no_evidence_fallback`) |
+
+답변 본문이 비어 있으면 `empty_answer` 경고로 표시한다.
+이 경우 BE2 검색은 성공했더라도 답변 초안 생성 검증은 실패 또는 재확인 대상으로 본다.
+
 ## 실행 위치
 
 무거운 실행은 Tailscale로 접속한 데스크톱에서 수행한다.
@@ -73,8 +85,16 @@ python scripts/e2e_be1_query_signals_search_qa.py \
 | `with_signals_top1_has_metadata_overlap_count` | 1등 후보가 query_signals와 실제 metadata를 공유하는 샘플 수 |
 | `with_signals_empty_count` | 신호 적용 후 빈 결과가 생겼는지 |
 | `grounding_error_count` | grounding filter 실행 중 오류가 있었는지 |
+| `generation_warning_count` | 답변 생성 결과에 경고가 있는지 |
+| `generation_empty_answer_count` | 답변 본문이 비어 있는지 |
+| `generation_fallback_count` | BE3 fallback 응답이 사용됐는지 |
+| `generation_mode_counts` | 답변 생성 모드별 분포 |
+
 좋은 결과는 “빈 결과는 늘지 않고, metadata overlap이 있는 후보가 조금 더 위로 올라가는 것”이다.
 반대로 top1이 자주 바뀌는데 overlap 근거가 약하면 boost가 검색을 흔드는지 확인해야 한다.
+
+답변 생성까지 실행한 경우에는 검색 결과와 답변 생성 결과를 분리해서 해석한다.
+검색 결과가 정상이어도 `empty_answer`나 `fallback_used`가 나오면 BE3 생성 품질 또는 QA 계약 문제로 별도 확인한다.
 
 ## 주의
 
