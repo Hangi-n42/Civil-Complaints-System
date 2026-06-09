@@ -1,10 +1,10 @@
 {
   "source_departments": 150,
   "source_tasks": 3368,
-  "master_departments": 116,
-  "master_tasks": 1998,
-  "dropped_departments": 34,
-  "boilerplate_tasks_removed": 781,
+  "master_departments": 118,
+  "master_tasks": 2114,
+  "dropped_departments": 32,
+  "boilerplate_tasks_removed": 667,
   "min_tasks_threshold": 2,
   "dropped_detail": [
     {
@@ -148,18 +148,6 @@
       "src_tasks": 1
     },
     {
-      "department": "교통혁신국",
-      "reason": "too_few_after_clean",
-      "src_tasks": 13,
-      "cleaned_tasks": 1
-    },
-    {
-      "department": "교통혁신과",
-      "reason": "too_few_after_clean",
-      "src_tasks": 13,
-      "cleaned_tasks": 1
-    },
-    {
       "department": "소방재난본부장",
       "reason": "blacklist",
       "src_tasks": 1
@@ -265,6 +253,8 @@
     "도시정비과",
     "도시공간활력과",
     "미래디자인본부",
+    "교통혁신국",
+    "교통혁신과",
     "대중교통과",
     "택시운수과",
     "트라이포트기획과",

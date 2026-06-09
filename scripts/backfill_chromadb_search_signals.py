@@ -10,6 +10,7 @@
   - 이 스크립트는 로컬 ChromaDB를 직접 변경한다.
   - `responsible_units`는 실제 BE1 responsible_unit이 없을 때 category/source
     fallback을 사용한다. 담당부서 확정값이 아니라 soft rerank 보조 신호다.
+  - `responsible_units_source`는 해당 fallback 출처를 BE2가 구분할 수 있게 보존한다.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ SEARCH_SIGNAL_FIELDS = [
     "issue_types",
     "key_terms",
     "responsible_units",
+    "responsible_units_source",
     "urgency_level",
 ]
 
@@ -81,6 +83,7 @@ def _build_signals(text: str, metadata: dict[str, Any]) -> dict[str, str]:
         cleaned = " ".join(str(value or "").split())
         if cleaned and cleaned not in {"-", "unknown", "미분류"}:
             responsible_units.append(cleaned)
+    responsible_units_value = _join_pipe(responsible_units)
 
     return {
         "entity_texts": _join_pipe([item.get("text") for item in entity_texts]),
@@ -88,7 +91,8 @@ def _build_signals(text: str, metadata: dict[str, Any]) -> dict[str, str]:
         "legal_ref_ids": _join_pipe([item.get("law_id") for item in legal_refs]),
         "issue_types": _join_pipe([item.get("name") for item in issue_types]),
         "key_terms": _join_pipe(key_terms),
-        "responsible_units": _join_pipe(responsible_units),
+        "responsible_units": responsible_units_value,
+        "responsible_units_source": "category_source_fallback" if responsible_units_value else "",
         "urgency_level": str(urgency.get("level") or ""),
     }
 
@@ -165,6 +169,7 @@ def main() -> None:
         "before_samples": before_samples,
         "after_samples": after_samples,
         "responsible_units_note": "category/source fallback; BE1 responsible_unit 확정값 아님",
+        "responsible_units_source": "category_source_fallback",
     }
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)

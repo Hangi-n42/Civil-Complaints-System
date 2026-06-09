@@ -1,14 +1,163 @@
 """DepartmentAssigner 순수 로직 단위 테스트 (모델/네트워크 불필요)."""
 
+import json
+
 from app.structuring.department_assigner import (
+    DepartmentAssigner,
+    RESPONSIBLE_UNIT_SOURCE_BE1,
     aggregate_candidates,
     build_query_text,
+    expand_department_task_text,
     extract_key_terms,
+    rrf_similarity,
+    sigmoid_similarity,
     validate_llm_units,
 )
 
 
 # ── extract_key_terms ────────────────────────────────────────────────────
+def test_expand_department_task_text_adds_department_and_domain_terms():
+    text = expand_department_task_text("건설행정과", "건설기계 위임 사무 총괄")
+
+    assert text.startswith("건설행정과 건설기계 위임 사무 총괄")
+    assert "건설기계관리법" in text
+    assert "지게차" in text
+    assert "굴착기" in text
+    assert "기중기" in text
+    assert "조종사면허" in text
+
+
+def test_expand_department_task_text_keeps_expansion_trigger_limited():
+    text = expand_department_task_text("택시운수과", "법인택시 면허 관리")
+
+    assert "법인택시 면허 관리" in text
+    assert "건설기계관리법" not in text
+    assert "지게차" not in text
+
+
+def test_expand_department_task_text_reuses_waste_lexicon_terms():
+    text = expand_department_task_text("자원순환과", "폐기물 관련 주민지원기금 운용 및 관리")
+
+    assert "폐기물관리법" in text
+    assert "쓰레기" in text
+    assert "생활폐기물" in text
+    assert "무단투기" in text
+
+
+def test_department_bm25_uses_expanded_task_text(tmp_path):
+    master_path = tmp_path / "departments.json"
+    master_path.write_text(
+        json.dumps([
+            {"department": "택시운수과", "url": "", "tasks": ["법인택시 면허 관리"]},
+            {"department": "건설행정과", "url": "", "tasks": ["건설기계 위임 사무 총괄"]},
+        ], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    assigner = DepartmentAssigner(master_path=str(master_path), persist_directory=str(tmp_path / "chroma"))
+
+    ranked = assigner._bm25_ranked_task_ids("지게차 조종사면허 갱신", ["지게차", "조종사면허"], fetch_k=2)
+
+    assert ranked[0] == "1_0"
+
+
+def test_hybrid_task_hits_keeps_sparse_only_records(tmp_path):
+    master_path = tmp_path / "departments.json"
+    master_path.write_text(
+        json.dumps([
+            {"department": "택시운수과", "url": "", "tasks": ["법인택시 면허 관리"]},
+            {"department": "건설행정과", "url": "", "tasks": ["건설기계 위임 사무 총괄"]},
+        ], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    assigner = DepartmentAssigner(master_path=str(master_path), persist_directory=str(tmp_path / "chroma"))
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "택시운수과", "task": "법인택시 면허 관리", "similarity": 0.9}
+    ]
+
+    hits = assigner._hybrid_task_hits("지게차 조종사면허 갱신", 5, ["지게차", "조종사면허"])
+
+    assert any(h["doc_id"] == "1_0" and h["department"] == "건설행정과" for h in hits)
+    assert all(0.0 <= h["similarity"] <= 1.0 for h in hits)
+    assert next(h for h in hits if h["doc_id"] == "1_0")["similarity"] < hits[0]["similarity"]
+
+
+def test_assign_defaults_to_dense_hits(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner.use_hybrid = False
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "도로안전과", "task": "도로 안전시설 관리", "similarity": 0.7}
+    ]
+    assigner._hybrid_task_hits = lambda query, fetch_k, query_terms: [
+        {"doc_id": "1_0", "department": "자원순환과", "task": "폐기물 관리", "similarity": 0.9}
+    ]
+
+    out = assigner.assign("도로 안전", top_n_units=1)
+
+    assert out[0]["name"] == "도로안전과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
+
+
+def test_assign_can_opt_into_hybrid_hits(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner.use_hybrid = False
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "도로안전과", "task": "도로 안전시설 관리", "similarity": 0.7}
+    ]
+    assigner._hybrid_task_hits = lambda query, fetch_k, query_terms: [
+        {"doc_id": "1_0", "department": "자원순환과", "task": "폐기물 관리", "similarity": 0.9}
+    ]
+
+    out = assigner.assign("폐기물 관리", top_n_units=1, use_hybrid=True)
+
+    assert out[0]["name"] == "자원순환과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
+
+
+def test_assign_can_opt_into_reranker_hits(tmp_path):
+    class FakeReranker:
+        def predict(self, pairs, batch_size):
+            assert batch_size == 16
+            assert pairs[0][0] == "공원 풋살장 관리"
+            return [-3.0, 3.0]
+
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner._reranker_model = FakeReranker()
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "공원여가정책과", "task": "공원 조성 관리", "similarity": 0.9},
+        {"doc_id": "1_0", "department": "생활체육과", "task": "체육시설 관리", "similarity": 0.6},
+    ]
+
+    out = assigner.assign("공원 풋살장 관리", top_n_units=1, use_reranker=True)
+
+    assert out[0]["name"] == "생활체육과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
+
+
+def test_assign_reranker_falls_back_when_model_unavailable(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner._reranker_unavailable = True
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "공원여가정책과", "task": "공원 조성 관리", "similarity": 0.9},
+        {"doc_id": "1_0", "department": "생활체육과", "task": "체육시설 관리", "similarity": 0.6},
+    ]
+
+    out = assigner.assign("공원 관리", top_n_units=1, use_reranker=True)
+
+    assert out[0]["name"] == "공원여가정책과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
+
+
+def test_rrf_similarity_scales_by_active_rankings():
+    assert rrf_similarity(1 / 61, ranking_count=1) == 1.0
+    assert rrf_similarity(1 / 61, ranking_count=2) == 0.5
+
+
+def test_sigmoid_similarity_maps_reranker_logit_to_unit_range():
+    assert sigmoid_similarity(0.0) == 0.5
+    assert sigmoid_similarity(4.0) > 0.98
+    assert sigmoid_similarity(-4.0) < 0.02
+
+
 def test_extract_key_terms_drops_stopwords_and_dedups():
     text = "3톤 미만 지게차 면허 신청 문의 지게차 적성검사"
     terms = extract_key_terms(text)
@@ -37,9 +186,10 @@ def test_aggregate_uses_max_similarity_and_multihit_bonus():
     top = res[0]
     assert top["name"] == "도로안전과"
     # best_sim 0.81 + 보너스(1 extra hit * 0.02) = 0.83
-    assert abs(top["confidence"] - 0.83) < 1e-6
+    assert abs(top["_rank_score"] - 0.83) < 1e-6
     assert res[1]["name"] == "대중교통과"
-    assert res[0]["confidence"] > res[1]["confidence"]  # 내림차순
+    assert res[0]["_rank_score"] > res[1]["_rank_score"]  # 순위 점수 내림차순
+    assert res[0]["confidence"] >= res[1]["confidence"]   # 상대 신뢰도도 top이 높음
 
 
 def test_aggregate_evidence_contains_task_and_overlapping_terms():
@@ -52,15 +202,28 @@ def test_aggregate_evidence_contains_task_and_overlapping_terms():
 def test_aggregate_top_n_and_min_confidence():
     res = aggregate_candidates(_hits(), top_n=1)
     assert len(res) == 1
-    res2 = aggregate_candidates(_hits(), min_confidence=0.5)
-    assert all(c["confidence"] >= 0.5 for c in res2)
-    assert "대중교통과" not in [c["name"] for c in res2]  # 0.40 < 0.5 제외
+    res2 = aggregate_candidates(_hits(), query_terms=["포트홀", "도로", "파손"], min_confidence=0.7)
+    assert all(c["confidence"] >= 0.7 for c in res2)
+    assert "대중교통과" not in [c["name"] for c in res2]  # 상대 confidence 하한으로 제외
 
 
 def test_aggregate_clamps_similarity_range():
     hits = [{"department": "X과", "task": "t", "similarity": 1.5}]
     res = aggregate_candidates(hits)
     assert res[0]["confidence"] <= 0.99
+
+
+def test_aggregate_relative_confidence_drops_flat_margin():
+    hits = [
+        {"department": "A과", "task": "업무 A", "similarity": 0.63},
+        {"department": "B과", "task": "업무 B", "similarity": 0.62},
+        {"department": "C과", "task": "업무 C", "similarity": 0.61},
+    ]
+
+    res = aggregate_candidates(hits)
+
+    assert [c["name"] for c in res] == ["A과", "B과", "C과"]
+    assert res[0]["confidence"] < 0.4
 
 
 # ── validate_llm_units (환각 방어) ────────────────────────────────────────
@@ -73,6 +236,7 @@ def test_validate_llm_drops_hallucinated_names():
     out = validate_llm_units(llm, allowed)
     names = [u["name"] for u in out]
     assert names == ["도로안전과"]
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_validate_llm_clamps_confidence_and_normalizes_evidence():
@@ -82,6 +246,7 @@ def test_validate_llm_clamps_confidence_and_normalizes_evidence():
     )
     assert out[0]["confidence"] == 1.0
     assert out[0]["evidence"] == ["가설건축물"]
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_validate_llm_handles_bad_input():
@@ -97,3 +262,16 @@ def test_build_query_text_orders_keyterms_first():
         key_terms=["3톤 미만 지게차", "면허"],
     )
     assert q.index("3톤 미만 지게차") < q.index("긴 민원 원문")
+
+
+# ── min_confidence 하한 (자신 없는 후보 억제, #346 B) ──────────────────────
+def test_aggregate_min_confidence_abstains():
+    hits = [
+        {"department": "택시운수과", "task": "법인택시 면허 관리", "similarity": 0.63},
+        {"department": "도로계획과", "task": "황령3터널 관련 업무", "similarity": 0.57},
+    ]
+    # 하한 0.7 이면 둘 다 미달 → 빈 배열(폐기)
+    assert aggregate_candidates(hits, min_confidence=0.7) == []
+    # 하한 0.2 이면 마진상 top 후보만 통과
+    out = aggregate_candidates(hits, min_confidence=0.2)
+    assert [c["name"] for c in out] == ["택시운수과"]

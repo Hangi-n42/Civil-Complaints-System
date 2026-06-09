@@ -20,7 +20,7 @@ def test_extract_query_signals_from_be1_structured_output():
         ],
         "issue_type": [{"name": "면허/자격"}],
         "key_terms": ["지게차", " 면허 ", "지게차"],
-        "responsible_unit": [{"name": "교통국"}],
+        "responsible_unit": [{"name": "교통국", "source": "be1_structured"}],
         "urgency": {"level": "높음"},
     }
 
@@ -33,6 +33,7 @@ def test_extract_query_signals_from_be1_structured_output():
         "issue_types": ["면허/자격"],
         "key_terms": ["지게차", "면허"],
         "responsible_units": ["교통국"],
+        "responsible_units_source": "be1_structured",
         "urgency_level": "높음",
     }
 

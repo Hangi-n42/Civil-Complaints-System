@@ -27,6 +27,7 @@ def test_search_query_signals_are_normalized():
             "entity_texts": "가로등| 가로등 ",
             "legal_ref_ids": ["001706", "001706", ""],
             "key_terms": ["조명", " 점검 "],
+            "responsible_units_source": " be1_structured ",
         },
     )
 
@@ -34,6 +35,7 @@ def test_search_query_signals_are_normalized():
     assert request.query_signals.entity_texts == ["가로등"]
     assert request.query_signals.legal_ref_ids == ["001706"]
     assert request.query_signals.key_terms == ["조명", "점검"]
+    assert request.query_signals.responsible_units_source == "be1_structured"
 
 
 def test_metadata_soft_rerank_without_query_signals_keeps_results_unchanged():

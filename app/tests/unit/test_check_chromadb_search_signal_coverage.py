@@ -13,6 +13,7 @@ def test_analyze_metadatas_counts_search_signal_coverage_without_sensitive_value
                 "issue_types": "시설 개선/보수",
                 "key_terms": "가로등|보수",
                 "responsible_units": "도로관리과",
+                "responsible_units_source": "be1_structured",
                 "urgency_level": "보통",
             },
             {
@@ -21,7 +22,8 @@ def test_analyze_metadatas_counts_search_signal_coverage_without_sensitive_value
                 "legal_ref_ids": "",
                 "issue_types": "시설 개선/보수",
                 "key_terms": "",
-                "responsible_units": "",
+                "responsible_units": "국토교통부",
+                "responsible_units_source": "category_source_fallback",
                 "urgency_level": "낮음",
             },
             {},
@@ -43,7 +45,8 @@ def test_analyze_metadatas_counts_search_signal_coverage_without_sensitive_value
 
     assert fields["legal_ref_names"]["present_count"] == 2
     assert fields["legal_ref_names"]["top_values"][0] == {"value": "도로법", "count": 2}
-    assert fields["responsible_units"]["present_count"] == 1
+    assert fields["responsible_units"]["present_count"] == 2
+    assert fields["responsible_units_source"]["present_count"] == 2
 
 
 def test_render_markdown_includes_korean_summary_and_redaction_note():
@@ -53,6 +56,7 @@ def test_render_markdown_includes_korean_summary_and_redaction_note():
                 "entity_texts": "가로등",
                 "key_terms": "가로등|보수",
                 "responsible_units": "도로관리과",
+                "responsible_units_source": "be1_structured",
             }
         ],
         total_count=10,
@@ -63,6 +67,7 @@ def test_render_markdown_includes_korean_summary_and_redaction_note():
 
     assert "# ChromaDB 검색 신호 metadata 적재율 점검" in markdown
     assert "| `responsible_units` | 1 | 0 | 100.00% | 1 |" in markdown
+    assert "| `responsible_units_source` | 1 | 0 | 100.00% | 1 |" in markdown
     assert "원문 값을 숨기고 해시 prefix만 표시" in markdown
     assert "`도로관리과`" in markdown
     assert "`가로등`" not in markdown

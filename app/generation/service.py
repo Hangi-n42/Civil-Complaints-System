@@ -680,6 +680,7 @@ class GenerationService:
         if isinstance(urgency, dict):
             urgency = urgency.get("level")
         signals["urgency_level"] = str(urgency or "").strip()
+        signals["responsible_units_source"] = str(signals.get("responsible_units_source") or "").strip()
         return signals
 
     def _prepare_legal_context(

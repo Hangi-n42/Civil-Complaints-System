@@ -203,6 +203,7 @@ def build_qa_query_signals(case: Dict[str, Any] | None) -> Dict[str, Any]:
 
     urgency = structured.get("urgency")
     urgency_level = urgency.get("level") if isinstance(urgency, dict) else urgency
+    responsible_unit_sources = _values(structured.get("responsible_unit"), "source")
     signals = {
         "entity_texts": _values(structured.get("entity_texts"), "text"),
         "legal_ref_names": _values(structured.get("legal_refs"), "name"),
@@ -210,6 +211,7 @@ def build_qa_query_signals(case: Dict[str, Any] | None) -> Dict[str, Any]:
         "issue_types": _values(structured.get("issue_type"), "name"),
         "key_terms": _values(structured.get("key_terms")),
         "responsible_units": _values(structured.get("responsible_unit"), "name"),
+        "responsible_units_source": responsible_unit_sources[0] if responsible_unit_sources else "",
         "urgency_level": " ".join(str(urgency_level or "").split()),
     }
     return {

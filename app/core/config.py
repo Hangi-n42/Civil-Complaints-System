@@ -87,6 +87,20 @@ class Settings:
     # 인덱스 빌드(build_index) 후 true 로 켤 것. true 라도 인프라 미가용 시 빈 리스트로 폴백.
     ENABLE_RESPONSIBLE_UNIT: bool = os.getenv("ENABLE_RESPONSIBLE_UNIT", "false").lower() == "true"
     RESPONSIBLE_UNIT_USE_LLM: bool = os.getenv("RESPONSIBLE_UNIT_USE_LLM", "false").lower() == "true"
+    # Dense+BM25+RRF 하이브리드 후보 검색. 100건 평가에서 Phase 1-A dense 기본값보다
+    # 낮아져 기본 OFF. 재실험/튜닝 시에만 true 로 켠다.
+    RESPONSIBLE_UNIT_USE_HYBRID: bool = os.getenv("RESPONSIBLE_UNIT_USE_HYBRID", "false").lower() == "true"
+    # CrossEncoder 기반 task 리랭킹. Phase 3 실험용이며, 100건 평가로 채택 여부를
+    # 확인하기 전까지 기본 OFF를 유지한다.
+    RESPONSIBLE_UNIT_USE_RERANKER: bool = os.getenv("RESPONSIBLE_UNIT_USE_RERANKER", "false").lower() == "true"
+    RESPONSIBLE_UNIT_RERANKER_MODEL: str = os.getenv("RESPONSIBLE_UNIT_RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    RESPONSIBLE_UNIT_RERANKER_DEVICE: str = os.getenv("RESPONSIBLE_UNIT_RERANKER_DEVICE", EMBEDDING_DEVICE)
+    RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE: int = int(os.getenv("RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE", "16"))
+    # responsible_unit 신뢰도 하한(soft 후보 억제). 정답셋 없어 미보정 휴리스틱.
+    # 기본 0.0: bge-m3 raw cosine 이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답을
+    # 분리할 수 없음이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 BE2 soft-rerank 에 위임.
+    # (랭킹/신뢰도 개선은 별도 리팩토링 — docs/60_specs 참조). env 로 조정 가능.
+    RESPONSIBLE_UNIT_MIN_CONFIDENCE: float = float(os.getenv("RESPONSIBLE_UNIT_MIN_CONFIDENCE", "0.0"))
 
     # 구조화 고도화(Track A): ① 제약 디코딩 / ② 자기검증 (기본 off, 점진 전환)
     STRUCTURING_CONSTRAINED: bool = os.getenv("STRUCTURING_CONSTRAINED", "false").lower() == "true"

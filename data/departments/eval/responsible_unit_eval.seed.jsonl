@@ -1,0 +1,18 @@
+{"id":"seed-001","query":"어린이 공원에 깨진 유리가 많아 위험합니다. 시설 점검과 청소를 요청합니다.","gold":["공원여가정책과"],"note":"seed_requires_human_review"}
+{"id":"seed-002","query":"도로에 포트홀이 생겨 차량이 파손될 것 같습니다. 긴급 보수를 요청합니다.","gold":["도로안전과"],"note":"seed_requires_human_review"}
+{"id":"seed-003","query":"시내버스 배차 간격이 너무 길어 노선 조정과 증차가 필요합니다.","gold":["대중교통과"],"note":"seed_requires_human_review"}
+{"id":"seed-004","query":"택시 승차거부와 불친절 민원이 반복됩니다. 택시 운송사업자 지도점검을 요청합니다.","gold":["택시운수과"],"note":"seed_requires_human_review"}
+{"id":"seed-005","query":"음식점 위생 상태가 불량하고 유통기한이 지난 식재료를 사용하는 것 같습니다.","gold":["보건위생과"],"note":"seed_requires_human_review"}
+{"id":"seed-006","query":"아파트 옆 무허가 증축 건축물과 위반건축물 단속 기준을 문의합니다.","gold":["건축정책과"],"note":"seed_requires_human_review"}
+{"id":"seed-007","query":"공동주택 관리비 부과 기준과 입주자대표회의 운영 문제를 상담하고 싶습니다.","gold":["주택정책과"],"note":"seed_requires_human_review"}
+{"id":"seed-008","query":"하천 주변 악취와 쓰레기 방치가 심합니다. 하천 정비와 관리를 요청합니다.","gold":["하천관리과"],"note":"seed_requires_human_review"}
+{"id":"seed-009","query":"생활폐기물 무단투기와 쓰레기 배출 단속을 강화해 주세요.","gold":["자원순환과"],"note":"seed_requires_human_review"}
+{"id":"seed-010","query":"유기견이 계속 발견되고 반려동물 놀이터 설치가 필요합니다.","gold":["반려동물과"],"note":"seed_requires_human_review"}
+{"id":"seed-011","query":"장애인 이동 편의시설과 장애인 복지 서비스 이용 방법을 문의합니다.","gold":["장애인복지과"],"note":"seed_requires_human_review"}
+{"id":"seed-012","query":"노인 돌봄 서비스와 노인복지관 프로그램 확대를 요청합니다.","gold":["노인복지과"],"note":"seed_requires_human_review"}
+{"id":"seed-013","query":"어린이집 보육 지원과 출산 보육 정책 관련 상담이 필요합니다.","gold":["출산보육과"],"note":"seed_requires_human_review"}
+{"id":"seed-014","query":"감염병 방역 지침과 코로나 대응 체계가 궁금합니다.","gold":["감염병관리과"],"note":"seed_requires_human_review"}
+{"id":"seed-015","query":"문화재 주변 공사와 문화유산 보존 기준을 문의합니다.","gold":["문화유산과"],"note":"seed_requires_human_review"}
+{"id":"seed-016","query":"부산 관광 안내소 운영과 관광 활성화 정책을 제안합니다.","gold":["관광정책과"],"note":"seed_requires_human_review"}
+{"id":"seed-017","query":"상수도 수질과 수도 공급 정책에 대해 문의합니다.","gold":["맑은물정책과"],"note":"seed_requires_human_review"}
+{"id":"seed-018","query":"3톤 미만 지게차 면허 적성검사 갱신 절차가 궁금합니다.","gold":["NONE"],"note":"seed_requires_human_review; handoff says true owner is outside Busan City HQ master"}

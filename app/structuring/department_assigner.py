@@ -22,17 +22,30 @@ BE1 구조화 산출물 고도화 — 요청 #3.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Dict, List, Optional
+
+from app.retrieval.law_article_store import BM25Index, rrf_fuse, tokenize
+from app.structuring.enrichment import FACILITY_KEYWORDS, LEGAL_REF_LEXICON, OBJECT_LEXICON
 
 # ── 상수 ─────────────────────────────────────────────────────────────────
 COLLECTION_NAME = "busan_departments_v1"
 MASTER_FILENAME = "busan_departments_master.json"
+RESPONSIBLE_UNIT_SOURCE_BE1 = "be1_structured"
 
 # 다중 히트 1건당 confidence 가산치와 가산 상한(휴리스틱).
 _MULTIHIT_BONUS = 0.02
 _MAX_BONUS_HITS = 5
 _CONF_CEILING = 0.99
+_REL_CONF_BASE = 0.12
+_REL_CONF_MARGIN_WEIGHT = 2.0
+_REL_CONF_HIT_BONUS = 0.015
+_REL_CONF_EVIDENCE_BONUS = 0.02
+_REL_CONF_RANK_DECAY = 0.10
+_REL_CONF_GAP_DECAY = 0.50
+_DEPARTMENT_RRF_K = 60
+_DENSE_RRF_WEIGHT = 2
 
 # 키워드 추출 시 제거할 일반어(검색 신호가 약한 행정 상투어).
 _STOPWORDS = {
@@ -46,6 +59,112 @@ _TOKEN_RE = re.compile(r"[가-힣]{2,}|[A-Za-z0-9]{2,}")
 
 
 # ── 순수 함수 (모델 불필요, 테스트 대상) ──────────────────────────────────
+def _append_unique(target: List[str], values: List[str]) -> None:
+    """빈 문자열과 중복을 제거하면서 순서를 보존해 단어를 추가한다."""
+    for value in values:
+        term = str(value or "").strip()
+        if term and term not in target:
+            target.append(term)
+
+
+def _has_any_trigger(text: str, triggers: List[str]) -> bool:
+    """부서/업무 원문 안에 같은 사전군의 트리거가 하나라도 있는지 확인한다."""
+    return any(trigger and trigger in text for trigger in triggers)
+
+
+def expand_department_task_text(department: str, task: str) -> str:
+    """부서 업무를 인덱싱용 문서 텍스트로 확장한다.
+
+    메타데이터의 표시용 task는 원문을 유지하고, 임베딩 대상 문서에만 부서명과
+    기존 enrichment 사전의 도메인 동의어를 붙인다. 확장은 부서명/업무에 실제로
+    등장한 트리거군으로 제한해 무관한 동의어가 모든 부서에 퍼지지 않게 한다.
+    """
+    base_terms: List[str] = []
+    _append_unique(base_terms, [department, task])
+    base_text = " ".join(base_terms)
+
+    expansion_terms: List[str] = []
+    for canonical, surfaces in OBJECT_LEXICON.items():
+        group = [canonical, *surfaces]
+        if _has_any_trigger(base_text, group):
+            _append_unique(expansion_terms, group)
+
+    for law_name, triggers in LEGAL_REF_LEXICON.items():
+        group = [law_name, *triggers]
+        if _has_any_trigger(base_text, group):
+            _append_unique(expansion_terms, group)
+
+    _append_unique(expansion_terms, [kw for kw in FACILITY_KEYWORDS if kw in base_text])
+    return " ".join([*base_terms, *[term for term in expansion_terms if term not in base_terms]])
+
+
+def rrf_similarity(score: float, ranking_count: int, k: int = _DEPARTMENT_RRF_K) -> float:
+    """RRF 원점수를 aggregate_candidates가 다루는 0~1 범위로 보정한다."""
+    if ranking_count <= 0:
+        return 0.0
+    scaled = score * (k + 1) / ranking_count
+    return round(max(0.0, min(1.0, scaled)), 4)
+
+
+def sigmoid_similarity(score: float) -> float:
+    """CrossEncoder logit을 0~1 범위의 task 랭킹 점수로 변환한다."""
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        value = 0.0
+    if not math.isfinite(value):
+        value = 0.0
+    if value >= 0:
+        similarity = 1.0 / (1.0 + math.exp(-value))
+    else:
+        exp_value = math.exp(value)
+        similarity = exp_value / (1.0 + exp_value)
+    return round(max(0.0, min(1.0, similarity)), 4)
+
+
+def _resolve_device(device_name: Optional[str]) -> str:
+    """요청한 디바이스가 불가하면 CPU로 안전하게 낮춘다."""
+    device = str(device_name or "cpu").strip().lower()
+    if device == "cuda":
+        try:
+            import torch
+            if not torch.cuda.is_available():
+                return "cpu"
+        except Exception:
+            return "cpu"
+    return device or "cpu"
+
+
+def _relative_confidences(ranked: List[Dict[str, Any]]) -> List[float]:
+    """정렬된 부서 후보에 상대적 confidence를 부여한다.
+
+    rank_score는 순위를 정하는 내부 점수이고, confidence는 질의 내부에서 top 후보가
+    얼마나 분리됐는지를 나타내는 soft 신호다. raw cosine 절대값은 직접 쓰지 않는다.
+    """
+    if not ranked:
+        return []
+
+    top_score = float(ranked[0].get("_rank_score", 0.0))
+    second_score = float(ranked[1].get("_rank_score", 0.0)) if len(ranked) > 1 else 0.0
+    top_margin = max(0.0, top_score - second_score)
+    top_hits = int(ranked[0].get("_hits", 1))
+    top_evidence_count = int(ranked[0].get("_evidence_terms", 0))
+    top_confidence = (
+        _REL_CONF_BASE
+        + _REL_CONF_MARGIN_WEIGHT * top_margin
+        + _REL_CONF_HIT_BONUS * min(max(top_hits - 1, 0), _MAX_BONUS_HITS)
+        + _REL_CONF_EVIDENCE_BONUS * min(top_evidence_count, 3)
+    )
+    top_confidence = max(0.0, min(_CONF_CEILING, top_confidence))
+
+    confidences: List[float] = []
+    for idx, item in enumerate(ranked):
+        score_gap = max(0.0, top_score - float(item.get("_rank_score", 0.0)))
+        confidence = top_confidence - _REL_CONF_RANK_DECAY * idx - _REL_CONF_GAP_DECAY * score_gap
+        confidences.append(round(max(0.0, min(_CONF_CEILING, confidence)), 4))
+    return confidences
+
+
 def extract_key_terms(text: str, limit: int = 12) -> List[str]:
     """질의/업무 텍스트에서 검색 신호가 되는 명사형 토큰을 추출한다.
 
@@ -85,14 +204,14 @@ def aggregate_candidates(
 
     Args:
         task_hits: [{"department": str, "task": str, "similarity": float in [0,1]}, ...]
-                   similarity 는 코사인 유사도(1 - distance) 기준, 내림차순일 필요는 없음.
+                   similarity 는 랭킹 입력 점수이며 내림차순일 필요는 없음.
         query_terms: evidence 겹침 계산용 질의 키워드.
         top_n: 반환할 부서 수.
         min_confidence: 이 값 미만 후보는 제외.
 
     Returns:
         [{"name": 부서명, "confidence": float, "evidence": [근거 문구...]}, ...]
-        confidence 내림차순. 부서명은 입력에 등장한 정확한 명칭.
+        rank_score 내림차순. confidence는 질의 내부 마진/합의 기반 상대 신호.
     """
     query_terms = query_terms or []
     by_dept: Dict[str, Dict[str, Any]] = {}
@@ -115,31 +234,40 @@ def aggregate_candidates(
             slot["best_sim"] = sim
             slot["best_task"] = task
 
-    results: List[Dict[str, Any]] = []
+    ranked: List[Dict[str, Any]] = []
     for dept, slot in by_dept.items():
         extra = min(slot["hits"] - 1, _MAX_BONUS_HITS)
-        confidence = min(_CONF_CEILING, slot["best_sim"] + _MULTIHIT_BONUS * extra)
-        confidence = round(confidence, 4)
-        if confidence < min_confidence:
-            continue
+        rank_score = min(_CONF_CEILING, slot["best_sim"] + _MULTIHIT_BONUS * extra)
 
         # 근거: 가장 유사한 업무 문구 + 질의와 겹치는 키워드
         evidence: List[str] = []
         if slot["best_task"]:
             evidence.append(slot["best_task"])
-        evidence.extend(_evidence_terms(query_terms, slot["best_task"]))
+        matched_terms = _evidence_terms(query_terms, slot["best_task"])
+        evidence.extend(matched_terms)
         # 중복 제거(순서 보존)
         evidence = list(dict.fromkeys(evidence))
 
-        results.append({
+        ranked.append({
             "name": dept,
-            "confidence": confidence,
             "evidence": evidence,
             "_hits": slot["hits"],  # 디버그용; 호출부에서 제거 가능
+            "_rank_score": round(rank_score, 4),
+            "_evidence_terms": len(matched_terms),
         })
 
-    results.sort(key=lambda r: r["confidence"], reverse=True)
-    return results[:top_n]
+    ranked.sort(key=lambda r: r["_rank_score"], reverse=True)
+    confidences = _relative_confidences(ranked)
+    results: List[Dict[str, Any]] = []
+    for item, confidence in zip(ranked, confidences):
+        if confidence < min_confidence:
+            continue
+        out = dict(item)
+        out["confidence"] = confidence
+        results.append(out)
+        if len(results) >= top_n:
+            break
+    return results
 
 
 def validate_llm_units(
@@ -173,7 +301,12 @@ def validate_llm_units(
             ev = [ev]
         elif not isinstance(ev, list):
             ev = []
-        out.append({"name": name, "confidence": conf, "evidence": [str(e) for e in ev]})
+        out.append({
+            "name": name,
+            "confidence": conf,
+            "evidence": [str(e) for e in ev],
+            "source": RESPONSIBLE_UNIT_SOURCE_BE1,
+        })
     return out
 
 
@@ -228,24 +361,45 @@ class DepartmentAssigner:
         self.persist_directory = persist_directory or settings.CHROMA_DB_PATH
         self.embedding_model_name = embedding_model_name or settings.EMBEDDING_MODEL
         self.embedding_device = embedding_device or settings.EMBEDDING_DEVICE
+        self.min_confidence = float(getattr(settings, "RESPONSIBLE_UNIT_MIN_CONFIDENCE", 0.0))
+        self.use_hybrid = bool(getattr(settings, "RESPONSIBLE_UNIT_USE_HYBRID", False))
+        self.use_reranker = bool(getattr(settings, "RESPONSIBLE_UNIT_USE_RERANKER", False))
+        self.reranker_model_name = str(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"))
+        self.reranker_device = str(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_DEVICE", self.embedding_device))
+        self.reranker_batch_size = int(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE", 16))
         self._model = None
+        self._reranker_model = None
+        self._reranker_unavailable = False
+        self._reranker_used = False
         self._client = None
         self._collection = None
+        self._task_records: Optional[List[Dict[str, Any]]] = None
+        self._task_docid_to_idx: Dict[str, int] = {}
+        self._task_department_count = 0
+        self._bm25: Optional[BM25Index] = None
 
     # ── 임베딩 / 컬렉션 (지연 로딩) ───────────────────────────────────────
     def _get_model(self):
         if self._model is None:
-            device = str(self.embedding_device or "cpu").strip().lower()
-            if device == "cuda":
-                try:
-                    import torch
-                    if not torch.cuda.is_available():
-                        device = "cpu"
-                except Exception:
-                    device = "cpu"
             from sentence_transformers import SentenceTransformer
+            device = _resolve_device(self.embedding_device)
             self._model = SentenceTransformer(self.embedding_model_name, device=device)
         return self._model
+
+    def _get_reranker(self):
+        """CrossEncoder 리랭커를 지연 로딩한다. 실패하면 같은 프로세스에서는 재시도하지 않는다."""
+        if self._reranker_unavailable:
+            return None
+        if self._reranker_model is None:
+            try:
+                from sentence_transformers import CrossEncoder
+
+                device = _resolve_device(self.reranker_device)
+                self._reranker_model = CrossEncoder(self.reranker_model_name, device=device)
+            except Exception:
+                self._reranker_unavailable = True
+                return None
+        return self._reranker_model
 
     def _embed(self, texts: List[str]) -> List[List[float]]:
         vecs = self._get_model().encode(texts, convert_to_numpy=True, normalize_embeddings=True)
@@ -262,26 +416,74 @@ class DepartmentAssigner:
             )
         return self._collection
 
+    # ── 부서 업무 코퍼스 / BM25 (지연 로딩) ───────────────────────────────
+    def _reset_task_corpus(self) -> None:
+        self._task_records = None
+        self._task_docid_to_idx = {}
+        self._task_department_count = 0
+        self._bm25 = None
+
+    def _task_corpus(self) -> List[Dict[str, Any]]:
+        if self._task_records is None:
+            import json
+
+            master = json.loads(self.master_path.read_text(encoding="utf-8"))
+            master = master if isinstance(master, list) else []
+            records: List[Dict[str, Any]] = []
+            for d_idx, dept in enumerate(master):
+                if not isinstance(dept, dict):
+                    continue
+                name = str(dept.get("department", "")).strip()
+                if not name:
+                    continue
+                for t_idx, task in enumerate(dept.get("tasks", [])):
+                    task_text = str(task or "").strip()
+                    if not task_text:
+                        continue
+                    records.append({
+                        "doc_id": f"{d_idx}_{t_idx}",
+                        "department": name,
+                        "url": str(dept.get("url", "")),
+                        "task": task_text,
+                        "text": expand_department_task_text(name, task_text),
+                    })
+            self._task_records = records
+            self._task_docid_to_idx = {r["doc_id"]: i for i, r in enumerate(records)}
+            self._task_department_count = len(master)
+        return self._task_records
+
+    def _task_by_doc_id(self, doc_id: str) -> Optional[Dict[str, Any]]:
+        self._task_corpus()
+        idx = self._task_docid_to_idx.get(doc_id)
+        if idx is None or self._task_records is None:
+            return None
+        return self._task_records[idx]
+
+    def _get_bm25(self) -> BM25Index:
+        if self._bm25 is None:
+            records = self._task_corpus()
+            self._bm25 = BM25Index().fit(
+                [r["doc_id"] for r in records],
+                [tokenize(r["text"]) for r in records],
+            )
+        return self._bm25
+
     # ── 인덱스 빌드 ──────────────────────────────────────────────────────
     def build_index(self, rebuild: bool = False) -> Dict[str, int]:
         """마스터 JSON 의 업무 텍스트를 임베딩해 컬렉션에 적재한다."""
-        import json
         collection = self._get_collection()
         if rebuild:
+            self._reset_task_corpus()
             self._client.delete_collection(COLLECTION_NAME)
             self._collection = None
             collection = self._get_collection()
         elif collection.count() > 0:
             return {"departments": -1, "tasks": collection.count(), "skipped": 1}
 
-        master = json.loads(self.master_path.read_text(encoding="utf-8"))
-        ids, docs, metas = [], [], []
-        for d_idx, dept in enumerate(master):
-            name = dept["department"]
-            for t_idx, task in enumerate(dept.get("tasks", [])):
-                ids.append(f"{d_idx}_{t_idx}")
-                docs.append(task)
-                metas.append({"department": name, "url": dept.get("url", ""), "task": task})
+        records = self._task_corpus()
+        ids = [r["doc_id"] for r in records]
+        docs = [r["text"] for r in records]
+        metas = [{"department": r["department"], "url": r["url"], "task": r["task"]} for r in records]
 
         # 배치 임베딩/적재
         BATCH = 128
@@ -293,7 +495,127 @@ class DepartmentAssigner:
                 embeddings=self._embed(chunk),
                 metadatas=metas[i:i + BATCH],
             )
-        return {"departments": len(master), "tasks": len(docs), "skipped": 0}
+        return {"departments": self._task_department_count, "tasks": len(docs), "skipped": 0}
+
+    # ── Dense + BM25 + RRF ───────────────────────────────────────────────
+    def _dense_task_hits(self, query_text: str, fetch_k: int) -> List[Dict[str, Any]]:
+        collection = self._get_collection()
+        q_vec = self._embed([query_text])[0]
+        res = collection.query(
+            query_embeddings=[q_vec],
+            n_results=fetch_k,
+            include=["metadatas", "distances"],
+        )
+        ids = (res.get("ids") or [[]])[0]
+        metas = (res.get("metadatas") or [[]])[0]
+        dists = (res.get("distances") or [[]])[0]
+        return [
+            {
+                "doc_id": doc_id,
+                "department": meta.get("department", ""),
+                "task": meta.get("task", ""),
+                "similarity": 1.0 - float(dist),
+            }
+            for doc_id, meta, dist in zip(ids, metas, dists)
+        ]
+
+    def _bm25_ranked_task_ids(
+        self,
+        query_text: str,
+        query_terms: Optional[List[str]],
+        fetch_k: int,
+    ) -> List[str]:
+        bm25 = self._get_bm25()
+        query_tokens: List[str] = []
+        for term in query_terms or [query_text]:
+            query_tokens.extend(tokenize(term))
+        scored = bm25.scores(query_tokens)
+        ranked = sorted(scored.items(), key=lambda x: x[1], reverse=True)[:fetch_k]
+        return [doc_id for doc_id, _ in ranked]
+
+    def _hybrid_task_hits(
+        self,
+        query_text: str,
+        fetch_k: int,
+        query_terms: Optional[List[str]],
+    ) -> List[Dict[str, Any]]:
+        dense_hits = self._dense_task_hits(query_text, fetch_k)
+        dense_ids = [h["doc_id"] for h in dense_hits if h.get("doc_id")]
+        bm25_ids = self._bm25_ranked_task_ids(query_text, query_terms, fetch_k)
+
+        rankings: List[List[str]] = []
+        if dense_ids:
+            rankings.extend([dense_ids] * (_DENSE_RRF_WEIGHT if bm25_ids else 1))
+        if bm25_ids:
+            rankings.append(bm25_ids)
+        fused = rrf_fuse(rankings, k=_DEPARTMENT_RRF_K) if rankings else []
+        if not fused:
+            return dense_hits
+
+        dense_by_id = {h["doc_id"]: h for h in dense_hits if h.get("doc_id")}
+        out: List[Dict[str, Any]] = []
+        for doc_id, score in fused[:fetch_k]:
+            item = dict(dense_by_id.get(doc_id) or {})
+            if not item:
+                rec = self._task_by_doc_id(doc_id)
+                if rec is None:
+                    continue
+                item = {"doc_id": doc_id, "department": rec["department"], "task": rec["task"]}
+            item["similarity"] = rrf_similarity(score, len(rankings), k=_DEPARTMENT_RRF_K)
+            out.append(item)
+        return out
+
+    # ── CrossEncoder task 리랭킹 ─────────────────────────────────────────
+    def _reranker_task_text(self, hit: Dict[str, Any]) -> str:
+        """리랭커에 넣을 부서 업무 문맥을 만든다."""
+        doc_id = str(hit.get("doc_id", "")).strip()
+        if doc_id:
+            try:
+                rec = self._task_by_doc_id(doc_id)
+            except Exception:
+                rec = None
+            if rec:
+                return str(rec.get("text") or rec.get("task") or doc_id)
+
+        department = str(hit.get("department", "")).strip()
+        task = str(hit.get("task", "")).strip()
+        return " ".join(part for part in (department, task) if part).strip() or doc_id
+
+    def _rerank_task_hits(self, query_text: str, task_hits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Dense/Hybrid task 후보를 CrossEncoder로 재점수화한다.
+
+        리랭커 모델이 없거나 예외가 나면 Phase 2 후보를 그대로 반환한다.
+        """
+        if len(task_hits) <= 1:
+            return task_hits
+        model = self._get_reranker()
+        if model is None:
+            return task_hits
+
+        pairs = [[query_text, self._reranker_task_text(hit)] for hit in task_hits]
+        try:
+            raw_scores = model.predict(pairs, batch_size=self.reranker_batch_size)
+        except Exception:
+            self._reranker_unavailable = True
+            return task_hits
+        if hasattr(raw_scores, "tolist"):
+            raw_scores = raw_scores.tolist()
+        if not isinstance(raw_scores, list) or len(raw_scores) != len(task_hits):
+            return task_hits
+
+        reranked: List[Dict[str, Any]] = []
+        for hit, score in zip(task_hits, raw_scores):
+            try:
+                raw_score = float(score)
+            except (TypeError, ValueError):
+                raw_score = 0.0
+            item = dict(hit)
+            item["similarity"] = sigmoid_similarity(raw_score)
+            item["_reranker_score"] = raw_score
+            reranked.append(item)
+        self._reranker_used = True
+        reranked.sort(key=lambda h: h["similarity"], reverse=True)
+        return reranked
 
     # ── 검색 + 집계 ──────────────────────────────────────────────────────
     def assign(
@@ -301,35 +623,38 @@ class DepartmentAssigner:
         query_text: str,
         top_k_tasks: int = 20,
         top_n_units: int = 3,
-        min_confidence: float = 0.0,
+        min_confidence: Optional[float] = None,
         use_llm: bool = False,
+        use_hybrid: Optional[bool] = None,
+        use_reranker: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
-        """민원 질의 → responsible_unit 후보 리스트."""
-        collection = self._get_collection()
-        q_vec = self._embed([query_text])[0]
-        res = collection.query(
-            query_embeddings=[q_vec],
-            n_results=top_k_tasks,
-            include=["metadatas", "distances"],
-        )
-        metas = (res.get("metadatas") or [[]])[0]
-        dists = (res.get("distances") or [[]])[0]
-        task_hits = [
-            {
-                "department": m.get("department", ""),
-                "task": m.get("task", ""),
-                "similarity": 1.0 - float(dist),  # cosine distance → similarity
-            }
-            for m, dist in zip(metas, dists)
-        ]
+        """민원 질의 → responsible_unit 후보 리스트.
 
+        min_confidence 미지정 시 설정값(RESPONSIBLE_UNIT_MIN_CONFIDENCE)을 적용한다.
+        하한 미달이면 후보가 빈 배열로 폐기된다(자신 없는 출력 억제 = soft 폴백).
+        """
+        if min_confidence is None:
+            min_confidence = self.min_confidence
+        if use_hybrid is None:
+            use_hybrid = self.use_hybrid
+        if use_reranker is None:
+            use_reranker = self.use_reranker
         query_terms = extract_key_terms(query_text)
+        if use_hybrid:
+            task_hits = self._hybrid_task_hits(query_text, top_k_tasks, query_terms)
+        else:
+            task_hits = self._dense_task_hits(query_text, top_k_tasks)
+        if use_reranker:
+            task_hits = self._rerank_task_hits(query_text, task_hits)
         candidates = aggregate_candidates(
             task_hits, query_terms=query_terms,
             top_n=top_n_units, min_confidence=min_confidence,
         )
         for c in candidates:
             c.pop("_hits", None)
+            c.pop("_rank_score", None)
+            c.pop("_evidence_terms", None)
+            c["source"] = RESPONSIBLE_UNIT_SOURCE_BE1
 
         if use_llm and candidates:
             reranked = self._llm_rerank(query_text, candidates)
