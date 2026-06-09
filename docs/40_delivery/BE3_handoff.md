@@ -234,13 +234,13 @@ FE 금지사항:
 
 ## 7. 연동 완료 체크리스트
 
-- [ ] BE1 구조화 결과에서 `query_signals` 7종이 생성된다.
-- [ ] BE2 `/search`가 `query_signals`를 받고 metadata soft rerank에 사용한다.
-- [ ] `/search`의 `routing_hint`가 같은 민원의 `/qa`로 전달된다.
-- [ ] `/qa`가 `answer`, citation, 법령 인용, 검증·추적 필드를 반환한다.
-- [ ] 공개 응답 어디에도 `source_url` 또는 OC 키가 없다.
-- [ ] 근거 0개, 법령 후보 없음, 법령 검색 오류가 서로 다른 상태로 표시된다.
-- [ ] UI API 오류가 가짜 회신 답변으로 대체되지 않는다.
+- [x] BE1 구조화 결과에서 `query_signals` 7종이 생성된다.
+- [x] BE2 `/search`가 `query_signals`를 받고 metadata soft rerank에 사용한다.
+- [x] `/search`의 `routing_hint`가 같은 민원의 `/qa`로 전달된다.
+- [x] `/qa`가 `answer`, citation, 법령 인용, 검증·추적 필드를 반환한다.
+- [x] 공개 응답 어디에도 `source_url` 또는 OC 키가 없다.
+- [x] 근거 0개, 법령 후보 없음, 법령 검색 오류가 서로 다른 상태로 표시된다.
+- [x] UI API 오류가 가짜 회신 답변으로 대체되지 않는다.
 
 검증:
 
