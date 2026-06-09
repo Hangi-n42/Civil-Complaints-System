@@ -52,6 +52,110 @@ def test_entity_texts_every_item_has_confidence_and_evidence():
         assert r["evidence"]
 
 
+def test_entity_texts_lighting_variants_normalize_to_streetlight():
+    res = normalize_entity_texts([], "보안등과 공원등이 꺼져 야간 보행이 위험합니다")
+    light = next(r for r in res if r["text"] == "가로등")
+
+    assert light["label"] == "OBJECT"
+    assert any("보안등" in ev or "공원등" in ev for ev in light["evidence"])
+    assert "보안등" not in [r["text"] for r in res]
+
+
+def test_entity_texts_extracts_administrative_objects():
+    res = normalize_entity_texts([], "영주 지역사랑상품권 환불과 청년월세 지원 이사 처리를 문의합니다")
+    texts = [r["text"] for r in res]
+
+    assert "지역사랑상품권" in texts
+    assert "청년월세" in texts
+
+
+def test_entity_texts_suppresses_road_legal_reference_only():
+    legal_only = normalize_entity_texts([], "도로법과 도로교통법 적용 기준이 궁금합니다")
+    real_road = normalize_entity_texts([], "도로가 파손되어 보행로 보수를 요청합니다")
+
+    assert "도로" not in [r["text"] for r in legal_only]
+    assert "도로" in [r["text"] for r in real_road]
+
+
+def test_entity_texts_allows_evidence_fallback_for_missing_raw_span():
+    res = normalize_entity_texts([{"label": "FACILITY", "text": "민원대상시설"}], "원문에는 다른 표현만 있습니다")
+    item = next(r for r in res if r["text"] == "민원대상시설")
+
+    assert item["evidence"] == ["민원대상시설"]
+
+
+def test_entity_texts_covers_transport_and_public_facility_samples():
+    samples = [
+        "BRT 버스전용차선과 SRT 기차 개통 일정이 궁금합니다",
+        "시외버스 정류장 노선도와 버스 배차를 개선해 주세요",
+        "수도계량기 교체와 상수도 수압 저하를 확인해 주세요",
+        "공동주택 스프링클러와 방화문 기준을 문의합니다",
+        "전기차 충전기와 태양광 설비 지원 사업이 궁금합니다",
+    ]
+
+    assert all(normalize_entity_texts([], text) for text in samples)
+
+
+def test_entity_texts_covers_culture_reservation_objects():
+    res = normalize_entity_texts([], "비회원 예매로 공연 티켓 잔여석 확인과 홈페이지 로그인 오류가 발생했습니다")
+    texts = [r["text"] for r in res]
+
+    assert "회원계정" in texts
+    assert "예매" in texts
+    assert "공연" in texts
+    assert "티켓" in texts
+    assert "홈페이지" in texts
+
+
+def test_entity_texts_covers_labor_and_business_admin_objects():
+    text = "임금체불과 퇴직금, 고용보험 실업급여, 창업자금 대출, 수출신고 원산지증명서를 문의합니다"
+    texts = [r["text"] for r in normalize_entity_texts([], text)]
+
+    assert "임금체불" in texts
+    assert "고용보험" in texts
+    assert "정책자금" in texts
+    assert "대출보증" in texts
+    assert "수출입" in texts
+
+
+def test_entity_texts_covers_housing_construction_vehicle_objects():
+    text = "건설업 등록과 하도급대금, 분양권 청약, 전세보증금, 차량등록 명의이전을 확인하고 싶습니다"
+    texts = [r["text"] for r in normalize_entity_texts([], text)]
+
+    assert "건설업등록" in texts
+    assert "하도급" in texts
+    assert "분양" in texts
+    assert "전세보증금" in texts
+    assert "자동차등록" in texts
+
+
+def test_entity_texts_suppresses_household_count_as_jeonse_object():
+    res = normalize_entity_texts([], "아파트 전세대 소방 점검 일정이 궁금합니다")
+
+    assert "전세보증금" not in [r["text"] for r in res]
+
+
+def test_entity_texts_covers_program_event_and_facility_use_objects():
+    text = "워크숍 강좌 신청과 행사 대관, 체험관 물품보관함 분실물 처리를 문의합니다"
+    texts = [r["text"] for r in normalize_entity_texts([], text)]
+
+    assert "교육프로그램" in texts
+    assert "행사" in texts
+    assert "대관" in texts
+    assert "문화시설" in texts
+    assert "분실물" in texts
+
+
+def test_entity_texts_covers_tax_safety_logistics_and_support_objects():
+    text = "세금계산서와 부가가치세, 중대재해 위험성평가, 화물 운송, 보조금 지원사업을 문의합니다"
+    texts = [r["text"] for r in normalize_entity_texts([], text)]
+
+    assert "세무신고" in texts
+    assert "중대재해" in texts
+    assert "화물운송" in texts
+    assert "지원사업" in texts
+
+
 # ── issue_type 분류 ──────────────────────────────────────────────────────
 def test_issue_type_license_dominates():
     res = classify_issue_type("운전면허 적성검사 1종 보통 응시 문의")

@@ -19,7 +19,7 @@
 | `app/structuring/service.py` | BE1 통합 (3개 필드 추가, 시설 키워드 확장) |
 | `app/core/config.py` | `ENABLE_RESPONSIBLE_UNIT` / `RESPONSIBLE_UNIT_USE_LLM` 플래그 |
 | `app/tests/unit/test_department_assigner.py` | responsible_unit 순수 로직 테스트 (10) |
-| `app/tests/unit/test_enrichment.py` | entity_texts/issue_type/legal_refs/key_terms 순수 로직 테스트 (21) |
+| `app/tests/unit/test_enrichment.py` | entity_texts/issue_type/legal_refs/key_terms 순수 로직 테스트 (32) |
 
 ## 1단계 — 필터링 (결정적, 모델 불필요)
 
@@ -110,8 +110,11 @@ export RESPONSIBLE_UNIT_USE_LLM=false
 
 ### entity_texts (요청 #1) + 시설 체크리스트 고도화
 
-- `_facility_keywords` 를 기존 8개 → **40여 개**로 확장(`FACILITY_KEYWORDS`). 도로/교통·상하수/환경·공원/체육·건축 시설 포함, 저모호성 명사 위주.
-- `OBJECT_LEXICON` 으로 변이를 표준 객체명으로 정규화. 예: `포크레인`→`굴착기`, `3톤 미만 지게차`→`지게차`(evidence 에 좌측 수식어 span 보존).
+- `_facility_keywords` 를 기존 8개 → **83개**로 확장(`FACILITY_KEYWORDS`). 도로/교통·상하수/환경·공원/체육·건축 시설 포함, 저모호성 명사 위주.
+- `OBJECT_LEXICON` 135개 표준 객체로 변이를 정규화. 예: `포크레인`→`굴착기`, `3톤 미만 지게차`→`지게차`, `보안등`/`공원등`/`조명등`→`가로등`(evidence 에 원문 span 보존).
+- 문화/예약, 노동/고용, 기업/무역/세무, 건설/주택/자동차 도메인의 행정 객체를 보강한다. 예: `공연`, `티켓`, `예매`, `임금체불`, `고용보험`, `정책자금`, `수출입`, `세무신고`, `건설공사`, `분양`, `화물운송`.
+- `도로법`·`도로교통법`·`도로관리청`·`도로점용`처럼 법령·기관·제도 인용 문맥의 일반어는 `entity_texts` 오탐에서 제외한다. 실제 대상물 문맥(`도로가 파손`, `보행로 보수`)은 유지한다.
+- BE2 readiness 대응 실측: 처리 데이터 3,280건 기준 lexicon-only 커버리지 20.12% → 73.23%, 규칙 NER+lexicon 커버리지 46.37% → 76.98%. `civil_cases_v1` 9,132건 기준 현재 metadata는 11.03%이나, 개선 로직 적용 예상 커버리지는 74.12%다. 실제 적재율은 BE2 재인덱싱 또는 metadata backfill 이후 다시 측정한다.
 - 출력: `[{"text": canonical, "label": "OBJECT"|"FACILITY", "confidence": float, "evidence": [span]}]`. confidence 휴리스틱: canonical 직접 등장 0.9 / 변이 정규화 0.85 / 규칙 NER FACILITY 흡수 0.8.
 
 ### issue_type (요청 #4)
@@ -168,7 +171,7 @@ before(도메인 18개) → after(실사전) 효과:
 ## 테스트
 
 ```bash
-python -m pytest app/tests/unit/test_department_assigner.py app/tests/unit/test_enrichment.py -q   # 31 passed (모델 불필요)
+python -m pytest app/tests/unit/test_department_assigner.py app/tests/unit/test_enrichment.py -q   # 55 passed (모델 불필요)
 ```
 
 순수 로직(집계·키워드·LLM출력 환각방어·질의조립·entity_texts 정규화·issue_type 분류)만 검증한다. 임베딩 품질·실제 배정 정확도·issue_type 분류 정확도는 정답셋이 있어야 평가 가능하다.

@@ -1,6 +1,6 @@
 # ChromaDB 검색 신호 metadata 적재율 점검
 
-- 생성 시각(UTC): `2026-06-08T19:43:21.984396+00:00`
+- 생성 시각(UTC): `2026-06-09T15:03:17.572667+00:00`
 - persist dir: `data/chroma_db`
 - collection: `civil_cases_v1`
 - 전체 건수: 9132
@@ -17,6 +17,7 @@
 | `issue_types` | 6726 | 2406 | 73.65% | 10 |
 | `key_terms` | 7379 | 1753 | 80.80% | 455 |
 | `responsible_units` | 9132 | 0 | 100.00% | 970 |
+| `responsible_units_source` | 0 | 9132 | 0.00% | 0 |
 | `urgency_level` | 9132 | 0 | 100.00% | 3 |
 
 ## 상위 값 분포
@@ -112,6 +113,10 @@
 | `안양시` | 469 |
 | `제주특별자치도` | 429 |
 | `건설안전과` | 248 |
+
+### `responsible_units_source`
+
+값 없음
 
 ### `urgency_level`
 

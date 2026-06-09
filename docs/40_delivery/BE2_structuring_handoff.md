@@ -80,8 +80,17 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
   "evidence": ["미만 지게차"]}]  // ← 원문 근거 span (요청의 raw 표현)
 ```
 - "3톤 미만 지게차" / "소형 지게차" → `text: "지게차"` 로 정규화. evidence에 원문 표현.
+- 2026-06-09 BE1 entity 고도화: `가로등`·`보안등`·`공원등`·`도로등`·`조명등`·`LED등` 계열은 `text: "가로등"`으로 묶고, 실제 표현은 evidence에 보존합니다. BE2는 조명 계열 객체 일치 신호를 같은 축으로 약하게 가산하면 됩니다.
+- 교통/도로/상하수/폐기물/주거/복지/행정 객체 사전을 확장했습니다. 예: `버스`, `철도`, `횡단보도`, `하수구`, `상수도`, `종량기`, `공동주택`, `청년월세`, `지역사랑상품권`.
+- 2026-06-10 추가 고도화: 문화/예약(`공연`, `티켓`, `예매`, `투어`, `회원계정`), 노동/고용(`임금체불`, `고용보험`, `근로계약`), 기업/무역(`정책자금`, `수출입`, `세무신고`, `지원사업`), 건설/주택/자동차(`건설공사`, `하도급`, `분양`, `자동차등록`, `화물운송`) 행정 객체를 보강했습니다.
+- 오탐 방지: `도로법`, `도로교통법`, `도로관리청`, `도로점용`처럼 법령·기관·제도 인용 문맥의 `도로`는 entity_texts에서 제외하고, 실제 대상물로 나온 `도로가 파손` 같은 문맥만 남깁니다.
 - ⚠️ **이름 차이**: 우리는 `entity_texts`로 명명(요청은 normalized_entities). 의미는 동일. BE2에서 `text=canonical, label=type, evidence[0]=raw`로 매핑하면 됩니다. (원하면 별칭 키 추가 가능 — 요청 주세요.)
 - confidence: canonical 직접 등장 0.9 / 변이 정규화 0.85 / 규칙 NER 흡수 0.8.
+- 로컬 실측: `data/processed/processed_consulting_data.json` 3,280건 기준 lexicon-only 커버리지는 660건(20.12%) → 2,402건(73.23%), 규칙 NER+lexicon 커버리지는 1,521건(46.37%) → 2,525건(76.98%)로 개선됐습니다.
+- `civil_cases_v1` 9,132건 기준 현재 저장 metadata는 1,007건(11.03%)이지만, 같은 document text에 개선된 BE1 entity 로직을 적용하면 6,769건(74.12%)까지 적재 가능할 것으로 예상됩니다. BE2 재인덱싱 또는 metadata backfill 후 아래 명령으로 실제 적재율을 재측정해 주세요.
+  ```bash
+  python scripts/check_chromadb_search_signal_coverage.py --persist-dir data/chroma_db --collection civil_cases_v1
+  ```
 
 ### ② `legal_refs`
 ```jsonc
@@ -146,7 +155,7 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
    - **같은 `responsible_unit.name`** → 가점.
    - **`key_terms` 겹침** → BM25/키워드 부스트.
    - 각 신호를 **confidence로 가중**(높으면 강하게, 낮으면 약하게/무시) — 요청대로.
-3. **임베딩/색인**: BE2가 민원을 인덱싱할 때 위 필드를 metadata로 넣어두면 rerank가 쉬워집니다(예: issue_type/entity_texts/law_id를 chunk metadata로).
+3. **임베딩/색인**: BE2가 민원을 인덱싱할 때 위 필드를 metadata로 넣어두면 rerank가 쉬워집니다(예: issue_type/entity_texts/law_id를 chunk metadata로). `entity_texts`는 hard filter가 아니라 약한 soft rerank 신호로만 사용합니다.
 
 ---
 
