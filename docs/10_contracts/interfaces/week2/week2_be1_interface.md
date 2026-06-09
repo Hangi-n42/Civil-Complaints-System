@@ -2,7 +2,7 @@
 
 문서 버전: v1.4-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-25 (created_at/structured_at KST +09:00 통일 반영)  
+최신화: 2026-06-10 (원천데이터 전용 구조화, supervision 제거 반영)
 책임: BE1  
 협업: BE2, BE3
 
@@ -66,14 +66,6 @@
     "client_age": "",
     "source_file": "raw_001.json"
   },
-  "supervision": {
-    "summary": {
-      "task_category": "요약",
-      "instruction": "민원 내용을 요약하시오.",
-      "input": "...",
-      "output": "..."
-    }
-  },
   "confidence_score": 0.91,
   "structured_at": "2026-03-20T15:21:04+09:00"
 }
@@ -81,10 +73,10 @@
 
 확장 필드 규칙:
 - `metadata`: 항상 포함(원천 추적/품질 분석용)
-- `supervision`: 라벨링 정보가 있을 때만 포함(optional)
 - `confidence_score`: 구조화 결과 집계 신뢰도(0~1)
 - `structured_at`: 구조화 처리 시각(ISO-8601, `+09:00` 포함)
 - `created_at`: 출력 단계에서는 ISO-8601 KST 오프셋(`+09:00`)으로 통일
+- `supervision`: 사용하지 않음. BE1 구조화는 `01.원천데이터`의 민원인 원문만 사용한다.
 
 **Entity 필드 명시:**
 - `entities`: 개체명 인식(NER) 결과 배열
@@ -123,4 +115,5 @@
 - [x] 입력 원문 매핑 우선순위 `raw_text > text` 적용 확인
 - [x] Entity 라벨 허용값 5개 제한 + 비표준 라벨 서버 정규화 확인
 - [x] `validation` 객체 항상 포함 및 `warnings` 기록 확인
-- [x] 확장 필드(`metadata`, `supervision`, `confidence_score`, `structured_at`) 규칙 준수 확인
+- [x] 확장 필드(`metadata`, `confidence_score`, `structured_at`) 규칙 준수 확인
+- [x] 라벨링 데이터 기반 `supervision` 미사용 확인

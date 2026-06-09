@@ -1,8 +1,7 @@
 """Generate Week 2 delivery sample JSON records.
 
-This script reads AIHub raw source files and optional labeling files,
-normalizes them to the BE1->BE2 Week 2 delivery contract,
-and writes 20 sample records by default.
+This script reads AIHub raw source files, normalizes them to the
+BE1->BE2 delivery contract, and writes 20 sample records by default.
 
 Usage:
     python scripts/generate_week2_delivery_samples.py
@@ -16,10 +15,11 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from app.structuring.preprocessing import to_structuring_record
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_ROOT = PROJECT_ROOT / "data" / "Training" / "01.원천데이터"
-LABEL_ROOT = PROJECT_ROOT / "data" / "Training" / "02.라벨링데이터"
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "samples" / "week2_delivery_sample_20.json"
 
 
@@ -34,74 +34,6 @@ def iter_record_files(root: Path) -> List[Path]:
     return sorted([p for p in root.rglob("*.json") if p.is_file()])
 
 
-def build_supervision_index(label_root: Path) -> Dict[str, Dict[str, Any]]:
-    index: Dict[str, Dict[str, Any]] = {}
-
-    for path in iter_record_files(label_root):
-        try:
-            payload = load_json_file(path)
-        except Exception:
-            continue
-
-        if not isinstance(payload, list):
-            continue
-
-        for row in payload:
-            if not isinstance(row, dict):
-                continue
-
-            source_id = str(row.get("source_id") or "").strip()
-            if not source_id:
-                continue
-
-            slot = index.setdefault(source_id, {})
-            instructions = row.get("instructions")
-            if not isinstance(instructions, list):
-                continue
-
-            for ins in instructions:
-                if not isinstance(ins, dict):
-                    continue
-                tuning_type = str(ins.get("tuning_type") or "").strip()
-                data_rows = ins.get("data")
-                if not isinstance(data_rows, list):
-                    continue
-
-                if tuning_type == "질의응답":
-                    qa_bucket = slot.setdefault("qa", [])
-                    for d in data_rows:
-                        if not isinstance(d, dict):
-                            continue
-                        qa_bucket.append(
-                            {
-                                "task_category": str(d.get("task_category") or ""),
-                                "instruction": str(d.get("instruction") or ""),
-                                "question": str(d.get("instruction") or ""),
-                                "answer": str(d.get("output") or ""),
-                            }
-                        )
-                elif tuning_type == "요약" and data_rows:
-                    d = data_rows[0]
-                    if isinstance(d, dict):
-                        slot["summary"] = {
-                            "task_category": str(d.get("task_category") or ""),
-                            "instruction": str(d.get("instruction") or ""),
-                            "input": str(d.get("input") or ""),
-                            "output": str(d.get("output") or ""),
-                        }
-                elif tuning_type == "분류" and data_rows:
-                    d = data_rows[0]
-                    if isinstance(d, dict):
-                        slot["classification"] = {
-                            "task_category": str(d.get("task_category") or ""),
-                            "instruction": str(d.get("instruction") or ""),
-                            "input": str(d.get("input") or ""),
-                            "output": str(d.get("output") or ""),
-                        }
-
-    return index
-
-
 def as_int(value: Any) -> int | None:
     if value is None:
         return None
@@ -111,9 +43,10 @@ def as_int(value: Any) -> int | None:
         return None
 
 
-def normalize_record(raw: Dict[str, Any], supervision_map: Dict[str, Dict[str, Any]], source_file: Path) -> Dict[str, Any]:
+def normalize_record(raw: Dict[str, Any], source_file: Path) -> Dict[str, Any]:
     source_id = str(raw.get("source_id") or "").strip()
     metadata = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {}
+    structuring_record = to_structuring_record(raw)
 
     case_id = str(raw.get("case_id") or source_id or raw.get("id") or "").strip()
     if not case_id:
@@ -122,13 +55,16 @@ def normalize_record(raw: Dict[str, Any], supervision_map: Dict[str, Dict[str, A
     source = str(raw.get("source") or metadata.get("source") or "unknown").strip() or "unknown"
     created_at = str(raw.get("created_at") or raw.get("consulting_date") or "").strip() or "unknown"
 
-    category = str(raw.get("category") or raw.get("consulting_category") or "unknown").strip() or "unknown"
+    category = str(structuring_record.get("category") or raw.get("category") or "unknown").strip() or "unknown"
     if category == "-":
         category = "unknown"
 
     region = str(raw.get("region") or "unknown").strip() or "unknown"
 
-    raw_text = str(raw.get("raw_text") or raw.get("text") or raw.get("consulting_content") or "").strip()
+    # 샘플 계약도 운영과 동일하게 상담사 답변을 제외한 민원인 원문만 사용한다.
+    raw_text = str(
+        raw.get("raw_text") or raw.get("text") or structuring_record.get("text") or ""
+    ).strip()
 
     result: Dict[str, Any] = {
         "case_id": case_id,
@@ -149,14 +85,10 @@ def normalize_record(raw: Dict[str, Any], supervision_map: Dict[str, Dict[str, A
         },
     }
 
-    if source_id and source_id in supervision_map:
-        result["supervision"] = supervision_map[source_id]
-
     return result
 
 
 def collect_samples(count: int) -> List[Dict[str, Any]]:
-    supervision_map = build_supervision_index(LABEL_ROOT)
     samples: List[Dict[str, Any]] = []
 
     for path in iter_record_files(RAW_ROOT):
@@ -171,7 +103,7 @@ def collect_samples(count: int) -> List[Dict[str, Any]]:
         for row in payload:
             if not isinstance(row, dict):
                 continue
-            normalized = normalize_record(row, supervision_map, path)
+            normalized = normalize_record(row, path)
             if not normalized:
                 continue
             samples.append(normalized)

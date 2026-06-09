@@ -238,7 +238,6 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
                         "raw_text": item.get("raw_text") or item.get("text") or "",
                         "text": item.get("text") or "",
                         "metadata": item.get("metadata") or {},
-                        "instructions": item.get("instructions") if isinstance(item.get("instructions"), list) else [],
                     })
 
         except Exception as e:

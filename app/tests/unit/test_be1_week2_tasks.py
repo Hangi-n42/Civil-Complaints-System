@@ -150,6 +150,54 @@ async def test_structure_reads_raw_text_when_text_missing():
 
 
 @pytest.mark.asyncio
+async def test_structure_parses_raw_consulting_content_without_answer_or_supervision():
+    service = StructuringService()
+    result = await service.structure(
+        {
+            "source_id": "RAW-001",
+            "source": "서울시",
+            "consulting_date": "20240102",
+            "consulting_category": "도로",
+            "consulting_content": "제목 : 보안등 고장\n\nQ : 골목 보안등이 꺼졌습니다.\n\nA : 접수했습니다.",
+            "instructions": [
+                {
+                    "tuning_type": "질의응답",
+                    "data": [{"instruction": "라벨 질문", "output": "라벨 답변"}],
+                }
+            ],
+        }
+    )
+
+    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다."
+    assert "접수했습니다" not in result["raw_text"]
+    assert "supervision" not in result
+
+
+@pytest.mark.asyncio
+async def test_validate_schema_accepts_constrained_structured_by():
+    service = StructuringService()
+    payload = {
+        "case_id": "CASE-CONSTRAINED-001",
+        "source": "aihub",
+        "created_at": "2026-03-22T10:00:00+09:00",
+        "admin_unit": "서울특별시",
+        "priority": "보통",
+        "raw_text": "가로등이 고장났습니다. 교체해 주세요.",
+        "observation": {"text": "가로등이 고장났습니다", "confidence": 0.9, "evidence_span": [0, 11]},
+        "result": {"text": "", "confidence": 0.0, "evidence_span": [0, 0], "status": "pending"},
+        "request": {"text": "교체해 주세요", "confidence": 0.9, "evidence_span": [13, 20]},
+        "context": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "entities": [{"label": "FACILITY", "text": "가로등"}],
+        "structured_by": "constrained",
+        "extraction_meta": {"llm_latency_ms": 1, "llm_non_null_count": 2},
+    }
+
+    validation = await service.validate_schema(payload)
+
+    assert "invalid_structured_by_value" not in validation["errors"]
+
+
+@pytest.mark.asyncio
 async def test_extract_entities_filters_admin_unit_false_positives():
     service = StructuringService()
     text = (

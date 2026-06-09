@@ -36,6 +36,7 @@ from app.structuring.enrichment import (
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.llm_extractor import LLMSemanticExtractor
 from app.structuring.merger import ResultMerger
+from app.structuring.preprocessing import to_structuring_record
 from app.structuring.structured_extractor import StructuredExtractor
 from app.structuring.structured_merge import merge_structured
 from app.structuring.verifier import make_ollama_verifier
@@ -183,6 +184,14 @@ class StructuringService:
 
     def _normalize_required(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         metadata = raw.get("metadata", {}) if isinstance(raw.get("metadata"), dict) else {}
+        if raw.get("consulting_content"):
+            # 원천 consulting_content는 Q/A 또는 대화형일 수 있으므로 민원인 원문만 분리한다.
+            prepared = to_structuring_record(raw)
+            prepared_metadata = (
+                prepared.get("metadata", {}) if isinstance(prepared.get("metadata"), dict) else {}
+            )
+            raw = {**raw, **prepared}
+            metadata = {**prepared_metadata, **metadata}
 
         case_id = str(raw.get("case_id") or raw.get("id") or "").strip()
         if not case_id:
@@ -217,7 +226,6 @@ class StructuringService:
                 "client_age": str(raw.get("client_age") or ""),
                 "source_file": str(metadata.get("source_file") or ""),
             },
-            "instructions": raw.get("instructions") if isinstance(raw.get("instructions"), list) else [],
         }
 
     # ──────────────────────────────────────────────────────────────────
@@ -447,40 +455,8 @@ class StructuringService:
             raise StructuringError(f"개체명 인식 실패: {exc}") from exc
 
     # ──────────────────────────────────────────────────────────────────
-    # Stage 3 보조: supervision / confidence
+    # Stage 3 보조: confidence
     # ──────────────────────────────────────────────────────────────────
-
-    async def extract_supervision(self, raw: Dict[str, Any]) -> Dict[str, Any]:
-        """라벨링 데이터 instructions 를 supervision 필드로 정규화한다."""
-        result: Dict[str, Any] = {}
-        instructions = raw.get("instructions", [])
-        if not isinstance(instructions, list):
-            return result
-
-        qa_items: List[Dict[str, str]] = []
-        for item in instructions:
-            tuning_type = str(item.get("tuning_type", "")).strip()
-            for row in item.get("data", []):
-                normalized = {
-                    "task_category": str(row.get("task_category", "")),
-                    "instruction": str(row.get("instruction", "")),
-                    "input": str(row.get("input", "")),
-                    "output": str(row.get("output", "")),
-                }
-                if tuning_type == "분류":
-                    result["classification"] = normalized
-                elif tuning_type == "요약":
-                    result["summary"] = normalized
-                elif tuning_type == "질의응답":
-                    qa_items.append({
-                        "task_category": normalized["task_category"],
-                        "instruction": normalized["instruction"],
-                        "question": normalized["instruction"],
-                        "answer": normalized["output"],
-                    })
-        if qa_items:
-            result["qa"] = qa_items
-        return result
 
     async def compute_confidence_score(self, data: Dict[str, Any]) -> float:
         """전체 구조화 신뢰도 점수를 계산한다 (0~1).
@@ -615,7 +591,7 @@ class StructuringService:
 
             # structured_by 유효값 검증 (신규 필드)
             if "structured_by" in data:
-                allowed_methods = {"hybrid", "llm_only", "fallback", "rule"}
+                allowed_methods = {"hybrid", "llm_only", "fallback", "rule", "constrained"}
                 if data["structured_by"] not in allowed_methods:
                     errors.append("invalid_structured_by_value")
 
@@ -695,9 +671,8 @@ class StructuringService:
                 case_id, source, created_at, category, region, raw_text, admin_unit, priority,
                 observation, result, request, context,   # 4요소 (LLM)
                 entities,                                # NER (Rule)
-                supervision,                             # 라벨링 데이터 (선택)
                 metadata,
-                structured_by,                           # "hybrid" | "fallback"
+                structured_by,                           # "hybrid" | "constrained" | "fallback"
                 extraction_meta,                         # LLM/NER 메타
                 confidence_score,
                 structured_at,
@@ -745,9 +720,6 @@ class StructuringService:
                     llm_model=settings.STRUCTURING_MODEL,
                 )
 
-            # supervision (라벨링 데이터)
-            supervision = await self.extract_supervision(normalized)
-
             candidate: Dict[str, Any] = {
                 "case_id": normalized["case_id"],
                 "source": normalized["source"],
@@ -760,8 +732,6 @@ class StructuringService:
                 **merged,
                 "metadata": normalized["metadata"],
             }
-            if supervision:
-                candidate["supervision"] = supervision
 
             # BE1 고도화 — 검색 신호 보강 필드 (규칙 #6: confidence + evidence 포함)
             candidate["entity_texts"] = normalize_entity_texts(entities, text)   # 요청 #1
