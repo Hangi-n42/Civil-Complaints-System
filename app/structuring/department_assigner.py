@@ -25,6 +25,8 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
+from app.structuring.enrichment import FACILITY_KEYWORDS, LEGAL_REF_LEXICON, OBJECT_LEXICON
+
 # ── 상수 ─────────────────────────────────────────────────────────────────
 COLLECTION_NAME = "busan_departments_v1"
 MASTER_FILENAME = "busan_departments_master.json"
@@ -46,6 +48,45 @@ _TOKEN_RE = re.compile(r"[가-힣]{2,}|[A-Za-z0-9]{2,}")
 
 
 # ── 순수 함수 (모델 불필요, 테스트 대상) ──────────────────────────────────
+def _append_unique(target: List[str], values: List[str]) -> None:
+    """빈 문자열과 중복을 제거하면서 순서를 보존해 단어를 추가한다."""
+    for value in values:
+        term = str(value or "").strip()
+        if term and term not in target:
+            target.append(term)
+
+
+def _has_any_trigger(text: str, triggers: List[str]) -> bool:
+    """부서/업무 원문 안에 같은 사전군의 트리거가 하나라도 있는지 확인한다."""
+    return any(trigger and trigger in text for trigger in triggers)
+
+
+def expand_department_task_text(department: str, task: str) -> str:
+    """부서 업무를 인덱싱용 문서 텍스트로 확장한다.
+
+    메타데이터의 표시용 task는 원문을 유지하고, 임베딩 대상 문서에만 부서명과
+    기존 enrichment 사전의 도메인 동의어를 붙인다. 확장은 부서명/업무에 실제로
+    등장한 트리거군으로 제한해 무관한 동의어가 모든 부서에 퍼지지 않게 한다.
+    """
+    base_terms: List[str] = []
+    _append_unique(base_terms, [department, task])
+    base_text = " ".join(base_terms)
+
+    expansion_terms: List[str] = []
+    for canonical, surfaces in OBJECT_LEXICON.items():
+        group = [canonical, *surfaces]
+        if _has_any_trigger(base_text, group):
+            _append_unique(expansion_terms, group)
+
+    for law_name, triggers in LEGAL_REF_LEXICON.items():
+        group = [law_name, *triggers]
+        if _has_any_trigger(base_text, group):
+            _append_unique(expansion_terms, group)
+
+    _append_unique(expansion_terms, [kw for kw in FACILITY_KEYWORDS if kw in base_text])
+    return " ".join([*base_terms, *[term for term in expansion_terms if term not in base_terms]])
+
+
 def extract_key_terms(text: str, limit: int = 12) -> List[str]:
     """질의/업무 텍스트에서 검색 신호가 되는 명사형 토큰을 추출한다.
 
@@ -281,7 +322,7 @@ class DepartmentAssigner:
             name = dept["department"]
             for t_idx, task in enumerate(dept.get("tasks", [])):
                 ids.append(f"{d_idx}_{t_idx}")
-                docs.append(task)
+                docs.append(expand_department_task_text(name, task))
                 metas.append({"department": name, "url": dept.get("url", ""), "task": task})
 
         # 배치 임베딩/적재

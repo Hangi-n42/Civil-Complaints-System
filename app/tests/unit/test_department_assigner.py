@@ -3,12 +3,41 @@
 from app.structuring.department_assigner import (
     aggregate_candidates,
     build_query_text,
+    expand_department_task_text,
     extract_key_terms,
     validate_llm_units,
 )
 
 
 # ── extract_key_terms ────────────────────────────────────────────────────
+def test_expand_department_task_text_adds_department_and_domain_terms():
+    text = expand_department_task_text("건설행정과", "건설기계 위임 사무 총괄")
+
+    assert text.startswith("건설행정과 건설기계 위임 사무 총괄")
+    assert "건설기계관리법" in text
+    assert "지게차" in text
+    assert "굴착기" in text
+    assert "기중기" in text
+    assert "조종사면허" in text
+
+
+def test_expand_department_task_text_keeps_expansion_trigger_limited():
+    text = expand_department_task_text("택시운수과", "법인택시 면허 관리")
+
+    assert "법인택시 면허 관리" in text
+    assert "건설기계관리법" not in text
+    assert "지게차" not in text
+
+
+def test_expand_department_task_text_reuses_waste_lexicon_terms():
+    text = expand_department_task_text("자원순환과", "폐기물 관련 주민지원기금 운용 및 관리")
+
+    assert "폐기물관리법" in text
+    assert "쓰레기" in text
+    assert "생활폐기물" in text
+    assert "무단투기" in text
+
+
 def test_extract_key_terms_drops_stopwords_and_dedups():
     text = "3톤 미만 지게차 면허 신청 문의 지게차 적성검사"
     terms = extract_key_terms(text)

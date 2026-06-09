@@ -107,7 +107,8 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 - **신뢰도 하한(#346)**: `RESPONSIBLE_UNIT_MIN_CONFIDENCE`(**기본 0.0**). bge-m3 raw cosine이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답 분리가 불가함이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 **BE2 soft-rerank가 confidence로 가중**(원래 설계 의도). 랭킹/신뢰도 개선은 별도 리팩토링 예정.
 - 미가용/실패 시 `[]`로 안전 폴백(파이프라인 영향 없음).
 - ⚠️ **커버리지 한계(정직)**: 마스터는 **부산시 본청 부서**만 담습니다. 건설기계조종사면허(지게차)처럼 실무가 구청/공단 소관인 민원은 정답 부서가 풀에 없어 약하게 나옵니다(soft 후보로만 쓰세요). 마스터를 바꾸면 **인덱스 재빌드 필수**(`build_index(rebuild=True)`).
-- **평가(#346 Phase 0)**: `scripts/eval_responsible_unit.py`로 Recall@3/MRR@3/NONE 무답률을 측정합니다. seed는 `data/departments/eval/responsible_unit_eval.seed.jsonl`에 있으며, 확정 baseline은 사람이 검수한 `responsible_unit_eval.jsonl` 30~50건 작성 후 기록하세요.
+- **평가(#346 Phase 0)**: `scripts/eval_responsible_unit.py`로 Recall@3/MRR@3/NONE 무답률을 측정합니다. `data/departments/eval/responsible_unit_eval.jsonl` 100건 baseline은 Recall@3=0.5579, MRR@3=0.4632, NONE abstention=0.0000(threshold=0.4)입니다.
+- **문서 확장(#346 Phase 1-A)**: 인덱싱 시 `DepartmentAssigner.build_index()`가 `부서명 + task + enrichment 사전 기반 확장어`를 임베딩 문서로 저장합니다. 확장은 `OBJECT_LEXICON`, `LEGAL_REF_LEXICON`, `FACILITY_KEYWORDS`의 트리거가 원문 부서/업무에 등장할 때만 적용하고, metadata의 `task`는 원문 그대로 유지합니다. 이 변경 후에는 `build_index(rebuild=True)`로 Chroma를 다시 만들어 after 평가를 기록하세요.
 
 ### ④ `issue_type`
 ```jsonc
