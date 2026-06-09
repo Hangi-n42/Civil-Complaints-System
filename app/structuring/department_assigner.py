@@ -36,6 +36,12 @@ MASTER_FILENAME = "busan_departments_master.json"
 _MULTIHIT_BONUS = 0.02
 _MAX_BONUS_HITS = 5
 _CONF_CEILING = 0.99
+_REL_CONF_BASE = 0.12
+_REL_CONF_MARGIN_WEIGHT = 2.0
+_REL_CONF_HIT_BONUS = 0.015
+_REL_CONF_EVIDENCE_BONUS = 0.02
+_REL_CONF_RANK_DECAY = 0.10
+_REL_CONF_GAP_DECAY = 0.50
 _DEPARTMENT_RRF_K = 60
 _DENSE_RRF_WEIGHT = 2
 
@@ -98,6 +104,36 @@ def rrf_similarity(score: float, ranking_count: int, k: int = _DEPARTMENT_RRF_K)
     return round(max(0.0, min(1.0, scaled)), 4)
 
 
+def _relative_confidences(ranked: List[Dict[str, Any]]) -> List[float]:
+    """정렬된 부서 후보에 상대적 confidence를 부여한다.
+
+    rank_score는 순위를 정하는 내부 점수이고, confidence는 질의 내부에서 top 후보가
+    얼마나 분리됐는지를 나타내는 soft 신호다. raw cosine 절대값은 직접 쓰지 않는다.
+    """
+    if not ranked:
+        return []
+
+    top_score = float(ranked[0].get("_rank_score", 0.0))
+    second_score = float(ranked[1].get("_rank_score", 0.0)) if len(ranked) > 1 else 0.0
+    top_margin = max(0.0, top_score - second_score)
+    top_hits = int(ranked[0].get("_hits", 1))
+    top_evidence_count = int(ranked[0].get("_evidence_terms", 0))
+    top_confidence = (
+        _REL_CONF_BASE
+        + _REL_CONF_MARGIN_WEIGHT * top_margin
+        + _REL_CONF_HIT_BONUS * min(max(top_hits - 1, 0), _MAX_BONUS_HITS)
+        + _REL_CONF_EVIDENCE_BONUS * min(top_evidence_count, 3)
+    )
+    top_confidence = max(0.0, min(_CONF_CEILING, top_confidence))
+
+    confidences: List[float] = []
+    for idx, item in enumerate(ranked):
+        score_gap = max(0.0, top_score - float(item.get("_rank_score", 0.0)))
+        confidence = top_confidence - _REL_CONF_RANK_DECAY * idx - _REL_CONF_GAP_DECAY * score_gap
+        confidences.append(round(max(0.0, min(_CONF_CEILING, confidence)), 4))
+    return confidences
+
+
 def extract_key_terms(text: str, limit: int = 12) -> List[str]:
     """질의/업무 텍스트에서 검색 신호가 되는 명사형 토큰을 추출한다.
 
@@ -137,14 +173,14 @@ def aggregate_candidates(
 
     Args:
         task_hits: [{"department": str, "task": str, "similarity": float in [0,1]}, ...]
-                   similarity 는 코사인 유사도(1 - distance) 기준, 내림차순일 필요는 없음.
+                   similarity 는 랭킹 입력 점수이며 내림차순일 필요는 없음.
         query_terms: evidence 겹침 계산용 질의 키워드.
         top_n: 반환할 부서 수.
         min_confidence: 이 값 미만 후보는 제외.
 
     Returns:
         [{"name": 부서명, "confidence": float, "evidence": [근거 문구...]}, ...]
-        confidence 내림차순. 부서명은 입력에 등장한 정확한 명칭.
+        rank_score 내림차순. confidence는 질의 내부 마진/합의 기반 상대 신호.
     """
     query_terms = query_terms or []
     by_dept: Dict[str, Dict[str, Any]] = {}
@@ -167,31 +203,40 @@ def aggregate_candidates(
             slot["best_sim"] = sim
             slot["best_task"] = task
 
-    results: List[Dict[str, Any]] = []
+    ranked: List[Dict[str, Any]] = []
     for dept, slot in by_dept.items():
         extra = min(slot["hits"] - 1, _MAX_BONUS_HITS)
-        confidence = min(_CONF_CEILING, slot["best_sim"] + _MULTIHIT_BONUS * extra)
-        confidence = round(confidence, 4)
-        if confidence < min_confidence:
-            continue
+        rank_score = min(_CONF_CEILING, slot["best_sim"] + _MULTIHIT_BONUS * extra)
 
         # 근거: 가장 유사한 업무 문구 + 질의와 겹치는 키워드
         evidence: List[str] = []
         if slot["best_task"]:
             evidence.append(slot["best_task"])
-        evidence.extend(_evidence_terms(query_terms, slot["best_task"]))
+        matched_terms = _evidence_terms(query_terms, slot["best_task"])
+        evidence.extend(matched_terms)
         # 중복 제거(순서 보존)
         evidence = list(dict.fromkeys(evidence))
 
-        results.append({
+        ranked.append({
             "name": dept,
-            "confidence": confidence,
             "evidence": evidence,
             "_hits": slot["hits"],  # 디버그용; 호출부에서 제거 가능
+            "_rank_score": round(rank_score, 4),
+            "_evidence_terms": len(matched_terms),
         })
 
-    results.sort(key=lambda r: r["confidence"], reverse=True)
-    return results[:top_n]
+    ranked.sort(key=lambda r: r["_rank_score"], reverse=True)
+    confidences = _relative_confidences(ranked)
+    results: List[Dict[str, Any]] = []
+    for item, confidence in zip(ranked, confidences):
+        if confidence < min_confidence:
+            continue
+        out = dict(item)
+        out["confidence"] = confidence
+        results.append(out)
+        if len(results) >= top_n:
+            break
+    return results
 
 
 def validate_llm_units(
@@ -499,6 +544,8 @@ class DepartmentAssigner:
         )
         for c in candidates:
             c.pop("_hits", None)
+            c.pop("_rank_score", None)
+            c.pop("_evidence_terms", None)
 
         if use_llm and candidates:
             reranked = self._llm_rerank(query_text, candidates)

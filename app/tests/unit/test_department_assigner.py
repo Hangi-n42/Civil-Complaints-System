@@ -142,9 +142,10 @@ def test_aggregate_uses_max_similarity_and_multihit_bonus():
     top = res[0]
     assert top["name"] == "도로안전과"
     # best_sim 0.81 + 보너스(1 extra hit * 0.02) = 0.83
-    assert abs(top["confidence"] - 0.83) < 1e-6
+    assert abs(top["_rank_score"] - 0.83) < 1e-6
     assert res[1]["name"] == "대중교통과"
-    assert res[0]["confidence"] > res[1]["confidence"]  # 내림차순
+    assert res[0]["_rank_score"] > res[1]["_rank_score"]  # 순위 점수 내림차순
+    assert res[0]["confidence"] >= res[1]["confidence"]   # 상대 신뢰도도 top이 높음
 
 
 def test_aggregate_evidence_contains_task_and_overlapping_terms():
@@ -157,15 +158,28 @@ def test_aggregate_evidence_contains_task_and_overlapping_terms():
 def test_aggregate_top_n_and_min_confidence():
     res = aggregate_candidates(_hits(), top_n=1)
     assert len(res) == 1
-    res2 = aggregate_candidates(_hits(), min_confidence=0.5)
-    assert all(c["confidence"] >= 0.5 for c in res2)
-    assert "대중교통과" not in [c["name"] for c in res2]  # 0.40 < 0.5 제외
+    res2 = aggregate_candidates(_hits(), query_terms=["포트홀", "도로", "파손"], min_confidence=0.7)
+    assert all(c["confidence"] >= 0.7 for c in res2)
+    assert "대중교통과" not in [c["name"] for c in res2]  # 상대 confidence 하한으로 제외
 
 
 def test_aggregate_clamps_similarity_range():
     hits = [{"department": "X과", "task": "t", "similarity": 1.5}]
     res = aggregate_candidates(hits)
     assert res[0]["confidence"] <= 0.99
+
+
+def test_aggregate_relative_confidence_drops_flat_margin():
+    hits = [
+        {"department": "A과", "task": "업무 A", "similarity": 0.63},
+        {"department": "B과", "task": "업무 B", "similarity": 0.62},
+        {"department": "C과", "task": "업무 C", "similarity": 0.61},
+    ]
+
+    res = aggregate_candidates(hits)
+
+    assert [c["name"] for c in res] == ["A과", "B과", "C과"]
+    assert res[0]["confidence"] < 0.4
 
 
 # ── validate_llm_units (환각 방어) ────────────────────────────────────────
@@ -212,6 +226,6 @@ def test_aggregate_min_confidence_abstains():
     ]
     # 하한 0.7 이면 둘 다 미달 → 빈 배열(폐기)
     assert aggregate_candidates(hits, min_confidence=0.7) == []
-    # 하한 0.6 이면 택시운수과(0.63)만 통과
-    out = aggregate_candidates(hits, min_confidence=0.6)
+    # 하한 0.2 이면 마진상 top 후보만 통과
+    out = aggregate_candidates(hits, min_confidence=0.2)
     assert [c["name"] for c in out] == ["택시운수과"]

@@ -104,12 +104,13 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
   python -c "from app.structuring.department_assigner import get_department_assigner as g; print(g().build_index(rebuild=True))"
   export ENABLE_RESPONSIBLE_UNIT=true   # (선택) RESPONSIBLE_UNIT_USE_LLM=true 로 LLM 재랭킹
   ```
-- **신뢰도 하한(#346)**: `RESPONSIBLE_UNIT_MIN_CONFIDENCE`(**기본 0.0**). bge-m3 raw cosine이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답 분리가 불가함이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 **BE2 soft-rerank가 confidence로 가중**(원래 설계 의도). 랭킹/신뢰도 개선은 별도 리팩토링 예정.
+- **신뢰도 하한(#346)**: `RESPONSIBLE_UNIT_MIN_CONFIDENCE`(**기본 0.0**). bge-m3 raw cosine이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답 분리가 불가함이 확인됨(오답 0.63 > 정답 0.57). Phase 2 이후 confidence는 raw cosine이 아니라 질의 내부 마진/합의 기반 상대 신호입니다. BE2는 여전히 hard filter가 아니라 **soft-rerank 가중치**로만 사용하세요.
 - 미가용/실패 시 `[]`로 안전 폴백(파이프라인 영향 없음).
 - ⚠️ **커버리지 한계(정직)**: 마스터는 **부산시 본청 부서**만 담습니다. 건설기계조종사면허(지게차)처럼 실무가 구청/공단 소관인 민원은 정답 부서가 풀에 없어 약하게 나옵니다(soft 후보로만 쓰세요). 마스터를 바꾸면 **인덱스 재빌드 필수**(`build_index(rebuild=True)`).
 - **평가(#346 Phase 0)**: `scripts/eval_responsible_unit.py`로 Recall@3/MRR@3/NONE 무답률을 측정합니다. `data/departments/eval/responsible_unit_eval.jsonl` 100건 baseline은 Recall@3=0.5579, MRR@3=0.4632, NONE abstention=0.0000(threshold=0.4)입니다.
 - **문서 확장(#346 Phase 1-A)**: 인덱싱 시 `DepartmentAssigner.build_index()`가 `부서명 + task + enrichment 사전 기반 확장어`를 임베딩 문서로 저장합니다. 확장은 `OBJECT_LEXICON`, `LEGAL_REF_LEXICON`, `FACILITY_KEYWORDS`의 트리거가 원문 부서/업무에 등장할 때만 적용하고, metadata의 `task`는 원문 그대로 유지합니다. 재인덱싱 후 after 평가는 Recall@3=0.6947(+0.1368p), MRR@3=0.6000(+0.1368p), NONE abstention=0.0000입니다. 즉 랭킹은 개선됐지만, 무답/신뢰도 분리는 Phase 2에서 별도로 다뤄야 합니다.
 - **하이브리드 검색(#346 Phase 1-B)**: Dense+BM25+RRF 코드는 구현되어 있지만 기본값은 꺼져 있습니다(`RESPONSIBLE_UNIT_USE_HYBRID=false`). equal RRF와 Dense:BM25=2:1 가중 RRF 모두 100건 평가에서 Phase 1-A보다 낮아져 운영 기본값은 Dense Chroma 검색으로 유지합니다. 재실험 시에만 `RESPONSIBLE_UNIT_USE_HYBRID=true`로 켜세요. RRF 점수도 보정 확률은 아니므로, BE2는 계속 soft-rerank 신호로만 사용하세요.
+- **상대 confidence(#346 Phase 2)**: `aggregate_candidates()`는 내부 `_rank_score`로 순위를 정하고, 출력 `confidence`는 top1/top2 마진, 같은 부서 multi-hit, evidence term 수, rank/gap decay로 별도 계산합니다. 100건 평가에서 Recall@3=0.6947, MRR@3=0.6000을 유지하면서 NONE abstention은 0.0000→0.8000(threshold=0.4)으로 개선됐습니다. 다만 아직 보정 확률은 아니고, 본청 마스터 밖 업무는 계속 낮은 신뢰/무답 후보로 처리해야 합니다.
 
 ### ④ `issue_type`
 ```jsonc
@@ -143,7 +144,7 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 
 ## 5. 주의 (정직)
 
-- **모든 confidence는 미보정(uncalibrated) 휴리스틱**입니다(법령/부서 정답셋 없음). 절대 임계값 말고 **상대 강도·soft rerank**로만 — BE2의 설계 의도와 일치합니다.
+- **모든 confidence는 미보정(uncalibrated) 휴리스틱**입니다. `responsible_unit`은 Phase 2에서 상대 신뢰도로 개선됐지만, 절대 확률이 아닙니다. 절대 임계값 말고 **상대 강도·soft rerank**로만 — BE2의 설계 의도와 일치합니다.
 - `legal_refs`·`responsible_unit`은 "검색 보조 후보"입니다. 틀릴 수 있어 hard filter 금지.
 - `entity_texts` 이름이 요청의 `normalized_entities`와 다릅니다. 별칭이 필요하면 한 줄로 추가해 드립니다.
 
