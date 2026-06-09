@@ -12,7 +12,7 @@
 - **문제**: bge-m3 raw cosine 유사도가 **0.5~0.65 좁은 띠에 뭉쳐** 랭킹/신뢰도 신호로 쓸 수 없다. 실제로 **오답이 정답보다 높은 점수**가 나온다(아래 증거). 단일 신뢰도 하한(threshold)으로 정답/오답을 분리하는 것은 **수학적으로 불가능**함이 확인됐다.
 - **해결 방향**(이 문서): Phase 0 평가셋 구축 → Phase 1 문서 확장 + 하이브리드(Dense+BM25+RRF) → Phase 2 상대적 신뢰도(마진/합의). Phase 3(크로스 인코더)는 평가 후 결정.
 - **이미 한 것**: 보일러플레이트 필터의 도메인 오제거 수정(#346, 마스터 116→118부서/2,114업무), 신뢰도 하한 실험(실패 확인) 후 0.0으로 원복.
-- **이번 추가**: Phase 0 평가셋 `data/departments/eval/responsible_unit_eval.jsonl` 100건을 구축하고 baseline을 산출했다. 이어서 Phase 1-A로 `DepartmentAssigner.build_index()`의 임베딩 문서를 `부서명 + task + enrichment 사전 기반 확장어`로 확장했다.
+- **이번 추가**: Phase 0 평가셋 `data/departments/eval/responsible_unit_eval.jsonl` 100건을 구축하고 baseline을 산출했다. 이어서 Phase 1-A로 `DepartmentAssigner.build_index()`의 임베딩 문서를 `부서명 + task + enrichment 사전 기반 확장어`로 확장했고, after 평가에서 Recall@3 0.5579→0.6947, MRR@3 0.4632→0.6000으로 개선됐다.
 
 ---
 
@@ -103,6 +103,7 @@ g().assign('3톤 미만 지게차 면허 적성검사 갱신 절차', top_n_unit
 - 평가 CLI 추가: `python scripts/eval_responsible_unit.py --eval-file data/departments/eval/responsible_unit_eval.seed.jsonl`
 - 확정 평가셋 기본 경로: `data/departments/eval/responsible_unit_eval.jsonl`
 - 확정 평가셋은 100건이다. 현재 baseline은 total=100, labeled=95, NONE=5, Recall@3=0.5579, MRR@3=0.4632, NONE abstention=0.0000(threshold=0.4)이다.
+- Phase 1-A after 평가는 Recall@3=0.6947(+0.1368p), MRR@3=0.6000(+0.1368p), NONE abstention=0.0000(threshold=0.4)이다. 문서 확장은 랭킹을 개선했지만, 무답/신뢰도 분리는 아직 개선하지 못했다.
 - seed 파일은 18건이며 각 row에 `note=seed_requires_human_review`를 남겼다. 이 파일은 smoke/baseline 리허설용이고, 확정 평가셋을 대체하지 않는다.
 - 스크립트는 gold 부서명이 `busan_departments_master.json`에 있는지 검증하고, `NONE`은 단독 라벨로만 허용한다.
 
@@ -118,6 +119,7 @@ g().assign('3톤 미만 지게차 면허 적성검사 갱신 절차', top_n_unit
 - 구현 위치: `scripts/build_department_master.py`에 확장 필드를 만들거나, `DepartmentAssigner.build_index`의 `docs` 생성부에서 동의어를 합쳐 임베딩. (메타데이터의 표시용 `task`는 원문 유지, 임베딩용 텍스트만 확장)
 - **주의**: 확장은 *부서의 실제 도메인*에 한해서만. 모든 부서에 모든 동의어를 뿌리면 다시 노이즈가 된다. task에 트리거어(예: "건설기계")가 있을 때 해당 동의어군만 붙인다.
 - **현재 구현 상태**: `app/structuring/department_assigner.py`의 `expand_department_task_text()`가 `OBJECT_LEXICON`, `LEGAL_REF_LEXICON`, `FACILITY_KEYWORDS`를 재사용해 트리거가 맞은 사전군만 붙인다. Chroma metadata의 `task`는 원문을 유지하고, `documents`에만 확장 텍스트를 넣는다.
+- **평가 결과**: 재인덱싱 후 100건 평가에서 Recall@3 0.5579→0.6947, MRR@3 0.4632→0.6000으로 올랐다. 자원순환/공원/도로 계열은 크게 개선됐지만, NONE abstention은 0.0000으로 그대로라 Phase 2의 상대적 신뢰도 설계가 여전히 필요하다.
 
 **1-B. Dense + BM25 + RRF (분리도를 올리는 부분)**
 - `law_article_store.py`의 `tokenize` / `BM25Index` / `rrf_fuse`를 부서 task 코퍼스에 그대로 적용.
@@ -166,6 +168,10 @@ g().assign('3톤 미만 지게차 면허 적성검사 갱신 절차', top_n_unit
   ```bash
   python scripts/eval_responsible_unit.py --eval-file data/departments/eval/responsible_unit_eval.jsonl --output-json reports/responsible_unit_baseline.json
   ```
+- Phase 1-A after 평가:
+  ```bash
+  python scripts/eval_responsible_unit.py --eval-file data/departments/eval/responsible_unit_eval.jsonl --output-json reports/responsible_unit_phase1a.json
+  ```
 - 인덱스 재빌드:
   ```bash
   python -c "from app.structuring.department_assigner import get_department_assigner as g; print(g().build_index(rebuild=True))"
@@ -179,7 +185,7 @@ g().assign('3톤 미만 지게차 면허 적성검사 갱신 절차', top_n_unit
 
 ## 7. 작업 체크리스트 (이 순서대로)
 - [x] **Phase 0**: `scripts/eval_responsible_unit.py` + `responsible_unit_eval.jsonl` 100건 사람 검수 라벨 + baseline 숫자 기록 완료.
-- [~] **Phase 1-A**: 문서 확장(enrichment 사전 재사용, 트리거어 한정) 구현 완료. 남은 일: 재인덱싱 → after 평가.
+- [x] **Phase 1-A**: 문서 확장(enrichment 사전 재사용, 트리거어 한정) → 재인덱싱 → after 평가 완료. Recall@3 +0.1368p, MRR@3 +0.1368p, NONE abstention 변화 없음.
 - [ ] **Phase 1-B**: Dense+BM25+RRF(law_article_store 패턴 이식) → 평가(before/after).
 - [ ] **Phase 2**: 상대적 신뢰도(마진+합의+옵션 softmax) → 평가(NONE 분리 확인).
 - [ ] (선택) **Phase 3**: 평가셋으로 크로스 인코더 효과 검증 후 결정.
