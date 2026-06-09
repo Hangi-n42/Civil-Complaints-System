@@ -1,10 +1,14 @@
 """DepartmentAssigner 순수 로직 단위 테스트 (모델/네트워크 불필요)."""
 
+import json
+
 from app.structuring.department_assigner import (
+    DepartmentAssigner,
     aggregate_candidates,
     build_query_text,
     expand_department_task_text,
     extract_key_terms,
+    rrf_similarity,
     validate_llm_units,
 )
 
@@ -36,6 +40,78 @@ def test_expand_department_task_text_reuses_waste_lexicon_terms():
     assert "쓰레기" in text
     assert "생활폐기물" in text
     assert "무단투기" in text
+
+
+def test_department_bm25_uses_expanded_task_text(tmp_path):
+    master_path = tmp_path / "departments.json"
+    master_path.write_text(
+        json.dumps([
+            {"department": "택시운수과", "url": "", "tasks": ["법인택시 면허 관리"]},
+            {"department": "건설행정과", "url": "", "tasks": ["건설기계 위임 사무 총괄"]},
+        ], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    assigner = DepartmentAssigner(master_path=str(master_path), persist_directory=str(tmp_path / "chroma"))
+
+    ranked = assigner._bm25_ranked_task_ids("지게차 조종사면허 갱신", ["지게차", "조종사면허"], fetch_k=2)
+
+    assert ranked[0] == "1_0"
+
+
+def test_hybrid_task_hits_keeps_sparse_only_records(tmp_path):
+    master_path = tmp_path / "departments.json"
+    master_path.write_text(
+        json.dumps([
+            {"department": "택시운수과", "url": "", "tasks": ["법인택시 면허 관리"]},
+            {"department": "건설행정과", "url": "", "tasks": ["건설기계 위임 사무 총괄"]},
+        ], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    assigner = DepartmentAssigner(master_path=str(master_path), persist_directory=str(tmp_path / "chroma"))
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "택시운수과", "task": "법인택시 면허 관리", "similarity": 0.9}
+    ]
+
+    hits = assigner._hybrid_task_hits("지게차 조종사면허 갱신", 5, ["지게차", "조종사면허"])
+
+    assert any(h["doc_id"] == "1_0" and h["department"] == "건설행정과" for h in hits)
+    assert all(0.0 <= h["similarity"] <= 1.0 for h in hits)
+    assert next(h for h in hits if h["doc_id"] == "1_0")["similarity"] < hits[0]["similarity"]
+
+
+def test_assign_defaults_to_dense_hits(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner.use_hybrid = False
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "도로안전과", "task": "도로 안전시설 관리", "similarity": 0.7}
+    ]
+    assigner._hybrid_task_hits = lambda query, fetch_k, query_terms: [
+        {"doc_id": "1_0", "department": "자원순환과", "task": "폐기물 관리", "similarity": 0.9}
+    ]
+
+    out = assigner.assign("도로 안전", top_n_units=1)
+
+    assert out[0]["name"] == "도로안전과"
+
+
+def test_assign_can_opt_into_hybrid_hits(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner.use_hybrid = False
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "도로안전과", "task": "도로 안전시설 관리", "similarity": 0.7}
+    ]
+    assigner._hybrid_task_hits = lambda query, fetch_k, query_terms: [
+        {"doc_id": "1_0", "department": "자원순환과", "task": "폐기물 관리", "similarity": 0.9}
+    ]
+
+    out = assigner.assign("폐기물 관리", top_n_units=1, use_hybrid=True)
+
+    assert out[0]["name"] == "자원순환과"
+
+
+def test_rrf_similarity_scales_by_active_rankings():
+    assert rrf_similarity(1 / 61, ranking_count=1) == 1.0
+    assert rrf_similarity(1 / 61, ranking_count=2) == 0.5
 
 
 def test_extract_key_terms_drops_stopwords_and_dedups():

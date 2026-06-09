@@ -87,6 +87,9 @@ class Settings:
     # 인덱스 빌드(build_index) 후 true 로 켤 것. true 라도 인프라 미가용 시 빈 리스트로 폴백.
     ENABLE_RESPONSIBLE_UNIT: bool = os.getenv("ENABLE_RESPONSIBLE_UNIT", "false").lower() == "true"
     RESPONSIBLE_UNIT_USE_LLM: bool = os.getenv("RESPONSIBLE_UNIT_USE_LLM", "false").lower() == "true"
+    # Dense+BM25+RRF 하이브리드 후보 검색. 100건 평가에서 Phase 1-A dense 기본값보다
+    # 낮아져 기본 OFF. 재실험/튜닝 시에만 true 로 켠다.
+    RESPONSIBLE_UNIT_USE_HYBRID: bool = os.getenv("RESPONSIBLE_UNIT_USE_HYBRID", "false").lower() == "true"
     # responsible_unit 신뢰도 하한(soft 후보 억제). 정답셋 없어 미보정 휴리스틱.
     # 기본 0.0: bge-m3 raw cosine 이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답을
     # 분리할 수 없음이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 BE2 soft-rerank 에 위임.

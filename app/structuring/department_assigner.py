@@ -25,6 +25,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
+from app.retrieval.law_article_store import BM25Index, rrf_fuse, tokenize
 from app.structuring.enrichment import FACILITY_KEYWORDS, LEGAL_REF_LEXICON, OBJECT_LEXICON
 
 # ── 상수 ─────────────────────────────────────────────────────────────────
@@ -35,6 +36,8 @@ MASTER_FILENAME = "busan_departments_master.json"
 _MULTIHIT_BONUS = 0.02
 _MAX_BONUS_HITS = 5
 _CONF_CEILING = 0.99
+_DEPARTMENT_RRF_K = 60
+_DENSE_RRF_WEIGHT = 2
 
 # 키워드 추출 시 제거할 일반어(검색 신호가 약한 행정 상투어).
 _STOPWORDS = {
@@ -85,6 +88,14 @@ def expand_department_task_text(department: str, task: str) -> str:
 
     _append_unique(expansion_terms, [kw for kw in FACILITY_KEYWORDS if kw in base_text])
     return " ".join([*base_terms, *[term for term in expansion_terms if term not in base_terms]])
+
+
+def rrf_similarity(score: float, ranking_count: int, k: int = _DEPARTMENT_RRF_K) -> float:
+    """RRF 원점수를 aggregate_candidates가 다루는 0~1 범위로 보정한다."""
+    if ranking_count <= 0:
+        return 0.0
+    scaled = score * (k + 1) / ranking_count
+    return round(max(0.0, min(1.0, scaled)), 4)
 
 
 def extract_key_terms(text: str, limit: int = 12) -> List[str]:
@@ -270,9 +281,14 @@ class DepartmentAssigner:
         self.embedding_model_name = embedding_model_name or settings.EMBEDDING_MODEL
         self.embedding_device = embedding_device or settings.EMBEDDING_DEVICE
         self.min_confidence = float(getattr(settings, "RESPONSIBLE_UNIT_MIN_CONFIDENCE", 0.0))
+        self.use_hybrid = bool(getattr(settings, "RESPONSIBLE_UNIT_USE_HYBRID", False))
         self._model = None
         self._client = None
         self._collection = None
+        self._task_records: Optional[List[Dict[str, Any]]] = None
+        self._task_docid_to_idx: Dict[str, int] = {}
+        self._task_department_count = 0
+        self._bm25: Optional[BM25Index] = None
 
     # ── 임베딩 / 컬렉션 (지연 로딩) ───────────────────────────────────────
     def _get_model(self):
@@ -304,26 +320,74 @@ class DepartmentAssigner:
             )
         return self._collection
 
+    # ── 부서 업무 코퍼스 / BM25 (지연 로딩) ───────────────────────────────
+    def _reset_task_corpus(self) -> None:
+        self._task_records = None
+        self._task_docid_to_idx = {}
+        self._task_department_count = 0
+        self._bm25 = None
+
+    def _task_corpus(self) -> List[Dict[str, Any]]:
+        if self._task_records is None:
+            import json
+
+            master = json.loads(self.master_path.read_text(encoding="utf-8"))
+            master = master if isinstance(master, list) else []
+            records: List[Dict[str, Any]] = []
+            for d_idx, dept in enumerate(master):
+                if not isinstance(dept, dict):
+                    continue
+                name = str(dept.get("department", "")).strip()
+                if not name:
+                    continue
+                for t_idx, task in enumerate(dept.get("tasks", [])):
+                    task_text = str(task or "").strip()
+                    if not task_text:
+                        continue
+                    records.append({
+                        "doc_id": f"{d_idx}_{t_idx}",
+                        "department": name,
+                        "url": str(dept.get("url", "")),
+                        "task": task_text,
+                        "text": expand_department_task_text(name, task_text),
+                    })
+            self._task_records = records
+            self._task_docid_to_idx = {r["doc_id"]: i for i, r in enumerate(records)}
+            self._task_department_count = len(master)
+        return self._task_records
+
+    def _task_by_doc_id(self, doc_id: str) -> Optional[Dict[str, Any]]:
+        self._task_corpus()
+        idx = self._task_docid_to_idx.get(doc_id)
+        if idx is None or self._task_records is None:
+            return None
+        return self._task_records[idx]
+
+    def _get_bm25(self) -> BM25Index:
+        if self._bm25 is None:
+            records = self._task_corpus()
+            self._bm25 = BM25Index().fit(
+                [r["doc_id"] for r in records],
+                [tokenize(r["text"]) for r in records],
+            )
+        return self._bm25
+
     # ── 인덱스 빌드 ──────────────────────────────────────────────────────
     def build_index(self, rebuild: bool = False) -> Dict[str, int]:
         """마스터 JSON 의 업무 텍스트를 임베딩해 컬렉션에 적재한다."""
-        import json
         collection = self._get_collection()
         if rebuild:
+            self._reset_task_corpus()
             self._client.delete_collection(COLLECTION_NAME)
             self._collection = None
             collection = self._get_collection()
         elif collection.count() > 0:
             return {"departments": -1, "tasks": collection.count(), "skipped": 1}
 
-        master = json.loads(self.master_path.read_text(encoding="utf-8"))
-        ids, docs, metas = [], [], []
-        for d_idx, dept in enumerate(master):
-            name = dept["department"]
-            for t_idx, task in enumerate(dept.get("tasks", [])):
-                ids.append(f"{d_idx}_{t_idx}")
-                docs.append(expand_department_task_text(name, task))
-                metas.append({"department": name, "url": dept.get("url", ""), "task": task})
+        records = self._task_corpus()
+        ids = [r["doc_id"] for r in records]
+        docs = [r["text"] for r in records]
+        metas = [{"department": r["department"], "url": r["url"], "task": r["task"]} for r in records]
 
         # 배치 임베딩/적재
         BATCH = 128
@@ -335,7 +399,75 @@ class DepartmentAssigner:
                 embeddings=self._embed(chunk),
                 metadatas=metas[i:i + BATCH],
             )
-        return {"departments": len(master), "tasks": len(docs), "skipped": 0}
+        return {"departments": self._task_department_count, "tasks": len(docs), "skipped": 0}
+
+    # ── Dense + BM25 + RRF ───────────────────────────────────────────────
+    def _dense_task_hits(self, query_text: str, fetch_k: int) -> List[Dict[str, Any]]:
+        collection = self._get_collection()
+        q_vec = self._embed([query_text])[0]
+        res = collection.query(
+            query_embeddings=[q_vec],
+            n_results=fetch_k,
+            include=["metadatas", "distances"],
+        )
+        ids = (res.get("ids") or [[]])[0]
+        metas = (res.get("metadatas") or [[]])[0]
+        dists = (res.get("distances") or [[]])[0]
+        return [
+            {
+                "doc_id": doc_id,
+                "department": meta.get("department", ""),
+                "task": meta.get("task", ""),
+                "similarity": 1.0 - float(dist),
+            }
+            for doc_id, meta, dist in zip(ids, metas, dists)
+        ]
+
+    def _bm25_ranked_task_ids(
+        self,
+        query_text: str,
+        query_terms: Optional[List[str]],
+        fetch_k: int,
+    ) -> List[str]:
+        bm25 = self._get_bm25()
+        query_tokens: List[str] = []
+        for term in query_terms or [query_text]:
+            query_tokens.extend(tokenize(term))
+        scored = bm25.scores(query_tokens)
+        ranked = sorted(scored.items(), key=lambda x: x[1], reverse=True)[:fetch_k]
+        return [doc_id for doc_id, _ in ranked]
+
+    def _hybrid_task_hits(
+        self,
+        query_text: str,
+        fetch_k: int,
+        query_terms: Optional[List[str]],
+    ) -> List[Dict[str, Any]]:
+        dense_hits = self._dense_task_hits(query_text, fetch_k)
+        dense_ids = [h["doc_id"] for h in dense_hits if h.get("doc_id")]
+        bm25_ids = self._bm25_ranked_task_ids(query_text, query_terms, fetch_k)
+
+        rankings: List[List[str]] = []
+        if dense_ids:
+            rankings.extend([dense_ids] * (_DENSE_RRF_WEIGHT if bm25_ids else 1))
+        if bm25_ids:
+            rankings.append(bm25_ids)
+        fused = rrf_fuse(rankings, k=_DEPARTMENT_RRF_K) if rankings else []
+        if not fused:
+            return dense_hits
+
+        dense_by_id = {h["doc_id"]: h for h in dense_hits if h.get("doc_id")}
+        out: List[Dict[str, Any]] = []
+        for doc_id, score in fused[:fetch_k]:
+            item = dict(dense_by_id.get(doc_id) or {})
+            if not item:
+                rec = self._task_by_doc_id(doc_id)
+                if rec is None:
+                    continue
+                item = {"doc_id": doc_id, "department": rec["department"], "task": rec["task"]}
+            item["similarity"] = rrf_similarity(score, len(rankings), k=_DEPARTMENT_RRF_K)
+            out.append(item)
+        return out
 
     # ── 검색 + 집계 ──────────────────────────────────────────────────────
     def assign(
@@ -345,6 +477,7 @@ class DepartmentAssigner:
         top_n_units: int = 3,
         min_confidence: Optional[float] = None,
         use_llm: bool = False,
+        use_hybrid: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
         """민원 질의 → responsible_unit 후보 리스트.
 
@@ -353,25 +486,13 @@ class DepartmentAssigner:
         """
         if min_confidence is None:
             min_confidence = self.min_confidence
-        collection = self._get_collection()
-        q_vec = self._embed([query_text])[0]
-        res = collection.query(
-            query_embeddings=[q_vec],
-            n_results=top_k_tasks,
-            include=["metadatas", "distances"],
-        )
-        metas = (res.get("metadatas") or [[]])[0]
-        dists = (res.get("distances") or [[]])[0]
-        task_hits = [
-            {
-                "department": m.get("department", ""),
-                "task": m.get("task", ""),
-                "similarity": 1.0 - float(dist),  # cosine distance → similarity
-            }
-            for m, dist in zip(metas, dists)
-        ]
-
+        if use_hybrid is None:
+            use_hybrid = self.use_hybrid
         query_terms = extract_key_terms(query_text)
+        if use_hybrid:
+            task_hits = self._hybrid_task_hits(query_text, top_k_tasks, query_terms)
+        else:
+            task_hits = self._dense_task_hits(query_text, top_k_tasks)
         candidates = aggregate_candidates(
             task_hits, query_terms=query_terms,
             top_n=top_n_units, min_confidence=min_confidence,
