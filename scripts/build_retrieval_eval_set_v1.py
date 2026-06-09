@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.structuring.service import StructuringService
+from app.structuring.preprocessing import to_structuring_record
 
 
 @dataclass(frozen=True)
@@ -193,7 +194,7 @@ def convert_aihub_source_dir(
         for row in rows:
             source_id = str(row.get("source_id") or path.stem).strip() or path.stem
             docid = f"{source_id}__chunk-0"
-            raw_text = str(row.get("consulting_content") or "").strip()
+            raw_text = str(to_structuring_record(row).get("text") or "").strip()
             if docid not in seen_docids:
                 seen_docids.add(docid)
                 category = str(row.get("consulting_category") or "")
@@ -327,9 +328,6 @@ def _build_four_element_query_row(
     context = _clean_field_text(str((structured.get("context") or {}).get("text") or ""))
     entities = structured.get("entities") or []
 
-    if not request:
-        request = _extract_instruction_text(row)
-
     if not any([observation, result, request, context]):
         fallback = _fallback_query_from_content(raw_text)
         if not fallback:
@@ -356,20 +354,6 @@ def _build_four_element_query_row(
             "query_docid": docid,
         },
     )
-
-
-def _extract_instruction_text(row: dict[str, Any]) -> str:
-    instructions = row.get("instructions") or []
-    for instruction_group in instructions:
-        if not isinstance(instruction_group, dict):
-            continue
-        for item in instruction_group.get("data") or []:
-            if not isinstance(item, dict):
-                continue
-            candidate = _clean_field_text(str(item.get("instruction") or ""))
-            if candidate:
-                return candidate
-    return ""
 
 
 def _fallback_query_from_content(content: str) -> str:
@@ -528,4 +512,3 @@ def _sha256_file(path: Path) -> str:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

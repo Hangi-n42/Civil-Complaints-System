@@ -114,7 +114,6 @@ def _as_ingestion_docs(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "region": row.get("region"),
                 "metadata": row.get("metadata") if isinstance(row.get("metadata"), dict) else {},
                 "text": str(row.get("text") or row.get("raw_text") or "").strip(),
-                "instructions": row.get("instructions") if isinstance(row.get("instructions"), list) else [],
             }
         )
     return docs

@@ -19,6 +19,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from app.core.logging import pipeline_logger
 from app.core.exceptions import IngestionError
+from app.structuring.preprocessing import to_structuring_record
 
 # ── AI Hub 기관 유형 상수 ──────────────────────────────────────────────────
 _SOURCE_TYPE_CULTURAL = "cultural"   # 국립아시아문화전당 (고객/상담원 대화형)
@@ -434,7 +435,6 @@ class IngestionService:
               metadata: {source_type, source_file, consulting_date,
                          client_gender, client_age,
                          consulting_turns, consulting_length},
-              instructions,
             }
         """
         source = str(record.get("source") or "").strip()
@@ -450,9 +450,9 @@ class IngestionService:
             category = _SOURCE_DEFAULT_CATEGORY.get(source, "unknown")
         region = self._extract_region(source, source_type)
 
-        content = self._clean_aihub_markup(
-            str(record.get("consulting_content") or "").strip()
-        )
+        # 구조화/검색 입력에는 상담사 답변을 섞지 않는다.
+        structuring_record = to_structuring_record(record)
+        content = self._clean_aihub_markup(str(structuring_record.get("text") or "").strip())
 
         def _to_int(v: Any) -> Optional[int]:
             try:
@@ -465,7 +465,7 @@ class IngestionService:
             "source": source,
             "source_id": source_id,
             "created_at": created_at,
-            "category": category,
+            "category": str(structuring_record.get("category") or category).strip() or category,
             "region": region,
             "raw_text": content,
             "text": content,
@@ -478,11 +478,6 @@ class IngestionService:
                 "consulting_turns": _to_int(record.get("consulting_turns")),
                 "consulting_length": _to_int(record.get("consulting_length")),
             },
-            "instructions": (
-                record.get("instructions")
-                if isinstance(record.get("instructions"), list)
-                else []
-            ),
         }
 
     async def load_and_normalize(self, file_path: str) -> List[Dict[str, Any]]:
@@ -500,19 +495,14 @@ class IngestionService:
         self,
         base_dir: str,
         source_subdir: str = "01.원천데이터",
-        label_subdir: str = "02.라벨링데이터",
-        include_labels: bool = True,
     ) -> List[Dict[str, Any]]:
         """Training 디렉토리 전체를 로드하고 정규화한다.
 
-        원천데이터를 기준으로 레코드를 구성하고,
-        라벨링데이터(분류/요약/질의응답)를 source_id 기준으로 병합한다.
+        원천데이터만 기준으로 레코드를 구성한다.
 
         Args:
             base_dir:       Training 루트 경로
             source_subdir:  원천데이터 하위 디렉토리 이름
-            label_subdir:   라벨링데이터 하위 디렉토리 이름
-            include_labels: 라벨링 데이터 병합 여부
 
         Returns:
             정규화된 레코드 리스트
@@ -547,47 +537,6 @@ class IngestionService:
                     )
 
             self.logger.info(f"원천데이터 정규화 완료: {len(source_map)}건")
-
-            if not include_labels:
-                return list(source_map.values())
-
-            # ── 2단계: 라벨링 데이터 병합 ───────────────────────────
-            label_path = base_path / label_subdir
-            if not label_path.exists():
-                self.logger.warning(
-                    f"라벨링 디렉토리 없음, 원천데이터만 반환: {label_path}"
-                )
-                return list(source_map.values())
-
-            label_files = sorted(label_path.rglob("*.json"))
-            self.logger.info(f"라벨링 파일 수: {len(label_files)}")
-
-            # key → instructions 누적 (분류/요약/질의응답 통합)
-            label_map: Dict[str, List[Dict[str, Any]]] = {}
-            for json_file in label_files:
-                try:
-                    for rec in await self.load_json(str(json_file)):
-                        source = str(rec.get("source") or "").strip()
-                        source_id = str(rec.get("source_id") or "").strip()
-                        key = f"{source}_{source_id}"
-                        instructions = rec.get("instructions")
-                        if isinstance(instructions, list):
-                            label_map.setdefault(key, []).extend(instructions)
-                except Exception as exc:
-                    self.logger.warning(
-                        f"라벨링 데이터 로드 실패 (건너뜀): {json_file} — {exc}"
-                    )
-
-            # instructions 병합
-            matched = sum(
-                1
-                for key, instr in label_map.items()
-                if key in source_map
-                and source_map[key].__setitem__("instructions", instr) is None
-            )
-            self.logger.info(
-                f"라벨링 병합 완료: {matched}/{len(source_map)}건 매칭"
-            )
             return list(source_map.values())
 
         except IngestionError:

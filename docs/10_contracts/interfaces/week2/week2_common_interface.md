@@ -2,7 +2,7 @@
 
 문서 버전: v1.5-week2-final  
 작성일: 2026-03-19  
-최신화: 2026-03-25 (422 래퍼 통일, KST +09:00 시각 규칙 반영)  
+최신화: 2026-06-10 (원천데이터 전용 구조화, supervision 제거 반영)
 적용 파트: FE, BE1, BE2, BE3
 
 ## 1) 공통 원칙
@@ -47,9 +47,9 @@
 
 `StructuredCivilCase` 확장 필드 (Week2 운영 허용):
 - `metadata` (object, required)
-- `supervision` (object, optional)
 - `confidence_score` (number, 0~1, required)
 - `structured_at` (string, ISO-8601, required)
+- `supervision`은 사용하지 않는다. BE1 구조화는 원천데이터의 민원인 원문만 사용한다.
 
 ## 4) 표준 타입 규약
 
@@ -90,11 +90,6 @@
     "client_gender": "string",
     "client_age": "string",
     "source_file": "string"
-  },
-  "supervision": {
-    "classification": {"task_category": "string", "instruction": "string", "input": "string", "output": "string"},
-    "summary": {"task_category": "string", "instruction": "string", "input": "string", "output": "string"},
-    "qa": [{"task_category": "string", "instruction": "string", "question": "string", "answer": "string"}]
   },
   "confidence_score": 0.0,
   "structured_at": "2026-03-20T15:21:04+09:00"
