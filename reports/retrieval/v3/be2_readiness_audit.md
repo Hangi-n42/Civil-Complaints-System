@@ -26,6 +26,7 @@ python scripts/check_chromadb_search_signal_coverage.py --persist-dir data/chrom
 
 - `reports/retrieval/v3/chromadb_search_signal_metadata_coverage.json`
 - `reports/retrieval/v3/chromadb_search_signal_metadata_coverage.md`
+- `reports/retrieval/v3/law_articles_index_check.md`
 
 ## 3. 전체 결과
 
@@ -66,7 +67,41 @@ BE2 검색은 운영 전 readiness 기준에서 **조건부 통과**로 판단�
 - 법령 신호(`legal_ref_names`, `legal_ref_ids`) 적재율은 42.54%다. 법령 관련 질의에서만 강한 보조 신호로 해석해야 한다.
 - `responsible_units` 100%는 과거 backfill의 category/source fallback 영향일 수 있다. 실제 BE1 `responsible_unit` 확정값과 동일하게 해석하면 안 된다.
 
-## 6. 팀별 후속 확인
+## 6. 법령 조문 인덱스 확인
+
+법령 조문 collection `law_articles_v1` 상태를 추가 확인했다.
+
+확인 명령:
+
+```bash
+python scripts/check_law_index.py
+python scripts/inspect_chromadb.py list
+python scripts/inspect_chromadb.py count --collection law_articles_v1
+```
+
+확인 결과:
+
+| 항목 | 결과 |
+| --- | ---: |
+| collection 존재 여부 | 존재 |
+| collection 이름 | `law_articles_v1` |
+| 색인 조문 수 | 17,759 |
+| `law_id/law_name/article_no` 적재율 | 100.00% |
+| 법령 필터 검색 | 정상 |
+| 인용검증 | 정상 |
+
+대표 질의에서 `건축법 제80조`, `건설기계관리법 제29조`, `고용보험법 제37조`,
+`도로교통법 제160조` 등 관련 조문이 검색됐다. `scripts/check_law_index.py` 기준
+검색된 조문 인용은 valid 처리되고, 검색되지 않은 조문 인용은 invalid로 차단됐다.
+
+주의:
+
+- ChromaDB metadata의 `source_url`은 내부 원천 확인용이다.
+- FE/API 공개 응답에는 `source_url`을 노출하지 않고, 검증 경로에서 생성되는
+  `public_url`만 노출한다.
+- 법령 코퍼스가 갱신되면 `law_articles_v1` 재인덱싱이 필요하다.
+
+## 7. 팀별 후속 확인
 
 ### BE1
 
@@ -86,6 +121,9 @@ BE2 검색은 운영 전 readiness 기준에서 **조건부 통과**로 판단�
 - 법령 grounding 케이스에서는 BE2 검색 결과와 `generation_metadata.legal_grounding_status`를 함께 확인한다.
 - 법령 후보가 없는 경우를 검색 실패로 단정하지 않는다.
 - `fast_fallback` 비율은 BE3 생성 안정성 지표로 별도 모니터링한다.
+- `law_articles_v1`는 현재 정상 확인됐으므로, 법령 citation 문제 발생 시 우선
+  `legal_grounding_status`, `legal_citations`, `legal_citation_warnings`를 함께 확인한다.
+- 공개 응답에는 `source_url`이 아니라 `public_url`만 노출한다.
 
 ### FE
 
@@ -93,22 +131,29 @@ BE2 검색은 운영 전 readiness 기준에서 **조건부 통과**로 판단�
 - 담당부서 후보는 확정 부서처럼 표시하지 않는다.
 - 법령 citation은 검증된 `public_url`만 표시한다.
 
-## 7. 운영 전 체크리스트
+## 8. 운영 전 체크리스트
 
 | 항목 | 상태 |
 | --- | --- |
 | ChromaDB metadata 적재율 전체 점검 | 완료 |
 | `responsible_units` 적재율 확인 | 완료 |
 | 법령명과 law_id 적재율 일치 확인 | 완료 |
+| 법령 조문 collection `law_articles_v1` 확인 | 완료 |
+| 법령 조문 검색 및 인용검증 확인 | 완료 |
+| 법령 `source_url` 외부 노출 금지 확인 | 완료 |
 | 검색 로직 변경 없음 확인 | 완료 |
 | 개인정보 위험 raw 내용 미포함 확인 | 완료 |
 | `entity_texts` 낮은 커버리지 후속 확인 | 필요 |
 | `responsible_units` fallback 여부 후속 확인 | 필요 |
 
-## 8. 결론
+## 9. 결론
 
 BE2 검색은 현재 인덱스 기준으로 운영 전 필수 metadata 점검을 통과했다.
 
 다만 `entity_texts` 커버리지가 낮고, `responsible_units`가 실제 BE1 담당부서 후보인지
 fallback 값인지 구분이 필요하다. 따라서 운영 투입은 가능하되, 초기 운영에서는
 metadata 적재율과 `generation_metadata`를 함께 모니터링하는 조건부 통과로 기록한다.
+
+추가로 법령 조문 인덱스 `law_articles_v1`는 17,759건 저장, 필수 metadata 적재,
+법령 필터 검색, 인용검증이 모두 정상으로 확인됐다. 법령 grounding은 현재 로컬
+ChromaDB 기준 사용 가능한 상태다.
