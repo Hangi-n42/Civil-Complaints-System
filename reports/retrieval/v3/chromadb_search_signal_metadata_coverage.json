@@ -1,0 +1,318 @@
+{
+  "generated_at": "2026-06-08T19:43:21.984396+00:00",
+  "total_count": 9132,
+  "scanned_count": 9132,
+  "limited": false,
+  "fields": {
+    "entity_texts": {
+      "present_count": 1007,
+      "empty_count": 8125,
+      "coverage_ratio": 0.110272,
+      "unique_value_count": 23,
+      "top_value_hashes": [
+        {
+          "sha256_12": "ae63f424005e",
+          "count": 315
+        },
+        {
+          "sha256_12": "2a2c538e4d40",
+          "count": 155
+        },
+        {
+          "sha256_12": "6804a3baa4f8",
+          "count": 123
+        },
+        {
+          "sha256_12": "aa6eb0739c62",
+          "count": 56
+        },
+        {
+          "sha256_12": "642e7006d621",
+          "count": 51
+        },
+        {
+          "sha256_12": "4a45754ae75c",
+          "count": 47
+        },
+        {
+          "sha256_12": "1b9e019fbb56",
+          "count": 45
+        },
+        {
+          "sha256_12": "61722cb28f81",
+          "count": 44
+        },
+        {
+          "sha256_12": "eb809571331c",
+          "count": 41
+        },
+        {
+          "sha256_12": "e97ae9394491",
+          "count": 26
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "legal_ref_names": {
+      "present_count": 3885,
+      "empty_count": 5247,
+      "coverage_ratio": 0.425427,
+      "unique_value_count": 270,
+      "top_values": [
+        {
+          "value": "근로기준법",
+          "count": 759
+        },
+        {
+          "value": "건축법",
+          "count": 592
+        },
+        {
+          "value": "주택법",
+          "count": 482
+        },
+        {
+          "value": "고용보험법",
+          "count": 332
+        },
+        {
+          "value": "주차장법",
+          "count": 313
+        },
+        {
+          "value": "도로교통법",
+          "count": 228
+        },
+        {
+          "value": "소음·진동관리법",
+          "count": 181
+        },
+        {
+          "value": "산업안전보건법",
+          "count": 156
+        },
+        {
+          "value": "건축법 시행령",
+          "count": 121
+        },
+        {
+          "value": "국토의 계획 및 이용에 관한 법률",
+          "count": 120
+        }
+      ]
+    },
+    "legal_ref_ids": {
+      "present_count": 3885,
+      "empty_count": 5247,
+      "coverage_ratio": 0.425427,
+      "unique_value_count": 270,
+      "top_values": [
+        {
+          "value": "001872",
+          "count": 759
+        },
+        {
+          "value": "001823",
+          "count": 592
+        },
+        {
+          "value": "001809",
+          "count": 482
+        },
+        {
+          "value": "001761",
+          "count": 332
+        },
+        {
+          "value": "001814",
+          "count": 313
+        },
+        {
+          "value": "001638",
+          "count": 228
+        },
+        {
+          "value": "000167",
+          "count": 181
+        },
+        {
+          "value": "001766",
+          "count": 156
+        },
+        {
+          "value": "002118",
+          "count": 121
+        },
+        {
+          "value": "009294",
+          "count": 120
+        }
+      ]
+    },
+    "issue_types": {
+      "present_count": 6726,
+      "empty_count": 2406,
+      "coverage_ratio": 0.736531,
+      "unique_value_count": 10,
+      "top_values": [
+        {
+          "value": "법령 해석",
+          "count": 2372
+        },
+        {
+          "value": "시설 개선/보수",
+          "count": 2356
+        },
+        {
+          "value": "허가/등록",
+          "count": 1193
+        },
+        {
+          "value": "지원금/급여",
+          "count": 1153
+        },
+        {
+          "value": "단속/점검",
+          "count": 901
+        },
+        {
+          "value": "예매/예약",
+          "count": 691
+        },
+        {
+          "value": "증빙/서류",
+          "count": 414
+        },
+        {
+          "value": "갱신/연장",
+          "count": 395
+        },
+        {
+          "value": "보상/배상",
+          "count": 151
+        },
+        {
+          "value": "면허/자격",
+          "count": 124
+        }
+      ]
+    },
+    "key_terms": {
+      "present_count": 7379,
+      "empty_count": 1753,
+      "coverage_ratio": 0.808038,
+      "unique_value_count": 455,
+      "top_value_hashes": [
+        {
+          "sha256_12": "60c30d687c51",
+          "count": 1528
+        },
+        {
+          "sha256_12": "6a28baa53ad4",
+          "count": 1136
+        },
+        {
+          "sha256_12": "7cebddfbc69e",
+          "count": 1106
+        },
+        {
+          "sha256_12": "99c38307c141",
+          "count": 812
+        },
+        {
+          "sha256_12": "4671ff2d3bfe",
+          "count": 594
+        },
+        {
+          "sha256_12": "e7a29abc3bdf",
+          "count": 459
+        },
+        {
+          "sha256_12": "b74eef2a48b6",
+          "count": 416
+        },
+        {
+          "sha256_12": "bb216f104fde",
+          "count": 368
+        },
+        {
+          "sha256_12": "558a9ef1a7db",
+          "count": 363
+        },
+        {
+          "sha256_12": "11720a94a378",
+          "count": 323
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "responsible_units": {
+      "present_count": 9132,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 970,
+      "top_values": [
+        {
+          "value": "국토교통부",
+          "count": 2131
+        },
+        {
+          "value": "서울시",
+          "count": 1435
+        },
+        {
+          "value": "고용노동부",
+          "count": 1309
+        },
+        {
+          "value": "중소벤처기업부",
+          "count": 1044
+        },
+        {
+          "value": "문화관광",
+          "count": 946
+        },
+        {
+          "value": "국립아시아문화전당",
+          "count": 946
+        },
+        {
+          "value": "성남시",
+          "count": 844
+        },
+        {
+          "value": "안양시",
+          "count": 469
+        },
+        {
+          "value": "제주특별자치도",
+          "count": 429
+        },
+        {
+          "value": "건설안전과",
+          "count": 248
+        }
+      ]
+    },
+    "urgency_level": {
+      "present_count": 9132,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 3,
+      "top_values": [
+        {
+          "value": "낮음",
+          "count": 7451
+        },
+        {
+          "value": "보통",
+          "count": 1151
+        },
+        {
+          "value": "긴급",
+          "count": 530
+        }
+      ]
+    }
+  }
+}
