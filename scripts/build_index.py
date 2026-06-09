@@ -38,6 +38,16 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
     ctx_text = ctx.get("text", "")
 
     entities = structured.get("entities", [])
+    search_signals = {
+        # BE2는 아래 선택 필드를 이미 soft rerank metadata로 해석할 수 있으므로
+        # BE1 구조화 결과에서 누락 없이 보존한다.
+        "entity_texts": structured.get("entity_texts", []),
+        "issue_type": structured.get("issue_type", []),
+        "legal_refs": structured.get("legal_refs", []),
+        "key_terms": structured.get("key_terms", []),
+        "responsible_unit": structured.get("responsible_unit", []),
+        "urgency": structured.get("urgency", {}),
+    }
 
     def _is_empty(text: str) -> bool:
         stripped = text.strip() if text else ""
@@ -104,6 +114,7 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "request": _field(req, req_text) if not _is_empty(req_text) else {},
         "context": _field(ctx, ctx_text) if not _is_empty(ctx_text) else {},
         "entities": entities,
+        **search_signals,
         "metadata": metadata,
     }
 
