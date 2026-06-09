@@ -9,6 +9,7 @@ from app.structuring.department_assigner import (
     expand_department_task_text,
     extract_key_terms,
     rrf_similarity,
+    sigmoid_similarity,
     validate_llm_units,
 )
 
@@ -109,9 +110,47 @@ def test_assign_can_opt_into_hybrid_hits(tmp_path):
     assert out[0]["name"] == "자원순환과"
 
 
+def test_assign_can_opt_into_reranker_hits(tmp_path):
+    class FakeReranker:
+        def predict(self, pairs, batch_size):
+            assert batch_size == 16
+            assert pairs[0][0] == "공원 풋살장 관리"
+            return [-3.0, 3.0]
+
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner._reranker_model = FakeReranker()
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "공원여가정책과", "task": "공원 조성 관리", "similarity": 0.9},
+        {"doc_id": "1_0", "department": "생활체육과", "task": "체육시설 관리", "similarity": 0.6},
+    ]
+
+    out = assigner.assign("공원 풋살장 관리", top_n_units=1, use_reranker=True)
+
+    assert out[0]["name"] == "생활체육과"
+
+
+def test_assign_reranker_falls_back_when_model_unavailable(tmp_path):
+    assigner = DepartmentAssigner(master_path=str(tmp_path / "missing.json"), persist_directory=str(tmp_path / "chroma"))
+    assigner._reranker_unavailable = True
+    assigner._dense_task_hits = lambda query, fetch_k: [
+        {"doc_id": "0_0", "department": "공원여가정책과", "task": "공원 조성 관리", "similarity": 0.9},
+        {"doc_id": "1_0", "department": "생활체육과", "task": "체육시설 관리", "similarity": 0.6},
+    ]
+
+    out = assigner.assign("공원 관리", top_n_units=1, use_reranker=True)
+
+    assert out[0]["name"] == "공원여가정책과"
+
+
 def test_rrf_similarity_scales_by_active_rankings():
     assert rrf_similarity(1 / 61, ranking_count=1) == 1.0
     assert rrf_similarity(1 / 61, ranking_count=2) == 0.5
+
+
+def test_sigmoid_similarity_maps_reranker_logit_to_unit_range():
+    assert sigmoid_similarity(0.0) == 0.5
+    assert sigmoid_similarity(4.0) > 0.98
+    assert sigmoid_similarity(-4.0) < 0.02
 
 
 def test_extract_key_terms_drops_stopwords_and_dedups():

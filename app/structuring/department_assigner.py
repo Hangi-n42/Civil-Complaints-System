@@ -22,6 +22,7 @@ BE1 구조화 산출물 고도화 — 요청 #3.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Dict, List, Optional
 
@@ -102,6 +103,35 @@ def rrf_similarity(score: float, ranking_count: int, k: int = _DEPARTMENT_RRF_K)
         return 0.0
     scaled = score * (k + 1) / ranking_count
     return round(max(0.0, min(1.0, scaled)), 4)
+
+
+def sigmoid_similarity(score: float) -> float:
+    """CrossEncoder logit을 0~1 범위의 task 랭킹 점수로 변환한다."""
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        value = 0.0
+    if not math.isfinite(value):
+        value = 0.0
+    if value >= 0:
+        similarity = 1.0 / (1.0 + math.exp(-value))
+    else:
+        exp_value = math.exp(value)
+        similarity = exp_value / (1.0 + exp_value)
+    return round(max(0.0, min(1.0, similarity)), 4)
+
+
+def _resolve_device(device_name: Optional[str]) -> str:
+    """요청한 디바이스가 불가하면 CPU로 안전하게 낮춘다."""
+    device = str(device_name or "cpu").strip().lower()
+    if device == "cuda":
+        try:
+            import torch
+            if not torch.cuda.is_available():
+                return "cpu"
+        except Exception:
+            return "cpu"
+    return device or "cpu"
 
 
 def _relative_confidences(ranked: List[Dict[str, Any]]) -> List[float]:
@@ -327,7 +357,14 @@ class DepartmentAssigner:
         self.embedding_device = embedding_device or settings.EMBEDDING_DEVICE
         self.min_confidence = float(getattr(settings, "RESPONSIBLE_UNIT_MIN_CONFIDENCE", 0.0))
         self.use_hybrid = bool(getattr(settings, "RESPONSIBLE_UNIT_USE_HYBRID", False))
+        self.use_reranker = bool(getattr(settings, "RESPONSIBLE_UNIT_USE_RERANKER", False))
+        self.reranker_model_name = str(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"))
+        self.reranker_device = str(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_DEVICE", self.embedding_device))
+        self.reranker_batch_size = int(getattr(settings, "RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE", 16))
         self._model = None
+        self._reranker_model = None
+        self._reranker_unavailable = False
+        self._reranker_used = False
         self._client = None
         self._collection = None
         self._task_records: Optional[List[Dict[str, Any]]] = None
@@ -338,17 +375,25 @@ class DepartmentAssigner:
     # ── 임베딩 / 컬렉션 (지연 로딩) ───────────────────────────────────────
     def _get_model(self):
         if self._model is None:
-            device = str(self.embedding_device or "cpu").strip().lower()
-            if device == "cuda":
-                try:
-                    import torch
-                    if not torch.cuda.is_available():
-                        device = "cpu"
-                except Exception:
-                    device = "cpu"
             from sentence_transformers import SentenceTransformer
+            device = _resolve_device(self.embedding_device)
             self._model = SentenceTransformer(self.embedding_model_name, device=device)
         return self._model
+
+    def _get_reranker(self):
+        """CrossEncoder 리랭커를 지연 로딩한다. 실패하면 같은 프로세스에서는 재시도하지 않는다."""
+        if self._reranker_unavailable:
+            return None
+        if self._reranker_model is None:
+            try:
+                from sentence_transformers import CrossEncoder
+
+                device = _resolve_device(self.reranker_device)
+                self._reranker_model = CrossEncoder(self.reranker_model_name, device=device)
+            except Exception:
+                self._reranker_unavailable = True
+                return None
+        return self._reranker_model
 
     def _embed(self, texts: List[str]) -> List[List[float]]:
         vecs = self._get_model().encode(texts, convert_to_numpy=True, normalize_embeddings=True)
@@ -514,6 +559,58 @@ class DepartmentAssigner:
             out.append(item)
         return out
 
+    # ── CrossEncoder task 리랭킹 ─────────────────────────────────────────
+    def _reranker_task_text(self, hit: Dict[str, Any]) -> str:
+        """리랭커에 넣을 부서 업무 문맥을 만든다."""
+        doc_id = str(hit.get("doc_id", "")).strip()
+        if doc_id:
+            try:
+                rec = self._task_by_doc_id(doc_id)
+            except Exception:
+                rec = None
+            if rec:
+                return str(rec.get("text") or rec.get("task") or doc_id)
+
+        department = str(hit.get("department", "")).strip()
+        task = str(hit.get("task", "")).strip()
+        return " ".join(part for part in (department, task) if part).strip() or doc_id
+
+    def _rerank_task_hits(self, query_text: str, task_hits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Dense/Hybrid task 후보를 CrossEncoder로 재점수화한다.
+
+        리랭커 모델이 없거나 예외가 나면 Phase 2 후보를 그대로 반환한다.
+        """
+        if len(task_hits) <= 1:
+            return task_hits
+        model = self._get_reranker()
+        if model is None:
+            return task_hits
+
+        pairs = [[query_text, self._reranker_task_text(hit)] for hit in task_hits]
+        try:
+            raw_scores = model.predict(pairs, batch_size=self.reranker_batch_size)
+        except Exception:
+            self._reranker_unavailable = True
+            return task_hits
+        if hasattr(raw_scores, "tolist"):
+            raw_scores = raw_scores.tolist()
+        if not isinstance(raw_scores, list) or len(raw_scores) != len(task_hits):
+            return task_hits
+
+        reranked: List[Dict[str, Any]] = []
+        for hit, score in zip(task_hits, raw_scores):
+            try:
+                raw_score = float(score)
+            except (TypeError, ValueError):
+                raw_score = 0.0
+            item = dict(hit)
+            item["similarity"] = sigmoid_similarity(raw_score)
+            item["_reranker_score"] = raw_score
+            reranked.append(item)
+        self._reranker_used = True
+        reranked.sort(key=lambda h: h["similarity"], reverse=True)
+        return reranked
+
     # ── 검색 + 집계 ──────────────────────────────────────────────────────
     def assign(
         self,
@@ -523,6 +620,7 @@ class DepartmentAssigner:
         min_confidence: Optional[float] = None,
         use_llm: bool = False,
         use_hybrid: Optional[bool] = None,
+        use_reranker: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
         """민원 질의 → responsible_unit 후보 리스트.
 
@@ -533,11 +631,15 @@ class DepartmentAssigner:
             min_confidence = self.min_confidence
         if use_hybrid is None:
             use_hybrid = self.use_hybrid
+        if use_reranker is None:
+            use_reranker = self.use_reranker
         query_terms = extract_key_terms(query_text)
         if use_hybrid:
             task_hits = self._hybrid_task_hits(query_text, top_k_tasks, query_terms)
         else:
             task_hits = self._dense_task_hits(query_text, top_k_tasks)
+        if use_reranker:
+            task_hits = self._rerank_task_hits(query_text, task_hits)
         candidates = aggregate_candidates(
             task_hits, query_terms=query_terms,
             top_n=top_n_units, min_confidence=min_confidence,

@@ -111,6 +111,7 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 - **문서 확장(#346 Phase 1-A)**: 인덱싱 시 `DepartmentAssigner.build_index()`가 `부서명 + task + enrichment 사전 기반 확장어`를 임베딩 문서로 저장합니다. 확장은 `OBJECT_LEXICON`, `LEGAL_REF_LEXICON`, `FACILITY_KEYWORDS`의 트리거가 원문 부서/업무에 등장할 때만 적용하고, metadata의 `task`는 원문 그대로 유지합니다. 재인덱싱 후 after 평가는 Recall@3=0.6947(+0.1368p), MRR@3=0.6000(+0.1368p), NONE abstention=0.0000입니다. 즉 랭킹은 개선됐지만, 무답/신뢰도 분리는 Phase 2에서 별도로 다뤄야 합니다.
 - **하이브리드 검색(#346 Phase 1-B)**: Dense+BM25+RRF 코드는 구현되어 있지만 기본값은 꺼져 있습니다(`RESPONSIBLE_UNIT_USE_HYBRID=false`). equal RRF와 Dense:BM25=2:1 가중 RRF 모두 100건 평가에서 Phase 1-A보다 낮아져 운영 기본값은 Dense Chroma 검색으로 유지합니다. 재실험 시에만 `RESPONSIBLE_UNIT_USE_HYBRID=true`로 켜세요. RRF 점수도 보정 확률은 아니므로, BE2는 계속 soft-rerank 신호로만 사용하세요.
 - **상대 confidence(#346 Phase 2)**: `aggregate_candidates()`는 내부 `_rank_score`로 순위를 정하고, 출력 `confidence`는 top1/top2 마진, 같은 부서 multi-hit, evidence term 수, rank/gap decay로 별도 계산합니다. 100건 평가에서 Recall@3=0.6947, MRR@3=0.6000을 유지하면서 NONE abstention은 0.0000→0.8000(threshold=0.4)으로 개선됐습니다. 다만 아직 보정 확률은 아니고, 본청 마스터 밖 업무는 계속 낮은 신뢰/무답 후보로 처리해야 합니다.
+- **CrossEncoder 리랭커(#346 Phase 3)**: `RESPONSIBLE_UNIT_USE_RERANKER=false`가 기본입니다. `true`로 켜면 `BAAI/bge-reranker-v2-m3`가 task 후보를 재점수화하지만, 100건 top_k_tasks=5 비교에서 Recall@3 0.6211→0.6421로 소폭 개선되는 수준이고 운영 기본 Phase 2 top_k_tasks=20(Recall@3=0.6947)보다 낮았습니다. CPU 비용도 커서 기본 채택은 보류하고, 재실험용 opt-in으로만 유지합니다.
 
 ### ④ `issue_type`
 ```jsonc

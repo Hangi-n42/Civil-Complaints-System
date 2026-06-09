@@ -257,6 +257,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--master-file", type=Path, default=DEFAULT_MASTER_FILE)
     parser.add_argument("--top-k", type=int, default=3)
     parser.add_argument("--top-k-tasks", type=int, default=20)
+    parser.add_argument("--use-reranker", action="store_true", help="CrossEncoder task 리랭킹을 켭니다.")
     parser.add_argument("--none-confidence-threshold", type=float, default=0.4)
     parser.add_argument("--json", action="store_true", help="텍스트 표 대신 JSON을 출력합니다.")
     parser.add_argument("--output-json", type=Path, default=None, help="평가 결과 JSON 저장 경로")
@@ -280,6 +281,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             top_n_units=args.top_k,
             min_confidence=0.0,
             use_llm=False,
+            use_reranker=args.use_reranker,
         )
 
     metrics = evaluate_predictions(
@@ -288,6 +290,13 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         top_k=args.top_k,
         none_confidence_threshold=args.none_confidence_threshold,
     )
+    metrics["run_config"] = {
+        "top_k_tasks": args.top_k_tasks,
+        "use_reranker": args.use_reranker,
+        "reranker_model": getattr(assigner, "reranker_model_name", ""),
+        "reranker_used": bool(getattr(assigner, "_reranker_used", False)),
+        "reranker_unavailable": bool(getattr(assigner, "_reranker_unavailable", False)),
+    }
     payload = serializable_metrics(metrics)
 
     if args.output_json:

@@ -90,6 +90,12 @@ class Settings:
     # Dense+BM25+RRF 하이브리드 후보 검색. 100건 평가에서 Phase 1-A dense 기본값보다
     # 낮아져 기본 OFF. 재실험/튜닝 시에만 true 로 켠다.
     RESPONSIBLE_UNIT_USE_HYBRID: bool = os.getenv("RESPONSIBLE_UNIT_USE_HYBRID", "false").lower() == "true"
+    # CrossEncoder 기반 task 리랭킹. Phase 3 실험용이며, 100건 평가로 채택 여부를
+    # 확인하기 전까지 기본 OFF를 유지한다.
+    RESPONSIBLE_UNIT_USE_RERANKER: bool = os.getenv("RESPONSIBLE_UNIT_USE_RERANKER", "false").lower() == "true"
+    RESPONSIBLE_UNIT_RERANKER_MODEL: str = os.getenv("RESPONSIBLE_UNIT_RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
+    RESPONSIBLE_UNIT_RERANKER_DEVICE: str = os.getenv("RESPONSIBLE_UNIT_RERANKER_DEVICE", EMBEDDING_DEVICE)
+    RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE: int = int(os.getenv("RESPONSIBLE_UNIT_RERANKER_BATCH_SIZE", "16"))
     # responsible_unit 신뢰도 하한(soft 후보 억제). 정답셋 없어 미보정 휴리스틱.
     # 기본 0.0: bge-m3 raw cosine 이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답을
     # 분리할 수 없음이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 BE2 soft-rerank 에 위임.
