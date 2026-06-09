@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-08T19:43:21.984396+00:00",
+  "generated_at": "2026-06-09T15:03:17.572667+00:00",
   "total_count": 9132,
   "scanned_count": 9132,
   "limited": false,
@@ -293,6 +293,13 @@
           "count": 248
         }
       ]
+    },
+    "responsible_units_source": {
+      "present_count": 0,
+      "empty_count": 9132,
+      "coverage_ratio": 0.0,
+      "unique_value_count": 0,
+      "top_values": []
     },
     "urgency_level": {
       "present_count": 9132,
