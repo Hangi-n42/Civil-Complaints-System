@@ -1,0 +1,53 @@
+{
+  "generated_date": "2026-06-09",
+  "issue": 342,
+  "collection": "civil_cases_v1",
+  "persist_dir": "data/chroma_db",
+  "total_count": 9132,
+  "scanned_count": 9132,
+  "responsible_units_present_count": 9132,
+  "responsible_units_coverage_ratio": 1.0,
+  "explicit_source_metadata": {},
+  "raw_category_source_pattern": {
+    "exact_category_source_fallback_count": 7734,
+    "subset_of_category_source_count": 1398,
+    "partial_overlap_category_source_count": 0,
+    "no_category_source_overlap_count": 0,
+    "empty_responsible_units_count": 0
+  },
+  "cleaned_category_source_pattern": {
+    "rule": "category/source에서 빈 값, '-', 'unknown', '미분류'를 제외한 뒤 responsible_units와 비교",
+    "exact_cleaned_category_source_fallback_count": 9132,
+    "exact_cleaned_category_source_fallback_ratio": 1.0
+  },
+  "top_responsible_units": [
+    {"value": "국토교통부", "count": 2131},
+    {"value": "서울시", "count": 1435},
+    {"value": "고용노동부", "count": 1309},
+    {"value": "중소벤처기업부", "count": 1044},
+    {"value": "문화관광", "count": 946},
+    {"value": "국립아시아문화전당", "count": 946},
+    {"value": "성남시", "count": 844},
+    {"value": "안양시", "count": 469},
+    {"value": "제주특별자치도", "count": 429},
+    {"value": "건설안전과", "count": 248}
+  ],
+  "top_category_source_pairs": [
+    {"value": "unknown|고용노동부", "count": 1042},
+    {"value": "문화관광|국립아시아문화전당", "count": 946},
+    {"value": "unknown|서울시", "count": 295},
+    {"value": "건설안전과|국토교통부", "count": 242},
+    {"value": "경영 전략|중소벤처기업부", "count": 211},
+    {"value": "건축안전과|국토교통부", "count": 193},
+    {"value": "주택건설공급과|국토교통부", "count": 185},
+    {"value": "건축정책과|국토교통부", "count": 177},
+    {"value": "인사/노무|중소벤처기업부", "count": 174},
+    {"value": "수출입|중소벤처기업부", "count": 170}
+  ],
+  "judgement": {
+    "status": "fallback_confirmed",
+    "summary": "현재 ChromaDB responsible_units는 실제 BE1 responsible_unit 후보로 구분할 수 없고, 기존 category/source fallback으로 설명된다.",
+    "be2_policy": "운영에서 responsible_units는 약한 soft rerank 신호로만 유지하고, 확정 담당부서처럼 표시하거나 가중치를 올리지 않는다.",
+    "recommended_follow_up": "신규 인덱싱부터 responsible_units_source 또는 responsible_unit_origin metadata를 추가해 be1_structured와 category_source_fallback을 구분한다."
+  }
+}
