@@ -27,6 +27,7 @@ FIELDS = [
     "issue_types",
     "key_terms",
     "responsible_units",
+    "responsible_units_source",
     "urgency_level",
 ]
 SENSITIVE_FIELDS = {"entity_texts", "key_terms"}

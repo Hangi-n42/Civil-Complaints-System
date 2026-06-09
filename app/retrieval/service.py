@@ -397,6 +397,27 @@ class RetrievalService:
             responsible_unit_value,
             keys=("name", "unit", "text"),
         )
+        responsible_unit_items = (
+            responsible_unit_value
+            if isinstance(responsible_unit_value, list)
+            else [responsible_unit_value]
+        )
+        responsible_unit_sources = self._dedupe_strings([
+            item.get("source")
+            for item in responsible_unit_items
+            if isinstance(item, dict)
+        ])
+        explicit_responsible_unit_sources = self._extract_signal_values(
+            record.get(
+                "responsible_units_source",
+                metadata.get("responsible_units_source"),
+            ),
+            keys=("source", "name", "text"),
+        )
+        responsible_unit_sources = responsible_unit_sources or explicit_responsible_unit_sources
+        if responsible_units and not responsible_unit_sources and "responsible_unit" in record:
+            responsible_unit_sources = ["be1_structured"]
+        responsible_units_source = responsible_unit_sources[0] if responsible_unit_sources else ""
         urgency_value = record.get(
             "urgency",
             record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
@@ -438,6 +459,7 @@ class RetrievalService:
             "issue_types": issue_types,
             "key_terms": key_terms,
             "responsible_units": responsible_units,
+            "responsible_units_source": responsible_units_source,
             "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),

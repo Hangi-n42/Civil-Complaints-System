@@ -219,6 +219,7 @@ class ChromaVectorStore:
             "issue_types": _join_metadata_list(record.get("issue_types")),
             "key_terms": _join_metadata_list(record.get("key_terms")),
             "responsible_units": _join_metadata_list(record.get("responsible_units")),
+            "responsible_units_source": _first_metadata_value(record.get("responsible_units_source")),
             "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
             "summary_observation": _normalize_text(summary.get("observation")),
@@ -328,6 +329,7 @@ class ChromaVectorStore:
             issue_types = _split_metadata_list(metadata.get("issue_types"))
             key_terms = _split_metadata_list(metadata.get("key_terms"))
             responsible_units = _split_metadata_list(metadata.get("responsible_units"))
+            responsible_units_source = _first_metadata_value(metadata.get("responsible_units_source"))
             created_at = str(metadata.get("created_at") or "")
             created_at_ts = metadata.get("created_at_ts")
 
@@ -385,6 +387,7 @@ class ChromaVectorStore:
                         "issue_types": issue_types,
                         "key_terms": key_terms,
                         "responsible_units": responsible_units,
+                        "responsible_units_source": responsible_units_source,
                         "urgency_level": str(metadata.get("urgency_level") or ""),
                         "created_at_ts": int(created_at_ts or 0),
                     },

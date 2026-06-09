@@ -4,6 +4,7 @@ import json
 
 from app.structuring.department_assigner import (
     DepartmentAssigner,
+    RESPONSIBLE_UNIT_SOURCE_BE1,
     aggregate_candidates,
     build_query_text,
     expand_department_task_text,
@@ -93,6 +94,7 @@ def test_assign_defaults_to_dense_hits(tmp_path):
     out = assigner.assign("도로 안전", top_n_units=1)
 
     assert out[0]["name"] == "도로안전과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_assign_can_opt_into_hybrid_hits(tmp_path):
@@ -108,6 +110,7 @@ def test_assign_can_opt_into_hybrid_hits(tmp_path):
     out = assigner.assign("폐기물 관리", top_n_units=1, use_hybrid=True)
 
     assert out[0]["name"] == "자원순환과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_assign_can_opt_into_reranker_hits(tmp_path):
@@ -127,6 +130,7 @@ def test_assign_can_opt_into_reranker_hits(tmp_path):
     out = assigner.assign("공원 풋살장 관리", top_n_units=1, use_reranker=True)
 
     assert out[0]["name"] == "생활체육과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_assign_reranker_falls_back_when_model_unavailable(tmp_path):
@@ -140,6 +144,7 @@ def test_assign_reranker_falls_back_when_model_unavailable(tmp_path):
     out = assigner.assign("공원 관리", top_n_units=1, use_reranker=True)
 
     assert out[0]["name"] == "공원여가정책과"
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_rrf_similarity_scales_by_active_rankings():
@@ -231,6 +236,7 @@ def test_validate_llm_drops_hallucinated_names():
     out = validate_llm_units(llm, allowed)
     names = [u["name"] for u in out]
     assert names == ["도로안전과"]
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_validate_llm_clamps_confidence_and_normalizes_evidence():
@@ -240,6 +246,7 @@ def test_validate_llm_clamps_confidence_and_normalizes_evidence():
     )
     assert out[0]["confidence"] == 1.0
     assert out[0]["evidence"] == ["가설건축물"]
+    assert out[0]["source"] == RESPONSIBLE_UNIT_SOURCE_BE1
 
 
 def test_validate_llm_handles_bad_input():

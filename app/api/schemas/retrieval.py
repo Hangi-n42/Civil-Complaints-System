@@ -150,6 +150,7 @@ class SearchQuerySignals(BaseModel):
     issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
+    responsible_units_source: Optional[str] = None
     urgency_level: Optional[str] = None
 
     @field_validator(
@@ -199,6 +200,16 @@ class SearchQuerySignals(BaseModel):
     def normalize_urgency_level(cls, value: Any) -> Optional[str]:
         if isinstance(value, dict):
             value = value.get("level")
+        text = " ".join(str(value or "").split())
+        return text or None
+
+    @field_validator("responsible_units_source", mode="before")
+    @classmethod
+    def normalize_responsible_units_source(cls, value: Any) -> Optional[str]:
+        if isinstance(value, list):
+            value = value[0] if value else None
+        if isinstance(value, dict):
+            value = value.get("source")
         text = " ".join(str(value or "").split())
         return text or None
 
@@ -272,6 +283,7 @@ class SearchResultMetadata(BaseModel):
     issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
+    responsible_units_source: Optional[str] = None
     urgency_level: Optional[str] = None
     strategy_id: Optional[str] = None
     route_key: Optional[str] = None

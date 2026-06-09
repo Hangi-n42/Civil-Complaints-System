@@ -25,7 +25,7 @@ def _structured_case():
             "issue_type": [{"name": "인허가"}],
             "legal_refs": [{"name": "건축법", "law_id": "001823"}],
             "key_terms": ["가설건축물", "이행강제금"],
-            "responsible_unit": [{"name": "건축과"}],
+            "responsible_unit": [{"name": "건축과", "source": "be1_structured"}],
             "urgency": {"level": "높음"},
         },
     }
@@ -37,7 +37,7 @@ def test_ui_case_adapter_preserves_be1_generation_signals():
 
     assert structured["legal_refs"] == [{"name": "건축법", "law_id": "001823"}]
     assert structured["key_terms"] == ["가설건축물", "이행강제금"]
-    assert structured["responsible_unit"] == [{"name": "건축과"}]
+    assert structured["responsible_unit"] == [{"name": "건축과", "source": "be1_structured"}]
     assert structured["urgency"] == {"level": "높음"}
 
 
@@ -51,6 +51,7 @@ def test_build_qa_query_signals_maps_be1_contract():
         "issue_types": ["인허가"],
         "key_terms": ["가설건축물", "이행강제금"],
         "responsible_units": ["건축과"],
+        "responsible_units_source": "be1_structured",
         "urgency_level": "높음",
     }
 

@@ -12,7 +12,7 @@
 - **문제**: bge-m3 raw cosine 유사도가 **0.5~0.65 좁은 띠에 뭉쳐** 랭킹/신뢰도 신호로 쓸 수 없다. 실제로 **오답이 정답보다 높은 점수**가 나온다(아래 증거). 단일 신뢰도 하한(threshold)으로 정답/오답을 분리하는 것은 **수학적으로 불가능**함이 확인됐다.
 - **해결 방향**(이 문서): Phase 0 평가셋 구축 → Phase 1 문서 확장 + 하이브리드(Dense+BM25+RRF) → Phase 2 상대적 신뢰도(마진/합의). Phase 3(크로스 인코더)는 평가 후 결정.
 - **이미 한 것**: 보일러플레이트 필터의 도메인 오제거 수정(#346, 마스터 116→118부서/2,114업무), 신뢰도 하한 실험(실패 확인) 후 0.0으로 원복.
-- **이번 추가**: Phase 0 평가셋 `data/departments/eval/responsible_unit_eval.jsonl` 100건을 구축하고 baseline을 산출했다. 이어서 Phase 1-A로 `DepartmentAssigner.build_index()`의 임베딩 문서를 확장했고, after 평가에서 Recall@3 0.5579→0.6947, MRR@3 0.4632→0.6000으로 개선됐다. Phase 1-B로 Dense+BM25+RRF 융합도 구현했지만, 평가지표가 하락해 기본값은 Phase 1-A dense로 유지한다. Phase 2에서는 랭킹 점수와 confidence를 분리해 Recall/MRR은 유지하면서 NONE abstention을 0.8000까지 올렸다. Phase 3 CrossEncoder 리랭커는 opt-in으로 구현했지만, 운영 기본 채택은 보류한다.
+- **이번 추가**: Phase 0 평가셋 `data/departments/eval/responsible_unit_eval.jsonl` 100건을 구축하고 baseline을 산출했다. 이어서 Phase 1-A로 `DepartmentAssigner.build_index()`의 임베딩 문서를 확장했고, after 평가에서 Recall@3 0.5579→0.6947, MRR@3 0.4632→0.6000으로 개선됐다. Phase 1-B로 Dense+BM25+RRF 융합도 구현했지만, 평가지표가 하락해 기본값은 Phase 1-A dense로 유지한다. Phase 2에서는 랭킹 점수와 confidence를 분리해 Recall/MRR은 유지하면서 NONE abstention을 0.8000까지 올렸다. Phase 3 CrossEncoder 리랭커는 평가 후 운영에서 쓰지 않기로 결정했다. BE2 연동을 위해 `responsible_unit[].source`와 Chroma metadata `responsible_units_source` 출처 계약을 추가했다.
 
 ---
 
@@ -209,5 +209,5 @@ g().assign('3톤 미만 지게차 면허 적성검사 갱신 절차', top_n_unit
 - [x] **Phase 1-A**: 문서 확장(enrichment 사전 재사용, 트리거어 한정) → 재인덱싱 → after 평가 완료. Recall@3 +0.1368p, MRR@3 +0.1368p, NONE abstention 변화 없음.
 - [x] **Phase 1-B**: Dense+BM25+RRF(law_article_store 패턴 이식) 구현 및 평가 완료. 지표 하락으로 기본 적용은 보류하고 `RESPONSIBLE_UNIT_USE_HYBRID=true` opt-in으로 남김.
 - [x] **Phase 2**: 상대적 신뢰도(마진+합의) 구현 및 평가 완료. Recall/MRR은 Phase 1-A 유지, NONE abstention은 0.8000으로 개선.
-- [x] (선택) **Phase 3**: CrossEncoder task 리랭커 opt-in 구현 및 100건 top_k_tasks=5 비교 평가 완료. 소폭 개선은 있으나 Phase 2 top_k_tasks=20 운영 기본보다 낮고 CPU 비용이 커 기본 채택 보류.
+- [x] (선택) **Phase 3**: CrossEncoder task 리랭커 opt-in 구현 및 100건 top_k_tasks=5 비교 평가 완료. 소폭 개선은 있으나 Phase 2 top_k_tasks=20 운영 기본보다 낮고 CPU 비용이 커 운영에서는 사용하지 않음.
 - [x] 각 Phase 후 `BE2_structuring_handoff.md`의 responsible_unit 절 갱신.

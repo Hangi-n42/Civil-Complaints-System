@@ -425,6 +425,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "issue_types": metadata.get("issue_types", []),
                     "key_terms": metadata.get("key_terms", []),
                     "responsible_units": metadata.get("responsible_units", []),
+                    "responsible_units_source": metadata.get("responsible_units_source"),
                     "urgency_level": metadata.get("urgency_level"),
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],

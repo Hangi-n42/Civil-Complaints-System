@@ -23,7 +23,7 @@ def _be1_structured_record():
         ],
         "issue_type": [{"name": "면허/자격", "confidence": 0.9}],
         "key_terms": ["지게차", "면허", "지게차"],
-        "responsible_unit": [{"name": "교통국", "confidence": 0.7}],
+        "responsible_unit": [{"name": "교통국", "confidence": 0.7, "source": "be1_structured"}],
         "urgency": {"level": "보통", "confidence": 0.62},
     }
 
@@ -40,6 +40,7 @@ def test_normalize_record_preserves_be1_search_signal_metadata():
     assert normalized["issue_types"] == ["면허/자격"]
     assert normalized["key_terms"] == ["지게차", "면허"]
     assert normalized["responsible_units"] == ["교통국"]
+    assert normalized["responsible_units_source"] == "be1_structured"
     assert normalized["urgency_level"] == "보통"
 
 
@@ -60,6 +61,7 @@ def test_chroma_metadata_flattens_be1_search_signals_for_storage():
     assert metadata["issue_types"] == "면허/자격"
     assert metadata["key_terms"] == "지게차|면허"
     assert metadata["responsible_units"] == "교통국"
+    assert metadata["responsible_units_source"] == "be1_structured"
     assert metadata["urgency_level"] == "보통"
 
 
@@ -95,4 +97,18 @@ def test_chroma_query_restores_search_signal_metadata_as_lists(monkeypatch):
     assert result_metadata["issue_types"] == ["면허/자격"]
     assert result_metadata["key_terms"] == ["지게차", "면허"]
     assert result_metadata["responsible_units"] == ["교통국"]
+    assert result_metadata["responsible_units_source"] == "be1_structured"
     assert result_metadata["urgency_level"] == "보통"
+
+
+def test_normalize_record_preserves_category_source_fallback_origin():
+    service = RetrievalService()
+    record = _be1_structured_record()
+    record.pop("responsible_unit")
+    record["responsible_units"] = ["교통국"]
+    record["responsible_units_source"] = "category_source_fallback"
+
+    normalized = service._normalize_record(record, index=0)
+
+    assert normalized["responsible_units"] == ["교통국"]
+    assert normalized["responsible_units_source"] == "category_source_fallback"

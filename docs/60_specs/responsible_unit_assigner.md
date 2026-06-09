@@ -52,13 +52,14 @@ python scripts/build_department_master.py
 ```json
 {
   "responsible_unit": [
-    {"name": "도로안전과", "confidence": 0.83, "evidence": ["포트홀 보수 도로 파손 정비", "포트홀", "도로"]},
-    {"name": "대중교통과", "confidence": 0.40, "evidence": ["시내버스 노선 조정"]}
+    {"name": "도로안전과", "confidence": 0.83, "evidence": ["포트홀 보수 도로 파손 정비", "포트홀", "도로"], "source": "be1_structured"},
+    {"name": "대중교통과", "confidence": 0.40, "evidence": ["시내버스 노선 조정"], "source": "be1_structured"}
   ]
 }
 ```
 
 > ⚠️ **confidence는 코사인 유사도에서 유도한 미보정(uncalibrated) 점수**다. 민원→부서 정답셋이 없어 검증된 확률이 아니다. BE2는 절대 임계값이 아니라 **상대 순위·상대 강도**로만 사용할 것. 정답셋 확보 전까지 정확도(P@1 등) 수치는 산출 불가.
+> 출처 계약: 실제 BE1 담당부서 후보는 `source: "be1_structured"`를 포함한다. 후보가 없으면 `responsible_unit: []`를 반환한다. category/source 기반 fallback을 별도로 생성하는 경로는 `source: "category_source_fallback"`로 구분하고, BE2 저장 metadata에는 `responsible_units_source`로 보존한다.
 
 ## 로컬 실행 가이드 (인덱스 빌드·검색)
 

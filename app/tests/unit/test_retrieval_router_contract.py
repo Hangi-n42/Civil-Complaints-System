@@ -119,6 +119,7 @@ def test_search_response_is_wrapped(monkeypatch):
         "issue_types",
         "key_terms",
         "responsible_units",
+        "responsible_units_source",
         "urgency_level",
         "strategy_id",
         "route_key",

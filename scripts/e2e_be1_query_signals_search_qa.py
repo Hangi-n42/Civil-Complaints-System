@@ -110,6 +110,7 @@ def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
 
     urgency = structured.get("urgency")
     urgency_level = urgency.get("level") if isinstance(urgency, dict) else urgency
+    responsible_unit_sources = _extract_field_values(structured.get("responsible_unit"), "source")
     return {
         "entity_texts": _extract_field_values(structured.get("entity_texts"), "text"),
         "legal_ref_names": _extract_field_values(structured.get("legal_refs"), "name"),
@@ -117,6 +118,7 @@ def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
         "issue_types": _extract_field_values(structured.get("issue_type"), "name"),
         "key_terms": _clean_values(structured.get("key_terms")),
         "responsible_units": _extract_field_values(structured.get("responsible_unit"), "name"),
+        "responsible_units_source": responsible_unit_sources[0] if responsible_unit_sources else "",
         "urgency_level": _clean_text(urgency_level),
     }
 

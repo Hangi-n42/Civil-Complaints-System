@@ -32,6 +32,7 @@ from app.structuring.enrichment import FACILITY_KEYWORDS, LEGAL_REF_LEXICON, OBJ
 # ── 상수 ─────────────────────────────────────────────────────────────────
 COLLECTION_NAME = "busan_departments_v1"
 MASTER_FILENAME = "busan_departments_master.json"
+RESPONSIBLE_UNIT_SOURCE_BE1 = "be1_structured"
 
 # 다중 히트 1건당 confidence 가산치와 가산 상한(휴리스틱).
 _MULTIHIT_BONUS = 0.02
@@ -300,7 +301,12 @@ def validate_llm_units(
             ev = [ev]
         elif not isinstance(ev, list):
             ev = []
-        out.append({"name": name, "confidence": conf, "evidence": [str(e) for e in ev]})
+        out.append({
+            "name": name,
+            "confidence": conf,
+            "evidence": [str(e) for e in ev],
+            "source": RESPONSIBLE_UNIT_SOURCE_BE1,
+        })
     return out
 
 
@@ -648,6 +654,7 @@ class DepartmentAssigner:
             c.pop("_hits", None)
             c.pop("_rank_score", None)
             c.pop("_evidence_terms", None)
+            c["source"] = RESPONSIBLE_UNIT_SOURCE_BE1
 
         if use_llm and candidates:
             reranked = self._llm_rerank(query_text, candidates)
