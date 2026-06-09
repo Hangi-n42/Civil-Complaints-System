@@ -1,0 +1,72 @@
+{
+  "title": "BE3 handoff 기준 BE2 최종 QA E2E 검증 요약",
+  "issue": 332,
+  "generated_at_kst": "2026-06-09 03:26",
+  "raw_outputs_not_committed": [
+    "/tmp/be3_handoff_e2e_raw_10_with_legal.json",
+    "/tmp/be3_handoff_e2e_raw_10_with_legal.md"
+  ],
+  "privacy_note": "raw 결과에는 민원 원문, 답변 미리보기, 검색 snippet이 포함될 수 있어 커밋하지 않는다.",
+  "run": {
+    "command": "STRUCTURING_CONSTRAINED=true python scripts/e2e_be1_query_signals_search_qa.py --structuring-mode actual --grounding-filter --run-generation --limit 10 --top-k 5",
+    "structuring_mode": "actual",
+    "strategy": "hybrid",
+    "grounding_filter": true,
+    "run_generation": true,
+    "sample_count": 10,
+    "top_k": 5
+  },
+  "summary": {
+    "successful_records": 10,
+    "failed_records": 0,
+    "baseline_empty_count": 0,
+    "with_signals_empty_count": 0,
+    "grounding_run_count": 10,
+    "grounding_error_count": 0,
+    "generation_run_count": 10,
+    "generation_error_count": 0,
+    "generation_empty_answer_count": 0,
+    "generation_ok_count": 7,
+    "generation_warning_count": 3,
+    "generation_fallback_count": 3,
+    "generation_max_parse_retry_count": 3,
+    "top1_changed_count": 1,
+    "moved_up_candidate_count": 4,
+    "with_signals_top1_has_metadata_overlap_count": 6
+  },
+  "signal_coverage": {
+    "entity_texts": 4,
+    "legal_ref_names": 3,
+    "legal_ref_ids": 3,
+    "issue_types": 6,
+    "key_terms": 6,
+    "responsible_units": 0
+  },
+  "generation_mode_counts": {
+    "default": 6,
+    "force_json": 1,
+    "fast_fallback": 3
+  },
+  "legal_grounding_status_counts": {
+    "grounded": 3,
+    "no_candidates": 7
+  },
+  "case_results": [
+    {"case_id": "2000001", "signal_total": 0, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 296, "top1_changed": false},
+    {"case_id": "2000010", "signal_total": 0, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 498, "top1_changed": false},
+    {"case_id": "2000011", "signal_total": 0, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 532, "top1_changed": false},
+    {"case_id": "2000002", "signal_total": 4, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 232, "top1_changed": false},
+    {"case_id": "2000003", "signal_total": 0, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 328, "top1_changed": false},
+    {"case_id": "2000004", "signal_total": 2, "grounding_count": 1, "generation_status": "ok", "generation_mode": "default", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 0, "answer_chars": 489, "top1_changed": false},
+    {"case_id": "2000005", "signal_total": 2, "grounding_count": 1, "generation_status": "ok", "generation_mode": "force_json", "legal_grounding_status": "no_candidates", "fallback_used": false, "parse_retry_count": 1, "answer_chars": 554, "top1_changed": false},
+    {"case_id": "2000006", "signal_total": 11, "grounding_count": 3, "generation_status": "warning", "generation_mode": "fast_fallback", "legal_grounding_status": "grounded", "fallback_used": true, "parse_retry_count": 3, "answer_chars": 462, "top1_changed": false},
+    {"case_id": "2000007", "signal_total": 18, "grounding_count": 1, "generation_status": "warning", "generation_mode": "fast_fallback", "legal_grounding_status": "grounded", "fallback_used": true, "parse_retry_count": 3, "answer_chars": 462, "top1_changed": true},
+    {"case_id": "2000008", "signal_total": 9, "grounding_count": 2, "generation_status": "warning", "generation_mode": "fast_fallback", "legal_grounding_status": "grounded", "fallback_used": true, "parse_retry_count": 3, "answer_chars": 462, "top1_changed": false}
+  ],
+  "conclusion": {
+    "be2_search_path": "통과",
+    "grounding_filter_path": "통과",
+    "qa_empty_answer_guard": "통과",
+    "remaining_risk": "법령 grounding이 적용된 3건은 모두 fast_fallback을 사용했다. 빈 답변은 아니지만 BE3 생성 JSON 안정화는 후속 품질 개선 대상으로 남는다."
+  }
+}

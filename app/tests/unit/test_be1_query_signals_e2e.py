@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from scripts.e2e_be1_query_signals_search_qa import (
     build_summary,
+    build_generation_warnings,
     compare_rankings,
     extract_query_signals,
+    normalize_generation_metadata,
     overlap_by_field,
     render_markdown,
 )
@@ -80,6 +82,32 @@ def test_compare_rankings_reports_top1_change_and_rank_delta():
     assert comparison["moved_up_count"] == 1
 
 
+def test_generation_metadata_defaults_and_warnings():
+    metadata = normalize_generation_metadata(
+        {
+            "fallback_used": True,
+            "parse_retry_count": "2",
+            "generation_mode": "fast_fallback",
+            "legal_grounding_status": "grounded",
+            "legal_grounding_error": "",
+        }
+    )
+
+    warnings = build_generation_warnings(
+        answer_chars=0,
+        generation_metadata=metadata,
+    )
+
+    assert metadata == {
+        "fallback_used": True,
+        "parse_retry_count": 2,
+        "generation_mode": "fast_fallback",
+        "legal_grounding_status": "grounded",
+        "legal_grounding_error": "",
+    }
+    assert warnings == ["empty_answer", "fallback_used"]
+
+
 def test_build_summary_and_markdown_are_korean_report_ready():
     report = {
         "generated_at": "2026-06-08T00:00:00+00:00",
@@ -87,7 +115,7 @@ def test_build_summary_and_markdown_are_korean_report_ready():
             "structuring_mode": "deterministic",
             "strategy": "hybrid",
             "grounding_filter": False,
-            "run_generation": False,
+            "run_generation": True,
         },
         "records": [
             {
@@ -110,6 +138,19 @@ def test_build_summary_and_markdown_are_korean_report_ready():
                     "baseline_top1": "A",
                     "with_signals_top1": "B",
                 },
+                "generation": {
+                    "status": "warning",
+                    "warnings": ["empty_answer"],
+                    "answer_chars": 0,
+                    "citation_count": 1,
+                    "generation_metadata": {
+                        "fallback_used": False,
+                        "parse_retry_count": 1,
+                        "generation_mode": "force_json",
+                        "legal_grounding_status": "no_candidates",
+                        "legal_grounding_error": "",
+                    },
+                },
             }
         ],
     }
@@ -119,5 +160,12 @@ def test_build_summary_and_markdown_are_korean_report_ready():
 
     assert report["summary"]["successful_records"] == 1
     assert report["summary"]["top1_changed_count"] == 1
+    assert report["summary"]["generation_warning_count"] == 1
+    assert report["summary"]["generation_empty_answer_count"] == 1
+    assert report["summary"]["generation_mode_counts"] == {"force_json": 1}
+    assert report["summary"]["generation_legal_grounding_status_counts"] == {"no_candidates": 1}
     assert "BE1 query_signals 검색 E2E 검증 요약" in markdown
     assert "해석 주의" in markdown
+    assert "답변 생성 관측" in markdown
+    assert "empty_answer" in markdown
+    assert "법령 grounding 상태 분포" in markdown
