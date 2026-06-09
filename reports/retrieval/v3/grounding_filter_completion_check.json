@@ -1,0 +1,125 @@
+{
+  "title": "BE2 grounding filter completion check",
+  "generated_at": "2026-06-09T08:14:39.541243+00:00",
+  "status": "passed",
+  "inputs": {
+    "effect_json": "reports/retrieval/v3/grounding_filter_effect.json",
+    "e2e_json": "reports/retrieval/v3/be3_handoff_e2e_summary.json",
+    "baseline_variant": "Hybrid",
+    "filter_variant": "Hybrid+LLM-filter",
+    "top_k": 5
+  },
+  "thresholds": {
+    "min_eval_queries": 100,
+    "max_harmful_rate": 0.05,
+    "max_queries_with_harmful_pct": 0.15,
+    "min_useful_rate": 0.95,
+    "min_relative_reduction": 0.8,
+    "max_empty_grounding_pct": 0.1,
+    "min_e2e_samples": 10
+  },
+  "metrics": {
+    "baseline_harmful_rate": 0.232,
+    "filtered_harmful_rate": 0.0417,
+    "relative_harmful_reduction": 0.8203,
+    "filtered_useful_rate": 0.9583,
+    "filtered_queries_with_harmful_pct": 0.14,
+    "filtered_empty_grounding_pct": 0.07,
+    "filtered_empty_grounding_queries": 7,
+    "filtered_avg_filled_slots": 3.84,
+    "e2e_sample_count": 10,
+    "e2e_grounding_error_count": 0,
+    "e2e_generation_empty_answer_count": 0,
+    "e2e_generation_fallback_count": 3
+  },
+  "checks": [
+    {
+      "name": "filter_eval_query_count",
+      "passed": true,
+      "value": 100,
+      "threshold": ">= 100",
+      "note": "정량 평가는 최소 쿼리 수 이상이어야 합니다."
+    },
+    {
+      "name": "harmful_rate_topk",
+      "passed": true,
+      "value": 0.0417,
+      "threshold": "<= 0.05",
+      "note": "필터 후 top-k rel0 비율입니다."
+    },
+    {
+      "name": "queries_with_harmful_topk",
+      "passed": true,
+      "value": 0.14,
+      "threshold": "<= 0.15",
+      "note": "필터 후 rel0가 1개 이상 남은 쿼리 비율입니다."
+    },
+    {
+      "name": "useful_rate_topk",
+      "passed": true,
+      "value": 0.9583,
+      "threshold": ">= 0.95",
+      "note": "필터 후 rel>=1 근거 비율입니다."
+    },
+    {
+      "name": "relative_harmful_reduction",
+      "passed": true,
+      "value": 0.8203,
+      "threshold": ">= 0.8",
+      "note": "원본 Hybrid 대비 rel0 제거율입니다."
+    },
+    {
+      "name": "empty_grounding_fallback_budget",
+      "passed": true,
+      "value": 0.07,
+      "threshold": "<= 0.1",
+      "note": "필터 결과 0건이 되는 쿼리 비율입니다. 0건은 no-evidence fallback 대상입니다."
+    },
+    {
+      "name": "e2e_sample_count",
+      "passed": true,
+      "value": 10,
+      "threshold": ">= 10",
+      "note": "실제 BE1->BE2->BE3 연결 smoke 샘플 수입니다."
+    },
+    {
+      "name": "e2e_grounding_filter_enabled",
+      "passed": true,
+      "value": true,
+      "threshold": true,
+      "note": "최종 E2E가 grounding_filter=True로 실행됐는지 확인합니다."
+    },
+    {
+      "name": "e2e_grounding_errors",
+      "passed": true,
+      "value": 0,
+      "threshold": 0,
+      "note": "실제 E2E에서 grounding filter 오류가 없어야 합니다."
+    },
+    {
+      "name": "e2e_empty_answers",
+      "passed": true,
+      "value": 0,
+      "threshold": 0,
+      "note": "필터 적용 후 QA 생성에서 빈 답변이 없어야 합니다."
+    },
+    {
+      "name": "e2e_search_path",
+      "passed": true,
+      "value": "통과",
+      "threshold": "통과",
+      "note": "BE2 검색 경로 최종 E2E 판단입니다."
+    },
+    {
+      "name": "e2e_grounding_path",
+      "passed": true,
+      "value": "통과",
+      "threshold": "통과",
+      "note": "grounding filter 경로 최종 E2E 판단입니다."
+    }
+  ],
+  "conclusion": {
+    "be2_grounding_filter_completion": "완료",
+    "note": "엉뚱한 근거 제거 기준은 통과했습니다. 법령 grounding fast_fallback은 BE3 생성 안정성 후속 리스크로 별도 관리합니다."
+  }
+}
