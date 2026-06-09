@@ -98,13 +98,16 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 ```jsonc
 [{"name": "건설기계과", "confidence": 0.78, "evidence": ["지게차", "건설기계"], "law_id": "..."}]
 ```
-- **부산시 실제 부서명**(busan_departments_master.json 116부서)을 bge-m3+BM25로 검색해 반환 → 환각 0.
+- **부산시 실제 부서명**(busan_departments_master.json 118부서/2,114업무)을 bge-m3로 검색해 반환 → 환각 0.
 - ⚠️ **기본 비활성**: 임베딩 인덱스(bge-m3/Chroma)가 무거워 `ENABLE_RESPONSIBLE_UNIT=false`가 기본이라 `[]`로 나옵니다. 켜는 법:
   ```bash
   python -c "from app.structuring.department_assigner import get_department_assigner as g; print(g().build_index(rebuild=True))"
   export ENABLE_RESPONSIBLE_UNIT=true   # (선택) RESPONSIBLE_UNIT_USE_LLM=true 로 LLM 재랭킹
   ```
+- **신뢰도 하한(#346)**: `RESPONSIBLE_UNIT_MIN_CONFIDENCE`(**기본 0.0**). bge-m3 raw cosine이 0.5~0.65 좁은 띠에 뭉쳐 단일 하한으로 정답/오답 분리가 불가함이 확인됨(오답 0.63 > 정답 0.57). 하한 대신 **BE2 soft-rerank가 confidence로 가중**(원래 설계 의도). 랭킹/신뢰도 개선은 별도 리팩토링 예정.
 - 미가용/실패 시 `[]`로 안전 폴백(파이프라인 영향 없음).
+- ⚠️ **커버리지 한계(정직)**: 마스터는 **부산시 본청 부서**만 담습니다. 건설기계조종사면허(지게차)처럼 실무가 구청/공단 소관인 민원은 정답 부서가 풀에 없어 약하게 나옵니다(soft 후보로만 쓰세요). 마스터를 바꾸면 **인덱스 재빌드 필수**(`build_index(rebuild=True)`).
+- **평가(#346 Phase 0)**: `scripts/eval_responsible_unit.py`로 Recall@3/MRR@3/NONE 무답률을 측정합니다. seed는 `data/departments/eval/responsible_unit_eval.seed.jsonl`에 있으며, 확정 baseline은 사람이 검수한 `responsible_unit_eval.jsonl` 30~50건 작성 후 기록하세요.
 
 ### ④ `issue_type`
 ```jsonc

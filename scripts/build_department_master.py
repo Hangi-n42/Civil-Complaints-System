@@ -104,10 +104,35 @@ _BOILERPLATE_RAW = [
 ]
 BOILERPLATE_PATTERNS: List[re.Pattern] = [re.compile(p) for p in _BOILERPLATE_RAW]
 
+# ── soft 패턴: '총괄/성과관리/업무보고' 등 일반 롤업. 도메인 업무에도 흔히 붙어
+#    오제거를 일으키므로, 도메인 앵커가 있으면 이 사유만으로는 제거하지 않는다.
+#    (하드 패턴: 업무추진비/청사관리/회계 등은 도메인 여부와 무관하게 항상 제거)
+_SOFT_RAW = {
+    r"업무\s*총괄", r"총괄$", r"주요\s*업무계획", r"업무보고", r"성과관리", r"BSC",
+}
+_SOFT_PATTERNS = {
+    pat for raw, pat in zip(_BOILERPLATE_RAW, BOILERPLATE_PATTERNS) if raw in _SOFT_RAW
+}
+
+# 시민 대면 규제/서비스 도메인 앵커. 이 단어가 있으면 실제 소관 업무로 보고
+# soft 보일러플레이트(총괄 등) 사유로 제거하지 않는다.
+_DOMAIN_ANCHOR = re.compile(
+    "건설기계|지게차|건축|주택|도로|교통|상수도|하수도|상하수도|수도|환경|폐기물|"
+    "위생|식품|동물|축산|도시계획|공원|녹지|하천|면허|허가|등록|인허가|보건|의료|"
+    "복지|아동|노인|장애|청소년|자동차|차량|소방|재난|농업|수산|어업|산림|관광|"
+    "문화재|위험물|대기|수질|토지|측량"
+)
+
 
 def is_boilerplate(task: str) -> bool:
     t = task.strip()
-    return any(p.search(t) for p in BOILERPLATE_PATTERNS)
+    matched = [p for p in BOILERPLATE_PATTERNS if p.search(t)]
+    if not matched:
+        return False
+    # 도메인 업무가 soft 사유로만 걸리면 보존(예: "건설기계 위임 사무 총괄").
+    if _DOMAIN_ANCHOR.search(t) and all(p in _SOFT_PATTERNS for p in matched):
+        return False
+    return True
 
 
 def clean_tasks(tasks: List[str]) -> List[str]:

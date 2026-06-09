@@ -228,6 +228,7 @@ class DepartmentAssigner:
         self.persist_directory = persist_directory or settings.CHROMA_DB_PATH
         self.embedding_model_name = embedding_model_name or settings.EMBEDDING_MODEL
         self.embedding_device = embedding_device or settings.EMBEDDING_DEVICE
+        self.min_confidence = float(getattr(settings, "RESPONSIBLE_UNIT_MIN_CONFIDENCE", 0.0))
         self._model = None
         self._client = None
         self._collection = None
@@ -301,10 +302,16 @@ class DepartmentAssigner:
         query_text: str,
         top_k_tasks: int = 20,
         top_n_units: int = 3,
-        min_confidence: float = 0.0,
+        min_confidence: Optional[float] = None,
         use_llm: bool = False,
     ) -> List[Dict[str, Any]]:
-        """민원 질의 → responsible_unit 후보 리스트."""
+        """민원 질의 → responsible_unit 후보 리스트.
+
+        min_confidence 미지정 시 설정값(RESPONSIBLE_UNIT_MIN_CONFIDENCE)을 적용한다.
+        하한 미달이면 후보가 빈 배열로 폐기된다(자신 없는 출력 억제 = soft 폴백).
+        """
+        if min_confidence is None:
+            min_confidence = self.min_confidence
         collection = self._get_collection()
         q_vec = self._embed([query_text])[0]
         res = collection.query(

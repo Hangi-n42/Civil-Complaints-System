@@ -97,3 +97,16 @@ def test_build_query_text_orders_keyterms_first():
         key_terms=["3톤 미만 지게차", "면허"],
     )
     assert q.index("3톤 미만 지게차") < q.index("긴 민원 원문")
+
+
+# ── min_confidence 하한 (자신 없는 후보 억제, #346 B) ──────────────────────
+def test_aggregate_min_confidence_abstains():
+    hits = [
+        {"department": "택시운수과", "task": "법인택시 면허 관리", "similarity": 0.63},
+        {"department": "도로계획과", "task": "황령3터널 관련 업무", "similarity": 0.57},
+    ]
+    # 하한 0.7 이면 둘 다 미달 → 빈 배열(폐기)
+    assert aggregate_candidates(hits, min_confidence=0.7) == []
+    # 하한 0.6 이면 택시운수과(0.63)만 통과
+    out = aggregate_candidates(hits, min_confidence=0.6)
+    assert [c["name"] for c in out] == ["택시운수과"]
