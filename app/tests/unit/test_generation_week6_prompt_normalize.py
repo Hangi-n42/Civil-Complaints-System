@@ -197,6 +197,8 @@ def test_normalize_response_enforces_week6_shape():
     assert payload["generation_metadata"] == {
         "fallback_used": False,
         "parse_retry_count": 0,
+        "grounding_evidence_count": 0,
+        "citation_count": 0,
         "generation_mode": "default",
         "legal_grounding_status": "not_requested",
         "legal_grounding_error": "",

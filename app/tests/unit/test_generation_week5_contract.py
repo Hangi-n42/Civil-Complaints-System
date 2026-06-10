@@ -256,6 +256,8 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert data["generation_metadata"] == {
         "fallback_used": False,
         "parse_retry_count": 0,
+        "grounding_evidence_count": 1,
+        "citation_count": 1,
         "generation_mode": "default",
         "legal_grounding_status": "not_requested",
         "legal_grounding_error": "",
@@ -387,6 +389,124 @@ def test_qa_reused_search_results_are_filtered_before_generation(monkeypatch):
     assert grounding_call["top_k"] == 5
 
 
+def test_qa_filtered_search_results_empty_use_no_evidence_fallback(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    retrieval_service = _TrackingRetrievalService([])
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: _FailIfCalledGenerationService(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-0010",
+            "query": "교육 지원 절차와 예약 방법을 알려주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_general_low_v1",
+                "route_key": "general/low",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "balanced",
+            },
+            "use_search_results": True,
+            "search_results": [
+                {
+                    "doc_id": "DOC-BROAD-1",
+                    "chunk_id": "CASE-BROAD-1__chunk-0",
+                    "case_id": "CASE-BROAD-1",
+                    "snippet": "관련성이 낮아 grounding filter에서 제거될 문서입니다.",
+                    "score": 0.71,
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["answer"].strip()
+    assert data["citations"] == []
+    assert data["generation_metadata"]["fallback_used"] is True
+    assert data["generation_metadata"]["generation_mode"] == "no_evidence_fallback"
+    assert data["generation_metadata"]["grounding_evidence_count"] == 0
+    assert data["generation_metadata"]["citation_count"] == 0
+    assert "담당부서" in data["answer"]
+
+
+def test_qa_low_evidence_continues_generation_and_reports_counts(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "교육 지원 신청은 담당 부서 검토를 거칩니다.",
+                "score": 0.91,
+            },
+            {
+                "doc_id": "DOC-002",
+                "chunk_id": "CASE-2__chunk-0",
+                "case_id": "CASE-2",
+                "snippet": "예약 절차는 접수 기관 확인이 필요합니다.",
+                "score": 0.84,
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: _StubGenerationService(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-0011",
+            "query": "교육 지원 절차와 예약 방법을 알려주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_general_low_v1",
+                "route_key": "general/low",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "balanced",
+            },
+            "use_search_results": True,
+            "search_results": retrieval_service.results,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["answer"].strip()
+    assert data["generation_metadata"]["fallback_used"] is False
+    assert data["generation_metadata"]["generation_mode"] == "default"
+    assert data["generation_metadata"]["grounding_evidence_count"] == 2
+    assert data["generation_metadata"]["citation_count"] == 1
+
+
 def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypatch):
     from app.api.routers import generation as generation_router
 
@@ -430,6 +550,8 @@ def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypat
     assert data["generation_metadata"] == {
         "fallback_used": True,
         "parse_retry_count": 0,
+        "grounding_evidence_count": 0,
+        "citation_count": 0,
         "generation_mode": "no_evidence_fallback",
         "legal_grounding_status": "not_requested",
         "legal_grounding_error": "",
@@ -491,6 +613,8 @@ def test_qa_marks_api_fallback_when_generation_answer_is_empty(monkeypatch):
     assert data["generation_metadata"] == {
         "fallback_used": True,
         "parse_retry_count": 1,
+        "grounding_evidence_count": 1,
+        "citation_count": 1,
         "generation_mode": "api_answer_fallback",
         "legal_grounding_status": "not_requested",
         "legal_grounding_error": "",

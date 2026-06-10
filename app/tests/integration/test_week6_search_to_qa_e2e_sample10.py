@@ -205,9 +205,11 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
             "segment_coverage",
         }
         assert qa_data["generation_metadata"] == {
-            "fallback_used": False,
-            "parse_retry_count": 0,
-            "generation_mode": "default",
+                "fallback_used": False,
+                "parse_retry_count": 0,
+                "grounding_evidence_count": 1,
+                "citation_count": 1,
+                "generation_mode": "default",
             "legal_grounding_status": "not_requested",
             "legal_grounding_error": "",
         }

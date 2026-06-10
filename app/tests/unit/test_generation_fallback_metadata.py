@@ -67,6 +67,8 @@ async def test_generate_qa_reports_retry_then_force_json_success(monkeypatch):
     assert result["generation_metadata"] == {
         "fallback_used": False,
         "parse_retry_count": 1,
+        "grounding_evidence_count": 1,
+        "citation_count": 1,
         "generation_mode": "force_json",
         "legal_grounding_status": "no_candidates",
         "legal_grounding_error": "",
@@ -91,6 +93,8 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
     assert result["generation_metadata"] == {
         "fallback_used": True,
         "parse_retry_count": 3,
+        "grounding_evidence_count": 1,
+        "citation_count": 1,
         "generation_mode": "fast_fallback",
         "legal_grounding_status": "no_candidates",
         "legal_grounding_error": "",
@@ -184,6 +188,8 @@ async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
     assert result["generation_metadata"] == {
         "fallback_used": False,
         "parse_retry_count": 1,
+        "grounding_evidence_count": 1,
+        "citation_count": 1,
         "generation_mode": "force_json",
         "legal_grounding_status": "no_candidates",
         "legal_grounding_error": "",
