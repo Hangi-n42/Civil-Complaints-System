@@ -37,11 +37,7 @@ class Settings:
     # ChromaDB 설정
     CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "chroma_db"))
     CHROMA_PERSIST_DIRECTORY: Optional[str] = CHROMA_DB_PATH
-    # 기본 검색 컬렉션. 롤백이 필요하면 env에서 civil_cases_v1로 되돌린다.
-    DEFAULT_CHROMA_COLLECTION: str = os.getenv(
-        "DEFAULT_CHROMA_COLLECTION",
-        "civil_cases_v1_be1_metadata_v1",
-    )
+    DEFAULT_CHROMA_COLLECTION: str = os.getenv("DEFAULT_CHROMA_COLLECTION", "civil_cases_v1")
 
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")

@@ -39,8 +39,8 @@ def test_search_query_signals_are_normalized():
     assert request.query_signals.responsible_units_source == "be1_structured"
 
 
-def test_default_collection_uses_configured_overlay_collection():
-    assert settings.DEFAULT_CHROMA_COLLECTION == "civil_cases_v1_be1_metadata_v1"
+def test_default_collection_uses_clean_collection_name():
+    assert settings.DEFAULT_CHROMA_COLLECTION == "civil_cases_v1"
     assert SearchRequest(query="가로등 점검").collection_name == settings.DEFAULT_CHROMA_COLLECTION
     assert RetrievalService().default_collection_name == settings.DEFAULT_CHROMA_COLLECTION
 
