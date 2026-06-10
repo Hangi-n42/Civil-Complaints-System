@@ -298,6 +298,20 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         )
 
     routing = _build_routing_payload(request.query)
+    fixed_search_hint = {
+        "top_k": request.top_k,
+        "snippet_max_chars": 1100,
+        "chunk_policy": "balanced",
+    }
+    routing["routing_hint"].update(fixed_search_hint)
+    routing["applied_params"].update(fixed_search_hint)
+    routing["merge_policy"] = "single_query"
+    routing["routing_trace"]["merge_policy"] = "single_query"
+    routing["routing_trace"]["route_reason"] = (
+        "answer_hint_only; "
+        f"complexity={routing['routing_trace']['complexity_level']}; "
+        f"top_k={request.top_k}; chunk_policy=balanced"
+    )
     service = get_retrieval_service()
 
     try:
@@ -317,13 +331,13 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         routing["applied_params"]["merge_policy"] = routing["merge_policy"]
         results = await service.search(
             query=request.query,
-            top_k=routing["routing_hint"]["top_k"],
+            top_k=request.top_k,
             filters=filters,
             collection_name=request.collection_name,
             topic_type=routing["routing_trace"]["topic_type"],
-            request_segments=routing["request_segments"],
+            request_segments=None,
             retrieval_policy=routing["retrieval_policy"],
-            snippet_max_chars=routing["routing_hint"]["snippet_max_chars"],
+            snippet_max_chars=fixed_search_hint["snippet_max_chars"],
             query_signals=request.query_signals.model_dump() if request.query_signals else None,
         )
     except RetrievalError as e:

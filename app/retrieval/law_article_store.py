@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 from collections import Counter
 from pathlib import Path
@@ -34,6 +35,16 @@ _TOKEN_RE = re.compile(r"[가-힣]+|[A-Za-z0-9]+")
 
 
 _HANGUL_RE = re.compile(r"^[가-힣]+$")
+
+
+def _normalize_chroma_client_path(persist_directory: str | Path) -> str:
+    """Windows 한글 절대 경로를 Chroma가 읽을 수 있는 상대 경로로 바꾼다."""
+
+    path = Path(persist_directory)
+    try:
+        return os.path.relpath(str(path.resolve()), start=str(Path.cwd().resolve()))
+    except (OSError, ValueError):
+        return str(path)
 
 
 def tokenize(text: str) -> List[str]:
@@ -178,7 +189,9 @@ class LawArticleStore:
         if self._collection is None:
             import chromadb
             Path(self.persist_directory).mkdir(parents=True, exist_ok=True)
-            self._client = chromadb.PersistentClient(path=str(self.persist_directory))
+            self._client = chromadb.PersistentClient(
+                path=_normalize_chroma_client_path(self.persist_directory)
+            )
             self._collection = self._client.get_or_create_collection(
                 name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"},
             )

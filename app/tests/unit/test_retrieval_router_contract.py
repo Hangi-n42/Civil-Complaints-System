@@ -96,11 +96,11 @@ def test_search_response_is_wrapped(monkeypatch):
     assert len(body["data"]["routing_trace"]["request_segments"]) >= 1
     assert "cross_sentence_dependency" in body["data"]["routing_trace"]["complexity_trace"]
     assert body["data"]["routing_trace"]["segment_count"] >= 1
-    assert body["data"]["routing_trace"]["merge_policy"] in {"single_query", "dedupe_max_score"}
+    assert body["data"]["routing_trace"]["merge_policy"] == "single_query"
     assert body["data"]["routing_trace"]["retrieval_policy"] in {"admin_policy", "field_ops", "general"}
-    assert body["data"]["routing_hint"]["top_k"] in {4, 6, 9}
-    assert body["data"]["routing_hint"]["snippet_max_chars"] in {400, 700, 1100}
-    assert body["data"]["routing_hint"]["chunk_policy"] in {"compact", "balanced", "expanded"}
+    assert body["data"]["routing_hint"]["top_k"] == 5
+    assert body["data"]["routing_hint"]["snippet_max_chars"] == 1100
+    assert body["data"]["routing_hint"]["chunk_policy"] == "balanced"
     assert isinstance(body["data"]["retrieved_docs"], list)
     assert isinstance(body["data"]["results"], list)
     first = body["data"]["results"][0]

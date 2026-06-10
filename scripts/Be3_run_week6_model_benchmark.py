@@ -53,12 +53,20 @@ from app.generation.parsing.json_utils import (
     parse_qa_json_response,
 )
 from app.generation.prompts.prompt_factory import PromptFactory
+from app.generation.service import GenerationService
+from app.generation.citation.legal_citation import ground_legal_citations
 from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
     normalize_citations,
     sanitize_answer_text,
 )
+from app.structuring.enrichment import (
+    build_key_terms,
+    classify_issue_type,
+    normalize_entity_texts,
+)
+from app.structuring.legal_dictionary import get_legal_ref_matcher
 
 
 def _read_yaml(path: Path) -> Dict[str, Any]:
@@ -351,12 +359,109 @@ def _case_context(case: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [item for item in context if isinstance(item, dict)]
 
 
+def _clean_signal_values(value: Any, field: str | None = None) -> List[str]:
+    items = value if isinstance(value, list) else []
+    values: List[str] = []
+    seen: set[str] = set()
+    for item in items:
+        raw = item.get(field) if field and isinstance(item, dict) else item
+        text = " ".join(str(raw or "").split())
+        if not text or text.casefold() in seen:
+            continue
+        seen.add(text.casefold())
+        values.append(text)
+    return values
+
+
+def _extract_query_signals_from_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
+    urgency = structured.get("urgency")
+    urgency_level = urgency.get("level") if isinstance(urgency, dict) else urgency
+    responsible_sources = _clean_signal_values(structured.get("responsible_unit"), "source")
+    signals = {
+        "entity_texts": _clean_signal_values(structured.get("entity_texts"), "text"),
+        "legal_ref_names": _clean_signal_values(structured.get("legal_refs"), "name"),
+        "legal_ref_ids": _clean_signal_values(structured.get("legal_refs"), "law_id"),
+        "issue_types": _clean_signal_values(structured.get("issue_type"), "name"),
+        "key_terms": _clean_signal_values(structured.get("key_terms")),
+        "responsible_units": _clean_signal_values(structured.get("responsible_unit"), "name"),
+        "responsible_units_source": responsible_sources[0] if responsible_sources else "",
+        "urgency_level": " ".join(str(urgency_level or "").split()),
+    }
+    return {key: value for key, value in signals.items() if value}
+
+
+def _build_case_query_signals(case: Dict[str, Any]) -> Dict[str, Any]:
+    """입력의 BE1 구조화 결과를 우선 사용하고, 없으면 결정론적으로 신호를 만든다."""
+    explicit = case.get("query_signals")
+    if isinstance(explicit, dict) and explicit:
+        return dict(explicit)
+
+    structured = case.get("structured")
+    if not isinstance(structured, dict):
+        structured = case.get("structured_output")
+    if isinstance(structured, dict):
+        signals = _extract_query_signals_from_structured(structured)
+        if signals:
+            return signals
+
+    query = _case_query(case)
+    raw_text = str(
+        case.get("consulting_content")
+        or case.get("raw_text")
+        or case.get("text")
+        or query
+    )
+    legal_refs = get_legal_ref_matcher().match(raw_text)
+    entity_texts = normalize_entity_texts([], raw_text)
+    issue_types = classify_issue_type(raw_text)
+    key_terms = build_key_terms(raw_text, entity_texts, issue_types, legal_refs)
+    return {
+        "entity_texts": _clean_signal_values(entity_texts, "text"),
+        "legal_ref_names": _clean_signal_values(legal_refs, "name"),
+        "legal_ref_ids": _clean_signal_values(legal_refs, "law_id"),
+        "issue_types": _clean_signal_values(issue_types, "name"),
+        "key_terms": _clean_signal_values(key_terms),
+    }
+
+
+def _prepare_direct_legal_grounding(
+    *,
+    query: str,
+    query_signals: Dict[str, Any],
+    prompt: str,
+    mode: str,
+) -> Tuple[str, List[Dict[str, Any]], Dict[str, str]]:
+    """direct 모드에도 운영 GenerationService와 같은 법령 컨텍스트를 적용한다."""
+    service = GenerationService()
+    articles, _extra, status = service._prepare_legal_context(
+        query,
+        query_signals=query_signals,
+    )
+    legal_context = service._build_legal_retry_context(articles, mode)
+    if legal_context:
+        prompt += legal_context
+    return service._append_output_contract(prompt), articles, status
+
+
+def _legal_context_refs(articles: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    return [
+        {
+            "law_id": str(item.get("law_id") or ""),
+            "law_name": str(item.get("law_name") or ""),
+            "article_no": str(item.get("article_no") or ""),
+        }
+        for item in articles
+        if isinstance(item, dict)
+    ]
+
+
 def _build_prompt_context_from_case(
     case: Dict[str, Any],
     *,
     mode: str = "default",
     context_override: List[Dict[str, Any]] | None = None,
     routing_trace: Dict[str, Any] | None = None,
+    query_signals: Dict[str, Any] | None = None,
 ) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
     """벤치마크 프롬프트는 PromptFactory 단일 경로로 구성한다.
 
@@ -392,6 +497,7 @@ def _build_prompt_context_from_case(
             filters=filters,
             threshold=threshold,
             mode=prompt_mode,
+            query_signals=query_signals,
         )
     )
 
@@ -517,6 +623,7 @@ def _call_search_qa_api(
     complaint_id: str,
     top_k: int,
     timeout_sec: int,
+    query_signals: Dict[str, Any] | None = None,
 ) -> Tuple[Dict[str, Any], float, str, List[Dict[str, Any]]]:
     search_url = f"{api_base_url.rstrip('/')}/api/v1/search"
     qa_url = f"{api_base_url.rstrip('/')}/api/v1/qa"
@@ -530,6 +637,7 @@ def _call_search_qa_api(
                 "complaint_id": complaint_id,
                 "query": query,
                 "top_k": top_k,
+                "query_signals": query_signals or None,
             },
         )
         search_res.raise_for_status()
@@ -556,6 +664,7 @@ def _call_search_qa_api(
             "routing_hint": routing_hint,
             "use_search_results": use_search_results,
             "search_results": qa_search_results,
+            "query_signals": query_signals or None,
         }
         qa_res = client.post(qa_url, json=qa_req)
         qa_res.raise_for_status()
@@ -574,6 +683,9 @@ def _call_search_qa_api(
         "routing_trace": qa_data.get("routing_trace", {}),
         "latency_ms": qa_data.get("latency_ms", {}),
         "quality_signals": qa_data.get("quality_signals", {}),
+        "legal_citations": qa_data.get("legal_citations", []),
+        "legal_citation_warnings": qa_data.get("legal_citation_warnings", []),
+        "generation_metadata": qa_data.get("generation_metadata", {}),
     }
     eval_context = _extract_eval_context_from_retrieved_docs(retrieved_docs)
     return parsed, latency, json.dumps(qa_body, ensure_ascii=False), eval_context
@@ -799,20 +911,61 @@ def run(
                     "run_index": rep + 1,
                 }
                 try:
+                    query = _case_query(case)
+                    query_signals = _build_case_query_signals(case)
                     eval_context = _case_context(case)
                     routing_trace: Dict[str, Any] = {}
+                    legal_articles: List[Dict[str, Any]] = []
+                    legal_citations: List[Dict[str, Any]] = []
+                    legal_citation_warnings: List[str] = []
+                    legal_grounding = {"status": "not_requested", "error": ""}
                     if benchmark_mode == "api":
                         complaint_id = str(case.get("complaint_id") or f"BM-{case_id}")
                         top_k = int(case.get("top_k") or max(1, min(10, len(eval_context) or 5)))
                         parsed_final, latency, raw_response, eval_context = _call_search_qa_api(
                             api_base_url=api_base_url,
-                            query=_case_query(case),
+                            query=query,
                             complaint_id=complaint_id,
                             top_k=top_k,
                             timeout_sec=timeout_sec,
+                            query_signals=query_signals,
                         )
+                        generation_metadata = parsed_final.get("generation_metadata")
+                        generation_metadata = (
+                            generation_metadata if isinstance(generation_metadata, dict) else {}
+                        )
+                        legal_grounding = {
+                            "status": str(
+                                generation_metadata.get("legal_grounding_status")
+                                or "not_requested"
+                            ),
+                            "error": str(
+                                generation_metadata.get("legal_grounding_error")
+                                or ""
+                            ),
+                        }
+                        legal_citations = [
+                            item
+                            for item in parsed_final.get("legal_citations", [])
+                            if isinstance(item, dict)
+                        ]
+                        legal_citation_warnings = [
+                            str(item)
+                            for item in parsed_final.get("legal_citation_warnings", [])
+                            if str(item).strip()
+                        ]
                     else:
-                        prompt, eval_context, routing_trace = _build_prompt_context_from_case(case, mode="default")
+                        prompt, eval_context, routing_trace = _build_prompt_context_from_case(
+                            case,
+                            mode="default",
+                            query_signals=query_signals,
+                        )
+                        prompt, legal_articles, legal_grounding = _prepare_direct_legal_grounding(
+                            query=query,
+                            query_signals=query_signals,
+                            prompt=prompt,
+                            mode="default",
+                        )
                         parsed_final, latency, raw_response = _call_model(
                             base_url=base_url,
                             model_name=model_name,
@@ -846,6 +999,13 @@ def run(
                             mode="compact",
                             context_override=eval_context,
                             routing_trace=routing_trace,
+                            query_signals=query_signals,
+                        )
+                        compact_prompt, legal_articles, legal_grounding = _prepare_direct_legal_grounding(
+                            query=query,
+                            query_signals=query_signals,
+                            prompt=compact_prompt,
+                            mode="compact",
                         )
                         parsed_compact, latency_compact, raw_response_compact = _call_model(
                             base_url=base_url,
@@ -869,6 +1029,18 @@ def run(
                         )
                         strict_answer = _derive_non_empty_answer(parsed_compact, raw_response, eval_context)
                         strict_cite_rate = _citation_match_rate(strict_citations, eval_context)
+
+                    if benchmark_mode == "direct" and legal_articles:
+                        grounded = ground_legal_citations(strict_answer, legal_articles)
+                        strict_answer = str(grounded.get("answer") or "").strip()
+                        legal_citations = [
+                            item for item in grounded.get("valid", []) if isinstance(item, dict)
+                        ]
+                        legal_citation_warnings = [
+                            str(item)
+                            for item in grounded.get("warnings", [])
+                            if str(item).strip()
+                        ]
 
                     latencies.append(latency)
 
@@ -922,6 +1094,13 @@ def run(
                             "benchmark_mode": benchmark_mode,
                             "derived_query": routing_trace.get("derived_query") or _case_query(case),
                             "retrieved_context_count": len(eval_context),
+                            "query_signals": query_signals,
+                            "legal_grounding_status": legal_grounding.get("status", "not_requested"),
+                            "legal_grounding_error": legal_grounding.get("error", ""),
+                            "legal_context_count": len(legal_articles),
+                            "legal_context_refs": _legal_context_refs(legal_articles),
+                            "legal_citations": legal_citations,
+                            "legal_citation_warnings": legal_citation_warnings,
                         }
                     )
                 except Exception as e:
@@ -1177,6 +1356,11 @@ def main() -> None:
             "run_index": row.get("run_index"),
             "status": row.get("status"),
             "raw_response": row.get("raw_response", ""),
+            "query_signals": row.get("query_signals", {}),
+            "legal_grounding_status": row.get("legal_grounding_status", "not_requested"),
+            "legal_grounding_error": row.get("legal_grounding_error", ""),
+            "legal_context_count": row.get("legal_context_count", 0),
+            "legal_context_refs": row.get("legal_context_refs", []),
             "error": row.get("error"),
         }
         parsed_answer_row = {
@@ -1197,6 +1381,13 @@ def main() -> None:
             "citation_match_rate": row.get("citation_match_rate", 0.0),
             "citation_match_rate_strict": row.get("citation_match_rate_strict", 0.0),
             "citation_match_rate_repaired": row.get("citation_match_rate_repaired", 0.0),
+            "query_signals": row.get("query_signals", {}),
+            "legal_grounding_status": row.get("legal_grounding_status", "not_requested"),
+            "legal_grounding_error": row.get("legal_grounding_error", ""),
+            "legal_context_count": row.get("legal_context_count", 0),
+            "legal_context_refs": row.get("legal_context_refs", []),
+            "legal_citations": row.get("legal_citations", []),
+            "legal_citation_warnings": row.get("legal_citation_warnings", []),
         }
         _append_jsonl(raw_response_jsonl, raw_response_row)
         _append_jsonl(parsed_answer_jsonl, parsed_answer_row)
