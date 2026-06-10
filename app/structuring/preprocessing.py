@@ -12,8 +12,221 @@ title + client_question 만 사용하고 consultant_answer(상담사 답변)는 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+
+
+_MARKER_RE = re.compile(
+    r"(?m)^[ \t\"'“”‘’「『]*"
+    r"(?P<label>제목|Q|질문|문의|A|답변)"
+    r"[ \t]*[:：.]"
+    r"[ \t]*"
+)
+_SPEAKER_RE = re.compile(
+    r"(?m)^[ \t\"'“”‘’「『]*"
+    r"(?P<label>고객|민원인|내담자|문의자|질문자|사용자|상담원|상담사|상담자|담당자|직원|공무원)"
+    r"[ \t]*[:：]"
+    r"[ \t]*"
+)
+_QUESTION_LABELS = {"Q", "질문", "문의"}
+_ANSWER_LABELS = {"A", "답변"}
+_CUSTOMER_SPEAKERS = {"고객", "민원인", "내담자", "문의자", "질문자", "사용자"}
+_AGENT_SPEAKERS = {"상담원", "상담사", "상담자", "담당자", "직원", "공무원"}
+_PLACEHOLDER_TITLES = {"", "제목없음", "처리실패", "파싱실패"}
+
+
+def _clean_content(text: Any) -> str:
+    """원천 데이터의 줄바꿈/공백 인코딩 흔들림을 정리한다."""
+    if text is None:
+        return ""
+
+    cleaned = str(text)
+    cleaned = cleaned.replace("_x000D_\n", "\n")
+    cleaned = cleaned.replace("_x000D_", "\n")
+    cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = cleaned.replace("\ufeff", "").replace("\u00a0", " ")
+    return cleaned.strip()
+
+
+def _normalize_text(text: Any) -> str:
+    """구조화 입력에 들어갈 수 있도록 과도한 공백만 정규화한다."""
+    normalized = _clean_content(text)
+    if not normalized:
+        return ""
+
+    normalized = re.sub(r"[ \t]+", " ", normalized)
+    normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+    return normalized.strip(" \t\n\"'“”‘’「『」』")
+
+
+def _split_labeled_sections(text: str, marker_re: re.Pattern[str]) -> List[Tuple[str, str]]:
+    """마커 위치를 기준으로 본문을 잘라 label/body 목록을 만든다."""
+    matches = list(marker_re.finditer(text))
+    sections: List[Tuple[str, str]] = []
+
+    for idx, match in enumerate(matches):
+        start = match.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        label = match.group("label").strip()
+        body = _normalize_text(text[start:end])
+        sections.append((label, body))
+
+    return sections
+
+
+def _make_title_from_question(question: str) -> str:
+    """대화형 데이터처럼 제목이 없는 경우 첫 민원인 발화로 짧은 제목을 만든다."""
+    first_line = _normalize_text(question).split("\n", 1)[0]
+    if len(first_line) <= 80:
+        return first_line
+    return first_line[:80].rstrip()
+
+
+def _parse_marker_content(content: str) -> Dict[str, str]:
+    """제목/Q/A 또는 제목/Q/답변 형식을 분리한다."""
+    sections = _split_labeled_sections(content, _MARKER_RE)
+    if not sections:
+        return {}
+
+    title_parts: List[str] = []
+    question_parts: List[str] = []
+    answer_parts: List[str] = []
+    active_part = ""
+
+    for label, body in sections:
+        if label == "제목" and not active_part:
+            title_parts.append(body)
+            continue
+
+        if label in _QUESTION_LABELS and active_part != "answer":
+            question_parts.append(body)
+            active_part = "question"
+        elif label in _ANSWER_LABELS:
+            answer_parts.append(body)
+            active_part = "answer"
+        elif active_part == "question":
+            question_parts.append(f"{label}: {body}")
+        elif active_part == "answer":
+            answer_parts.append(f"{label}: {body}")
+        else:
+            title_parts.append(body)
+
+    title = _normalize_text("\n".join(title_parts))
+    question = _normalize_text("\n".join(question_parts))
+    answer = _normalize_text("\n".join(answer_parts))
+
+    return {
+        "title": title,
+        "client_question": question,
+        "consultant_answer": answer,
+    }
+
+
+def _parse_dialogue_content(content: str) -> Dict[str, str]:
+    """고객/상담원 대화 형식에서 민원인 발화와 답변 발화를 분리한다."""
+    sections = _split_labeled_sections(content, _SPEAKER_RE)
+    if not sections:
+        return {}
+
+    question_parts: List[str] = []
+    answer_parts: List[str] = []
+
+    for label, body in sections:
+        if label in _CUSTOMER_SPEAKERS:
+            question_parts.append(body)
+        elif label in _AGENT_SPEAKERS:
+            answer_parts.append(body)
+
+    question = _normalize_text("\n".join(question_parts))
+    answer = _normalize_text("\n".join(answer_parts))
+
+    return {
+        "title": _make_title_from_question(question),
+        "client_question": question,
+        "consultant_answer": answer,
+    }
+
+
+def parse_consulting_content(content: Any, source: str = "") -> Dict[str, str]:
+    """raw consulting_content를 제목/민원인 질문/상담사 답변으로 분리한다.
+
+    대부분 지역은 제목/Q/A 마커를 사용하고, 국립아시아문화전당은
+    고객/상담원 화자 라벨을 사용한다. 두 경우 모두 BE1 입력에는
+    민원인 발화만 들어가야 하므로 답변은 별도 필드에만 보존한다.
+    """
+    cleaned = _clean_content(content)
+    if not cleaned:
+        return {"title": "", "client_question": "", "consultant_answer": ""}
+
+    marker_parsed = _parse_marker_content(cleaned)
+    if marker_parsed and (
+        marker_parsed.get("client_question") or marker_parsed.get("consultant_answer")
+    ):
+        return marker_parsed
+
+    dialogue_parsed = _parse_dialogue_content(cleaned)
+    if dialogue_parsed and dialogue_parsed.get("client_question"):
+        return dialogue_parsed
+
+    # 알 수 없는 단일 본문 형식은 답변을 섞었다고 단정할 근거가 없어 원문을 질문으로 둔다.
+    return {"title": "", "client_question": _normalize_text(cleaned), "consultant_answer": ""}
+
+
+def format_consulting_date(date_value: Any) -> str:
+    """YYYYMMDD 형식의 원천 날짜를 YYYY-MM-DD로 정규화한다."""
+    date_text = str(date_value or "").strip()
+    if len(date_text) == 8 and date_text.isdigit():
+        return f"{date_text[:4]}-{date_text[4:6]}-{date_text[6:8]}"
+    return date_text
+
+
+def normalize_category(category: Any) -> str:
+    """빈 카테고리를 미분류로 통일한다."""
+    normalized = str(category or "").strip()
+    return normalized or "미분류"
+
+
+def process_raw_record(raw_record: Dict[str, Any]) -> Dict[str, Any]:
+    """원천 레코드(raw_data) 1건을 processed 레코드 형태로 변환한다."""
+    parsed = parse_consulting_content(
+        raw_record.get("consulting_content"),
+        source=str(raw_record.get("source") or ""),
+    )
+
+    return {
+        "source_id": str(raw_record.get("source_id") or "").strip(),
+        "source": str(raw_record.get("source") or "").strip(),
+        "consulting_date": format_consulting_date(raw_record.get("consulting_date")),
+        "consulting_category": normalize_category(raw_record.get("consulting_category")),
+        "title": parsed["title"],
+        "client_question": parsed["client_question"],
+        "consultant_answer": parsed["consultant_answer"],
+        "consulting_turns": raw_record.get("consulting_turns"),
+        "original_length": raw_record.get("original_length", raw_record.get("consulting_length")),
+        "parsing_success": bool(parsed["client_question"] or parsed["title"]),
+    }
+
+
+def _prepared_record(rec: Dict[str, Any]) -> Dict[str, Any]:
+    """processed/raw 어느 쪽이 들어와도 civil_text가 읽을 수 있는 필드를 만든다."""
+    prepared = dict(rec)
+    if prepared.get("consulting_content") and not str(prepared.get("client_question") or "").strip():
+        parsed = parse_consulting_content(
+            prepared.get("consulting_content"),
+            source=str(prepared.get("source") or ""),
+        )
+        for key, value in parsed.items():
+            prepared.setdefault(key, value)
+            if not str(prepared.get(key) or "").strip():
+                prepared[key] = value
+    return prepared
+
+
+def _clean_title(title: Any) -> str:
+    normalized = _normalize_text(title)
+    return "" if normalized in _PLACEHOLDER_TITLES else normalized
 
 
 def civil_text(rec: Dict[str, Any]) -> str:
@@ -22,8 +235,9 @@ def civil_text(rec: Dict[str, Any]) -> str:
     title 을 포함하는 이유: Q 가 비었거나("…내용이 title 에"), Q 가 제목을
     참조("제목 내용처럼")하는 케이스에서 title 이 본문 신호를 보강한다.
     """
-    title = str(rec.get("title") or "").strip()
-    q = str(rec.get("client_question") or "").strip()
+    prepared = _prepared_record(rec)
+    title = _clean_title(prepared.get("title"))
+    q = _normalize_text(prepared.get("client_question"))
     if title and q:
         # Q 가 이미 title 로 시작하면 중복 방지
         return q if q.startswith(title) else f"{title}\n{q}"
@@ -32,23 +246,36 @@ def civil_text(rec: Dict[str, Any]) -> str:
 
 def to_structuring_record(rec: Dict[str, Any]) -> Dict[str, Any]:
     """전처리 레코드 → StructuringService.structure() 입력 dict."""
+    prepared = _prepared_record(rec)
+    source = str(prepared.get("source") or prepared.get("region") or "").strip()
+    category = normalize_category(prepared.get("consulting_category") or prepared.get("category"))
+    original_length = prepared.get("original_length", prepared.get("consulting_length"))
+
     return {
-        "case_id": str(rec.get("source_id") or "").strip(),
-        "text": civil_text(rec),                      # ← 민원인 원문(상담사 제외)
-        "category": str(rec.get("consulting_category") or "미분류").strip() or "미분류",
-        "region": str(rec.get("source") or "").strip(),
-        "created_at": str(rec.get("consulting_date") or "").strip(),
-        "source": str(rec.get("source") or "").strip(),
+        "case_id": str(prepared.get("source_id") or prepared.get("case_id") or "").strip(),
+        "text": civil_text(prepared),                 # ← 민원인 원문(상담사 제외)
+        "category": category,
+        "region": source,
+        "created_at": format_consulting_date(prepared.get("consulting_date") or prepared.get("created_at")),
+        "source": source,
         "metadata": {
-            "consulting_turns": rec.get("consulting_turns"),
-            "original_length": rec.get("original_length"),
+            "consulting_turns": prepared.get("consulting_turns"),
+            "original_length": original_length,
+            "parsing_success": prepared.get("parsing_success"),
         },
     }
 
 
 def load_processed(path: str) -> List[Dict[str, Any]]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return data if isinstance(data, list) else []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        for key in ("records", "data", "items"):
+            records = data.get(key)
+            if isinstance(records, list):
+                return records
+    return []
 
 
 def load_civil_index(path: str) -> Dict[str, Dict[str, str]]:
