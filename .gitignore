@@ -225,7 +225,6 @@ Civil/
 # 대용량 로컬 데이터 (원시 데이터 및 벡터DB)
 data/chroma_db/
 data/raw_data
-data/processed
 data/Public_Civil_Service_LLM_Data/
 data/bm25_index/
 
