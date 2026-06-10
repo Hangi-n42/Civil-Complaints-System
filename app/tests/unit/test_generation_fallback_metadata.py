@@ -99,6 +99,64 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_fast_fallback_preserves_verified_legal_grounding(monkeypatch):
+    service = GenerationService()
+    legal_articles = [
+        {
+            "law_name": "건축법",
+            "article_no": "제80조",
+            "law_id": "001823",
+            "doc_type": "law",
+            "source_url": "https://example.invalid/source",
+            "text": "이행강제금 부과 기준을 정한 확인된 조문입니다.",
+        }
+    ]
+    legal_articles.extend(
+        {
+            "law_name": "건축법",
+            "article_no": f"제{article_no}조",
+            "law_id": "001823",
+            "doc_type": "law",
+            "source_url": "https://example.invalid/source",
+            "text": "복구 재시도에서 축약되어야 하는 추가 조문 내용입니다. " * 8,
+        }
+        for article_no in range(81, 85)
+    )
+    prompts = []
+
+    async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
+        return f"mode={mode}"
+
+    async def fake_call_ollama(prompt, temperature=0.7):
+        prompts.append(prompt)
+        return "not-json"
+
+    monkeypatch.setattr(service, "build_rag_prompt", fake_build_rag_prompt)
+    monkeypatch.setattr(service, "call_ollama", fake_call_ollama)
+    monkeypatch.setattr(
+        service,
+        "_prepare_legal_context",
+        lambda query, query_signals=None: (
+            legal_articles,
+            "unused",
+            {"status": "grounded", "error": ""},
+        ),
+    )
+
+    result = await service.generate_qa("이행강제금 기준을 알려주세요.", CONTEXT)
+
+    assert result["generation_metadata"]["fallback_used"] is True
+    assert result["generation_metadata"]["generation_mode"] == "fast_fallback"
+    assert result["generation_metadata"]["legal_grounding_status"] == "grounded"
+    assert result["legal_citations"][0]["law_name"] == "건축법"
+    assert result["legal_citations"][0]["article_no"] == "제80조"
+    assert result["legal_citations"][0]["verified"] is True
+    assert result["legal_citation_warnings"] == []
+    assert all(prompt.rstrip().endswith("structured_output fields.") for prompt in prompts)
+    assert len(prompts[2]) < len(prompts[0])
+
+
+@pytest.mark.asyncio
 async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
     service = GenerationService()
     empty_answer = json.dumps(

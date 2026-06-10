@@ -899,60 +899,40 @@ class RetrievalService:
             )
             normalized_query_signals = self._normalize_query_signals(query_signals)
             metadata_rerank_on = bool(normalized_query_signals)
-            segments = self._normalize_request_segments(query, request_segments)
-            if len(segments) > 1:
-                segment_results = []
-                for segment in segments:
-                    results_for_segment = store.query(
-                        collection_name=collection_key,
-                        query=segment,
-                        top_k=top_k,
-                        filters=filters or {},
-                        threshold=threshold,
-                        snippet_max_chars=effective_snippet_max_chars,
+
+            # request_segments remain available to BE3 through routing_trace, but
+            # they do not change BE2's fixed Hybrid candidate set or ranking.
+            effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
+            use_hybrid = effective_strategy == "hybrid" and not (filters or {})
+            retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
+            if metadata_rerank_on:
+                retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
+            fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
+            dense_results = store.query(
+                collection_name=collection_key,
+                query=query,
+                top_k=fanout,
+                filters=filters or {},
+                threshold=threshold,
+                snippet_max_chars=effective_snippet_max_chars,
+            )
+            if use_hybrid:
+                try:
+                    results = self._get_hybrid().search(
+                        collection_key, query, retrieve_k, dense_results,
+                        fanout=settings.HYBRID_FANOUT,
                     )
-                    results_for_segment = self._apply_retrieval_policy(
-                        results_for_segment,
-                        topic_type=topic_type,
-                        retrieval_policy=retrieval_policy,
-                    )
-                    segment_results.append((segment, results_for_segment))
-                results = self._merge_segment_results(segment_results, top_k=top_k)
-                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
-            else:
-                # 필터가 없을 때만 Hybrid (BM25는 필터 비인지 → 필터 시 Dense 폴백)
-                effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
-                use_hybrid = effective_strategy == "hybrid" and not (filters or {})
-                # grounding 필터 시엔 채점 후 줄어드므로 후보 풀을 더 확보
-                retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
-                if metadata_rerank_on:
-                    retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
-                fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
-                dense_results = store.query(
-                    collection_name=collection_key,
-                    query=query,
-                    top_k=fanout,
-                    filters=filters or {},
-                    threshold=threshold,
-                    snippet_max_chars=effective_snippet_max_chars,
-                )
-                if use_hybrid:
-                    try:
-                        results = self._get_hybrid().search(
-                            collection_key, query, retrieve_k, dense_results,
-                            fanout=settings.HYBRID_FANOUT,
-                        )
-                    except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
-                        self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
-                        results = dense_results[:retrieve_k]
-                else:
+                except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
+                    self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
                     results = dense_results[:retrieve_k]
-                results = self._apply_retrieval_policy(
-                    results,
-                    topic_type=topic_type,
-                    retrieval_policy=retrieval_policy,
-                )
-                results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
+            else:
+                results = dense_results[:retrieve_k]
+            results = self._apply_retrieval_policy(
+                results,
+                topic_type=topic_type,
+                retrieval_policy=retrieval_policy,
+            )
+            results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
 
             if grounding_on and results:
                 results = await self._apply_grounding_filter(query, results, top_k)

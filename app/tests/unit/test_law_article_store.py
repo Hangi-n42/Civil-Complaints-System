@@ -1,10 +1,12 @@
 """조문 검색 Hybrid(BM25+RRF) 순수 로직 + search 배선 테스트 (모델 불필요)."""
 
 import json
+import os
 
 from app.retrieval.law_article_store import (
     BM25Index,
     LawArticleStore,
+    _normalize_chroma_client_path,
     rank_articles,
     rrf_fuse,
     tokenize,
@@ -12,6 +14,15 @@ from app.retrieval.law_article_store import (
 
 
 # ── tokenize (어절 + 한글 bigram) ─────────────────────────────────────────
+def test_normalize_chroma_client_path_uses_relative_path(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    persist_dir = tmp_path / "한글경로" / "chroma_db"
+
+    assert _normalize_chroma_client_path(persist_dir) == os.path.join(
+        "한글경로", "chroma_db"
+    )
+
+
 def test_tokenize_emits_words_and_korean_bigrams():
     toks = tokenize("정기적성검사")
     assert "정기적성검사" in toks                 # 어절

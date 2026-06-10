@@ -584,7 +584,11 @@ class GenerationService:
             "limitations": limitations,
         }
 
-    def _build_fast_fallback_from_context(self, context: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_fast_fallback_from_context(
+        self,
+        context: List[Dict[str, Any]],
+        legal_articles: List[Dict[str, Any]] | None = None,
+    ) -> Dict[str, Any]:
         """모델 재호출 없이 즉시 사용할 수 있는 최소 응답을 구성한다."""
         if context:
             first = context[0]
@@ -614,6 +618,20 @@ class GenerationService:
                 "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 절차와 보완 필요 사항을 친절히 안내해 드리겠습니다. 감사합니다. 끝."
             )
             citations = []
+
+        if legal_articles:
+            article = legal_articles[0]
+            law_name = str(article.get("law_name") or "").strip()
+            article_no = str(article.get("article_no") or "").strip()
+            article_text = " ".join(str(article.get("text") or "").split())[:180]
+            legal_reference = " ".join(
+                part for part in (law_name, article_no) if part
+            ).strip()
+            if legal_reference:
+                answer = (
+                    f"{answer}\n\n5. 확인된 법령 근거로 {legal_reference}를 참고할 수 있습니다."
+                    + (f" {article_text}" if article_text else "")
+                )
 
         return {
             "answer": answer,
@@ -745,6 +763,48 @@ class GenerationService:
                 "error": f"{type(e).__name__}: legal grounding unavailable",
             }
 
+    @staticmethod
+    def _build_legal_retry_context(
+        articles: List[Dict[str, Any]],
+        mode: str,
+    ) -> str:
+        """Reduce legal context on recovery attempts without dropping evidence."""
+        if not articles:
+            return ""
+
+        from app.generation.citation.legal_citation import (
+            LEGAL_CITATION_INSTRUCTION,
+            build_legal_context_block,
+        )
+
+        limits = {
+            "default": (5, 280),
+            "force_json": (3, 180),
+            "compact": (1, 120),
+        }
+        max_articles, max_chars = limits.get(mode, limits["default"])
+        return (
+            "\n\n"
+            + LEGAL_CITATION_INSTRUCTION
+            + "\n"
+            + build_legal_context_block(
+                articles,
+                max_articles=max_articles,
+                max_chars=max_chars,
+            )
+        )
+
+    @staticmethod
+    def _append_output_contract(prompt: str) -> str:
+        """Keep the JSON-only instruction last after supplemental context."""
+        return (
+            prompt
+            + "\n\n[FINAL OUTPUT CONTRACT]\n"
+            + "Return exactly one JSON object and no prose, markdown, or code fence. "
+            + "The object must contain non-empty answer, citations, limitations, "
+            + "and structured_output fields."
+        )
+
     def _build_urgency_context(
         self,
         query_signals: Dict[str, Any] | None = None,
@@ -832,7 +892,7 @@ class GenerationService:
                 {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
-            legal_articles, legal_extra, legal_grounding = self._prepare_legal_context(
+            legal_articles, _legal_extra, legal_grounding = self._prepare_legal_context(
                 query,
                 query_signals=query_signals,
             )
@@ -846,10 +906,15 @@ class GenerationService:
                         routing_trace=routing_trace,
                         mode=str(step["mode"]),
                     )
-                    if legal_extra:
-                        prompt = prompt + legal_extra
+                    legal_retry_context = self._build_legal_retry_context(
+                        legal_articles,
+                        str(step["mode"]),
+                    )
+                    if legal_retry_context:
+                        prompt = prompt + legal_retry_context
                     if urgency_extra:
                         prompt = prompt + urgency_extra
+                    prompt = self._append_output_contract(prompt)
                     response_text = await self.call_ollama(
                         prompt,
                         temperature=float(step["temperature"]),
@@ -895,7 +960,10 @@ class GenerationService:
 
             if not parsed:
                 self.logger.warning("QA JSON 파싱 재시도 소진: fast fallback 사용")
-                parsed = self._build_fast_fallback_from_context(context)
+                parsed = self._build_fast_fallback_from_context(
+                    context,
+                    legal_articles=legal_articles,
+                )
                 generation_mode = "fast_fallback"
                 fallback_used = True
 

@@ -43,7 +43,7 @@ class _SegmentStore:
 
 
 @pytest.mark.asyncio
-async def test_segment_search_merges_duplicate_chunks_and_records_policy(monkeypatch):
+async def test_request_segments_do_not_change_fixed_hybrid_search(monkeypatch):
     service = RetrievalService()
     store = _SegmentStore()
     monkeypatch.setattr(service, "_get_vectorstore", lambda: store)
@@ -58,14 +58,14 @@ async def test_segment_search_merges_duplicate_chunks_and_records_policy(monkeyp
         snippet_max_chars=320,
     )
 
-    assert len(store.calls) == 2
-    assert {call["query"] for call in store.calls} == {"임대주택 보수", "관리비 기준"}
+    assert len(store.calls) == 1
+    assert store.calls[0]["query"] == "임대주택 보수 및 관리비 기준"
     assert all(call["snippet_max_chars"] == 320 for call in store.calls)
     assert len(results) == 1
     assert results[0]["metadata"]["retrieval_policy"] == "admin_policy"
     assert results[0]["metadata"]["topic_type"] == "welfare"
-    assert results[0]["metadata"]["matched_segments"] == ["임대주택 보수", "관리비 기준"]
-    assert results[0]["score"] > 0.82
+    assert "matched_segments" not in results[0]["metadata"]
+    assert results[0]["score"] == 0.82
 
 
 @pytest.mark.asyncio

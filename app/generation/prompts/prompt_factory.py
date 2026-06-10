@@ -626,6 +626,7 @@ class PromptFactory:
         filters: Optional[Dict[str, Any]] = None,
         threshold: float = 0.0,
         mode: str = "default",
+        query_signals: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
         """원문 레코드만으로 prompt(+검색 컨텍스트)를 만든다.
 
@@ -697,6 +698,7 @@ class PromptFactory:
             request_segments=list(derived_trace.get("request_segments") or []),
             retrieval_policy=str(derived_trace.get("retrieval_policy") or decision.retrieval_policy),
             snippet_max_chars=int(snippet_max_chars),
+            query_signals=query_signals,
         )
 
         pipeline_logger.info(
