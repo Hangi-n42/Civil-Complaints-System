@@ -1,0 +1,1552 @@
+{
+  "generated_at": "2026-06-10T02:55:55.364162+00:00",
+  "collection": "civil_cases_v1_be1_metadata_v1",
+  "queries_path": "data/evaluation/v3/queries.jsonl",
+  "qrels_path": "data/evaluation/v3/qrels_final.tsv",
+  "queries_sha256": "sha256:f08c0adce584c6dcb62bbfb103f8cf6dbba9975f28aafecb9d807b4236ecbee8",
+  "qrels_sha256": "sha256:e53f8d75247bf7de243c3c9a3e5f4ada939f0d9566ad7f67268c496a7aecee19",
+  "query_count": 100,
+  "judged_query_count": 49,
+  "qrel_count": 749,
+  "evaluated_qrel_count": 749,
+  "top_k": 10,
+  "query_signal_source": "deterministic BE1 search-signal extraction from evaluation query text",
+  "query_signal_coverage": {
+    "query_count": 100,
+    "queries_with_any_signal": 96,
+    "queries_with_field": {
+      "entity_texts": 84,
+      "legal_ref_names": 42,
+      "legal_ref_ids": 42,
+      "issue_types": 68,
+      "key_terms": 96
+    },
+    "value_count_by_field": {
+      "entity_texts": 157,
+      "legal_ref_names": 50,
+      "legal_ref_ids": 50,
+      "issue_types": 89,
+      "key_terms": 302
+    }
+  },
+  "strategies": {
+    "dense": {
+      "metric_keys": [
+        "nDCG@5",
+        "nDCG@10",
+        "R@5",
+        "R@10",
+        "RR@5",
+        "RR@10",
+        "AP@10",
+        "P@5"
+      ],
+      "metrics": {
+        "baseline": {
+          "AP@10": 0.4729211539086559,
+          "P@5": 0.7428571428571429,
+          "RR@5": 0.5170068027210885,
+          "RR@10": 0.5204081632653061,
+          "nDCG@10": 0.6968222412952628,
+          "R@5": 0.3077751663435938,
+          "R@10": 0.6380492989736689,
+          "nDCG@5": 0.6082469102292107
+        },
+        "soft_rerank": {
+          "AP@10": 0.400385543344084,
+          "P@5": 0.7224489795918367,
+          "RR@5": 0.5040816326530612,
+          "RR@10": 0.5074829931972789,
+          "nDCG@10": 0.6276861134551771,
+          "R@5": 0.3024434232567488,
+          "R@10": 0.5537756111435583,
+          "nDCG@5": 0.5947428245884911
+        }
+      },
+      "metric_deltas": {
+        "nDCG@5": -0.013504085640719588,
+        "nDCG@10": -0.06913612784008571,
+        "R@5": -0.005331743086845031,
+        "R@10": -0.08427368783011058,
+        "RR@5": -0.012925170068027292,
+        "RR@10": -0.012925170068027292,
+        "AP@10": -0.07253561056457192,
+        "P@5": -0.020408163265306145
+      },
+      "per_query_nDCG@10": {
+        "summary": {
+          "total": 49,
+          "improved": 6,
+          "tied": 13,
+          "regressed": 30
+        },
+        "top_improvements": [
+          {
+            "query_id": "Q-0021",
+            "baseline_nDCG@10": 0.5528957440478057,
+            "soft_rerank_nDCG@10": 0.6138753702448353,
+            "delta_nDCG@10": 0.06097962619702957
+          },
+          {
+            "query_id": "Q-0035",
+            "baseline_nDCG@10": 0.6698623505528798,
+            "soft_rerank_nDCG@10": 0.7162874455029682,
+            "delta_nDCG@10": 0.0464250949500884
+          },
+          {
+            "query_id": "Q-0048",
+            "baseline_nDCG@10": 0.5498997975849792,
+            "soft_rerank_nDCG@10": 0.5954876259541867,
+            "delta_nDCG@10": 0.045587828369207495
+          },
+          {
+            "query_id": "Q-0009",
+            "baseline_nDCG@10": 0.6085366621437004,
+            "soft_rerank_nDCG@10": 0.6439832553117868,
+            "delta_nDCG@10": 0.035446593168086404
+          },
+          {
+            "query_id": "Q-0011",
+            "baseline_nDCG@10": 0.665010428664577,
+            "soft_rerank_nDCG@10": 0.6769720491978507,
+            "delta_nDCG@10": 0.011961620533273654
+          },
+          {
+            "query_id": "Q-0038",
+            "baseline_nDCG@10": 0.7451926227335312,
+            "soft_rerank_nDCG@10": 0.7467811219747253,
+            "delta_nDCG@10": 0.0015884992411941967
+          }
+        ],
+        "top_regressions": [
+          {
+            "query_id": "Q-0037",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.2082936658103318,
+            "delta_nDCG@10": -0.571614567891588
+          },
+          {
+            "query_id": "Q-0033",
+            "baseline_nDCG@10": 0.6378891765242928,
+            "soft_rerank_nDCG@10": 0.3063365306564336,
+            "delta_nDCG@10": -0.33155264586785915
+          },
+          {
+            "query_id": "Q-0019",
+            "baseline_nDCG@10": 0.675761400796754,
+            "soft_rerank_nDCG@10": 0.41891796188843244,
+            "delta_nDCG@10": -0.2568434389083215
+          },
+          {
+            "query_id": "Q-0005",
+            "baseline_nDCG@10": 0.7075819874853876,
+            "soft_rerank_nDCG@10": 0.47674870152787435,
+            "delta_nDCG@10": -0.23083328595751323
+          },
+          {
+            "query_id": "Q-0023",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.5587148206871071,
+            "delta_nDCG@10": -0.22119341301481277
+          },
+          {
+            "query_id": "Q-0015",
+            "baseline_nDCG@10": 0.6947651160602989,
+            "soft_rerank_nDCG@10": 0.485813635742251,
+            "delta_nDCG@10": -0.2089514803180479
+          },
+          {
+            "query_id": "Q-0040",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.5734923014668308,
+            "delta_nDCG@10": -0.20641593223508903
+          },
+          {
+            "query_id": "Q-0010",
+            "baseline_nDCG@10": 0.6898498484944027,
+            "soft_rerank_nDCG@10": 0.5245553629603151,
+            "delta_nDCG@10": -0.16529448553408754
+          },
+          {
+            "query_id": "Q-0045",
+            "baseline_nDCG@10": 0.5806020001118019,
+            "soft_rerank_nDCG@10": 0.4220949603708207,
+            "delta_nDCG@10": -0.15850703974098113
+          },
+          {
+            "query_id": "Q-0012",
+            "baseline_nDCG@10": 0.7387399720335698,
+            "soft_rerank_nDCG@10": 0.6057745354737399,
+            "delta_nDCG@10": -0.13296543655982984
+          }
+        ],
+        "rows": [
+          {
+            "query_id": "Q-0001",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7162874455029682,
+            "delta_nDCG@10": -0.06362078819895167
+          },
+          {
+            "query_id": "Q-0002",
+            "baseline_nDCG@10": 0.7373366748811093,
+            "soft_rerank_nDCG@10": 0.7325140515171443,
+            "delta_nDCG@10": -0.004822623363964995
+          },
+          {
+            "query_id": "Q-0003",
+            "baseline_nDCG@10": 0.6263433285151567,
+            "soft_rerank_nDCG@10": 0.6263433285151567,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0004",
+            "baseline_nDCG@10": 0.4394940028217226,
+            "soft_rerank_nDCG@10": 0.4394940028217226,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0005",
+            "baseline_nDCG@10": 0.7075819874853876,
+            "soft_rerank_nDCG@10": 0.47674870152787435,
+            "delta_nDCG@10": -0.23083328595751323
+          },
+          {
+            "query_id": "Q-0006",
+            "baseline_nDCG@10": 0.7467811219747253,
+            "soft_rerank_nDCG@10": 0.6744548757581931,
+            "delta_nDCG@10": -0.07232624621653228
+          },
+          {
+            "query_id": "Q-0007",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0008",
+            "baseline_nDCG@10": 0.933745776545611,
+            "soft_rerank_nDCG@10": 0.933745776545611,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0009",
+            "baseline_nDCG@10": 0.6085366621437004,
+            "soft_rerank_nDCG@10": 0.6439832553117868,
+            "delta_nDCG@10": 0.035446593168086404
+          },
+          {
+            "query_id": "Q-0010",
+            "baseline_nDCG@10": 0.6898498484944027,
+            "soft_rerank_nDCG@10": 0.5245553629603151,
+            "delta_nDCG@10": -0.16529448553408754
+          },
+          {
+            "query_id": "Q-0011",
+            "baseline_nDCG@10": 0.665010428664577,
+            "soft_rerank_nDCG@10": 0.6769720491978507,
+            "delta_nDCG@10": 0.011961620533273654
+          },
+          {
+            "query_id": "Q-0012",
+            "baseline_nDCG@10": 0.7387399720335698,
+            "soft_rerank_nDCG@10": 0.6057745354737399,
+            "delta_nDCG@10": -0.13296543655982984
+          },
+          {
+            "query_id": "Q-0013",
+            "baseline_nDCG@10": 0.7407090992125821,
+            "soft_rerank_nDCG@10": 0.7407090992125821,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0014",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7136540102475308,
+            "delta_nDCG@10": -0.06625422345438903
+          },
+          {
+            "query_id": "Q-0015",
+            "baseline_nDCG@10": 0.6947651160602989,
+            "soft_rerank_nDCG@10": 0.485813635742251,
+            "delta_nDCG@10": -0.2089514803180479
+          },
+          {
+            "query_id": "Q-0016",
+            "baseline_nDCG@10": 0.748097839602444,
+            "soft_rerank_nDCG@10": 0.6500332220485792,
+            "delta_nDCG@10": -0.09806461755386486
+          },
+          {
+            "query_id": "Q-0017",
+            "baseline_nDCG@10": 0.7042095631539148,
+            "soft_rerank_nDCG@10": 0.6744548757581931,
+            "delta_nDCG@10": -0.029754687395721735
+          },
+          {
+            "query_id": "Q-0018",
+            "baseline_nDCG@10": 0.35853358850813305,
+            "soft_rerank_nDCG@10": 0.3501483019834802,
+            "delta_nDCG@10": -0.008385286524652869
+          },
+          {
+            "query_id": "Q-0019",
+            "baseline_nDCG@10": 0.675761400796754,
+            "soft_rerank_nDCG@10": 0.41891796188843244,
+            "delta_nDCG@10": -0.2568434389083215
+          },
+          {
+            "query_id": "Q-0020",
+            "baseline_nDCG@10": 0.7713170203682734,
+            "soft_rerank_nDCG@10": 0.7713170203682734,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0021",
+            "baseline_nDCG@10": 0.5528957440478057,
+            "soft_rerank_nDCG@10": 0.6138753702448353,
+            "delta_nDCG@10": 0.06097962619702957
+          },
+          {
+            "query_id": "Q-0022",
+            "baseline_nDCG@10": 0.7451926227335312,
+            "soft_rerank_nDCG@10": 0.7451926227335312,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0023",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.5587148206871071,
+            "delta_nDCG@10": -0.22119341301481277
+          },
+          {
+            "query_id": "Q-0024",
+            "baseline_nDCG@10": 0.44149241373678083,
+            "soft_rerank_nDCG@10": 0.44149241373678083,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0025",
+            "baseline_nDCG@10": 0.748097839602444,
+            "soft_rerank_nDCG@10": 0.748097839602444,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0026",
+            "baseline_nDCG@10": 0.7407090992125821,
+            "soft_rerank_nDCG@10": 0.7407090992125821,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0027",
+            "baseline_nDCG@10": 0.4693027076732007,
+            "soft_rerank_nDCG@10": 0.4292486164007478,
+            "delta_nDCG@10": -0.04005409127245291
+          },
+          {
+            "query_id": "Q-0028",
+            "baseline_nDCG@10": 0.49665958390838216,
+            "soft_rerank_nDCG@10": 0.4292486164007478,
+            "delta_nDCG@10": -0.06741096750763437
+          },
+          {
+            "query_id": "Q-0029",
+            "baseline_nDCG@10": 0.7555478111784811,
+            "soft_rerank_nDCG@10": 0.7555478111784811,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0030",
+            "baseline_nDCG@10": 0.7530340773982488,
+            "soft_rerank_nDCG@10": 0.6987314214140902,
+            "delta_nDCG@10": -0.05430265598415862
+          },
+          {
+            "query_id": "Q-0031",
+            "baseline_nDCG@10": 0.7271782169816028,
+            "soft_rerank_nDCG@10": 0.629958167754247,
+            "delta_nDCG@10": -0.09722004922735583
+          },
+          {
+            "query_id": "Q-0032",
+            "baseline_nDCG@10": 0.6982768708605016,
+            "soft_rerank_nDCG@10": 0.6982768708605016,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0033",
+            "baseline_nDCG@10": 0.6378891765242928,
+            "soft_rerank_nDCG@10": 0.3063365306564336,
+            "delta_nDCG@10": -0.33155264586785915
+          },
+          {
+            "query_id": "Q-0034",
+            "baseline_nDCG@10": 0.7433337246802558,
+            "soft_rerank_nDCG@10": 0.7399066677983633,
+            "delta_nDCG@10": -0.0034270568818924874
+          },
+          {
+            "query_id": "Q-0035",
+            "baseline_nDCG@10": 0.6698623505528798,
+            "soft_rerank_nDCG@10": 0.7162874455029682,
+            "delta_nDCG@10": 0.0464250949500884
+          },
+          {
+            "query_id": "Q-0037",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.2082936658103318,
+            "delta_nDCG@10": -0.571614567891588
+          },
+          {
+            "query_id": "Q-0038",
+            "baseline_nDCG@10": 0.7451926227335312,
+            "soft_rerank_nDCG@10": 0.7467811219747253,
+            "delta_nDCG@10": 0.0015884992411941967
+          },
+          {
+            "query_id": "Q-0039",
+            "baseline_nDCG@10": 0.6621204169842111,
+            "soft_rerank_nDCG@10": 0.6152137355726159,
+            "delta_nDCG@10": -0.04690668141159515
+          },
+          {
+            "query_id": "Q-0040",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.5734923014668308,
+            "delta_nDCG@10": -0.20641593223508903
+          },
+          {
+            "query_id": "Q-0041",
+            "baseline_nDCG@10": 0.7806072434461103,
+            "soft_rerank_nDCG@10": 0.7437753734888432,
+            "delta_nDCG@10": -0.03683186995726717
+          },
+          {
+            "query_id": "Q-0042",
+            "baseline_nDCG@10": 0.7530340773982488,
+            "soft_rerank_nDCG@10": 0.6418248641741862,
+            "delta_nDCG@10": -0.11120921322406263
+          },
+          {
+            "query_id": "Q-0043",
+            "baseline_nDCG@10": 0.6717496488025141,
+            "soft_rerank_nDCG@10": 0.6717496488025141,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0044",
+            "baseline_nDCG@10": 0.8522541249803536,
+            "soft_rerank_nDCG@10": 0.818005721474525,
+            "delta_nDCG@10": -0.034248403505828584
+          },
+          {
+            "query_id": "Q-0045",
+            "baseline_nDCG@10": 0.5806020001118019,
+            "soft_rerank_nDCG@10": 0.4220949603708207,
+            "delta_nDCG@10": -0.15850703974098113
+          },
+          {
+            "query_id": "Q-0046",
+            "baseline_nDCG@10": 0.7570649202334608,
+            "soft_rerank_nDCG@10": 0.7059732635631392,
+            "delta_nDCG@10": -0.05109165667032167
+          },
+          {
+            "query_id": "Q-0047",
+            "baseline_nDCG@10": 0.7263313134995212,
+            "soft_rerank_nDCG@10": 0.6861998839304253,
+            "delta_nDCG@10": -0.04013142956909588
+          },
+          {
+            "query_id": "Q-0048",
+            "baseline_nDCG@10": 0.5498997975849792,
+            "soft_rerank_nDCG@10": 0.5954876259541867,
+            "delta_nDCG@10": 0.045587828369207495
+          },
+          {
+            "query_id": "Q-0049",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7162874455029682,
+            "delta_nDCG@10": -0.06362078819895167
+          },
+          {
+            "query_id": "Q-0050",
+            "baseline_nDCG@10": 0.8397903514263582,
+            "soft_rerank_nDCG@10": 0.7239858869500998,
+            "delta_nDCG@10": -0.11580446447625836
+          }
+        ]
+      },
+      "top1_comparison": {
+        "total": 100,
+        "changed": 1
+      },
+      "runtime": {
+        "baseline": {
+          "elapsed_sec": 28.058877700008452,
+          "query_per_sec": 3.5639344192291014,
+          "empty_count": 0
+        },
+        "soft_rerank": {
+          "elapsed_sec": 5.1967185999965295,
+          "query_per_sec": 19.242912248522902,
+          "empty_count": 0
+        }
+      },
+      "sample_run_records": {
+        "baseline": [
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700890",
+            "score": 0.97,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700524",
+            "score": 0.83,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701005",
+            "score": 0.82,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701272",
+            "score": 0.81,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-500516",
+            "score": 0.81,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700620",
+            "score": 0.8,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700597",
+            "score": 0.8,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701246",
+            "score": 0.79,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700772",
+            "score": 0.79,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701054",
+            "score": 0.78,
+            "rank": 10,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001886",
+            "score": 0.95,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001589",
+            "score": 0.81,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002298",
+            "score": 0.8,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001920",
+            "score": 0.8,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001694",
+            "score": 0.8,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001844",
+            "score": 0.79,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002377",
+            "score": 0.78,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002499",
+            "score": 0.78,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002494",
+            "score": 0.78,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001673",
+            "score": 0.78,
+            "rank": 10,
+            "stage": "final"
+          }
+        ],
+        "soft_rerank": [
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700890",
+            "score": 1.164,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700524",
+            "score": 0.9877,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701005",
+            "score": 0.984,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701272",
+            "score": 0.972,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-500516",
+            "score": 0.972,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700620",
+            "score": 0.96,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700597",
+            "score": 0.96,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701246",
+            "score": 0.948,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700772",
+            "score": 0.948,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-500850",
+            "score": 0.936,
+            "rank": 10,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001886",
+            "score": 1.0735,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001589",
+            "score": 0.9072,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002298",
+            "score": 0.896,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001694",
+            "score": 0.896,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001844",
+            "score": 0.8848,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001920",
+            "score": 0.88,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002499",
+            "score": 0.8736,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001673",
+            "score": 0.8736,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002377",
+            "score": 0.8658,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002494",
+            "score": 0.8658,
+            "rank": 10,
+            "stage": "final"
+          }
+        ]
+      }
+    },
+    "hybrid": {
+      "metric_keys": [
+        "nDCG@5",
+        "nDCG@10",
+        "R@5",
+        "R@10",
+        "RR@5",
+        "RR@10",
+        "AP@10",
+        "P@5"
+      ],
+      "metrics": {
+        "baseline": {
+          "AP@10": 0.39778771338718527,
+          "P@5": 0.7142857142857144,
+          "RR@5": 0.49659863945578236,
+          "RR@10": 0.5029154518950437,
+          "nDCG@10": 0.6228424774664612,
+          "R@5": 0.28992398990898405,
+          "R@10": 0.5602052076241752,
+          "nDCG@5": 0.5736211466114369
+        },
+        "soft_rerank": {
+          "AP@10": 0.3870130971506522,
+          "P@5": 0.7142857142857144,
+          "RR@5": 0.49659863945578236,
+          "RR@10": 0.5029154518950437,
+          "nDCG@10": 0.6149628901955595,
+          "R@5": 0.2894988198409568,
+          "R@10": 0.5500740122888983,
+          "nDCG@5": 0.5747190795249991
+        }
+      },
+      "metric_deltas": {
+        "nDCG@5": 0.001097932913562194,
+        "nDCG@10": -0.007879587270901656,
+        "R@5": -0.00042517006802722523,
+        "R@10": -0.010131195335276955,
+        "RR@5": 0.0,
+        "RR@10": 0.0,
+        "AP@10": -0.010774616236533086,
+        "P@5": 0.0
+      },
+      "per_query_nDCG@10": {
+        "summary": {
+          "total": 49,
+          "improved": 9,
+          "tied": 22,
+          "regressed": 18
+        },
+        "top_improvements": [
+          {
+            "query_id": "Q-0006",
+            "baseline_nDCG@10": 0.7162874455029682,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.06362078819895167
+          },
+          {
+            "query_id": "Q-0017",
+            "baseline_nDCG@10": 0.7026210639127207,
+            "soft_rerank_nDCG@10": 0.7467811219747253,
+            "delta_nDCG@10": 0.044160058062004626
+          },
+          {
+            "query_id": "Q-0014",
+            "baseline_nDCG@10": 0.681843616148055,
+            "soft_rerank_nDCG@10": 0.7136540102475308,
+            "delta_nDCG@10": 0.031810394099475836
+          },
+          {
+            "query_id": "Q-0027",
+            "baseline_nDCG@10": 0.4803256732448246,
+            "soft_rerank_nDCG@10": 0.5004041931001163,
+            "delta_nDCG@10": 0.020078519855291688
+          },
+          {
+            "query_id": "Q-0033",
+            "baseline_nDCG@10": 0.2032389337527008,
+            "soft_rerank_nDCG@10": 0.2180164145324244,
+            "delta_nDCG@10": 0.0147774807797236
+          },
+          {
+            "query_id": "Q-0010",
+            "baseline_nDCG@10": 0.48829835897709895,
+            "soft_rerank_nDCG@10": 0.5002458865650982,
+            "delta_nDCG@10": 0.011947527587999218
+          },
+          {
+            "query_id": "Q-0039",
+            "baseline_nDCG@10": 0.5754084131772612,
+            "soft_rerank_nDCG@10": 0.5859204553616643,
+            "delta_nDCG@10": 0.010512042184403048
+          },
+          {
+            "query_id": "Q-0048",
+            "baseline_nDCG@10": 0.41141624562067713,
+            "soft_rerank_nDCG@10": 0.4192637844445036,
+            "delta_nDCG@10": 0.007847538823826439
+          },
+          {
+            "query_id": "Q-0042",
+            "baseline_nDCG@10": 0.5455714471384444,
+            "soft_rerank_nDCG@10": 0.547729838276045,
+            "delta_nDCG@10": 0.002158391137600635
+          }
+        ],
+        "top_regressions": [
+          {
+            "query_id": "Q-0023",
+            "baseline_nDCG@10": 0.7432262726522397,
+            "soft_rerank_nDCG@10": 0.6378891765242928,
+            "delta_nDCG@10": -0.10533709612794695
+          },
+          {
+            "query_id": "Q-0035",
+            "baseline_nDCG@10": 0.7467811219747253,
+            "soft_rerank_nDCG@10": 0.6423727000452418,
+            "delta_nDCG@10": -0.10440842192948352
+          },
+          {
+            "query_id": "Q-0005",
+            "baseline_nDCG@10": 0.7015099647232446,
+            "soft_rerank_nDCG@10": 0.6281460426238844,
+            "delta_nDCG@10": -0.07336392209936016
+          },
+          {
+            "query_id": "Q-0016",
+            "baseline_nDCG@10": 0.7162874455029682,
+            "soft_rerank_nDCG@10": 0.6500332220485792,
+            "delta_nDCG@10": -0.06625422345438903
+          },
+          {
+            "query_id": "Q-0041",
+            "baseline_nDCG@10": 0.787637774160488,
+            "soft_rerank_nDCG@10": 0.7428885778697261,
+            "delta_nDCG@10": -0.044749196290761906
+          },
+          {
+            "query_id": "Q-0032",
+            "baseline_nDCG@10": 0.706845913761838,
+            "soft_rerank_nDCG@10": 0.6661621576654911,
+            "delta_nDCG@10": -0.04068375609634689
+          },
+          {
+            "query_id": "Q-0012",
+            "baseline_nDCG@10": 0.6328520843653784,
+            "soft_rerank_nDCG@10": 0.5931336442096907,
+            "delta_nDCG@10": -0.039718440155687706
+          },
+          {
+            "query_id": "Q-0044",
+            "baseline_nDCG@10": 0.8568270051237654,
+            "soft_rerank_nDCG@10": 0.8250166110242896,
+            "delta_nDCG@10": -0.031810394099475836
+          },
+          {
+            "query_id": "Q-0037",
+            "baseline_nDCG@10": 0.5716349530699038,
+            "soft_rerank_nDCG@10": 0.5423247252962317,
+            "delta_nDCG@10": -0.029310227773672093
+          },
+          {
+            "query_id": "Q-0008",
+            "baseline_nDCG@10": 0.8415908474314976,
+            "soft_rerank_nDCG@10": 0.8236998933965709,
+            "delta_nDCG@10": -0.017890954034926687
+          }
+        ],
+        "rows": [
+          {
+            "query_id": "Q-0001",
+            "baseline_nDCG@10": 0.7136540102475308,
+            "soft_rerank_nDCG@10": 0.7104770117651426,
+            "delta_nDCG@10": -0.0031769984823882824
+          },
+          {
+            "query_id": "Q-0002",
+            "baseline_nDCG@10": 0.7467811219747253,
+            "soft_rerank_nDCG@10": 0.7451926227335312,
+            "delta_nDCG@10": -0.0015884992411941967
+          },
+          {
+            "query_id": "Q-0003",
+            "baseline_nDCG@10": 0.6465871565675323,
+            "soft_rerank_nDCG@10": 0.6465871565675323,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0004",
+            "baseline_nDCG@10": 0.4523037778784761,
+            "soft_rerank_nDCG@10": 0.4523037778784761,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0005",
+            "baseline_nDCG@10": 0.7015099647232446,
+            "soft_rerank_nDCG@10": 0.6281460426238844,
+            "delta_nDCG@10": -0.07336392209936016
+          },
+          {
+            "query_id": "Q-0006",
+            "baseline_nDCG@10": 0.7162874455029682,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.06362078819895167
+          },
+          {
+            "query_id": "Q-0007",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0008",
+            "baseline_nDCG@10": 0.8415908474314976,
+            "soft_rerank_nDCG@10": 0.8236998933965709,
+            "delta_nDCG@10": -0.017890954034926687
+          },
+          {
+            "query_id": "Q-0009",
+            "baseline_nDCG@10": 0.47586748484782027,
+            "soft_rerank_nDCG@10": 0.47586748484782027,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0010",
+            "baseline_nDCG@10": 0.48829835897709895,
+            "soft_rerank_nDCG@10": 0.5002458865650982,
+            "delta_nDCG@10": 0.011947527587999218
+          },
+          {
+            "query_id": "Q-0011",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0012",
+            "baseline_nDCG@10": 0.6328520843653784,
+            "soft_rerank_nDCG@10": 0.5931336442096907,
+            "delta_nDCG@10": -0.039718440155687706
+          },
+          {
+            "query_id": "Q-0013",
+            "baseline_nDCG@10": 0.6357661515909981,
+            "soft_rerank_nDCG@10": 0.6357661515909981,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0014",
+            "baseline_nDCG@10": 0.681843616148055,
+            "soft_rerank_nDCG@10": 0.7136540102475308,
+            "delta_nDCG@10": 0.031810394099475836
+          },
+          {
+            "query_id": "Q-0015",
+            "baseline_nDCG@10": 0.7104770117651426,
+            "soft_rerank_nDCG@10": 0.7065443116025598,
+            "delta_nDCG@10": -0.003932700162582736
+          },
+          {
+            "query_id": "Q-0016",
+            "baseline_nDCG@10": 0.7162874455029682,
+            "soft_rerank_nDCG@10": 0.6500332220485792,
+            "delta_nDCG@10": -0.06625422345438903
+          },
+          {
+            "query_id": "Q-0017",
+            "baseline_nDCG@10": 0.7026210639127207,
+            "soft_rerank_nDCG@10": 0.7467811219747253,
+            "delta_nDCG@10": 0.044160058062004626
+          },
+          {
+            "query_id": "Q-0018",
+            "baseline_nDCG@10": 0.15642624200758548,
+            "soft_rerank_nDCG@10": 0.15642624200758548,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0019",
+            "baseline_nDCG@10": 0.6468562235661908,
+            "soft_rerank_nDCG@10": 0.6442227883107535,
+            "delta_nDCG@10": -0.002633435255437244
+          },
+          {
+            "query_id": "Q-0020",
+            "baseline_nDCG@10": 0.7650454980082544,
+            "soft_rerank_nDCG@10": 0.7650454980082544,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0021",
+            "baseline_nDCG@10": 0.5271615417507156,
+            "soft_rerank_nDCG@10": 0.5119946377060678,
+            "delta_nDCG@10": -0.015166904044647822
+          },
+          {
+            "query_id": "Q-0022",
+            "baseline_nDCG@10": 0.5342931669774931,
+            "soft_rerank_nDCG@10": 0.5342931669774931,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0023",
+            "baseline_nDCG@10": 0.7432262726522397,
+            "soft_rerank_nDCG@10": 0.6378891765242928,
+            "delta_nDCG@10": -0.10533709612794695
+          },
+          {
+            "query_id": "Q-0024",
+            "baseline_nDCG@10": 0.5375811193822125,
+            "soft_rerank_nDCG@10": 0.5375811193822125,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0025",
+            "baseline_nDCG@10": 0.7799082337019199,
+            "soft_rerank_nDCG@10": 0.7799082337019199,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0026",
+            "baseline_nDCG@10": 0.7149707278752495,
+            "soft_rerank_nDCG@10": 0.7149707278752495,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0027",
+            "baseline_nDCG@10": 0.4803256732448246,
+            "soft_rerank_nDCG@10": 0.5004041931001163,
+            "delta_nDCG@10": 0.020078519855291688
+          },
+          {
+            "query_id": "Q-0028",
+            "baseline_nDCG@10": 0.460070565792706,
+            "soft_rerank_nDCG@10": 0.460070565792706,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0029",
+            "baseline_nDCG@10": 0.4986956956103798,
+            "soft_rerank_nDCG@10": 0.4986956956103798,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0030",
+            "baseline_nDCG@10": 0.7008898125516908,
+            "soft_rerank_nDCG@10": 0.7008898125516908,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0031",
+            "baseline_nDCG@10": 0.5521422029388644,
+            "soft_rerank_nDCG@10": 0.5460998026134948,
+            "delta_nDCG@10": -0.0060424003253696235
+          },
+          {
+            "query_id": "Q-0032",
+            "baseline_nDCG@10": 0.706845913761838,
+            "soft_rerank_nDCG@10": 0.6661621576654911,
+            "delta_nDCG@10": -0.04068375609634689
+          },
+          {
+            "query_id": "Q-0033",
+            "baseline_nDCG@10": 0.2032389337527008,
+            "soft_rerank_nDCG@10": 0.2180164145324244,
+            "delta_nDCG@10": 0.0147774807797236
+          },
+          {
+            "query_id": "Q-0034",
+            "baseline_nDCG@10": 0.7221168600167928,
+            "soft_rerank_nDCG@10": 0.7178053478424515,
+            "delta_nDCG@10": -0.0043115121743412255
+          },
+          {
+            "query_id": "Q-0035",
+            "baseline_nDCG@10": 0.7467811219747253,
+            "soft_rerank_nDCG@10": 0.6423727000452418,
+            "delta_nDCG@10": -0.10440842192948352
+          },
+          {
+            "query_id": "Q-0037",
+            "baseline_nDCG@10": 0.5716349530699038,
+            "soft_rerank_nDCG@10": 0.5423247252962317,
+            "delta_nDCG@10": -0.029310227773672093
+          },
+          {
+            "query_id": "Q-0038",
+            "baseline_nDCG@10": 0.6734171998753653,
+            "soft_rerank_nDCG@10": 0.6734171998753653,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0039",
+            "baseline_nDCG@10": 0.5754084131772612,
+            "soft_rerank_nDCG@10": 0.5859204553616643,
+            "delta_nDCG@10": 0.010512042184403048
+          },
+          {
+            "query_id": "Q-0040",
+            "baseline_nDCG@10": 0.5430029249822634,
+            "soft_rerank_nDCG@10": 0.5430029249822634,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0041",
+            "baseline_nDCG@10": 0.787637774160488,
+            "soft_rerank_nDCG@10": 0.7428885778697261,
+            "delta_nDCG@10": -0.044749196290761906
+          },
+          {
+            "query_id": "Q-0042",
+            "baseline_nDCG@10": 0.5455714471384444,
+            "soft_rerank_nDCG@10": 0.547729838276045,
+            "delta_nDCG@10": 0.002158391137600635
+          },
+          {
+            "query_id": "Q-0043",
+            "baseline_nDCG@10": 0.5339863976054281,
+            "soft_rerank_nDCG@10": 0.5339863976054281,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0044",
+            "baseline_nDCG@10": 0.8568270051237654,
+            "soft_rerank_nDCG@10": 0.8250166110242896,
+            "delta_nDCG@10": -0.031810394099475836
+          },
+          {
+            "query_id": "Q-0045",
+            "baseline_nDCG@10": 0.5734923014668308,
+            "soft_rerank_nDCG@10": 0.5708588662113935,
+            "delta_nDCG@10": -0.0026334352554373552
+          },
+          {
+            "query_id": "Q-0046",
+            "baseline_nDCG@10": 0.5564178685163614,
+            "soft_rerank_nDCG@10": 0.5564178685163614,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0047",
+            "baseline_nDCG@10": 0.7681238906977201,
+            "soft_rerank_nDCG@10": 0.7681238906977201,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0048",
+            "baseline_nDCG@10": 0.41141624562067713,
+            "soft_rerank_nDCG@10": 0.4192637844445036,
+            "delta_nDCG@10": 0.007847538823826439
+          },
+          {
+            "query_id": "Q-0049",
+            "baseline_nDCG@10": 0.5734923014668308,
+            "soft_rerank_nDCG@10": 0.5734923014668308,
+            "delta_nDCG@10": 0.0
+          },
+          {
+            "query_id": "Q-0050",
+            "baseline_nDCG@10": 0.6497328585488698,
+            "soft_rerank_nDCG@10": 0.6497328585488698,
+            "delta_nDCG@10": 0.0
+          }
+        ]
+      },
+      "top1_comparison": {
+        "total": 100,
+        "changed": 1
+      },
+      "runtime": {
+        "baseline": {
+          "elapsed_sec": 13.665538700006437,
+          "query_per_sec": 7.317677128963302,
+          "empty_count": 0
+        },
+        "soft_rerank": {
+          "elapsed_sec": 10.714985400001751,
+          "query_per_sec": 9.332723869132257,
+          "empty_count": 0
+        }
+      },
+      "sample_run_records": {
+        "baseline": [
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700890",
+            "score": 0.032787,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700524",
+            "score": 0.032258,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701272",
+            "score": 0.030777,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701005",
+            "score": 0.030579,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-500516",
+            "score": 0.029469,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700772",
+            "score": 0.029418,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701246",
+            "score": 0.027864,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700728",
+            "score": 0.027673,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701227",
+            "score": 0.027032,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700620",
+            "score": 0.026916,
+            "rank": 10,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001886",
+            "score": 0.032787,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001844",
+            "score": 0.031281,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002494",
+            "score": 0.030366,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001920",
+            "score": 0.030118,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002377",
+            "score": 0.029851,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001673",
+            "score": 0.029437,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001589",
+            "score": 0.029287,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001689",
+            "score": 0.029139,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001694",
+            "score": 0.029083,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001951",
+            "score": 0.028595,
+            "rank": 10,
+            "stage": "final"
+          }
+        ],
+        "soft_rerank": [
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700890",
+            "score": 0.039344,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700524",
+            "score": 0.038387,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701272",
+            "score": 0.036932,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701005",
+            "score": 0.036695,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-500516",
+            "score": 0.035363,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700772",
+            "score": 0.035302,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701246",
+            "score": 0.033437,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-701227",
+            "score": 0.032438,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700620",
+            "score": 0.032299,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0001",
+            "docid": "CASE-700597",
+            "score": 0.032196,
+            "rank": 10,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001886",
+            "score": 0.037049,
+            "rank": 1,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001844",
+            "score": 0.035035,
+            "rank": 2,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002494",
+            "score": 0.033706,
+            "rank": 3,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-002377",
+            "score": 0.033135,
+            "rank": 4,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001920",
+            "score": 0.03313,
+            "rank": 5,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001673",
+            "score": 0.032969,
+            "rank": 6,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001589",
+            "score": 0.032801,
+            "rank": 7,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001694",
+            "score": 0.032573,
+            "rank": 8,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001689",
+            "score": 0.032344,
+            "rank": 9,
+            "stage": "final"
+          },
+          {
+            "qid": "Q-0002",
+            "docid": "CASE-001611",
+            "score": 0.03159,
+            "rank": 10,
+            "stage": "final"
+          }
+        ]
+      }
+    }
+  }
+}

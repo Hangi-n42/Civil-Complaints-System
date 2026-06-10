@@ -76,11 +76,39 @@
 | `civil_cases_be1_restructured_v1` | 9,132 |
 | `civil_cases_v1_be1_metadata_v1` | 9,132 |
 
+## Metadata Soft Rerank 평가
+
+BE1 metadata를 hard filter가 아니라 약한 점수 boost로만 사용하는 soft rerank를 추가 평가했다. 평가 쿼리 100건 중 qrels 보유 쿼리 49건을 집계에 반영했다.
+
+### Dense
+
+| 지표 | baseline | soft rerank | 변화 |
+| --- | ---: | ---: | ---: |
+| nDCG@5 | 0.6082 | 0.5947 | -0.0135 |
+| nDCG@10 | 0.6968 | 0.6277 | -0.0691 |
+| Recall@5 | 0.3078 | 0.3024 | -0.0053 |
+| Recall@10 | 0.6380 | 0.5538 | -0.0843 |
+| MRR@10 | 0.5204 | 0.5075 | -0.0129 |
+| AP@10 | 0.4729 | 0.4004 | -0.0725 |
+
+### Hybrid
+
+| 지표 | baseline | soft rerank | 변화 |
+| --- | ---: | ---: | ---: |
+| nDCG@5 | 0.5736 | 0.5747 | +0.0011 |
+| nDCG@10 | 0.6228 | 0.6150 | -0.0079 |
+| Recall@5 | 0.2899 | 0.2895 | -0.0004 |
+| Recall@10 | 0.5602 | 0.5501 | -0.0101 |
+| MRR@10 | 0.5029 | 0.5029 | +0.0000 |
+| AP@10 | 0.3978 | 0.3870 | -0.0108 |
+
+Dense에서는 하락 폭이 크고, 운영 기본 전략인 Hybrid에서도 nDCG@10과 Recall@10이 소폭 하락했다. 따라서 현재 가중치의 metadata soft rerank는 기본 활성화하지 않는다.
+
 ## 판단
 
 `civil_cases_v1_be1_metadata_v1`은 기존 검색 성능을 잃지 않으면서 BE1 최신 metadata 적재율을 크게 개선했다. 따라서 기본 검색 컬렉션 전환 후보는 `civil_cases_be1_restructured_v1`이 아니라 `civil_cases_v1_be1_metadata_v1`로 보는 것이 맞다.
 
-다음 단계는 서비스 기본 컬렉션을 이 컬렉션으로 바꾸기 전에, metadata soft rerank까지 켠 검색 평가를 별도로 수행하는 것이다.
+다만 metadata soft rerank는 현재 가중치로는 검색 성능을 떨어뜨리므로, 컬렉션 전환과 soft rerank 활성화는 분리해서 판단한다. 현재 추천은 `civil_cases_v1_be1_metadata_v1` 컬렉션은 전환 후보로 유지하되, soft rerank는 비활성 상태로 두는 것이다.
 
 ## 산출물
 
@@ -88,6 +116,8 @@
 - `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_coverage.md`
 - `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_search_smoke.md`
 - `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_collection_ab.md`
+- `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_soft_rerank_pilot10.md`
+- `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_soft_rerank_eval.md`
 - `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_local_build.md`
 - `reports/retrieval/v3/civil_cases_v1_be1_metadata_v1_local_coverage.md`
 
