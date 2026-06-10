@@ -850,7 +850,7 @@ class RetrievalService:
             )
             if collection_name and collection_name != self.default_collection_name:
                 self.logger.info(
-                    "collection_name=%s is accepted for contract compatibility but the runtime store uses the default collection",
+                    "collection_name=%s indexed with explicit Chroma collection",
                     collection_name,
                 )
             return result

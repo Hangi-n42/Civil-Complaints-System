@@ -1,0 +1,208 @@
+{
+  "generated_at": "2026-06-09T16:40:21.551727+00:00",
+  "total_count": 10,
+  "scanned_count": 10,
+  "limited": false,
+  "fields": {
+    "entity_texts": {
+      "present_count": 10,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 10,
+      "top_value_hashes": [
+        {
+          "sha256_12": "b74eef2a48b6",
+          "count": 8
+        },
+        {
+          "sha256_12": "1c3a0a24ef01",
+          "count": 5
+        },
+        {
+          "sha256_12": "4e5b38020f5d",
+          "count": 4
+        },
+        {
+          "sha256_12": "86d22b3363c4",
+          "count": 3
+        },
+        {
+          "sha256_12": "eb19ec902a17",
+          "count": 2
+        },
+        {
+          "sha256_12": "9fbe110d36cd",
+          "count": 2
+        },
+        {
+          "sha256_12": "e9c0cbcfd144",
+          "count": 2
+        },
+        {
+          "sha256_12": "1f8495c6dbc9",
+          "count": 2
+        },
+        {
+          "sha256_12": "a2c93caaf559",
+          "count": 1
+        },
+        {
+          "sha256_12": "111b61f22f1c",
+          "count": 1
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "legal_ref_names": {
+      "present_count": 0,
+      "empty_count": 10,
+      "coverage_ratio": 0.0,
+      "unique_value_count": 0,
+      "top_values": []
+    },
+    "legal_ref_ids": {
+      "present_count": 0,
+      "empty_count": 10,
+      "coverage_ratio": 0.0,
+      "unique_value_count": 0,
+      "top_values": []
+    },
+    "issue_types": {
+      "present_count": 8,
+      "empty_count": 2,
+      "coverage_ratio": 0.8,
+      "unique_value_count": 2,
+      "top_values": [
+        {
+          "value": "예매/예약",
+          "count": 8
+        },
+        {
+          "value": "증빙/서류",
+          "count": 1
+        }
+      ]
+    },
+    "key_terms": {
+      "present_count": 10,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 12,
+      "top_value_hashes": [
+        {
+          "sha256_12": "b74eef2a48b6",
+          "count": 8
+        },
+        {
+          "sha256_12": "1c3a0a24ef01",
+          "count": 5
+        },
+        {
+          "sha256_12": "a04df23492bd",
+          "count": 5
+        },
+        {
+          "sha256_12": "4e5b38020f5d",
+          "count": 4
+        },
+        {
+          "sha256_12": "86d22b3363c4",
+          "count": 3
+        },
+        {
+          "sha256_12": "eb19ec902a17",
+          "count": 2
+        },
+        {
+          "sha256_12": "9fbe110d36cd",
+          "count": 2
+        },
+        {
+          "sha256_12": "1f8495c6dbc9",
+          "count": 2
+        },
+        {
+          "sha256_12": "e9c0cbcfd144",
+          "count": 2
+        },
+        {
+          "sha256_12": "a2c93caaf559",
+          "count": 1
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "responsible_units": {
+      "present_count": 10,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 18,
+      "top_values": [
+        {
+          "value": "관광정책과",
+          "count": 3
+        },
+        {
+          "value": "문화유산과",
+          "count": 3
+        },
+        {
+          "value": "문화예술과",
+          "count": 3
+        },
+        {
+          "value": "문화국",
+          "count": 3
+        },
+        {
+          "value": "119특수대응단",
+          "count": 2
+        },
+        {
+          "value": "관광마이스국",
+          "count": 2
+        },
+        {
+          "value": "전국체전기획단",
+          "count": 2
+        },
+        {
+          "value": "장애인복지과",
+          "count": 2
+        },
+        {
+          "value": "재난예방담당관",
+          "count": 1
+        },
+        {
+          "value": "소방재난본부",
+          "count": 1
+        }
+      ]
+    },
+    "responsible_units_source": {
+      "present_count": 10,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 1,
+      "top_values": [
+        {
+          "value": "be1_structured",
+          "count": 10
+        }
+      ]
+    },
+    "urgency_level": {
+      "present_count": 10,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 1,
+      "top_values": [
+        {
+          "value": "낮음",
+          "count": 10
+        }
+      ]
+    }
+  }
+}
