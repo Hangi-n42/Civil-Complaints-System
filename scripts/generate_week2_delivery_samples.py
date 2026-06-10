@@ -53,18 +53,29 @@ def normalize_record(raw: Dict[str, Any], source_file: Path) -> Dict[str, Any]:
         return {}
 
     source = str(raw.get("source") or metadata.get("source") or "unknown").strip() or "unknown"
-    created_at = str(raw.get("created_at") or raw.get("consulting_date") or "").strip() or "unknown"
+    created_at = (
+        str(structuring_record.get("created_at") or raw.get("created_at") or raw.get("consulting_date") or "")
+        .strip()
+        or "unknown"
+    )
 
     category = str(structuring_record.get("category") or raw.get("category") or "unknown").strip() or "unknown"
     if category == "-":
         category = "unknown"
 
-    region = str(raw.get("region") or "unknown").strip() or "unknown"
+    region = str(structuring_record.get("region") or raw.get("region") or "unknown").strip() or "unknown"
 
     # 샘플 계약도 운영과 동일하게 상담사 답변을 제외한 민원인 원문만 사용한다.
-    raw_text = str(
-        raw.get("raw_text") or raw.get("text") or structuring_record.get("text") or ""
-    ).strip()
+    if raw.get("consulting_content"):
+        # 원천 상담 본문은 전처리 어댑터 결과를 우선해 상담사 답변 유입을 막는다.
+        raw_text = str(
+            structuring_record.get("text") or raw.get("raw_text") or raw.get("text") or ""
+        ).strip()
+    else:
+        # 이미 구조화 입력으로 정제된 레코드는 기존 raw_text/text 우선순위를 유지한다.
+        raw_text = str(
+            raw.get("raw_text") or raw.get("text") or structuring_record.get("text") or ""
+        ).strip()
 
     result: Dict[str, Any] = {
         "case_id": case_id,

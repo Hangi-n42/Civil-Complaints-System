@@ -27,6 +27,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.ingestion.service import IngestionService
+from app.structuring.preprocessing import to_structuring_record
 from app.structuring.service import StructuringService
 from scripts.evaluate_structuring import main as evaluate_structuring
 
@@ -78,20 +79,38 @@ def _collect_raw_samples(limit: int) -> List[Dict[str, Any]]:
             if not isinstance(item, dict):
                 continue
 
-            case_id = str(item.get("case_id") or item.get("id") or "").strip()
-            text = str(item.get("text") or "").strip()
+            if item.get("consulting_content"):
+                # 원천 데이터 fallback도 운영 전처리와 같은 경로로 민원인 원문만 추출한다.
+                prepared = to_structuring_record(item)
+                metadata = prepared.get("metadata") if isinstance(prepared.get("metadata"), dict) else {}
+                case_id = str(prepared.get("case_id") or item.get("case_id") or item.get("id") or "").strip()
+                text = str(prepared.get("text") or "").strip()
+                source = str(prepared.get("source") or item.get("source") or "aihub_71852").strip() or "aihub_71852"
+                created_at = str(prepared.get("created_at") or item.get("created_at") or item.get("submitted_at") or "").strip()
+                category = str(prepared.get("category") or item.get("category") or "unknown").strip() or "unknown"
+                region = str(prepared.get("region") or item.get("region") or "unknown").strip() or "unknown"
+            else:
+                metadata = {}
+                case_id = str(item.get("case_id") or item.get("id") or "").strip()
+                text = str(item.get("text") or "").strip()
+                source = "aihub_71852"
+                created_at = str(item.get("created_at") or item.get("submitted_at") or "").strip()
+                category = str(item.get("consulting_category") or item.get("category") or "unknown").strip() or "unknown"
+                region = str(item.get("region") or "unknown").strip() or "unknown"
+
             if not case_id or not text:
                 continue
 
             rows.append(
                 {
                     "case_id": case_id,
-                    "source": "aihub_71852",
-                    "created_at": str(item.get("created_at") or item.get("submitted_at") or "").strip(),
-                    "category": str(item.get("consulting_category") or item.get("category") or "unknown").strip() or "unknown",
-                    "region": str(item.get("region") or "unknown").strip() or "unknown",
+                    "source": source,
+                    "created_at": created_at,
+                    "category": category,
+                    "region": region,
                     "raw_text": text,
                     "metadata": {
+                        "source_id": str(item.get("source_id") or metadata.get("source_id") or ""),
                         "source_file": str(json_path.relative_to(PROJECT_ROOT)).replace("\\", "/"),
                     },
                 }
