@@ -48,6 +48,23 @@ BE1 핸드오프 기준의 기존 `civil_cases_v1` `entity_texts` 적재율 11.0
 | 도로 파손으로 차량 통행이 위험합니다 | `CASE-30057` | `entity_texts`, `issue_types` 확인 |
 | 전세보증금 반환 관련 상담 | `CASE-300734` | `entity_texts`, `responsible_units_source` 확인 |
 
+## 기존 컬렉션 대비 검색 성능
+
+`qrels_final.tsv` 기준으로 기존 `civil_cases_v1`과 새 `civil_cases_be1_restructured_v1`을 동일한 100개 쿼리로 비교했다. 집계 지표는 qrels가 있는 49개 쿼리만 평가에 반영했다.
+
+| 지표 | 기존 `civil_cases_v1` | 새 컬렉션 | 변화 |
+| --- | ---: | ---: | ---: |
+| nDCG@5 | 0.6108 | 0.4400 | -0.1708 |
+| nDCG@10 | 0.6965 | 0.4419 | -0.2546 |
+| Recall@5 | 0.3083 | 0.2244 | -0.0839 |
+| Recall@10 | 0.6380 | 0.3895 | -0.2486 |
+| MRR@5 | 0.5204 | 0.4582 | -0.0622 |
+| MRR@10 | 0.5238 | 0.4611 | -0.0627 |
+| AP@10 | 0.4741 | 0.2350 | -0.2391 |
+| P@5 | 0.7510 | 0.5388 | -0.2122 |
+
+쿼리별 nDCG@10은 개선 2건, 동일 1건, 하락 46건이었다. 따라서 새 컬렉션은 metadata 적재율 검증용으로 유지하되, 현재 상태에서 기본 검색 컬렉션을 새 컬렉션으로 전환하는 것은 보류한다.
+
 ## 로컬 반영 상태
 
 전체 실행 결과를 임베딩 포함 export/import 방식으로 로컬 Chroma에 병합했다. 로컬에는 다음 주요 컬렉션이 함께 존재한다.
@@ -67,5 +84,7 @@ BE1 핸드오프 기준의 기존 `civil_cases_v1` `entity_texts` 적재율 11.0
 - `reports/retrieval/v3/be1_restructured_v1_search_smoke.md`
 - `reports/retrieval/v3/be1_restructured_v1_local_coverage.md`
 - `reports/retrieval/v3/be1_restructured_v1_local_search_smoke.md`
+- `reports/retrieval/v3/be1_restructured_v1_collection_ab.md`
+- `reports/retrieval/v3/be1_restructured_v1_collection_ab.json`
 
 이 리포트와 세부 검증 리포트는 민원 원문과 검색 snippet을 포함하지 않는다.
