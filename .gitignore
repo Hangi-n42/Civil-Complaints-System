@@ -218,6 +218,8 @@ marimo/_lsp/
 __marimo__/
 
 # === Project-specific ignores (AI-Civil-Affairs-Systems) ===
+data/*.zip
+data/chroma_backups/
 
 # Local virtual environments
 Civil/

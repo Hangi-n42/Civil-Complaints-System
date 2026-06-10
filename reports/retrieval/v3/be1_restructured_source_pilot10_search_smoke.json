@@ -1,0 +1,267 @@
+{
+  "generated_at": "2026-06-09T16:40:28.138224+00:00",
+  "collection": "civil_cases_be1_source_pilot10",
+  "top_k": 3,
+  "strategy": "dense",
+  "empty_result_count": 0,
+  "queries": [
+    {
+      "query": "공연 예매 취소가 안 됩니다",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-002470",
+          "chunk_id": "CASE-002470__chunk-8",
+          "score": 0.64,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-002468",
+          "chunk_id": "CASE-002468__chunk-6",
+          "score": 0.63,
+          "entity_texts": [
+            "공연",
+            "예매"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-002466",
+          "chunk_id": "CASE-002466__chunk-4",
+          "score": 0.59,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "홈페이지",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "임금체불 신고와 퇴직금 지급 문의",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-001555",
+          "chunk_id": "CASE-001555__chunk-2",
+          "score": 0.44,
+          "entity_texts": [
+            "전시",
+            "관람",
+            "투어",
+            "홈페이지"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-002470",
+          "chunk_id": "CASE-002470__chunk-8",
+          "score": 0.42,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-002469",
+          "chunk_id": "CASE-002469__chunk-7",
+          "score": 0.42,
+          "entity_texts": [
+            "행사",
+            "예매"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "건설공사 하도급 대금 문제",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-001555",
+          "chunk_id": "CASE-001555__chunk-2",
+          "score": 0.39,
+          "entity_texts": [
+            "전시",
+            "관람",
+            "투어",
+            "홈페이지"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-002465",
+          "chunk_id": "CASE-002465__chunk-3",
+          "score": 0.37,
+          "entity_texts": [
+            "공연",
+            "예매"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-002466",
+          "chunk_id": "CASE-002466__chunk-4",
+          "score": 0.36,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "홈페이지",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "도로 파손으로 차량 통행이 위험합니다",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-001555",
+          "chunk_id": "CASE-001555__chunk-2",
+          "score": 0.37,
+          "entity_texts": [
+            "전시",
+            "관람",
+            "투어",
+            "홈페이지"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-002467",
+          "chunk_id": "CASE-002467__chunk-5",
+          "score": 0.36,
+          "entity_texts": [
+            "예매",
+            "투어",
+            "회원계정",
+            "교육프로그램"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-000021",
+          "chunk_id": "CASE-000021__chunk-1",
+          "score": 0.35,
+          "entity_texts": [
+            "투어"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "전세보증금 반환 관련 상담",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-002470",
+          "chunk_id": "CASE-002470__chunk-8",
+          "score": 0.48,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-002466",
+          "chunk_id": "CASE-002466__chunk-4",
+          "score": 0.48,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "홈페이지",
+            "회원계정"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-002468",
+          "chunk_id": "CASE-002468__chunk-6",
+          "score": 0.47,
+          "entity_texts": [
+            "공연",
+            "예매"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    }
+  ]
+}

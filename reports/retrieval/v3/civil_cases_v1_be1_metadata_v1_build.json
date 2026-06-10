@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-06-10T02:43:51.273889+00:00",
+  "persist_dir": "data/chroma_db",
+  "base_collection": "civil_cases_v1",
+  "metadata_collection": "civil_cases_be1_restructured_v1",
+  "output_collection": "civil_cases_v1_be1_metadata_v1",
+  "base_count": 9132,
+  "metadata_count": 9132,
+  "output_count": 9132,
+  "matched_count": 9132,
+  "unmatched_count": 0,
+  "lookup": {
+    "metadata_count": 9132,
+    "lookup_key_count": 27396,
+    "duplicate_key_count": 9132
+  },
+  "overlay_fields": [
+    "entity_texts",
+    "legal_ref_names",
+    "legal_ref_ids",
+    "issue_types",
+    "key_terms",
+    "responsible_units",
+    "responsible_units_source",
+    "urgency_level"
+  ],
+  "overlay_decisions": {
+    "entity_texts": {
+      "overlay": 7996,
+      "empty": 1122,
+      "preserve_base": 14
+    },
+    "legal_ref_names": {
+      "empty": 4870,
+      "overlay": 3456,
+      "preserve_base": 806
+    },
+    "legal_ref_ids": {
+      "empty": 4870,
+      "overlay": 3456,
+      "preserve_base": 806
+    },
+    "issue_types": {
+      "overlay": 5571,
+      "empty": 1958,
+      "preserve_base": 1603
+    },
+    "key_terms": {
+      "overlay": 8192,
+      "empty": 536,
+      "preserve_base": 404
+    },
+    "responsible_units": {
+      "overlay": 9132
+    },
+    "responsible_units_source": {
+      "overlay": 9132
+    },
+    "urgency_level": {
+      "overlay": 9132
+    }
+  },
+  "final_field_coverage": {
+    "entity_texts": 8010,
+    "legal_ref_names": 4262,
+    "legal_ref_ids": 4262,
+    "issue_types": 7174,
+    "key_terms": 8596,
+    "responsible_units": 9132,
+    "responsible_units_source": 9132,
+    "urgency_level": 9132
+  }
+}

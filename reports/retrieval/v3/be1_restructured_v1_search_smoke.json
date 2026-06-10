@@ -1,0 +1,290 @@
+{
+  "generated_at": "2026-06-09T22:46:57.760672+00:00",
+  "collection": "civil_cases_be1_restructured_v1",
+  "top_k": 3,
+  "strategy": "dense",
+  "empty_result_count": 0,
+  "queries": [
+    {
+      "query": "공연 예매 취소가 안 됩니다",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-001683",
+          "chunk_id": "CASE-001683__chunk-15",
+          "score": 0.69,
+          "entity_texts": [
+            "공연",
+            "예매"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-001617",
+          "chunk_id": "CASE-001617__chunk-2",
+          "score": 0.68,
+          "entity_texts": [
+            "공연",
+            "예매",
+            "티켓"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-002407",
+          "chunk_id": "CASE-002407__chunk-1",
+          "score": 0.66,
+          "entity_texts": [
+            "공연",
+            "티켓",
+            "예매",
+            "홈페이지"
+          ],
+          "issue_types": [
+            "예매/예약"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "임금체불 신고와 퇴직금 지급 문의",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-700455",
+          "chunk_id": "CASE-700455__chunk-11",
+          "score": 0.75,
+          "entity_texts": [
+            "임금체불"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [
+            "근로기준법"
+          ],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-700751",
+          "chunk_id": "CASE-700751__chunk-0",
+          "score": 0.72,
+          "entity_texts": [
+            "임금체불"
+          ],
+          "issue_types": [
+            "지원금/급여"
+          ],
+          "legal_ref_names": [
+            "근로기준법"
+          ],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-701320",
+          "chunk_id": "CASE-701320__chunk-3",
+          "score": 0.72,
+          "entity_texts": [
+            "임금체불"
+          ],
+          "issue_types": [
+            "지원금/급여"
+          ],
+          "legal_ref_names": [
+            "근로기준법"
+          ],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "건설공사 하도급 대금 문제",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-301512",
+          "chunk_id": "CASE-301512__chunk-3",
+          "score": 0.65,
+          "entity_texts": [
+            "하도급",
+            "건설공사",
+            "공사"
+          ],
+          "issue_types": [
+            "법령 해석",
+            "허가/등록",
+            "지원금/급여"
+          ],
+          "legal_ref_names": [
+            "건설산업기본법 시행규칙",
+            "근로기준법",
+            "국민기초생활 보장법"
+          ],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-800151",
+          "chunk_id": "CASE-800151__chunk-8",
+          "score": 0.64,
+          "entity_texts": [
+            "도로",
+            "세무신고",
+            "공사"
+          ],
+          "issue_types": [
+            "지원금/급여",
+            "증빙/서류"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-301417",
+          "chunk_id": "CASE-301417__chunk-8",
+          "score": 0.63,
+          "entity_texts": [
+            "하도급",
+            "건설공사",
+            "조달공고",
+            "공사"
+          ],
+          "issue_types": [
+            "단속/점검",
+            "시설 개선/보수",
+            "법령 해석"
+          ],
+          "legal_ref_names": [
+            "건설산업기본법",
+            "하도급거래 공정화에 관한 법률"
+          ],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "도로 파손으로 차량 통행이 위험합니다",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-30057",
+          "chunk_id": "CASE-30057__chunk-12",
+          "score": 0.72,
+          "entity_texts": [
+            "도로",
+            "공동주택",
+            "인도",
+            "아파트"
+          ],
+          "issue_types": [
+            "시설 개선/보수"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-70083",
+          "chunk_id": "CASE-70083__chunk-5",
+          "score": 0.7,
+          "entity_texts": [
+            "도로"
+          ],
+          "issue_types": [
+            "시설 개선/보수"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-70138",
+          "chunk_id": "CASE-70138__chunk-0",
+          "score": 0.68,
+          "entity_texts": [
+            "도로",
+            "공동주택",
+            "주차장",
+            "현수막",
+            "건설공사",
+            "교차로",
+            "아파트",
+            "공사"
+          ],
+          "issue_types": [
+            "단속/점검"
+          ],
+          "legal_ref_names": [
+            "도로교통법",
+            "주택법",
+            "주차장법",
+            "옥외광고물 등의 관리와 옥외광고산업 진흥에 관한 법률"
+          ],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    },
+    {
+      "query": "전세보증금 반환 관련 상담",
+      "results": [
+        {
+          "rank": 1,
+          "case_id": "CASE-300734",
+          "chunk_id": "CASE-300734__chunk-5",
+          "score": 0.71,
+          "entity_texts": [
+            "전세보증금"
+          ],
+          "issue_types": [],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 2,
+          "case_id": "CASE-300095",
+          "chunk_id": "CASE-300095__chunk-18",
+          "score": 0.71,
+          "entity_texts": [
+            "계약서",
+            "전세보증금"
+          ],
+          "issue_types": [
+            "갱신/연장"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        },
+        {
+          "rank": 3,
+          "case_id": "CASE-001305",
+          "chunk_id": "CASE-001305__chunk-8",
+          "score": 0.7,
+          "entity_texts": [
+            "오피스텔",
+            "소상공인지원",
+            "대출보증",
+            "전세보증금"
+          ],
+          "issue_types": [
+            "갱신/연장"
+          ],
+          "legal_ref_names": [],
+          "responsible_units_source": "be1_structured"
+        }
+      ]
+    }
+  ]
+}

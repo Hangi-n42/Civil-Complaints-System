@@ -1,8 +1,8 @@
 # ChromaDB 검색 신호 metadata 적재율 점검
 
-- 생성 시각(UTC): `2026-06-10T03:25:41.681636+00:00`
+- 생성 시각(UTC): `2026-06-10T02:44:04.750833+00:00`
 - persist dir: `data/chroma_db`
-- collection: `civil_cases_v1`
+- collection: `civil_cases_v1_be1_metadata_v1`
 - 전체 건수: 9132
 - 점검 건수: 9132
 - 제한 실행 여부: 아니오

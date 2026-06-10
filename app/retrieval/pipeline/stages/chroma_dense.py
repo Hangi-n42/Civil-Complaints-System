@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from app.core.config import settings
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
 from app.retrieval.router.adaptive_router import route
 from app.retrieval.service import RetrievalService, get_retrieval_service
@@ -15,7 +16,7 @@ class ChromaDenseStage:
         self,
         *,
         name: str = "dense_retriever",
-        collection: str = "civil_cases_v1",
+        collection: str = settings.DEFAULT_CHROMA_COLLECTION,
         top_k: int = 10,
         use_adaptive_router: bool = False,
         snippet_max_chars: int = 140,
@@ -81,4 +82,3 @@ def _result_metadata(item: dict[str, Any]) -> dict[str, Any]:
         if key in item:
             metadata[key] = item[key]
     return metadata
-

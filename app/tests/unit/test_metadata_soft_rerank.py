@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from app.api.schemas.retrieval import SearchRequest
+from app.core.config import settings
 from app.retrieval.service import RetrievalService
 
 
@@ -36,6 +37,12 @@ def test_search_query_signals_are_normalized():
     assert request.query_signals.legal_ref_ids == ["001706"]
     assert request.query_signals.key_terms == ["조명", "점검"]
     assert request.query_signals.responsible_units_source == "be1_structured"
+
+
+def test_default_collection_uses_clean_collection_name():
+    assert settings.DEFAULT_CHROMA_COLLECTION == "civil_cases_v1"
+    assert SearchRequest(query="가로등 점검").collection_name == settings.DEFAULT_CHROMA_COLLECTION
+    assert RetrievalService().default_collection_name == settings.DEFAULT_CHROMA_COLLECTION
 
 
 def test_metadata_soft_rerank_without_query_signals_keeps_results_unchanged():

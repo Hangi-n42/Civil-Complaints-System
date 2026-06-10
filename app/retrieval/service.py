@@ -45,7 +45,7 @@ class RetrievalService:
         self.embedding_model = settings.EMBEDDING_MODEL
         self.vectorstore_path = settings.CHROMA_DB_PATH
         self.embedding_device = settings.EMBEDDING_DEVICE
-        self.default_collection_name = "civil_cases_v1"
+        self.default_collection_name = settings.DEFAULT_CHROMA_COLLECTION
         self._vectorstore: Optional[ChromaVectorStore] = None
         self._hybrid = None  # HybridRetriever (lazy)
 
@@ -850,7 +850,7 @@ class RetrievalService:
             )
             if collection_name and collection_name != self.default_collection_name:
                 self.logger.info(
-                    "collection_name=%s is accepted for contract compatibility but the runtime store uses the default collection",
+                    "collection_name=%s indexed with explicit Chroma collection",
                     collection_name,
                 )
             return result
