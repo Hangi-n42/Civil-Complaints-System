@@ -1,0 +1,669 @@
+{
+  "generated_at": "2026-06-10T02:45:01.071510+00:00",
+  "persist_dir": "data/chroma_db",
+  "queries_path": "data/evaluation/v3/queries.jsonl",
+  "qrels_path": "data/evaluation/v3/qrels_final.tsv",
+  "queries_sha256": "sha256:f08c0adce584c6dcb62bbfb103f8cf6dbba9975f28aafecb9d807b4236ecbee8",
+  "qrels_sha256": "sha256:e53f8d75247bf7de243c3c9a3e5f4ada939f0d9566ad7f67268c496a7aecee19",
+  "query_count": 100,
+  "qrel_count": 749,
+  "judged_query_count": 49,
+  "top_k": 10,
+  "embedding_model": "BAAI/bge-m3",
+  "embedding_device": "cuda",
+  "embedding_elapsed_sec": 9.753713199985214,
+  "baseline_collection": "civil_cases_v1",
+  "candidate_collection": "civil_cases_v1_be1_metadata_v1",
+  "collection_stats": {
+    "civil_cases_v1": {
+      "collection": "civil_cases_v1",
+      "count": 9132,
+      "elapsed_sec": 1.1432545999996364,
+      "query_per_sec": 87.46958026675055
+    },
+    "civil_cases_v1_be1_metadata_v1": {
+      "collection": "civil_cases_v1_be1_metadata_v1",
+      "count": 9132,
+      "elapsed_sec": 1.2408975000143982,
+      "query_per_sec": 80.58683331930291
+    }
+  },
+  "metrics": {
+    "civil_cases_v1": {
+      "R@10": 0.6380492989736689,
+      "RR@5": 0.5204081632653061,
+      "R@5": 0.3082942051279387,
+      "P@5": 0.7510204081632652,
+      "nDCG@5": 0.6107759229797586,
+      "RR@10": 0.5238095238095237,
+      "nDCG@10": 0.6964829541529383,
+      "AP@10": 0.4741388266095649
+    },
+    "civil_cases_v1_be1_metadata_v1": {
+      "R@10": 0.6380492989736689,
+      "RR@5": 0.5204081632653061,
+      "R@5": 0.3082942051279387,
+      "P@5": 0.7510204081632652,
+      "nDCG@5": 0.6107759229797586,
+      "RR@10": 0.5238095238095237,
+      "nDCG@10": 0.6964829541529383,
+      "AP@10": 0.4741388266095649
+    }
+  },
+  "metric_keys": [
+    "nDCG@5",
+    "nDCG@10",
+    "R@5",
+    "R@10",
+    "RR@5",
+    "RR@10",
+    "AP@10",
+    "P@5"
+  ],
+  "metric_deltas": {
+    "nDCG@5": 0.0,
+    "nDCG@10": 0.0,
+    "R@5": 0.0,
+    "R@10": 0.0,
+    "RR@5": 0.0,
+    "RR@10": 0.0,
+    "AP@10": 0.0,
+    "P@5": 0.0
+  },
+  "per_query_nDCG@10": {
+    "summary": {
+      "total": 49,
+      "improved": 0,
+      "tied": 49,
+      "regressed": 0
+    },
+    "top_improvements": [],
+    "top_regressions": [],
+    "rows": [
+      {
+        "query_id": "Q-0001",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0002",
+        "baseline_nDCG@10": 0.7373366748811093,
+        "candidate_nDCG@10": 0.7373366748811093,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0003",
+        "baseline_nDCG@10": 0.6189938427718791,
+        "candidate_nDCG@10": 0.6189938427718791,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0004",
+        "baseline_nDCG@10": 0.4394940028217226,
+        "candidate_nDCG@10": 0.4394940028217226,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0005",
+        "baseline_nDCG@10": 0.7055262807816335,
+        "candidate_nDCG@10": 0.7055262807816335,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0006",
+        "baseline_nDCG@10": 0.7467811219747253,
+        "candidate_nDCG@10": 0.7467811219747253,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0007",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0008",
+        "baseline_nDCG@10": 0.933745776545611,
+        "candidate_nDCG@10": 0.933745776545611,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0009",
+        "baseline_nDCG@10": 0.6085366621437004,
+        "candidate_nDCG@10": 0.6085366621437004,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0010",
+        "baseline_nDCG@10": 0.6898498484944027,
+        "candidate_nDCG@10": 0.6898498484944027,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0011",
+        "baseline_nDCG@10": 0.6581320985968581,
+        "candidate_nDCG@10": 0.6581320985968581,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0012",
+        "baseline_nDCG@10": 0.7175350186151064,
+        "candidate_nDCG@10": 0.7175350186151064,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0013",
+        "baseline_nDCG@10": 0.7407090992125821,
+        "candidate_nDCG@10": 0.7407090992125821,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0014",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0015",
+        "baseline_nDCG@10": 0.7104770117651426,
+        "candidate_nDCG@10": 0.7104770117651426,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0016",
+        "baseline_nDCG@10": 0.748097839602444,
+        "candidate_nDCG@10": 0.748097839602444,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0017",
+        "baseline_nDCG@10": 0.7042095631539148,
+        "candidate_nDCG@10": 0.7042095631539148,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0018",
+        "baseline_nDCG@10": 0.3084274278260313,
+        "candidate_nDCG@10": 0.3084274278260313,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0019",
+        "baseline_nDCG@10": 0.6737950507154624,
+        "candidate_nDCG@10": 0.6737950507154624,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0020",
+        "baseline_nDCG@10": 0.7713170203682734,
+        "candidate_nDCG@10": 0.7713170203682734,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0021",
+        "baseline_nDCG@10": 0.5827738848179197,
+        "candidate_nDCG@10": 0.5827738848179197,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0022",
+        "baseline_nDCG@10": 0.748097839602444,
+        "candidate_nDCG@10": 0.748097839602444,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0023",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0024",
+        "baseline_nDCG@10": 0.44149241373678083,
+        "candidate_nDCG@10": 0.44149241373678083,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0025",
+        "baseline_nDCG@10": 0.748097839602444,
+        "candidate_nDCG@10": 0.748097839602444,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0026",
+        "baseline_nDCG@10": 0.7432262726522397,
+        "candidate_nDCG@10": 0.7432262726522397,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0027",
+        "baseline_nDCG@10": 0.4693027076732007,
+        "candidate_nDCG@10": 0.4693027076732007,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0028",
+        "baseline_nDCG@10": 0.49994852578093474,
+        "candidate_nDCG@10": 0.49994852578093474,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0029",
+        "baseline_nDCG@10": 0.7515995003787241,
+        "candidate_nDCG@10": 0.7515995003787241,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0030",
+        "baseline_nDCG@10": 0.7530340773982488,
+        "candidate_nDCG@10": 0.7530340773982488,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0031",
+        "baseline_nDCG@10": 0.7300721335927343,
+        "candidate_nDCG@10": 0.7300721335927343,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0032",
+        "baseline_nDCG@10": 0.7025900173284759,
+        "candidate_nDCG@10": 0.7025900173284759,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0033",
+        "baseline_nDCG@10": 0.6352557412688555,
+        "candidate_nDCG@10": 0.6352557412688555,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0034",
+        "baseline_nDCG@10": 0.7479251802517112,
+        "candidate_nDCG@10": 0.7479251802517112,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0035",
+        "baseline_nDCG@10": 0.6698623505528798,
+        "candidate_nDCG@10": 0.6698623505528798,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0037",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0038",
+        "baseline_nDCG@10": 0.7451926227335312,
+        "candidate_nDCG@10": 0.7451926227335312,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0039",
+        "baseline_nDCG@10": 0.6749038858801009,
+        "candidate_nDCG@10": 0.6749038858801009,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0040",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0041",
+        "baseline_nDCG@10": 0.7806072434461103,
+        "candidate_nDCG@10": 0.7806072434461103,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0042",
+        "baseline_nDCG@10": 0.7530340773982488,
+        "candidate_nDCG@10": 0.7530340773982488,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0043",
+        "baseline_nDCG@10": 0.6698229475797851,
+        "candidate_nDCG@10": 0.6698229475797851,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0044",
+        "baseline_nDCG@10": 0.8522541249803536,
+        "candidate_nDCG@10": 0.8522541249803536,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0045",
+        "baseline_nDCG@10": 0.576669299949219,
+        "candidate_nDCG@10": 0.576669299949219,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0046",
+        "baseline_nDCG@10": 0.7570649202334608,
+        "candidate_nDCG@10": 0.7570649202334608,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0047",
+        "baseline_nDCG@10": 0.7263313134995212,
+        "candidate_nDCG@10": 0.7263313134995212,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0048",
+        "baseline_nDCG@10": 0.5498997975849792,
+        "candidate_nDCG@10": 0.5498997975849792,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0049",
+        "baseline_nDCG@10": 0.7799082337019199,
+        "candidate_nDCG@10": 0.7799082337019199,
+        "delta_nDCG@10": 0.0
+      },
+      {
+        "query_id": "Q-0050",
+        "baseline_nDCG@10": 0.8462840593870345,
+        "candidate_nDCG@10": 0.8462840593870345,
+        "delta_nDCG@10": 0.0
+      }
+    ]
+  },
+  "top1_comparison": {
+    "total": 100,
+    "changed": 0
+  },
+  "sample_run_records": {
+    "civil_cases_v1": [
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700890",
+        "score": 0.9668149948120117,
+        "rank": 1,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700524",
+        "score": 0.8325798511505127,
+        "rank": 2,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701005",
+        "score": 0.8189378976821899,
+        "rank": 3,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701272",
+        "score": 0.8094761371612549,
+        "rank": 4,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-500516",
+        "score": 0.8073410987854004,
+        "rank": 5,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700620",
+        "score": 0.8039586544036865,
+        "rank": 6,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700597",
+        "score": 0.8019761443138123,
+        "rank": 7,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701246",
+        "score": 0.7911263108253479,
+        "rank": 8,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700772",
+        "score": 0.7869030833244324,
+        "rank": 9,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701054",
+        "score": 0.7802248597145081,
+        "rank": 10,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001886",
+        "score": 0.9489775896072388,
+        "rank": 1,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001589",
+        "score": 0.8109827637672424,
+        "rank": 2,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002298",
+        "score": 0.8037699460983276,
+        "rank": 3,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001920",
+        "score": 0.8035212755203247,
+        "rank": 4,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001694",
+        "score": 0.7951807379722595,
+        "rank": 5,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001844",
+        "score": 0.7910194993019104,
+        "rank": 6,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002377",
+        "score": 0.7819215059280396,
+        "rank": 7,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002499",
+        "score": 0.7816391587257385,
+        "rank": 8,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002494",
+        "score": 0.7811452150344849,
+        "rank": 9,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001673",
+        "score": 0.7782878279685974,
+        "rank": 10,
+        "stage": "final"
+      }
+    ],
+    "civil_cases_v1_be1_metadata_v1": [
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700890",
+        "score": 0.9668149948120117,
+        "rank": 1,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700524",
+        "score": 0.8325798511505127,
+        "rank": 2,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701005",
+        "score": 0.8189377784729004,
+        "rank": 3,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701272",
+        "score": 0.8094761371612549,
+        "rank": 4,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-500516",
+        "score": 0.8073410987854004,
+        "rank": 5,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700620",
+        "score": 0.8039586544036865,
+        "rank": 6,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700597",
+        "score": 0.8019761443138123,
+        "rank": 7,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701246",
+        "score": 0.7911263108253479,
+        "rank": 8,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-700772",
+        "score": 0.7869030833244324,
+        "rank": 9,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0001",
+        "docid": "CASE-701054",
+        "score": 0.7802248597145081,
+        "rank": 10,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001886",
+        "score": 0.9489775896072388,
+        "rank": 1,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001589",
+        "score": 0.8109827637672424,
+        "rank": 2,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002298",
+        "score": 0.8037699460983276,
+        "rank": 3,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001920",
+        "score": 0.8035212755203247,
+        "rank": 4,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001694",
+        "score": 0.7951807379722595,
+        "rank": 5,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001844",
+        "score": 0.7910194993019104,
+        "rank": 6,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002377",
+        "score": 0.7819215059280396,
+        "rank": 7,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002499",
+        "score": 0.7816391587257385,
+        "rank": 8,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-002494",
+        "score": 0.7811450958251953,
+        "rank": 9,
+        "stage": "final"
+      },
+      {
+        "qid": "Q-0002",
+        "docid": "CASE-001673",
+        "score": 0.7782878279685974,
+        "rank": 10,
+        "stage": "final"
+      }
+    ]
+  }
+}

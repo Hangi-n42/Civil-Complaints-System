@@ -1,0 +1,334 @@
+{
+  "generated_at": "2026-06-10T02:45:55.220843+00:00",
+  "total_count": 9132,
+  "scanned_count": 9132,
+  "limited": false,
+  "fields": {
+    "entity_texts": {
+      "present_count": 8010,
+      "empty_count": 1122,
+      "coverage_ratio": 0.877135,
+      "unique_value_count": 607,
+      "top_value_hashes": [
+        {
+          "sha256_12": "60982a61e50d",
+          "count": 1237
+        },
+        {
+          "sha256_12": "25e51843741e",
+          "count": 999
+        },
+        {
+          "sha256_12": "47680f106f00",
+          "count": 766
+        },
+        {
+          "sha256_12": "a7cebf6cf0ae",
+          "count": 690
+        },
+        {
+          "sha256_12": "b74eef2a48b6",
+          "count": 685
+        },
+        {
+          "sha256_12": "558a9ef1a7db",
+          "count": 583
+        },
+        {
+          "sha256_12": "9dc94a9d7134",
+          "count": 573
+        },
+        {
+          "sha256_12": "fb84fa7f86ea",
+          "count": 507
+        },
+        {
+          "sha256_12": "1af88d86437a",
+          "count": 430
+        },
+        {
+          "sha256_12": "ae63f424005e",
+          "count": 397
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "legal_ref_names": {
+      "present_count": 4262,
+      "empty_count": 4870,
+      "coverage_ratio": 0.46671,
+      "unique_value_count": 313,
+      "top_values": [
+        {
+          "value": "근로기준법",
+          "count": 757
+        },
+        {
+          "value": "건축법",
+          "count": 719
+        },
+        {
+          "value": "주택법",
+          "count": 573
+        },
+        {
+          "value": "주차장법",
+          "count": 404
+        },
+        {
+          "value": "고용보험법",
+          "count": 330
+        },
+        {
+          "value": "도로교통법",
+          "count": 280
+        },
+        {
+          "value": "소음·진동관리법",
+          "count": 194
+        },
+        {
+          "value": "산업안전보건법",
+          "count": 165
+        },
+        {
+          "value": "건축법 시행령",
+          "count": 127
+        },
+        {
+          "value": "국토의 계획 및 이용에 관한 법률",
+          "count": 123
+        }
+      ]
+    },
+    "legal_ref_ids": {
+      "present_count": 4262,
+      "empty_count": 4870,
+      "coverage_ratio": 0.46671,
+      "unique_value_count": 313,
+      "top_values": [
+        {
+          "value": "001872",
+          "count": 757
+        },
+        {
+          "value": "001823",
+          "count": 719
+        },
+        {
+          "value": "001809",
+          "count": 573
+        },
+        {
+          "value": "001814",
+          "count": 404
+        },
+        {
+          "value": "001761",
+          "count": 330
+        },
+        {
+          "value": "001638",
+          "count": 280
+        },
+        {
+          "value": "000167",
+          "count": 194
+        },
+        {
+          "value": "001766",
+          "count": 165
+        },
+        {
+          "value": "002118",
+          "count": 127
+        },
+        {
+          "value": "009294",
+          "count": 123
+        }
+      ]
+    },
+    "issue_types": {
+      "present_count": 7174,
+      "empty_count": 1958,
+      "coverage_ratio": 0.785589,
+      "unique_value_count": 10,
+      "top_values": [
+        {
+          "value": "시설 개선/보수",
+          "count": 2527
+        },
+        {
+          "value": "법령 해석",
+          "count": 1591
+        },
+        {
+          "value": "허가/등록",
+          "count": 1382
+        },
+        {
+          "value": "지원금/급여",
+          "count": 1200
+        },
+        {
+          "value": "단속/점검",
+          "count": 972
+        },
+        {
+          "value": "예매/예약",
+          "count": 778
+        },
+        {
+          "value": "증빙/서류",
+          "count": 456
+        },
+        {
+          "value": "갱신/연장",
+          "count": 403
+        },
+        {
+          "value": "면허/자격",
+          "count": 179
+        },
+        {
+          "value": "보상/배상",
+          "count": 152
+        }
+      ]
+    },
+    "key_terms": {
+      "present_count": 8596,
+      "empty_count": 536,
+      "coverage_ratio": 0.941305,
+      "unique_value_count": 588,
+      "top_value_hashes": [
+        {
+          "sha256_12": "60982a61e50d",
+          "count": 1211
+        },
+        {
+          "sha256_12": "6a28baa53ad4",
+          "count": 1085
+        },
+        {
+          "sha256_12": "47680f106f00",
+          "count": 768
+        },
+        {
+          "sha256_12": "b74eef2a48b6",
+          "count": 693
+        },
+        {
+          "sha256_12": "a7cebf6cf0ae",
+          "count": 690
+        },
+        {
+          "sha256_12": "60c30d687c51",
+          "count": 624
+        },
+        {
+          "sha256_12": "9dc94a9d7134",
+          "count": 571
+        },
+        {
+          "sha256_12": "558a9ef1a7db",
+          "count": 545
+        },
+        {
+          "sha256_12": "25e51843741e",
+          "count": 538
+        },
+        {
+          "sha256_12": "99c38307c141",
+          "count": 471
+        }
+      ],
+      "value_redaction": "원문 값 비노출"
+    },
+    "responsible_units": {
+      "present_count": 9132,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 117,
+      "top_values": [
+        {
+          "value": "도로안전과",
+          "count": 1943
+        },
+        {
+          "value": "도로계획과",
+          "count": 1854
+        },
+        {
+          "value": "대중교통과",
+          "count": 1819
+        },
+        {
+          "value": "장애인복지과",
+          "count": 1278
+        },
+        {
+          "value": "택시운수과",
+          "count": 1076
+        },
+        {
+          "value": "15분도시과",
+          "count": 1057
+        },
+        {
+          "value": "기술심사과",
+          "count": 885
+        },
+        {
+          "value": "공원여가정책과",
+          "count": 737
+        },
+        {
+          "value": "중소상공인지원과",
+          "count": 689
+        },
+        {
+          "value": "건축정책과",
+          "count": 601
+        }
+      ]
+    },
+    "responsible_units_source": {
+      "present_count": 9132,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 1,
+      "top_values": [
+        {
+          "value": "be1_structured",
+          "count": 9132
+        }
+      ]
+    },
+    "urgency_level": {
+      "present_count": 9132,
+      "empty_count": 0,
+      "coverage_ratio": 1.0,
+      "unique_value_count": 4,
+      "top_values": [
+        {
+          "value": "낮음",
+          "count": 7196
+        },
+        {
+          "value": "보통",
+          "count": 1277
+        },
+        {
+          "value": "긴급",
+          "count": 654
+        },
+        {
+          "value": "높음",
+          "count": 5
+        }
+      ]
+    }
+  }
+}
