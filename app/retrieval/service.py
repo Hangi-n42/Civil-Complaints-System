@@ -45,7 +45,7 @@ class RetrievalService:
         self.embedding_model = settings.EMBEDDING_MODEL
         self.vectorstore_path = settings.CHROMA_DB_PATH
         self.embedding_device = settings.EMBEDDING_DEVICE
-        self.default_collection_name = "civil_cases_v1"
+        self.default_collection_name = settings.DEFAULT_CHROMA_COLLECTION
         self._vectorstore: Optional[ChromaVectorStore] = None
         self._hybrid = None  # HybridRetriever (lazy)
 

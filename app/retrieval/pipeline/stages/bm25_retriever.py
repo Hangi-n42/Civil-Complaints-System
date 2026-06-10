@@ -5,11 +5,12 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from app.core.config import settings
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
 
 
 _DEFAULT_INDEX_DIR = "data/bm25_index"
-_DEFAULT_COLLECTION = "civil_cases_v1"
+_DEFAULT_COLLECTION = settings.DEFAULT_CHROMA_COLLECTION
 
 # kiwipiepy에서 의미 있는 품사만 추출 (명사, 용언 어근, 외래어, 한자)
 _KIWI_KEEP_TAGS = {"NNG", "NNP", "NNB", "NR", "NP", "VV", "VA", "XR", "SL", "SH"}

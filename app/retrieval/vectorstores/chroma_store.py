@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from app.core.config import PROJECT_ROOT
+from app.core.config import PROJECT_ROOT, settings
 from app.core.title_builder import build_case_title
 
 
@@ -143,7 +143,7 @@ class ChromaVectorStore:
         return self._embedding_model
 
     def _get_collection(self, collection_name: str):
-        key = collection_name.strip() if collection_name else "civil_cases_v1"
+        key = collection_name.strip() if collection_name else settings.DEFAULT_CHROMA_COLLECTION
         if key not in self._collections:
             client = self._get_client()
             # 기존 컬렉션은 get_or_create_collection 경로에서 내부 backfill/compactor 동작으로
@@ -158,7 +158,7 @@ class ChromaVectorStore:
         return self._collections[key]
 
     def reset_collection(self, collection_name: str) -> None:
-        key = collection_name.strip() if collection_name else "civil_cases_v1"
+        key = collection_name.strip() if collection_name else settings.DEFAULT_CHROMA_COLLECTION
         client = self._get_client()
         try:
             client.delete_collection(key)

@@ -429,7 +429,7 @@ class GenerationService:
         routing_trace: Dict[str, Any] | None = None,
         mode: str = "default",
         top_k: int | None = None,
-        collection_name: str = "civil_cases_v1",
+        collection_name: str = settings.DEFAULT_CHROMA_COLLECTION,
         filters: Dict[str, Any] | None = None,
         threshold: float = 0.0,
     ) -> tuple[str, List[Dict[str, Any]], Dict[str, Any]]:

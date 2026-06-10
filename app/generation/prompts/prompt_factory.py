@@ -154,7 +154,7 @@ class PromptFactory:
         collection = str(
             collection_name
             or routing_trace.get("collection_name")
-            or "civil_cases_v1"
+            or settings.DEFAULT_CHROMA_COLLECTION
         )
         effective_top_k = routing_trace.get("effective_top_k")
         routing_summary = {
@@ -622,7 +622,7 @@ class PromptFactory:
         routing_trace: Dict[str, Any] | None = None,
         retrieval_service: RetrievalService | None = None,
         top_k: Optional[int] = None,
-        collection_name: str = "civil_cases_v1",
+        collection_name: str = settings.DEFAULT_CHROMA_COLLECTION,
         filters: Optional[Dict[str, Any]] = None,
         threshold: float = 0.0,
         mode: str = "default",

@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from app.core.config import settings
 from app.evaluation.datasets import EvalQuery
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput, StageOutput
 from app.retrieval.pipeline.stages.bm25_retriever import BM25RetrieveStage
@@ -100,7 +101,7 @@ def _build_stage(stage_spec: dict[str, Any]):
     if stage_type == "chroma_dense":
         return ChromaDenseStage(
             name=name,
-            collection=str(params.get("collection") or "civil_cases_v1"),
+            collection=str(params.get("collection") or settings.DEFAULT_CHROMA_COLLECTION),
             top_k=int(params.get("top_k") or params.get("default_top_k") or 10),
             use_adaptive_router=bool(params.get("use_adaptive_router") or params.get("top_k_from_router")),
             snippet_max_chars=int(params.get("snippet_max_chars") or 140),
@@ -117,7 +118,7 @@ def _build_stage(stage_spec: dict[str, Any]):
     if stage_type == "bm25_retriever":
         return BM25RetrieveStage(
             name=name,
-            collection=str(params.get("collection") or "civil_cases_v1"),
+            collection=str(params.get("collection") or settings.DEFAULT_CHROMA_COLLECTION),
             top_k=int(params.get("top_k") or 50),
             index_dir=str(params.get("index_dir") or "data/bm25_index"),
             tokenizer=str(params.get("tokenizer") or "whitespace"),
@@ -144,4 +145,3 @@ def _build_stage(stage_spec: dict[str, Any]):
         )
 
     raise ValueError(f"지원하지 않는 검색 단계 유형입니다: {stage_type}")
-

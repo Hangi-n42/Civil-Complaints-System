@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.core.config import settings
 from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS, normalize_entity_label
 
 
@@ -101,7 +102,7 @@ class IndexRequest(BaseModel):
     request_id: Optional[str] = None
     action: Literal["bulk", "incremental"] = "bulk"
     cases: List[IndexRecord] = Field(default_factory=list)
-    collection_name: str = "civil_cases_v1"
+    collection_name: str = settings.DEFAULT_CHROMA_COLLECTION
 
     # Backward compatibility fields
     rebuild: Optional[bool] = None
@@ -223,7 +224,7 @@ class SearchRequest(BaseModel):
     top_k: int = 5
     filters: Optional[SearchFilters] = None
     query_signals: Optional[SearchQuerySignals] = None
-    collection_name: str = "civil_cases_v1"
+    collection_name: str = settings.DEFAULT_CHROMA_COLLECTION
 
 
 class RoutingHint(BaseModel):
