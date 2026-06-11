@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-06-11T06:32:57.225774+00:00",
+  "collection": "civil_cases_v1",
+  "qrels_sha256": "sha256:e53f8d75247bf7de243c3c9a3e5f4ada939f0d9566ad7f67268c496a7aecee19",
+  "judged_query_count": 49,
+  "pool_size": 100,
+  "top_k": 10,
+  "fresh_predicted_docs": 2738,
+  "strategies": {
+    "dense": {
+      "promotion": {
+        "pool_total_candidates": 2450,
+        "pool_judged_candidates": 592,
+        "pool_judged_rate": 0.2416,
+        "promoted_total": 43,
+        "promoted": {
+          "judged_rel": 8,
+          "judged_nonrel": 0,
+          "unjudged": 35
+        },
+        "promoted_unjudged_rate": 0.814,
+        "promoted_judged_rel_share_of_judged": 1.0,
+        "demoted_total": 43,
+        "demoted": {
+          "judged_rel": 25,
+          "judged_nonrel": 18,
+          "unjudged": 0
+        }
+      },
+      "metrics_adjusted": {
+        "base": {
+          "RR@10": 0.5204081632653061,
+          "R@10": 0.6380492989736689,
+          "nDCG@5": 0.6082469102292107,
+          "R@5": 0.3077751663435938,
+          "AP@10": 0.4729211539086559,
+          "RR@5": 0.5170068027210885,
+          "P@5": 0.7428571428571429,
+          "nDCG@10": 0.6968222412952628
+        },
+        "dept_fresh": {
+          "RR@10": 0.5255102040816326,
+          "R@10": 0.6152325099203854,
+          "nDCG@5": 0.6119033489848046,
+          "R@5": 0.3136524523229207,
+          "AP@10": 0.4541131691260672,
+          "RR@5": 0.5255102040816326,
+          "P@5": 0.7428571428571429,
+          "nDCG@10": 0.6802274384285432
+        },
+        "dept_fresh_excl_unjudged": {
+          "RR@10": 0.9863945578231291,
+          "R@10": 0.714702501047039,
+          "nDCG@5": 0.8994474640576119,
+          "R@5": 0.3836481112591557,
+          "AP@10": 0.6814049798121999,
+          "RR@5": 0.9863945578231291,
+          "P@5": 0.9183673469387755,
+          "nDCG@10": 0.9064984263279707
+        }
+      }
+    },
+    "hybrid": {
+      "promotion": {
+        "pool_total_candidates": 3952,
+        "pool_judged_candidates": 749,
+        "pool_judged_rate": 0.1895,
+        "promoted_total": 92,
+        "promoted": {
+          "judged_rel": 30,
+          "judged_nonrel": 11,
+          "unjudged": 51
+        },
+        "promoted_unjudged_rate": 0.5543,
+        "promoted_judged_rel_share_of_judged": 0.7317,
+        "demoted_total": 92,
+        "demoted": {
+          "judged_rel": 54,
+          "judged_nonrel": 17,
+          "unjudged": 21
+        }
+      },
+      "metrics_adjusted": {
+        "base": {
+          "RR@10": 0.5029154518950437,
+          "R@10": 0.5602052076241752,
+          "nDCG@5": 0.5762988012545459,
+          "R@5": 0.29283944180402777,
+          "AP@10": 0.39817644030652444,
+          "RR@5": 0.49659863945578236,
+          "P@5": 0.7183673469387757,
+          "nDCG@10": 0.623014390847691
+        },
+        "dept_fresh": {
+          "RR@10": 0.5080174927113702,
+          "R@10": 0.5201273799563114,
+          "nDCG@5": 0.5648027906261248,
+          "R@5": 0.2932490861812592,
+          "AP@10": 0.3643489361549979,
+          "RR@5": 0.5051020408163265,
+          "P@5": 0.6979591836734694,
+          "nDCG@10": 0.5910616831905793
+        },
+        "dept_fresh_excl_unjudged": {
+          "RR@10": 0.976190476190476,
+          "R@10": 0.736081745385467,
+          "nDCG@5": 0.8941650268030439,
+          "R@5": 0.3885557886158127,
+          "AP@10": 0.6941320132662743,
+          "RR@5": 0.976190476190476,
+          "P@5": 0.930612244897959,
+          "nDCG@10": 0.9065927593717722
+        }
+      }
+    }
+  }
+}
