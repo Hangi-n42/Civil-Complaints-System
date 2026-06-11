@@ -277,8 +277,14 @@ class PromptFactory:
                 "- Write enough detail for a real reply: summarize the complaint, explain the applicable review basis, describe possible handling or limits, and give a follow-up/contact path.\n"
                 "- Separate the citizen's requested facts, safety concerns, inconvenience, and proposed actions before drafting the answer.\n"
                 "- Use '검색 컨텍스트' only as grounding for administrative handling, similar cases, procedures, and limitations.\n"
+                "- A retrieved case is a precedent, not a confirmed fact about the current complaint. Do not copy its location, ownership, schedule, decision, or completed action into the current reply.\n"
+                "- Distinguish requested action from confirmed action. A citizen request such as 설치·철거·보수 요청 is not evidence that the agency approved or performed it.\n"
+                "- Preserve decisive constraints found in context, including 처리 불가/곤란, 사유지, 관리사무소·소유자 소관, 도로 폭 부족, 예정 공사, 관할 외 사유, and conditional review.\n"
+                "- Do not promise installation, demolition, enforcement, budget allocation, hearings, or a completion schedule unless the context explicitly supports that commitment for the current complaint.\n"
+                "- action_items must be evidence-safe. When authority or facts are uncertain, use 확인·협의·안내 actions instead of promising implementation.\n"
                 "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
                 "- If the context does not prove a concrete policy, schedule, ordinance, or responsible agency, state that 담당부서 확인/현장 검토가 필요합니다.\n"
+                "- Cite a law in answer only when the supplied article text directly supports the stated conclusion. Otherwise omit the law name and article number.\n"
             )
 
         compact_context_rules = ""
@@ -674,6 +680,16 @@ class PromptFactory:
         derived_trace.setdefault("effective_top_k", effective_top_k)
         derived_trace.setdefault("filters", filters or {})
         derived_trace.setdefault("threshold", float(threshold or 0.0))
+        exclude_case_id = next(
+            (
+                str(record.get(key) or "").strip()
+                for key in ("case_id", "complaint_id", "source_id")
+                if str(record.get(key) or "").strip()
+            ),
+            "",
+        )
+        if exclude_case_id:
+            derived_trace.setdefault("excluded_case_id", exclude_case_id)
 
         prompt_mode = str(derived_trace.get("prompt_mode") or "default").lower()
         snippet_max_chars = 120 if prompt_mode == "compact" else 200
@@ -690,6 +706,8 @@ class PromptFactory:
             retrieval_policy=str(derived_trace.get("retrieval_policy") or decision.retrieval_policy),
             snippet_max_chars=int(snippet_max_chars),
             query_signals=query_signals,
+            grounding_filter=True,
+            exclude_case_id=exclude_case_id or None,
         )
 
         pipeline_logger.info(

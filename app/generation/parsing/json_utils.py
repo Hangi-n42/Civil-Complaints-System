@@ -47,81 +47,185 @@ def extract_json_string(text: str) -> str:
     return stripped[start : end + 1].strip()
 
 
+def _schema_error(
+    message: str,
+    *,
+    field: str = "",
+    missing_fields: List[str] | None = None,
+    unexpected_fields: List[str] | None = None,
+) -> GenerationError:
+    details: Dict[str, Any] = {"stage": "schema"}
+    if field:
+        details["field"] = field
+    if missing_fields:
+        details["missing_fields"] = missing_fields
+    if unexpected_fields:
+        details["unexpected_fields"] = unexpected_fields
+    return GenerationError(
+        message,
+        code="PARSE_SCHEMA_MISMATCH",
+        retryable=True,
+        details=details,
+    )
+
+
+def validate_qa_payload_schema(payload: Any) -> Dict[str, Any]:
+    """Validate the model payload against PromptFactory's public QA schema."""
+    if not isinstance(payload, dict):
+        raise _schema_error("모델 응답 JSON은 객체여야 합니다.", field="root")
+
+    required = {"answer", "citations", "limitations", "structured_output"}
+    missing = sorted(required - set(payload))
+    unexpected = sorted(set(payload) - required)
+    if missing or unexpected:
+        parts = []
+        if missing:
+            parts.append(f"필수 필드 누락: {', '.join(missing)}")
+        if unexpected:
+            parts.append(f"허용되지 않은 필드: {', '.join(unexpected)}")
+        raise _schema_error(
+            "; ".join(parts),
+            missing_fields=missing,
+            unexpected_fields=unexpected,
+        )
+
+    answer = str(payload.get("answer") or "").strip()
+    if not answer:
+        raise _schema_error("answer 필드는 비어 있을 수 없습니다.", field="answer")
+
+    raw_citations = payload.get("citations")
+    if not isinstance(raw_citations, list) or not raw_citations:
+        raise _schema_error(
+            "citations 필드는 1개 이상의 객체를 가진 배열이어야 합니다.",
+            field="citations",
+        )
+
+    normalized_citations: List[Dict[str, Any]] = []
+    citation_required = {"chunk_id", "case_id", "snippet", "relevance_score"}
+    citation_allowed = citation_required | {"doc_id"}
+    for index, item in enumerate(raw_citations):
+        if not isinstance(item, dict):
+            raise _schema_error(
+                f"citations[{index}]는 객체여야 합니다.",
+                field=f"citations[{index}]",
+            )
+        item_missing = sorted(citation_required - set(item))
+        item_unexpected = sorted(set(item) - citation_allowed)
+        if item_missing or item_unexpected:
+            raise _schema_error(
+                f"citations[{index}] 스키마가 올바르지 않습니다.",
+                field=f"citations[{index}]",
+                missing_fields=item_missing,
+                unexpected_fields=item_unexpected,
+            )
+        chunk_id = str(item.get("chunk_id") or "").strip()
+        case_id = str(item.get("case_id") or "").strip()
+        snippet = str(item.get("snippet") or "").strip()
+        score = item.get("relevance_score")
+        if not chunk_id or not case_id or not snippet:
+            raise _schema_error(
+                f"citations[{index}]의 문자열 필드는 비어 있을 수 없습니다.",
+                field=f"citations[{index}]",
+            )
+        if not isinstance(score, (int, float)) or isinstance(score, bool):
+            raise _schema_error(
+                f"citations[{index}].relevance_score는 숫자여야 합니다.",
+                field=f"citations[{index}].relevance_score",
+            )
+        if not 0.0 <= float(score) <= 1.0:
+            raise _schema_error(
+                f"citations[{index}].relevance_score는 0과 1 사이여야 합니다.",
+                field=f"citations[{index}].relevance_score",
+            )
+        citation: Dict[str, Any] = {
+            "chunk_id": chunk_id,
+            "case_id": case_id,
+            "snippet": snippet,
+            "relevance_score": float(score),
+        }
+        doc_id = str(item.get("doc_id") or "").strip()
+        if doc_id:
+            citation["doc_id"] = doc_id
+        normalized_citations.append(citation)
+
+    raw_limitations = payload.get("limitations")
+    if isinstance(raw_limitations, list):
+        limitation_parts = [
+            str(item).strip() for item in raw_limitations if str(item).strip()
+        ]
+        if not limitation_parts or len(limitation_parts) != len(raw_limitations):
+            raise _schema_error(
+                "limitations 배열에는 비어 있지 않은 문자열만 사용할 수 있습니다.",
+                field="limitations",
+            )
+        limitations = " / ".join(limitation_parts)
+    elif isinstance(raw_limitations, str) and raw_limitations.strip():
+        limitations = raw_limitations.strip()
+    else:
+        raise _schema_error(
+            "limitations는 비어 있지 않은 문자열 또는 문자열 배열이어야 합니다.",
+            field="limitations",
+        )
+
+    structured = payload.get("structured_output")
+    structured_required = {"summary", "action_items", "request_segments"}
+    if not isinstance(structured, dict):
+        raise _schema_error(
+            "structured_output은 객체여야 합니다.",
+            field="structured_output",
+        )
+    structured_missing = sorted(structured_required - set(structured))
+    structured_unexpected = sorted(set(structured) - structured_required)
+    if structured_missing or structured_unexpected:
+        raise _schema_error(
+            "structured_output 스키마가 올바르지 않습니다.",
+            field="structured_output",
+            missing_fields=structured_missing,
+            unexpected_fields=structured_unexpected,
+        )
+    summary = str(structured.get("summary") or "").strip()
+    action_items = structured.get("action_items")
+    request_segments = structured.get("request_segments")
+    if not summary:
+        raise _schema_error(
+            "structured_output.summary는 비어 있을 수 없습니다.",
+            field="structured_output.summary",
+        )
+    if (
+        not isinstance(action_items, list)
+        or len(action_items) < 2
+        or any(not isinstance(item, str) or not item.strip() for item in action_items)
+    ):
+        raise _schema_error(
+            "structured_output.action_items에는 2개 이상의 비어 있지 않은 문자열이 필요합니다.",
+            field="structured_output.action_items",
+        )
+    if not isinstance(request_segments, list) or any(
+        not isinstance(item, str) for item in request_segments
+    ):
+        raise _schema_error(
+            "structured_output.request_segments는 문자열 배열이어야 합니다.",
+            field="structured_output.request_segments",
+        )
+
+    return {
+        "answer": answer,
+        "citations": normalized_citations,
+        "limitations": limitations,
+        "structured_output": {
+            "summary": summary,
+            "action_items": [item.strip() for item in action_items],
+            "request_segments": [item.strip() for item in request_segments],
+        },
+        "confidence": 0.5,
+    }
+
+
 def parse_qa_json_response(text: str) -> Dict[str, Any]:
     """QA 응답 JSON을 파싱하고 필수 필드를 검증/정규화한다."""
     try:
         json_str = extract_json_string(text)
-        result = json.loads(json_str)
-
-        # NOTE: confidence는 모델/프롬프트 변형에 따라 누락될 수 있어 optional로 취급한다.
-        #       (기본값 0.5로 정규화)
-        required = ["answer", "citations", "limitations"]
-        missing = [field for field in required if field not in result]
-        if missing:
-            raise GenerationError(
-                f"필수 필드 누락: {', '.join(missing)}",
-                code="PARSE_SCHEMA_MISMATCH",
-                retryable=True,
-                details={"stage": "schema", "missing_fields": missing},
-            )
-
-        answer = str(result.get("answer") or "").strip()
-        if not answer:
-            raise GenerationError(
-                "answer 필드는 빈 문자열일 수 없습니다.",
-                code="PARSE_SCHEMA_MISMATCH",
-                retryable=True,
-                details={"stage": "schema", "field": "answer"},
-            )
-
-        if not isinstance(result.get("citations"), list):
-            raise GenerationError(
-                "citations 필드는 배열이어야 합니다.",
-                code="PARSE_SCHEMA_MISMATCH",
-                retryable=True,
-                details={"stage": "schema", "field": "citations"},
-            )
-
-        raw_limitations = result.get("limitations")
-        limitations = ""
-        if isinstance(raw_limitations, list):
-            parts = [str(item).strip() for item in raw_limitations if str(item).strip()]
-            limitations = " / ".join(parts)
-        else:
-            limitations = str(raw_limitations or "").strip()
-
-        if not limitations:
-            raise GenerationError(
-                "limitations 필드는 빈 문자열일 수 없습니다.",
-                code="PARSE_SCHEMA_MISMATCH",
-                retryable=True,
-                details={"stage": "schema", "field": "limitations"},
-            )
-
-        normalized_citations: List[Dict[str, Any]] = []
-        for item in result.get("citations", []):
-            if not isinstance(item, dict):
-                continue
-
-            citation: Dict[str, Any] = {
-                "chunk_id": str(item.get("chunk_id", "")),
-                "case_id": str(item.get("case_id", "")),
-                "snippet": str(item.get("snippet", "")),
-                "relevance_score": normalize_confidence(item.get("relevance_score", 0.5)),
-            }
-
-            doc_id = str(item.get("doc_id", "")).strip()
-            if doc_id:
-                citation["doc_id"] = doc_id
-
-            normalized_citations.append(citation)
-
-        result["answer"] = answer
-        result["citations"] = normalized_citations
-        result["confidence"] = normalize_confidence(result.get("confidence", 0.5))
-        result["limitations"] = limitations
-
-        return result
+        return validate_qa_payload_schema(json.loads(json_str))
     except json.JSONDecodeError as e:
         raise GenerationError(
             "모델 응답을 JSON으로 파싱하지 못했습니다.",

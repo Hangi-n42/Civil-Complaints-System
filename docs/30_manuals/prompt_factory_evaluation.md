@@ -67,3 +67,24 @@ GET /api/v1/chroma/collections/civil_cases_v1/sample?limit=3
 - count가 0이면 DB 경로 또는 인덱싱 문제다.
 - count는 있는데 0건이면 `filters`, `threshold`, `top_k`가 과도한지 확인한다.
 - query가 이상하면 `derived_query`와 `search_query`를 원문 레코드와 비교한다.
+
+## 평가 누수 및 지표 해석
+
+- 원문 데이터셋의 `case_id`, `complaint_id`, `source_id`가 있으면 해당 사례는
+  autoretrieve 후보에서 제외된다. 같은 민원의 기존 답변을 다시 검색해 평가하는
+  데이터 누수를 방지하기 위한 규칙이다.
+- 인덱스는 민원 원문·구조화 필드만 근거로 만들어야 하며
+  `consultant_answer` 포함 여부와 corpus build version을 실행 기록에 남긴다.
+- `raw_schema_success_rate`는 모델 원출력이 PromptFactory JSON Schema를 그대로
+  만족한 비율이다.
+- `postprocess_success_rate`는 정규화·보정 뒤 QA validator를 통과한 비율이다.
+- 기존 호환 필드 `parse_success_rate`는 이제 `raw_schema_success_rate`와 같은
+  엄격 기준으로 집계한다.
+- `citation_support_rate_strict`는 `chunk_id`, `case_id`, snippet 부분문자열이
+  모두 검색 컨텍스트와 일치하는 원출력 citation 비율이다.
+- `citations_strict`와 `citations_repaired`를 별도로 저장하므로 모델 성능과
+  후처리 성능을 혼합해 해석하지 않는다.
+
+direct 모드와 API 모드는 모두 grounding filter와 법령 검증을 사용한다. 다만 API
+모드는 통합 응답 계약과 SSE를 거치므로, 모델 자체 비교에는 direct 결과의
+`raw_schema_success_rate`를 우선 사용하고 제품 경로 검증에는 API 결과를 사용한다.

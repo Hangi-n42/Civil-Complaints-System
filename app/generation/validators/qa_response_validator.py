@@ -164,12 +164,11 @@ def _trim_incomplete_trailing_sentence(text: str, citations: List[Dict[str, Any]
 
 
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
-    snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
-    snippets = [text for text in snippets if text]
-    if snippets:
+    if citations:
         return (
-            f"{' / '.join(snippets)} "
-            "다만 구체적인 처리 가능 여부와 조치 일정은 담당부서의 현장 확인과 관계 기준 검토 후 안내드릴 수 있습니다."
+            "검색된 유사 사례는 처리 방향을 검토하기 위한 참고자료이며 현재 민원의 사실관계나 조치 결정을 "
+            "직접 확정하지는 않습니다. 담당부서에서 현장 여건, 소관 권한, 관련 기준을 확인한 뒤 "
+            "처리 가능 여부와 후속 절차를 안내드리겠습니다."
         )
     return (
         "접수 내용과 관련 자료를 우선 확인하고, 담당부서 검토를 거쳐 처리 가능 여부와 후속 안내 사항을 "

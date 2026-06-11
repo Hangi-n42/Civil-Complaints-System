@@ -87,6 +87,22 @@ _STOP_TERMS = {
     "설명", "후속", "바랍니다", "주시기", "감사합니다", "따라", "관계", "운영",
 }
 
+_REFERENCE_CONSTRAINT_RE = re.compile(
+    r"불가|어렵|곤란|사유지|개인\s*소유|관리사무소|소유자|관리주체|"
+    r"폭이?\s*좁|확폭|예정된?\s*공사|공사\s*예정|관할\s*(?:사항이\s*)?아니|소관이\s*아니"
+)
+_STRONG_COMMITMENT_RE = re.compile(
+    r"(?:즉시|신속히)?\s*(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)"
+    r"(?:을|를|에)?\s*(?:실시|시행|추진|완료|조치)?하겠습니다|"
+    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)\s*예정입니다|"
+    r"예산을?\s*확보하겠습니다|공청회를?\s*실시하겠습니다"
+)
+_PRIVATE_AUTHORITY_RE = re.compile(r"사유지|개인\s*소유|관리사무소|소유자|관리주체")
+_AGENCY_ACTION_RE = re.compile(
+    r"(?:시|군|구|담당부서|우리\s*기관|해당\s*부서).{0,35}"
+    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선).{0,12}하겠습니다"
+)
+
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
@@ -326,6 +342,32 @@ def _reference_anchor_coverage(answer: str, reference_answer: str) -> float:
     return matched / len(anchors)
 
 
+def _semantic_risk_flags(answer: str, reference_answer: str) -> List[str]:
+    """Detect decision/authority reversals against the paired real reply."""
+    if not answer or not reference_answer:
+        return []
+    flags: List[str] = []
+    reference_has_constraint = bool(_REFERENCE_CONSTRAINT_RE.search(reference_answer))
+    answer_has_commitment = bool(_STRONG_COMMITMENT_RE.search(answer))
+    if reference_has_constraint and answer_has_commitment:
+        flags.append("disposition_reversal")
+    if _PRIVATE_AUTHORITY_RE.search(reference_answer) and _AGENCY_ACTION_RE.search(answer):
+        flags.append("authority_mismatch")
+    if answer_has_commitment:
+        commitment_terms = {
+            term
+            for term in (
+                "설치", "철거", "보수", "정비", "폐쇄", "단속",
+                "시정", "개선", "확대", "도입", "예산", "공청회",
+            )
+            if term in answer
+        }
+        unsupported = [term for term in commitment_terms if term not in reference_answer]
+        if unsupported:
+            flags.append("unsupported_commitment")
+    return flags
+
+
 def _profile_band_score(value: float, stats: Dict[str, float]) -> float:
     if value <= 0:
         return 0.0
@@ -378,6 +420,7 @@ def _score_q2_source_adequacy(
     row: Dict[str, Any],
     answer: str,
     alignment_score: float,
+    semantic_flags: Sequence[str] = (),
 ) -> Tuple[float, List[str]]:
     strict = float(row.get("citation_match_rate_strict") or 0.0)
     repaired = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
@@ -397,6 +440,9 @@ def _score_q2_source_adequacy(
     if strict <= 0 and repaired > 0:
         score = min(score + repaired * 2.0, 5.5)
         reasons.append("모델 원출력 근거가 없어 후처리 보완 점수 상한 5.5 적용")
+    if semantic_flags:
+        score -= 2.0 * len(set(semantic_flags))
+        reasons.append(f"reference_semantic_risks={','.join(semantic_flags)}")
     return _clip_score(score), reasons
 
 
@@ -415,10 +461,18 @@ def _score_q3_citation_coverage(row: Dict[str, Any]) -> Tuple[float, List[str]]:
 
 def _score_q4_citation_accuracy(row: Dict[str, Any]) -> Tuple[float, List[str]]:
     strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
+    support_rate = row.get("citation_support_rate_strict")
     repaired_rate = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
     strict_count = int(row.get("citations_count_strict") or 0)
     if strict_count > 0:
-        return _clip_score(strict_rate * 10.0), [f"strict citation_match_rate={strict_rate:.2f}"]
+        if support_rate is not None:
+            support = float(support_rate or 0.0)
+            return _clip_score(support * 10.0), [
+                f"strict citation_support_rate={support:.2f}"
+            ]
+        return _clip_score(strict_rate * 7.0), [
+            f"legacy identity-only citation_match_rate={strict_rate:.2f}; 7점 상한"
+        ]
     if repaired_rate > 0:
         return _clip_score(repaired_rate * 5.0), [
             f"strict citation이 없어 repaired citation_match_rate={repaired_rate:.2f}를 5점 상한으로 반영"
@@ -430,6 +484,7 @@ def _score_q5_best_source(
     row: Dict[str, Any],
     alignment_score: float,
     anchor_coverage: float,
+    semantic_flags: Sequence[str] = (),
 ) -> Tuple[float, List[str]]:
     strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
     strict_count = int(row.get("citations_count_strict") or 0)
@@ -440,10 +495,12 @@ def _score_q5_best_source(
         ]
     score = strict_rate * 6.0 + min(strict_count, 2) * 0.75
     score += alignment_score * 0.15 + anchor_coverage * 1.0
+    score -= 1.5 * len(set(semantic_flags))
     return _clip_score(score), [
         f"strict_match={strict_rate:.2f}",
         f"reference_alignment_score={alignment_score:.1f}",
         f"reference_anchor_coverage={anchor_coverage:.2f}",
+        f"reference_semantic_risks={','.join(semantic_flags) or 'none'}",
     ]
 
 
@@ -519,6 +576,7 @@ def _score_q8_efficiency(
     alignment_score: float,
     anchor_coverage: float,
     has_reference: bool,
+    semantic_flags: Sequence[str] = (),
 ) -> Tuple[float, List[str]]:
     if not answer:
         return 0.0, ["답변이 비어 있음"]
@@ -543,6 +601,7 @@ def _score_q8_efficiency(
         score += min(specificity, 4) / 4 * 2.0
     generic_hits = _generic_phrase_hits(answer)
     score -= min(3.0, len(generic_hits) * 1.0)
+    score -= 1.5 * len(set(semantic_flags))
     reasons = [
         f"summary={has_summary}",
         f"review={has_review}",
@@ -550,6 +609,7 @@ def _score_q8_efficiency(
         f"action={has_action}",
         f"constraint={has_constraint}",
         f"specificity={specificity}/6",
+        f"reference_semantic_risks={','.join(semantic_flags) or 'none'}",
     ]
     if has_reference:
         reasons.extend(
@@ -573,16 +633,33 @@ def evaluate_row(
     alignment = _reference_alignment(answer, reference_answer) if reference_answer else 0.0
     alignment_score = _alignment_score(alignment) if reference_answer else 0.0
     anchor_coverage = _reference_anchor_coverage(answer, reference_answer) if reference_answer else 0.0
+    semantic_flags = _semantic_risk_flags(answer, reference_answer)
 
     scores: Dict[str, Tuple[float, List[str]]] = {
         "Q1": _score_q1_naturalness(answer, profile),
-        "Q2": _score_q2_source_adequacy(row, answer, alignment_score),
+        "Q2": _score_q2_source_adequacy(
+            row,
+            answer,
+            alignment_score,
+            semantic_flags,
+        ),
         "Q3": _score_q3_citation_coverage(row),
         "Q4": _score_q4_citation_accuracy(row),
-        "Q5": _score_q5_best_source(row, alignment_score, anchor_coverage),
+        "Q5": _score_q5_best_source(
+            row,
+            alignment_score,
+            anchor_coverage,
+            semantic_flags,
+        ),
         "Q6": _score_q6_redundancy(answer),
         "Q7": _score_q7_conciseness(answer, reference_answer, profile),
-        "Q8": _score_q8_efficiency(answer, alignment_score, anchor_coverage, bool(reference_answer)),
+        "Q8": _score_q8_efficiency(
+            answer,
+            alignment_score,
+            anchor_coverage,
+            bool(reference_answer),
+            semantic_flags,
+        ),
     }
 
     weighted = sum(WEIGHTS[qid] * scores[qid][0] for qid in WEIGHTS)
@@ -601,6 +678,12 @@ def evaluate_row(
         caps.append((5.5, "generic_template_overuse"))
     if str(row.get("legal_grounding_status") or "") == "error":
         caps.append((5.0, "legal_grounding_error"))
+    if "disposition_reversal" in semantic_flags:
+        caps.append((3.5, "disposition_reversal"))
+    if "authority_mismatch" in semantic_flags:
+        caps.append((4.0, "authority_mismatch"))
+    if "unsupported_commitment" in semantic_flags:
+        caps.append((5.0, "unsupported_commitment"))
     if reference_answer and alignment <= 0:
         caps.append((4.5, "zero_reference_alignment"))
     elif reference_answer and alignment < 0.015:
@@ -641,6 +724,7 @@ def evaluate_row(
         "reference_alignment": round(alignment, 4),
         "reference_alignment_score": alignment_score,
         "reference_anchor_coverage": round(anchor_coverage, 4),
+        "semantic_risk_flags": semantic_flags,
         "answer_has_source_tokens": bool(
             "[[출처" in answer or re.search(r"\[출처\s*\d+\]", answer)
         ),

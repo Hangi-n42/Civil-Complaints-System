@@ -116,6 +116,7 @@ async def root():
             "index": "/api/v1/index",
             "search": "/api/v1/search",
             "qa": "/api/v1/qa",
+            "qa_stream": "/api/v1/qa/stream",
             "ui_cases": "/api/v1/ui/cases",
         },
     }

@@ -1,10 +1,64 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any
 
 from app.generation.prompts.prompt_factory import PromptFactory
 from scripts import Be3_run_week6_model_benchmark as benchmark
+
+
+def test_benchmark_raw_schema_and_citation_support_are_strict():
+    context = [
+        {
+            "chunk_id": "CASE-1__chunk-0",
+            "case_id": "CASE-1",
+            "snippet": "도로 폭이 좁아 현재 설치는 어렵습니다.",
+        }
+    ]
+    payload = {
+        "citations": [
+            {
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "도로 폭이 좁아",
+                "relevance_score": 0.9,
+            }
+        ],
+        "answer": "도로 폭이 좁아 설치가 어렵습니다.",
+        "limitations": ["현장 확인 필요"],
+        "structured_output": {
+            "summary": "설치 제한",
+            "action_items": ["현장 확인", "검토 결과 안내"],
+            "request_segments": ["설치 요청"],
+        },
+    }
+
+    schema_ok, errors = benchmark._inspect_raw_schema(
+        json.dumps(payload, ensure_ascii=False)
+    )
+    support = benchmark._citation_match_rate(payload["citations"], context)
+
+    assert schema_ok is True
+    assert errors == []
+    assert support == 1.0
+    assert benchmark._passes_integrity_gate(
+        payload["answer"],
+        support,
+        raw_schema_compliant=schema_ok,
+    )
+
+    payload["citations"][0]["snippet"] = "검색 근거에 없는 문장"
+    assert benchmark._citation_match_rate(payload["citations"], context) == 0.0
+
+
+def test_benchmark_raw_schema_rejects_repaired_only_payload():
+    schema_ok, errors = benchmark._inspect_raw_schema(
+        '{"answer":"답변","citations":[],"limitations":"제한"}'
+    )
+
+    assert schema_ok is False
+    assert errors
 
 
 def test_build_case_query_signals_uses_structured_be1_fields():
@@ -95,6 +149,7 @@ def test_prompt_factory_autoretrieve_passes_query_signals_to_retrieval():
     )
 
     assert retrieval.kwargs["query_signals"] == signals
+    assert retrieval.kwargs["grounding_filter"] is True
     assert context[0]["chunk_id"] == "CHUNK-1"
 
 

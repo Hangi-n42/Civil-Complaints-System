@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import re
 from time import perf_counter
+from typing import Awaitable, Callable
 
 from fastapi import APIRouter, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.api.schemas.generation import QARequest, QAResponse
@@ -37,6 +40,12 @@ router = APIRouter(prefix="/api/v1", tags=["generation"])
 CONTRACT_VERSION = "qa-v1.1"
 QA_LATENCY_WARN_MS = 8000
 QA_GROUNDING_TOP_K = 5
+QA_STAGE_LABELS = {
+    "retrieving": "유사 사례 분석 중",
+    "grounding": "관련 근거 정리 중",
+    "generating": "초안 작성 중",
+}
+StageCallback = Callable[[str], Awaitable[None]]
 NO_SIMILAR_CASE_LIMITATION = (
     "LLM 관련성 필터 적용 결과 참고할 만한 유사 민원 근거가 충분하지 않아 "
     "과거 사례 citation 없이 일반 민원 회신 원칙에 따라 작성했습니다."
@@ -290,17 +299,16 @@ async def _apply_qa_grounding_filter(
     return await apply_filter(query, raw_context, top_k)
 
 
-def _citation_coverage(answer: str, citation_count: int) -> float:
+def _citation_coverage(citation_count: int, mismatch_count: int) -> float:
+    """Return the share of citations verified against retrieval context.
+
+    Citation markers are intentionally absent from the public answer, so coverage
+    is based on evidence validity rather than answer-token counting.
+    """
     if citation_count <= 0:
         return 0.0
-    token_ids = {
-        int(value)
-        for value in re.findall(
-            r"(?:\[\[CITE:|\[\[출처\s*|\[출처\s*)(\d+)(?:\]\]|\])",
-            answer or "",
-        )
-    }
-    return round(min(1.0, len(token_ids) / citation_count), 4)
+    valid_count = max(0, citation_count - max(0, mismatch_count))
+    return round(min(1.0, valid_count / citation_count), 4)
 
 
 def _segment_coverage(answer: str, request_segments: list[str]) -> float:
@@ -320,8 +328,19 @@ def _segment_coverage(answer: str, request_segments: list[str]) -> float:
     return round(covered / len(segments), 4)
 
 
-@router.post("/qa", response_model=QAResponse)
-async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
+async def _emit_stage(
+    stage_callback: StageCallback | None,
+    stage: str,
+) -> None:
+    if stage_callback is not None:
+        await stage_callback(stage)
+
+
+async def _generate_qa(
+    request: QARequest,
+    response: Response,
+    stage_callback: StageCallback | None = None,
+) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
     request_id = str(request.request_id or "").strip() or make_request_id()
     start = perf_counter()
@@ -352,6 +371,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             headers={"X-Contract-Version": CONTRACT_VERSION},
         )
 
+    await _emit_stage(stage_callback, "retrieving")
     retrieval_service = get_retrieval_service()
     generation_service = get_generation_service()
     query_signals = (
@@ -385,6 +405,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
         # retrieval 단계 종료 경계 — FE retrieving 단계/BE3 SSE가 쓸 실제 완료 신호 (#375)
         retrieval_completed_at = now_iso()
+        await _emit_stage(stage_callback, "grounding")
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
         _log_error(
@@ -513,6 +534,7 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         )
 
     try:
+        await _emit_stage(stage_callback, "generating")
         generation_start = perf_counter()
         route_key = _normalize_route_key(request.routing_hint.route_key) if request.routing_hint else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
         routing_trace = (
@@ -726,7 +748,10 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 "generation": generation_elapsed_ms,
             },
             "quality_signals": {
-                "citation_coverage": _citation_coverage(answer, len(response_citations)),
+                "citation_coverage": _citation_coverage(
+                    len(response_citations),
+                    mismatch_count,
+                ),
                 "hallucination_flag": hallucination_flag,
                 "segment_coverage": _segment_coverage(answer, request_segments),
             },
@@ -772,5 +797,98 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             "is_valid": is_valid,
             "mismatch_count": mismatch_count,
             "details": {"mismatches": mismatch_details},
+        },
+    )
+
+
+@router.post("/qa", response_model=QAResponse)
+async def generate_qa(request: QARequest, response: Response) -> QAResponse | JSONResponse:
+    """검색 결과 기반 RAG QA 응답을 생성한다."""
+    return await _generate_qa(request, response)
+
+
+def _sse_event(event: str, payload: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _response_payload(result: QAResponse | JSONResponse) -> tuple[str, dict]:
+    if isinstance(result, JSONResponse):
+        return "error", json.loads(result.body.decode("utf-8"))
+    return "done", result.model_dump(mode="json")
+
+
+@router.post("/qa/stream")
+async def generate_qa_stream(request: QARequest) -> StreamingResponse:
+    """QA 진행 단계를 SSE로 전달하고 기존 QA 응답을 done 이벤트로 반환한다."""
+
+    async def event_stream():
+        queue: asyncio.Queue[tuple[str, dict] | None] = asyncio.Queue()
+
+        async def on_stage(stage: str) -> None:
+            await queue.put(
+                (
+                    "stage",
+                    {
+                        "stage": stage,
+                        "label": QA_STAGE_LABELS[stage],
+                    },
+                )
+            )
+
+        async def run_qa() -> None:
+            response = Response()
+            try:
+                result = await _generate_qa(
+                    request,
+                    response,
+                    stage_callback=on_stage,
+                )
+                await queue.put(_response_payload(result))
+            except Exception as exc:
+                api_logger.exception(
+                    "qa_stream_unhandled_error endpoint=%s message=%s",
+                    "/api/v1/qa/stream",
+                    exc,
+                )
+                await queue.put(
+                    (
+                        "error",
+                        {
+                            "success": False,
+                            "request_id": str(request.request_id or "").strip()
+                            or make_request_id(),
+                            "timestamp": now_iso(),
+                            "error": {
+                                "code": "INTERNAL_SERVER_ERROR",
+                                "message": "QA 스트림 처리 중 예기치 못한 오류가 발생했습니다.",
+                                "retryable": False,
+                                "details": {"reason": str(exc)},
+                            },
+                        },
+                    )
+                )
+            finally:
+                await queue.put(None)
+
+        task = asyncio.create_task(run_qa())
+        try:
+            while True:
+                item = await queue.get()
+                if item is None:
+                    break
+                event, payload = item
+                yield _sse_event(event, payload)
+        finally:
+            if not task.done():
+                task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Contract-Version": CONTRACT_VERSION,
         },
     )

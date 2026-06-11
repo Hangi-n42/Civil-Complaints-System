@@ -33,6 +33,7 @@ def _row(answer: str, *, strict: bool = True) -> dict:
         "citation_match_rate": 1.0,
         "citation_match_rate_repaired": 1.0,
         "citation_match_rate_strict": 1.0 if strict else 0.0,
+        "citation_support_rate_strict": 1.0 if strict else 0.0,
         "legal_grounding_status": "grounded",
     }
 
@@ -140,3 +141,45 @@ def test_report_exposes_scale_and_reference_calibration() -> None:
         "Q7",
         "Q8",
     }
+
+
+def test_reference_constraint_reversal_caps_score() -> None:
+    reference = (
+        "해당 구간은 도로 폭이 좁아 자전거도로 설치가 어렵습니다. "
+        "향후 도로 확폭 시 설치 가능 여부를 검토하겠습니다."
+    )
+    generated = (
+        "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다. "
+        "담당부서에서 자전거도로를 즉시 설치하겠습니다. 감사합니다. 끝."
+    )
+
+    result = rubric.evaluate_row(
+        _row(generated),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=reference,
+        reference_profile=_profile(),
+    )
+
+    assert "disposition_reversal" in result["semantic_risk_flags"]
+    assert result["rubric"]["Q0"]["score"] <= 3.5
+    assert result["rubric"]["Q2"]["score"] < 8.0
+
+
+def test_private_authority_mismatch_is_detected() -> None:
+    reference = "해당 시설은 사유지에 있어 소유자와 관리주체가 조치할 사항입니다."
+    generated = (
+        "귀하의 민원을 확인했습니다. 담당부서에서 해당 시설을 철거하겠습니다. "
+        "감사합니다. 끝."
+    )
+
+    result = rubric.evaluate_row(
+        _row(generated),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=reference,
+        reference_profile=_profile(),
+    )
+
+    assert "authority_mismatch" in result["semantic_risk_flags"]
+    assert result["rubric"]["Q0"]["score"] <= 4.0

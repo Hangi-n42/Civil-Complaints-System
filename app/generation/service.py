@@ -555,17 +555,6 @@ class GenerationService:
                 citation["doc_id"] = doc_id
             citations.append(citation)
 
-        if not citations and context:
-            first = context[0]
-            citations.append(
-                {
-                    "chunk_id": str(first.get("chunk_id", "")),
-                    "case_id": str(first.get("case_id", "")),
-                    "snippet": str(first.get("snippet", "")).strip()[:240],
-                    "relevance_score": normalize_confidence(first.get("score", 0.5)),
-                }
-            )
-
         limitations_raw = payload.get("limitations")
         if isinstance(limitations_raw, list):
             limitations = "; ".join(
@@ -582,6 +571,9 @@ class GenerationService:
             "citations": citations,
             "confidence": normalize_confidence(payload.get("confidence", 0.5)),
             "limitations": limitations,
+            "structured_output": payload.get("structured_output")
+            if isinstance(payload.get("structured_output"), dict)
+            else {},
         }
 
     def _build_fast_fallback_from_context(
@@ -596,9 +588,9 @@ class GenerationService:
             answer = (
                 "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
                 "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
-                "접수된 취지와 관련 자료를 함께 고려하여 처리 가능 여부를 확인하는 것이 필요합니다.\n\n"
-                f"3. 검토 의견은 다음과 같습니다. {snippet[:220]} "
-                "위 내용에 따라 담당부서에서는 현장 여건, 관련 절차, 기존 처리 기준을 종합적으로 확인한 뒤 필요한 조치 여부를 검토할 수 있습니다.\n\n"
+                "접수된 취지와 검색된 유사 사례를 참고하되, 해당 민원의 사실관계와 처리 권한은 별도로 확인해야 합니다.\n\n"
+                "3. 검토 의견은 다음과 같습니다. 현재 모델 응답이 정해진 출력 형식을 충족하지 않아 구체적인 처리 결과를 확정하여 안내하기 어렵습니다. "
+                "담당부서에서 현장 여건, 소관 권한, 관련 기준을 확인한 뒤 조치 가능 여부와 후속 절차를 안내드리겠습니다.\n\n"
                 "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
             ).strip()
             citations = [
@@ -619,25 +611,19 @@ class GenerationService:
             )
             citations = []
 
-        if legal_articles:
-            article = legal_articles[0]
-            law_name = str(article.get("law_name") or "").strip()
-            article_no = str(article.get("article_no") or "").strip()
-            article_text = " ".join(str(article.get("text") or "").split())[:180]
-            legal_reference = " ".join(
-                part for part in (law_name, article_no) if part
-            ).strip()
-            if legal_reference:
-                answer = (
-                    f"{answer}\n\n5. 확인된 법령 근거로 {legal_reference}를 참고할 수 있습니다."
-                    + (f" {article_text}" if article_text else "")
-                )
-
         return {
             "answer": answer,
             "citations": citations,
             "confidence": 0.35,
             "limitations": "모델 응답 파싱 실패로 컨텍스트 기반 폴백을 사용했습니다.",
+            "structured_output": {
+                "summary": "모델 출력 형식 오류로 담당부서의 사실관계 확인이 필요한 민원",
+                "action_items": [
+                    "민원 사실관계와 현장 여건 확인",
+                    "소관 권한과 적용 기준 확인 후 처리 결과 안내",
+                ],
+                "request_segments": [],
+            },
         }
 
     async def build_citations(
@@ -841,10 +827,10 @@ class GenerationService:
         try:
             result.setdefault("legal_citations", [])
             result.setdefault("legal_citation_warnings", [])
-            if not articles:
+            if grounding_status.get("status") in {"disabled", "not_requested"}:
                 return result
             from app.generation.citation.legal_citation import ground_legal_citations
-            g = ground_legal_citations(result.get("answer", ""), articles)
+            g = ground_legal_citations(result.get("answer", ""), articles or [])
             result["answer"] = g["answer"]
             result["legal_citations"] = g["valid"]
             result["legal_citation_warnings"] = g["warnings"]
@@ -919,26 +905,7 @@ class GenerationService:
                         prompt,
                         temperature=float(step["temperature"]),
                     )
-                    try:
-                        parsed = await self.parse_json_response(response_text)
-                    except GenerationError as parse_error:
-                        if not str(getattr(parse_error, "code", "")).startswith("PARSE_"):
-                            raise
-                        self.logger.warning(
-                            "strict JSON 파싱 실패, 완화 파싱 시도: %s",
-                            str(parse_error),
-                        )
-                        try:
-                            parsed = await self.parse_json_response_relaxed(response_text, context)
-                        except GenerationError as relaxed_error:
-                            if not str(getattr(relaxed_error, "code", "")).startswith("PARSE_"):
-                                raise
-                            self.logger.warning(
-                                "완화 파싱도 실패하여 재요청 단계로 전환: %s",
-                                str(relaxed_error),
-                            )
-                            last_parse_error = relaxed_error
-                            raise relaxed_error
+                    parsed = await self.parse_json_response(response_text)
                     generation_mode = str(step["mode"])
                     break
                 except GenerationError as e:
@@ -978,6 +945,9 @@ class GenerationService:
                     parsed.get("limitations")
                     or "검색 범위 및 데이터 품질에 따라 답변이 제한될 수 있습니다."
                 ),
+                "structured_output": parsed.get("structured_output")
+                if isinstance(parsed.get("structured_output"), dict)
+                else {},
                 "model": self.model,
                 "generation_metadata": {
                     "fallback_used": fallback_used,

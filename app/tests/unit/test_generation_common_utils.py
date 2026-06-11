@@ -17,9 +17,13 @@ def test_parse_qa_json_response_normalizes_values():
     ```json
     {
       "answer": "요약 답변",
-      "citations": [{"chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거", "relevance_score": "0.77"}],
-      "confidence": "high",
-      "limitations": "범위 제한"
+      "citations": [{"chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거", "relevance_score": 0.77}],
+      "limitations": "범위 제한",
+      "structured_output": {
+        "summary": "민원 요약",
+        "action_items": ["사실관계 확인", "처리 기준 안내"],
+        "request_segments": ["처리 요청"]
+      }
     }
     ```
     """
@@ -43,7 +47,14 @@ def test_parse_qa_json_response_raises_on_missing_field():
 
 
 def test_parse_qa_json_response_rejects_empty_answer():
-    raw = '{"answer":"   ","citations":[],"limitations":"근거 제한"}'
+    raw = """
+    {
+      "answer":"   ",
+      "citations":[{"chunk_id":"C1","case_id":"CASE-1","snippet":"근거","relevance_score":0.8}],
+      "limitations":"근거 제한",
+      "structured_output":{"summary":"요약","action_items":["확인","안내"],"request_segments":[]}
+    }
+    """
 
     with pytest.raises(GenerationError) as exc:
         parse_qa_json_response(raw)
@@ -53,7 +64,14 @@ def test_parse_qa_json_response_rejects_empty_answer():
 
 
 def test_parse_qa_json_response_allows_missing_confidence_and_defaults():
-    raw = '{"answer":"x","citations":[],"limitations":"범위 제한"}'
+    raw = """
+    {
+      "answer":"x",
+      "citations":[{"chunk_id":"C1","case_id":"CASE-1","snippet":"근거","relevance_score":0.8}],
+      "limitations":"범위 제한",
+      "structured_output":{"summary":"요약","action_items":["확인","안내"],"request_segments":[]}
+    }
+    """
 
     parsed = parse_qa_json_response(raw)
 
@@ -64,11 +82,50 @@ def test_parse_qa_json_response_allows_missing_confidence_and_defaults():
 
 
 def test_parse_qa_json_response_normalizes_limitations_list():
-    raw = '{"answer":"x","citations":[],"limitations":["현장 확인 필요","자료 부족"]}'
+    raw = """
+    {
+      "answer":"x",
+      "citations":[{"chunk_id":"C1","case_id":"CASE-1","snippet":"근거","relevance_score":0.8}],
+      "limitations":["현장 확인 필요","자료 부족"],
+      "structured_output":{"summary":"요약","action_items":["확인","안내"],"request_segments":[]}
+    }
+    """
 
     parsed = parse_qa_json_response(raw)
 
     assert parsed["limitations"] == "현장 확인 필요 / 자료 부족"
+
+
+def test_parse_qa_json_response_rejects_missing_structured_output():
+    raw = """
+    {
+      "answer":"x",
+      "citations":[{"chunk_id":"C1","case_id":"CASE-1","snippet":"근거","relevance_score":0.8}],
+      "limitations":"범위 제한"
+    }
+    """
+
+    with pytest.raises(GenerationError) as exc:
+        parse_qa_json_response(raw)
+
+    assert "structured_output" in exc.value.details["missing_fields"]
+
+
+def test_parse_qa_json_response_rejects_unexpected_top_level_key():
+    raw = """
+    {
+      "answer":"x",
+      "citations":[{"chunk_id":"C1","case_id":"CASE-1","snippet":"근거","relevance_score":0.8}],
+      "limitations":"범위 제한",
+      "structured_output":{"summary":"요약","action_items":["확인","안내"],"request_segments":[]},
+      "confidence":0.9
+    }
+    """
+
+    with pytest.raises(GenerationError) as exc:
+        parse_qa_json_response(raw)
+
+    assert exc.value.details["unexpected_fields"] == ["confidence"]
 
 
 def test_normalize_citations_and_tokens():
@@ -174,7 +231,8 @@ def test_format_civil_reply_replaces_fully_incomplete_body_with_fallback():
     answer = format_civil_reply_answer("담당부서 검토 결과 주변", citations)
 
     assert "담당부서 검토 결과 주변" not in answer
-    assert "도로 파손 민원은 현장 확인 후 보수 여부를 검토합니다." in answer
+    assert "검색된 유사 사례는 처리 방향을 검토하기 위한 참고자료" in answer
+    assert "도로 파손 민원은 현장 확인 후 보수 여부를 검토합니다." not in answer
     assert answer.endswith("감사합니다. 끝.")
 
 

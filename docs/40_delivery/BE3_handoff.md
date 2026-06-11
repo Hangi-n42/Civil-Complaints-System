@@ -224,11 +224,25 @@ FE 금지사항:
 
 ### 품질 신호
 
-- `citation_coverage`: 답변에 실제 포함된 출처 토큰 수를 citation 수와 비교한 비율
+- `citation_coverage`: 공개 답변에는 출처 토큰을 넣지 않으므로, 구조화 citation 중 검색 컨텍스트와 검증된 비율
 - `segment_coverage`: 요청 segment 중 답변에서 다룬 segment 비율
 - `hallucination_flag`: citation mismatch 또는 미검증 법령 인용 제거가 발생하면 `true`
 
 품질 신호는 운영 진단용이며 단독으로 최종 답변 품질을 판정하지 않는다.
+
+### 생성·검색 안전장치
+
+- BE3 strict parser는 PromptFactory 스키마의 네 최상위 키만 허용한다:
+  `citations`, `answer`, `limitations`, `structured_output`.
+- strict 파싱 실패는 `default -> force_json -> compact` 순서로 재생성하며,
+  느슨한 파싱으로 성공 처리하지 않는다.
+- 검색 청크는 앞부분뿐 아니라 뒤쪽의 처리 결론·제약도 보존한다.
+- 원문 레코드 autoretrieve는 현재 `case_id/source_id`를 검색 후보에서 제외해
+  평가 대상 답안이 자기 근거로 재사용되는 누수를 막는다.
+- `query_signals`는 기존 BE2 계약대로 soft rerank에만 사용하며 hard filter로 바꾸지 않는다.
+- 법령 후보가 0개여도 답변에 임의 법령명이 있으면 검증 단계에서 제거한다.
+- fast fallback은 검색 snippet이나 법령 조문을 회신 결론처럼 붙이지 않고,
+  사실관계·소관 권한 확인이 필요하다는 제한 답변을 반환한다.
 
 ---
 

@@ -224,3 +224,57 @@ Week5-8 동안 필수 adaptive 필드(`routing_trace`, `routing_hint`, `structur
 - `/qa` 응답은 반드시 `routing_trace`, `structured_output`, `answer`, `citations`를 포함한다.
 - `routing_trace`에는 `topic_type`, `complexity_level`, `complexity_score`, `complexity_trace`가 포함되어야 한다.
 - 관측 필드는 시나리오 11장 기준으로 `latency_ms`, `quality_signals`를 유지한다.
+
+## 7. `/qa/stream` SSE API
+
+`POST /api/v1/qa/stream`은 `/api/v1/qa`와 동일한 요청 본문을 받고,
+실제 QA 파이프라인 경계에 맞춰 `text/event-stream` 이벤트를 반환한다.
+기존 `/api/v1/qa`는 변경 없이 유지한다.
+
+이 엔드포인트는 POST 요청이므로 브라우저 기본 `EventSource` 대신
+`fetch` 응답의 `ReadableStream`으로 소비한다.
+
+### 7.1 Stage Events
+
+```text
+event: stage
+data: {"stage":"retrieving","label":"유사 사례 분석 중"}
+
+event: stage
+data: {"stage":"grounding","label":"관련 근거 정리 중"}
+
+event: stage
+data: {"stage":"generating","label":"초안 작성 중"}
+```
+
+- `retrieving`: 요청 검증 후 검색/전달 검색 결과의 grounding filter를 수행하는 단계
+- `grounding`: retrieval 완료 후 QA context를 구성하고 근거를 정리하는 단계
+- `generating`: 실제 생성 서비스 호출 직전부터 최종 응답 정규화까지의 단계
+- 근거가 없어 안전 fallback을 반환하는 경우 `generating`은 생략될 수 있다.
+
+### 7.2 Terminal Events
+
+성공 시 `done`의 data는 기존 `/api/v1/qa` 성공 응답 본문과 동일하다.
+
+```text
+event: done
+data: {"success":true,"request_id":"...","timestamp":"...","data":{...}}
+```
+
+스트림이 시작된 뒤 발생한 검증/검색/생성 오류는 기존 QA 오류 본문을
+`error` 이벤트 data로 반환한다. SSE 연결 자체의 HTTP 상태는 `200`이다.
+
+```text
+event: error
+data: {"success":false,"request_id":"...","timestamp":"...","error":{...}}
+```
+
+응답 헤더:
+
+- `Content-Type: text/event-stream`
+- `Cache-Control: no-cache`
+- `X-Accel-Buffering: no`
+- `X-Contract-Version: qa-v1.1`
+
+토큰 단위 `token` 이벤트는 현재 계약에 포함하지 않는다. 생성 서비스가
+청크 스트림을 제공하도록 확장된 뒤 하위 호환 이벤트로 추가한다.

@@ -589,10 +589,21 @@ class RetrievalService:
         return True
 
     def _build_snippet(self, chunk_text: str, max_length: int = 120) -> str:
-        text = " ".join(chunk_text.split())
+        parts = [" ".join(part.split()) for part in chunk_text.splitlines() if part.strip()]
+        text = " ".join(parts)
         if len(text) <= max_length:
             return text
-        return text[:max_length].rstrip() + "..."
+        if len(parts) > 1:
+            separator = " | "
+            budget = max(12, (max_length - len(separator) * (len(parts) - 1)) // len(parts))
+            rendered = [
+                part if len(part) <= budget else part[: max(1, budget - 3)].rstrip() + "..."
+                for part in parts
+            ]
+            return separator.join(rendered)[:max_length].rstrip()
+        tail_size = max(24, max_length // 2)
+        head_size = max(24, max_length - tail_size - 5)
+        return f"{text[:head_size].rstrip()} ... {text[-tail_size:].lstrip()}"
 
     def _build_title(self, chunk: Dict[str, Any], max_length: int = 60) -> str:
         summary = chunk.get("summary") or {}
@@ -872,6 +883,7 @@ class RetrievalService:
         strategy: Optional[str] = None,
         grounding_filter: Optional[bool] = None,
         query_signals: Optional[Dict[str, Any]] = None,
+        exclude_case_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         의미론적 검색
@@ -927,6 +939,26 @@ class RetrievalService:
                     results = dense_results[:retrieve_k]
             else:
                 results = dense_results[:retrieve_k]
+
+            if exclude_case_id:
+                excluded = str(exclude_case_id).strip().upper()
+                excluded = excluded.removeprefix("CASE-")
+
+                def _is_current_case(item: Dict[str, Any]) -> bool:
+                    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+                    candidates = (
+                        item.get("case_id"),
+                        item.get("doc_id"),
+                        metadata.get("case_id"),
+                        metadata.get("source_id"),
+                    )
+                    return any(
+                        str(value or "").strip().upper().removeprefix("CASE-") == excluded
+                        for value in candidates
+                    )
+
+                results = [item for item in results if not _is_current_case(item)]
+
             results = self._apply_retrieval_policy(
                 results,
                 topic_type=topic_type,
