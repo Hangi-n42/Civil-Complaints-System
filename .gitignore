@@ -226,8 +226,6 @@ Civil/
 
 # 대용량 로컬 데이터 (원시 데이터 및 벡터DB)
 data/chroma_db/
-data/raw_data
-data/processed
 data/Public_Civil_Service_LLM_Data/
 data/bm25_index/
 
@@ -251,3 +249,9 @@ model_test/
 
 /TS_지방행정기관
 /VS_지방행정기관
+# Local-only AI rules / personal config (do not commit)
+CLAUDE.local.md
+AGENTS.override.md
+
+# retrieval 평가 캐시 (재생성 가능)
+reports/retrieval/v3/_cache_*.json
