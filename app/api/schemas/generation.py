@@ -114,6 +114,9 @@ class SearchTrace(BaseModel):
     context_used_chars: Optional[int] = None
     context_truncated_count: Optional[int] = None
     context_dropped_count: Optional[int] = None
+    # retrieval 단계 종료 경계 신호 — BE3 SSE 'retrieving' 단계 종료 시점 (#375)
+    retrieval_done: bool = True
+    retrieval_completed_at: Optional[str] = None
 
 
 class CitationValidation(BaseModel):
