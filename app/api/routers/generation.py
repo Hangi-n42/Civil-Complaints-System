@@ -383,6 +383,8 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
                 query_signals=query_signals,
             )
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
+        # retrieval 단계 종료 경계 — FE retrieving 단계/BE3 SSE가 쓸 실제 완료 신호 (#375)
+        retrieval_completed_at = now_iso()
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
         _log_error(
@@ -502,6 +504,12 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             request_id=request_id,
             timestamp=now_iso(),
             data=unified_payload,
+            search_trace={
+                "used_top_k": grounding_top_k,
+                "retrieved_count": 0,
+                "retrieval_done": True,
+                "retrieval_completed_at": retrieval_completed_at,
+            },
         )
 
     try:
@@ -757,6 +765,8 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             "context_used_chars": _context_trace.get("context_used_chars"),
             "context_truncated_count": _context_trace.get("truncated_count"),
             "context_dropped_count": _context_trace.get("dropped_count"),
+            "retrieval_done": True,
+            "retrieval_completed_at": retrieval_completed_at,
         },
         citation_validation={
             "is_valid": is_valid,
