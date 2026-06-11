@@ -1,0 +1,141 @@
+{
+  "generated_at": "2026-06-11T05:44:55.131704+00:00",
+  "collection": "civil_cases_v1",
+  "qrels_path": "data/evaluation/v3/qrels_final.tsv",
+  "qrels_sha256": "sha256:e53f8d75247bf7de243c3c9a3e5f4ada939f0d9566ad7f67268c496a7aecee19",
+  "judged_query_count": 49,
+  "pool_size": 20,
+  "top_k": 10,
+  "fresh_predicted_docs": 1048,
+  "predict_sec": 111.8,
+  "strategies": {
+    "dense": {
+      "metric_keys": [
+        "nDCG@5",
+        "nDCG@10",
+        "R@5",
+        "R@10",
+        "RR@5",
+        "RR@10",
+        "AP@10",
+        "P@5"
+      ],
+      "metrics": {
+        "base": {
+          "R@5": 0.3077751663435938,
+          "AP@10": 0.4729211539086559,
+          "RR@10": 0.5204081632653061,
+          "RR@5": 0.5170068027210885,
+          "nDCG@5": 0.6082469102292107,
+          "R@10": 0.6380492989736689,
+          "P@5": 0.7428571428571429,
+          "nDCG@10": 0.6968222412952628
+        },
+        "dept_old": {
+          "R@5": 0.30636934427450646,
+          "AP@10": 0.4373920335819025,
+          "RR@10": 0.5199222546161322,
+          "RR@5": 0.5170068027210885,
+          "nDCG@5": 0.6001785033652394,
+          "R@10": 0.5973896584941005,
+          "P@5": 0.7387755102040818,
+          "nDCG@10": 0.6666035774478579
+        },
+        "dept_fresh": {
+          "R@5": 0.3136524523229207,
+          "AP@10": 0.4552016045002169,
+          "RR@10": 0.5255102040816326,
+          "RR@5": 0.5255102040816326,
+          "nDCG@5": 0.6119033489848046,
+          "R@10": 0.6165930541380724,
+          "P@5": 0.7428571428571429,
+          "nDCG@10": 0.6815258218611747
+        }
+      },
+      "discrimination": {
+        "old": {
+          "relevant_in_pool": 453,
+          "relevant_dept_match": 313,
+          "relevant_match_rate": 0.6909,
+          "nonrelevant_in_pool": 527,
+          "nonrelevant_dept_match": 334,
+          "nonrelevant_match_rate": 0.6338,
+          "discrimination_lift": 0.0572
+        },
+        "fresh": {
+          "relevant_in_pool": 453,
+          "relevant_dept_match": 382,
+          "relevant_match_rate": 0.8433,
+          "nonrelevant_in_pool": 527,
+          "nonrelevant_dept_match": 397,
+          "nonrelevant_match_rate": 0.7533,
+          "discrimination_lift": 0.0899
+        }
+      }
+    },
+    "hybrid": {
+      "metric_keys": [
+        "nDCG@5",
+        "nDCG@10",
+        "R@5",
+        "R@10",
+        "RR@5",
+        "RR@10",
+        "AP@10",
+        "P@5"
+      ],
+      "metrics": {
+        "base": {
+          "R@5": 0.28992398990898405,
+          "AP@10": 0.39651220318310365,
+          "RR@10": 0.5029154518950437,
+          "RR@5": 0.49659863945578236,
+          "nDCG@5": 0.5736211466114369,
+          "R@10": 0.557654187216012,
+          "P@5": 0.7142857142857144,
+          "nDCG@10": 0.6217860903482046
+        },
+        "dept_old": {
+          "R@5": 0.2856242080581818,
+          "AP@10": 0.37529640583987334,
+          "RR@10": 0.5666909620991254,
+          "RR@5": 0.5612244897959183,
+          "nDCG@5": 0.5728465667661603,
+          "R@10": 0.5227740813275027,
+          "P@5": 0.6938775510204086,
+          "nDCG@10": 0.5965500716027279
+        },
+        "dept_fresh": {
+          "R@5": 0.2903336342862155,
+          "AP@10": 0.3789021369446933,
+          "RR@10": 0.5080174927113702,
+          "RR@5": 0.5051020408163265,
+          "nDCG@5": 0.5621251359830158,
+          "R@10": 0.5460361850367851,
+          "P@5": 0.6938775510204082,
+          "nDCG@10": 0.6078240310335407
+        }
+      },
+      "discrimination": {
+        "old": {
+          "relevant_in_pool": 483,
+          "relevant_dept_match": 329,
+          "relevant_match_rate": 0.6812,
+          "nonrelevant_in_pool": 497,
+          "nonrelevant_dept_match": 294,
+          "nonrelevant_match_rate": 0.5915,
+          "discrimination_lift": 0.0896
+        },
+        "fresh": {
+          "relevant_in_pool": 483,
+          "relevant_dept_match": 401,
+          "relevant_match_rate": 0.8302,
+          "nonrelevant_in_pool": 497,
+          "nonrelevant_dept_match": 346,
+          "nonrelevant_match_rate": 0.6962,
+          "discrimination_lift": 0.1341
+        }
+      }
+    }
+  }
+}
