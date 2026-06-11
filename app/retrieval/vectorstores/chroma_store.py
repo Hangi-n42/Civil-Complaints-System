@@ -220,6 +220,7 @@ class ChromaVectorStore:
             "key_terms": _join_metadata_list(record.get("key_terms")),
             "responsible_units": _join_metadata_list(record.get("responsible_units")),
             "responsible_units_source": _first_metadata_value(record.get("responsible_units_source")),
+            "responsible_units_confidence": float(record.get("responsible_units_confidence") or 0.0),
             "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
             "summary_observation": _normalize_text(summary.get("observation")),
