@@ -61,7 +61,8 @@ def test_prompt_factory_builds_all_modes_with_schema_and_citation_rules(mode: st
     assert "Required keys must never be omitted" in prompt
     assert "[CITATION RULES]" in prompt
     assert "citations must be selected only from the provided" in prompt
-    assert "[[출처 1]]" in prompt
+    assert "answer must not contain [[출처 n]]" in prompt
+    assert "근거는 citations 배열에만 넣으세요" in prompt
     assert "검색 컨텍스트:" in prompt
     assert "chunk_id=CASE-1__chunk-0" in prompt
 
