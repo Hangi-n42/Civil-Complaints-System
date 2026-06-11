@@ -31,7 +31,19 @@ from app.retrieval.service import get_retrieval_service
 from scripts.build_index import _build_api_case_record
 
 
-def _read_normalized_items(json_files: list[Path], ingestion_svc) -> list[dict[str, Any]]:
+def _existing_case_ids(collection_name: str) -> set[str]:
+    """대상 컬렉션에 이미 색인된 case_id 집합 (resume 용)."""
+    import chromadb
+    client = chromadb.PersistentClient(path=str(PROJECT_ROOT / "data" / "chroma_db"))
+    if collection_name not in [c.name for c in client.list_collections()]:
+        return set()
+    metas = client.get_collection(collection_name).get(include=["metadatas"])["metadatas"]
+    return {str(m.get("case_id") or "") for m in metas}
+
+
+def _read_normalized_items(json_files: list[Path], ingestion_svc, exclude_case_ids: set[str] | None = None) -> list[dict[str, Any]]:
+    exclude = exclude_case_ids or set()
+    skipped = 0
     items: list[dict[str, Any]] = []
     for file_path in json_files:
         try:
@@ -40,6 +52,9 @@ def _read_normalized_items(json_files: list[Path], ingestion_svc) -> list[dict[s
             if isinstance(data, dict):
                 data = [data]
             for item in data:
+                if exclude and f"CASE-{item.get('source_id') or ''}" in exclude:
+                    skipped += 1
+                    continue
                 if "consulting_content" in item or "consulting_date" in item:
                     items.append(ingestion_svc.normalize_aihub_record(item, source_file=str(file_path)))
                 else:
@@ -57,10 +72,12 @@ def _read_normalized_items(json_files: list[Path], ingestion_svc) -> list[dict[s
                     })
         except Exception as e:  # noqa: BLE001
             pipeline_logger.error(f"파일 처리 오류 ({file_path}): {e}")
+    if exclude:
+        pipeline_logger.info(f"resume: 이미 색인된 {skipped}건 건너뜀")
     return items
 
 
-async def main(input_dir: str, collection_name: str, batch_size: int, rebuild: bool, limit: int) -> None:
+async def main(input_dir: str, collection_name: str, batch_size: int, rebuild: bool, limit: int, resume: bool = False) -> None:
     logger = pipeline_logger
     ingestion_svc = get_ingestion_service()
     structuring_svc = get_structuring_service()
@@ -73,9 +90,17 @@ async def main(input_dir: str, collection_name: str, batch_size: int, rebuild: b
     json_files = sorted(data_dir.rglob("*.json"))
     if limit > 0:
         json_files = json_files[:limit]
-    logger.info(f"재색인 시작. 원천 파일 {len(json_files)}개 → 컬렉션 '{collection_name}'")
 
-    normalized_list = await ingestion_svc.process(_read_normalized_items(json_files, ingestion_svc))
+    exclude_case_ids: set[str] = set()
+    if resume:
+        exclude_case_ids = _existing_case_ids(collection_name)
+        rebuild = False  # 이어하기는 절대 컬렉션을 비우지 않는다
+        logger.info(f"resume 모드: '{collection_name}' 기존 {len(exclude_case_ids)}건 보존, 나머지만 색인")
+    logger.info(f"재색인 시작. 원천 파일 {len(json_files)}개 → 컬렉션 '{collection_name}' (rebuild={rebuild})")
+
+    normalized_list = await ingestion_svc.process(
+        _read_normalized_items(json_files, ingestion_svc, exclude_case_ids=exclude_case_ids)
+    )
     total_docs = len(normalized_list)
     logger.info(f"정제 완료 {total_docs}건. 구조화→색인 시작.")
 
@@ -126,5 +151,6 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--resume", action="store_true", help="대상 컬렉션의 기존 case_id 는 건너뛰고 이어서 색인(미완성 재색인 복구)")
     args = parser.parse_args()
-    asyncio.run(main(args.input_dir, args.collection_name, args.batch_size, args.rebuild, args.limit))
+    asyncio.run(main(args.input_dir, args.collection_name, args.batch_size, args.rebuild, args.limit, args.resume))
