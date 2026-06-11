@@ -31,6 +31,12 @@ type SearchStage = "empty" | "loading" | "success" | "error";
 type DraftStage = "idle" | "loading" | "success" | "error";
 type SegmentViewMode = "loading" | "error" | "empty" | "single" | "multi";
 
+// 초안 생성 진행 단계 (체감 대기시간 완화용).
+// SEAM: 지금은 프론트 타이머로 단계를 추정해 보여줄 뿐 실제 백엔드 파이프라인과 1:1 동기화되지는 않는다.
+// 백엔드가 단계 이벤트(SSE)를 제공하면 타이머를 걷어내고 수신 이벤트로 draftProgressStep만 갱신하면 된다.
+const DRAFT_PROGRESS_STAGES = ["유사 사례 분석 중", "관련 근거 정리 중", "초안 작성 중"] as const;
+const DRAFT_PROGRESS_STEP_MS = 2500;
+
 type WorkbenchStructuredFields = {
   observation?: { text?: string };
   request?: { text?: string };
@@ -105,6 +111,7 @@ function WorkbenchContent() {
   const [draftResponse, setDraftResponse] = useState<QaResponseData | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftEditorValue, setDraftEditorValue] = useState("");
+  const [draftProgressStep, setDraftProgressStep] = useState(0);
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [isRawCollapsed, setIsRawCollapsed] = useState(true);
 
@@ -398,6 +405,16 @@ function WorkbenchContent() {
     setDraftEditorValue(draftTextareaValue);
   }, [draftTextareaValue]);
 
+  // 초안 생성 중 진행 단계를 순차로 진전시킨다 (마지막 단계에서 정지).
+  useEffect(() => {
+    if (draftStage !== "loading") return;
+    setDraftProgressStep(0);
+    const timer = setInterval(() => {
+      setDraftProgressStep((prev) => Math.min(prev + 1, DRAFT_PROGRESS_STAGES.length - 1));
+    }, DRAFT_PROGRESS_STEP_MS);
+    return () => clearInterval(timer);
+  }, [draftStage]);
+
   const currentStatus = caseStatuses[selectedCase.case_id] || selectedCase.status || "미처리";
   const topDocs = searchBundle?.results || searchBundle?.retrievedDocs || [];
   const isPreSearchState = searchStage === "empty" && topDocs.length === 0;
@@ -508,17 +525,30 @@ function WorkbenchContent() {
                   <button
                     type="button"
                     onClick={handleGenerateDraft}
-                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                    disabled={draftStage === "loading"}
+                    className="inline-flex items-center gap-1.5 rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    초안
+                    {draftStage === "loading" ? (
+                      <>
+                        <Spinner className="h-3.5 w-3.5 text-slate-500" />
+                        생성 중…
+                      </>
+                    ) : (
+                      "초안"
+                    )}
                   </button>
                 </div>
                 <div className="p-2">
-                  <textarea
-                    value={draftEditorValue}
-                    onChange={(event) => setDraftEditorValue(event.target.value)}
-                    className="h-44 w-full resize-none border border-slate-300 bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700 outline-none"
-                  />
+                  {draftStage === "loading" ? (
+                    <DraftLoadingState step={draftProgressStep} referenceCount={topDocs.length} />
+                  ) : (
+                    <textarea
+                      value={draftEditorValue}
+                      onChange={(event) => setDraftEditorValue(event.target.value)}
+                      placeholder="여기에 내용을 입력하거나 AI가 생성한 초안을 편집하세요..."
+                      className="h-44 w-full resize-none border border-slate-300 bg-slate-50 px-3 py-2 text-sm leading-7 text-slate-700 outline-none"
+                    />
+                  )}
                   {draftError && <div className="mt-2 text-xs text-red-600">{draftError}</div>}
                 </div>
               </div>
@@ -725,7 +755,8 @@ function buildDraftTextareaValue(params: {
   const { draftStage, segmentViewMode, answer, summary, actionItems, requestSegments } = params;
 
   if (draftStage === "loading") {
-    return "초안 생성중입니다...";
+    // 로딩 표시는 DraftLoadingState(스켈레톤+단계 진행)가 담당하므로 편집값은 비운다.
+    return "";
   }
 
   if (draftStage === "error") {
@@ -733,7 +764,7 @@ function buildDraftTextareaValue(params: {
   }
 
   if (segmentViewMode === "empty") {
-    return answer || "여기에 내용을 입력하거나 AI가 생성한 초안을 편집하세요...";
+    return answer || "";
   }
 
   if (segmentViewMode === "single") {
@@ -765,6 +796,55 @@ function buildDraftTextareaValue(params: {
     "",
     answer || "초안 답변 없음",
   ].join("\n");
+}
+
+function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
+    </svg>
+  );
+}
+
+function DraftLoadingState({ step, referenceCount }: { step: number; referenceCount: number }) {
+  const current = Math.min(step, DRAFT_PROGRESS_STAGES.length - 1);
+  return (
+    <div
+      className="h-44 w-full border border-slate-300 bg-slate-50 px-3 py-3"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+        <Spinner className="h-4 w-4 text-slate-400" />
+        <span>{DRAFT_PROGRESS_STAGES[current]}</span>
+        <span className="ml-auto text-xs font-normal text-slate-400">
+          {current + 1}/{DRAFT_PROGRESS_STAGES.length}단계
+        </span>
+      </div>
+
+      <div className="mt-2 flex gap-1">
+        {DRAFT_PROGRESS_STAGES.map((label, i) => (
+          <div
+            key={label}
+            className={`h-1 flex-1 rounded ${i <= current ? "bg-slate-400" : "bg-slate-200"}`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div className="h-3 w-11/12 animate-pulse rounded bg-slate-200" />
+        <div className="h-3 w-full animate-pulse rounded bg-slate-200" />
+        <div className="h-3 w-9/12 animate-pulse rounded bg-slate-200" />
+      </div>
+
+      {referenceCount > 0 && (
+        <p className="mt-3 text-xs text-slate-500">유사 민원 {referenceCount}건을 근거로 작성하고 있습니다.</p>
+      )}
+      <p className="mt-1 text-xs text-slate-400">보통 10~20초 정도 걸립니다.</p>
+    </div>
+  );
 }
 
 function getCaseDisplayTitle(caseItem: WorkbenchCase, maxLength: number = 48) {
