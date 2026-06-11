@@ -129,6 +129,8 @@ class GenerationMetadata(BaseModel):
 
     fallback_used: bool = False
     parse_retry_count: int = Field(default=0, ge=0)
+    grounding_evidence_count: int = Field(default=0, ge=0)
+    citation_count: int = Field(default=0, ge=0)
     generation_mode: Literal[
         "default",
         "force_json",

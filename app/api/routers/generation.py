@@ -258,6 +258,8 @@ def _build_no_similar_case_payload(
             "generation_metadata": {
                 "fallback_used": True,
                 "parse_retry_count": 0,
+                "grounding_evidence_count": 0,
+                "citation_count": 0,
                 "generation_mode": "no_evidence_fallback",
             },
         }
@@ -429,9 +431,14 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         policy=context_policy,
     )
 
+    grounded_result_count = len(raw_context)
     if not context:
         took_ms = int((perf_counter() - start) * 1000)
-        if request.use_search_results and request.search_results:
+        if (
+            request.use_search_results
+            and request.search_results
+            and grounded_result_count > 0
+        ):
             _log_error(
                 endpoint="/api/v1/qa",
                 request_id=request_id,
@@ -591,6 +598,12 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
         if isinstance(result.get("generation_metadata"), dict)
         else {}
     )
+    generation_metadata.update(
+        {
+            "grounding_evidence_count": len(context),
+            "citation_count": len(citations),
+        }
+    )
     if raw_generation_answer_empty:
         generation_metadata.update(
             {
@@ -712,6 +725,8 @@ async def generate_qa(request: QARequest, response: Response) -> QAResponse | JS
             "generation_metadata": generation_metadata or {
                 "fallback_used": False,
                 "parse_retry_count": 0,
+                "grounding_evidence_count": len(context),
+                "citation_count": len(response_citations),
                 "generation_mode": "default",
             },
         }

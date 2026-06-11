@@ -115,6 +115,14 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
             0,
             int(generation_metadata.get("parse_retry_count", 0) or 0),
         ),
+        "grounding_evidence_count": max(
+            0,
+            int(generation_metadata.get("grounding_evidence_count", 0) or 0),
+        ),
+        "citation_count": max(
+            0,
+            int(generation_metadata.get("citation_count", 0) or 0),
+        ),
         "generation_mode": generation_mode or "default",
         "legal_grounding_status": str(
             generation_metadata.get("legal_grounding_status") or "not_requested"

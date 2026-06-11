@@ -982,6 +982,8 @@ class GenerationService:
                 "generation_metadata": {
                     "fallback_used": fallback_used,
                     "parse_retry_count": len(retry_logs),
+                    "grounding_evidence_count": len(context),
+                    "citation_count": len(citations),
                     "generation_mode": generation_mode,
                     "legal_grounding_status": legal_grounding["status"],
                     "legal_grounding_error": legal_grounding["error"],
