@@ -1,9 +1,8 @@
-"""Build a BE1-restructured retrieval collection from the public source data.
+"""공개 원천데이터로 BE1 재구조화 검색 컬렉션을 만든다.
 
-The source of truth is `data/Public_Civil_Service_LLM_Data` Training +
-Validation. The script uses only citizen/customer text for BE1 structuring:
-`title + Q` for Q/A records and customer turns for dialogue records. Counselor
-answers are excluded before structuring, following the BE1 handoff contract.
+원천 기준은 `data/Public_Civil_Service_LLM_Data`의 Training/Validation이다.
+검색 재색인은 BE1 전처리 계약을 따르며, Q/A 원천 레코드는 민원인 질문과
+상담사 답변을 모두 포함한 검색용 본문으로 정규화한다.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ from app.ingestion.service import get_ingestion_service
 from app.retrieval.service import get_retrieval_service
 from app.structuring.enrichment import build_key_terms, classify_issue_type, normalize_entity_texts
 from app.structuring.legal_dictionary import get_legal_ref_matcher
-from app.structuring.preprocessing import civil_text
+from app.structuring.preprocessing import to_structuring_record
 from app.structuring.service import get_structuring_service
 from app.structuring.urgency.scorer import UrgencyScorer
 
@@ -125,15 +124,24 @@ def _extract_customer_turns(content: str) -> str:
 
 
 def _extract_civil_source_text(raw_record: Dict[str, Any], normalized: Dict[str, Any]) -> tuple[str, str]:
-    content = str(normalized.get("raw_text") or raw_record.get("consulting_content") or "").strip()
+    # 검색 재색인 본문은 운영 전처리 어댑터의 답변 포함 텍스트를 우선한다.
+    normalized_text = _clean_text(normalized.get("raw_text") or normalized.get("text"))
+    if normalized_text:
+        return normalized_text, "search_text_with_answer"
+
+    prepared_text = _clean_text(to_structuring_record(raw_record).get("text"))
+    if prepared_text:
+        return prepared_text, "adapter_search_text"
+
+    content = str(raw_record.get("consulting_content") or "").strip()
     content = content.strip("\"'“”")
     qa_parts = _parse_title_q(content)
     if qa_parts:
-        return civil_text(qa_parts), "title_q"
+        return _clean_text("\n".join(part for part in (qa_parts.get("title"), qa_parts.get("client_question")) if part)), "title_q_fallback"
 
     dialogue_text = _extract_customer_turns(content)
     if dialogue_text:
-        return dialogue_text, "customer_turns"
+        return dialogue_text, "customer_turns_fallback"
 
     return _clean_text(content), "fallback_full_content"
 

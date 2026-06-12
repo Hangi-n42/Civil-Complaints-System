@@ -49,7 +49,7 @@
 - `metadata` (object, required)
 - `confidence_score` (number, 0~1, required)
 - `structured_at` (string, ISO-8601, required)
-- `supervision`은 사용하지 않는다. BE1 구조화는 원천데이터의 민원인 원문만 사용한다.
+- `supervision`은 사용하지 않는다. BE1 구조화는 원천데이터의 민원인 원문과 상담사 답변을 사용하며, 라벨링데이터는 사용하지 않는다.
 
 ## 4) 표준 타입 규약
 

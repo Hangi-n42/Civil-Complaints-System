@@ -1,8 +1,8 @@
 """전처리 데이터(processed_consulting_data.json) → BE1 구조화 입력 어댑터.
 
 원천 consulting_content = "제목 + Q(민원인) + A(상담사)".
-구조화·긴급도는 **민원인 원문만** 대상으로 해야 하므로, 전처리로 분리된
-title + client_question 만 사용하고 consultant_answer(상담사 답변)는 제외한다.
+`civil_text()`는 민원인 원문만 반환하고, `to_structuring_record()`는
+검색 재색인 성능을 위해 title + client_question + consultant_answer를 사용한다.
 
 입력 레코드(전처리 산출) 주요 키:
   source_id, source, consulting_date, consulting_category,
@@ -244,6 +244,22 @@ def civil_text(rec: Dict[str, Any]) -> str:
     return (q or title).strip()
 
 
+def civil_text_with_answer(rec: Dict[str, Any]) -> str:
+    """검색/구조화 입력용 본문 = 민원인 원문 + 상담사 답변.
+
+    BE2 재색인 검증에서 상담사 답변을 제외하면 검색 본문이 빈약해져
+    검색 지표가 하락했다. 부서 추정 등에서 민원인 원문만 필요할 때는
+    `civil_text()`를 계속 사용하고, 검색 인덱싱으로 이어지는 구조화 입력에는
+    이 함수를 사용한다.
+    """
+    prepared = _prepared_record(rec)
+    base = civil_text(prepared)
+    answer = _normalize_text(prepared.get("consultant_answer"))
+    if base and answer:
+        return f"{base}\n{answer}"
+    return (base or answer).strip()
+
+
 def to_structuring_record(rec: Dict[str, Any]) -> Dict[str, Any]:
     """전처리 레코드 → StructuringService.structure() 입력 dict."""
     prepared = _prepared_record(rec)
@@ -253,7 +269,7 @@ def to_structuring_record(rec: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "case_id": str(prepared.get("source_id") or prepared.get("case_id") or "").strip(),
-        "text": civil_text(prepared),                 # ← 민원인 원문(상담사 제외)
+        "text": civil_text_with_answer(prepared),
         "category": category,
         "region": source,
         "created_at": format_consulting_date(prepared.get("consulting_date") or prepared.get("created_at")),

@@ -65,9 +65,9 @@ def normalize_record(raw: Dict[str, Any], source_file: Path) -> Dict[str, Any]:
 
     region = str(structuring_record.get("region") or raw.get("region") or "unknown").strip() or "unknown"
 
-    # 샘플 계약도 운영과 동일하게 상담사 답변을 제외한 민원인 원문만 사용한다.
+    # 샘플 계약도 운영과 동일하게 전처리 어댑터의 검색용 본문을 사용한다.
     if raw.get("consulting_content"):
-        # 원천 상담 본문은 전처리 어댑터 결과를 우선해 상담사 답변 유입을 막는다.
+        # 원천 상담 본문은 전처리 어댑터 결과를 우선해 Q/A 형식 흔들림을 정규화한다.
         raw_text = str(
             structuring_record.get("text") or raw.get("raw_text") or raw.get("text") or ""
         ).strip()
