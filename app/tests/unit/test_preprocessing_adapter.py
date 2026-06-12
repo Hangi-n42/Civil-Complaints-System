@@ -1,6 +1,7 @@
-"""전처리 어댑터(민원인 원문 분리) 테스트."""
+"""전처리 어댑터의 민원 원문/검색용 본문 생성 테스트."""
 from app.structuring.preprocessing import (
     civil_text,
+    civil_text_with_answer,
     parse_consulting_content,
     process_raw_record,
     to_structuring_record,
@@ -27,13 +28,21 @@ def test_civil_text_excludes_consultant_answer():
     assert "상담사" not in civil_text(rec)
 
 
+def test_civil_text_with_answer_includes_consultant_answer():
+    rec = {"title": "T", "client_question": "Q본문", "consultant_answer": "상담사 답변 A"}
+
+    text = civil_text_with_answer(rec)
+
+    assert text == "T\nQ본문\n상담사 답변 A"
+
+
 def test_to_structuring_record_maps_fields():
     rec = {"source_id": 2000001, "title": "T", "client_question": "Q",
-           "consulting_category": "행정과", "source": "경상남도",
+           "consultant_answer": "A", "consulting_category": "행정과", "source": "경상남도",
            "consulting_date": "2022-08-02"}
     out = to_structuring_record(rec)
     assert out["case_id"] == "2000001"
-    assert out["text"] == "T\nQ"
+    assert out["text"] == "T\nQ\nA"
     assert out["category"] == "행정과"
     assert out["region"] == "경상남도"
 
@@ -101,7 +110,7 @@ def test_to_structuring_record_accepts_raw_consulting_content():
     out = to_structuring_record(rec)
 
     assert out["case_id"] == "123"
-    assert out["text"] == "음식물 쓰레기 수거 기준이 궁금합니다."
+    assert out["text"] == "음식물 쓰레기 수거 기준이 궁금합니다.\n안내드립니다."
     assert out["category"] == "미분류"
     assert out["region"] == "서울시"
     assert out["created_at"] == "2024-01-02"

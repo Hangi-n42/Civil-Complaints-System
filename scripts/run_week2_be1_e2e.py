@@ -80,7 +80,7 @@ def _collect_raw_samples(limit: int) -> List[Dict[str, Any]]:
                 continue
 
             if item.get("consulting_content"):
-                # 원천 데이터 fallback도 운영 전처리와 같은 경로로 민원인 원문만 추출한다.
+                # 원천 데이터 fallback도 운영 전처리와 같은 검색용 본문을 사용한다.
                 prepared = to_structuring_record(item)
                 metadata = prepared.get("metadata") if isinstance(prepared.get("metadata"), dict) else {}
                 case_id = str(prepared.get("case_id") or item.get("case_id") or item.get("id") or "").strip()

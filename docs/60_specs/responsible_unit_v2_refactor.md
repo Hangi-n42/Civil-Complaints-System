@@ -19,7 +19,7 @@
 ## 1. 시스템 맥락 (필요한 만큼만)
 
 - 부산시 민원 RAG. BE1 구조화가 민원을 구조화하며 그중 하나가 `responsible_unit`(담당부서 후보 리스트).
-- 구조화 입력은 **민원인 원문**만 사용한다(상담사 답변 제외). 전처리: `data/processed/processed_consulting_data.json`, 어댑터: `app/structuring/preprocessing.py`.
+- 검색 인덱싱으로 이어지는 구조화 입력은 **민원인 원문 + 상담사 답변**을 사용한다. 단, 담당부서 query prior처럼 민원인 원문만 필요한 내부 보조 태스크는 `app/structuring/preprocessing.py`의 `civil_text()`를 별도로 사용할 수 있다.
 - `responsible_unit`은 BE2 검색의 **soft rerank 보조 신호**다. hard filter가 아니며, confidence가 높으면 강하게/낮으면 약하게 반영된다(BE2 측 설계). 즉 **정밀도는 BE2가 다신호로 보정**한다.
 
 ### 관련 파일 (현재 구현)

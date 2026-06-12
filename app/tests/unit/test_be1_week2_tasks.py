@@ -150,7 +150,7 @@ async def test_structure_reads_raw_text_when_text_missing():
 
 
 @pytest.mark.asyncio
-async def test_structure_parses_raw_consulting_content_without_answer_or_supervision():
+async def test_structure_parses_raw_consulting_content_with_answer_without_supervision():
     service = StructuringService()
     result = await service.structure(
         {
@@ -168,8 +168,7 @@ async def test_structure_parses_raw_consulting_content_without_answer_or_supervi
         }
     )
 
-    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다."
-    assert "접수했습니다" not in result["raw_text"]
+    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다.\n접수했습니다."
     assert "supervision" not in result
 
 

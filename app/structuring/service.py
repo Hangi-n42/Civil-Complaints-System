@@ -185,7 +185,7 @@ class StructuringService:
     def _normalize_required(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         metadata = raw.get("metadata", {}) if isinstance(raw.get("metadata"), dict) else {}
         if raw.get("consulting_content"):
-            # 원천 consulting_content는 Q/A 또는 대화형일 수 있으므로 민원인 원문만 분리한다.
+            # 원천 consulting_content는 Q/A 또는 대화형일 수 있으므로 전처리 어댑터로 정규화한다.
             prepared = to_structuring_record(raw)
             prepared_metadata = (
                 prepared.get("metadata", {}) if isinstance(prepared.get("metadata"), dict) else {}
