@@ -73,7 +73,7 @@ def test_prompt_factory_compact_mode_limits_context_and_strengthens_json_only():
     assert "[compact MODE]" in prompt
     assert "[COMPACT CONTEXT LIMIT]" in prompt
     assert "capped at 2 chunks" in prompt
-    assert "Output 1 to 2 citations" in prompt
+    assert "Output exactly 1 citation" in prompt
     assert "chunk_id=CASE-1__chunk-0" in prompt
     assert "chunk_id=CASE-2__chunk-0" in prompt
     assert "chunk_id=CASE-3__chunk-0" not in prompt
@@ -174,6 +174,29 @@ def test_prompt_factory_treats_raw_query_as_complaint_reply_input():
     assert "[RAW COMPLAINT REPLY RULES]" in prompt
     assert "write a factual official reply to that complaint" in prompt
     assert "generic context summarizer" in prompt
+
+
+def test_prompt_factory_search_query_keeps_complaint_body_beyond_first_q_line():
+    raw_text = (
+        "제목 : 음악실 주말 개방 요청\n\n"
+        "Q : 색소폰 동호회 활동을 하고 있습니다.\n"
+        "방음된 음악실을 토요일에 사용할 수 있도록 허가해 주세요.\n"
+        "주말 개방이 불가능하다면 그 사유와 적용 기준도 안내해 주세요."
+    )
+
+    query = PromptFactory._extract_query_from_raw_text(raw_text)
+
+    assert "음악실 주말 개방 요청" in query
+    assert "토요일에 사용할 수 있도록 허가" in query
+    assert "개방이 불가능하다면" in query
+
+
+def test_prompt_factory_high_complexity_avoids_internal_answer_labels():
+    prompt = _build_prompt("default")
+
+    assert "내부 작업표나 '액션 아이템' 라벨 없이" in prompt
+    assert "answer에 '섹션', '액션 아이템' 같은 내부 라벨을 쓰지 마세요" in prompt
+    assert prompt.count('"chunk_id":"CASE-1__chunk-0"') == 1
 
 
 def test_normalize_response_enforces_week6_shape():
@@ -283,7 +306,10 @@ async def test_prompt_factory_autoretrieve_raw_query_extracts_derived_query():
     )
 
     assert len(context) == 2
-    assert trace["derived_query"] == "제2 판교 버스 문제. 출퇴근 시간에 특정 방향 버스가 하나밖에 없어 불편합니다."
+    assert trace["derived_query"] == (
+        "제2 판교 버스 문제. 출퇴근 시간에 특정 방향 버스가 하나밖에 없어 불편합니다. "
+        "배차간격을 줄여 사고 위험을 낮춰주세요."
+    )
     assert raw_query in prompt
     assert "[RAW COMPLAINT REPLY RULES]" in prompt
 

@@ -88,3 +88,46 @@ GET /api/v1/chroma/collections/civil_cases_v1/sample?limit=3
 direct 모드와 API 모드는 모두 grounding filter와 법령 검증을 사용한다. 다만 API
 모드는 통합 응답 계약과 SSE를 거치므로, 모델 자체 비교에는 direct 결과의
 `raw_schema_success_rate`를 우선 사용하고 제품 경로 검증에는 API 결과를 사용한다.
+
+## 생성 속도와 회신 품질 점검
+
+- Ollama 호출은 검색 컨텍스트에서 만든 동적 JSON Schema를 `format`으로 전달한다.
+  citation의 `chunk_id/case_id/snippet`도 검색 근거 값으로 제한한다.
+- strict 파싱 재시도는 `default -> compact` 두 단계만 사용한다. 정상 응답은 첫 호출에서
+  종료하고, 두 단계가 모두 실패하면 fast fallback으로 전환한다.
+- direct 벤치마크는 현재 후보 모델을 grounding filter에도 사용한다. 설정 모델명이
+  실제 Ollama 모델명과 다르면 개별 판정 fallback으로 느려질 수 있으므로
+  `OLLAMA_MODEL`과 `GROUNDING_FILTER_MODEL`을 확인한다.
+- grounding 후보는 한 번의 배치 JSON 응답으로 채점하고, 배치 실패 시에만 기존
+  후보별 병렬 판정으로 복귀한다.
+- 회신 후처리는 3문단 안의 중복 `감사합니다. 끝.`, JSON 필드 잔여물,
+  근거 없는 확약, 기관이 자신에게 `검토해 주시기 바랍니다`라고 지시하는 표현을 제거한다.
+- 유사사례의 사실을 현재 민원의 확인 사실로 옮기지 않도록 `확인하였습니다`,
+  `보고되었습니다` 단정은 현장 확인이 필요한 표현으로 낮춘다.
+
+2026-06-12 Exaone 1건 smoke 기준:
+
+| 항목 | 결과 |
+| --- | ---: |
+| 검색 + grounding | 54.053초 |
+| 생성 | 33.377초 |
+| 전체 | 87.432초 |
+| 파싱 재시도 | 0회 |
+| citation | 1개 |
+| `감사합니다. 끝.` | 1회 |
+| schema artifact | 없음 |
+
+전체 50건 성능은 동일 입력으로 다시 실행한 뒤 `avg_latency_sec`, `p95_latency_sec`,
+`raw_schema_success_rate`, Q0~Q8 및 semantic risk count를 이전 결과와 함께 비교한다.
+
+추가로 다음 안전성 지표를 함께 확인한다.
+
+- `qa_warning_codes`의 `ANSWER_REQUEST_MISMATCH`
+- `PRECEDENT_FACT_LEAKAGE_RISK`
+- `UNSUPPORTED_COMMITMENT_RISK`
+- `UNVERIFIED_FACT_RISK`
+- `CONTEXT_CONSTRAINT_CONFLICT`
+
+잘린 JSON에서 `answer`를 복구하지 못한 경우 검색 snippet을 회신 본문으로
+대체하지 않는다. 따라서 모델 형식 실패 건은 무관한 유사 사례 답변 대신
+제한 응답 또는 실패 상태로 남아야 한다.

@@ -29,9 +29,9 @@ class Settings:
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b-instruct")
     OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 120))
-    GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 768))
+    GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 640))
     GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 2048))
 
     # ChromaDB 설정
@@ -54,7 +54,7 @@ class Settings:
     GROUNDING_FILTER_MODEL: str = os.getenv("GROUNDING_FILTER_MODEL", "")  # 빈값이면 OLLAMA_MODEL
     GROUNDING_FILTER_MIN_SCORE: int = int(os.getenv("GROUNDING_FILTER_MIN_SCORE", 1))
     GROUNDING_FILTER_POOL: int = int(os.getenv("GROUNDING_FILTER_POOL", 10))
-    GROUNDING_FILTER_MAX_CONCURRENCY: int = int(os.getenv("GROUNDING_FILTER_MAX_CONCURRENCY", 4))
+    GROUNDING_FILTER_MAX_CONCURRENCY: int = int(os.getenv("GROUNDING_FILTER_MAX_CONCURRENCY", 5))
 
     # 데이터 경로
     RAW_DATA_PATH: str = str(DATA_DIR / "raw")

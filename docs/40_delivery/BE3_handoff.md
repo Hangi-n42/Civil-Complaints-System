@@ -234,8 +234,10 @@ FE 금지사항:
 
 - BE3 strict parser는 PromptFactory 스키마의 네 최상위 키만 허용한다:
   `citations`, `answer`, `limitations`, `structured_output`.
-- strict 파싱 실패는 `default -> force_json -> compact` 순서로 재생성하며,
-  느슨한 파싱으로 성공 처리하지 않는다.
+- Ollama 동적 JSON Schema로 citation과 필수 키를 제한하고, strict 파싱 실패는
+  `default -> compact` 순서로 한 번만 재시도한다. 느슨한 파싱으로 성공 처리하지 않는다.
+- grounding 후보는 단일 배치 판정을 우선 사용하며, 배치 응답 실패 시에만
+  기존 후보별 병렬 판정으로 복귀한다.
 - 검색 청크는 앞부분뿐 아니라 뒤쪽의 처리 결론·제약도 보존한다.
 - 원문 레코드 autoretrieve는 현재 `case_id/source_id`를 검색 후보에서 제외해
   평가 대상 답안이 자기 근거로 재사용되는 누수를 막는다.
@@ -243,6 +245,17 @@ FE 금지사항:
 - 법령 후보가 0개여도 답변에 임의 법령명이 있으면 검증 단계에서 제거한다.
 - fast fallback은 검색 snippet이나 법령 조문을 회신 결론처럼 붙이지 않고,
   사실관계·소관 권한 확인이 필요하다는 제한 답변을 반환한다.
+- 잘린 JSON에서 `answer`를 복구하지 못한 경우 첫 검색 snippet을 답변으로
+  대체하지 않는다. 현재 민원과 다른 유사 사례가 회신으로 노출되는 것을
+  막기 위해 제한 응답을 사용한다.
+- 답변 후처리는 literal `\n`, 내부 섹션·액션 라벨, 미완성 `[REDACTED:`
+  문자열을 제거하고 확인되지 않은 일정·현황과 강한 이행 약속을 검토
+  표현으로 완화한다.
+- `generation_metadata.answer_quality_warning_codes`에는
+  `ANSWER_REQUEST_MISMATCH`, `PRECEDENT_FACT_LEAKAGE_RISK`,
+  `UNSUPPORTED_COMMITMENT_RISK`, `UNVERIFIED_FACT_RISK`,
+  `CONTEXT_CONSTRAINT_CONFLICT`가 기록될 수 있다. 이 경고가 있으면
+  `quality_signals.hallucination_flag=true`로 전달한다.
 
 ---
 

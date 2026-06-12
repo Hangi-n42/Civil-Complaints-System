@@ -64,6 +64,65 @@ def test_all_rubric_scores_are_on_zero_to_ten_scale() -> None:
     assert result["reference_alignment"] == 1.0
 
 
+def test_generated_body_scope_excludes_fixed_reply_shell_from_scores() -> None:
+    body = (
+        "현장 확인 결과 보행 안전시설의 훼손 여부를 우선 점검하고, "
+        "관계 부서와 보수 가능 범위를 협의하겠습니다."
+    )
+    full_reply = (
+        "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+        "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다.\n\n"
+        f"3. 검토 의견은 다음과 같습니다. {body}\n\n"
+        "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 "
+        "친절히 안내해 드리겠습니다. 감사합니다. 끝."
+    )
+    body_only = rubric.evaluate_row(
+        _row(body),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=body,
+        reference_profile=rubric.build_reference_profile([body]),
+    )
+    with_shell = rubric.evaluate_row(
+        _row(full_reply),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=body,
+        reference_profile=rubric.build_reference_profile([body]),
+    )
+
+    assert rubric.extract_generated_body(full_reply) == body
+    assert with_shell["answer_len"] == len(body)
+    assert with_shell["rubric"]["Q1"]["score"] == body_only["rubric"]["Q1"]["score"]
+    assert with_shell["rubric"]["Q6"]["score"] == body_only["rubric"]["Q6"]["score"]
+    assert with_shell["rubric"]["Q0"]["score"] == body_only["rubric"]["Q0"]["score"]
+    assert with_shell["reply_shell_diagnostics"]["all_sections_present"] is True
+    assert with_shell["reply_shell_diagnostics"]["single_closing"] is True
+
+
+def test_full_reply_scope_remains_available_for_compatibility() -> None:
+    full_reply = (
+        "1. 안내드립니다.\n\n"
+        "2. 민원 내용입니다.\n\n"
+        "3. 검토 의견은 다음과 같습니다. 현장 확인이 필요합니다.\n\n"
+        "4. 감사합니다. 끝."
+    )
+    result = rubric.evaluate_row(
+        _row(full_reply),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=full_reply,
+        reference_profile=rubric.build_reference_profile(
+            [full_reply],
+            evaluation_scope="full_reply",
+        ),
+        evaluation_scope="full_reply",
+    )
+
+    assert result["evaluation_scope"] == "full_reply"
+    assert result["answer_len"] == len(full_reply)
+
+
 def test_reference_aligned_reply_scores_higher_than_generic_repaired_reply() -> None:
     strong = rubric.evaluate_row(
         _row(REFERENCE_ANSWER),
@@ -183,3 +242,41 @@ def test_private_authority_mismatch_is_detected() -> None:
 
     assert "authority_mismatch" in result["semantic_risk_flags"]
     assert result["rubric"]["Q0"]["score"] <= 4.0
+
+
+def test_unavailable_facility_reply_detects_positive_disposition_reversal() -> None:
+    reference = (
+        "음악실은 대관 및 개방 대상이 아니며 안전과 보안 문제로 "
+        "주말 개방이 불가합니다."
+    )
+    generated = (
+        "학기 중 특정 주말을 지정하여 음악실 사용을 협의해 보겠습니다. "
+        "시민 축제 참여를 위한 사용 시간도 우선 검토하겠습니다."
+    )
+
+    result = rubric.evaluate_row(
+        _row(generated),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=reference,
+        reference_profile=_profile(),
+    )
+
+    assert "disposition_reversal" in result["semantic_risk_flags"]
+    assert result["rubric"]["Q0"]["score"] <= 3.5
+
+
+def test_unverified_current_fact_is_detected() -> None:
+    reference = "현장 방제 여부와 일정은 담당부서 확인 후 안내할 사항입니다."
+    generated = "해당 공원에는 이미 예정된 방제 작업이 진행 중입니다."
+
+    result = rubric.evaluate_row(
+        _row(generated),
+        {},
+        "parsed_answer_repaired",
+        reference_answer=reference,
+        reference_profile=_profile(),
+    )
+
+    assert "unverified_current_fact" in result["semantic_risk_flags"]
+    assert result["rubric"]["Q0"]["score"] <= 5.5

@@ -24,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REFERENCE_PATH = PROJECT_ROOT / "data" / "processed" / "processed_consulting_data.json"
 SCORE_MIN = 0.0
 SCORE_MAX = 10.0
+DEFAULT_EVALUATION_SCOPE = "generated_body"
 
 RUBRIC_DESCRIPTIONS: Dict[str, str] = {
     "Q0": "종합 만족도: 실제 민원 회신과 비교했을 때 전반적으로 만족할 가능성",
@@ -92,15 +93,30 @@ _REFERENCE_CONSTRAINT_RE = re.compile(
     r"폭이?\s*좁|확폭|예정된?\s*공사|공사\s*예정|관할\s*(?:사항이\s*)?아니|소관이\s*아니"
 )
 _STRONG_COMMITMENT_RE = re.compile(
-    r"(?:즉시|신속히)?\s*(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)"
-    r"(?:을|를|에)?\s*(?:실시|시행|추진|완료|조치)?하겠습니다|"
-    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)\s*예정입니다|"
-    r"예산을?\s*확보하겠습니다|공청회를?\s*실시하겠습니다"
+    r"(?:즉시|신속히|우선적으로)?\s*"
+    r"(?:설치|철거|제거|이동|신설|건설|매입|보수|정비|폐쇄|단속|시정|"
+    r"개선|확대|개방|허가|지정|도입|구축|확보|수립|방역)"
+    r"(?:을|를|에)?\s*(?:실시|시행|추진|완료|진행|조치)?"
+    r"(?:하겠습니다|할\s*예정입니다|할\s*계획입니다)|"
+    r"(?:설치|철거|제거|이동|신설|건설|매입|보수|정비|폐쇄|단속|시정|"
+    r"개선|확대|개방|허가|지정|도입|구축|확보|수립|방역)\s*예정입니다|"
+    r"예산을?\s*확보하겠습니다|공청회를?\s*실시하겠습니다|"
+    r"주차\s*공간으로\s*개발하여\s*즉시\s*활용합니다"
 )
 _PRIVATE_AUTHORITY_RE = re.compile(r"사유지|개인\s*소유|관리사무소|소유자|관리주체")
 _AGENCY_ACTION_RE = re.compile(
-    r"(?:시|군|구|담당부서|우리\s*기관|해당\s*부서).{0,35}"
-    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선).{0,12}하겠습니다"
+    r"(?:시|군|구|담당부서|우리\s*기관|해당\s*부서).{0,50}"
+    r"(?:설치|철거|제거|이동|신설|건설|보수|정비|폐쇄|단속|시정|개선|"
+    r"확대|개방|허가|지정|도입).{0,20}"
+    r"(?:하겠습니다|할\s*예정입니다|할\s*계획입니다)"
+)
+_POSITIVE_DISPOSITION_RE = re.compile(
+    r"(?:허용|승인|개방|이동|추가\s*지정|우선적으로\s*제거|"
+    r"주말\s*사용\s*협의|사용.{0,12}협의|즉시\s*활용|신규\s*시설\s*건설|"
+    r"지원\s*방안을\s*마련)"
+)
+_UNVERIFIED_ASSERTION_RE = re.compile(
+    r"확인하였습니다|보고되었습니다|이미\s*예정|진행\s*중입니다|완료되었습니다"
 )
 
 
@@ -136,7 +152,11 @@ def _read_cases(path: Path | None) -> Dict[str, Dict[str, Any]]:
     return cases
 
 
-def _read_reference_answers(path: Path) -> Tuple[Dict[str, str], Dict[str, Any]]:
+def _read_reference_answers(
+    path: Path,
+    *,
+    evaluation_scope: str = DEFAULT_EVALUATION_SCOPE,
+) -> Tuple[Dict[str, str], Dict[str, Any]]:
     with path.open("r", encoding="utf-8-sig") as handle:
         raw = json.load(handle)
     if not isinstance(raw, list):
@@ -154,7 +174,11 @@ def _read_reference_answers(path: Path) -> Tuple[Dict[str, str], Dict[str, Any]]
         answers.append(answer)
         if source_id:
             references[source_id] = answer
-    return references, build_reference_profile(answers, source_path=path)
+    return references, build_reference_profile(
+        answers,
+        source_path=path,
+        evaluation_scope=evaluation_scope,
+    )
 
 
 def _clip_score(value: float) -> float:
@@ -186,6 +210,65 @@ def _paragraph_count(text: str) -> int:
     return len([part for part in re.split(r"\n\s*\n", text or "") if part.strip()])
 
 
+def extract_generated_body(text: str) -> str:
+    """고정된 1·2·4문단을 제외하고 모델이 작성한 3문단 본문만 반환한다."""
+    rendered = str(text or "").strip()
+    if not rendered:
+        return ""
+    start_match = re.search(
+        r"(?:^|\n|\s)3[.．)]\s*검토\s*의견은\s*다음과\s*같습니다[.。]?\s*",
+        rendered,
+    )
+    if not start_match:
+        return rendered
+    body = rendered[start_match.end():]
+    end_match = re.search(
+        r"(?:^|\n|\s)4[.．)]\s*답변\s*내용에\s*대한\s*추가\s*설명이\s*필요한\s*경우",
+        body,
+    )
+    if end_match:
+        body = body[:end_match.start()]
+    return body.strip()
+
+
+def extract_reference_body(text: str) -> str:
+    """실제 consultant_answer에서 인사·문의 안내를 덜어낸 실질 본문을 반환한다."""
+    rendered = extract_generated_body(text)
+    if not rendered:
+        return ""
+    rendered = re.sub(
+        r"(?:기타|추가|그\s*밖에)?\s*(?:문의|궁금하신)\s*(?:사항|점).*?$",
+        "",
+        rendered,
+        flags=re.DOTALL,
+    )
+    rendered = re.sub(
+        r"(?:귀하의\s*가정|항상\s*귀하).*?(?:기원합니다|바랍니다)[.。]?",
+        " ",
+        rendered,
+    )
+    for phrase in _COMMON_REPLY_PHRASES:
+        rendered = rendered.replace(phrase, " ")
+    rendered = re.sub(r"(?m)^\s*(?:\d+|[가나다라마바사아자차카타파하])[.．)]\s*", "", rendered)
+    return re.sub(r"\s+", " ", rendered).strip(" .。")
+
+
+def _reply_shell_diagnostics(text: str) -> Dict[str, Any]:
+    rendered = str(text or "")
+    sections = {
+        str(index): bool(re.search(rf"(?m)^\s*{index}[.．)]\s*", rendered))
+        for index in range(1, 5)
+    }
+    closing_count = rendered.count("감사합니다. 끝.")
+    return {
+        "sections": sections,
+        "all_sections_present": all(sections.values()),
+        "closing_count": closing_count,
+        "single_closing": closing_count == 1,
+        "generated_body_extracted": extract_generated_body(rendered) != rendered.strip(),
+    }
+
+
 def _specificity_signals(text: str) -> List[str]:
     return [name for name, pattern in _SPECIFICITY_PATTERNS.items() if pattern.search(text or "")]
 
@@ -205,8 +288,19 @@ def _feature_flags(text: str) -> Dict[str, bool]:
     }
 
 
-def build_reference_profile(answers: Sequence[str], source_path: Path | None = None) -> Dict[str, Any]:
-    valid = [str(answer).strip() for answer in answers if str(answer).strip()]
+def build_reference_profile(
+    answers: Sequence[str],
+    source_path: Path | None = None,
+    *,
+    evaluation_scope: str = DEFAULT_EVALUATION_SCOPE,
+) -> Dict[str, Any]:
+    valid_full = [str(answer).strip() for answer in answers if str(answer).strip()]
+    valid = (
+        [extract_reference_body(answer) for answer in valid_full]
+        if evaluation_scope == "generated_body"
+        else valid_full
+    )
+    valid = [answer for answer in valid if answer]
     lengths = [len(answer) for answer in valid]
     sentences = [_sentence_count(answer) for answer in valid]
     paragraphs = [_paragraph_count(answer) for answer in valid]
@@ -226,6 +320,7 @@ def build_reference_profile(answers: Sequence[str], source_path: Path | None = N
 
     return {
         "source_path": str(source_path) if source_path else None,
+        "evaluation_scope": evaluation_scope,
         "valid_answer_count": len(valid),
         "length_chars": stats(lengths),
         "sentence_count": stats(sentences),
@@ -349,22 +444,32 @@ def _semantic_risk_flags(answer: str, reference_answer: str) -> List[str]:
     flags: List[str] = []
     reference_has_constraint = bool(_REFERENCE_CONSTRAINT_RE.search(reference_answer))
     answer_has_commitment = bool(_STRONG_COMMITMENT_RE.search(answer))
-    if reference_has_constraint and answer_has_commitment:
+    if reference_has_constraint and (
+        answer_has_commitment or _POSITIVE_DISPOSITION_RE.search(answer)
+    ):
         flags.append("disposition_reversal")
-    if _PRIVATE_AUTHORITY_RE.search(reference_answer) and _AGENCY_ACTION_RE.search(answer):
+    if _PRIVATE_AUTHORITY_RE.search(reference_answer) and (
+        _AGENCY_ACTION_RE.search(answer) or answer_has_commitment
+    ):
         flags.append("authority_mismatch")
     if answer_has_commitment:
         commitment_terms = {
             term
             for term in (
-                "설치", "철거", "보수", "정비", "폐쇄", "단속",
-                "시정", "개선", "확대", "도입", "예산", "공청회",
+                "설치", "철거", "제거", "이동", "신설", "건설", "매입",
+                "보수", "정비", "폐쇄", "단속", "시정", "개선", "확대",
+                "개방", "허가", "지정", "도입", "구축", "예산", "공청회",
             )
             if term in answer
         }
         unsupported = [term for term in commitment_terms if term not in reference_answer]
         if unsupported:
             flags.append("unsupported_commitment")
+    if (
+        _UNVERIFIED_ASSERTION_RE.search(answer)
+        and not _UNVERIFIED_ASSERTION_RE.search(reference_answer)
+    ):
+        flags.append("unverified_current_fact")
     return flags
 
 
@@ -387,16 +492,18 @@ def _score_q1_naturalness(answer: str, profile: Dict[str, Any]) -> Tuple[float, 
         return 0.0, ["답변이 비어 있음"]
     score = 10.0
     reasons: List[str] = []
-    flags = _feature_flags(answer)
-    if not flags["polite"]:
+    if re.search(r"(?:^|\s)(?:액션\s*아이템|섹션\s*\d+|조치\s*제안)\s*[:：]", answer):
+        score -= 2.5
+        reasons.append("내부 생성용 라벨이 회신 본문에 노출됨")
+    if "\\n" in answer:
         score -= 2.0
-        reasons.append("공공기관 회신 어휘가 부족함")
-    if not flags["closing"]:
-        score -= 1.0
-        reasons.append("공식 회신 마무리 표현이 없음")
-    if not flags["numbered"] and _paragraph_count(answer) <= 1:
+        reasons.append("이스케이프 문자열이 실제 줄바꿈으로 정규화되지 않음")
+    if "[REDACTED:" in answer:
+        score -= 3.0
+        reasons.append("잘린 비식별화 토큰이 노출됨")
+    if re.search(r"(?:^|\s)\d+[.．)]\s*$", answer):
         score -= 1.5
-        reasons.append("회신 구조가 실제 답변 표본보다 약함")
+        reasons.append("의미 없는 번호 조각이 남아 있음")
     if _has_debug_noise(answer):
         score -= 5.0
         reasons.append("검색 메타데이터 또는 Markdown이 노출됨")
@@ -412,8 +519,8 @@ def _score_q1_naturalness(answer: str, profile: Dict[str, Any]) -> Tuple[float, 
         reasons.append(f"템플릿성 일반 문구 {len(generic_hits)}개 감지")
     if len(answer) < profile["length_chars"]["p05"]:
         score -= 1.5
-        reasons.append("실제 회신 하위 5%보다 짧음")
-    return _clip_score(score), reasons or ["실제 공공기관 회신 형식과 어조를 충족함"]
+        reasons.append("실제 회신 본문 하위 5%보다 짧음")
+    return _clip_score(score), reasons or ["생성 본문의 문장 품질과 자연스러움이 양호함"]
 
 
 def _score_q2_source_adequacy(
@@ -525,13 +632,19 @@ def _score_q6_redundancy(answer: str) -> Tuple[float, List[str]]:
     if _has_structured_artifact(answer):
         score -= 4.0
         reasons.append("구조화 데이터 문자열 노출")
+    if "\\n" in answer:
+        score -= 2.0
+        reasons.append("literal 줄바꿈 이스케이프 노출")
+    if "[REDACTED:" in answer:
+        score -= 3.0
+        reasons.append("잘린 비식별화 토큰 노출")
+    if re.search(r"(?:^|\s)(?:액션\s*아이템|섹션\s*\d+|조치\s*제안)\s*[:：]", answer):
+        score -= 2.0
+        reasons.append("내부 생성용 라벨 노출")
     generic_hits = _generic_phrase_hits(answer)
     if generic_hits:
         score -= min(4.0, 1.5 * len(generic_hits))
         reasons.append(f"템플릿성 일반 문구 {len(generic_hits)}개")
-    if answer.count("감사합니다. 끝.") > 1:
-        score -= 2.0
-        reasons.append("회신 종료 문구 중복")
     if re.search(r"3\.\s*검토.*?1\.\s*귀하", answer, flags=re.DOTALL):
         score -= 1.5
         reasons.append("본문 안에 번호 체계가 중복됨")
@@ -580,20 +693,18 @@ def _score_q8_efficiency(
 ) -> Tuple[float, List[str]]:
     if not answer:
         return 0.0, ["답변이 비어 있음"]
-    has_summary = bool(re.search(r"민원\s*내용|질의\s*내용|요청.*이해|문의.*이해", answer))
-    has_review = bool(re.search(r"검토\s*의견|알려드립니다|확인하였|판단|답변드립니다", answer))
-    has_followup = bool(re.search(r"문의|연락|추가\s*설명|담당부서|주무관", answer))
+    has_summary = bool(re.search(r"민원\s*내용|질의\s*내용|요청|불편|문제|문의", answer))
+    has_review = bool(re.search(r"검토|알려드립니다|확인|판단|불가|가능|소관|책임", answer))
     has_action = bool(_SPECIFICITY_PATTERNS["action"].search(answer))
     has_constraint = bool(_SPECIFICITY_PATTERNS["constraint"].search(answer))
     specificity = len(_specificity_signals(answer))
 
     score = (
         1.5 * has_summary
-        + 1.5 * has_review
-        + 1.0 * has_followup
-        + 1.0 * has_action
-        + 1.0 * has_constraint
-        + min(specificity, 4) / 4 * 2.0
+        + 2.0 * has_review
+        + 1.5 * has_action
+        + 1.5 * has_constraint
+        + min(specificity, 4) / 4 * 1.5
     )
     if has_reference:
         score += alignment_score * 0.15 + anchor_coverage * 0.5
@@ -605,7 +716,6 @@ def _score_q8_efficiency(
     reasons = [
         f"summary={has_summary}",
         f"review={has_review}",
-        f"followup={has_followup}",
         f"action={has_action}",
         f"constraint={has_constraint}",
         f"specificity={specificity}/6",
@@ -627,13 +737,27 @@ def evaluate_row(
     answer_field: str,
     reference_answer: str = "",
     reference_profile: Optional[Dict[str, Any]] = None,
+    evaluation_scope: str = DEFAULT_EVALUATION_SCOPE,
 ) -> Dict[str, Any]:
-    profile = reference_profile or build_reference_profile([reference_answer] if reference_answer else ["기준 답변입니다."])
-    answer = _answer_from_row(row, answer_field)
-    alignment = _reference_alignment(answer, reference_answer) if reference_answer else 0.0
+    profile = reference_profile or build_reference_profile(
+        [reference_answer] if reference_answer else ["기준 답변입니다."],
+        evaluation_scope=evaluation_scope,
+    )
+    full_answer = _answer_from_row(row, answer_field)
+    answer = (
+        extract_generated_body(full_answer)
+        if evaluation_scope == "generated_body"
+        else full_answer
+    )
+    reference_body = (
+        extract_reference_body(reference_answer)
+        if evaluation_scope == "generated_body"
+        else reference_answer
+    )
+    alignment = _reference_alignment(answer, reference_body) if reference_body else 0.0
     alignment_score = _alignment_score(alignment) if reference_answer else 0.0
-    anchor_coverage = _reference_anchor_coverage(answer, reference_answer) if reference_answer else 0.0
-    semantic_flags = _semantic_risk_flags(answer, reference_answer)
+    anchor_coverage = _reference_anchor_coverage(answer, reference_body) if reference_body else 0.0
+    semantic_flags = _semantic_risk_flags(answer, reference_body)
 
     scores: Dict[str, Tuple[float, List[str]]] = {
         "Q1": _score_q1_naturalness(answer, profile),
@@ -652,12 +776,12 @@ def evaluate_row(
             semantic_flags,
         ),
         "Q6": _score_q6_redundancy(answer),
-        "Q7": _score_q7_conciseness(answer, reference_answer, profile),
+        "Q7": _score_q7_conciseness(answer, reference_body, profile),
         "Q8": _score_q8_efficiency(
             answer,
             alignment_score,
             anchor_coverage,
-            bool(reference_answer),
+            bool(reference_body),
             semantic_flags,
         ),
     }
@@ -684,6 +808,8 @@ def evaluate_row(
         caps.append((4.0, "authority_mismatch"))
     if "unsupported_commitment" in semantic_flags:
         caps.append((5.0, "unsupported_commitment"))
+    if "unverified_current_fact" in semantic_flags:
+        caps.append((5.5, "unverified_current_fact"))
     if reference_answer and alignment <= 0:
         caps.append((4.5, "zero_reference_alignment"))
     elif reference_answer and alignment < 0.015:
@@ -719,8 +845,10 @@ def evaluate_row(
         "source": case.get("source"),
         "category": case.get("category") or case.get("consulting_category"),
         "answer_len": len(answer),
+        "full_answer_len": len(full_answer),
+        "evaluation_scope": evaluation_scope,
         "reference_available": bool(reference_answer),
-        "reference_answer_len": len(reference_answer),
+        "reference_answer_len": len(reference_body),
         "reference_alignment": round(alignment, 4),
         "reference_alignment_score": alignment_score,
         "reference_anchor_coverage": round(anchor_coverage, 4),
@@ -728,6 +856,7 @@ def evaluate_row(
         "answer_has_source_tokens": bool(
             "[[출처" in answer or re.search(r"\[출처\s*\d+\]", answer)
         ),
+        "reply_shell_diagnostics": _reply_shell_diagnostics(full_answer),
         "citation_match_rate_strict": float(row.get("citation_match_rate_strict") or 0.0),
         "citation_match_rate_repaired": float(
             row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0
@@ -740,6 +869,9 @@ def build_report(
     scores: List[Dict[str, Any]],
     reference_profile: Dict[str, Any],
 ) -> Dict[str, Any]:
+    evaluation_scope = (
+        scores[0].get("evaluation_scope") if scores else DEFAULT_EVALUATION_SCOPE
+    )
     by_q = {
         qid: round(_average(row["rubric"][qid]["score"] for row in scores), 4)
         for qid in RUBRIC_DESCRIPTIONS
@@ -758,12 +890,18 @@ def build_report(
     }
 
     return {
-        "method": "llm_rubric_proxy_civil_replies_v2_strict",
+        "method": (
+            "llm_rubric_proxy_civil_replies_v3_generated_body"
+            if evaluation_scope == "generated_body"
+            else "llm_rubric_proxy_civil_replies_v2_full_reply_compat"
+        ),
         "note": (
             "Deterministic 0-10 proxy of LLM-Rubric Q0-Q8. "
-            "Style and density are calibrated to processed consultant_answer records; "
+            "Text-based dimensions evaluate only the generated substantive body; "
+            "the fixed reply shell is reported separately. "
             "no learned calibration network is applied."
         ),
+        "evaluation_scope": evaluation_scope,
         "score_scale": {"min": SCORE_MIN, "max": SCORE_MAX, "precision": 0.1},
         "weights": WEIGHTS,
         "count": len(scores),
@@ -771,6 +909,22 @@ def build_report(
         "reference_profile": reference_profile,
         "average_scores": by_q,
         "q0_distribution": bins,
+        "reply_shell_diagnostics": {
+            "all_sections_present_rate": round(
+                _average(
+                    1.0 if row["reply_shell_diagnostics"]["all_sections_present"] else 0.0
+                    for row in scores
+                ),
+                4,
+            ),
+            "single_closing_rate": round(
+                _average(
+                    1.0 if row["reply_shell_diagnostics"]["single_closing"] else 0.0
+                    for row in scores
+                ),
+                4,
+            ),
+        },
         "category_summary": {
             category: {
                 "count": len(rows),
@@ -795,23 +949,30 @@ def write_summary_md(report: Dict[str, Any], output_path: Path) -> None:
         f"- method: `{report['method']}`",
         f"- count: {report['count']}",
         f"- paired references: {report['paired_reference_count']}",
+        f"- evaluation scope: `{report['evaluation_scope']}`",
         "- scale: 0.0 (lowest) to 10.0 (highest)",
-        "- Q0 applies quality caps for missing strict citations, generic templates, debug noise, and low paired-reference alignment.",
+        "- Q0~Q8 text scoring excludes fixed paragraphs 1, 2, and 4 and evaluates the generated paragraph 3 body.",
+        "- Q3~Q4 continue to use structured citation fields; reply shell compliance is reported separately.",
         "",
         "## Reference Calibration",
         "",
         f"- source: `{profile.get('source_path')}`",
         f"- valid consultant answers: {profile.get('valid_answer_count')}",
         (
-            "- answer length chars: "
+            "- substantive body length chars: "
             f"p25={profile['length_chars']['p25']}, median={profile['length_chars']['median']}, "
             f"p75={profile['length_chars']['p75']}"
         ),
         (
-            "- sentence count: "
+            "- substantive body sentence count: "
             f"p25={profile['sentence_count']['p25']}, median={profile['sentence_count']['median']}, "
             f"p75={profile['sentence_count']['p75']}"
         ),
+        "",
+        "## Reply Shell Diagnostics",
+        "",
+        f"- all sections present rate: {report['reply_shell_diagnostics']['all_sections_present_rate']}",
+        f"- single closing rate: {report['reply_shell_diagnostics']['single_closing_rate']}",
         "",
         "## Average Scores",
         "",
@@ -857,6 +1018,12 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, help="directory for rubric outputs")
     parser.add_argument("--answer-field", default="parsed_answer_repaired")
     parser.add_argument(
+        "--evaluation-scope",
+        choices=["generated_body", "full_reply"],
+        default=DEFAULT_EVALUATION_SCOPE,
+        help="generated_body excludes the fixed reply shell; full_reply keeps legacy behavior",
+    )
+    parser.add_argument(
         "--reference-data",
         default=str(DEFAULT_REFERENCE_PATH.relative_to(PROJECT_ROOT)),
         help="processed JSON containing source_id and consultant_answer",
@@ -870,7 +1037,10 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     cases = _read_cases(cases_path)
-    references, reference_profile = _read_reference_answers(reference_path)
+    references, reference_profile = _read_reference_answers(
+        reference_path,
+        evaluation_scope=args.evaluation_scope,
+    )
     rows = _read_jsonl(answers_path)
     scores = []
     for row in rows:
@@ -882,6 +1052,7 @@ def main() -> None:
                 args.answer_field,
                 reference_answer=references.get(case_id, ""),
                 reference_profile=reference_profile,
+                evaluation_scope=args.evaluation_scope,
             )
         )
     report = build_report(scores, reference_profile)

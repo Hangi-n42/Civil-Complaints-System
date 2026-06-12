@@ -105,11 +105,11 @@ class PromptFactory:
     COMPLEXITY_GUIDANCE = {
         "low": "짧고 명확한 단일 답변으로 작성하세요.",
         "medium": "핵심 쟁점별로 구분하여 작성하세요.",
-        "high": "다중 쟁점을 분리하고 단계별 액션 아이템을 구체적으로 작성하세요.",
+        "high": "다중 쟁점을 빠짐없이 다루되, answer에는 내부 작업표나 '액션 아이템' 라벨 없이 자연스러운 검토 문장으로 작성하세요.",
     }
 
     POLICY_GUIDANCE = {
-        "field_ops": "현장 대응 관점에서 긴급도 판단 근거와 즉시 조치를 우선 제시하세요.",
+        "field_ops": "현장 대응 관점에서 사실관계·소관 권한·안전 위험을 먼저 확인하고, 확인되지 않은 즉시 조치를 확약하지 마세요.",
         "admin_policy": "행정 절차/근거 중심으로 접수→검토→조치 흐름을 명확히 안내하세요.",
         "general": "현장 대응과 행정 안내를 균형 있게 제시하세요.",
     }
@@ -252,7 +252,7 @@ class PromptFactory:
         citation_rules = (
             "[CITATION RULES]\n"
             "- citations must be selected only from the provided '검색 컨텍스트'. Do not invent external sources.\n"
-            f"- Output 1 to {citations_max} citations.\n"
+            f"- Output exactly {citations_max} citation using the single best supporting context chunk.\n"
             "- Every citation must include chunk_id, case_id, snippet, and relevance_score.\n"
             "- Use chunk_id, case_id, score, and relevance_score only inside citations. Never expose these metadata strings inside answer.\n"
             "- Keep all source information in the citations array. The answer must not contain [[출처 n]], [출처 n], chunk_id, case_id, score, or CASE-...__chunk-... strings.\n"
@@ -278,13 +278,17 @@ class PromptFactory:
                 "- Separate the citizen's requested facts, safety concerns, inconvenience, and proposed actions before drafting the answer.\n"
                 "- Use '검색 컨텍스트' only as grounding for administrative handling, similar cases, procedures, and limitations.\n"
                 "- A retrieved case is a precedent, not a confirmed fact about the current complaint. Do not copy its location, ownership, schedule, decision, or completed action into the current reply.\n"
+                "- Statements in the citizen complaint are allegations or requests, not agency-confirmed findings. Attribute them as '민원에서 제기하신 사항' unless independently supported.\n"
+                "- Do not write '확인하였습니다' or '보고되었습니다' for facts found only in a retrieved precedent. Use 현장 확인이 필요합니다 unless the current complaint/context proves the fact.\n"
                 "- Distinguish requested action from confirmed action. A citizen request such as 설치·철거·보수 요청 is not evidence that the agency approved or performed it.\n"
                 "- Preserve decisive constraints found in context, including 처리 불가/곤란, 사유지, 관리사무소·소유자 소관, 도로 폭 부족, 예정 공사, 관할 외 사유, and conditional review.\n"
                 "- Do not promise installation, demolition, enforcement, budget allocation, hearings, or a completion schedule unless the context explicitly supports that commitment for the current complaint.\n"
+                "- Write from the responding agency's perspective. Do not tell the agency to '검토해 주시기 바랍니다' or present internal action proposals as citizen instructions.\n"
                 "- action_items must be evidence-safe. When authority or facts are uncertain, use 확인·협의·안내 actions instead of promising implementation.\n"
                 "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
                 "- If the context does not prove a concrete policy, schedule, ordinance, or responsible agency, state that 담당부서 확인/현장 검토가 필요합니다.\n"
                 "- Cite a law in answer only when the supplied article text directly supports the stated conclusion. Otherwise omit the law name and article number.\n"
+                "- Never output literal \\n text, Markdown bullets, '액션 아이템', 'Action Item', '섹션 n', or an unfinished '[REDACTED:' token inside answer.\n"
             )
 
         compact_context_rules = ""
@@ -307,7 +311,7 @@ class PromptFactory:
         elif prompt_mode == "compact":
             mode_rules = (
                 "[compact MODE]\n"
-                "- Keep answer compact but complete as an official civil-affairs reply with 3 to 4 numbered paragraphs and usually 3 to 5 Korean sentences.\n"
+                "- Keep answer compact but complete using the exact fixed 1-to-4 paragraph shell and usually 3 to 5 Korean sentences.\n"
                 "- Do not use meta phrases about evidence checking; write directly as an institutional reply.\n"
                 "- Use stronger JSON-only discipline than default: no Markdown, no headings outside JSON, no explanatory wrapper.\n"
                 "- action_items must contain at least 2 prioritized actions.\n"
@@ -420,7 +424,7 @@ class PromptFactory:
 
         우선순위:
         1) '제목 :' 라인
-        2) 'Q :' 라인(1개 이상이면 연결)
+        2) Q 본문을 포함한 원문 핵심 구간
         3) fallback: 원문 앞부분
         """
         text = str(raw_text or "").strip()
@@ -430,18 +434,18 @@ class PromptFactory:
         title_match = cls._TITLE_RE.search(text)
         title = title_match.group(1).strip() if title_match else ""
 
-        questions = [m.group(1).strip() for m in cls._Q_RE.finditer(text) if m.group(1).strip()]
-        question = " ".join(questions).strip()
+        body = cls._TITLE_RE.sub(" ", text, count=1)
+        body = re.sub(r"(?m)^\s*Q\s*[:：]\s*", "", body)
+        body = re.sub(
+            r"(?m)^\s*(?:감사합니다|이상[, ]*감사합니다)[.!]?\s*$",
+            " ",
+            body,
+        )
+        body = re.sub(r"\s+", " ", body).strip()
 
-        if title and question:
-            return f"{title}. {question}".strip()
-        if question:
-            return question
-        if title:
-            return title
-
-        fallback = re.sub(r"\s+", " ", text)
-        return fallback[:500].strip()
+        parts = [part for part in (title, body) if part]
+        merged = ". ".join(parts)
+        return merged[:650].rstrip()
 
     @classmethod
     def _looks_like_raw_complaint_text(cls, text: str) -> bool:
@@ -707,6 +711,7 @@ class PromptFactory:
             snippet_max_chars=int(snippet_max_chars),
             query_signals=query_signals,
             grounding_filter=True,
+            grounding_pool=max(3, effective_top_k),
             exclude_case_id=exclude_case_id or None,
         )
 
@@ -840,30 +845,31 @@ class PromptFactory:
         policy_guide = cls.POLICY_GUIDANCE.get(retrieval_policy, cls.POLICY_GUIDANCE["general"])
         prompt_mode = cls._normalize_prompt_mode(str(routing_trace.get("prompt_mode") or "default"))
         is_compact = prompt_mode == "compact"
-        is_force_json = prompt_mode == "force_json"
         record_guide = cls._build_record_guide(record or {}) if record else ""
         raw_complaint_text = cls._get_raw_complaint_text(record or {}, query=query) if record else ""
         has_raw_complaint = bool(raw_complaint_text)
 
         segment_guide = ""
         if request_segments:
-            numbered = "\n".join(f"- 섹션 {idx + 1}: {segment}" for idx, segment in enumerate(request_segments))
+            numbered = "\n".join(f"- 요청 {idx + 1}: {segment}" for idx, segment in enumerate(request_segments))
             segment_guide = (
-                "\n세그먼트별로 답변을 나누고 각 세그먼트마다 action_items 1개 이상을 붙이세요:\n"
+                "\n다음 요청을 빠짐없이 검토하되 answer에 '섹션', '액션 아이템' 같은 내부 라벨을 쓰지 마세요. "
+                "structured_output.action_items에는 각 요청과 연결되는 안전한 확인·협의·안내 조치를 넣으세요:\n"
                 f"{numbered}"
             )
 
         snippet_max_chars = 120 if is_compact else 200
         citation_snippet_max_chars = 120 if is_compact else 200
-        context_limit = 2 if is_compact else len(context)
-        citations_max = 2 if is_compact else 3
+        context_limit = 2 if is_compact else min(3, len(context))
+        citations_max = 1
 
         context_lines: List[str] = []
         for idx, doc in enumerate(context[:context_limit], start=1):
             snippet = str(doc.get("snippet", "")).strip()
             context_lines.append(
                 (
-                    f"[{idx}] chunk_id={doc.get('chunk_id', 'unknown')} "
+                    f"[유사 사례 {idx} - 현재 민원의 확정 사실이 아님] "
+                    f"chunk_id={doc.get('chunk_id', 'unknown')} "
                     f"case_id={doc.get('case_id', 'unknown')} "
                     f"score={doc.get('score', doc.get('relevance_score', 0.0))}\n"
                     f"snippet={snippet[:snippet_max_chars]}"
@@ -932,12 +938,6 @@ class PromptFactory:
             "\"doc_id\":\"DOC-001\","
             "\"snippet\":\"관리비 이의제기 처리 절차는 접수 후 담당 부서에서 검토합니다.\","
             "\"relevance_score\":0.9"
-            "},{"
-            "\"chunk_id\":\"CASE-1__chunk-1\","
-            "\"case_id\":\"CASE-1\","
-            "\"doc_id\":\"DOC-002\","
-            "\"snippet\":\"현장 확인이 필요한 사항은 담당 부서 검토 후 안내합니다.\","
-            "\"relevance_score\":0.8"
             "}],"
             "\"answer\":\"1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\\n\\n2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. 접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\\n\\n3. 검토 의견은 다음과 같습니다. 접수하신 사항은 관리비 이의제기 처리 절차와 현장 확인이 필요한 사항으로 구분하여 검토할 수 있습니다. 담당부서에서는 접수 자료를 확인한 뒤 필요한 경우 관계 부서 협의 또는 현장 확인을 거쳐 처리 가능 여부와 후속 절차를 안내드리겠습니다.\\n\\n4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\","
             "\"limitations\":[\"현장 확인이 필요할 수 있습니다.\"],"
@@ -962,7 +962,9 @@ class PromptFactory:
             + f"{segment_guide}\n\n"
             + "최종 점검: 출력 직전에 최상위 키가 citations/answer/limitations/structured_output 네 개뿐인지 확인하고, citations 키를 가장 먼저 출력하세요. "
             + "answer는 반드시 '1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.'로 시작하고, "
-            + "answer는 '감사합니다. 끝.'으로 마치며 그 뒤에 출처 토큰이나 다른 문장을 쓰지 마세요. 근거는 citations 배열에만 넣으세요.\n\n"
+            + "answer는 '감사합니다. 끝.'으로 마치며 그 뒤에 출처 토큰이나 다른 문장을 쓰지 마세요. "
+            + "민원인의 요청을 승인·완료된 조치처럼 바꾸지 말고, 유사 사례의 장소·일정·처리 결과를 현재 민원 사실로 옮기지 마세요. "
+            + "근거는 citations 배열에만 넣으세요.\n\n"
             + f"질문: {query}\n\n"
             + (f"민원 원문:\n{raw_complaint_text[:1800]}\n\n" if has_raw_complaint else "")
             + "검색 컨텍스트:\n"

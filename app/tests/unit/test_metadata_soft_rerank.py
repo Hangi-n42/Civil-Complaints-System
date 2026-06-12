@@ -222,3 +222,35 @@ async def test_search_excludes_current_case_before_grounding(monkeypatch):
 
     assert seen_before_grounding == ["CASE-OTHER"]
     assert [item["case_id"] for item in results] == ["CASE-OTHER"]
+
+
+@pytest.mark.asyncio
+async def test_search_limits_be3_grounding_candidate_pool(monkeypatch):
+    service = RetrievalService()
+    seen_count = 0
+
+    class _Store:
+        def count(self, collection_name):  # noqa: ARG002
+            return 8
+
+        def query(self, **kwargs):  # noqa: ARG002
+            return [_result(f"CASE-{index}", 1.0 - index * 0.01, {}) for index in range(8)]
+
+    async def _fake_grounding_filter(query, results, top_k):  # noqa: ARG001
+        nonlocal seen_count
+        seen_count = len(results)
+        return results[:top_k]
+
+    monkeypatch.setattr(service, "_get_vectorstore", lambda: _Store())
+    monkeypatch.setattr(service, "_apply_grounding_filter", _fake_grounding_filter)
+
+    await service.search(
+        query="시설 개선",
+        top_k=3,
+        collection_name="civil_cases_v1",
+        strategy="dense",
+        grounding_filter=True,
+        grounding_pool=5,
+    )
+
+    assert seen_count == 5

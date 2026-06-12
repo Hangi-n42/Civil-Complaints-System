@@ -8,6 +8,100 @@ from typing import Any, Dict, List
 from app.core.exceptions import GenerationError
 
 
+def build_qa_response_schema(
+    context: List[Dict[str, Any]],
+    *,
+    citations_max: int = 3,
+) -> Dict[str, Any]:
+    """Build an Ollama constrained-decoding schema from retrieved evidence."""
+    evidence = [item for item in context if isinstance(item, dict)]
+    chunk_ids = list(
+        dict.fromkeys(str(item.get("chunk_id") or "").strip() for item in evidence)
+    )
+    case_ids = list(
+        dict.fromkeys(str(item.get("case_id") or "").strip() for item in evidence)
+    )
+    snippets = list(
+        dict.fromkeys(str(item.get("snippet") or "").strip() for item in evidence)
+    )
+    chunk_ids = [value for value in chunk_ids if value]
+    case_ids = [value for value in case_ids if value]
+    snippets = [value for value in snippets if value]
+
+    def evidence_string_schema(values: List[str]) -> Dict[str, Any]:
+        schema: Dict[str, Any] = {"type": "string", "minLength": 1}
+        if values:
+            schema["enum"] = values
+        return schema
+
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["citations", "answer", "limitations", "structured_output"],
+        "properties": {
+            "citations": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": max(1, min(int(citations_max), len(evidence) or 1)),
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "chunk_id",
+                        "case_id",
+                        "snippet",
+                        "relevance_score",
+                    ],
+                    "properties": {
+                        "chunk_id": evidence_string_schema(chunk_ids),
+                        "case_id": evidence_string_schema(case_ids),
+                        "snippet": evidence_string_schema(snippets),
+                        "relevance_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                        },
+                    },
+                },
+            },
+            "answer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1600,
+                "description": (
+                    "Korean civil-affairs reply only. Do not include JSON key names, "
+                    "Markdown, citations metadata, or text after the official closing."
+                ),
+            },
+            "limitations": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": {"type": "string", "minLength": 1},
+            },
+            "structured_output": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["summary", "action_items", "request_segments"],
+                "properties": {
+                    "summary": {"type": "string", "minLength": 1},
+                    "action_items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 3,
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                    "request_segments": {
+                        "type": "array",
+                        "maxItems": 5,
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+
 def normalize_confidence(value: Any) -> float:
     """confidence 값을 0~1 범위의 숫자로 정규화한다."""
     if isinstance(value, (int, float)):

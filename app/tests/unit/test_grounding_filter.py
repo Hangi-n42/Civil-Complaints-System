@@ -6,7 +6,12 @@ import asyncio
 import logging
 
 import app.retrieval.grounding_filter as gf
-from app.retrieval.grounding_filter import extract_score, filter_by_relevance
+from app.retrieval.grounding_filter import (
+    extract_score,
+    extract_scores,
+    filter_by_relevance,
+    filter_by_scores,
+)
 from app.retrieval.service import RetrievalService
 
 
@@ -30,6 +35,18 @@ def test_extract_score():
     assert extract_score("1") == 1
     assert extract_score("없음") is None
     assert extract_score("") is None
+
+
+def test_extract_scores_requires_exact_valid_array():
+    assert extract_scores('{"scores": [2, 0, 1]}', 3) == [2, 0, 1]
+    assert extract_scores('{"scores": [2, 0]}', 3) is None
+    assert extract_scores('{"scores": [2, 3, 1]}', 3) is None
+    assert extract_scores("not-json", 1) is None
+
+
+def test_filter_by_scores_matches_single_item_semantics():
+    kept = filter_by_scores(["D1", "D2", "D3"], [2, 0, None], top_k=5)
+    assert kept == [("D1", 2.0), ("D3", 0.5)]
 
 
 def test_filter_drops_rel0_and_reranks():
@@ -83,9 +100,9 @@ def _bare_service() -> RetrievalService:
 
 
 def test_apply_grounding_filter_removes_rel0(monkeypatch):
-    async def fake_score(q, text, **kw):  # noqa: ARG001
-        return 0 if "나쁨" in text else 2
-    monkeypatch.setattr(gf, "score_relevance", fake_score)
+    async def fake_batch(q, texts, **kw):  # noqa: ARG001
+        return [0 if "나쁨" in text else 2 for text in texts]
+    monkeypatch.setattr(gf, "score_relevance_batch", fake_batch)
 
     results = [
         {"case_id": "A", "snippet": "좋음 본문"},
@@ -97,8 +114,25 @@ def test_apply_grounding_filter_removes_rel0(monkeypatch):
 
 
 def test_apply_grounding_filter_empty_when_all_bad(monkeypatch):
-    async def fake_score(q, text, **kw):  # noqa: ARG001
-        return 0
-    monkeypatch.setattr(gf, "score_relevance", fake_score)
+    async def fake_batch(q, texts, **kw):  # noqa: ARG001
+        return [0] * len(texts)
+    monkeypatch.setattr(gf, "score_relevance_batch", fake_batch)
     out = _run(_bare_service()._apply_grounding_filter("q", [{"case_id": "A", "snippet": "x"}], top_k=5))
     assert out == []
+
+
+def test_apply_grounding_filter_falls_back_to_single_scores(monkeypatch):
+    async def broken_batch(q, texts, **kw):  # noqa: ARG001
+        return None
+
+    async def fake_score(q, text, **kw):  # noqa: ARG001
+        return 0 if "나쁨" in text else 2
+
+    monkeypatch.setattr(gf, "score_relevance_batch", broken_batch)
+    monkeypatch.setattr(gf, "score_relevance", fake_score)
+    results = [
+        {"case_id": "A", "snippet": "좋음"},
+        {"case_id": "B", "snippet": "나쁨"},
+    ]
+    out = _run(_bare_service()._apply_grounding_filter("q", results, top_k=5))
+    assert [item["case_id"] for item in out] == ["A"]
