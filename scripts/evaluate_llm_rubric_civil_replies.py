@@ -1,42 +1,107 @@
-"""LLM-Rubric inspired evaluator for generated civil-affairs replies.
+"""Strict 0-10 LLM-Rubric proxy for generated civil-affairs replies.
 
-This script implements a deterministic proxy of the LLM-Rubric questionnaire.
-It does not train the calibration network from the paper; instead, it produces
-Q0-Q8 rubric scores that can be used immediately for benchmark diagnostics.
+The evaluator keeps the paper-inspired Q0-Q8 dimensions, but calibrates style,
+length, density, and task completion against real ``consultant_answer`` records
+from ``data/processed/processed_consulting_data.json``.
 
-Example:
-    python scripts/evaluate_llm_rubric_civil_replies.py \
-      --answers logs/evaluation/week6/.../parsed_answers.jsonl \
-      --cases VS_지방행정기관/rand_test_50.json \
-      --output-dir logs/evaluation/week6/rubric_eval
+It is still a deterministic proxy, not the learned calibration network from the
+paper. When a generated case_id matches a processed source_id, the paired real
+reply is additionally used as a content/style reference.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
 import re
 import statistics
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
+DEFAULT_REFERENCE_PATH = PROJECT_ROOT / "data" / "processed" / "processed_consulting_data.json"
+SCORE_MIN = 0.0
+SCORE_MAX = 10.0
 
 RUBRIC_DESCRIPTIONS: Dict[str, str] = {
-    "Q0": "종합 만족도: 민원인이 회신을 읽고 전반적으로 만족할 가능성",
-    "Q1": "대화의 질: 공공기관 회신으로서 자연스러운 어조와 형식",
-    "Q2": "근거 충분성: 제공된 검색 근거로 민원 해결 방향을 설명할 수 있는 정도",
-    "Q3": "인용 포함: 답변의 주요 주장에 출처 토큰이 붙어 있는 정도",
-    "Q4": "인용 정확성: 인용이 검색 컨텍스트와 매칭되는 정도",
-    "Q5": "최적 출처성: 출력이 유효한 근거를 우선 사용한 정도",
-    "Q6": "중복 없음: 반복, 과잉 사양, 디버그 문자열이 없는 정도",
-    "Q7": "간결성: 민원 회신으로 적절한 길이와 밀도",
-    "Q8": "효율성: 단일 회신에서 민원 요지, 검토, 후속 안내가 적절히 끝나는 정도",
+    "Q0": "종합 만족도: 실제 민원 회신과 비교했을 때 전반적으로 만족할 가능성",
+    "Q1": "회신 품질: 실제 공공기관 회신에 가까운 자연스러운 어조와 형식",
+    "Q2": "근거 충분성: 검색 근거와 실제 회신 기준으로 처리 방향을 설명하는 정도",
+    "Q3": "인용 포함: 모델이 구조화 citations를 충분히 생성한 정도",
+    "Q4": "인용 정확성: 모델 원출력 citations가 검색 컨텍스트와 정확히 매칭되는 정도",
+    "Q5": "최적 출처성: 유효 근거를 우선 사용하고 실제 회신 핵심과 정렬된 정도",
+    "Q6": "중복 없음: 반복, 템플릿 남용, 구조 문자열, 디버그 정보가 없는 정도",
+    "Q7": "길이·밀도: 실제 consultant_answer 분포에 가까운 길이와 문장 밀도",
+    "Q8": "업무 완결성: 민원 요지, 구체 검토, 조치·제약, 후속 안내가 완결된 정도",
 }
+
+WEIGHTS: Dict[str, float] = {
+    "Q1": 0.14,
+    "Q2": 0.14,
+    "Q3": 0.10,
+    "Q4": 0.14,
+    "Q5": 0.08,
+    "Q6": 0.12,
+    "Q7": 0.10,
+    "Q8": 0.18,
+}
+
+_GENERIC_PHRASES = (
+    "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤",
+    "필요한 조치 가능 여부를 판단할 수 있습니다",
+    "접수 내용과 관련 자료를 확인한 뒤",
+    "현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 검토하겠습니다",
+    "확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다",
+    "구체적인 처리 가능 여부와 조치 일정은 담당부서의 현장 확인과 관계 기준 검토 후",
+)
+
+_COMMON_REPLY_PHRASES = (
+    "귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다",
+    "귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다",
+    "접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다",
+    "검토 의견은 다음과 같습니다",
+    "답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면",
+    "세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다",
+    "감사합니다",
+    "끝",
+)
+
+_SPECIFICITY_PATTERNS: Dict[str, re.Pattern[str]] = {
+    "date_or_schedule": re.compile(
+        r"\d{4}\s*년|\d{1,2}\s*월|\d{1,2}\s*일|'\d{2}\.?\s*\d{1,2}|"
+        r"\d{4}\.\s*\d{1,2}\.\s*\d{1,2}|상반기|하반기|분기|연내|예정"
+    ),
+    "law_or_policy": re.compile(r"「[^」]+」|[가-힣A-Za-z]+법\s*제?\d+조|법률|조례|시행령|규정|지침|고시"),
+    "department": re.compile(r"주무관|담당자|담당부서|[가-힣A-Za-z]{2,}(?:과|팀|센터|공단|사업소)"),
+    "constraint": re.compile(r"어렵|불가|양해|검토\s*중|추후|순차|현장\s*확인|관계\s*부서|사정에\s*따라|예산"),
+    "measure": re.compile(r"\d+(?:\.\d+)?\s*(?:억|만|천|원|km|㎞|m|㎡|건|회|개|명|%)"),
+    "action": re.compile(r"조치|통보|점검|확인|검토|시정|보수|설치|철거|협의|추진|안내|개선"),
+}
+
+_STOP_TERMS = {
+    "귀하", "께서", "민원", "내용", "검토", "답변", "관련", "대한", "다음과", "같이",
+    "신청하신", "문의하신", "문의", "결과", "사항", "필요한", "경우", "담당부서",
+    "안내", "드립니다", "있습니다", "합니다", "해당", "요청", "처리", "확인", "추가",
+    "설명", "후속", "바랍니다", "주시기", "감사합니다", "따라", "관계", "운영",
+}
+
+_REFERENCE_CONSTRAINT_RE = re.compile(
+    r"불가|어렵|곤란|사유지|개인\s*소유|관리사무소|소유자|관리주체|"
+    r"폭이?\s*좁|확폭|예정된?\s*공사|공사\s*예정|관할\s*(?:사항이\s*)?아니|소관이\s*아니"
+)
+_STRONG_COMMITMENT_RE = re.compile(
+    r"(?:즉시|신속히)?\s*(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)"
+    r"(?:을|를|에)?\s*(?:실시|시행|추진|완료|조치)?하겠습니다|"
+    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선|확대|도입)\s*예정입니다|"
+    r"예산을?\s*확보하겠습니다|공청회를?\s*실시하겠습니다"
+)
+_PRIVATE_AUTHORITY_RE = re.compile(r"사유지|개인\s*소유|관리사무소|소유자|관리주체")
+_AGENCY_ACTION_RE = re.compile(
+    r"(?:시|군|구|담당부서|우리\s*기관|해당\s*부서).{0,35}"
+    r"(?:설치|철거|보수|정비|폐쇄|단속|시정|개선).{0,12}하겠습니다"
+)
 
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -44,9 +109,8 @@ def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
     with path.open("r", encoding="utf-8-sig") as handle:
         for line in handle:
             line = line.strip()
-            if not line:
-                continue
-            rows.append(json.loads(line))
+            if line:
+                rows.append(json.loads(line))
     return rows
 
 
@@ -61,52 +125,124 @@ def _read_cases(path: Path | None) -> Dict[str, Dict[str, Any]]:
     for item in raw:
         if not isinstance(item, dict):
             continue
-        case_id = str(item.get("case_id") or item.get("source_id") or item.get("complaint_id") or "").strip()
+        case_id = str(
+            item.get("case_id")
+            or item.get("source_id")
+            or item.get("complaint_id")
+            or ""
+        ).strip()
         if case_id:
             cases[case_id] = item
     return cases
 
 
-def _clip_score(value: float) -> int:
-    return max(1, min(4, int(round(value))))
+def _read_reference_answers(path: Path) -> Tuple[Dict[str, str], Dict[str, Any]]:
+    with path.open("r", encoding="utf-8-sig") as handle:
+        raw = json.load(handle)
+    if not isinstance(raw, list):
+        raise ValueError("reference data must be a JSON list")
+
+    references: Dict[str, str] = {}
+    answers: List[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        source_id = str(item.get("source_id") or "").strip()
+        answer = str(item.get("consultant_answer") or "").strip()
+        if not answer:
+            continue
+        answers.append(answer)
+        if source_id:
+            references[source_id] = answer
+    return references, build_reference_profile(answers, source_path=path)
+
+
+def _clip_score(value: float) -> float:
+    return round(max(SCORE_MIN, min(SCORE_MAX, float(value))), 1)
+
+
+def _average(values: Iterable[float]) -> float:
+    vals = list(values)
+    return statistics.fmean(vals) if vals else 0.0
+
+
+def _quantile(values: Sequence[float], q: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(float(value) for value in values)
+    position = (len(ordered) - 1) * q
+    low = int(position)
+    high = min(low + 1, len(ordered) - 1)
+    fraction = position - low
+    return ordered[low] + (ordered[high] - ordered[low]) * fraction
 
 
 def _sentence_count(text: str) -> int:
-    parts = re.split(r"(?<=[.!?。！？다요음임함됨됨니다])\s+|\n+", text or "")
+    parts = re.split(r"(?<=[.!?。！？])\s+|\n+", text or "")
     return len([part for part in parts if part.strip()])
 
 
-def _source_token_count(text: str) -> int:
-    return len(re.findall(r"\[\[출처\s*\d+\]\]", text or ""))
+def _paragraph_count(text: str) -> int:
+    return len([part for part in re.split(r"\n\s*\n", text or "") if part.strip()])
 
 
-def _has_real_reply_specificity(answer: str) -> bool:
-    """실제 지자체 답변 표본의 최고점 특징: 구체 담당/일정/법령/불가 사유 중 일부가 존재."""
-    text = answer or ""
-    signals = [
-        bool(re.search(r"\d{4}\.\s*\d{1,2}\.\s*\d{1,2}|'\d{2}\.\s*\d{1,2}\.\s*\d{1,2}|\d{1,2}월|\d{1,2}일", text)),
-        bool(re.search(r"「[^」]+」|법률|조례|규칙|규정|지침|예산|계획", text)),
-        bool(re.search(r"주무관|담당자|담당부서|[\w가-힣]+과|[\w가-힣]+팀", text)),
-        bool(re.search(r"어려움|어렵|불가|양해|검토\s*중|추후|순차|현장\s*확인|관계\s*부서", text)),
-        bool(re.search(r"가\.\s|나\.\s|다\.\s|○|- ", text)),
-    ]
-    return sum(signals) >= 2
+def _specificity_signals(text: str) -> List[str]:
+    return [name for name, pattern in _SPECIFICITY_PATTERNS.items() if pattern.search(text or "")]
 
 
-def _generic_reply_penalty(answer: str) -> tuple[int, List[str]]:
-    generic_phrases = [
-        "위 내용을 바탕으로 담당부서에서는 현장 여건, 관련 기준, 유사 처리 사례를 확인한 뒤",
-        "필요한 조치 가능 여부를 판단할 수 있습니다",
-        "접수 내용과 관련 자료를 확인한 뒤",
-        "현장 여건, 행정 처리 기준, 조치 가능 범위를 종합적으로 검토하겠습니다",
-        "확인 결과에 따라 필요한 안내 또는 후속 조치가 이루어질 수 있습니다",
-    ]
-    hits = [phrase for phrase in generic_phrases if phrase in (answer or "")]
-    if len(hits) >= 2:
-        return 2, ["템플릿성 일반 문구가 과다함"]
-    if hits:
-        return 1, ["템플릿성 일반 문구 포함"]
-    return 0, []
+def _feature_flags(text: str) -> Dict[str, bool]:
+    rendered = text or ""
+    return {
+        "numbered": bool(re.search(r"(?m)^\s*1[.．)]", rendered)),
+        "polite": bool(re.search(r"귀하|민원인|질의", rendered)),
+        "closing": bool(re.search(r"감사합니다|바랍니다|기원합니다|끝\.", rendered)),
+        "contact": bool(re.search(r"문의|연락|담당자|주무관|담당부서|\d{2,4}-\d{3,4}-\d{4}", rendered)),
+        "law_or_policy": bool(_SPECIFICITY_PATTERNS["law_or_policy"].search(rendered)),
+        "date_or_schedule": bool(_SPECIFICITY_PATTERNS["date_or_schedule"].search(rendered)),
+        "department": bool(_SPECIFICITY_PATTERNS["department"].search(rendered)),
+        "constraint": bool(_SPECIFICITY_PATTERNS["constraint"].search(rendered)),
+        "action": bool(_SPECIFICITY_PATTERNS["action"].search(rendered)),
+    }
+
+
+def build_reference_profile(answers: Sequence[str], source_path: Path | None = None) -> Dict[str, Any]:
+    valid = [str(answer).strip() for answer in answers if str(answer).strip()]
+    lengths = [len(answer) for answer in valid]
+    sentences = [_sentence_count(answer) for answer in valid]
+    paragraphs = [_paragraph_count(answer) for answer in valid]
+    flags = [_feature_flags(answer) for answer in valid]
+
+    def stats(values: Sequence[float]) -> Dict[str, float]:
+        return {
+            "p05": round(_quantile(values, 0.05), 2),
+            "p10": round(_quantile(values, 0.10), 2),
+            "p25": round(_quantile(values, 0.25), 2),
+            "median": round(_quantile(values, 0.50), 2),
+            "p75": round(_quantile(values, 0.75), 2),
+            "p90": round(_quantile(values, 0.90), 2),
+            "p95": round(_quantile(values, 0.95), 2),
+            "mean": round(_average(values), 2),
+        }
+
+    return {
+        "source_path": str(source_path) if source_path else None,
+        "valid_answer_count": len(valid),
+        "length_chars": stats(lengths),
+        "sentence_count": stats(sentences),
+        "paragraph_count": stats(paragraphs),
+        "feature_rates": {
+            key: round(_average(1.0 if row[key] else 0.0 for row in flags), 4)
+            for key in flags[0]
+        } if flags else {},
+    }
+
+
+def _answer_from_row(row: Dict[str, Any], answer_field: str) -> str:
+    for key in (answer_field, "parsed_answer_repaired", "parsed_answer", "parsed_answer_strict", "answer"):
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return ""
 
 
 def _has_debug_noise(text: str) -> bool:
@@ -119,8 +255,22 @@ def _has_debug_noise(text: str) -> bool:
     )
 
 
+def _has_structured_artifact(text: str) -> bool:
+    return bool(
+        re.search(
+            r"검토\s*의견은\s*다음과\s*같습니다\.\s*[\[{]|"
+            r"['\"](?:paragraphs|limitations|structured_output|action_items)['\"]\s*:",
+            text or "",
+        )
+    )
+
+
+def _generic_phrase_hits(text: str) -> List[str]:
+    return [phrase for phrase in _GENERIC_PHRASES if phrase in (text or "")]
+
+
 def _repetition_ratio(text: str) -> float:
-    sentences = [s.strip() for s in re.split(r"[.!?\n]+", text or "") if len(s.strip()) >= 8]
+    sentences = [part.strip() for part in re.split(r"[.!?\n]+", text or "") if len(part.strip()) >= 8]
     if not sentences:
         return 0.0
     counts = Counter(sentences)
@@ -128,182 +278,439 @@ def _repetition_ratio(text: str) -> float:
     return repeated / max(len(sentences), 1)
 
 
-def _answer_from_row(row: Dict[str, Any], answer_field: str) -> str:
-    for key in (answer_field, "parsed_answer_repaired", "parsed_answer", "parsed_answer_strict", "answer"):
-        value = str(row.get(key) or "").strip()
-        if value:
-            return value
-    return ""
+def _normalize_for_alignment(text: str) -> str:
+    rendered = text or ""
+    for phrase in _COMMON_REPLY_PHRASES:
+        rendered = rendered.replace(phrase, " ")
+    for term in _STOP_TERMS:
+        rendered = rendered.replace(term, " ")
+    return re.sub(r"[^가-힣A-Za-z0-9]", "", rendered)
 
 
-def _score_q1_naturalness(answer: str) -> tuple[int, List[str]]:
+def _char_ngrams(text: str, size: int = 3) -> set[str]:
+    normalized = _normalize_for_alignment(text)
+    if len(normalized) < size:
+        return {normalized} if normalized else set()
+    return {normalized[index:index + size] for index in range(len(normalized) - size + 1)}
+
+
+def _reference_alignment(answer: str, reference_answer: str) -> float:
+    if not answer or not reference_answer:
+        return 0.0
+    left = _char_ngrams(answer)
+    right = _char_ngrams(reference_answer)
+    return len(left & right) / len(left | right) if left | right else 0.0
+
+
+def _alignment_score(alignment: float) -> float:
+    thresholds = (
+        (0.30, 10.0),
+        (0.22, 9.0),
+        (0.16, 8.0),
+        (0.11, 7.0),
+        (0.08, 6.0),
+        (0.055, 5.0),
+        (0.035, 4.0),
+        (0.02, 3.0),
+        (0.0, 2.0),
+    )
+    if alignment <= 0:
+        return 0.0
+    for threshold, score in thresholds:
+        if alignment >= threshold:
+            return score
+    return 0.0
+
+
+def _reference_anchor_coverage(answer: str, reference_answer: str) -> float:
+    if not reference_answer:
+        return 0.0
+    anchors: set[str] = set()
+    for match in re.findall(
+        r"「[^」]{2,60}」|[가-힣A-Za-z]{2,}(?:법|조례|시행령)\s*제?\d+조|"
+        r"\d{4}\s*년|\d{1,2}\s*월|\d{1,2}\s*일|\d+(?:\.\d+)?\s*(?:억|만|천|원|km|㎞|m|㎡|건|회|개|명|%)|"
+        r"[가-힣A-Za-z]{2,}(?:과|팀|센터|공단|사업소)",
+        reference_answer,
+    ):
+        cleaned = re.sub(r"\s+", "", match)
+        if cleaned:
+            anchors.add(cleaned)
+    if not anchors:
+        return 0.0
+    compact_answer = re.sub(r"\s+", "", answer or "")
+    matched = sum(anchor in compact_answer for anchor in anchors)
+    return matched / len(anchors)
+
+
+def _semantic_risk_flags(answer: str, reference_answer: str) -> List[str]:
+    """Detect decision/authority reversals against the paired real reply."""
+    if not answer or not reference_answer:
+        return []
+    flags: List[str] = []
+    reference_has_constraint = bool(_REFERENCE_CONSTRAINT_RE.search(reference_answer))
+    answer_has_commitment = bool(_STRONG_COMMITMENT_RE.search(answer))
+    if reference_has_constraint and answer_has_commitment:
+        flags.append("disposition_reversal")
+    if _PRIVATE_AUTHORITY_RE.search(reference_answer) and _AGENCY_ACTION_RE.search(answer):
+        flags.append("authority_mismatch")
+    if answer_has_commitment:
+        commitment_terms = {
+            term
+            for term in (
+                "설치", "철거", "보수", "정비", "폐쇄", "단속",
+                "시정", "개선", "확대", "도입", "예산", "공청회",
+            )
+            if term in answer
+        }
+        unsupported = [term for term in commitment_terms if term not in reference_answer]
+        if unsupported:
+            flags.append("unsupported_commitment")
+    return flags
+
+
+def _profile_band_score(value: float, stats: Dict[str, float]) -> float:
+    if value <= 0:
+        return 0.0
+    if stats["p25"] <= value <= stats["p75"]:
+        return 10.0
+    if stats["p10"] <= value <= stats["p90"]:
+        return 8.0
+    if stats["p05"] <= value <= stats["p95"]:
+        return 6.0
+    if value < stats["p05"]:
+        return 3.0 if value >= max(120.0, stats["p05"] * 0.5) else 0.0
+    return 3.0 if value <= stats["p95"] * 1.5 else 0.0
+
+
+def _score_q1_naturalness(answer: str, profile: Dict[str, Any]) -> Tuple[float, List[str]]:
+    if not answer:
+        return 0.0, ["답변이 비어 있음"]
+    score = 10.0
     reasons: List[str] = []
-    score = 4
-    if not re.search(r"(^|\n)\s*1\.", answer):
-        score -= 1
-        reasons.append("번호 단락 회신 형식이 약함")
-    if not any(token in answer for token in ("귀하", "민원", "검토", "답변", "감사합니다")):
-        score -= 1
+    flags = _feature_flags(answer)
+    if not flags["polite"]:
+        score -= 2.0
         reasons.append("공공기관 회신 어휘가 부족함")
+    if not flags["closing"]:
+        score -= 1.0
+        reasons.append("공식 회신 마무리 표현이 없음")
+    if not flags["numbered"] and _paragraph_count(answer) <= 1:
+        score -= 1.5
+        reasons.append("회신 구조가 실제 답변 표본보다 약함")
     if _has_debug_noise(answer):
-        score -= 2
-        reasons.append("Markdown 또는 검색 메타데이터가 노출됨")
-    if len(answer.strip()) < 120:
-        score -= 1
-        reasons.append("회신 본문이 지나치게 짧음")
-    penalty, penalty_reasons = _generic_reply_penalty(answer)
-    if penalty:
-        score -= penalty
-        reasons.extend(penalty_reasons)
-    return max(1, score), reasons
+        score -= 5.0
+        reasons.append("검색 메타데이터 또는 Markdown이 노출됨")
+    if _has_structured_artifact(answer):
+        score -= 4.0
+        reasons.append("리스트·딕셔너리 구조 문자열이 본문에 노출됨")
+    if "[[출처" in answer or re.search(r"\[출처\s*\d+\]", answer):
+        score -= 1.0
+        reasons.append("본문에 제거 대상 출처 토큰이 남아 있음")
+    generic_hits = _generic_phrase_hits(answer)
+    if generic_hits:
+        score -= min(4.0, 1.5 * len(generic_hits))
+        reasons.append(f"템플릿성 일반 문구 {len(generic_hits)}개 감지")
+    if len(answer) < profile["length_chars"]["p05"]:
+        score -= 1.5
+        reasons.append("실제 회신 하위 5%보다 짧음")
+    return _clip_score(score), reasons or ["실제 공공기관 회신 형식과 어조를 충족함"]
 
 
-def _score_q2_source_adequacy(row: Dict[str, Any], answer: str) -> tuple[int, List[str]]:
+def _score_q2_source_adequacy(
+    row: Dict[str, Any],
+    answer: str,
+    alignment_score: float,
+    semantic_flags: Sequence[str] = (),
+) -> Tuple[float, List[str]]:
     strict = float(row.get("citation_match_rate_strict") or 0.0)
     repaired = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
     count = int(row.get("citations_count_repaired") or row.get("citations_count") or 0)
-    specific = _has_real_reply_specificity(answer)
-    if strict >= 0.8 and count > 0 and specific:
-        return 4, ["strict 기준 근거 매칭이 충분하고 실제 답변 수준의 구체성이 있음"]
-    if strict >= 0.8 and count > 0:
-        return 3, ["strict 기준 근거 매칭은 충분하지만 구체성이 부족함"]
-    if repaired >= 0.8 and count > 0:
-        return 2, ["보정 후 근거 매칭은 충분하지만 strict 근거 또는 구체성이 약함"]
-    if count > 0:
-        return 1, ["근거는 있으나 컨텍스트 매칭률이 낮음"]
-    return 1, ["사용 가능한 근거가 없음"]
+    if count <= 0:
+        return 0.0, ["사용 가능한 citations가 없음"]
+
+    specificity = len(_specificity_signals(answer))
+    score = strict * 6.5 + min(count, 3) / 3 * 1.0 + min(specificity, 5) / 5 * 1.5
+    score += alignment_score * 0.1
+    reasons = [
+        f"strict_match={strict:.2f}",
+        f"repaired_match={repaired:.2f}",
+        f"citations={count}",
+        f"specificity={specificity}/6",
+    ]
+    if strict <= 0 and repaired > 0:
+        score = min(score + repaired * 2.0, 5.5)
+        reasons.append("모델 원출력 근거가 없어 후처리 보완 점수 상한 5.5 적용")
+    if semantic_flags:
+        score -= 2.0 * len(set(semantic_flags))
+        reasons.append(f"reference_semantic_risks={','.join(semantic_flags)}")
+    return _clip_score(score), reasons
 
 
-def _score_q3_citation_coverage(answer: str, row: Dict[str, Any]) -> tuple[int, List[str]]:
-    tokens = _source_token_count(answer)
+def _score_q3_citation_coverage(row: Dict[str, Any]) -> Tuple[float, List[str]]:
     repaired_count = int(row.get("citations_count_repaired") or row.get("citations_count") or 0)
+    strict_count = int(row.get("citations_count_strict") or 0)
+    repaired_rate = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
     if repaired_count <= 0:
-        return 1, ["citations가 없음"]
-    ratio = tokens / max(repaired_count, 1)
-    if ratio >= 1.0:
-        return 4, ["출처 토큰 수가 citations 수를 충족함"]
-    if ratio >= 0.5:
-        return 3, ["주요 출처 토큰은 있으나 일부 부족함"]
-    if tokens > 0:
-        return 2, ["출처 토큰이 일부만 있음"]
-    return 1, ["답변 본문에 출처 토큰이 없음"]
+        return 0.0, ["citations가 없음"]
+    if strict_count > 0:
+        score = 5.0 + min(strict_count, 3) / 3 * 2.0 + repaired_rate * 3.0
+        return _clip_score(score), [f"strict citations={strict_count}", f"repaired_match={repaired_rate:.2f}"]
+    score = min(6.0, 2.0 + min(repaired_count, 3) / 3 * 2.0 + repaired_rate * 2.0)
+    return _clip_score(score), ["citations가 후처리로만 확보되어 최고 6점으로 제한됨"]
 
 
-def _score_by_rate(rate: float, label: str) -> tuple[int, List[str]]:
-    if rate >= 0.95:
-        return 4, [f"{label}={rate:.2f}"]
-    if rate >= 0.5:
-        return 3, [f"{label}={rate:.2f}"]
-    if rate > 0:
-        return 2, [f"{label}={rate:.2f}"]
-    return 1, [f"{label}=0.00"]
-
-
-def _score_q4_citation_accuracy(strict_rate: float, repaired_rate: float) -> tuple[int, List[str]]:
-    if strict_rate >= 0.95:
-        return 4, [f"strict citation_match_rate={strict_rate:.2f}"]
-    if strict_rate >= 0.5:
-        return 3, [f"strict citation_match_rate={strict_rate:.2f}"]
-    if repaired_rate >= 0.95:
-        return 2, [f"strict citation은 약하지만 repaired citation_match_rate={repaired_rate:.2f}"]
+def _score_q4_citation_accuracy(row: Dict[str, Any]) -> Tuple[float, List[str]]:
+    strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
+    support_rate = row.get("citation_support_rate_strict")
+    repaired_rate = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
+    strict_count = int(row.get("citations_count_strict") or 0)
+    if strict_count > 0:
+        if support_rate is not None:
+            support = float(support_rate or 0.0)
+            return _clip_score(support * 10.0), [
+                f"strict citation_support_rate={support:.2f}"
+            ]
+        return _clip_score(strict_rate * 7.0), [
+            f"legacy identity-only citation_match_rate={strict_rate:.2f}; 7점 상한"
+        ]
     if repaired_rate > 0:
-        return 2, [f"repaired citation_match_rate={repaired_rate:.2f}"]
-    return 1, ["citation_match_rate=0.00"]
+        return _clip_score(repaired_rate * 5.0), [
+            f"strict citation이 없어 repaired citation_match_rate={repaired_rate:.2f}를 5점 상한으로 반영"
+        ]
+    return 0.0, ["citation_match_rate=0.00"]
 
 
-def _score_q6_redundancy(answer: str) -> tuple[int, List[str]]:
-    ratio = _repetition_ratio(answer)
+def _score_q5_best_source(
+    row: Dict[str, Any],
+    alignment_score: float,
+    anchor_coverage: float,
+    semantic_flags: Sequence[str] = (),
+) -> Tuple[float, List[str]]:
+    strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
+    strict_count = int(row.get("citations_count_strict") or 0)
+    if strict_count <= 0:
+        repaired = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
+        return _clip_score(min(4.0, repaired * 3.0 + alignment_score * 0.1)), [
+            "strict 출처 선택 정보가 없어 4점 상한 적용"
+        ]
+    score = strict_rate * 6.0 + min(strict_count, 2) * 0.75
+    score += alignment_score * 0.15 + anchor_coverage * 1.0
+    score -= 1.5 * len(set(semantic_flags))
+    return _clip_score(score), [
+        f"strict_match={strict_rate:.2f}",
+        f"reference_alignment_score={alignment_score:.1f}",
+        f"reference_anchor_coverage={anchor_coverage:.2f}",
+        f"reference_semantic_risks={','.join(semantic_flags) or 'none'}",
+    ]
+
+
+def _score_q6_redundancy(answer: str) -> Tuple[float, List[str]]:
+    if not answer:
+        return 0.0, ["답변이 비어 있음"]
+    score = 10.0
     reasons: List[str] = []
-    score = 4
-    if ratio > 0.15:
-        score -= 2
+    ratio = _repetition_ratio(answer)
+    if ratio > 0.30:
+        score -= 5.0
+        reasons.append(f"반복 문장 비율이 매우 높음({ratio:.2f})")
+    elif ratio > 0.15:
+        score -= 3.0
         reasons.append(f"반복 문장 비율이 높음({ratio:.2f})")
     elif ratio > 0:
-        score -= 1
+        score -= 1.5
         reasons.append(f"일부 반복 감지({ratio:.2f})")
     if _has_debug_noise(answer):
-        score -= 2
+        score -= 5.0
         reasons.append("디버그/Markdown 노이즈 감지")
-    if answer.count("[[출처") > 4:
-        score -= 1
-        reasons.append("출처 토큰이 과도하게 반복됨")
-    penalty, penalty_reasons = _generic_reply_penalty(answer)
-    if penalty:
-        score -= penalty
-        reasons.extend(penalty_reasons)
-    return max(1, score), reasons
+    if _has_structured_artifact(answer):
+        score -= 4.0
+        reasons.append("구조화 데이터 문자열 노출")
+    generic_hits = _generic_phrase_hits(answer)
+    if generic_hits:
+        score -= min(4.0, 1.5 * len(generic_hits))
+        reasons.append(f"템플릿성 일반 문구 {len(generic_hits)}개")
+    if answer.count("감사합니다. 끝.") > 1:
+        score -= 2.0
+        reasons.append("회신 종료 문구 중복")
+    if re.search(r"3\.\s*검토.*?1\.\s*귀하", answer, flags=re.DOTALL):
+        score -= 1.5
+        reasons.append("본문 안에 번호 체계가 중복됨")
+    if "[[출처" in answer or re.search(r"\[출처\s*\d+\]", answer):
+        score -= 1.0
+        reasons.append("본문에 제거 대상 출처 토큰이 남아 있음")
+    return _clip_score(score), reasons or ["반복·템플릿·디버그 노이즈가 없음"]
 
 
-def _score_q7_conciseness(answer: str) -> tuple[int, List[str]]:
-    length = len(answer)
-    sentences = _sentence_count(answer)
-    # VS_지방행정기관 실제 답변 표본 기준: 중앙값 약 460자, IQR 약 360~590자.
-    if 360 <= length <= 650 and 5 <= sentences <= 14:
-        return 4, [f"실제 답변 표본에 가까운 길이({length}자, {sentences}문장)"]
-    if 250 <= length < 360 or 650 < length <= 900:
-        return 3, [f"약간 짧거나 김({length}자)"]
-    if 120 <= length < 250 or 900 < length <= 1300:
-        return 2, [f"회신 길이 부적정({length}자)"]
-    return 1, [f"매우 짧거나 과도하게 김({length}자)"]
+def _score_q7_conciseness(
+    answer: str,
+    reference_answer: str,
+    profile: Dict[str, Any],
+) -> Tuple[float, List[str]]:
+    if not answer:
+        return 0.0, ["답변이 비어 있음"]
+    length_score = _profile_band_score(len(answer), profile["length_chars"])
+    sentence_score = _profile_band_score(_sentence_count(answer), profile["sentence_count"])
+    reasons = [
+        f"length={len(answer)} (reference median={profile['length_chars']['median']})",
+        f"sentences={_sentence_count(answer)} (reference median={profile['sentence_count']['median']})",
+    ]
+    if reference_answer:
+        ratio = len(answer) / max(len(reference_answer), 1)
+        if 0.70 <= ratio <= 1.40:
+            paired_score = 10.0
+        elif 0.50 <= ratio <= 2.00:
+            paired_score = 8.0
+        elif 0.30 <= ratio <= 3.00:
+            paired_score = 5.0
+        else:
+            paired_score = 2.0
+        score = 0.45 * length_score + 0.25 * sentence_score + 0.30 * paired_score
+        reasons.append(f"paired_length_ratio={ratio:.2f}")
+    else:
+        score = 0.65 * length_score + 0.35 * sentence_score
+    return _clip_score(score), reasons
 
 
-def _score_q8_efficiency(answer: str) -> tuple[int, List[str]]:
-    has_summary = "민원 내용" in answer or "질의내용" in answer or "요청" in answer
-    has_review = "검토" in answer or "의견" in answer or "알려드립니다" in answer
-    has_followup = "문의" in answer or "추가 설명" in answer or "담당부서" in answer
-    points = sum([has_summary, has_review, has_followup])
-    specific = _has_real_reply_specificity(answer)
-    penalty, penalty_reasons = _generic_reply_penalty(answer)
-    if points == 3 and specific and not penalty:
-        return 4, ["요지-검토-후속 안내가 모두 포함됨"]
-    if points == 2:
-        return 3, ["핵심 회신 요소 중 하나가 부족함"]
-    if points == 3:
-        reasons = ["요지-검토-후속 안내는 있으나 실제 답변 수준의 구체성이 부족함"]
-        reasons.extend(penalty_reasons)
-        return 3, reasons
-    if points == 1:
-        return 2, ["회신 흐름이 부분적으로만 구성됨"]
-    return 1, ["민원 회신 흐름이 거의 없음"]
+def _score_q8_efficiency(
+    answer: str,
+    alignment_score: float,
+    anchor_coverage: float,
+    has_reference: bool,
+    semantic_flags: Sequence[str] = (),
+) -> Tuple[float, List[str]]:
+    if not answer:
+        return 0.0, ["답변이 비어 있음"]
+    has_summary = bool(re.search(r"민원\s*내용|질의\s*내용|요청.*이해|문의.*이해", answer))
+    has_review = bool(re.search(r"검토\s*의견|알려드립니다|확인하였|판단|답변드립니다", answer))
+    has_followup = bool(re.search(r"문의|연락|추가\s*설명|담당부서|주무관", answer))
+    has_action = bool(_SPECIFICITY_PATTERNS["action"].search(answer))
+    has_constraint = bool(_SPECIFICITY_PATTERNS["constraint"].search(answer))
+    specificity = len(_specificity_signals(answer))
 
-
-def evaluate_row(row: Dict[str, Any], case: Dict[str, Any], answer_field: str) -> Dict[str, Any]:
-    answer = _answer_from_row(row, answer_field)
-
-    q1, q1_reasons = _score_q1_naturalness(answer)
-    q2, q2_reasons = _score_q2_source_adequacy(row, answer)
-    q3, q3_reasons = _score_q3_citation_coverage(answer, row)
-    strict_rate = float(row.get("citation_match_rate_strict") or 0.0)
-    repaired_rate = float(row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0)
-    q4, q4_reasons = _score_q4_citation_accuracy(strict_rate, repaired_rate)
-    q5, q5_reasons = _score_by_rate(strict_rate if strict_rate > 0 else repaired_rate * 0.75, "best_source_proxy")
-    q6, q6_reasons = _score_q6_redundancy(answer)
-    q7, q7_reasons = _score_q7_conciseness(answer)
-    q8, q8_reasons = _score_q8_efficiency(answer)
-
-    weighted = (
-        0.16 * q1
-        + 0.10 * q2
-        + 0.14 * q3
-        + 0.16 * q4
-        + 0.10 * q5
-        + 0.12 * q6
-        + 0.12 * q7
-        + 0.10 * q8
+    score = (
+        1.5 * has_summary
+        + 1.5 * has_review
+        + 1.0 * has_followup
+        + 1.0 * has_action
+        + 1.0 * has_constraint
+        + min(specificity, 4) / 4 * 2.0
     )
-    q0 = _clip_score(weighted)
+    if has_reference:
+        score += alignment_score * 0.15 + anchor_coverage * 0.5
+    else:
+        score += min(specificity, 4) / 4 * 2.0
+    generic_hits = _generic_phrase_hits(answer)
+    score -= min(3.0, len(generic_hits) * 1.0)
+    score -= 1.5 * len(set(semantic_flags))
+    reasons = [
+        f"summary={has_summary}",
+        f"review={has_review}",
+        f"followup={has_followup}",
+        f"action={has_action}",
+        f"constraint={has_constraint}",
+        f"specificity={specificity}/6",
+        f"reference_semantic_risks={','.join(semantic_flags) or 'none'}",
+    ]
+    if has_reference:
+        reasons.extend(
+            [
+                f"reference_alignment_score={alignment_score:.1f}",
+                f"reference_anchor_coverage={anchor_coverage:.2f}",
+            ]
+        )
+    return _clip_score(score), reasons
+
+
+def evaluate_row(
+    row: Dict[str, Any],
+    case: Dict[str, Any],
+    answer_field: str,
+    reference_answer: str = "",
+    reference_profile: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    profile = reference_profile or build_reference_profile([reference_answer] if reference_answer else ["기준 답변입니다."])
+    answer = _answer_from_row(row, answer_field)
+    alignment = _reference_alignment(answer, reference_answer) if reference_answer else 0.0
+    alignment_score = _alignment_score(alignment) if reference_answer else 0.0
+    anchor_coverage = _reference_anchor_coverage(answer, reference_answer) if reference_answer else 0.0
+    semantic_flags = _semantic_risk_flags(answer, reference_answer)
+
+    scores: Dict[str, Tuple[float, List[str]]] = {
+        "Q1": _score_q1_naturalness(answer, profile),
+        "Q2": _score_q2_source_adequacy(
+            row,
+            answer,
+            alignment_score,
+            semantic_flags,
+        ),
+        "Q3": _score_q3_citation_coverage(row),
+        "Q4": _score_q4_citation_accuracy(row),
+        "Q5": _score_q5_best_source(
+            row,
+            alignment_score,
+            anchor_coverage,
+            semantic_flags,
+        ),
+        "Q6": _score_q6_redundancy(answer),
+        "Q7": _score_q7_conciseness(answer, reference_answer, profile),
+        "Q8": _score_q8_efficiency(
+            answer,
+            alignment_score,
+            anchor_coverage,
+            bool(reference_answer),
+            semantic_flags,
+        ),
+    }
+
+    weighted = sum(WEIGHTS[qid] * scores[qid][0] for qid in WEIGHTS)
+    caps: List[Tuple[float, str]] = []
+    if not answer:
+        caps.append((0.0, "empty_answer"))
+    if _has_debug_noise(answer):
+        caps.append((3.0, "debug_noise"))
+    if _has_structured_artifact(answer):
+        caps.append((4.0, "structured_artifact"))
+    if int(row.get("citations_count_repaired") or row.get("citations_count") or 0) <= 0:
+        caps.append((4.0, "no_citations"))
+    if int(row.get("citations_count_strict") or 0) <= 0:
+        caps.append((6.5, "repaired_only_citations"))
+    if len(_generic_phrase_hits(answer)) >= 2:
+        caps.append((5.5, "generic_template_overuse"))
+    if str(row.get("legal_grounding_status") or "") == "error":
+        caps.append((5.0, "legal_grounding_error"))
+    if "disposition_reversal" in semantic_flags:
+        caps.append((3.5, "disposition_reversal"))
+    if "authority_mismatch" in semantic_flags:
+        caps.append((4.0, "authority_mismatch"))
+    if "unsupported_commitment" in semantic_flags:
+        caps.append((5.0, "unsupported_commitment"))
+    if reference_answer and alignment <= 0:
+        caps.append((4.5, "zero_reference_alignment"))
+    elif reference_answer and alignment < 0.015:
+        caps.append((5.0, "very_low_reference_alignment"))
+    elif reference_answer and alignment < 0.035:
+        caps.append((5.5, "low_reference_alignment"))
+
+    q0 = weighted
+    if caps:
+        q0 = min(q0, min(cap for cap, _ in caps))
+    q0 = _clip_score(q0)
 
     rubric = {
-        "Q0": {"score": q0, "label": RUBRIC_DESCRIPTIONS["Q0"], "reasons": [f"weighted_proxy={weighted:.2f}"]},
-        "Q1": {"score": q1, "label": RUBRIC_DESCRIPTIONS["Q1"], "reasons": q1_reasons},
-        "Q2": {"score": q2, "label": RUBRIC_DESCRIPTIONS["Q2"], "reasons": q2_reasons},
-        "Q3": {"score": q3, "label": RUBRIC_DESCRIPTIONS["Q3"], "reasons": q3_reasons},
-        "Q4": {"score": q4, "label": RUBRIC_DESCRIPTIONS["Q4"], "reasons": q4_reasons},
-        "Q5": {"score": q5, "label": RUBRIC_DESCRIPTIONS["Q5"], "reasons": q5_reasons},
-        "Q6": {"score": q6, "label": RUBRIC_DESCRIPTIONS["Q6"], "reasons": q6_reasons},
-        "Q7": {"score": q7, "label": RUBRIC_DESCRIPTIONS["Q7"], "reasons": q7_reasons},
-        "Q8": {"score": q8, "label": RUBRIC_DESCRIPTIONS["Q8"], "reasons": q8_reasons},
+        "Q0": {
+            "score": q0,
+            "label": RUBRIC_DESCRIPTIONS["Q0"],
+            "reasons": [f"weighted_proxy={weighted:.2f}"]
+            + [f"cap={cap:.1f}:{reason}" for cap, reason in caps],
+        }
     }
+    for qid in (f"Q{index}" for index in range(1, 9)):
+        score, reasons = scores[qid]
+        rubric[qid] = {
+            "score": _clip_score(score),
+            "label": RUBRIC_DESCRIPTIONS[qid],
+            "reasons": reasons,
+        }
 
     return {
         "case_id": str(row.get("case_id") or ""),
@@ -312,41 +719,68 @@ def evaluate_row(row: Dict[str, Any], case: Dict[str, Any], answer_field: str) -
         "source": case.get("source"),
         "category": case.get("category") or case.get("consulting_category"),
         "answer_len": len(answer),
-        "source_token_count": _source_token_count(answer),
-        "citation_match_rate_strict": strict_rate,
-        "citation_match_rate_repaired": repaired_rate,
+        "reference_available": bool(reference_answer),
+        "reference_answer_len": len(reference_answer),
+        "reference_alignment": round(alignment, 4),
+        "reference_alignment_score": alignment_score,
+        "reference_anchor_coverage": round(anchor_coverage, 4),
+        "semantic_risk_flags": semantic_flags,
+        "answer_has_source_tokens": bool(
+            "[[출처" in answer or re.search(r"\[출처\s*\d+\]", answer)
+        ),
+        "citation_match_rate_strict": float(row.get("citation_match_rate_strict") or 0.0),
+        "citation_match_rate_repaired": float(
+            row.get("citation_match_rate_repaired") or row.get("citation_match_rate") or 0.0
+        ),
         "rubric": rubric,
     }
 
 
-def _average(values: Iterable[float]) -> float:
-    vals = list(values)
-    return statistics.fmean(vals) if vals else 0.0
-
-
-def build_report(scores: List[Dict[str, Any]]) -> Dict[str, Any]:
-    by_q: Dict[str, float] = {}
-    for qid in RUBRIC_DESCRIPTIONS:
-        by_q[qid] = round(_average(row["rubric"][qid]["score"] for row in scores), 4)
-
-    q0_values = [row["rubric"]["Q0"]["score"] for row in scores]
+def build_report(
+    scores: List[Dict[str, Any]],
+    reference_profile: Dict[str, Any],
+) -> Dict[str, Any]:
+    by_q = {
+        qid: round(_average(row["rubric"][qid]["score"] for row in scores), 4)
+        for qid in RUBRIC_DESCRIPTIONS
+    }
     categories: Dict[str, List[Dict[str, Any]]] = {}
     for row in scores:
         categories.setdefault(str(row.get("category") or "unknown"), []).append(row)
 
+    q0_values = [float(row["rubric"]["Q0"]["score"]) for row in scores]
+    bins = {
+        "0-1.9": sum(value < 2 for value in q0_values),
+        "2.0-3.9": sum(2 <= value < 4 for value in q0_values),
+        "4.0-5.9": sum(4 <= value < 6 for value in q0_values),
+        "6.0-7.9": sum(6 <= value < 8 for value in q0_values),
+        "8.0-10.0": sum(value >= 8 for value in q0_values),
+    }
+
     return {
-        "method": "llm_rubric_proxy_civil_replies",
-        "note": "Deterministic proxy of LLM-Rubric Q0-Q8; no learned calibration network is applied.",
+        "method": "llm_rubric_proxy_civil_replies_v2_strict",
+        "note": (
+            "Deterministic 0-10 proxy of LLM-Rubric Q0-Q8. "
+            "Style and density are calibrated to processed consultant_answer records; "
+            "no learned calibration network is applied."
+        ),
+        "score_scale": {"min": SCORE_MIN, "max": SCORE_MAX, "precision": 0.1},
+        "weights": WEIGHTS,
         "count": len(scores),
+        "paired_reference_count": sum(bool(row.get("reference_available")) for row in scores),
+        "reference_profile": reference_profile,
         "average_scores": by_q,
-        "q0_distribution": dict(sorted(Counter(q0_values).items())),
+        "q0_distribution": bins,
         "category_summary": {
             category: {
                 "count": len(rows),
-                "Q0": round(_average(row["rubric"]["Q0"]["score"] for row in rows), 4),
-                "Q1": round(_average(row["rubric"]["Q1"]["score"] for row in rows), 4),
-                "Q4": round(_average(row["rubric"]["Q4"]["score"] for row in rows), 4),
-                "Q7": round(_average(row["rubric"]["Q7"]["score"] for row in rows), 4),
+                **{
+                    qid: round(
+                        _average(row["rubric"][qid]["score"] for row in rows),
+                        4,
+                    )
+                    for qid in RUBRIC_DESCRIPTIONS
+                },
             }
             for category, rows in sorted(categories.items())
         },
@@ -354,48 +788,103 @@ def build_report(scores: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def write_summary_md(report: Dict[str, Any], output_path: Path) -> None:
+    profile = report["reference_profile"]
     lines = [
-        "# LLM-Rubric Proxy Evaluation Summary",
+        "# LLM-Rubric Strict Evaluation Summary",
         "",
         f"- method: `{report['method']}`",
         f"- count: {report['count']}",
-        "- scale: 1(low) to 4(high)",
+        f"- paired references: {report['paired_reference_count']}",
+        "- scale: 0.0 (lowest) to 10.0 (highest)",
+        "- Q0 applies quality caps for missing strict citations, generic templates, debug noise, and low paired-reference alignment.",
+        "",
+        "## Reference Calibration",
+        "",
+        f"- source: `{profile.get('source_path')}`",
+        f"- valid consultant answers: {profile.get('valid_answer_count')}",
+        (
+            "- answer length chars: "
+            f"p25={profile['length_chars']['p25']}, median={profile['length_chars']['median']}, "
+            f"p75={profile['length_chars']['p75']}"
+        ),
+        (
+            "- sentence count: "
+            f"p25={profile['sentence_count']['p25']}, median={profile['sentence_count']['median']}, "
+            f"p75={profile['sentence_count']['p75']}"
+        ),
         "",
         "## Average Scores",
         "",
-        "| question | score | meaning |",
+        "| question | score / 10 | meaning |",
         "| --- | ---: | --- |",
     ]
     for qid, score in report["average_scores"].items():
         lines.append(f"| {qid} | {score} | {RUBRIC_DESCRIPTIONS[qid]} |")
 
-    lines.extend(["", "## Category Summary", "", "| category | count | Q0 | Q1 | Q4 | Q7 |", "| --- | ---: | ---: | ---: | ---: | ---: |"])
-    for category, row in report["category_summary"].items():
-        lines.append(f"| {category} | {row['count']} | {row['Q0']} | {row['Q1']} | {row['Q4']} | {row['Q7']} |")
+    lines.extend(
+        [
+            "",
+            "## Q0 Distribution",
+            "",
+            "| range | count |",
+            "| --- | ---: |",
+        ]
+    )
+    for label, count in report["q0_distribution"].items():
+        lines.append(f"| {label} | {count} |")
 
+    lines.extend(
+        [
+            "",
+            "## Category Summary",
+            "",
+            "| category | count | Q0 | Q1 | Q2 | Q3 | Q4 | Q5 | Q6 | Q7 | Q8 |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        ]
+    )
+    for category, row in report["category_summary"].items():
+        score_cells = " | ".join(str(row[f"Q{index}"]) for index in range(9))
+        lines.append(f"| {category} | {row['count']} | {score_cells} |")
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate generated civil-affairs replies with an LLM-Rubric proxy.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate generated civil-affairs replies with a strict 0-10 LLM-Rubric proxy."
+    )
     parser.add_argument("--answers", required=True, help="parsed_answers.jsonl path")
     parser.add_argument("--cases", default=None, help="benchmark cases JSON path")
-    parser.add_argument("--output-dir", required=True, help="directory for rubric_scores.jsonl/report/summary")
+    parser.add_argument("--output-dir", required=True, help="directory for rubric outputs")
     parser.add_argument("--answer-field", default="parsed_answer_repaired")
+    parser.add_argument(
+        "--reference-data",
+        default=str(DEFAULT_REFERENCE_PATH.relative_to(PROJECT_ROOT)),
+        help="processed JSON containing source_id and consultant_answer",
+    )
     args = parser.parse_args()
 
     answers_path = (PROJECT_ROOT / args.answers).resolve()
     cases_path = (PROJECT_ROOT / args.cases).resolve() if args.cases else None
+    reference_path = (PROJECT_ROOT / args.reference_data).resolve()
     output_dir = (PROJECT_ROOT / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     cases = _read_cases(cases_path)
+    references, reference_profile = _read_reference_answers(reference_path)
     rows = _read_jsonl(answers_path)
-    scores = [
-        evaluate_row(row, cases.get(str(row.get("case_id") or ""), {}), args.answer_field)
-        for row in rows
-    ]
-    report = build_report(scores)
+    scores = []
+    for row in rows:
+        case_id = str(row.get("case_id") or "")
+        scores.append(
+            evaluate_row(
+                row,
+                cases.get(case_id, {}),
+                args.answer_field,
+                reference_answer=references.get(case_id, ""),
+                reference_profile=reference_profile,
+            )
+        )
+    report = build_report(scores, reference_profile)
 
     score_path = output_dir / "rubric_scores.jsonl"
     with score_path.open("w", encoding="utf-8") as handle:
@@ -404,7 +893,6 @@ def main() -> None:
 
     report_path = output_dir / "rubric_report.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-
     summary_path = output_dir / "rubric_summary.md"
     write_summary_md(report, summary_path)
 

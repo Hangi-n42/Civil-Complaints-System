@@ -51,6 +51,7 @@ from app.generation.parsing.json_utils import (
     extract_json_string,
     normalize_confidence,
     parse_qa_json_response,
+    validate_qa_payload_schema,
 )
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.service import GenerationService
@@ -502,9 +503,33 @@ def _build_prompt_context_from_case(
     )
 
 
-def _passes_integrity_gate(answer: str, citation_match_rate: float) -> bool:
-    """정합성 통과 기준: 비어있지 않은 answer + citation 매칭률 > 0."""
-    return bool((answer or "").strip()) and float(citation_match_rate) > 0.0
+def _inspect_raw_schema(raw_text: str) -> Tuple[bool, List[str]]:
+    try:
+        payload = json.loads(extract_json_string(raw_text))
+        validate_qa_payload_schema(payload)
+        return True, []
+    except Exception as exc:  # noqa: BLE001 - benchmark evidence must retain parser reason
+        details = getattr(exc, "details", {}) or {}
+        errors = [str(exc)]
+        for key in ("missing_fields", "unexpected_fields", "field"):
+            value = details.get(key)
+            if value:
+                errors.append(f"{key}={value}")
+        return False, errors
+
+
+def _passes_integrity_gate(
+    answer: str,
+    citation_match_rate: float,
+    *,
+    raw_schema_compliant: bool,
+) -> bool:
+    """Raw contract gate: exact schema, non-empty answer, and supported citation."""
+    return (
+        raw_schema_compliant
+        and bool((answer or "").strip())
+        and float(citation_match_rate) > 0.0
+    )
 
 
 def _list_installed_models(base_url: str, timeout_sec: int) -> set[str]:
@@ -563,23 +588,9 @@ def _call_model(
         except Exception:
             pass
 
-    # 2) 재시도 1회 (동일 파라미터)
-    with httpx.Client(timeout=timeout_sec) as client:
-        retry_resp = client.post(url, json=payload)
-        retry_resp.raise_for_status()
-        retry_raw = retry_resp.json()
-    retry_text = str(retry_raw.get("response", "")).strip()
-
-    try:
-        parsed = parse_qa_json_response(retry_text)
-        return parsed, latency, retry_text
-    except Exception:
-        try:
-            parsed = _parse_week6_compatible_response(retry_text)
-            return parsed, latency, retry_text
-        except Exception:
-            # 3) 제한 응답 반환
-            return _recover_minimal_response(retry_text), latency, retry_text
+    # Mode-level retries are orchestrated by the benchmark loop so each failure
+    # remains observable instead of being hidden by an identical second call.
+    return _recover_minimal_response(response_text), latency, response_text
 
 
 def _to_qa_search_results(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -694,11 +705,33 @@ def _call_search_qa_api(
 def _citation_match_rate(citations: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> float:
     if not citations:
         return 0.0
-    valid_chunk_ids = {str(c.get("chunk_id", "")) for c in context}
+
+    def _compact(value: Any) -> str:
+        return re.sub(r"\s+", " ", str(value or "")).strip()
+
     matched = 0
-    for c in citations:
-        if str(c.get("chunk_id", "")) in valid_chunk_ids:
-            matched += 1
+    for citation in citations:
+        citation_chunk = _compact(citation.get("chunk_id"))
+        citation_case = _compact(citation.get("case_id") or citation.get("doc_id"))
+        citation_snippet = _compact(citation.get("snippet") or citation.get("quote"))
+        for evidence in context:
+            evidence_chunk = _compact(evidence.get("chunk_id"))
+            evidence_case = _compact(evidence.get("case_id") or evidence.get("doc_id"))
+            evidence_snippet = _compact(evidence.get("snippet"))
+            identity_matches = (
+                bool(citation_chunk)
+                and citation_chunk == evidence_chunk
+                and bool(citation_case)
+                and citation_case == evidence_case
+            )
+            snippet_matches = (
+                bool(citation_snippet)
+                and bool(evidence_snippet)
+                and citation_snippet in evidence_snippet
+            )
+            if identity_matches and snippet_matches:
+                matched += 1
+                break
     return matched / len(citations)
 
 
@@ -888,6 +921,7 @@ def run(
 
         latencies: List[float] = []
         parse_success = 0
+        postprocess_success = 0
         answer_non_empty_strict = 0
         answer_non_empty_repaired = 0
         citation_rates_strict: List[float] = []
@@ -986,51 +1020,87 @@ def run(
                     # strict: 원문 모델 출력 기반, 단 answer는 비어 있으면 복구 시도
                     strict_answer = _derive_non_empty_answer(parsed_final, raw_response, eval_context)
                     strict_cite_rate = _citation_match_rate(strict_citations, eval_context)
-                    integrity_passed_initial = _passes_integrity_gate(strict_answer, strict_cite_rate)
+                    raw_schema_compliant, raw_schema_errors = (
+                        (True, [])
+                        if benchmark_mode == "api"
+                        else _inspect_raw_schema(raw_response)
+                    )
+                    integrity_passed_initial = _passes_integrity_gate(
+                        strict_answer,
+                        strict_cite_rate,
+                        raw_schema_compliant=raw_schema_compliant,
+                    )
                     retry_reason = ""
                     retry_stage = "none"
 
-                    # 재시도 목표 확장: JSON 파싱 성공 이후에도 정합성 실패면 compact 재시도
+                    # Raw schema/citation failure is retried through the same
+                    # force_json -> compact sequence used by GenerationService.
                     if not integrity_passed_initial and benchmark_mode == "direct":
                         retry_reason = "INTEGRITY_GATE_FAILED"
-                        retry_stage = "compact"
-                        compact_prompt, eval_context, routing_trace = _build_prompt_context_from_case(
-                            case,
-                            mode="compact",
-                            context_override=eval_context,
-                            routing_trace=routing_trace,
-                            query_signals=query_signals,
-                        )
-                        compact_prompt, legal_articles, legal_grounding = _prepare_direct_legal_grounding(
-                            query=query,
-                            query_signals=query_signals,
-                            prompt=compact_prompt,
-                            mode="compact",
-                        )
-                        parsed_compact, latency_compact, raw_response_compact = _call_model(
-                            base_url=base_url,
-                            model_name=model_name,
-                            prompt=compact_prompt,
-                            temperature=0.0,
-                            num_ctx=num_ctx,
-                            num_predict=num_predict,
-                            timeout_sec=timeout_sec,
-                        )
+                        for retry_mode in ("force_json", "compact"):
+                            retry_stage = retry_mode
+                            retry_prompt, eval_context, routing_trace = _build_prompt_context_from_case(
+                                case,
+                                mode=retry_mode,
+                                context_override=eval_context,
+                                routing_trace=routing_trace,
+                                query_signals=query_signals,
+                            )
+                            retry_prompt, legal_articles, legal_grounding = _prepare_direct_legal_grounding(
+                                query=query,
+                                query_signals=query_signals,
+                                prompt=retry_prompt,
+                                mode=retry_mode,
+                            )
+                            parsed_retry, latency_retry, raw_response_retry = _call_model(
+                                base_url=base_url,
+                                model_name=model_name,
+                                prompt=retry_prompt,
+                                temperature=0.0,
+                                num_ctx=num_ctx,
+                                num_predict=num_predict,
+                                timeout_sec=timeout_sec,
+                            )
+                            parsed_final = parsed_retry
+                            raw_response = raw_response_retry
+                            latency += latency_retry
+                            limitations = _coerce_limitations_text(
+                                parsed_retry.get("limitations", "")
+                            )
+                            strict_citations_raw = parsed_retry.get("citations", [])
+                            strict_citations = _merge_citation_lists(
+                                _coerce_citations_for_benchmark(
+                                    strict_citations_raw,
+                                    eval_context,
+                                ),
+                                _coerce_citations_from_raw_text(
+                                    raw_response,
+                                    eval_context,
+                                ),
+                            )
+                            strict_answer = _derive_non_empty_answer(
+                                parsed_retry,
+                                raw_response,
+                                eval_context,
+                            )
+                            strict_cite_rate = _citation_match_rate(
+                                strict_citations,
+                                eval_context,
+                            )
+                            raw_schema_compliant, raw_schema_errors = _inspect_raw_schema(
+                                raw_response
+                            )
+                            if _passes_integrity_gate(
+                                strict_answer,
+                                strict_cite_rate,
+                                raw_schema_compliant=raw_schema_compliant,
+                            ):
+                                break
 
-                        # compact 재시도 결과로 strict 기준 재평가
-                        parsed_final = parsed_compact
-                        raw_response = raw_response_compact
-                        latency = latency_compact
-                        limitations = _coerce_limitations_text(parsed_compact.get("limitations", ""))
-                        strict_citations_raw = parsed_compact.get("citations", [])
-                        strict_citations = _merge_citation_lists(
-                            _coerce_citations_for_benchmark(strict_citations_raw, eval_context),
-                            _coerce_citations_from_raw_text(raw_response, eval_context),
-                        )
-                        strict_answer = _derive_non_empty_answer(parsed_compact, raw_response, eval_context)
-                        strict_cite_rate = _citation_match_rate(strict_citations, eval_context)
-
-                    if benchmark_mode == "direct" and legal_articles:
+                    if benchmark_mode == "direct" and legal_grounding.get("status") not in {
+                        "disabled",
+                        "not_requested",
+                    }:
                         grounded = ground_legal_citations(strict_answer, legal_articles)
                         strict_answer = str(grounded.get("answer") or "").strip()
                         legal_citations = [
@@ -1054,7 +1124,10 @@ def run(
                         context=eval_context,
                     )
 
-                    parse_success += 1
+                    if raw_schema_compliant:
+                        parse_success += 1
+                    if validation.get("is_valid", False):
+                        postprocess_success += 1
                     if strict_answer:
                         answer_non_empty_strict += 1
                     if repaired_answer:
@@ -1079,21 +1152,33 @@ def run(
                             "parsed_answer": repaired_answer,
                             "citations_count_strict": len(strict_citations),
                             "citations_count_repaired": len(repaired_citations),
+                            "citations_strict": strict_citations,
+                            "citations_repaired": repaired_citations,
                             # Backward compatibility: citations_count는 repaired 기준으로 유지
                             "citations_count": len(repaired_citations),
                             "citation_match_rate_strict": round(strict_cite_rate, 4),
+                            "citation_support_rate_strict": round(strict_cite_rate, 4),
                             "citation_match_rate_repaired": round(repaired_cite_rate, 4),
                             # Backward compatibility: 기본 필드는 repaired 기준
                             "citation_match_rate": round(repaired_cite_rate, 4),
                             "confidence_num": round(normalize_confidence(parsed_final.get("confidence")), 4),
                             "qa_is_valid": bool(validation.get("is_valid", False)),
                             "qa_error_count": len(validation.get("errors", [])),
-                            "integrity_gate_passed": _passes_integrity_gate(strict_answer, strict_cite_rate),
+                            "raw_schema_compliant": raw_schema_compliant,
+                            "raw_schema_errors": raw_schema_errors,
+                            "postprocess_success": bool(validation.get("is_valid", False)),
+                            "integrity_gate_passed": _passes_integrity_gate(
+                                strict_answer,
+                                strict_cite_rate,
+                                raw_schema_compliant=raw_schema_compliant,
+                            ),
                             "retry_reason": retry_reason,
                             "retry_stage": retry_stage,
                             "benchmark_mode": benchmark_mode,
                             "derived_query": routing_trace.get("derived_query") or _case_query(case),
                             "retrieved_context_count": len(eval_context),
+                            "retrieved_context": eval_context,
+                            "routing_trace": routing_trace,
                             "query_signals": query_signals,
                             "legal_grounding_status": legal_grounding.get("status", "not_requested"),
                             "legal_grounding_error": legal_grounding.get("error", ""),
@@ -1134,6 +1219,8 @@ def run(
                 "status": "measured",
                 "total_runs": total_runs,
                 "parse_success_rate": round(parse_success / total_runs, 4),
+                "raw_schema_success_rate": round(parse_success / total_runs, 4),
+                "postprocess_success_rate": round(postprocess_success / total_runs, 4),
                 "answer_non_empty_rate_strict": round(answer_non_empty_strict / total_runs, 4),
                 "answer_non_empty_rate_repaired": round(answer_non_empty_repaired / total_runs, 4),
                 "citation_match_rate_strict": round(statistics.fmean(citation_rates_strict), 4)

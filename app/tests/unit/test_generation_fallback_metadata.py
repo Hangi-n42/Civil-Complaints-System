@@ -103,7 +103,7 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_fast_fallback_preserves_verified_legal_grounding(monkeypatch):
+async def test_fast_fallback_does_not_invent_legal_grounding(monkeypatch):
     service = GenerationService()
     legal_articles = [
         {
@@ -152,10 +152,9 @@ async def test_fast_fallback_preserves_verified_legal_grounding(monkeypatch):
     assert result["generation_metadata"]["fallback_used"] is True
     assert result["generation_metadata"]["generation_mode"] == "fast_fallback"
     assert result["generation_metadata"]["legal_grounding_status"] == "grounded"
-    assert result["legal_citations"][0]["law_name"] == "건축법"
-    assert result["legal_citations"][0]["article_no"] == "제80조"
-    assert result["legal_citations"][0]["verified"] is True
+    assert result["legal_citations"] == []
     assert result["legal_citation_warnings"] == []
+    assert "건축법 제80조" not in result["answer"]
     assert all(prompt.rstrip().endswith("structured_output fields.") for prompt in prompts)
     assert len(prompts[2]) < len(prompts[0])
 
@@ -214,3 +213,19 @@ async def test_relaxed_parser_rejects_empty_answer_directly():
     error = exc_info.value
     assert getattr(error, "code", "") == "PARSE_SCHEMA_MISMATCH"
     assert getattr(error, "details", {}).get("field") == "answer"
+
+
+def test_no_legal_candidates_remove_hallucinated_article():
+    service = GenerationService()
+    result = {
+        "answer": "건축법 제80조에 따라 즉시 철거하겠습니다.",
+        "legal_citations": [],
+        "legal_citation_warnings": [],
+    }
+    status = {"status": "no_candidates", "error": ""}
+
+    grounded = service._apply_legal_grounding(result, [], status)
+
+    assert "건축법 제80조" not in grounded["answer"]
+    assert grounded["legal_citations"] == []
+    assert grounded["legal_citation_warnings"]

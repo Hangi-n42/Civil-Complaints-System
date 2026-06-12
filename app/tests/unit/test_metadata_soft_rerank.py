@@ -171,3 +171,54 @@ async def test_metadata_soft_rerank_runs_before_grounding_filter(monkeypatch):
 
     assert seen_before_grounding == ["CASE-MATCH", "CASE-NOMATCH"]
     assert [item["case_id"] for item in results] == ["CASE-MATCH"]
+
+
+def test_snippet_preserves_late_decision_constraint():
+    service = RetrievalService()
+    text = (
+        "민원인은 자전거도로 설치를 요청했습니다.\n"
+        "현장 통행 불편이 확인되었습니다.\n"
+        "자전거도로 설치 요청입니다.\n"
+        "도로 폭이 좁아 현재 설치는 어렵고 확폭 시 재검토합니다."
+    )
+
+    snippet = service._build_snippet(text, max_length=120)
+
+    assert "자전거도로 설치" in snippet
+    assert "도로 폭이 좁아" in snippet
+    assert "어렵" in snippet
+
+
+@pytest.mark.asyncio
+async def test_search_excludes_current_case_before_grounding(monkeypatch):
+    service = RetrievalService()
+    seen_before_grounding: list[str] = []
+
+    class _Store:
+        def count(self, collection_name):  # noqa: ARG002
+            return 2
+
+        def query(self, **kwargs):  # noqa: ARG002
+            return [
+                _result("CASE-800806", 0.99, {}),
+                _result("CASE-OTHER", 0.90, {}),
+            ]
+
+    async def _fake_grounding_filter(query, results, top_k):  # noqa: ARG001
+        seen_before_grounding.extend(item["case_id"] for item in results)
+        return results[:top_k]
+
+    monkeypatch.setattr(service, "_get_vectorstore", lambda: _Store())
+    monkeypatch.setattr(service, "_apply_grounding_filter", _fake_grounding_filter)
+
+    results = await service.search(
+        query="버스 배차 민원",
+        top_k=1,
+        collection_name="civil_cases_v1",
+        strategy="dense",
+        grounding_filter=True,
+        exclude_case_id="800806",
+    )
+
+    assert seen_before_grounding == ["CASE-OTHER"]
+    assert [item["case_id"] for item in results] == ["CASE-OTHER"]

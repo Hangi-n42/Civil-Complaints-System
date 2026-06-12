@@ -255,16 +255,10 @@ class PromptFactory:
             f"- Output 1 to {citations_max} citations.\n"
             "- Every citation must include chunk_id, case_id, snippet, and relevance_score.\n"
             "- Use chunk_id, case_id, score, and relevance_score only inside citations. Never expose these metadata strings inside answer.\n"
-            "- The answer must cite with human-readable [[출처 n]] tokens only; do not write text such as chunk_id=..., case_id=..., score=..., or CASE-...__chunk-... in answer.\n"
+            "- Keep all source information in the citations array. The answer must not contain [[출처 n]], [출처 n], chunk_id, case_id, score, or CASE-...__chunk-... strings.\n"
             f"- citation.snippet must be copied from a context snippet, may be a substring, must be non-empty, and must be <= {citation_snippet_max_chars} chars.\n"
             "- citation.relevance_score must use the context score/relevance_score value normalized to 0..1.\n"
-            "- If citations has N items, answer must contain exactly one source token for each citation: [[출처 1]] through [[출처 N]].\n"
-            "- Put source tokens only after the final sentence '감사합니다. 끝.' as separate lines, one token per line: [[출처 1]], [[출처 2]], ...\n"
-            "- Do not start answer with a source token. Do not put [[출처 n]] inside paragraphs 1, 2, or 3.\n"
-            "- Use the exact token shape [[출처 1]], not ([출처 1]) or [출처 1].\n"
-            "- citations[0] corresponds to [[출처 1]], citations[1] corresponds to [[출처 2]], and citations[2] corresponds to [[출처 3]].\n"
-            "- The answer is invalid if it has citations but lacks [[출처 n]] tokens, or if it has [[출처 n]] tokens but the citations array is missing.\n"
-            "- Do not include any extra [[출처 ...]] token beyond the citations count.\n"
+            "- The answer must end with the official closing sentence and no source-token lines may follow it.\n"
         )
 
         complaint_rules = ""
@@ -279,15 +273,18 @@ class PromptFactory:
                 "  2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. 접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\n"
                 "  3. 검토 의견은 다음과 같습니다. <write the case-specific reply here>\n"
                 "  4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\n"
-                "  [[출처 1]]\n"
-                "  [[출처 2]]\n"
-                "  [[출처 3]]\n"
                 "- Match the tone of Korean public-agency replies: polite, plain, numbered paragraphs, no Markdown headings, no bullet-heavy action-plan style unless the complaint explicitly asks for a list.\n"
                 "- Write enough detail for a real reply: summarize the complaint, explain the applicable review basis, describe possible handling or limits, and give a follow-up/contact path.\n"
                 "- Separate the citizen's requested facts, safety concerns, inconvenience, and proposed actions before drafting the answer.\n"
                 "- Use '검색 컨텍스트' only as grounding for administrative handling, similar cases, procedures, and limitations.\n"
+                "- A retrieved case is a precedent, not a confirmed fact about the current complaint. Do not copy its location, ownership, schedule, decision, or completed action into the current reply.\n"
+                "- Distinguish requested action from confirmed action. A citizen request such as 설치·철거·보수 요청 is not evidence that the agency approved or performed it.\n"
+                "- Preserve decisive constraints found in context, including 처리 불가/곤란, 사유지, 관리사무소·소유자 소관, 도로 폭 부족, 예정 공사, 관할 외 사유, and conditional review.\n"
+                "- Do not promise installation, demolition, enforcement, budget allocation, hearings, or a completion schedule unless the context explicitly supports that commitment for the current complaint.\n"
+                "- action_items must be evidence-safe. When authority or facts are uncertain, use 확인·협의·안내 actions instead of promising implementation.\n"
                 "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
                 "- If the context does not prove a concrete policy, schedule, ordinance, or responsible agency, state that 담당부서 확인/현장 검토가 필요합니다.\n"
+                "- Cite a law in answer only when the supplied article text directly supports the stated conclusion. Otherwise omit the law name and article number.\n"
             )
 
         compact_context_rules = ""
@@ -683,6 +680,16 @@ class PromptFactory:
         derived_trace.setdefault("effective_top_k", effective_top_k)
         derived_trace.setdefault("filters", filters or {})
         derived_trace.setdefault("threshold", float(threshold or 0.0))
+        exclude_case_id = next(
+            (
+                str(record.get(key) or "").strip()
+                for key in ("case_id", "complaint_id", "source_id")
+                if str(record.get(key) or "").strip()
+            ),
+            "",
+        )
+        if exclude_case_id:
+            derived_trace.setdefault("excluded_case_id", exclude_case_id)
 
         prompt_mode = str(derived_trace.get("prompt_mode") or "default").lower()
         snippet_max_chars = 120 if prompt_mode == "compact" else 200
@@ -699,6 +706,8 @@ class PromptFactory:
             retrieval_policy=str(derived_trace.get("retrieval_policy") or decision.retrieval_policy),
             snippet_max_chars=int(snippet_max_chars),
             query_signals=query_signals,
+            grounding_filter=True,
+            exclude_case_id=exclude_case_id or None,
         )
 
         pipeline_logger.info(
@@ -930,7 +939,7 @@ class PromptFactory:
             "\"snippet\":\"현장 확인이 필요한 사항은 담당 부서 검토 후 안내합니다.\","
             "\"relevance_score\":0.8"
             "}],"
-            "\"answer\":\"1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\\n\\n2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. 접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\\n\\n3. 검토 의견은 다음과 같습니다. 접수하신 사항은 관리비 이의제기 처리 절차와 현장 확인이 필요한 사항으로 구분하여 검토할 수 있습니다. 담당부서에서는 접수 자료를 확인한 뒤 필요한 경우 관계 부서 협의 또는 현장 확인을 거쳐 처리 가능 여부와 후속 절차를 안내드리겠습니다.\\n\\n4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\\n[[출처 1]]\\n[[출처 2]]\\n[[출처 3]]\","
+            "\"answer\":\"1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\\n\\n2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. 접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\\n\\n3. 검토 의견은 다음과 같습니다. 접수하신 사항은 관리비 이의제기 처리 절차와 현장 확인이 필요한 사항으로 구분하여 검토할 수 있습니다. 담당부서에서는 접수 자료를 확인한 뒤 필요한 경우 관계 부서 협의 또는 현장 확인을 거쳐 처리 가능 여부와 후속 절차를 안내드리겠습니다.\\n\\n4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝.\","
             "\"limitations\":[\"현장 확인이 필요할 수 있습니다.\"],"
             "\"structured_output\":{"
             "\"summary\":\"핵심 요약\","
@@ -952,9 +961,8 @@ class PromptFactory:
             + record_guide
             + f"{segment_guide}\n\n"
             + "최종 점검: 출력 직전에 최상위 키가 citations/answer/limitations/structured_output 네 개뿐인지 확인하고, citations 키를 가장 먼저 출력하세요. "
-            + "citations가 3개이면 answer 안에 [[출처 1]], [[출처 2]], [[출처 3]]이 정확히 한 번씩 있어야 합니다. "
             + "answer는 반드시 '1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.'로 시작하고, "
-            + "출처 토큰은 반드시 '감사합니다. 끝.' 다음 줄에만 한 줄에 하나씩 쓰세요.\n\n"
+            + "answer는 '감사합니다. 끝.'으로 마치며 그 뒤에 출처 토큰이나 다른 문장을 쓰지 마세요. 근거는 citations 배열에만 넣으세요.\n\n"
             + f"질문: {query}\n\n"
             + (f"민원 원문:\n{raw_complaint_text[:1800]}\n\n" if has_raw_complaint else "")
             + "검색 컨텍스트:\n"

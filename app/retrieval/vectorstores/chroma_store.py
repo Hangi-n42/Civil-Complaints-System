@@ -401,7 +401,18 @@ class ChromaVectorStore:
         return results_list
 
     def _build_snippet(self, chunk_text: str, max_length: int = 120) -> str:
-        text = " ".join(chunk_text.split())
+        parts = [" ".join(part.split()) for part in chunk_text.splitlines() if part.strip()]
+        text = " ".join(parts)
         if len(text) <= max_length:
             return text
-        return text[:max_length].rstrip() + "..."
+        if len(parts) > 1:
+            separator = " | "
+            budget = max(12, (max_length - len(separator) * (len(parts) - 1)) // len(parts))
+            rendered = [
+                part if len(part) <= budget else part[: max(1, budget - 3)].rstrip() + "..."
+                for part in parts
+            ]
+            return separator.join(rendered)[:max_length].rstrip()
+        tail_size = max(24, max_length // 2)
+        head_size = max(24, max_length - tail_size - 5)
+        return f"{text[:head_size].rstrip()} ... {text[-tail_size:].lstrip()}"

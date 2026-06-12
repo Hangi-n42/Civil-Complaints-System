@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 import re
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 
 _CITE_TOKEN_PATTERN = re.compile(r"\[\[출처\s*(\d+)\]\]")
@@ -29,10 +29,6 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
-
-
-def _extract_citation_tokens(answer: str) -> Set[int]:
-    return {int(match) for match in _CITE_TOKEN_PATTERN.findall(answer or "")}
 
 
 def sanitize_answer_text(answer: str) -> str:
@@ -168,12 +164,11 @@ def _trim_incomplete_trailing_sentence(text: str, citations: List[Dict[str, Any]
 
 
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
-    snippets = [str(item.get("snippet", "")).strip() for item in citations[:2]]
-    snippets = [text for text in snippets if text]
-    if snippets:
+    if citations:
         return (
-            f"{' / '.join(snippets)} "
-            "다만 구체적인 처리 가능 여부와 조치 일정은 담당부서의 현장 확인과 관계 기준 검토 후 안내드릴 수 있습니다."
+            "검색된 유사 사례는 처리 방향을 검토하기 위한 참고자료이며 현재 민원의 사실관계나 조치 결정을 "
+            "직접 확정하지는 않습니다. 담당부서에서 현장 여건, 소관 권한, 관련 기준을 확인한 뒤 "
+            "처리 가능 여부와 후속 절차를 안내드리겠습니다."
         )
     return (
         "접수 내용과 관련 자료를 우선 확인하고, 담당부서 검토를 거쳐 처리 가능 여부와 후속 안내 사항을 "
@@ -182,7 +177,7 @@ def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
 
 
 def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> str:
-    """민원 회신문 answer를 고정 1~4항 구조와 마지막 출처 토큰 줄로 정규화한다."""
+    """민원 회신문 answer를 출처 토큰 없는 고정 1~4항 구조로 정규화한다."""
     rendered = sanitize_answer_text(answer)
     rendered = _strip_citation_tokens(rendered)
     rendered = _normalize_structured_answer_text(rendered)
@@ -192,17 +187,12 @@ def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> s
         body = _fallback_review_body(citations)
     body = _trim_incomplete_trailing_sentence(body, citations)
 
-    tokens = [f"[[출처 {citation['ref_id']}]]" for citation in citations]
-    token_block = "\n".join(tokens)
-
     reply = (
         f"{_CIVIL_REPLY_PREFIX_1}\n\n"
         f"{_CIVIL_REPLY_PREFIX_2}\n\n"
         f"{_CIVIL_REPLY_PREFIX_3} {body}\n\n"
         f"{_CIVIL_REPLY_CLOSING}"
     )
-    if token_block:
-        reply = f"{reply}\n{token_block}"
     return reply.strip()
 
 
@@ -265,7 +255,7 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
 
 
 def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
-    """answer 본문에 누락된 [[출처 n]] 토큰을 자동 보완한다."""
+    """호환용 이름. answer의 출처 토큰을 제거하고 회신문 형식을 정규화한다."""
     rendered = sanitize_answer_text(answer)
     if not rendered:
         if citations:
@@ -329,12 +319,11 @@ def build_validation_result(
             }
         )
 
-    token_ids = _extract_citation_tokens(answer)
-    if token_ids != set(ref_ids):
+    if _CITE_TOKEN_PATTERN.search(answer or "") or re.search(r"\[출처\s*\d+\]", answer or ""):
         errors.append(
             {
-                "code": "CITATION_TOKEN_MISMATCH",
-                "message": "answer의 [[출처 n]] 토큰과 citations.ref_id가 1:1로 일치해야 합니다.",
+                "code": "CITATION_TOKEN_IN_ANSWER",
+                "message": "answer 본문에는 출처 토큰을 포함하지 않고 citations 필드로만 근거를 제공해야 합니다.",
             }
         )
 
