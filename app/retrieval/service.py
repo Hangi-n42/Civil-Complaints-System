@@ -418,6 +418,22 @@ class RetrievalService:
         if responsible_units and not responsible_unit_sources and "responsible_unit" in record:
             responsible_unit_sources = ["be1_structured"]
         responsible_units_source = responsible_unit_sources[0] if responsible_unit_sources else ""
+        responsible_unit_confidences = [
+            float(item["confidence"])
+            for item in responsible_unit_items
+            if isinstance(item, dict) and isinstance(item.get("confidence"), (int, float))
+        ]
+        if responsible_unit_confidences:
+            responsible_units_confidence = responsible_unit_confidences[0]
+        else:
+            raw_conf = record.get(
+                "responsible_units_confidence",
+                metadata.get("responsible_units_confidence"),
+            )
+            try:
+                responsible_units_confidence = float(raw_conf) if raw_conf not in (None, "") else 0.0
+            except (TypeError, ValueError):
+                responsible_units_confidence = 0.0
         urgency_value = record.get(
             "urgency",
             record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
@@ -460,6 +476,7 @@ class RetrievalService:
             "key_terms": key_terms,
             "responsible_units": responsible_units,
             "responsible_units_source": responsible_units_source,
+            "responsible_units_confidence": responsible_units_confidence,
             "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),
