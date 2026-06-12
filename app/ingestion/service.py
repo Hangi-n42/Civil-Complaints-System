@@ -450,7 +450,7 @@ class IngestionService:
             category = _SOURCE_DEFAULT_CATEGORY.get(source, "unknown")
         region = self._extract_region(source, source_type)
 
-        # 구조화/검색 입력에는 상담사 답변을 섞지 않는다.
+        # 구조화/검색 입력은 to_structuring_record()가 만든 검색용 본문을 따른다.
         structuring_record = to_structuring_record(record)
         content = self._clean_aihub_markup(str(structuring_record.get("text") or "").strip())
 
