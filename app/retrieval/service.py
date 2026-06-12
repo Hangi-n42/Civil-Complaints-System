@@ -899,6 +899,7 @@ class RetrievalService:
         snippet_max_chars: Optional[int] = None,
         strategy: Optional[str] = None,
         grounding_filter: Optional[bool] = None,
+        grounding_pool: Optional[int] = None,
         query_signals: Optional[Dict[str, Any]] = None,
         exclude_case_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
@@ -926,6 +927,10 @@ class RetrievalService:
             grounding_on = (
                 settings.GROUNDING_FILTER_ENABLED if grounding_filter is None else grounding_filter
             )
+            effective_grounding_pool = max(
+                top_k,
+                int(grounding_pool or settings.GROUNDING_FILTER_POOL),
+            )
             normalized_query_signals = self._normalize_query_signals(query_signals)
             metadata_rerank_on = bool(normalized_query_signals)
 
@@ -933,7 +938,7 @@ class RetrievalService:
             # they do not change BE2's fixed Hybrid candidate set or ranking.
             effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
             use_hybrid = effective_strategy == "hybrid" and not (filters or {})
-            retrieve_k = max(top_k, settings.GROUNDING_FILTER_POOL) if grounding_on else top_k
+            retrieve_k = max(top_k, effective_grounding_pool) if grounding_on else top_k
             if metadata_rerank_on:
                 retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
             fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
@@ -984,7 +989,11 @@ class RetrievalService:
             results = self._apply_metadata_soft_rerank(results, normalized_query_signals)
 
             if grounding_on and results:
-                results = await self._apply_grounding_filter(query, results, top_k)
+                results = await self._apply_grounding_filter(
+                    query,
+                    results[:effective_grounding_pool],
+                    top_k,
+                )
             elif metadata_rerank_on:
                 results = results[: max(1, top_k)]
 
@@ -1022,23 +1031,46 @@ class RetrievalService:
 
         통과 0개면 빈 리스트 반환 → 호출부(be3)에서 "유사 사례 없음" 폴백.
         """
-        from app.retrieval.grounding_filter import filter_by_relevance, score_relevance
+        from app.retrieval.grounding_filter import (
+            filter_by_relevance,
+            filter_by_scores,
+            score_relevance,
+            score_relevance_batch,
+        )
 
         model = settings.GROUNDING_FILTER_MODEL or settings.OLLAMA_MODEL
+        pool = list(results)[: settings.GROUNDING_FILTER_POOL]
+        texts = [self._grounding_text(item) for item in pool]
+        scores = await score_relevance_batch(query, texts, model=model)
 
-        async def score_fn(q: str, text: str) -> Optional[int]:
-            return await score_relevance(q, text, model=model)
+        if scores is not None:
+            kept = filter_by_scores(
+                pool,
+                scores,
+                min_score=settings.GROUNDING_FILTER_MIN_SCORE,
+                top_k=top_k,
+            )
+            filter_mode = "batch"
+        else:
+            async def score_fn(q: str, text: str) -> Optional[int]:
+                return await score_relevance(q, text, model=model)
 
-        kept = await filter_by_relevance(
-            query, results,
-            get_text=self._grounding_text, score_fn=score_fn,
-            min_score=settings.GROUNDING_FILTER_MIN_SCORE,
-            rerank_pool=settings.GROUNDING_FILTER_POOL,
-            top_k=top_k,
-            max_concurrency=settings.GROUNDING_FILTER_MAX_CONCURRENCY,
-        )
+            kept = await filter_by_relevance(
+                query,
+                pool,
+                get_text=self._grounding_text,
+                score_fn=score_fn,
+                min_score=settings.GROUNDING_FILTER_MIN_SCORE,
+                rerank_pool=settings.GROUNDING_FILTER_POOL,
+                top_k=top_k,
+                max_concurrency=settings.GROUNDING_FILTER_MAX_CONCURRENCY,
+            )
+            filter_mode = "per_item_fallback"
         filtered = [item for item, _ in kept]
-        self.logger.info(f"grounding 필터: {len(results)}→{len(filtered)}개 (해로운 선례 제거)")
+        self.logger.info(
+            f"grounding 필터({filter_mode}): {len(results)}→{len(filtered)}개 "
+            "(해로운 선례 제거)"
+        )
         return filtered
 
 

@@ -400,6 +400,7 @@ async def _generate_qa(
                 top_k=grounding_top_k,
                 filters=filters,
                 grounding_filter=True,
+                grounding_pool=max(5, grounding_top_k),
                 query_signals=query_signals,
             )
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
@@ -621,7 +622,12 @@ async def _generate_qa(
     took_ms = int((perf_counter() - start) * 1000)
     raw_generation_answer_empty = not str(result.get("answer", "") or "").strip()
     citations = normalize_citations(result.get("citations", []), context=context)
-    answer = ensure_citation_tokens(_compose_answer_from_payload(result, citations), citations=citations)
+    answer = ensure_citation_tokens(
+        _compose_answer_from_payload(result, citations),
+        citations=citations,
+        complaint=request.query,
+        context=context,
+    )
     limitations = str(result.get("limitations", "")).strip() or "검색 범위 내 데이터에 기반한 답변입니다."
     generation_metadata = dict(
         result.get("generation_metadata")
@@ -654,6 +660,7 @@ async def _generate_qa(
         citations=citations,
         limitations=limitations,
         context=context,
+        complaint=request.query,
     )
 
     if not validation["is_valid"]:
@@ -718,7 +725,24 @@ async def _generate_qa(
     generated_structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
     request_segments = routing_trace.get("request_segments") or []
     legal_warnings = result.get("legal_citation_warnings", [])
-    hallucination_flag = (not is_valid) or bool(legal_warnings)
+    answer_warning_codes = [
+        str(item.get("code") or "")
+        for item in validation.get("warnings", [])
+        if isinstance(item, dict) and str(item.get("code") or "").strip()
+    ]
+    safety_warning_codes = {
+        "ANSWER_REQUEST_MISMATCH",
+        "PRECEDENT_FACT_LEAKAGE_RISK",
+        "UNSUPPORTED_COMMITMENT_RISK",
+        "UNVERIFIED_FACT_RISK",
+        "CONTEXT_CONSTRAINT_CONFLICT",
+    }
+    hallucination_flag = (
+        (not is_valid)
+        or bool(legal_warnings)
+        or any(code in safety_warning_codes for code in answer_warning_codes)
+    )
+    generation_metadata["answer_quality_warning_codes"] = answer_warning_codes
     unified_payload = normalize_response(
         {
             "complaint_id": request.complaint_id,

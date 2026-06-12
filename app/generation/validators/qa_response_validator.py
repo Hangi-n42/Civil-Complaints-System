@@ -22,6 +22,43 @@ _CIVIL_REPLY_CLOSING = (
     "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 "
     "후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
 )
+_QUALITY_STOPWORDS = {
+    "귀하",
+    "민원",
+    "신청",
+    "요청",
+    "관련",
+    "검토",
+    "조치",
+    "답변",
+    "사항",
+    "필요",
+    "가능",
+    "담당부서",
+    "안내",
+    "현재",
+    "해당",
+    "통해",
+    "위해",
+    "경우",
+}
+_COMMITMENT_PATTERN = re.compile(
+    r"(?:설치|철거|제거|이동|신설|건설|매입|확대|개방|허가|지정|도입|"
+    r"예산\s*확보|계획\s*수립|방역|단속)"
+    r"[^.\n]{0,35}(?:하겠습니다|할\s*예정입니다|할\s*계획입니다|진행합니다|실시합니다)"
+)
+_UNVERIFIED_FACT_PATTERN = re.compile(
+    r"(?:확인하였습니다|보고되었습니다|이미\s*예정|진행\s*중입니다|완료되었습니다|예상\s*완료일)"
+)
+_CONSTRAINT_PATTERN = re.compile(
+    r"(?:처리|설치|이동|개방|사용|허가|지정|지원).{0,20}(?:불가|곤란|어렵)"
+    r"|사유지|소유자\s*(?:소관|책임|관리)|관리사무소\s*(?:소관|관리)"
+    r"|관할\s*(?:외|아님)|권한이?\s*없|도로\s*폭\s*부족"
+)
+_CONCRETE_PRECEDENT_CUE = re.compile(
+    r"현재|특정\s*날짜|공사|예정|완료|진행\s*중|해당\s*지역|인근|코로나|재개|"
+    r"\d{4}[.년]|월|일|운영\s*중"
+)
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -37,12 +74,26 @@ def sanitize_answer_text(answer: str) -> str:
     if not rendered:
         return ""
 
+    rendered = rendered.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", " ")
     rendered = _DEBUG_METADATA_PATTERN.sub("", rendered)
+    rendered = re.split(
+        r"(?:\*\*)?(?:structured_output|limitations)(?:\*\*)?\s*:",
+        rendered,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
     rendered = re.sub(r"\(\s*chunk_id=[^)]+\)", "", rendered, flags=re.IGNORECASE)
     rendered = re.sub(r"\[\[\s*\"[^\"]{0,500}\"\s*\]\]", "", rendered)
     rendered = re.sub(r"(?m)^\s*\[\[\".*?\"\]\]\s*$", "", rendered)
     rendered = re.sub(r"(?m)^\s*#{1,6}\s*", "", rendered)
     rendered = rendered.replace("**", "")
+    rendered = re.sub(
+        r"(?i)(?:액션\s*아이템|action\s*items?|조치\s*제안|섹션)\s*\d*\s*[:：]?\s*",
+        "",
+        rendered,
+    )
+    rendered = re.sub(r"\[REDACTED:[A-Z_]+\]", "비식별 처리된 정보", rendered)
+    rendered = re.sub(r"\[REDACTED:[^\]\n]*$", "", rendered)
     rendered = re.sub(r"</?(?:strong|b|ul|ol|li|p|br)\b[^>]*>", " ", rendered, flags=re.IGNORECASE)
     rendered = re.sub(r"<[^>]+>", " ", rendered)
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
@@ -77,6 +128,231 @@ def _strip_standard_reply_shell(text: str) -> str:
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
     rendered = re.sub(r"[ \t]{2,}", " ", rendered)
     return rendered.strip(" \n;")
+
+
+def _normalize_review_body(text: str) -> str:
+    """Remove embedded reply endings/numbering and soften unsupported promises."""
+    rendered = text or ""
+    rendered = re.sub(
+        r"(?:감사합니다[.!]?\s*)?끝[.!]?",
+        "",
+        rendered,
+        flags=re.IGNORECASE,
+    )
+    rendered = re.sub(r"(?m)^\s*[1-4][.．)]\s*", "", rendered)
+    rendered = re.sub(r"(?m)^\s*[-•]\s*", "", rendered)
+
+    action_pattern = re.compile(
+        r"(?P<action>설치|철거|제거|이동|신설|건설|매입|보수|정비|폐쇄|단속|"
+        r"시정|개선|확대|개방|허가|지정|도입|확보|수립)"
+        r"(?:을|를)?\s*(?:즉시\s*)?"
+        r"(?:실시|시행|추진|완료|진행|조치)?"
+        r"(?:하겠습니다|할\s*예정입니다|할\s*계획입니다)"
+    )
+    rendered = action_pattern.sub(
+        lambda match: f"{match.group('action')} 가능 여부를 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<action>개발|활용|확대|설치|건설|매입|도입|구축|마련|실시)"
+        r"(?:하여|해)?\s*(?:즉시\s*)?(?:활용|진행|시행)?합니다",
+        lambda match: (
+            f"{match.group('action')} 가능 여부를 검토하겠습니다"
+        ),
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<action>제거|철거|설치|이동|보수|정비|방역)"
+        r"(?:\s*작업|\s*조치)?(?:을|를)?\s*(?:우선적으로|즉시)?\s*"
+        r"(?:진행|실시)할\s*예정입니다",
+        lambda match: (
+            f"{match.group('action')} 필요성과 처리 권한을 현장 확인 후 판단하겠습니다"
+        ),
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?:설계\s*및\s*건설\s*)?계획을\s*수립할\s*예정입니다",
+        "관련 계획의 수립 가능 여부를 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"즉시\s*조치로는\s*[^.!?\n]{1,100}(?:진행하고자|실시하고자)\s*합니다",
+        "우선 현장 여건과 소관 권한을 확인하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"즉시\s*조치로는\s*다음과\s*같은\s*방안을\s*제안드립니다\s*:",
+        "우선 다음 사항을 중심으로 검토할 필요가 있습니다.",
+        rendered,
+    )
+    rendered = re.sub(
+        r"추가적인\s*조치로는\s*:",
+        "추가로 다음 사항을 확인할 필요가 있습니다.",
+        rendered,
+    )
+    rendered = re.sub(
+        r"검토해\s*주시기\s*바랍니다",
+        "검토할 필요가 있습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"진행해\s*주시기\s*바랍니다",
+        "진행 가능 여부를 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?:조치를\s*)?취해\s*주시기\s*바랍니다",
+        "필요한 조치 여부를 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<claim>[^.\n]{2,180})음을\s*확인하였습니다",
+        lambda match: f"{match.group('claim')}는지는 현장 확인이 필요합니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<claim>[^.\n]{2,180}?)(?:이|가)\s*보고되었습니다",
+        lambda match: f"{match.group('claim').strip()} 여부는 현장 확인이 필요합니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?:다음과\s*같은\s*)?방안을\s*제안드립니다\s*:",
+        "처리 방향은 다음 사항을 중심으로 검토할 필요가 있습니다.",
+        rendered,
+    )
+    rendered = re.sub(
+        r"권장드립니다",
+        "검토할 필요가 있습니다",
+        rendered,
+    )
+    rendered = re.sub(r"\n{3,}", "\n\n", rendered)
+    rendered = re.sub(r"(?m)^\s*\d+(?:\.\d+)?[.．)]\s*", "", rendered)
+    rendered = re.sub(r"(?m)^\s*[-•]\s*", "", rendered)
+    rendered = re.sub(r"(?m)^\s*\d+[.．)]\s*$", "", rendered)
+    rendered = re.sub(r"(?<!\d)(?<!제)\b[1-9][.．)]\s+(?=[가-힣A-Za-z])", "", rendered)
+    rendered = re.sub(
+        r"(?P<object>[가-힣A-Za-z0-9]+(?:\s+[가-힣A-Za-z0-9]+){0,3})(?:을|를)\s+"
+        r"(?P<modifier>추가로\s+)?(?P<action>설치|건설|신설|이동|확대)\s+가능\s+여부",
+        lambda match: (
+            f"{match.group('object')}의 "
+            f"{'추가 ' if match.group('modifier') else ''}"
+            f"{match.group('action')} 가능 여부"
+        ),
+        rendered,
+    )
+    rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    rendered = re.sub(r"\s+([.?!])", r"\1", rendered)
+    return rendered.strip(" \n;")
+
+
+def _soften_risky_sentences(text: str) -> str:
+    """Replace unsupported operational claims with evidence-safe review language."""
+    rendered = str(text or "").strip()
+    if not rendered:
+        return ""
+
+    action_terms = (
+        "설치",
+        "철거",
+        "제거",
+        "이동",
+        "신설",
+        "건설",
+        "매입",
+        "확대",
+        "개방",
+        "허가",
+        "지정",
+        "도입",
+        "구축",
+        "예산 확보",
+        "계획 수립",
+        "방역",
+        "단속",
+        "보수",
+        "정비",
+        "청소 일정",
+        "거리 확보",
+    )
+    commitment_cue = re.compile(
+        r"하겠습니다|할\s*예정입니다|할\s*계획입니다|실시하여|진행하여|"
+        r"진행합니다|실시합니다|즉시\s*활용합니다|강화하겠습니다|마련하겠습니다|높입니다|"
+        r"최소화합니다|적극\s*반영"
+    )
+    safe_cue = re.compile(
+        r"가능\s*여부|필요성|현장\s*확인\s*후|담당부서\s*확인|"
+        r"검토할\s*필요|방안을\s*검토|관련\s*기준"
+    )
+
+    pieces = re.findall(r"[^.!?。！？\n]+(?:[.!?。！？]+|$)", rendered)
+    normalized: List[str] = []
+    normalized_keys: set[str] = set()
+    generic_safety_added = False
+    unverified_status_added = False
+    for piece in pieces:
+        sentence = piece.strip()
+        if not sentence:
+            continue
+        if _CONSTRAINT_PATTERN.search(sentence):
+            key = re.sub(r"\s+", "", sentence)
+            if key not in normalized_keys:
+                normalized.append(sentence)
+                normalized_keys.add(key)
+            continue
+        if _UNVERIFIED_FACT_PATTERN.search(sentence):
+            if not unverified_status_added:
+                normalized.append(
+                    "해당 조치의 현재 진행 여부와 일정은 담당부서 확인이 필요합니다."
+                )
+                unverified_status_added = True
+            continue
+        if re.search(r"사용.{0,16}협의해\s*보겠습니다", sentence):
+            replacement = (
+                "시설 사용 가능 여부는 운영 기준과 안전·보안 여건을 확인한 뒤 안내드리겠습니다."
+            )
+            if replacement not in normalized_keys:
+                normalized.append(replacement)
+                normalized_keys.add(replacement)
+            continue
+        if re.search(r"거리(?:를)?\s*확보[^.!?]{0,30}하겠습니다", sentence):
+            replacement = (
+                "흡연구역과 보행통로의 이격 필요성은 현장 여건과 관련 기준을 확인한 뒤 "
+                "검토하겠습니다."
+            )
+            if replacement not in normalized_keys:
+                normalized.append(replacement)
+                normalized_keys.add(replacement)
+            continue
+
+        action_hits = [term for term in action_terms if term in sentence]
+        action = action_hits[0] if action_hits else ""
+        if len(action_hits) >= 2 and (
+            commitment_cue.search(sentence)
+            or (safe_cue.search(sentence) and re.search(r"하여|하거나|하고", sentence))
+        ):
+            if not generic_safety_added:
+                normalized.append(
+                    "요청하신 조치는 현장 여건, 소관 권한, 관련 계획 및 예산을 확인한 뒤 "
+                    "추진 가능 여부를 검토하겠습니다."
+                )
+                generic_safety_added = True
+            continue
+        if action and commitment_cue.search(sentence) and not safe_cue.search(sentence):
+            replacement = (
+                f"{action} 요청은 현장 여건, 소관 권한 및 관련 기준을 확인한 뒤 "
+                "처리 가능 여부를 검토하겠습니다."
+            )
+            key = re.sub(r"\s+", "", replacement)
+            if key not in normalized_keys:
+                normalized.append(replacement)
+                normalized_keys.add(key)
+            continue
+        key = re.sub(r"\s+", "", sentence)
+        if key not in normalized_keys:
+            normalized.append(sentence)
+            normalized_keys.add(key)
+
+    return " ".join(normalized).strip() or rendered
 
 
 def _stringify_structured_answer(value: Any) -> str:
@@ -163,6 +439,53 @@ def _trim_incomplete_trailing_sentence(text: str, citations: List[Dict[str, Any]
     return _fallback_review_body(citations)
 
 
+def _meaningful_terms(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[가-힣A-Za-z0-9]{2,}", str(text or ""))
+        if token not in _QUALITY_STOPWORDS and not token.isdigit()
+    }
+
+
+def _remove_precedent_fact_leakage(
+    text: str,
+    *,
+    complaint: str = "",
+    context: List[Dict[str, Any]] | None = None,
+) -> str:
+    """Drop concrete precedent-only sentences that are unrelated to the complaint."""
+    rendered = str(text or "").strip()
+    if not rendered or not complaint or not context:
+        return rendered
+
+    complaint_terms = _meaningful_terms(complaint)
+    context_terms: set[str] = set()
+    for item in context:
+        if isinstance(item, dict):
+            context_terms.update(_meaningful_terms(item.get("snippet")))
+    context_only = context_terms - complaint_terms
+    if not context_only:
+        return rendered
+
+    pieces = re.split(r"(?<=[.!?。！？])\s+|\n+", rendered)
+    kept: List[str] = []
+    for piece in pieces:
+        sentence = piece.strip()
+        if not sentence:
+            continue
+        terms = _meaningful_terms(sentence)
+        precedent_hits = terms & context_only
+        complaint_hits = terms & complaint_terms
+        if (
+            _CONCRETE_PRECEDENT_CUE.search(sentence)
+            and len(precedent_hits) >= 2
+            and len(complaint_hits) <= 1
+        ):
+            continue
+        kept.append(sentence)
+    return " ".join(kept).strip() or rendered
+
+
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
     if citations:
         return (
@@ -176,13 +499,26 @@ def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
     )
 
 
-def format_civil_reply_answer(answer: str, citations: List[Dict[str, Any]]) -> str:
+def format_civil_reply_answer(
+    answer: str,
+    citations: List[Dict[str, Any]],
+    *,
+    complaint: str = "",
+    context: List[Dict[str, Any]] | None = None,
+) -> str:
     """민원 회신문 answer를 출처 토큰 없는 고정 1~4항 구조로 정규화한다."""
     rendered = sanitize_answer_text(answer)
     rendered = _strip_citation_tokens(rendered)
     rendered = _normalize_structured_answer_text(rendered)
     rendered = _remove_generic_bridge_phrases(rendered)
     body = _strip_standard_reply_shell(rendered)
+    body = _normalize_review_body(body)
+    body = _soften_risky_sentences(body)
+    body = _remove_precedent_fact_leakage(
+        body,
+        complaint=complaint,
+        context=context,
+    )
     if not body:
         body = _fallback_review_body(citations)
     body = _trim_incomplete_trailing_sentence(body, citations)
@@ -254,7 +590,13 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
     return normalized
 
 
-def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
+def ensure_citation_tokens(
+    answer: str,
+    citations: List[Dict[str, Any]],
+    *,
+    complaint: str = "",
+    context: List[Dict[str, Any]] | None = None,
+) -> str:
     """호환용 이름. answer의 출처 토큰을 제거하고 회신문 형식을 정규화한다."""
     rendered = sanitize_answer_text(answer)
     if not rendered:
@@ -265,7 +607,104 @@ def ensure_citation_tokens(answer: str, citations: List[Dict[str, Any]]) -> str:
                 "현재 확인 가능한 자료가 충분하지 않아 담당부서 확인 및 추가 검토가 필요합니다. "
                 "민원 취지, 발생 장소, 관련 자료가 확인되면 현장 여건과 행정 처리 기준을 종합적으로 검토하겠습니다."
             )
-    return format_civil_reply_answer(rendered, citations)
+    return format_civil_reply_answer(
+        rendered,
+        citations,
+        complaint=complaint,
+        context=context,
+    )
+
+
+def _answer_quality_warnings(
+    answer: str,
+    *,
+    complaint: str = "",
+    context: List[Dict[str, Any]] | None = None,
+) -> List[Dict[str, str]]:
+    warnings: List[Dict[str, str]] = []
+    rendered = str(answer or "")
+    if "\\n" in rendered or re.search(
+        r"(?i)액션\s*아이템|action\s*item|섹션\s*\d+|\[REDACTED:[^\]]*$",
+        rendered,
+    ):
+        warnings.append(
+            {
+                "code": "ANSWER_OUTPUT_ARTIFACT",
+                "message": "answer에 내부 라벨, 이스케이프 또는 잘린 비식별 문자열이 남아 있습니다.",
+            }
+        )
+    commitment_matches = [
+        match.group(0)
+        for match in _COMMITMENT_PATTERN.finditer(rendered)
+        if not re.search(
+            r"가능\s*여부|필요성|현장\s*확인|소관\s*권한|관련\s*기준|방안을\s*검토|계획을\s*검토",
+            match.group(0),
+        )
+    ]
+    if commitment_matches:
+        warnings.append(
+            {
+                "code": "UNSUPPORTED_COMMITMENT_RISK",
+                "message": "근거 확인이 필요한 행정 조치를 확정적으로 약속하는 표현이 있습니다.",
+            }
+        )
+    if _UNVERIFIED_FACT_PATTERN.search(rendered):
+        warnings.append(
+            {
+                "code": "UNVERIFIED_FACT_RISK",
+                "message": "현재 민원에서 확인되지 않은 사실을 확정적으로 표현했을 가능성이 있습니다.",
+            }
+        )
+
+    if complaint:
+        complaint_terms = _meaningful_terms(complaint)
+        answer_terms = _meaningful_terms(_strip_standard_reply_shell(rendered))
+        if len(complaint_terms) >= 3:
+            overlap = len(complaint_terms & answer_terms)
+            if overlap < 2:
+                warnings.append(
+                    {
+                        "code": "ANSWER_REQUEST_MISMATCH",
+                        "message": "생성 답변이 현재 민원의 핵심 용어를 충분히 다루지 않습니다.",
+                    }
+                )
+        if context:
+            context_terms: set[str] = set()
+            context_texts: List[str] = []
+            for item in context:
+                if isinstance(item, dict):
+                    snippet = str(item.get("snippet") or "")
+                    context_texts.append(snippet)
+                    context_terms.update(_meaningful_terms(snippet))
+            if (
+                commitment_matches
+                and _CONSTRAINT_PATTERN.search(" ".join(context_texts))
+                and not _CONSTRAINT_PATTERN.search(rendered)
+            ):
+                warnings.append(
+                    {
+                        "code": "CONTEXT_CONSTRAINT_CONFLICT",
+                        "message": "검색 근거의 처리 불가·소관 제약과 충돌할 수 있는 확정 조치 표현이 있습니다.",
+                    }
+                )
+            context_only = context_terms - complaint_terms
+            leaked_sentences = []
+            for sentence in re.split(r"(?<=[.!?。！？])\s+|\n+", rendered):
+                sentence_terms = _meaningful_terms(sentence)
+                if (
+                    _CONCRETE_PRECEDENT_CUE.search(sentence)
+                    and len(sentence_terms & context_only) >= 2
+                    and len(sentence_terms & complaint_terms) <= 1
+                ):
+                    leaked_sentences.append(sentence)
+            if leaked_sentences:
+                warnings.append(
+                    {
+                        "code": "PRECEDENT_FACT_LEAKAGE_RISK",
+                        "message": "유사 사례의 세부 사실이 현재 민원 답변에 혼입되었을 가능성이 있습니다.",
+                    }
+                )
+    return warnings
 
 
 def build_validation_result(
@@ -273,10 +712,18 @@ def build_validation_result(
     citations: List[Dict[str, Any]],
     limitations: str,
     context: List[Dict[str, Any]],
+    complaint: str = "",
 ) -> Dict[str, Any]:
     """QA 응답 검증 결과(is_valid/errors/warnings)를 생성한다."""
     errors: List[Dict[str, str]] = []
     warnings: List[Dict[str, str]] = []
+    warnings.extend(
+        _answer_quality_warnings(
+            answer,
+            complaint=complaint,
+            context=context,
+        )
+    )
 
     if "폴백" in limitations:
         warnings.append(

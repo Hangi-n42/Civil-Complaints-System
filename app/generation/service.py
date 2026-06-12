@@ -19,6 +19,7 @@ from app.core.exceptions import GenerationError, RetrievalError
 from app.core.config import settings
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.parsing.json_utils import (
+    build_qa_response_schema,
     extract_json_string,
     normalize_confidence,
     parse_qa_json_response,
@@ -43,7 +44,12 @@ class GenerationService:
         """confidence를 0~1 number로 정규화한다."""
         return normalize_confidence(value)
 
-    async def call_ollama(self, prompt: str, temperature: float = 0.7) -> str:
+    async def call_ollama(
+        self,
+        prompt: str,
+        temperature: float = 0.7,
+        response_schema: Dict[str, Any] | None = None,
+    ) -> str:
         """
         Ollama LLM 호출
 
@@ -81,7 +87,7 @@ class GenerationService:
                 "model": self.model,
                 "prompt": prompt,
                 "stream": False,
-                "format": "json",
+                "format": response_schema or "json",
                 "options": {
                     "temperature": temperature,
                     "num_predict": settings.GENERATION_NUM_PREDICT,
@@ -874,7 +880,6 @@ class GenerationService:
             fallback_used = False
             retry_steps = [
                 {"stage": "default", "mode": "default", "temperature": 0.2},
-                {"stage": "force_json", "mode": "force_json", "temperature": 0.0},
                 {"stage": "compact", "mode": "compact", "temperature": 0.0},
             ]
             retry_logs: List[Dict[str, Any]] = []
@@ -904,6 +909,10 @@ class GenerationService:
                     response_text = await self.call_ollama(
                         prompt,
                         temperature=float(step["temperature"]),
+                        response_schema=build_qa_response_schema(
+                            context,
+                            citations_max=1,
+                        ),
                     )
                     parsed = await self.parse_json_response(response_text)
                     generation_mode = str(step["mode"])
@@ -912,7 +921,6 @@ class GenerationService:
                     if not str(getattr(e, "code", "")).startswith("PARSE_"):
                         raise
 
-                    last_parse_error = e
                     retry_logs.append(
                         {
                             "attempt": attempt_index,

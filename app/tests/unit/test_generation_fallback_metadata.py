@@ -44,19 +44,20 @@ def _valid_response() -> str:
 
 
 def test_generation_ollama_budget_matches_week6_benchmark_defaults():
-    assert settings.GENERATION_NUM_PREDICT == 768
+    assert settings.GENERATION_NUM_PREDICT == 640
     assert settings.GENERATION_NUM_CTX == 2048
 
 
 @pytest.mark.asyncio
-async def test_generate_qa_reports_retry_then_force_json_success(monkeypatch):
+async def test_generate_qa_reports_retry_then_compact_success(monkeypatch):
     service = GenerationService()
     responses = iter(["not-json", _valid_response()])
 
     async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
         return f"mode={mode}"
 
-    async def fake_call_ollama(prompt, temperature=0.7):
+    async def fake_call_ollama(prompt, temperature=0.7, response_schema=None):
+        assert isinstance(response_schema, dict)
         return next(responses)
 
     monkeypatch.setattr(service, "build_rag_prompt", fake_build_rag_prompt)
@@ -69,7 +70,7 @@ async def test_generate_qa_reports_retry_then_force_json_success(monkeypatch):
         "parse_retry_count": 1,
         "grounding_evidence_count": 1,
         "citation_count": 1,
-        "generation_mode": "force_json",
+        "generation_mode": "compact",
         "legal_grounding_status": "no_candidates",
         "legal_grounding_error": "",
     }
@@ -82,7 +83,7 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
     async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
         return f"mode={mode}"
 
-    async def fake_call_ollama(prompt, temperature=0.7):
+    async def fake_call_ollama(prompt, temperature=0.7, response_schema=None):
         return "not-json"
 
     monkeypatch.setattr(service, "build_rag_prompt", fake_build_rag_prompt)
@@ -92,7 +93,7 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
 
     assert result["generation_metadata"] == {
         "fallback_used": True,
-        "parse_retry_count": 3,
+        "parse_retry_count": 2,
         "grounding_evidence_count": 1,
         "citation_count": 1,
         "generation_mode": "fast_fallback",
@@ -131,7 +132,7 @@ async def test_fast_fallback_does_not_invent_legal_grounding(monkeypatch):
     async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
         return f"mode={mode}"
 
-    async def fake_call_ollama(prompt, temperature=0.7):
+    async def fake_call_ollama(prompt, temperature=0.7, response_schema=None):
         prompts.append(prompt)
         return "not-json"
 
@@ -156,7 +157,7 @@ async def test_fast_fallback_does_not_invent_legal_grounding(monkeypatch):
     assert result["legal_citation_warnings"] == []
     assert "건축법 제80조" not in result["answer"]
     assert all(prompt.rstrip().endswith("structured_output fields.") for prompt in prompts)
-    assert len(prompts[2]) < len(prompts[0])
+    assert len(prompts[1]) < len(prompts[0])
 
 
 @pytest.mark.asyncio
@@ -175,7 +176,7 @@ async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
     async def fake_build_rag_prompt(query, context, routing_trace=None, mode="default"):
         return f"mode={mode}"
 
-    async def fake_call_ollama(prompt, temperature=0.7):
+    async def fake_call_ollama(prompt, temperature=0.7, response_schema=None):
         return next(responses)
 
     monkeypatch.setattr(service, "build_rag_prompt", fake_build_rag_prompt)
@@ -189,7 +190,7 @@ async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
         "parse_retry_count": 1,
         "grounding_evidence_count": 1,
         "citation_count": 1,
-        "generation_mode": "force_json",
+        "generation_mode": "compact",
         "legal_grounding_status": "no_candidates",
         "legal_grounding_error": "",
     }

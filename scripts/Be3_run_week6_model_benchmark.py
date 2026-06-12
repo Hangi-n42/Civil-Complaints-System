@@ -38,7 +38,7 @@ import time
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 import yaml
@@ -48,11 +48,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.generation.parsing.json_utils import (
+    build_qa_response_schema,
     extract_json_string,
     normalize_confidence,
     parse_qa_json_response,
     validate_qa_payload_schema,
 )
+from app.core.config import settings
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.service import GenerationService
 from app.generation.citation.legal_citation import ground_legal_citations
@@ -80,10 +82,45 @@ def _read_json(path: Path) -> List[Dict[str, Any]]:
         return json.load(f)
 
 
+def _extract_partial_json_string_field(raw_text: str, field: str) -> str:
+    """Recover a JSON string field even when model output is truncated."""
+    match = re.search(
+        rf'"{re.escape(field)}"\s*:\s*"',
+        str(raw_text or ""),
+        flags=re.DOTALL,
+    )
+    if not match:
+        return ""
+
+    start = match.end()
+    escaped = False
+    end = len(raw_text)
+    for index in range(start, len(raw_text)):
+        char = raw_text[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == '"':
+            end = index
+            break
+
+    fragment = raw_text[start:end]
+    if fragment.endswith("\\"):
+        fragment = fragment[:-1]
+    try:
+        return str(json.loads(f'"{fragment}"')).strip()
+    except json.JSONDecodeError:
+        fragment = re.sub(r"\\u[0-9A-Fa-f]{0,3}$", "", fragment)
+        fragment = fragment.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+        return fragment.strip()
+
+
 def _recover_minimal_response(raw_text: str) -> Dict[str, Any]:
-    # 마지막 방어선: 제한 응답으로 스키마만 유지
-    ans_match = re.search(r'"answer"\s*:\s*"(.*?)"', raw_text, flags=re.DOTALL)
-    answer = ans_match.group(1).strip() if ans_match else ""
+    # 마지막 방어선: 잘린 JSON에서도 현재 민원에 대한 answer 앞부분을 보존한다.
+    answer = _extract_partial_json_string_field(raw_text, "answer")
     return {
         "answer": answer,
         "citations": [],
@@ -302,7 +339,7 @@ def _parse_week6_compatible_response(text: str) -> Dict[str, Any]:
 
 
 def _derive_non_empty_answer(parsed: Dict[str, Any], raw_response: str, context: List[Dict[str, Any]]) -> str:
-    """answer 필드가 비는 경우를 보완해 strict answer 고착 문제를 완화한다."""
+    """잘린 JSON의 answer만 복구하고 검색 스니펫을 답변으로 대체하지 않는다."""
     answer = str(parsed.get("answer", "") or "").strip()
     if answer:
         return sanitize_answer_text(answer)
@@ -312,23 +349,9 @@ def _derive_non_empty_answer(parsed: Dict[str, Any], raw_response: str, context:
         if value:
             return sanitize_answer_text(value)
 
-    match = re.search(r'"answer"\s*:\s*"(.*?)"', raw_response or "", flags=re.DOTALL)
-    if match:
-        extracted = match.group(1).strip()
-        if extracted:
-            return sanitize_answer_text(extracted)
-
-    if context:
-        snippet = str(context[0].get("snippet", "")).strip()
-        if snippet:
-            return sanitize_answer_text(
-                "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
-                "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
-                "접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다.\n\n"
-                f"3. 검토 의견은 다음과 같습니다. {snippet[:220]} "
-                "다만 구체적인 처리 가능 여부와 조치 일정은 담당부서의 현장 확인과 관계 기준 검토 후 안내드릴 수 있습니다.\n\n"
-                "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
-            )
+    extracted = _extract_partial_json_string_field(raw_response, "answer")
+    if extracted:
+        return sanitize_answer_text(extracted)
 
     return sanitize_answer_text(
         "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
@@ -484,7 +507,7 @@ def _build_prompt_context_from_case(
         )
         return prompt, context, trace
 
-    top_k = int(case.get("top_k") or 5)
+    top_k = int(case.get("top_k") or 3)
     collection_name = str(case.get("collection_name") or "civil_cases_v1")
     filters = case.get("filters") if isinstance(case.get("filters"), dict) else None
     threshold = float(case.get("threshold") or 0.0)
@@ -556,13 +579,18 @@ def _call_model(
     num_ctx: int,
     num_predict: int,
     timeout_sec: int,
+    context: List[Dict[str, Any]],
+    citations_max: int = 1,
 ) -> Tuple[Dict[str, Any], float, str]:
     url = f"{base_url.rstrip('/')}/api/generate"
     payload = {
         "model": model_name,
         "prompt": prompt,
         "stream": False,
-        "format": "json",
+        "format": build_qa_response_schema(
+            context,
+            citations_max=citations_max,
+        ),
         "options": {
             "temperature": temperature,
             "num_ctx": num_ctx,
@@ -776,7 +804,13 @@ def _repair_citations(raw_citations: Any, context: List[Dict[str, Any]]) -> List
     return repaired
 
 
-def _apply_answer_quality_guard(answer: str, citations: List[Dict[str, Any]]) -> str:
+def _apply_answer_quality_guard(
+    answer: str,
+    citations: List[Dict[str, Any]],
+    *,
+    complaint: str = "",
+    context: List[Dict[str, Any]] | None = None,
+) -> str:
     """빈 answer를 제한 응답 템플릿으로 보정하고 citation 토큰을 보장한다."""
     base = (answer or "").strip()
     if not base:
@@ -788,7 +822,12 @@ def _apply_answer_quality_guard(answer: str, citations: List[Dict[str, Any]]) ->
             "검토 과정에서 추가 자료가 필요한 경우 보완 요청 또는 담당부서 안내가 이루어질 수 있습니다.\n\n"
             "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
         )
-    return ensure_citation_tokens(base, citations)
+    return ensure_citation_tokens(
+        base,
+        citations,
+        complaint=complaint,
+        context=context,
+    )
 
 
 def _build_case_slices(cases: List[Dict[str, Any]]) -> Dict[str, Dict[str, set[str]]]:
@@ -838,7 +877,10 @@ def _slice_metrics_for_model(
                 continue
 
             ok_rows = [r for r in rows if r.get("status") == "ok"]
-            parse_success_rate = len(ok_rows) / len(rows)
+            parse_success_rate = (
+                len([r for r in ok_rows if r.get("raw_schema_compliant") is True])
+                / len(rows)
+            )
             answer_non_empty_rate_strict = (
                 len([r for r in ok_rows if int(r.get("answer_len_strict", 0)) > 0]) / len(rows)
             )
@@ -933,6 +975,9 @@ def run(
             f"[START] model={model_id} ({model_name}) total_runs={total_runs}",
             flush=True,
         )
+        if benchmark_mode == "direct":
+            # 검색 근거 판정도 현재 후보 모델을 사용해 모델명 불일치 fallback을 막는다.
+            settings.GROUNDING_FILTER_MODEL = model_name
 
         for case_idx, case in enumerate(cases, start=1):
             for rep in range(repetitions):
@@ -1008,6 +1053,7 @@ def run(
                             num_ctx=num_ctx,
                             num_predict=num_predict,
                             timeout_sec=timeout_sec,
+                            context=eval_context,
                         )
 
                     limitations = _coerce_limitations_text(parsed_final.get("limitations", ""))
@@ -1037,7 +1083,7 @@ def run(
                     # force_json -> compact sequence used by GenerationService.
                     if not integrity_passed_initial and benchmark_mode == "direct":
                         retry_reason = "INTEGRITY_GATE_FAILED"
-                        for retry_mode in ("force_json", "compact"):
+                        for retry_mode in ("compact",):
                             retry_stage = retry_mode
                             retry_prompt, eval_context, routing_trace = _build_prompt_context_from_case(
                                 case,
@@ -1060,6 +1106,8 @@ def run(
                                 num_ctx=num_ctx,
                                 num_predict=num_predict,
                                 timeout_sec=timeout_sec,
+                                context=eval_context,
+                                citations_max=1,
                             )
                             parsed_final = parsed_retry
                             raw_response = raw_response_retry
@@ -1116,12 +1164,24 @@ def run(
 
                     # repaired: 보정 후 기준
                     repaired_citations = _repair_citations(strict_citations_raw, eval_context)
-                    repaired_answer = _apply_answer_quality_guard(strict_answer, repaired_citations)
+                    complaint_text = str(
+                        case.get("consulting_content")
+                        or case.get("raw_text")
+                        or case.get("query")
+                        or query
+                    )
+                    repaired_answer = _apply_answer_quality_guard(
+                        strict_answer,
+                        repaired_citations,
+                        complaint=complaint_text,
+                        context=eval_context,
+                    )
                     validation = build_validation_result(
                         answer=repaired_answer,
                         citations=repaired_citations,
                         limitations=limitations,
                         context=eval_context,
+                        complaint=complaint_text,
                     )
 
                     if raw_schema_compliant:
@@ -1164,6 +1224,13 @@ def run(
                             "confidence_num": round(normalize_confidence(parsed_final.get("confidence")), 4),
                             "qa_is_valid": bool(validation.get("is_valid", False)),
                             "qa_error_count": len(validation.get("errors", [])),
+                            "qa_warning_count": len(validation.get("warnings", [])),
+                            "qa_warning_codes": [
+                                str(item.get("code") or "")
+                                for item in validation.get("warnings", [])
+                                if isinstance(item, dict)
+                                and str(item.get("code") or "").strip()
+                            ],
                             "raw_schema_compliant": raw_schema_compliant,
                             "raw_schema_errors": raw_schema_errors,
                             "postprocess_success": bool(validation.get("is_valid", False)),

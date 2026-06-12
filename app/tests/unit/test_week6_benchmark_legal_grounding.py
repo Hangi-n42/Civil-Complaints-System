@@ -8,6 +8,46 @@ from app.generation.prompts.prompt_factory import PromptFactory
 from scripts import Be3_run_week6_model_benchmark as benchmark
 
 
+def test_partial_json_answer_recovery_preserves_current_complaint_text():
+    raw = (
+        '{"citations":[],"answer":"도서관 단기근로 채용 면접의 공정성을 '
+        '확인할 필요가 있습니다. 향후 채용 절차'
+    )
+
+    recovered = benchmark._recover_minimal_response(raw)
+
+    assert "도서관 단기근로 채용" in recovered["answer"]
+    assert "채용 절차" in recovered["answer"]
+    assert recovered["limitations"] == "response_format_recovered"
+
+
+def test_partial_json_answer_recovery_decodes_escaped_newlines():
+    raw = '{"answer":"첫 문장입니다.\\n두 번째 문장입니다.","citations":['
+
+    answer = benchmark._extract_partial_json_string_field(raw, "answer")
+
+    assert answer == "첫 문장입니다.\n두 번째 문장입니다."
+
+
+def test_missing_answer_never_uses_retrieval_snippet_as_current_reply():
+    context = [
+        {
+            "chunk_id": "CASE-OTHER__chunk-0",
+            "case_id": "CASE-OTHER",
+            "snippet": "독서 동아리 공간이 부족해 별도 교실을 배정했습니다.",
+        }
+    ]
+
+    answer = benchmark._derive_non_empty_answer(
+        parsed={"answer": ""},
+        raw_response='{"citations":[],"answer":',
+        context=context,
+    )
+
+    assert "독서 동아리 공간" not in answer
+    assert "구체적인 검토 내용을 충분히 구성하지 못했습니다" in answer
+
+
 def test_benchmark_raw_schema_and_citation_support_are_strict():
     context = [
         {
