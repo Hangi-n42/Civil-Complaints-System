@@ -440,6 +440,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "key_terms": metadata.get("key_terms", []),
                     "responsible_units": metadata.get("responsible_units", []),
                     "responsible_units_source": metadata.get("responsible_units_source"),
+                    "responsible_units_confidence": metadata.get("responsible_units_confidence"),
                     "urgency_level": metadata.get("urgency_level"),
                     "strategy_id": routing["strategy_id"],
                     "route_key": routing["route_key"],
