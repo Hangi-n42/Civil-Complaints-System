@@ -20,6 +20,17 @@ class _StubGenerationService:
                 }
             ],
             "limitations": "실제 처리 기간은 지자체 상황에 따라 달라질 수 있습니다.",
+            "structured_output": {
+                "summary": "요약: 안전 조치 및 보수 일정 안내",
+                "action_items": [
+                    "안전 표지판 및 경고 테이프 설치 (즉시)",
+                    "현장 조사 및 보수 계획 수립 (3일 이내)",
+                ],
+                "request_segments": [
+                    "모델 임의 세그먼트 1",
+                    "모델 임의 세그먼트 2",
+                ],
+            },
             "confidence": 0.42,
             "question": "임대주택 보수 지연 관련 민원입니다.",
             "model": "stub-model",
@@ -238,6 +249,12 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert isinstance(data["routing_trace"]["route_reason"], str)
     assert data["routing_trace"]["route_reason"]
     assert set(data["structured_output"].keys()) == {"summary", "action_items", "request_segments"}
+    assert data["structured_output"]["summary"] == "안전 조치 및 보수 일정 안내"
+    assert data["structured_output"]["request_segments"] == ["임대주택 보수 지연 관련 민원입니다."]
+    assert data["structured_output"]["action_items"] == [
+        "안전 표지판 및 경고 테이프 설치 필요성 및 소관 권한 검토",
+        "현장 조사 및 보수 계획 수립 필요성 및 소관 권한 검토",
+    ]
     assert isinstance(data["answer"], str)
     assert isinstance(data["citations"], list)
     assert data["legal_citations"][0]["public_url"].endswith("/건축법/제80조")

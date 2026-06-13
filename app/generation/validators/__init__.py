@@ -4,10 +4,12 @@ from app.generation.validators.qa_response_validator import (
 	build_validation_result,
 	ensure_citation_tokens,
 	normalize_citations,
+	normalize_structured_output,
 )
 
 __all__ = [
 	"build_validation_result",
 	"ensure_citation_tokens",
 	"normalize_citations",
+	"normalize_structured_output",
 ]
