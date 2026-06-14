@@ -12,6 +12,7 @@ from app.generation.validators.qa_response_validator import (
     ensure_citation_tokens,
     format_civil_reply_answer,
     normalize_citations,
+    normalize_structured_output,
 )
 
 
@@ -38,6 +39,30 @@ def test_parse_qa_json_response_normalizes_values():
     assert 0.0 <= parsed["confidence"] <= 1.0
     assert parsed["citations"][0]["chunk_id"] == "C1"
     assert parsed["limitations"] == "범위 제한"
+
+
+def test_normalize_structured_output_removes_deadlines_and_prefers_routing_segments():
+    normalized = normalize_structured_output(
+        {
+            "summary": "요약: 안전 조치 및 보수 일정 안내",
+            "action_items": [
+                "안전 표지판 및 경고 테이프 설치 (즉시)",
+                "현장 조사 및 보수 계획 수립 (3일 이내)",
+            ],
+            "request_segments": ["모델이 다시 작성한 세그먼트 1", "모델 세그먼트 2"],
+        },
+        request_segments=["포트홀 임시 안전 조치 요청", "도로 보수 일정 문의"],
+    )
+
+    assert normalized["summary"] == "안전 조치 및 보수 일정 안내"
+    assert normalized["request_segments"] == [
+        "포트홀 임시 안전 조치 요청",
+        "도로 보수 일정 문의",
+    ]
+    assert normalized["action_items"] == [
+        "안전 표지판 및 경고 테이프 설치 필요성 및 소관 권한 검토",
+        "현장 조사 및 보수 계획 수립 필요성 및 소관 권한 검토",
+    ]
 
 
 def test_parse_qa_json_response_raises_on_missing_field():

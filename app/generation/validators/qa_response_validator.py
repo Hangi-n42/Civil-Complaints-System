@@ -447,6 +447,88 @@ def _meaningful_terms(text: str) -> set[str]:
     }
 
 
+def normalize_structured_output(
+    value: Any,
+    *,
+    request_segments: List[str] | None = None,
+) -> Dict[str, Any]:
+    """Normalize UI metadata without exposing unsupported deadlines or promises."""
+    structured = value if isinstance(value, dict) else {}
+    summary = sanitize_answer_text(str(structured.get("summary") or ""))
+    summary = re.sub(
+        r"(?i)^\s*(?:요약|summary)\s*[:：]\s*",
+        "",
+        summary,
+    ).strip()
+
+    raw_actions = structured.get("action_items")
+    if not isinstance(raw_actions, list):
+        raw_actions = []
+
+    action_terms = (
+        "설치",
+        "철거",
+        "제거",
+        "이동",
+        "신설",
+        "건설",
+        "매입",
+        "보수",
+        "정비",
+        "방역",
+        "단속",
+        "개방",
+        "허가",
+        "지정",
+        "수립",
+    )
+    safe_terms = ("확인", "검토", "협의", "안내", "판단", "점검")
+    actions: List[str] = []
+    for item in raw_actions:
+        action = sanitize_answer_text(str(item or ""))
+        action = re.sub(
+            r"\(\s*(?:즉시|긴급|우선|당일|\d+\s*(?:일|시간|주)\s*이내)\s*\)",
+            "",
+            action,
+        )
+        action = re.sub(
+            r"(?<![가-힣A-Za-z0-9])(?:즉시|긴급히|\d+\s*(?:일|시간|주)\s*이내)\s*",
+            "",
+            action,
+        )
+        action = re.sub(r"\s+", " ", action).strip(" .:：-")
+        if not action:
+            continue
+
+        if any(term in action for term in action_terms) and not any(
+            term in action for term in safe_terms
+        ):
+            action = f"{action} 필요성 및 소관 권한 검토"
+
+        if action not in actions:
+            actions.append(action)
+
+    canonical_segments = [
+        sanitize_answer_text(str(item or "")).strip()
+        for item in (request_segments or [])
+        if sanitize_answer_text(str(item or "")).strip()
+    ]
+    if not canonical_segments:
+        raw_segments = structured.get("request_segments")
+        if isinstance(raw_segments, list):
+            canonical_segments = [
+                sanitize_answer_text(str(item or "")).strip()
+                for item in raw_segments
+                if sanitize_answer_text(str(item or "")).strip()
+            ]
+
+    return {
+        "summary": summary,
+        "action_items": actions,
+        "request_segments": canonical_segments,
+    }
+
+
 def _remove_precedent_fact_leakage(
     text: str,
     *,

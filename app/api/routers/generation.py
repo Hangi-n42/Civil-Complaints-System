@@ -26,6 +26,7 @@ from app.generation.validators.qa_response_validator import (
     build_validation_result,
     ensure_citation_tokens,
     normalize_citations,
+    normalize_structured_output,
 )
 from app.retrieval.router.adaptive_router import (
     DEFAULT_COMPLEXITY_LEVEL,
@@ -722,8 +723,11 @@ async def _generate_qa(
         else _build_trace_from_route_key(route_key, request.query)
     )
 
-    generated_structured = result.get("structured_output") if isinstance(result.get("structured_output"), dict) else {}
     request_segments = routing_trace.get("request_segments") or []
+    generated_structured = normalize_structured_output(
+        result.get("structured_output"),
+        request_segments=request_segments,
+    )
     legal_warnings = result.get("legal_citation_warnings", [])
     answer_warning_codes = [
         str(item.get("code") or "")
@@ -752,10 +756,7 @@ async def _generate_qa(
             "structured_output": {
                 "summary": generated_structured.get("summary", ""),
                 "action_items": generated_structured.get("action_items", []),
-                "request_segments": generated_structured.get(
-                    "request_segments",
-                    routing_trace.get("request_segments", []),
-                ),
+                "request_segments": generated_structured.get("request_segments", []),
             },
             "answer": answer,
             "citations": response_citations,
