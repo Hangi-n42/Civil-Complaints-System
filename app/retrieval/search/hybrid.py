@@ -132,6 +132,7 @@ class HybridRetriever:
                 "key_terms": _split_pipe_list(meta.get("key_terms")),
                 "responsible_units": _split_pipe_list(meta.get("responsible_units")),
                 "responsible_units_source": str(meta.get("responsible_units_source") or ""),
+                "responsible_units_confidence": float(meta.get("responsible_units_confidence") or 0.0),
                 "urgency_level": str(meta.get("urgency_level") or ""),
             },
             "rank": rank,
