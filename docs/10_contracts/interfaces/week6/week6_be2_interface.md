@@ -32,6 +32,8 @@ Week 6에서 BE2는 topic_type 기반 retrieval 분기와 복합 요청(segment)
 필수 규칙:
 - `route_key = {topic_type}/{complexity_level}`
 - `request_segments` 길이가 2 이상이면 segment mode 활성화
+- `request_segments`는 BE1이 의미 기반으로 정제한 독립 요청 단위로 해석한다.
+- `및`, 쉼표 등 표면 구분자만으로 쪼개진 조각은 BE1에서 제거되므로 BE2는 segment 수만 보고 복합 검색 여부를 판단한다.
 
 ---
 
