@@ -232,6 +232,17 @@ class StructuringService:
     # 엔티티 레이블 헬퍼
     # ──────────────────────────────────────────────────────────────────
 
+    async def _mask_structuring_text(self, text: str) -> str:
+        """구조화 진입점에서 원문 개인정보 마스킹을 강제한다."""
+        if not text:
+            return ""
+
+        from app.ingestion.service import get_ingestion_service
+
+        ingestion_service = get_ingestion_service()
+        cleaned = ingestion_service._clean_aihub_markup(text)
+        return await ingestion_service.mask_pii(cleaned)
+
     def _normalize_entity_label(self, label: str) -> str:
         normalized = label.upper()
         return self._entity_label_normalize_map.get(normalized, normalized)
@@ -381,7 +392,7 @@ class StructuringService:
     async def extract_entities(self, text: str) -> List[Dict[str, str]]:
         """ADMIN_UNIT / TIME / FACILITY / HAZARD / LOCATION 을 정규식·키워드로 추출한다."""
         try:
-            self.logger.info("개체명 인식: %s...", text[:50])
+            self.logger.info("개체명 인식 시작: len=%d", len(text or ""))
             entities: List[Dict[str, str]] = []
             seen: set = set()
 
@@ -506,7 +517,11 @@ class StructuringService:
         )
 
         try:
-            self.logger.debug("스키마 검증: %s...", str(data)[:50])
+            self.logger.debug(
+                "스키마 검증: case_id=%s, field_count=%d",
+                data.get("case_id"),
+                len(data),
+            )
 
             # 필수 필드 존재 여부
             required = ["case_id", "source", "created_at", "raw_text",
@@ -682,7 +697,8 @@ class StructuringService:
         try:
             raw_record: Dict[str, Any] = {"text": record} if isinstance(record, str) else record
             normalized = self._normalize_required(raw_record)
-            text = normalized["raw_text"]
+            text = await self._mask_structuring_text(normalized["raw_text"])
+            normalized["raw_text"] = text
 
             self.logger.info(
                 "구조화 시작: case_id=%s, len=%d", normalized["case_id"], len(text)

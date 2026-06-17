@@ -21,15 +21,16 @@ MVP 4개(① ② ③ ④) 모두 제공됩니다.
 
 ---
 
-## 0. 입력 정합 — **민원인 원문만** 사용 (중요)
+## 0. 입력 정합 — **구조화 입력과 검색 색인 본문 분리** (중요)
 
-원천 `consulting_content` = `제목 + Q(민원인) + A(상담사)`. 구조화·긴급도는 **민원인이 작성한 부분만** 입력해야 합니다(상담사 답변 제외).
+원천 `consulting_content` = `제목 + Q(민원인) + A(상담사)`. 구조화 입력에는 **민원인 제목과 질문만** 사용하고, 검색 색인 본문은 `search_text`로 상담사 답변을 별도 보강합니다.
 
 - 전처리 산출물: `data/processed/processed_consulting_data.json` (3,280건, 파싱 100%). 규칙: `docs/QUICK_START.md`.
 - **어댑터 사용**: `app.structuring.preprocessing.to_structuring_record(rec)` → `structure()` 입력 dict 생성.
-  - 입력 텍스트 = `title + client_question` (둘 다 민원인 작성). `consultant_answer`는 제외.
+  - 구조화 입력 텍스트 = `title + client_question`. 파싱 결과 필드는 `title/client_question/consultant_answer`로 분리 보존한다.
   - Q가 비면 title 사용, Q가 제목을 참조("제목 내용처럼")해도 중복 없이 결합.
-- ⚠️ `structure()`에 **`consulting_content`(상담사 포함) 전체를 넣지 마세요.** 어댑터(또는 `text=client_question`)로 넣으면 `prompt_factory` 폴백이 자동으로 민원인 원문을 씁니다(역호환).
+- **검색 색인 본문**: `scripts/build_index.py`는 `search_text`가 있으면 이를 BE2 `/api/v1/index`의 `text`로 사용한다. 과거 상담 데이터의 `search_text`는 `title + client_question + consultant_answer`, 신규 민원은 답변이 없으므로 `title + client_question`이 된다.
+- `structure()`에 원천 `consulting_content`를 넘겨도 어댑터가 제목/질문/답변을 분리하고, 구조화 입력에는 민원인 원문만 사용합니다.
 - **긴급도 모델 재학습 완료**: 입력을 상담사 포함 → 민원인 원문으로 교정하니 macro-F1 0.583 → **0.599**(보통 recall 균형). `urgency/dataset.py`가 processed 파일을 조인.
 
 ```python

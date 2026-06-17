@@ -126,7 +126,7 @@ BE3는 BE1 구조화 결과를 `/search`와 `/qa`의 `query_signals`로 전달�
 
 BE1 확인사항:
 
-- 구조화 입력에는 상담사 답변이 아니라 민원인 원문만 사용한다.
+- 구조화/검색 입력에는 민원인 원문과 상담사 답변을 함께 사용한다. 단, 파싱 결과는 `client_question`과 `consultant_answer`를 분리 보존한다.
 - `legal_refs`와 `responsible_unit`은 확정값이 아닌 후보이므로 빈 배열을 허용한다.
 - `legal_ref_ids`와 `legal_ref_names`는 가능하면 동일 항목 순서로 생성한다.
 - confidence는 미보정 값이므로 답변 본문에 수치로 노출하지 않는다.

@@ -14,10 +14,10 @@
 
 ## 1.1) 현재 상태 및 제약 (Week 2)
 
-**POST /api/v1/ingest, /api/v1/structure 엔드포인트 미구현:**
-- Week 2 기준 BE1 API는 구조화 엔드포인트 미제공
+**POST /api/v1/ingest 미구현, POST /api/v1/structure 단건 API 구현:**
+- Week 2 기준 미제공이던 BE1 구조화 엔드포인트는 현재 단건 API로 제공
 - 현재 FE 화면은 `build_structure_success_payload()` 시뮬레이션 함수로 동작
-- 실제 API 연동은 Week 3 이후 예정
+- `/api/v1/ingest` 실제 API 연동은 별도 구현 이후 예정
 - FE는 아래 계약을 미리 준수하도록 구현 (API 준비 시 즉시 연동 가능)
 
 **검색/QA는 실제 API 연동 완료:**
@@ -44,7 +44,7 @@
 }
 ```
 
-### 2.2 Structure 결과 뷰모델 (POST /api/v1/structure 응답)
+### 2.2 Structure 결과 뷰모델 (POST /api/v1/structure 단건 응답)
 
 ```json
 {
@@ -52,17 +52,13 @@
   "request_id": "REQ-20260319-AB12CD34",
   "timestamp": "2026-03-19T10:00:00+09:00",
   "data": {
-    "structured_count": 50,
-    "results": [
-      {
-        "case_id": "CASE-2026-000123",
-        "observation": {"text": "...", "confidence": 0.9, "evidence_span": [0, 10]},
-        "result": {"text": "...", "confidence": 0.8, "evidence_span": [11, 20]},
-        "request": {"text": "...", "confidence": 0.9, "evidence_span": [21, 30]},
-        "context": {"text": "...", "confidence": 0.7, "evidence_span": [31, 40]},
-        "validation": {"is_valid": true, "errors": [], "warnings": []}
-      }
-    ]
+    "case_id": "CASE-2026-000123",
+    "raw_text": "...",
+    "observation": {"text": "...", "confidence": 0.9, "evidence_span": [0, 10]},
+    "result": {"text": "...", "confidence": 0.8, "evidence_span": [11, 20]},
+    "request": {"text": "...", "confidence": 0.9, "evidence_span": [21, 30]},
+    "context": {"text": "...", "confidence": 0.7, "evidence_span": [31, 40]},
+    "validation": {"is_valid": true, "errors": [], "warnings": []}
   }
 }
 ```
@@ -76,6 +72,7 @@
 - **Purpose**: 실제 BE API 구현 전 FE 레이아웃 테스트, 필드 매핑 검증
 
 **예시 시뮬레이션 페이로드:**
+아래 payload는 기존 FE 데모용 batch 형태다. 실제 `/api/v1/structure`는 2.2의 단건 응답을 반환한다.
 ```python
 # app/ui/Home.py 중
 def build_structure_success_payload(scenario_key: str, source_text: str) -> dict:
@@ -91,13 +88,13 @@ def build_structure_success_payload(scenario_key: str, source_text: str) -> dict
 ```
 
 **API 준비 완료 시 마이그레이션:**
-- 시뮬레이션 함수 호출 → 실제 `/api/v1/ingest`, `/api/v1/structure` POST 호출로 변경
-- 필드명/스키마는 현재 시뮬레이션 기준으로 이미 맞춰져 있음 (즉시 연동 가능)
-- 응답 처리 로직은 변경 없음
+- 시뮬레이션 함수 호출 → 실제 `/api/v1/structure` POST 호출로 교체 가능
+- `/api/v1/ingest` 연동은 별도 구현 이후 진행
+- `/api/v1/structure`는 단건 응답이므로 batch UI가 필요하면 FE에서 목록을 합성한다.
 
 ## 4) 변수명 충돌 방지 규칙
 
-- FE state key도 API 필드명 그대로 사용 (`structured_count`를 `count`로 축약 금지).
+- FE state key도 API 필드명 그대로 사용한다. 실제 `/api/v1/structure` 단건 응답에는 `structured_count`가 없다.
 - `validation.is_valid`는 `status`와 혼용하지 않는다.
 - 4요소 렌더링 카드 key는 `observation|result|request|context`만 사용.
 - 에러 배너는 `error.message`를 그대로 노출한다 (임의 키 재매핑 금지).
@@ -112,4 +109,5 @@ def build_structure_success_payload(scenario_key: str, source_text: str) -> dict
 - [x] 검증 배지(`is_valid`)와 에러 배너(`error.message`) 동시 표시 테스트
 - [x] API 연동 준비: 시뮬레이션 로직을 `/api/v1/structure` 호출로 교체 가능하도록 설계
 - [ ] 50건+ 처리 시 목록 가상화/페이징으로 UI 지연 방지
-- [ ] `/api/v1/ingest`, `/api/v1/structure` 구현 후 실연동 전환 검증
+- [ ] `/api/v1/structure` 실연동 전환 검증
+- [ ] `/api/v1/ingest` 구현 후 업로드 경로 실연동 전환 검증

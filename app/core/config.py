@@ -104,7 +104,9 @@ class Settings:
     RESPONSIBLE_UNIT_MIN_CONFIDENCE: float = float(os.getenv("RESPONSIBLE_UNIT_MIN_CONFIDENCE", "0.0"))
 
     # 구조화 고도화(Track A): ① 제약 디코딩 / ② 자기검증 (기본 off, 점진 전환)
-    STRUCTURING_CONSTRAINED: bool = os.getenv("STRUCTURING_CONSTRAINED", "false").lower() == "true"
+    # 제약 디코딩은 스키마 안정화 이득이 크고 실패 시 기존 fallback으로 내려가므로 기본으로 사용한다.
+    STRUCTURING_CONSTRAINED: bool = os.getenv("STRUCTURING_CONSTRAINED", "true").lower() == "true"
+    # 자기검증은 추가 LLM 호출로 지연/비용 리스크가 있어 운영자가 명시적으로 켤 때만 사용한다.
     ENABLE_SELF_VERIFY: bool = os.getenv("ENABLE_SELF_VERIFY", "false").lower() == "true"
 
     # BE3 법령 조문 인용 그라운딩(Phase B). 인덱스/모델 미가용 시 자동 무동작.

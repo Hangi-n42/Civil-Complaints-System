@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from app.ingestion.service import IngestionService
+from app.core.config import settings
+from app.structuring.schemas import FourElementsLLMOutput
 from app.structuring.service import StructuringService
 from scripts.evaluate_structuring import main as run_structuring_eval
 
@@ -150,7 +152,34 @@ async def test_structure_reads_raw_text_when_text_missing():
 
 
 @pytest.mark.asyncio
-async def test_structure_parses_raw_consulting_content_with_answer_without_supervision():
+async def test_structure_masks_pii_before_structuring(monkeypatch):
+    service = StructuringService()
+    monkeypatch.setattr(settings, "STRUCTURING_CONSTRAINED", False)
+
+    async def fake_extract(text: str):
+        assert "010-1234-5678" not in text
+        assert "test.user@example.com" not in text
+        return FourElementsLLMOutput(), 0
+
+    monkeypatch.setattr(service._llm_extractor, "extract", fake_extract)
+
+    result = await service.structure(
+        {
+            "case_id": "CASE-PII-001",
+            "source": "test",
+            "created_at": "2026-06-17",
+            "raw_text": "연락처 010-1234-5678, 이메일 test.user@example.com 입니다.",
+        }
+    )
+
+    assert "[REDACTED:PHONE]" in result["raw_text"]
+    assert "[REDACTED:EMAIL]" in result["raw_text"]
+    assert "010-1234-5678" not in result["raw_text"]
+    assert "test.user@example.com" not in result["raw_text"]
+
+
+@pytest.mark.asyncio
+async def test_structure_parses_raw_consulting_content_without_answer_or_supervision():
     service = StructuringService()
     result = await service.structure(
         {
@@ -168,7 +197,7 @@ async def test_structure_parses_raw_consulting_content_with_answer_without_super
         }
     )
 
-    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다.\n접수했습니다."
+    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다."
     assert "supervision" not in result
 
 
