@@ -19,7 +19,7 @@ BE2가 원천 민원 데이터를 검색 인덱스에 넣기 전에 BE1 구조�
   -> StructuringService.structure()
      - Rule NER
      - LLM 4요소 구조화
-     - entity_texts / issue_type / legal_refs / key_terms
+     - entity_texts / legal_refs / key_terms
      - responsible_unit / urgency
   -> scripts/build_index.py
      - BE2 /api/v1/index 호출
@@ -129,7 +129,6 @@ python scripts/build_index.py `
 BE1 구조화 원본에는 검색 보조 신호도 포함된다.
 
 - `entity_texts`
-- `issue_type`
 - `legal_refs`
 - `key_terms`
 - `responsible_unit`

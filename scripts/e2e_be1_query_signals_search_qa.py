@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.generation.context_mapper import map_retrieval_to_qa_context
 from app.retrieval.service import RetrievalService
-from app.structuring.enrichment import build_key_terms, classify_issue_type, normalize_entity_texts
+from app.structuring.enrichment import build_key_terms, normalize_entity_texts
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.preprocessing import load_processed, to_structuring_record
 
@@ -32,7 +32,6 @@ SIGNAL_FIELDS = [
     "entity_texts",
     "legal_ref_names",
     "legal_ref_ids",
-    "issue_types",
     "key_terms",
     "responsible_units",
 ]
@@ -115,7 +114,6 @@ def extract_query_signals(structured: dict[str, Any]) -> dict[str, Any]:
         "entity_texts": _extract_field_values(structured.get("entity_texts"), "text"),
         "legal_ref_names": _extract_field_values(structured.get("legal_refs"), "name"),
         "legal_ref_ids": _extract_field_values(structured.get("legal_refs"), "law_id"),
-        "issue_types": _extract_field_values(structured.get("issue_type"), "name"),
         "key_terms": _clean_values(structured.get("key_terms")),
         "responsible_units": _extract_field_values(structured.get("responsible_unit"), "name"),
         "responsible_units_source": responsible_unit_sources[0] if responsible_unit_sources else "",
@@ -128,16 +126,14 @@ def build_deterministic_structuring(record: dict[str, Any]) -> dict[str, Any]:
 
     text = _clean_text(record.get("text"))
     entity_texts = normalize_entity_texts([], text)
-    issue_type = classify_issue_type(text)
     legal_refs = get_legal_ref_matcher().match(text)
-    key_terms = build_key_terms(text, entity_texts, issue_type, legal_refs)
+    key_terms = build_key_terms(text, entity_texts, legal_refs)
     return {
         "case_id": record.get("case_id"),
         "raw_text": text,
         "category": record.get("category"),
         "region": record.get("region"),
         "entity_texts": entity_texts,
-        "issue_type": issue_type,
         "legal_refs": legal_refs,
         "key_terms": key_terms,
         "responsible_unit": [],

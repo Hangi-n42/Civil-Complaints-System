@@ -12,7 +12,7 @@ BE3(`GenerationService.generate_qa`)가 BE1 구조화·Phase B 조문 검색에�
 | --- | --- |
 | `observation/result/request/context` | 4요소 — 민원의 핵심을 답변 도입·요지로 |
 | `roles{complainant, respondent, object}` | 민원인/유발자/조치객체 — 답변 주어·대상 명확화 |
-| `request` + `issue_type` | "무엇을 요구/문의"하는지 → 답변 방향 결정 |
+| `request` + `key_terms` | "무엇을 요구/문의"하는지 → 답변 방향 결정 |
 | `key_terms` | 검색·요지 강조어 |
 | `legal_refs`(+`law_id`) | 관련 법령 후보 → 조문 인용의 출발점(§3) |
 | `responsible_unit` | "○○과로 안내드립니다" 류 안내 |
@@ -119,7 +119,6 @@ BE3는 BE1 구조화 결과를 `/search`와 `/qa`의 `query_signals`로 전달�
 | `entity_texts[].text` | `entity_texts[]` | 유사 민원 metadata soft rerank |
 | `legal_refs[].name` | `legal_ref_names[]` | 법령명 표시 및 후보 추적 |
 | `legal_refs[].law_id` | `legal_ref_ids[]` | `law_articles_v1` 조문 검색 |
-| `issue_type[].name` | `issue_types[]` | 쟁점 일치 rerank |
 | `key_terms[]` | `key_terms[]` | 검색 및 법령 BM25 보강 |
 | `responsible_unit[].name` | `responsible_units[]` | 담당부서 후보 안내 |
 | `urgency.level` | `urgency_level` | 답변 안전 안내 보조 |
@@ -142,7 +141,7 @@ BE2 확인사항:
 
 - `/api/v1/search` 응답의 `routing_hint`와 `routing_trace`는 이후 `/api/v1/qa`가 그대로 계승한다.
 - `route_key`와 `strategy_id`를 검색 이후 임의로 재계산하거나 변경하지 않는다.
-- 인덱싱 metadata에 `entity_texts`, `legal_ref_names`, `legal_ref_ids`, `issue_types`,
+- 인덱싱 metadata에 `entity_texts`, `legal_ref_names`, `legal_ref_ids`,
   `key_terms`, `responsible_units`, `urgency_level`을 유지한다.
 - 기존 검색 결과를 QA에 재사용할 때도 metadata soft rerank 후 grounding filter를 적용한다.
 - grounding filter 결과가 0개면 사용자용 `/qa`는 `no_evidence_fallback`을 반환한다.

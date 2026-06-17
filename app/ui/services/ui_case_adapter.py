@@ -146,7 +146,6 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
             "context": _pack_field(structured_src, raw_text, "context"),
             "entities": entities,
             "entity_texts": structured_src.get("entity_texts", []),
-            "issue_type": structured_src.get("issue_type", []),
             "legal_refs": structured_src.get("legal_refs", []),
             "key_terms": structured_src.get("key_terms", []),
             "responsible_unit": structured_src.get("responsible_unit", []),

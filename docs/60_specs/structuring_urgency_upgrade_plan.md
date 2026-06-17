@@ -13,7 +13,7 @@
 
 **현재 상태**
 - Stage1 규칙 NER + Stage2 온디바이스 LLM 4요소(자유 JSON `format:"json"`) + Stage3 병합/신뢰도(휴리스틱).
-- 이미 구현된 보강 필드: `entity_texts`, `issue_type`, `legal_refs`(Phase A), `responsible_unit`, `key_terms`, Phase B 조문 검색·인용검증.
+- 이미 구현된 보강 필드: `entity_texts`, `legal_refs`(Phase A), `responsible_unit`, `key_terms`, Phase B 조문 검색·인용검증.
 - 자산: GPU, Ollama(XGrammar 제약 디코딩 지원), bge-m3, LoRA 튜닝 설정, 토큰-F1 평가 하니스(`scripts/evaluate_structuring.py`).
 
 **확정 결정**
@@ -50,10 +50,10 @@
     "evidence": ["원문 근거 문구"],
     "override": "safety|null"
   }
-  // + 기존 유지: entity_texts, issue_type, legal_refs, responsible_unit, key_terms, entities, category, region, admin_unit
+  // + 기존 유지: entity_texts, legal_refs, responsible_unit, key_terms, entities, category, region, admin_unit
 }
 ```
-- enum은 제약 디코딩에서 강제(`issue_type`, `urgency.level`, `result.status`, role 존재여부).
+- enum은 제약 디코딩에서 강제(`urgency.level`, `result.status`, role 존재여부).
 - 스키마는 *평탄하게*(깊은 중첩/anyOf 지양 — XGrammar 약점).
 
 ---
@@ -129,7 +129,7 @@
 
 ### B1. 라벨링 (사용자, 500건)
 - **라벨 스키마**(추천): `{case_id, text, urgency_level∈{낮음,보통,높음,긴급}, safety_flag∈{0,1}}`.
-- **샘플러**(내가 제공): `scripts/sample_urgency_labeling.py` — 원천 민원에서 `category/issue_type/region` **층화 샘플** + 희귀 "긴급/안전" 케이스 oversample(클래스 불균형 완화).
+- **샘플러**(내가 제공): `scripts/sample_urgency_labeling.py` — 원천 민원에서 `category/region` **층화 샘플** + 희귀 "긴급/안전" 케이스 oversample(클래스 불균형 완화).
 - **라벨링 가이드**(내가 제공): 레벨별 **앵커 루브릭**(정의 + 한국어 예시 1개씩) + safety_flag 판정 기준. 50건 2인 교차 → **Cohen's κ**로 일치도 점검(κ<0.6면 가이드 보정).
 - 산출: `data/urgency/labels.jsonl`.
 
@@ -138,7 +138,7 @@
 - **게이트**: 라벨 `safety_flag` 대비 **recall ≥ 0.95**(오탐은 관대). 순수 함수 단위테스트.
 
 ### B3. 피처 빌더
-- `app/structuring/urgency/features.py`: **bge-m3 임베딩(1024d)** ⊕ 구조화 피처[`HAZARD` 개수, `category` SLA prior, `issue_type` one-hot, ongoing/recurring/explicit_deadline 마커, safety_flag]. 순수/결정적(임베딩 제외).
+- `app/structuring/urgency/features.py`: **bge-m3 임베딩(1024d)** ⊕ 구조화 피처[`HAZARD` 개수, `category` SLA prior, ongoing/recurring/explicit_deadline 마커, safety_flag]. 순수/결정적(임베딩 제외).
 - **게이트**: 피처 shape·결측 처리 단위테스트.
 
 ### B4. 분류기 + 보정
@@ -160,7 +160,7 @@
 Track A:  A1 → A2 → A3 → A4         (LLM, 무학습 — 바로 착수 가능)
 Track B:  B1(사용자 라벨) ─┬─ B2(안전규칙)
                           └─ B3(피처) → B4(학습·보정) → B5(통합)
-A·B 병렬 가능. urgency 피처에 issue_type 등 구조화 산출을 쓰므로
+A·B 병렬 가능. urgency 피처에 category 등 구조화 산출을 쓰므로
 B3는 A2(스키마 안정화) 이후가 이상적. 임베딩 인덱싱(진행 중)과는 무관.
 ```
 

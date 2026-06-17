@@ -45,7 +45,6 @@ async def test_retrieval_service_indexes_and_searches_via_chroma(tmp_path, monke
             ],
             "entity_texts": [{"text": "가로등", "confidence": 0.9}],
             "legal_refs": [{"name": "도로법", "law_id": "001706"}],
-            "issue_type": [{"name": "시설보수"}],
             "key_terms": ["가로등", "조명", "점검"],
             "responsible_unit": [{"name": "도로관리과", "source": "be1_structured"}],
             "urgency": {"level": "높음"},
@@ -101,7 +100,7 @@ async def test_retrieval_service_indexes_and_searches_via_chroma(tmp_path, monke
     assert results[0]["metadata"]["entity_texts"] == ["가로등"]
     assert results[0]["metadata"]["legal_ref_names"] == ["도로법"]
     assert results[0]["metadata"]["legal_ref_ids"] == ["001706"]
-    assert results[0]["metadata"]["issue_types"] == ["시설보수"]
+    assert "issue_types" not in results[0]["metadata"]
     assert results[0]["metadata"]["key_terms"] == ["가로등", "조명", "점검"]
     assert results[0]["metadata"]["responsible_units"] == ["도로관리과"]
     assert results[0]["metadata"]["responsible_units_source"] == "be1_structured"

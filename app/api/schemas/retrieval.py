@@ -148,7 +148,6 @@ class SearchQuerySignals(BaseModel):
     entity_texts: List[str] = Field(default_factory=list)
     legal_ref_names: List[str] = Field(default_factory=list)
     legal_ref_ids: List[str] = Field(default_factory=list)
-    issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
     responsible_units_source: Optional[str] = None
@@ -158,7 +157,6 @@ class SearchQuerySignals(BaseModel):
         "entity_texts",
         "legal_ref_names",
         "legal_ref_ids",
-        "issue_types",
         "key_terms",
         "responsible_units",
         mode="before",
@@ -177,7 +175,6 @@ class SearchQuerySignals(BaseModel):
         "entity_texts",
         "legal_ref_names",
         "legal_ref_ids",
-        "issue_types",
         "key_terms",
         "responsible_units",
     )
@@ -281,7 +278,6 @@ class SearchResultMetadata(BaseModel):
     entity_texts: List[str] = Field(default_factory=list)
     legal_ref_names: List[str] = Field(default_factory=list)
     legal_ref_ids: List[str] = Field(default_factory=list)
-    issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
     responsible_units_source: Optional[str] = None
