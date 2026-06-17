@@ -23,6 +23,11 @@ def _be1_structured_record():
         ],
         "key_terms": ["지게차", "면허", "지게차"],
         "responsible_unit": [{"name": "교통국", "confidence": 0.7, "source": "be1_structured"}],
+        "civil_category": {
+            "primary": "교통·물류",
+            "secondary": "도로시설물",
+            "source": "responsible_unit",
+        },
         "urgency": {"level": "보통", "confidence": 0.62},
     }
 
@@ -40,6 +45,9 @@ def test_normalize_record_preserves_be1_search_signal_metadata():
     assert normalized["key_terms"] == ["지게차", "면허"]
     assert normalized["responsible_units"] == ["교통국"]
     assert normalized["responsible_units_source"] == "be1_structured"
+    assert normalized["civil_category_primary"] == "교통·물류"
+    assert normalized["civil_category_secondary"] == "도로시설물"
+    assert normalized["civil_category_source"] == "responsible_unit"
     assert normalized["urgency_level"] == "보통"
 
 
@@ -61,6 +69,9 @@ def test_chroma_metadata_flattens_be1_search_signals_for_storage():
     assert metadata["key_terms"] == "지게차|면허"
     assert metadata["responsible_units"] == "교통국"
     assert metadata["responsible_units_source"] == "be1_structured"
+    assert metadata["civil_category_primary"] == "교통·물류"
+    assert metadata["civil_category_secondary"] == "도로시설물"
+    assert metadata["civil_category_source"] == "responsible_unit"
     assert metadata["urgency_level"] == "보통"
 
 
@@ -97,6 +108,9 @@ def test_chroma_query_restores_search_signal_metadata_as_lists(monkeypatch):
     assert result_metadata["key_terms"] == ["지게차", "면허"]
     assert result_metadata["responsible_units"] == ["교통국"]
     assert result_metadata["responsible_units_source"] == "be1_structured"
+    assert result_metadata["civil_category_primary"] == "교통·물류"
+    assert result_metadata["civil_category_secondary"] == "도로시설물"
+    assert result_metadata["civil_category_source"] == "responsible_unit"
     assert result_metadata["urgency_level"] == "보통"
 
 

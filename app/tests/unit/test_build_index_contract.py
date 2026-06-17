@@ -32,6 +32,14 @@ def test_build_api_case_record_preserves_be1_search_signals():
                 "source": "be1_structured",
             }
         ],
+        "civil_category": {
+            "primary": "교통·물류",
+            "secondary": "버스",
+            "secondary_candidates": ["버스", "대중교통"],
+            "confidence": 0.84,
+            "evidence": ["대중교통과"],
+            "source": "responsible_unit",
+        },
         "urgency": {"level": "보통", "score": 0.4, "evidence": []},
     }
 
@@ -42,6 +50,9 @@ def test_build_api_case_record_preserves_be1_search_signals():
     assert record["legal_refs"] == structured["legal_refs"]
     assert record["key_terms"] == structured["key_terms"]
     assert record["responsible_unit"] == structured["responsible_unit"]
+    assert record["civil_category"] == structured["civil_category"]
+    assert record["metadata"]["civil_category_primary"] == "교통·물류"
+    assert record["metadata"]["civil_category_secondary"] == "버스"
     assert record["urgency"] == structured["urgency"]
     assert record["metadata"]["structured_by"] == "constrained"
 

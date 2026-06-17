@@ -38,6 +38,8 @@ def test_ui_case_adapter_preserves_be1_generation_signals():
     assert structured["key_terms"] == ["가설건축물", "이행강제금"]
     assert structured["responsible_unit"] == [{"name": "건축과", "source": "be1_structured"}]
     assert structured["urgency"] == {"level": "높음"}
+    assert case["civil_category"]["primary"] == "도시·건축·주택"
+    assert case["category_display"].startswith("도시·건축·주택 >")
 
 
 def test_build_qa_query_signals_maps_be1_contract():

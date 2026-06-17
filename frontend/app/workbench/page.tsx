@@ -8,6 +8,7 @@ import {
   type RoutingHint,
   type RoutingTrace,
   type TopicType,
+  type CivilCategory,
   fetchUiCasesApi,
   type AssignedCase,
   runQaApi,
@@ -54,6 +55,8 @@ type WorkbenchCase = AssignedCase & {
   case_id: string;
   title?: string;
   category?: string;
+  category_display?: string;
+  civil_category?: CivilCategory;
   region?: string;
   priority?: string;
   received_at?: string;
@@ -455,7 +458,7 @@ function WorkbenchContent() {
                     >
                       <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
                       <div className="text-slate-600">{item.received_at || "-"}</div>
-                      <div className="text-slate-600">{item.category}</div>
+                      <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryLabel(item)}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
                     </button>
@@ -682,7 +685,8 @@ function buildCaseContext(caseItem: WorkbenchCase): WorkbenchCaseContext {
 }
 
 function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
-  const category = caseItem.category || "일반";
+  const category = caseItem.civil_category?.primary || caseItem.category || "일반";
+  const displayCategory = getCaseCategoryLabel(caseItem);
   const topic: TopicType = mapCategoryToTopicType(category);
   const complexityLevel: "low" | "medium" | "high" = "medium";
 
@@ -697,13 +701,25 @@ function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrac
       policy_reference_count: 0,
       cross_sentence_dependency: false,
     },
-    routeReason: `선택된 민원 카테고리(${category})를 기반으로 기본 라우팅 정보를 설정했습니다.`,
+    routeReason: `선택된 민원 카테고리(${displayCategory})를 기반으로 기본 라우팅 정보를 설정했습니다.`,
   };
 
   const routeKey = `${topic}/${complexityLevel}`;
   const strategyId = `topic_${topic}_${complexityLevel}_v1`;
 
   return { routingTrace, strategyId, routeKey };
+}
+
+function getCaseCategoryLabel(caseItem: Pick<WorkbenchCase, "category" | "category_display" | "civil_category">): string {
+  if (caseItem.category_display) {
+    return caseItem.category_display;
+  }
+  const primary = caseItem.civil_category?.primary;
+  const secondary = caseItem.civil_category?.secondary;
+  if (primary && secondary) {
+    return `${primary} > ${secondary}`;
+  }
+  return primary || caseItem.category || "기타";
 }
 
 function mapCategoryToTopicType(category: string): TopicType {
