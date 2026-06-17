@@ -337,6 +337,36 @@ class RetrievalService:
             return values[0] if values else ""
         return " ".join(str(value or "").split())
 
+    def _extract_civil_category(self, record: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, str]:
+        """BE1 시민 표시용 카테고리를 색인 메타데이터 형태로 표준화한다."""
+        civil_category = record.get("civil_category")
+        if not isinstance(civil_category, dict):
+            civil_category = metadata.get("civil_category") if isinstance(metadata.get("civil_category"), dict) else {}
+
+        primary = str(
+            civil_category.get("primary")
+            or record.get("civil_category_primary")
+            or metadata.get("civil_category_primary")
+            or ""
+        ).strip()
+        secondary = str(
+            civil_category.get("secondary")
+            or record.get("civil_category_secondary")
+            or metadata.get("civil_category_secondary")
+            or ""
+        ).strip()
+        source = str(
+            civil_category.get("source")
+            or record.get("civil_category_source")
+            or metadata.get("civil_category_source")
+            or ""
+        ).strip()
+        return {
+            "primary": primary,
+            "secondary": secondary,
+            "source": source,
+        }
+
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
@@ -430,6 +460,7 @@ class RetrievalService:
             record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
         )
         urgency_level = self._extract_urgency_level(urgency_value)
+        civil_category = self._extract_civil_category(record, metadata)
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
@@ -467,6 +498,9 @@ class RetrievalService:
             "responsible_units": responsible_units,
             "responsible_units_source": responsible_units_source,
             "responsible_units_confidence": responsible_units_confidence,
+            "civil_category_primary": civil_category["primary"],
+            "civil_category_secondary": civil_category["secondary"],
+            "civil_category_source": civil_category["source"],
             "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),

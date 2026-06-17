@@ -32,6 +32,7 @@ from app.structuring.enrichment import (
     build_key_terms,
     normalize_entity_texts,
 )
+from app.structuring.civil_category import classify_civil_category
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.llm_extractor import LLMSemanticExtractor
 from app.structuring.merger import ResultMerger
@@ -758,6 +759,13 @@ class StructuringService:
             )
             candidate["responsible_unit"] = self._assign_responsible_unit(       # 요청 #3
                 text, candidate["entity_texts"], candidate["key_terms"]
+            )
+            candidate["civil_category"] = classify_civil_category(              # 처리인 표시용 분야/세부태그
+                text=text,
+                category=normalized["category"],
+                responsible_unit=candidate["responsible_unit"],
+                entity_texts=candidate["entity_texts"],
+                key_terms=candidate["key_terms"],
             )
             candidate["urgency"] = self._score_urgency(text, normalized["category"])  # 긴급도(Track B)
 

@@ -103,7 +103,7 @@ export default function QueuePage() {
     if (searchKeyword.trim()) {
       const keyword = searchKeyword.toLowerCase();
       result = result.filter((c) => {
-        const haystack = `${c.case_id} ${c.category} ${c.assignee} ${c.region} ${c.raw_text}`.toLowerCase();
+        const haystack = `${c.case_id} ${getCaseCategoryLabel(c)} ${c.category} ${c.assignee} ${c.region} ${c.raw_text}`.toLowerCase();
         return haystack.includes(keyword);
       });
     }
@@ -278,7 +278,9 @@ export default function QueuePage() {
                       <div className="text-[11px] font-medium text-slate-400 truncate max-w-30">{c.case_id}</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{c.category}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      <div className="max-w-44 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{c.region}</td>
                     <td className="px-4 py-3">
                       <PriorityBadge priority={c.priority} />
@@ -304,4 +306,16 @@ export default function QueuePage() {
       </div>
     </div>
   );
+}
+
+function getCaseCategoryLabel(c: AssignedCase): string {
+  if (c.category_display) {
+    return c.category_display;
+  }
+  const primary = c.civil_category?.primary;
+  const secondary = c.civil_category?.secondary;
+  if (primary && secondary) {
+    return `${primary} > ${secondary}`;
+  }
+  return primary || c.category || "기타";
 }

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from app.core.title_builder import build_case_title
+from app.structuring.civil_category import classify_civil_category, civil_category_label
 
 _UI_CATEGORY_ALLOWED = {"도로안전", "환경위생", "주거복지", "교통행정", "기타"}
 _UI_CATEGORY_MAP = {
@@ -114,6 +115,16 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     region = normalize_ui_region(item.get("region_norm"), region_raw)
 
     assignee = str(item.get("assignee") or item.get("source") or "미지정")
+    responsible_unit = structured_src.get("responsible_unit")
+    if not responsible_unit and assignee and assignee != "미지정":
+        responsible_unit = [{"name": assignee, "source": "assignee"}]
+    civil_category = classify_civil_category(
+        text=raw_text,
+        category=category_raw or category,
+        responsible_unit=responsible_unit,
+        entity_texts=structured_src.get("entity_texts", entities),
+        key_terms=structured_src.get("key_terms", []),
+    )
     priority = str(item.get("priority") or "보통")
     status = str(item.get("status") or "미처리")
     received_at_raw = item.get("received_at") or item.get("created_at")
@@ -134,6 +145,8 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
         "assignee": assignee,
         "raw_text": raw_text,
         "category": category,
+        "category_display": civil_category_label(civil_category),
+        "civil_category": civil_category,
         "category_norm": category,
         "category_raw": category_raw,
         "region": region,

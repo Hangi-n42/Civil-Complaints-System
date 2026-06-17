@@ -220,6 +220,9 @@ class ChromaVectorStore:
             "responsible_units": _join_metadata_list(record.get("responsible_units")),
             "responsible_units_source": _first_metadata_value(record.get("responsible_units_source")),
             "responsible_units_confidence": float(record.get("responsible_units_confidence") or 0.0),
+            "civil_category_primary": _first_metadata_value(record.get("civil_category_primary")),
+            "civil_category_secondary": _first_metadata_value(record.get("civil_category_secondary")),
+            "civil_category_source": _first_metadata_value(record.get("civil_category_source")),
             "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
             "summary_observation": _normalize_text(summary.get("observation")),
@@ -329,6 +332,9 @@ class ChromaVectorStore:
             key_terms = _split_metadata_list(metadata.get("key_terms"))
             responsible_units = _split_metadata_list(metadata.get("responsible_units"))
             responsible_units_source = _first_metadata_value(metadata.get("responsible_units_source"))
+            civil_category_primary = _first_metadata_value(metadata.get("civil_category_primary"))
+            civil_category_secondary = _first_metadata_value(metadata.get("civil_category_secondary"))
+            civil_category_source = _first_metadata_value(metadata.get("civil_category_source"))
             try:
                 responsible_units_confidence = float(metadata.get("responsible_units_confidence") or 0.0)
             except (TypeError, ValueError):
@@ -391,6 +397,9 @@ class ChromaVectorStore:
                         "responsible_units": responsible_units,
                         "responsible_units_source": responsible_units_source,
                         "responsible_units_confidence": responsible_units_confidence,
+                        "civil_category_primary": civil_category_primary,
+                        "civil_category_secondary": civil_category_secondary,
+                        "civil_category_source": civil_category_source,
                         "urgency_level": str(metadata.get("urgency_level") or ""),
                         "created_at_ts": int(created_at_ts or 0),
                     },
