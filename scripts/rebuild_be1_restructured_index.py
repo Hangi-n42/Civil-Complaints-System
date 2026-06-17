@@ -125,9 +125,13 @@ def _extract_customer_turns(content: str) -> str:
 
 def _extract_civil_source_text(raw_record: Dict[str, Any], normalized: Dict[str, Any]) -> tuple[str, str]:
     # 검색 재색인 본문은 운영 전처리 어댑터의 답변 포함 텍스트를 우선한다.
+    search_text = _clean_text(normalized.get("search_text"))
+    if search_text:
+        return search_text, "search_text_with_answer"
+
     normalized_text = _clean_text(normalized.get("raw_text") or normalized.get("text"))
     if normalized_text:
-        return normalized_text, "search_text_with_answer"
+        return normalized_text, "structuring_text_fallback"
 
     prepared_text = _clean_text(to_structuring_record(raw_record).get("text"))
     if prepared_text:

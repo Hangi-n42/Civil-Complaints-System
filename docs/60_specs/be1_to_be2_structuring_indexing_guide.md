@@ -55,9 +55,9 @@ data/Training/02.라벨링데이터
 - `_x000D_` 줄바꿈 잔재
 - `고객:` / `상담원:` 대화형 형식
 
-BE1 구조화 입력의 `text`/`raw_text`에는 민원인 제목, 질문, 상담사 답변이 들어간다. BE2 재색인 검증에서 상담사 답변을 제외한 본문은 검색 텍스트가 짧아져 검색 지표가 하락했으므로, 검색 인덱싱으로 이어지는 구조화 본문은 `to_structuring_record()`의 답변 포함 텍스트를 사용한다.
+BE1 구조화 입력의 `text`/`raw_text`에는 민원인 제목과 질문만 들어간다. 상담사 답변은 민원인의 요구가 아니므로 구조화, 담당부서, 긴급도 판단에 섞지 않는다.
 
-민원인 원문만 필요한 내부 분석이나 보조 태스크는 `civil_text()`를 별도로 사용할 수 있다. 이 분리는 외부 API/DTO 형식을 바꾸지 않고 입력 텍스트 생성 정책만 명확히 하기 위한 것이다.
+BE2 검색 색인 본문은 `search_text`를 우선 사용한다. 이 값은 과거 상담 데이터에 상담사 답변이 있으면 `title + client_question + consultant_answer`로 만들고, 신규 민원처럼 답변이 없으면 자연스럽게 `title + client_question`만 담는다. 이 분리는 외부 API/DTO 형식을 바꾸지 않고 내부 텍스트 생성 정책만 명확히 하기 위한 것이다.
 
 구조화 진입점은 공식 인덱싱 스크립트를 우회한 단건 호출에서도 PII 마스킹을 다시 적용한다. 따라서 `StructuringService.structure()`와 `/api/v1/structure`의 `raw_text` 및 후속 구조화 필드는 마스킹된 본문을 기준으로 생성된다.
 
@@ -120,7 +120,7 @@ python scripts/build_index.py `
 - `created_at`: 접수일
 - `category`: 원천 카테고리
 - `region`: 지역
-- `text`: BE2 임베딩 대상 구조화 텍스트
+- `text`: BE2 임베딩 대상 검색 본문. `search_text`가 있으면 답변 포함 본문을 사용하고, 없으면 구조화 4요소 결합으로 fallback한다.
 - `structured_text`: observation/result/request/context 평탄 텍스트
 - `entities`: BE1 NER 결과
 - `metadata.structured_by`: `hybrid`, `constrained`, `fallback`

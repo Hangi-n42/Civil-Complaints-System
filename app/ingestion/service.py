@@ -19,7 +19,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from app.core.logging import pipeline_logger
 from app.core.exceptions import IngestionError
-from app.structuring.preprocessing import to_structuring_record
+from app.structuring.preprocessing import civil_text_with_answer, to_structuring_record
 
 # ── AI Hub 기관 유형 상수 ──────────────────────────────────────────────────
 _SOURCE_TYPE_CULTURAL = "cultural"   # 국립아시아문화전당 (고객/상담원 대화형)
@@ -433,7 +433,7 @@ class IngestionService:
         Returns::
             {
               case_id, source, source_id, created_at,
-              category, region, raw_text, text,
+              category, region, raw_text, text, search_text,
               metadata: {source_type, source_file, consulting_date,
                          client_gender, client_age,
                          consulting_turns, consulting_length},
@@ -452,9 +452,10 @@ class IngestionService:
             category = _SOURCE_DEFAULT_CATEGORY.get(source, "unknown")
         region = self._extract_region(source, source_type)
 
-        # 구조화/검색 입력은 to_structuring_record()가 만든 검색용 본문을 따른다.
+        # 구조화 입력과 검색 색인 본문을 분리한다.
         structuring_record = to_structuring_record(record)
         content = self._clean_aihub_markup(str(structuring_record.get("text") or "").strip())
+        search_content = self._clean_aihub_markup(civil_text_with_answer(record).strip())
 
         def _to_int(v: Any) -> Optional[int]:
             try:
@@ -471,6 +472,7 @@ class IngestionService:
             "region": region,
             "raw_text": content,
             "text": content,
+            "search_text": search_content or content,
             "metadata": {
                 "source_type": source_type,
                 "source_file": str(source_file),
@@ -565,18 +567,24 @@ class IngestionService:
             self.logger.info(f"입수 처리 시작: {len(documents)}개 문서")
             result = documents
 
+            async def _clean_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+                cleaned = {**doc, "text": await self.clean_text(doc.get("text", ""))}
+                if "search_text" in doc:
+                    cleaned["search_text"] = await self.clean_text(doc.get("search_text", ""))
+                return cleaned
+
+            async def _mask_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+                masked = {**doc, "text": await self.mask_pii(doc.get("text", ""))}
+                if "search_text" in doc:
+                    masked["search_text"] = await self.mask_pii(doc.get("search_text", ""))
+                return masked
+
             if clean:
-                result = [
-                    {**doc, "text": await self.clean_text(doc.get("text", ""))}
-                    for doc in result
-                ]
+                result = [await _clean_doc(doc) for doc in result]
                 self.logger.info("텍스트 정제 완료")
 
             if mask_pii:
-                result = [
-                    {**doc, "text": await self.mask_pii(doc.get("text", ""))}
-                    for doc in result
-                ]
+                result = [await _mask_doc(doc) for doc in result]
                 self.logger.info("PII 마스킹 완료")
 
             # result = await self.deduplicate(result)
