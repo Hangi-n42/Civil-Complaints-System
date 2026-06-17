@@ -60,7 +60,7 @@
 
 ## Track A — 구조화 ①+② (LLM, 무학습)
 
-### 구현 현황 (A1–A4 완료, 플래그 off 기본)
+### 구현 현황 (A1–A4 완료, 제약 디코딩 기본 on)
 
 | 단계 | 파일 | 상태 |
 | --- | --- | --- |
@@ -70,9 +70,9 @@
 | A4 병합(roles/status)+service 배선 | `structured_merge.py`, `service.py`, `config.py` | ✅ 통합·스모크 |
 | 테스트 | `test_structured_extractor/verifier/structured_merge.py` (19) | ✅ 통과 |
 
-- **플래그**: `STRUCTURING_CONSTRAINED`(① 제약 디코딩), `ENABLE_SELF_VERIFY`(② 자기검증). 둘 다 기본 `false` → 기존 자유 JSON 경로 유지(하위호환). 전환은 env로.
+- **플래그**: `STRUCTURING_CONSTRAINED`(① 제약 디코딩)는 기본 `true`, `ENABLE_SELF_VERIFY`(② 자기검증)는 기본 `false`. 제약 디코딩은 스키마 안정화 이득이 크고 실패 시 fallback으로 내려가지만, 자기검증은 추가 LLM 호출 지연 리스크가 있어 env로만 켠다.
 - **검증됨**: 스키마 강제(enum/required/additionalProperties), 가이드라인 프롬프트, roles 평탄화, 자기검증 환각제거+보정신뢰도, service 분기 + Ollama 미가동 graceful 폴백. 전체 83개 테스트 통과.
-- **로컬에서**: `STRUCTURING_CONSTRAINED=true`(+ 선택 `ENABLE_SELF_VERIFY=true`)로 실제 Ollama(XGrammar) 추출·검증 동작 확인 → `scripts/evaluate_structuring.py` 토큰-F1 회귀 + 스키마 위반 0 확인 후 기본 on 검토.
+- **로컬에서**: `STRUCTURING_CONSTRAINED=true`(+ 선택 `ENABLE_SELF_VERIFY=true`)로 실제 Ollama(XGrammar) 추출·검증 동작 확인 → `scripts/evaluate_structuring.py` 토큰-F1 회귀 + 스키마 위반 0 확인.
 - **자기검증 범위(확정)**: `only_inferred=True` — **근거 span 이 inferred([0,0], 원문 미발견)인 필드에만** 검증 LLM 을 돈다(이미 grounding 된 필드는 verified 처리·호출 생략 → 지연 최소화). 검증 LLM 실패 시 `supported=true`(원추출 유지, 환각 단정 회피).
 - ⚠️ confidence 보정 매핑(0.95/0.85/0.80/0.20)은 미보정 휴리스틱 — 긴급도 라벨처럼 추후 라벨로 보정 가능.
 

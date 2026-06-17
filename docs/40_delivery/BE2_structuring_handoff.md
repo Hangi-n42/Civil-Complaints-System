@@ -21,16 +21,16 @@ MVP 4개(① ② ③ ④) 모두 제공됩니다.
 
 ---
 
-## 0. 입력 정합 — **민원인 원문만** 사용 (중요)
+## 0. 입력 정합 — **민원인 원문 + 상담사 답변** 사용 (중요)
 
-원천 `consulting_content` = `제목 + Q(민원인) + A(상담사)`. 구조화·긴급도는 **민원인이 작성한 부분만** 입력해야 합니다(상담사 답변 제외).
+원천 `consulting_content` = `제목 + Q(민원인) + A(상담사)`. 현재 검색 재색인 성능 기준에서는 구조화/검색 입력에 **민원인 질문과 상담사 답변을 함께** 사용합니다.
 
 - 전처리 산출물: `data/processed/processed_consulting_data.json` (3,280건, 파싱 100%). 규칙: `docs/QUICK_START.md`.
 - **어댑터 사용**: `app.structuring.preprocessing.to_structuring_record(rec)` → `structure()` 입력 dict 생성.
-  - 입력 텍스트 = `title + client_question` (둘 다 민원인 작성). `consultant_answer`는 제외.
+  - 입력 텍스트 = `title + client_question + consultant_answer`. 파싱 결과 필드는 분리 보존하지만 구조화/검색 입력 본문은 결합한다.
   - Q가 비면 title 사용, Q가 제목을 참조("제목 내용처럼")해도 중복 없이 결합.
-- ⚠️ `structure()`에 **`consulting_content`(상담사 포함) 전체를 넣지 마세요.** 어댑터(또는 `text=client_question`)로 넣으면 `prompt_factory` 폴백이 자동으로 민원인 원문을 씁니다(역호환).
-- **긴급도 모델 재학습 완료**: 입력을 상담사 포함 → 민원인 원문으로 교정하니 macro-F1 0.583 → **0.599**(보통 recall 균형). `urgency/dataset.py`가 processed 파일을 조인.
+- `structure()`에 원천 `consulting_content`를 넘겨도 `to_structuring_record()` 경로가 제목/질문/답변을 분리한 뒤 정책에 맞는 결합 본문을 만든다.
+- **주의**: 긴급도 모델 자체 성능 평가는 별도 추적한다. 검색 재색인 경로는 답변 포함 본문을 사용한다.
 
 ```python
 from app.structuring.preprocessing import load_processed, to_structuring_record

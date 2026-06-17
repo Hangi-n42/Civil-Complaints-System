@@ -228,7 +228,8 @@ class IngestionService:
             정제된 텍스트
         """
         try:
-            self.logger.debug(f"텍스트 정제: {text[:50]}...")
+            # 원문 일부가 로그에 남지 않도록 길이만 기록한다.
+            self.logger.debug("텍스트 정제: len=%d", 0 if text is None else len(text))
             if text is None:
                 return ""
 
@@ -259,7 +260,8 @@ class IngestionService:
             마스킹된 텍스트
         """
         try:
-            self.logger.debug(f"PII 마스킹: {text[:50]}...")
+            # 개인정보가 로그에 노출되지 않도록 원문 preview를 남기지 않는다.
+            self.logger.debug("PII 마스킹: len=%d", 0 if text is None else len(text))
             if text is None:
                 return ""
 

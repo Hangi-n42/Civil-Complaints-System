@@ -60,7 +60,8 @@ Week 2 구현 중 변수명, 포맷, 객체명 충돌을 방지하기 위해 공
 ## 7) 구현 상태 메모 (2026-03-22)
 
 - 구현 완료 API: `POST /api/v1/search`, `POST /api/v1/qa`
-- 미구현 API(Week3 예정): `POST /api/v1/ingest`, `POST /api/v1/structure`
+- 미구현 API(별도 구현 예정): `POST /api/v1/ingest`
+- 구현 API: `POST /api/v1/structure` 단건 구조화
 - FE 업로드/구조화 화면은 시뮬레이션 경로(`build_structure_success_payload`) 사용
 
 ## 10) 2026-03-25 동기화 반영
