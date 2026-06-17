@@ -68,6 +68,20 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _strip_structured_artifact_tail(text: str) -> str:
+    rendered = str(text or "")
+    markers = (
+        r"\bstructured_output(?:\.[A-Za-z_]+)?\b",
+        r"확인\s*및\s*협의\s*조치\s*:",
+    )
+    for pattern in markers:
+        match = re.search(pattern, rendered, flags=re.IGNORECASE)
+        if match and match.start() > 0:
+            rendered = rendered[: match.start()]
+            break
+    return rendered.strip()
+
+
 def sanitize_answer_text(answer: str) -> str:
     """사용자 답변에 노출되면 안 되는 retrieval 메타데이터를 제거한다."""
     rendered = str(answer or "").strip()
@@ -98,6 +112,7 @@ def sanitize_answer_text(answer: str) -> str:
     rendered = re.sub(r"<[^>]+>", " ", rendered)
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
     rendered = re.sub(r"[ \t]{2,}", " ", rendered)
+    rendered = _strip_structured_artifact_tail(rendered)
     return rendered.strip()
 
 
@@ -568,6 +583,89 @@ def _remove_precedent_fact_leakage(
     return " ".join(kept).strip() or rendered
 
 
+_KO_CONTEXT_CONSTRAINT_RE = re.compile(
+    r"불가|어렵|곤란|사유지|소유자|관리주체|관리사무소|소관|권한|관할|개인\s*소유"
+)
+_KO_OVERACTIVE_ACTION_RE = re.compile(
+    r"설치|철거|제거|이동|재배치|신설|건설|매입|보수|정비|개방|허용|지정|마련|확보|실시|개최"
+)
+_KO_OVERACTIVE_TONE_RE = re.compile(
+    r"제안|검토해\s*보겠습니다|검토해볼\s*수\s*있습니다|가능|기여|도움|방안|허용|재배치"
+)
+_KO_UNSUPPORTED_PROPOSAL_RE = re.compile(
+    r"제안드립|권장드립|허용하는\s*방안|설치하는\s*방안|재배치(?:를)?\s*제안|"
+    r"계획을\s*수립하고\s*있|확충을\s*위한\s*계획|주민\s*설명회|의견을\s*수렴하겠|"
+    r"최적\s*위치\s*선정|쾌적한\s*환경을\s*제공|기여할\s*것"
+)
+_KO_SAFE_REVIEW_CUE_RE = re.compile(
+    r"현장\s*여건|소관\s*권한|관련\s*기준|처리\s*가능\s*여부|검토하겠습니다|확인한\s*뒤"
+)
+
+
+def _remove_unsupported_proposals(text: str) -> str:
+    rendered = str(text or "").strip()
+    if not rendered:
+        return ""
+
+    kept: List[str] = []
+    removed = False
+    for sentence in re.split(r"(?<=[.!?。])\s+|\n+", rendered):
+        cleaned = sentence.strip(" \t;")
+        if not cleaned:
+            continue
+        if _KO_UNSUPPORTED_PROPOSAL_RE.search(cleaned) and not _KO_SAFE_REVIEW_CUE_RE.search(cleaned):
+            removed = True
+            continue
+        kept.append(cleaned)
+
+    if removed and not any(_KO_SAFE_REVIEW_CUE_RE.search(item) for item in kept):
+        kept.append("요청 사항은 현장 여건, 소관 권한 및 관련 기준을 확인한 뒤 처리 가능 여부를 검토하겠습니다.")
+    return " ".join(kept).strip() or rendered
+
+
+def _context_constraint_sentence(context: List[Dict[str, Any]] | None) -> str:
+    for item in context or []:
+        if not isinstance(item, dict):
+            continue
+        snippet = str(item.get("snippet") or "")
+        for sentence in re.split(r"(?<=[.!?。])\s+|\n+", snippet):
+            cleaned = sentence.strip()
+            if cleaned and _KO_CONTEXT_CONSTRAINT_RE.search(cleaned):
+                return cleaned[:180]
+    return ""
+
+
+def _apply_context_constraint_guard(
+    text: str,
+    context: List[Dict[str, Any]] | None = None,
+) -> str:
+    rendered = str(text or "").strip()
+    constraint = _context_constraint_sentence(context)
+    if not rendered or not constraint:
+        return rendered
+
+    kept: List[str] = []
+    removed = False
+    for sentence in re.split(r"(?<=[.!?。])\s+|\n+", rendered):
+        cleaned = sentence.strip()
+        if not cleaned:
+            continue
+        if (
+            _KO_OVERACTIVE_ACTION_RE.search(cleaned)
+            and _KO_OVERACTIVE_TONE_RE.search(cleaned)
+            and not _KO_CONTEXT_CONSTRAINT_RE.search(cleaned)
+        ):
+            removed = True
+            continue
+        kept.append(cleaned)
+
+    if removed:
+        kept.append(
+            f"검색 근거상 {constraint} 이 사안은 해당 제약과 소관 권한을 우선 확인한 뒤 처리 가능 여부를 판단하겠습니다."
+        )
+    return " ".join(kept).strip() or rendered
+
+
 def _fallback_review_body(citations: List[Dict[str, Any]]) -> str:
     if citations:
         return (
@@ -596,11 +694,13 @@ def format_civil_reply_answer(
     body = _strip_standard_reply_shell(rendered)
     body = _normalize_review_body(body)
     body = _soften_risky_sentences(body)
+    body = _remove_unsupported_proposals(body)
     body = _remove_precedent_fact_leakage(
         body,
         complaint=complaint,
         context=context,
     )
+    body = _apply_context_constraint_guard(body, context=context)
     if not body:
         body = _fallback_review_body(citations)
     body = _trim_incomplete_trailing_sentence(body, citations)

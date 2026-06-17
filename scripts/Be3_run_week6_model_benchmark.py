@@ -1256,12 +1256,80 @@ def run(
                         }
                     )
                 except Exception as e:
+                    eval_context = _case_context(case)
+                    query = _case_query(case)
+                    complaint_text = str(
+                        case.get("consulting_content")
+                        or case.get("raw_text")
+                        or case.get("query")
+                        or query
+                    )
+                    repaired_citations = _repair_citations([], eval_context)
+                    fallback_answer = _apply_answer_quality_guard(
+                        "",
+                        repaired_citations,
+                        complaint=complaint_text,
+                        context=eval_context,
+                    )
+                    fallback_cite_rate = _citation_match_rate(
+                        repaired_citations,
+                        eval_context,
+                    )
+                    validation = build_validation_result(
+                        answer=fallback_answer,
+                        citations=repaired_citations,
+                        limitations="benchmark generation failed; safe fallback reply recorded",
+                        context=eval_context,
+                        complaint=complaint_text,
+                    )
                     record.update(
                         {
-                            "status": "error",
+                            "status": "failed_fallback",
                             "latency_sec": None,
                             "raw_response": "",
-                            "parsed_answer": "",
+                            "parsed_answer": fallback_answer,
+                            "parsed_answer_repaired": fallback_answer,
+                            "parsed_answer_strict": "",
+                            "parsed_answer_model_raw": "",
+                            "answer_len": len(fallback_answer),
+                            "answer_len_repaired": len(fallback_answer),
+                            "answer_len_strict": 0,
+                            "citations_count": len(repaired_citations),
+                            "citations_count_repaired": len(repaired_citations),
+                            "citations_count_strict": 0,
+                            "citations_repaired": repaired_citations,
+                            "citations_strict": [],
+                            "citation_match_rate": round(fallback_cite_rate, 4),
+                            "citation_match_rate_repaired": round(fallback_cite_rate, 4),
+                            "citation_match_rate_strict": 0.0,
+                            "citation_support_rate_strict": 0.0,
+                            "qa_is_valid": bool(validation.get("is_valid", False)),
+                            "qa_error_count": len(validation.get("errors", [])),
+                            "qa_warning_count": len(validation.get("warnings", [])),
+                            "qa_warning_codes": [
+                                str(item.get("code") or "")
+                                for item in validation.get("warnings", [])
+                                if isinstance(item, dict)
+                                and str(item.get("code") or "").strip()
+                            ],
+                            "raw_schema_compliant": False,
+                            "raw_schema_errors": [str(e)],
+                            "postprocess_success": bool(validation.get("is_valid", False)),
+                            "integrity_gate_passed": False,
+                            "retry_reason": "EXCEPTION_FALLBACK",
+                            "retry_stage": "exception",
+                            "benchmark_mode": benchmark_mode,
+                            "derived_query": query,
+                            "retrieved_context_count": len(eval_context),
+                            "retrieved_context": eval_context,
+                            "routing_trace": {},
+                            "query_signals": _build_case_query_signals(case),
+                            "legal_grounding_status": "not_requested",
+                            "legal_grounding_error": "",
+                            "legal_context_count": 0,
+                            "legal_context_refs": [],
+                            "legal_citations": [],
+                            "legal_citation_warnings": [],
                             "error": str(e),
                         }
                     )
@@ -1534,6 +1602,7 @@ def main() -> None:
             "citations_count_repaired": row.get("citations_count_repaired", 0),
             "citation_match_rate": row.get("citation_match_rate", 0.0),
             "citation_match_rate_strict": row.get("citation_match_rate_strict", 0.0),
+            "citation_support_rate_strict": row.get("citation_support_rate_strict"),
             "citation_match_rate_repaired": row.get("citation_match_rate_repaired", 0.0),
             "query_signals": row.get("query_signals", {}),
             "legal_grounding_status": row.get("legal_grounding_status", "not_requested"),
