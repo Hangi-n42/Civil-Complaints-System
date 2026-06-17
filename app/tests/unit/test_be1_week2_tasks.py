@@ -179,7 +179,7 @@ async def test_structure_masks_pii_before_structuring(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_structure_parses_raw_consulting_content_with_answer_without_supervision():
+async def test_structure_parses_raw_consulting_content_without_answer_or_supervision():
     service = StructuringService()
     result = await service.structure(
         {
@@ -197,7 +197,7 @@ async def test_structure_parses_raw_consulting_content_with_answer_without_super
         }
     )
 
-    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다.\n접수했습니다."
+    assert result["raw_text"] == "보안등 고장\n골목 보안등이 꺼졌습니다."
     assert "supervision" not in result
 
 

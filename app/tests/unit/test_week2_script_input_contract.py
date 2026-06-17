@@ -6,7 +6,7 @@ from scripts import generate_week2_delivery_samples as sample_script
 from scripts import run_week2_be1_e2e as e2e_script
 
 
-def test_week2_delivery_sample_uses_search_text_with_answer():
+def test_week2_delivery_sample_uses_structuring_text_without_answer():
     raw = {
         "source_id": "RAW-SAMPLE-001",
         "source": "부산광역시",
@@ -22,10 +22,10 @@ def test_week2_delivery_sample_uses_search_text_with_answer():
     assert record["case_id"] == "RAW-SAMPLE-001"
     assert record["created_at"] == "2024-01-02"
     assert record["region"] == "부산광역시"
-    assert record["raw_text"] == "버스 지연\n출근 시간 버스가 자주 늦습니다.\n담당 부서에 전달했습니다."
+    assert record["raw_text"] == "버스 지연\n출근 시간 버스가 자주 늦습니다."
 
 
-def test_week2_e2e_collect_raw_samples_uses_search_text_with_answer(tmp_path, monkeypatch):
+def test_week2_e2e_collect_raw_samples_uses_structuring_text_without_answer(tmp_path, monkeypatch):
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir()
     payload = [
@@ -49,5 +49,5 @@ def test_week2_e2e_collect_raw_samples_uses_search_text_with_answer(tmp_path, mo
     assert rows[0]["source"] == "부산광역시"
     assert rows[0]["created_at"] == "2024-02-03"
     assert rows[0]["category"] == "환경"
-    assert rows[0]["raw_text"] == "쓰레기 수거\n골목 쓰레기 수거 기준이 궁금합니다.\n안내드리겠습니다."
+    assert rows[0]["raw_text"] == "쓰레기 수거\n골목 쓰레기 수거 기준이 궁금합니다."
     assert rows[0]["metadata"]["source_id"] == "RAW-E2E-001"

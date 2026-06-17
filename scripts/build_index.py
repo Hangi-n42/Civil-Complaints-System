@@ -61,10 +61,8 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
             return True
         return False
 
-    # 임베딩 텍스트 = 라벨 없는 4요소 줄바꿈 결합 (운영 코퍼스 civil_cases_v1 및
-    # 평가 쿼리 포맷과 동일). 과거에는 [원문] 전문 + [관찰]/[결과] 등 라벨을 포함했으나,
-    # V3 100쿼리 A/B에서 [원문] 포함이 nDCG@5 −0.054, R@10 −0.091로 검색을 악화시켜
-    # 제거했다. (#264, reports/retrieval/v3/risk264_raw_ab.json)
+    # 구조화 4요소는 structured_text로 보존하고, 검색 색인 본문은 별도 search_text를 우선 사용한다.
+    # search_text가 없는 레거시 입력만 라벨 없는 4요소 결합으로 fallback한다.
     parts = []
     if not _is_empty(obs_text):
         parts.append(obs_text)
@@ -74,9 +72,17 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         parts.append(req_text)
     if not _is_empty(ctx_text):
         parts.append(ctx_text)
-    combined_text = "\n".join(parts)
+    structured_combined_text = "\n".join(parts)
     empty_structured_text_fallback = False
-    index_text_source = "structured_4_fields"
+    search_text = str(normalized.get("search_text") or "").strip()
+    if search_text:
+        # BE2 검색 색인 본문은 상담사 답변이 있으면 포함하되, 구조화 출력은 아래 structured_text로 따로 보존한다.
+        combined_text = search_text
+        index_text_source = "search_text_with_answer"
+    else:
+        combined_text = structured_combined_text
+        index_text_source = "structured_4_fields"
+
     if not combined_text.strip():
         # 구조화 4요소가 모두 비면 BE2 색인용 검색 본문만 마스킹된 원문으로 보강한다.
         raw_text_fallback = str(
@@ -264,6 +270,7 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
                         "raw_text": item.get("raw_text") or item.get("text") or "",
                         "text": item.get("text") or "",
                         "metadata": item.get("metadata") or {},
+                        "search_text": item.get("search_text") or item.get("text") or item.get("raw_text") or "",
                     })
 
         except Exception as e:

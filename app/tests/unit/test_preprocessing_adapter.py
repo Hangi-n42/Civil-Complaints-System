@@ -42,7 +42,7 @@ def test_to_structuring_record_maps_fields():
            "consulting_date": "2022-08-02"}
     out = to_structuring_record(rec)
     assert out["case_id"] == "2000001"
-    assert out["text"] == "T\nQ\nA"
+    assert out["text"] == "T\nQ"
     assert out["category"] == "행정과"
     assert out["region"] == "경상남도"
 
@@ -110,7 +110,7 @@ def test_to_structuring_record_accepts_raw_consulting_content():
     out = to_structuring_record(rec)
 
     assert out["case_id"] == "123"
-    assert out["text"] == "음식물 쓰레기 수거 기준이 궁금합니다.\n안내드립니다."
+    assert out["text"] == "음식물 쓰레기 수거 기준이 궁금합니다."
     assert out["category"] == "미분류"
     assert out["region"] == "서울시"
     assert out["created_at"] == "2024-01-02"

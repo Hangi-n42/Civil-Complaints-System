@@ -1,8 +1,8 @@
 """전처리 데이터(processed_consulting_data.json) → BE1 구조화 입력 어댑터.
 
 원천 consulting_content = "제목 + Q(민원인) + A(상담사)".
-`civil_text()`는 민원인 원문만 반환하고, `to_structuring_record()`는
-검색 재색인 성능을 위해 title + client_question + consultant_answer를 사용한다.
+`civil_text()`와 `to_structuring_record()`는 구조화 안정성을 위해 민원인 원문만 사용한다.
+검색 재색인 성능을 위해 답변 포함 본문이 필요할 때는 `civil_text_with_answer()`를 별도로 사용한다.
 
 입력 레코드(전처리 산출) 주요 키:
   source_id, source, consulting_date, consulting_category,
@@ -245,12 +245,11 @@ def civil_text(rec: Dict[str, Any]) -> str:
 
 
 def civil_text_with_answer(rec: Dict[str, Any]) -> str:
-    """검색/구조화 입력용 본문 = 민원인 원문 + 상담사 답변.
+    """검색 색인용 본문 = 민원인 원문 + 상담사 답변.
 
     BE2 재색인 검증에서 상담사 답변을 제외하면 검색 본문이 빈약해져
-    검색 지표가 하락했다. 부서 추정 등에서 민원인 원문만 필요할 때는
-    `civil_text()`를 계속 사용하고, 검색 인덱싱으로 이어지는 구조화 입력에는
-    이 함수를 사용한다.
+    검색 지표가 하락했다. 구조화/담당부서/긴급도 등 민원 의도 분석에는
+    `civil_text()`를 사용하고, BE2 검색 인덱싱 본문에만 이 함수를 사용한다.
     """
     prepared = _prepared_record(rec)
     base = civil_text(prepared)
@@ -269,7 +268,7 @@ def to_structuring_record(rec: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "case_id": str(prepared.get("source_id") or prepared.get("case_id") or "").strip(),
-        "text": civil_text_with_answer(prepared),
+        "text": civil_text(prepared),
         "category": category,
         "region": source,
         "created_at": format_consulting_date(prepared.get("consulting_date") or prepared.get("created_at")),
