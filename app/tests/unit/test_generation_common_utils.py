@@ -609,3 +609,78 @@ def test_build_validation_result_detects_mismatch():
 
     assert validation["is_valid"] is False
     assert any(item["code"] == "CASE_ID_MISMATCH" for item in validation["errors"])
+
+
+def test_format_civil_reply_truncates_plain_structured_output_tail():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "주차 불편 사항은 현장 여건과 관련 기준을 확인한 뒤 검토하겠습니다. "
+        "structured_output.action_items: 현장 조사 실시. 공영주차장 타당성 검토.",
+        citations,
+    )
+
+    assert "structured_output" not in answer
+    assert "action_items" not in answer
+    assert "공영주차장 타당성" not in answer
+    assert "주차 불편 사항" in answer
+
+
+def test_format_civil_reply_preserves_context_constraints_over_positive_actions():
+    context = [
+        {
+            "chunk_id": "C1",
+            "case_id": "CASE-1",
+            "snippet": "해당 흡연구역은 관리주체 소관으로 행정기관이 직접 이동하거나 추가 지정하기 어렵습니다.",
+        }
+    ]
+    citations = [{"ref_id": 1, **context[0]}]
+
+    answer = format_civil_reply_answer(
+        "흡연구역을 더 안전한 위치로 이동시키는 방안을 검토해 보겠습니다. "
+        "정원 사이 벤치 주변으로 흡연구역을 설치하는 방안도 검토해 보겠습니다.",
+        citations,
+        complaint="오피스텔 앞 흡연구역 이동을 요청합니다.",
+        context=context,
+    )
+
+    assert "이동시키는 방안" not in answer
+    assert "설치하는 방안" not in answer
+    assert "관리주체 소관" in answer
+    assert "처리 가능 여부를 판단하겠습니다" in answer
+
+
+def test_format_civil_reply_removes_unsupported_positive_proposals():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "불법 주정차 문제는 주차 공간 부족으로 인한 것으로 보입니다. "
+        "이에 대해 다음과 같은 조치를 제안드립니다. "
+        "주말이나 공휴일에도 도로변 주차를 허용하는 방안을 검토해 보겠습니다. "
+        "장기적으로는 공영 주차장 확충을 위한 계획을 수립하고 있습니다. "
+        "설치 요청은 현장 여건, 소관 권한 및 관련 기준을 확인한 뒤 처리 가능 여부를 검토하겠습니다.",
+        citations,
+    )
+
+    assert "제안드립니다" not in answer
+    assert "허용하는 방안" not in answer
+    assert "계획을 수립하고 있습니다" not in answer
+    assert "처리 가능 여부를 검토하겠습니다" in answer
+
+
+def test_format_civil_reply_removes_unsupported_relocation_promise():
+    citations = [{"ref_id": 1, "chunk_id": "C1", "case_id": "CASE-1", "snippet": "근거"}]
+
+    answer = format_civil_reply_answer(
+        "흡연 매너 구역 이동 요청에 대해 안내드립니다. "
+        "보다 조용하고 안전한 위치로 재배치를 제안드립니다. "
+        "관리사무소와 협의하여 주민 설명회를 개최하고 의견을 수렴하겠습니다. "
+        "정원 사이 벤치 주변으로 흡연 매너 존을 설치하는 방안도 검토해 보겠습니다. "
+        "이동 요청은 현장 여건, 소관 권한 및 관련 기준을 확인한 뒤 처리 가능 여부를 검토하겠습니다.",
+        citations,
+    )
+
+    assert "재배치를 제안" not in answer
+    assert "주민 설명회" not in answer
+    assert "설치하는 방안" not in answer
+    assert "처리 가능 여부를 검토하겠습니다" in answer
