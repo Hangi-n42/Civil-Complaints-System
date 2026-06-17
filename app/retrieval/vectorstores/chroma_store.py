@@ -216,7 +216,6 @@ class ChromaVectorStore:
             "entity_texts": _join_metadata_list(entity_texts),
             "legal_ref_names": _join_metadata_list(record.get("legal_ref_names")),
             "legal_ref_ids": _join_metadata_list(record.get("legal_ref_ids")),
-            "issue_types": _join_metadata_list(record.get("issue_types")),
             "key_terms": _join_metadata_list(record.get("key_terms")),
             "responsible_units": _join_metadata_list(record.get("responsible_units")),
             "responsible_units_source": _first_metadata_value(record.get("responsible_units_source")),
@@ -327,7 +326,6 @@ class ChromaVectorStore:
             entity_texts = _split_metadata_list(metadata.get("entity_texts"))
             legal_ref_names = _split_metadata_list(metadata.get("legal_ref_names"))
             legal_ref_ids = _split_metadata_list(metadata.get("legal_ref_ids"))
-            issue_types = _split_metadata_list(metadata.get("issue_types"))
             key_terms = _split_metadata_list(metadata.get("key_terms"))
             responsible_units = _split_metadata_list(metadata.get("responsible_units"))
             responsible_units_source = _first_metadata_value(metadata.get("responsible_units_source"))
@@ -389,7 +387,6 @@ class ChromaVectorStore:
                         "entity_texts": entity_texts,
                         "legal_ref_names": legal_ref_names,
                         "legal_ref_ids": legal_ref_ids,
-                        "issue_types": issue_types,
                         "key_terms": key_terms,
                         "responsible_units": responsible_units,
                         "responsible_units_source": responsible_units_source,

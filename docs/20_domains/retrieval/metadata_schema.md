@@ -31,7 +31,6 @@
 | `entity_texts[].text` | `entity_texts` | array[string] | 정규화된 대상/시설/개념명 |
 | `legal_refs[].name` | `legal_ref_names` | array[string] | 관련 법령명 |
 | `legal_refs[].law_id` | `legal_ref_ids` | array[string] | 법령 식별자 |
-| `issue_type[].name` | `issue_types` | array[string] | 쟁점 유형 |
 | `key_terms` | `key_terms` | array[string] | 핵심 키워드 |
 | `responsible_unit[].name` | `responsible_units` | array[string] | 후보 담당부서/소관기관 |
 | `urgency.level` | `urgency_level` | string | 긴급도 레벨 |
@@ -54,7 +53,6 @@
     "entity_texts": ["가로등"],
     "legal_ref_names": ["도로법"],
     "legal_ref_ids": ["001706"],
-    "issue_types": ["시설보수"],
     "key_terms": ["가로등", "점검"],
     "responsible_units": ["도로관리과"]
   }
@@ -67,7 +65,6 @@ Soft rerank 점수 정책:
 | --- | --- |
 | `legal_ref_ids` 일치 | `+0.08` |
 | `legal_ref_names` 일치 | `+0.06` |
-| `issue_types` 일치 | `+0.05` |
 | `entity_texts` 일치 | `+0.04` |
 | `responsible_units` 일치 | `+0.03` |
 | `key_terms` 겹침 | `+0.01 * overlap_count`, 최대 `+0.04` |

@@ -58,7 +58,6 @@ def test_metadata_soft_rerank_lifts_matching_metadata_candidate():
     query_signals = service._normalize_query_signals(
         {
             "legal_ref_ids": ["001706"],
-            "issue_types": ["시설보수"],
             "entity_texts": ["가로등"],
             "responsible_units": ["도로관리과"],
             "key_terms": ["가로등", "점검"],
@@ -71,7 +70,6 @@ def test_metadata_soft_rerank_lifts_matching_metadata_candidate():
             0.096,
             {
                 "legal_ref_ids": ["001706"],
-                "issue_types": ["시설보수"],
                 "entity_texts": ["가로등"],
                 "responsible_units": ["도로관리과"],
                 "key_terms": ["가로등", "점검"],
@@ -83,7 +81,7 @@ def test_metadata_soft_rerank_lifts_matching_metadata_candidate():
 
     assert [item["case_id"] for item in reranked] == ["CASE-MATCH", "CASE-NOMATCH"]
     assert reranked[0]["rank"] == 1
-    assert reranked[0]["score"] == pytest.approx(0.096 * 1.20)
+    assert reranked[0]["score"] == pytest.approx(0.096 * 1.17)
 
 
 def test_metadata_soft_rerank_responsible_units_only_is_soft_signal():
@@ -110,7 +108,6 @@ def test_metadata_soft_rerank_boost_is_capped():
         {
             "legal_ref_ids": ["001706"],
             "legal_ref_names": ["도로법"],
-            "issue_types": ["시설보수"],
             "entity_texts": ["가로등"],
             "responsible_units": ["도로관리과"],
             "key_terms": ["가로등", "조명", "점검", "보수", "야간"],
@@ -122,7 +119,6 @@ def test_metadata_soft_rerank_boost_is_capped():
         {
             "legal_ref_ids": ["001706"],
             "legal_ref_names": ["도로법"],
-            "issue_types": ["시설보수"],
             "entity_texts": ["가로등"],
             "responsible_units": ["도로관리과"],
             "key_terms": ["가로등", "조명", "점검", "보수", "야간"],

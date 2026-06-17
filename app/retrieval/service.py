@@ -27,7 +27,6 @@ from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 METADATA_SOFT_RERANK_WEIGHTS = {
     "legal_ref_ids": 0.08,
     "legal_ref_names": 0.06,
-    "issue_types": 0.05,
     "entity_texts": 0.04,
     "responsible_units": 0.03,
 }
@@ -374,14 +373,6 @@ class RetrievalService:
             record.get("legal_ref_ids", metadata.get("legal_ref_ids")),
             keys=("law_id", "id", "text", "name"),
         )
-        issue_type_value = record.get(
-            "issue_type",
-            record.get("issue_types", metadata.get("issue_type", metadata.get("issue_types"))),
-        )
-        issue_types = self._extract_signal_values(
-            issue_type_value,
-            keys=("name", "text"),
-        )
         key_terms = self._extract_signal_values(
             record.get("key_terms", metadata.get("key_terms")),
             keys=("term", "text", "name"),
@@ -472,7 +463,6 @@ class RetrievalService:
             "search_entity_texts": search_entity_texts,
             "legal_ref_names": legal_ref_names,
             "legal_ref_ids": legal_ref_ids,
-            "issue_types": issue_types,
             "key_terms": key_terms,
             "responsible_units": responsible_units,
             "responsible_units_source": responsible_units_source,
@@ -738,7 +728,6 @@ class RetrievalService:
             "entity_texts",
             "legal_ref_names",
             "legal_ref_ids",
-            "issue_types",
             "key_terms",
             "responsible_units",
         ):

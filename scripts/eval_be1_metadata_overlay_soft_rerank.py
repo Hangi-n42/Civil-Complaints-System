@@ -33,7 +33,6 @@ SIGNAL_FIELDS = [
     "entity_texts",
     "legal_ref_names",
     "legal_ref_ids",
-    "issue_types",
     "key_terms",
     "responsible_units",
 ]

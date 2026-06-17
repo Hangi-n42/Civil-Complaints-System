@@ -1,6 +1,6 @@
 """BE1 구조화 산출물 고도화 — 검색 신호 보강 필드 생성.
 
-요청 #1 entity_texts 정규화 + 요청 #4 issue_type 분류.
+요청 #1 entity_texts 정규화.
 규칙 #6 준수: 모든 항목에 confidence 와 evidence(원문 근거 문구)를 포함한다.
 
 설계 원칙:
@@ -262,49 +262,6 @@ def normalize_entity_texts(
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# 쟁점 유형 분류 (issue_type)
-#   유형 → 트리거 어휘. 일반어("신청/신고") 단독은 피하고 변별력 있는 복합어 사용.
-# ──────────────────────────────────────────────────────────────────────────
-ISSUE_TYPE_LEXICON: Dict[str, List[str]] = {
-    "면허/자격": ["면허", "자격증", "적성검사", "응시", "운전면허", "조종", "기능사", "기사자격", "1종", "2종"],
-    "허가/등록": ["허가", "인허가", "등록", "영업신고", "개설", "사업자등록", "승인", "점용허가", "건축허가"],
-    "갱신/연장": ["갱신", "연장", "재발급", "만료", "유효기간"],
-    "보상/배상": ["보상", "배상", "손해배상", "피해보상", "변상", "합의금", "위자료"],
-    "단속/점검": ["단속", "점검", "적발", "위반", "불법", "과태료", "계도"],
-    "지원금/급여": ["지원금", "보조금", "급여", "수당", "바우처", "장려금", "환급", "지급"],
-    "증빙/서류": ["증명서", "구비서류", "제출서류", "등본", "확인서", "발급", "증빙"],
-    "예매/예약": ["예매", "예약", "매표", "입장권", "좌석", "관람권"],
-    "시설 개선/보수": ["보수", "정비", "수리", "교체", "복구", "파손", "고장", "개선", "설치"],
-    "법령 해석": ["법령", "조례", "규정", "유권해석", "적용기준", "법적근거", "해석"],
-}
-
-
-def classify_issue_type(text: str, top_n: int = 3) -> List[Dict[str, Any]]:
-    """민원이 무엇을 묻거나 요구하는지 유형화한다.
-
-    Returns:
-        [{"name": 유형, "confidence": float, "evidence": [매칭어...]}, ...]
-        confidence 내림차순, 매칭 0 유형 제외.
-
-    confidence = min(0.95, 0.5 + 0.14 × 매칭어수)  (미보정 휴리스틱)
-    """
-    text = text or ""
-    results: List[Dict[str, Any]] = []
-    for name, triggers in ISSUE_TYPE_LEXICON.items():
-        matched: List[str] = []
-        for kw in triggers:
-            if kw in text and kw not in matched:
-                matched.append(kw)
-        if not matched:
-            continue
-        confidence = round(min(0.95, 0.5 + 0.14 * len(matched)), 2)
-        results.append({"name": name, "confidence": confidence, "evidence": matched[:3]})
-
-    results.sort(key=lambda r: (r["confidence"], len(r["evidence"])), reverse=True)
-    return results[:top_n]
-
-
-# ──────────────────────────────────────────────────────────────────────────
 # 법령 후보 (legal_refs) — 요청 #2
 #   실제 대한민국 현행 법령명만 사용한다(환각 금지). 확정이 아니라 '후보'.
 #   법령 → 트리거 어휘. 트리거가 원문에 등장하면 후보로 제시(confidence+evidence).
@@ -359,7 +316,7 @@ def classify_legal_refs(text: str, top_n: int = 4) -> List[Dict[str, Any]]:
 
 # ──────────────────────────────────────────────────────────────────────────
 # 핵심 키워드 (key_terms) — 요청 #5
-#   entity_texts / issue_type / legal_refs + 행정어 사전을 종합해
+#   entity_texts / legal_refs + 행정어 사전을 종합해
 #   검색 변별력 있는 명사·행정어를 3~8개 랭킹 추출한다. 일반어는 배제.
 # ──────────────────────────────────────────────────────────────────────────
 # 검색 신호가 강한 행정·법무 어휘(원문에 등장하면 가중).
@@ -380,14 +337,13 @@ _KEY_TERM_GENERIC = {
 def build_key_terms(
     text: str,
     entity_texts: List[Dict[str, Any]],
-    issue_types: List[Dict[str, Any]],
     legal_refs: List[Dict[str, Any]],
     limit: int = 8,
     min_terms: int = 3,
 ) -> List[str]:
     """검색용 핵심 키워드를 랭킹 추출한다 (요청 #5).
 
-    우선순위(가중치): entity_texts(객체) > 행정어 사전 > issue_type 근거 > legal_refs 근거.
+    우선순위(가중치): entity_texts(객체) > 행정어 사전 > legal_refs 근거.
     일반어 제외, 다른 키워드의 부분문자열이면 제외(더 구체적인 표현 우선), 3~8개.
     """
     text = text or ""
@@ -405,9 +361,6 @@ def build_key_terms(
     for kw in ADMIN_TERMS:
         if kw in text:
             add(kw, 2.4)
-    for it in issue_types or []:
-        for ev in it.get("evidence", []):
-            add(str(ev), 2.0)
     for lr in legal_refs or []:
         for ev in lr.get("evidence", []):
             add(str(ev), 1.8)

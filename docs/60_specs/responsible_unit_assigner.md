@@ -11,7 +11,7 @@
 | `busan_departments_master.json` | 배정용 정제 부서/업무 (116부서 / 1,998업무) |
 | `busan_departments_master.stats.json` | 필터링 통계·제외 내역(검토용) |
 | `app/structuring/department_assigner.py` | 2~4단계. 임베딩·검색·집계·LLM 재랭킹 |
-| `app/structuring/enrichment.py` | 요청 #1 entity_texts · #4 issue_type · #2 legal_refs(도메인) · #5 key_terms + 시설 사전 |
+| `app/structuring/enrichment.py` | 요청 #1 entity_texts · #2 legal_refs(도메인) · #5 key_terms + 시설 사전 |
 | `app/structuring/legal_dictionary.py` | #2 Phase A — 법령명/약칭/부산조례 사전 매칭 + 도메인 병합 |
 | `scripts/build_law_dictionary.py` | 법제처 API 로 law_dictionary.json/busan_ordinances.json 생성(로컬) |
 | `docs/60_specs/legal_corpus_phase_b.md` | #2 Phase B — 조문 단위 본문 코퍼스+검색 설계서 |
@@ -19,7 +19,7 @@
 | `app/structuring/service.py` | BE1 통합 (3개 필드 추가, 시설 키워드 확장) |
 | `app/core/config.py` | `ENABLE_RESPONSIBLE_UNIT` / `RESPONSIBLE_UNIT_USE_LLM` 플래그 |
 | `app/tests/unit/test_department_assigner.py` | responsible_unit 순수 로직 테스트 (10) |
-| `app/tests/unit/test_enrichment.py` | entity_texts/issue_type/legal_refs/key_terms 순수 로직 테스트 (32) |
+| `app/tests/unit/test_enrichment.py` | entity_texts/legal_refs/key_terms 순수 로직 테스트 |
 
 ## 1단계 — 필터링 (결정적, 모델 불필요)
 
@@ -80,13 +80,12 @@ PY
 
 ## BE1 통합 (적용됨)
 
-`app/structuring/service.py` 의 `structure()` 에 다음 3개 필드를 추가했다(규칙 #6: 모든 항목 confidence + evidence 포함).
+`app/structuring/service.py` 의 `structure()` 에 다음 검색 보조 필드를 추가했다(규칙 #6: 추론 항목 confidence + evidence 포함).
 
 ```python
 candidate["entity_texts"]     = normalize_entity_texts(entities, text)          # 요청 #1
-candidate["issue_type"]       = classify_issue_type(text)                        # 요청 #4
 candidate["legal_refs"]       = classify_legal_refs(text)                        # 요청 #2
-candidate["key_terms"]        = build_key_terms(text, entity_texts, issue_type, legal_refs)  # 요청 #5
+candidate["key_terms"]        = build_key_terms(text, entity_texts, legal_refs)  # 요청 #5
 candidate["responsible_unit"] = self._assign_responsible_unit(text, entity_texts, key_terms) # 요청 #3
 ```
 
@@ -116,12 +115,6 @@ export RESPONSIBLE_UNIT_USE_LLM=false
 - `도로법`·`도로교통법`·`도로관리청`·`도로점용`처럼 법령·기관·제도 인용 문맥의 일반어는 `entity_texts` 오탐에서 제외한다. 실제 대상물 문맥(`도로가 파손`, `보행로 보수`)은 유지한다.
 - BE2 readiness 대응 실측: 처리 데이터 3,280건 기준 lexicon-only 커버리지 20.12% → 73.23%, 규칙 NER+lexicon 커버리지 46.37% → 76.98%. `civil_cases_v1` 9,132건 기준 현재 metadata는 11.03%이나, 개선 로직 적용 예상 커버리지는 74.12%다. 실제 적재율은 BE2 재인덱싱 또는 metadata backfill 이후 다시 측정한다.
 - 출력: `[{"text": canonical, "label": "OBJECT"|"FACILITY", "confidence": float, "evidence": [span]}]`. confidence 휴리스틱: canonical 직접 등장 0.9 / 변이 정규화 0.85 / 규칙 NER FACILITY 흡수 0.8.
-
-### issue_type (요청 #4)
-
-- 10개 유형(`면허/자격`·`허가/등록`·`갱신/연장`·`보상/배상`·`단속/점검`·`지원금/급여`·`증빙/서류`·`예매/예약`·`시설 개선/보수`·`법령 해석`)을 트리거 어휘 매칭으로 분류.
-- 출력: `[{"name": 유형, "confidence": float, "evidence": [매칭어...]}]`, 상위 3개.
-- confidence = `min(0.95, 0.5 + 0.14 × 매칭어수)` — 변별력 있는 복합어만 트리거로 사용("신청/신고" 단독 배제). BE2 는 "단어는 같지만 쟁점이 다른 민원" 강등에 사용.
 
 ### legal_refs (요청 #2) — Phase A 고도화 적용
 
@@ -161,12 +154,12 @@ before(도메인 18개) → after(실사전) 효과:
 
 ### key_terms (요청 #5)
 
-- entity_texts(객체) > 행정어 사전(`ADMIN_TERMS`) > issue_type 근거 > legal_refs 근거 순 가중으로 종합 랭킹. 일반어("신청/문의/절차/방법" 등) 배제, 더 긴 표현의 부분문자열 제거, **3~8개** 반환.
+- entity_texts(객체) > 행정어 사전(`ADMIN_TERMS`) > legal_refs 근거 순 가중으로 종합 랭킹. 일반어("신청/문의/절차/방법" 등) 배제, 더 긴 표현의 부분문자열 제거, **3~8개** 반환.
 - 출력은 BE2 키워드/BM25 부스팅에 바로 쓰도록 **랭킹된 문자열 리스트**(중요도 순). 예: `["지게차", "적성검사", "면허", "갱신", "1종"]`.
 
-> key_terms 는 추출 필드라 항목별 confidence 대신 **순위가 중요도를 인코딩**한다(요청 #5 예시도 문자열 목록). 나머지 추론 필드(legal_refs·issue_type·entity_texts·responsible_unit)는 규칙 #6대로 confidence + evidence 를 포함한다.
+> key_terms 는 추출 필드라 항목별 confidence 대신 **순위가 중요도를 인코딩**한다(요청 #5 예시도 문자열 목록). 나머지 추론 필드(legal_refs·entity_texts·responsible_unit)는 규칙 #6대로 confidence + evidence 를 포함한다.
 
-> ⚠️ entity_texts·issue_type·legal_refs 의 confidence 는 모두 매칭 강도에서 유도한 **미보정** 휴리스틱이다. BE2 는 상대 강도로만 사용.
+> ⚠️ entity_texts·legal_refs 의 confidence 는 모두 매칭 강도에서 유도한 **미보정** 휴리스틱이다. BE2 는 상대 강도로만 사용.
 
 ## 테스트
 
@@ -174,7 +167,7 @@ before(도메인 18개) → after(실사전) 효과:
 python -m pytest app/tests/unit/test_department_assigner.py app/tests/unit/test_enrichment.py -q   # 55 passed (모델 불필요)
 ```
 
-순수 로직(집계·키워드·LLM출력 환각방어·질의조립·entity_texts 정규화·issue_type 분류)만 검증한다. 임베딩 품질·실제 배정 정확도·issue_type 분류 정확도는 정답셋이 있어야 평가 가능하다.
+순수 로직(집계·키워드·LLM출력 환각방어·질의조립·entity_texts 정규화)만 검증한다. 임베딩 품질·실제 배정 정확도는 정답셋이 있어야 평가 가능하다.
 
 > 참고: 본 작업 환경(샌드박스)은 파일 편집 직후 일부 .py 의 마운트 캐시가 지연되어 `service.py` 의 런타임 import 통합 테스트는 로컬에서 수행 권장. 통합 섹션 로직은 실제 함수로 시뮬레이션 검증했고, 정본 파일은 정상이다. 로컬 확인:
 > `python -c "import asyncio; from app.structuring.service import StructuringService as S; print(asyncio.run(S().structure({'text':'가로등 파손 보수 요청','case_id':'T1'})).keys())"`

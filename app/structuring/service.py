@@ -30,7 +30,6 @@ from app.core.logging import pipeline_logger
 from app.structuring.enrichment import (
     FACILITY_KEYWORDS,
     build_key_terms,
-    classify_issue_type,
     normalize_entity_texts,
 )
 from app.structuring.legal_dictionary import get_legal_ref_matcher
@@ -751,12 +750,10 @@ class StructuringService:
 
             # BE1 고도화 — 검색 신호 보강 필드 (규칙 #6: confidence + evidence 포함)
             candidate["entity_texts"] = normalize_entity_texts(entities, text)   # 요청 #1
-            candidate["issue_type"] = classify_issue_type(text)                  # 요청 #4
             candidate["legal_refs"] = get_legal_ref_matcher().match(text)        # 요청 #2 (사전+도메인)
             candidate["key_terms"] = build_key_terms(                            # 요청 #5
                 text,
                 candidate["entity_texts"],
-                candidate["issue_type"],
                 candidate["legal_refs"],
             )
             candidate["responsible_unit"] = self._assign_responsible_unit(       # 요청 #3

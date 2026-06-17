@@ -22,7 +22,6 @@ def test_build_api_case_record_preserves_be1_search_signals():
         "context": {"text": "평일 오전 출근 시간", "confidence": 0.7},
         "entities": [{"label": "FACILITY", "text": "버스"}],
         "entity_texts": [{"text": "버스", "confidence": 0.95, "evidence": ["버스"]}],
-        "issue_type": [{"name": "교통/운행", "confidence": 0.82}],
         "legal_refs": [{"name": "여객자동차 운수사업법", "law_id": "001", "confidence": 0.7}],
         "key_terms": ["버스", "배차", "지연"],
         "responsible_unit": [
@@ -39,7 +38,7 @@ def test_build_api_case_record_preserves_be1_search_signals():
     record = _build_api_case_record(normalized, structured)
 
     assert record["entity_texts"] == structured["entity_texts"]
-    assert record["issue_type"] == structured["issue_type"]
+    assert "issue_type" not in record
     assert record["legal_refs"] == structured["legal_refs"]
     assert record["key_terms"] == structured["key_terms"]
     assert record["responsible_unit"] == structured["responsible_unit"]

@@ -22,7 +22,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.ingestion.service import get_ingestion_service
 from app.retrieval.service import get_retrieval_service
-from app.structuring.enrichment import build_key_terms, classify_issue_type, normalize_entity_texts
+from app.structuring.enrichment import build_key_terms, normalize_entity_texts
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.preprocessing import to_structuring_record
 from app.structuring.service import get_structuring_service
@@ -324,9 +324,8 @@ def _build_deterministic_structured(record: Dict[str, Any]) -> Dict[str, Any]:
     text = str(record.get("text") or record.get("raw_text") or "").strip()
     category = str(record.get("category") or "unknown")
     entity_texts = normalize_entity_texts([], text)
-    issue_type = classify_issue_type(text)
     legal_refs = get_legal_ref_matcher().match(text)
-    key_terms = build_key_terms(text, entity_texts, issue_type, legal_refs)
+    key_terms = build_key_terms(text, entity_texts, legal_refs)
 
     return {
         "case_id": record.get("case_id"),
@@ -338,7 +337,6 @@ def _build_deterministic_structured(record: Dict[str, Any]) -> Dict[str, Any]:
         "observation": {"text": text, "confidence": 1.0},
         "entities": [],
         "entity_texts": entity_texts,
-        "issue_type": issue_type,
         "legal_refs": legal_refs,
         "key_terms": key_terms,
         "responsible_unit": _fallback_responsible_units(record),
@@ -371,7 +369,6 @@ def _build_index_record(input_item: Dict[str, Any], structured: Dict[str, Any]) 
         "structured_text": structured_text,
         "entities": structured.get("entities") or [],
         "entity_texts": structured.get("entity_texts") or [],
-        "issue_type": structured.get("issue_type") or [],
         "legal_refs": structured.get("legal_refs") or [],
         "key_terms": structured.get("key_terms") or [],
         "responsible_unit": structured.get("responsible_unit") or [],

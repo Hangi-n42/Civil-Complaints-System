@@ -15,7 +15,6 @@ BE1 구조화 + 긴급도 + BE3 답변에 들어오는 새 필드를 **어떻게
 | `legal_citation_warnings` (답변) | **경고 배너** | "초안에서 미검증 법령 인용이 제거됨" |
 | `responsible_unit[]` (구조화) | **담당부서 후보 칩** | name + 신뢰도 표시, "후보" 라벨 |
 | `legal_refs[]` (구조화) | **관련 법령 칩** | name(+조문 링크 가능), "관련 후보" |
-| `issue_type[]` (구조화) | **쟁점 태그** | 면허/자격 등 |
 | `entity_texts[]` (구조화) | **대상 객체 태그** | 지게차, 가로등 등 |
 | `key_terms[]` (구조화) | **키워드 태그** | 중요도 순 |
 | `title` (목록/케이스) | **민원 제목** | 서버에서 정제되어 전달(아래) |
@@ -67,12 +66,11 @@ BE1 구조화 + 긴급도 + BE3 답변에 들어오는 새 필드를 **어떻게
 
 ---
 
-## 4. 후보 칩들 (담당부서·법령·쟁점·객체)
+## 4. 후보 칩들 (담당부서·법령·객체)
 
 ```jsonc
 "responsible_unit": [{"name": "건설기계과", "confidence": 0.78, "evidence": ["지게차","건설기계"]}],
 "legal_refs":       [{"name": "건설기계관리법", "confidence": 0.6, "law_id": "000239", "evidence": ["지게차"]}],
-"issue_type":       [{"name": "면허/자격", "confidence": 0.95, "evidence": ["면허","적성검사"]}],
 "entity_texts":     [{"text": "지게차", "label": "OBJECT", "confidence": 0.9, "evidence": ["미만 지게차"]}],
 "key_terms":        ["지게차", "적성검사", "면허", "갱신"]
 ```
