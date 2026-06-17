@@ -81,3 +81,55 @@ def test_build_analyzer_output_aligns_with_routing_contract():
     assert len(output["request_segments"]) >= 1
     assert output["length_bucket"] in {"short", "medium", "long"}
     assert isinstance(output["is_multi"], bool)
+    assert output["intent_count"] == len(output["request_segments"])
+    assert output["is_multi"] == (len(output["request_segments"]) >= 2)
+
+
+def test_request_segments_keep_single_request_with_connectors():
+    text = (
+        "도로와 인도, 가로등 및 보안등이 파손되어 통행이 위험하니 "
+        "현장 점검 및 보수를 요청드립니다."
+    )
+
+    output = build_analyzer_output(text, "construction")
+
+    assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_split_independent_requests_only():
+    text = "포트홀 주변 임시 안전 조치를 해주시고, 도로 보수 일정도 알려주세요."
+
+    output = build_analyzer_output(text, "construction")
+
+    assert output["request_segments"] == [
+        "포트홀 주변 임시 안전 조치를 해주시고",
+        "도로 보수 일정도 알려주세요.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_background_and_admin_action_sentences():
+    text = (
+        "안녕하세요. 포트홀 때문에 차량이 흔들리고 주민들이 불편을 겪고 있습니다. "
+        "담당 부서에서 현장 확인 후 조치할 예정입니다. "
+        "문의하신 내용은 확인 후 안내드립니다. 빠른 현장 확인을 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "construction")
+
+    assert output["request_segments"] == ["빠른 현장 확인을 부탁드립니다."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_remove_duplicate_and_partial_segments():
+    text = "도로 보수 요청 및 도로 보수 요청드립니다."
+
+    output = build_analyzer_output(text, "construction")
+
+    assert output["request_segments"] == ["도로 보수 요청드립니다."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False

@@ -54,6 +54,8 @@ Week 6에서 BE3는 topic-aware generation과 응답 정규화 레이어를 고�
 필수 규칙:
 - routing_trace 필수
 - request_segments는 `routing_trace.request_segments` 또는 `structured_output.request_segments`에 최소 1개
+- request_segments는 설명 문장이 아니라 사용자의 독립 요청 단위이며, BE3 action_items 매핑은 이 단위를 기준으로 한다.
+- `intent_count`, `is_multi`, `request_segments`는 BE1에서 정합성이 보장된 값으로 취급한다.
 - route_key/strategy_id는 search 단계 값 계승
 - route_key/strategy_id 형식 불일치 시 `ROUTING_STRATEGY_INCONSISTENT` 반환
 
