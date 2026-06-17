@@ -23,13 +23,19 @@ import {
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import { readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
+import {
+  buildDraftTextareaValue,
+  computeSegmentViewMode,
+  pairSegmentsWithActions,
+  type DraftStage,
+  type SegmentViewMode,
+  type SupplementarySegment,
+} from "@/lib/draft";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
-type DraftStage = "idle" | "loading" | "success" | "error";
-type SegmentViewMode = "loading" | "error" | "empty" | "single" | "multi";
 
 // 초안 생성 진행 단계 (체감 대기시간 완화용).
 // SEAM: 지금은 프론트 타이머로 단계를 추정해 보여줄 뿐 실제 백엔드 파이프라인과 1:1 동기화되지는 않는다.
@@ -234,23 +240,12 @@ function WorkbenchContent() {
         setRouteKey(persisted.routeKey || null);
       }
 
-      // Restore last draft if it matches selected case
+      // Restore last draft if it matches selected case.
+      // 편집 textarea 값(answer)은 draftTextareaValue useEffect가 단일 소스로 채우므로 여기선 응답 상태만 복원한다(이슈 #388, AC5).
       if (last && last.draft && last.draft.complaintId === selectedCase.case_id) {
         setDraftResponse(last.draft);
         setDraftStage("success");
         setDraftError(null);
-
-        const respSegments = last.draft.structuredOutput?.requestSegments || [];
-        const segMode: SegmentViewMode = respSegments.length > 1 ? "multi" : respSegments.length === 1 ? "single" : "empty";
-        const textarea = buildDraftTextareaValue({
-          draftStage: "success",
-          segmentViewMode: segMode,
-          answer: last.draft.answer,
-          summary: last.draft.structuredOutput?.summary,
-          actionItems: last.draft.structuredOutput?.actionItems || [],
-          requestSegments: respSegments,
-        });
-        setDraftEditorValue(textarea);
       }
     } catch {
       // no-op: best-effort restore
@@ -379,27 +374,12 @@ function WorkbenchContent() {
   const responseSegments = draftResponse?.structuredOutput?.requestSegments || [];
   const fallbackSegments = buildFallbackSegments(selectedCase);
   const requestSegments = responseSegments.length > 0 ? responseSegments : fallbackSegments;
-  const segmentViewMode: SegmentViewMode =
-    draftStage === "loading"
-      ? "loading"
-      : draftStage === "error"
-        ? "error"
-        : draftStage === "success"
-          ? requestSegments.length > 1
-            ? "multi"
-            : requestSegments.length === 1
-              ? "single"
-              : "empty"
-          : "empty";
+  const segmentViewMode = computeSegmentViewMode({ draftStage, segmentCount: requestSegments.length });
+  const supplementarySegments = pairSegmentsWithActions(requestSegments, draftResponse?.structuredOutput?.actionItems || []);
+  const draftSummary = draftResponse?.structuredOutput?.summary || "";
 
-  const draftTextareaValue = buildDraftTextareaValue({
-    draftStage,
-    segmentViewMode,
-    answer: draftResponse?.answer,
-    summary: draftResponse?.structuredOutput?.summary,
-    actionItems: draftResponse?.structuredOutput?.actionItems || [],
-    requestSegments,
-  });
+  // 공식 회신문 편집값은 answer만 사용한다(이슈 #388). 보조 메타데이터는 DraftSupplementaryPanel에서만 표시한다.
+  const draftTextareaValue = buildDraftTextareaValue({ draftStage, answer: draftResponse?.answer });
 
   useEffect(() => {
     setDraftEditorValue(draftTextareaValue);
@@ -550,6 +530,9 @@ function WorkbenchContent() {
                     />
                   )}
                   {draftError && <div className="mt-2 text-xs text-red-600">{draftError}</div>}
+                  {draftStage === "success" && (segmentViewMode === "single" || segmentViewMode === "multi") && (
+                    <DraftSupplementaryPanel mode={segmentViewMode} summary={draftSummary} segments={supplementarySegments} />
+                  )}
                 </div>
               </div>
 
@@ -744,58 +727,46 @@ function buildFallbackSegments(caseItem: WorkbenchCase): string[] {
   return [];
 }
 
-function buildDraftTextareaValue(params: {
-  draftStage: DraftStage;
-  segmentViewMode: SegmentViewMode;
-  answer?: string;
-  summary?: string;
-  actionItems: string[];
-  requestSegments: string[];
+function DraftSupplementaryPanel({
+  mode,
+  summary,
+  segments,
+}: {
+  mode: SegmentViewMode;
+  summary: string;
+  segments: SupplementarySegment[];
 }) {
-  const { draftStage, segmentViewMode, answer, summary, actionItems, requestSegments } = params;
-
-  if (draftStage === "loading") {
-    // 로딩 표시는 DraftLoadingState(스켈레톤+단계 진행)가 담당하므로 편집값은 비운다.
-    return "";
-  }
-
-  if (draftStage === "error") {
-    return answer || "초안 생성 중 오류가 발생했습니다. 다시 시도해주세요.";
-  }
-
-  if (segmentViewMode === "empty") {
-    return answer || "";
-  }
-
-  if (segmentViewMode === "single") {
-    const actionText = actionItems.length > 0 ? actionItems.map((item, idx) => `${idx + 1}. ${item}`).join("\n") : "1. 후속 조치 항목 없음";
-    const segment = requestSegments[0] || "요청 항목 없음";
-    return [
-      "[단일 요청 모드]",
-      `요청: ${segment}`,
-      `요약: ${summary || "요약 정보 없음"}`,
-      "조치 항목:",
-      actionText,
-      "",
-      answer || "초안 답변 없음",
-    ].join("\n");
-  }
-
-  const multiSegmentText = requestSegments
-    .map((segment, idx) => {
-      const action = actionItems[idx] || "조치 항목 미정";
-      return `- Segment ${idx + 1}: ${segment}\n  · Action: ${action}`;
-    })
-    .join("\n");
-
-  return [
-    "[복합 요청 모드]",
-    `요약: ${summary || "요약 정보 없음"}`,
-    "세그먼트:",
-    multiSegmentText || "- 세그먼트 정보 없음",
-    "",
-    answer || "초안 답변 없음",
-  ].join("\n");
+  return (
+    <div className="mt-2 border border-slate-200 bg-slate-50/70 p-2.5 text-xs">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 font-bold text-slate-600">
+          {mode === "multi" ? `복합 요청 · ${segments.length}건` : "단일 요청"}
+        </span>
+        <span className="text-[11px] text-slate-400">분석 보조 정보 · 공식 회신문에는 포함되지 않습니다</span>
+      </div>
+      {summary && (
+        <div className="mb-2">
+          <div className="mb-0.5 font-semibold text-slate-700">요약</div>
+          <div className="leading-5 text-slate-600">{summary}</div>
+        </div>
+      )}
+      {segments.length > 0 && (
+        <div>
+          <div className="mb-1 font-semibold text-slate-700">요청 세그먼트 / 조치</div>
+          <ul className="space-y-1">
+            {segments.map((seg) => (
+              <li key={seg.index} className="rounded border border-slate-200 bg-white px-2 py-1.5">
+                <div className="text-slate-700">
+                  <span className="font-semibold text-slate-500">{seg.index + 1}.</span> {seg.text}
+                </div>
+                {seg.action && <div className="mt-0.5 text-[11px] text-slate-500">· 조치: {seg.action}</div>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Spinner({ className = "h-4 w-4" }: { className?: string }) {
