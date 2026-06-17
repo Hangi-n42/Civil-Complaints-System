@@ -285,6 +285,7 @@ class SearchResultMetadata(BaseModel):
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
     responsible_units_source: Optional[str] = None
+    responsible_units_confidence: Optional[float] = None
     urgency_level: Optional[str] = None
     strategy_id: Optional[str] = None
     route_key: Optional[str] = None
