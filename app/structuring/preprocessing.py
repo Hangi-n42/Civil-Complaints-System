@@ -153,8 +153,8 @@ def parse_consulting_content(content: Any, source: str = "") -> Dict[str, str]:
     """raw consulting_content를 제목/민원인 질문/상담사 답변으로 분리한다.
 
     대부분 지역은 제목/Q/A 마커를 사용하고, 국립아시아문화전당은
-    고객/상담원 화자 라벨을 사용한다. 두 경우 모두 BE1 입력에는
-    민원인 발화만 들어가야 하므로 답변은 별도 필드에만 보존한다.
+    고객/상담원 화자 라벨을 사용한다. 파싱 결과는 민원인 질문과 상담사 답변을
+    별도 필드에 보존하고, 구조화/검색 입력은 정책상 두 본문을 함께 사용한다.
     """
     cleaned = _clean_content(content)
     if not cleaned:
@@ -230,7 +230,7 @@ def _clean_title(title: Any) -> str:
 
 
 def civil_text(rec: Dict[str, Any]) -> str:
-    """민원인 원문 = title + client_question (상담사 답변 제외).
+    """민원인 원문 전용 본문 = title + client_question (상담사 답변 제외).
 
     title 을 포함하는 이유: Q 가 비었거나("…내용이 title 에"), Q 가 제목을
     참조("제목 내용처럼")하는 케이스에서 title 이 본문 신호를 보강한다.

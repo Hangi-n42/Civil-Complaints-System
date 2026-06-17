@@ -59,6 +59,22 @@ BE1 구조화 입력의 `text`/`raw_text`에는 민원인 제목, 질문, 상담
 
 민원인 원문만 필요한 내부 분석이나 보조 태스크는 `civil_text()`를 별도로 사용할 수 있다. 이 분리는 외부 API/DTO 형식을 바꾸지 않고 입력 텍스트 생성 정책만 명확히 하기 위한 것이다.
 
+구조화 진입점은 공식 인덱싱 스크립트를 우회한 단건 호출에서도 PII 마스킹을 다시 적용한다. 따라서 `StructuringService.structure()`와 `/api/v1/structure`의 `raw_text` 및 후속 구조화 필드는 마스킹된 본문을 기준으로 생성된다.
+
+원천 파싱 결과는 `title`, `client_question`, `consultant_answer`를 분리 보존한다. 다만 구조화 모델 입력과 검색 인덱싱으로 이어지는 `text`/`raw_text`는 이 필드들을 정책상 결합한 단일 본문이다.
+
+## BE1 구조화 단건 API
+
+단건 검증이나 BE2/BE3 연계 테스트는 `/api/v1/structure`를 사용할 수 있다.
+
+```powershell
+curl -X POST http://127.0.0.1:8000/api/v1/structure `
+  -H "Content-Type: application/json" `
+  -d "{\"request_id\":\"STR-LOCAL-001\",\"case_id\":\"CASE-1\",\"raw_text\":\"도로 파손 보수 요청\"}"
+```
+
+본문이 비어 있으면 `BAD_REQUEST`를 반환한다. `text`, `raw_text`, `consulting_content` 중 하나는 필요하다.
+
 ## BE2 인덱싱 실행
 
 BE2 API 서버를 먼저 실행한 뒤 BE1 저장소에서 실행한다.
@@ -200,6 +216,7 @@ python scripts/check_chromadb_search_signal_coverage.py `
 ## 장애 시 확인 순서
 
 1. `text`가 비어 있으면 `consulting_content` 포맷이 `preprocessing.py`에서 커버되는지 확인한다.
-2. `A:` 또는 `상담원:` 답변이 검색 텍스트에 보이면 preprocessing 경로를 우회한 것이다.
+2. `A:` 또는 `상담원:` 답변은 검색/구조화 입력에 포함되는 것이 정상이다. 다만 원천 파싱 결과에서는 `client_question`과 `consultant_answer`가 분리되어야 한다.
 3. BE2 API가 실패하면 `/api/v1/index` 응답의 `failed_count`와 서버 로그를 먼저 확인한다.
 4. `responsible_unit`이 비어 있어도 구조화 실패는 아니다. 담당부서 인덱스/플래그가 꺼져 있으면 빈 배열이 정상이다.
+5. 구조화 4요소가 모두 비면 BE2 색인용 `text`는 마스킹된 원천 본문으로 fallback된다. 이 경우 metadata의 `index_text_source=raw_text_fallback_empty_structured`와 `empty_structured_text_fallback=true`를 확인한다.

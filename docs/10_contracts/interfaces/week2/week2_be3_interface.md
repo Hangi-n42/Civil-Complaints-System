@@ -19,9 +19,9 @@
 - ✅ `/api/v1/search` (POST): 검색 쿼리 기반 민원 검색
 - ✅ `/api/v1/qa` (POST): 근거 기반 질의응답
 
-**미구현 (Week 3 예정):**
+**구현 상태:**
 - ❌ `/api/v1/ingest` (POST): 민원 데이터 수집/정제
-- ❌ `/api/v1/structure` (POST): 민원 데이터 구조화
+- ✅ `/api/v1/structure` (POST): 단건 민원 데이터 구조화
 
 **BE3 역할 (구현된 엔드포인트 기준):**
 - `/search`, `/qa` 응답 래퍼 계약 준수
@@ -93,8 +93,11 @@
 ## 4) `/structure` 데이터 계약
 
 `data` 객체 최소 필드:
-- `structured_count` (int)
-- `results` (`StructuredCivilCase[]`)
+- `case_id` (str)
+- `raw_text` (str)
+- `observation`, `result`, `request`, `context` (object)
+- `entities` (array)
+- `validation` (object)
 
 ## 5) 변수명 충돌 방지 규칙
 
@@ -109,4 +112,5 @@
 - [x] 구현된 `/search`, `/qa` 엔드포인트 에러 코드 표준 준수
 - [x] 구현된 `/search`, `/qa` 엔드포인트 `request_id`, `timestamp` 누락률 0%
 - [x] FastAPI 기본 422 검증 오류를 `VALIDATION_ERROR` 래퍼로 통일
-- [ ] `/ingest`, `/structure` 구현 이후 동일 체크 재검증 예정
+- [x] `/structure` 단건 API 구현 이후 성공/실패 wrapper 재검증
+- [ ] `/ingest` 구현 이후 동일 체크 재검증 예정

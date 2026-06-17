@@ -45,3 +45,33 @@ def test_build_api_case_record_preserves_be1_search_signals():
     assert record["responsible_unit"] == structured["responsible_unit"]
     assert record["urgency"] == structured["urgency"]
     assert record["metadata"]["structured_by"] == "constrained"
+
+
+def test_build_api_case_record_falls_back_to_raw_text_when_structured_text_empty():
+    normalized = {
+        "text": "민원 원문 fallback",
+        "submitted_at": "2026-06-10T09:00:00+09:00",
+        "region": "부산광역시",
+    }
+    structured = {
+        "case_id": "CASE-EMPTY-STRUCTURED-001",
+        "source": "aihub",
+        "created_at": "2026-06-10T09:00:00+09:00",
+        "category": "도로",
+        "region": "부산광역시",
+        "raw_text": "마스킹된 원문 fallback",
+        "structured_by": "fallback",
+        "validation": {"is_valid": False, "errors": ["empty_field:request"]},
+        "observation": {"text": ""},
+        "result": {"text": ""},
+        "request": {"request": ""},
+        "context": {"text": ""},
+        "entities": [],
+    }
+
+    record = _build_api_case_record(normalized, structured)
+
+    assert record["text"] == "마스킹된 원문 fallback"
+    assert record["structured_text"] == {}
+    assert record["metadata"]["index_text_source"] == "raw_text_fallback_empty_structured"
+    assert record["metadata"]["empty_structured_text_fallback"] is True

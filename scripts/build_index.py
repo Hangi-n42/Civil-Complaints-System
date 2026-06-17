@@ -75,6 +75,19 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
     if not _is_empty(ctx_text):
         parts.append(ctx_text)
     combined_text = "\n".join(parts)
+    empty_structured_text_fallback = False
+    index_text_source = "structured_4_fields"
+    if not combined_text.strip():
+        # 구조화 4요소가 모두 비면 BE2 색인용 검색 본문만 마스킹된 원문으로 보강한다.
+        raw_text_fallback = str(
+            structured.get("raw_text") or normalized.get("raw_text") or normalized.get("text") or ""
+        ).strip()
+        if raw_text_fallback:
+            combined_text = raw_text_fallback
+            empty_structured_text_fallback = True
+            index_text_source = "raw_text_fallback_empty_structured"
+        else:
+            index_text_source = "empty"
 
     metadata: Dict[str, Any] = {
         "case_id": structured["case_id"],
@@ -84,6 +97,8 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "created_at": structured.get("created_at"),
         "structured_by": structured.get("structured_by", "fallback"),
         "is_valid": structured.get("validation", {}).get("is_valid", False),
+        "index_text_source": index_text_source,
+        "empty_structured_text_fallback": empty_structured_text_fallback,
     }
 
     def _field(raw: Dict[str, Any], text: str) -> Dict[str, Any]:
