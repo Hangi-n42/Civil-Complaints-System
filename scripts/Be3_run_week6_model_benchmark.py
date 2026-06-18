@@ -55,6 +55,14 @@ from app.generation.parsing.json_utils import (
     validate_qa_payload_schema,
 )
 from app.core.config import settings
+from app.evaluation.civil_llm_rubric import (
+    RUBRIC_OPTIONS,
+    get_civil_llm_rubric_evaluator,
+)
+from app.evaluation.prometheus_feedback import (
+    get_prometheus_feedback_engine,
+    select_low_score_items,
+)
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.service import GenerationService
 from app.generation.citation.legal_citation import ground_legal_citations
@@ -617,6 +625,138 @@ def _call_model(
     return _recover_minimal_response(response_text), latency, response_text
 
 
+def _run_civil_llm_rubric_for_benchmark(
+    *,
+    case_id: str,
+    complaint_text: str,
+    generated_answer: str,
+    references: List[Dict[str, Any]],
+    citations: List[Dict[str, Any]],
+    routing_trace: Dict[str, Any],
+    validation: Dict[str, Any],
+    query_signals: Dict[str, Any],
+    legal_citations: List[Dict[str, Any]],
+    legal_citation_warnings: List[str],
+    generation_metadata: Dict[str, Any],
+    citation_match_rate: float,
+) -> Dict[str, Any]:
+    """Evaluate a benchmark answer with the runtime Civil Complaint LLM-Rubric.
+
+    Direct benchmark mode intentionally uses the same rubric implementation as
+    /qa, but leaves llm_call empty so local benchmark runs do not depend on an
+    extra judge-model call unless the runtime module enables one explicitly.
+    """
+    if not settings.ENABLE_CIVIL_LLM_RUBRIC:
+        return {
+            "enabled": False,
+            "judge_status": "disabled",
+            "score_summary": {"q0_final": None},
+            "llm_rubric_raw": {},
+        }
+
+    citation_validation = {
+        "is_valid": bool(validation.get("is_valid", False)),
+        "errors": validation.get("errors", []),
+        "warnings": validation.get("warnings", []),
+        "error_count": len(validation.get("errors", [])),
+        "warning_count": len(validation.get("warnings", [])),
+    }
+    quality_signals = {
+        "citation_match_rate": float(citation_match_rate),
+        "qa_is_valid": bool(validation.get("is_valid", False)),
+        "qa_error_count": len(validation.get("errors", [])),
+        "qa_warning_count": len(validation.get("warnings", [])),
+    }
+
+    async def _evaluate() -> Dict[str, Any]:
+        return await get_civil_llm_rubric_evaluator().evaluate(
+            case_id=case_id,
+            complaint_text=complaint_text,
+            generated_answer=generated_answer,
+            references=references,
+            citations=citations,
+            routing_trace=routing_trace,
+            quality_signals=quality_signals,
+            citation_validation=citation_validation,
+            legal_citations=legal_citations,
+            legal_citation_warnings=legal_citation_warnings,
+            query_signals=query_signals,
+            generation_metadata=generation_metadata,
+            llm_call=None,
+        )
+
+    try:
+        return asyncio.run(_evaluate())
+    except RuntimeError:
+        # The benchmark script is normally synchronous. This guard keeps the
+        # result explicit if a caller embeds it inside an existing event loop.
+        return {
+            "enabled": True,
+            "judge_status": "error",
+            "error": "Civil LLM-Rubric could not run inside an existing event loop.",
+            "score_summary": {"q0_final": 0.0},
+            "llm_rubric_raw": {},
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "enabled": True,
+            "judge_status": "error",
+            "error": f"{type(exc).__name__}: {exc}",
+            "score_summary": {"q0_final": 0.0},
+            "llm_rubric_raw": {},
+        }
+
+
+def _civil_llm_rubric_q0_score(rubric_result: Dict[str, Any]) -> Optional[float]:
+    summary = rubric_result.get("score_summary")
+    if not isinstance(summary, dict):
+        return None
+    value = summary.get("q0_final")
+    try:
+        return round(float(value), 4)
+    except (TypeError, ValueError):
+        return None
+
+
+def _civil_llm_rubric_low_items(rubric_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not settings.ENABLE_PROMETHEUS_RUBRIC_FEEDBACK:
+        return []
+    try:
+        return select_low_score_items(
+            rubric_result,
+            threshold_1_4=settings.PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE,
+        )
+    except Exception:
+        return []
+
+
+def _build_direct_rubric_feedback(low_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    weaknesses = [
+        f"{item.get('qid')}: {item.get('name') or ''} "
+        f"(score_0_10={item.get('score_0_10')})"
+        for item in low_items
+    ]
+    return {
+        "triggered": bool(low_items),
+        "source": "direct_civil_llm_rubric",
+        "trigger_threshold_1_4": settings.PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE,
+        "low_score_items": low_items,
+        "feedback": (
+            "Civil Complaint LLM-Rubric 평가에서 낮은 항목이 감지되었습니다. "
+            "민원 원문과 검색 근거에 직접 연결되는 처리 방향만 남기고, "
+            "확정되지 않은 조치·일정·권한 밖 약속은 조건부 검토 표현으로 수정합니다."
+        ),
+        "strengths": [],
+        "weaknesses": weaknesses[:5],
+        "revision_hint": (
+            "3번 검토 의견 본문만 실질적으로 보강하십시오. 민원과 다른 사례의 결론을 가져오지 말고, "
+            "근거가 부족한 경우에는 담당부서 확인 또는 현장 확인 필요성을 명확히 쓰십시오. "
+            "공개 답변에는 rubric, Prometheus, 평가, 내부 진단이라는 표현을 쓰지 마십시오."
+        ),
+        "risk_flags": [str(item.get("qid") or "") for item in low_items if item.get("qid")],
+    }
+
+
 def _to_qa_search_results(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     transformed: List[Dict[str, Any]] = []
     for item in items:
@@ -964,6 +1104,8 @@ def run(
         answer_non_empty_repaired = 0
         citation_rates_strict: List[float] = []
         citation_rates_repaired: List[float] = []
+        civil_llm_rubric_q0_scores: List[float] = []
+        civil_llm_rubric_revision_count = 0
         total_runs = len(cases) * repetitions
         processed_runs = 0
 
@@ -1156,7 +1298,6 @@ def run(
                             if str(item).strip()
                         ]
 
-                    latencies.append(latency)
 
                     # repaired: 보정 후 기준
                     repaired_citations = _repair_citations(strict_citations_raw, eval_context)
@@ -1180,6 +1321,212 @@ def run(
                         complaint=complaint_text,
                     )
 
+                    generation_metadata_benchmark = {
+                        "benchmark_mode": benchmark_mode,
+                        "generation_mode": retry_stage if retry_stage != "none" else "default",
+                        "fallback_used": False,
+                        "parse_retry_count": 1 if retry_reason else 0,
+                        "legal_grounding_status": legal_grounding.get("status", "not_requested"),
+                        "legal_grounding_error": legal_grounding.get("error", ""),
+                    }
+                    repaired_cite_rate = _citation_match_rate(repaired_citations, eval_context)
+                    civil_llm_rubric_initial = _run_civil_llm_rubric_for_benchmark(
+                        case_id=case_id,
+                        complaint_text=complaint_text,
+                        generated_answer=repaired_answer,
+                        references=eval_context,
+                        citations=repaired_citations,
+                        routing_trace=routing_trace,
+                        validation=validation,
+                        query_signals=query_signals,
+                        legal_citations=legal_citations,
+                        legal_citation_warnings=legal_citation_warnings,
+                        generation_metadata=generation_metadata_benchmark,
+                        citation_match_rate=repaired_cite_rate,
+                    )
+                    civil_llm_rubric = civil_llm_rubric_initial
+                    civil_llm_rubric_low_items = _civil_llm_rubric_low_items(civil_llm_rubric)
+                    prometheus_revision = {
+                        "triggered": bool(civil_llm_rubric_low_items),
+                        "applied": False,
+                        "source": "not_triggered"
+                        if not civil_llm_rubric_low_items
+                        else "direct_civil_llm_rubric",
+                        "low_score_items": civil_llm_rubric_low_items,
+                    }
+
+                    if (
+                        benchmark_mode == "direct"
+                        and civil_llm_rubric_low_items
+                        and settings.ENABLE_PROMETHEUS_RUBRIC_FEEDBACK
+                        and settings.PROMETHEUS_RUBRIC_MAX_REGENERATION_ATTEMPTS > 0
+                    ):
+                        feedback = _build_direct_rubric_feedback(civil_llm_rubric_low_items)
+                        revision_prompt = get_prometheus_feedback_engine().build_revision_prompt(
+                            complaint_text=complaint_text,
+                            current_answer=repaired_answer,
+                            references=eval_context,
+                            citations=repaired_citations,
+                            prometheus_feedback=feedback,
+                        )
+                        try:
+                            parsed_revision, latency_revision, raw_revision = _call_model(
+                                base_url=base_url,
+                                model_name=model_name,
+                                prompt=revision_prompt,
+                                temperature=0.0,
+                                num_ctx=num_ctx,
+                                num_predict=num_predict,
+                                timeout_sec=timeout_sec,
+                                context=eval_context,
+                                citations_max=1,
+                            )
+                            revision_limitations = _coerce_limitations_text(
+                                parsed_revision.get("limitations", "")
+                            )
+                            revision_citations_raw = parsed_revision.get("citations", [])
+                            revision_citations = _merge_citation_lists(
+                                _coerce_citations_for_benchmark(
+                                    revision_citations_raw,
+                                    eval_context,
+                                ),
+                                _coerce_citations_from_raw_text(
+                                    raw_revision,
+                                    eval_context,
+                                ),
+                            )
+                            revision_answer = _derive_non_empty_answer(
+                                parsed_revision,
+                                raw_revision,
+                                eval_context,
+                            )
+                            if legal_grounding.get("status") not in {"disabled", "not_requested"}:
+                                grounded_revision = ground_legal_citations(
+                                    revision_answer,
+                                    legal_articles,
+                                )
+                                revision_answer = str(
+                                    grounded_revision.get("answer") or ""
+                                ).strip()
+                                legal_citations = [
+                                    item
+                                    for item in grounded_revision.get("valid", [])
+                                    if isinstance(item, dict)
+                                ]
+                                legal_citation_warnings = [
+                                    str(item)
+                                    for item in grounded_revision.get("warnings", [])
+                                    if str(item).strip()
+                                ]
+
+                            revision_repaired_citations = _repair_citations(
+                                revision_citations_raw,
+                                eval_context,
+                            )
+                            revision_repaired_answer = _apply_answer_quality_guard(
+                                revision_answer,
+                                revision_repaired_citations,
+                                complaint=complaint_text,
+                                context=eval_context,
+                            )
+                            revision_validation = build_validation_result(
+                                answer=revision_repaired_answer,
+                                citations=revision_repaired_citations,
+                                limitations=revision_limitations,
+                                context=eval_context,
+                                complaint=complaint_text,
+                            )
+                            revision_repaired_cite_rate = _citation_match_rate(
+                                revision_repaired_citations,
+                                eval_context,
+                            )
+                            revision_rubric = _run_civil_llm_rubric_for_benchmark(
+                                case_id=case_id,
+                                complaint_text=complaint_text,
+                                generated_answer=revision_repaired_answer,
+                                references=eval_context,
+                                citations=revision_repaired_citations,
+                                routing_trace=routing_trace,
+                                validation=revision_validation,
+                                query_signals=query_signals,
+                                legal_citations=legal_citations,
+                                legal_citation_warnings=legal_citation_warnings,
+                                generation_metadata={
+                                    **generation_metadata_benchmark,
+                                    "generation_mode": "civil_llm_rubric_revision",
+                                    "parse_retry_count": generation_metadata_benchmark[
+                                        "parse_retry_count"
+                                    ]
+                                    + 1,
+                                },
+                                citation_match_rate=revision_repaired_cite_rate,
+                            )
+                            old_q0 = _civil_llm_rubric_q0_score(civil_llm_rubric) or 0.0
+                            new_q0 = _civil_llm_rubric_q0_score(revision_rubric) or 0.0
+                            if revision_repaired_answer and (
+                                bool(revision_validation.get("is_valid", False))
+                                or new_q0 >= old_q0
+                            ):
+                                parsed_final = parsed_revision
+                                raw_response = raw_revision
+                                latency += latency_revision
+                                limitations = revision_limitations
+                                strict_citations_raw = revision_citations_raw
+                                strict_citations = revision_citations
+                                strict_answer = revision_answer
+                                strict_cite_rate = _citation_match_rate(
+                                    revision_citations,
+                                    eval_context,
+                                )
+                                raw_schema_compliant, raw_schema_errors = _inspect_raw_schema(
+                                    raw_revision
+                                )
+                                repaired_citations = revision_repaired_citations
+                                repaired_answer = revision_repaired_answer
+                                repaired_cite_rate = revision_repaired_cite_rate
+                                validation = revision_validation
+                                civil_llm_rubric = revision_rubric
+                                civil_llm_rubric_low_items = _civil_llm_rubric_low_items(
+                                    civil_llm_rubric
+                                )
+                                retry_reason = (
+                                    f"{retry_reason}+CIVIL_LLM_RUBRIC_LOW_SCORE"
+                                    if retry_reason
+                                    else "CIVIL_LLM_RUBRIC_LOW_SCORE"
+                                )
+                                retry_stage = (
+                                    f"{retry_stage}->civil_llm_rubric_revision"
+                                    if retry_stage != "none"
+                                    else "civil_llm_rubric_revision"
+                                )
+                                civil_llm_rubric_revision_count += 1
+                                prometheus_revision = {
+                                    **feedback,
+                                    "applied": True,
+                                    "initial_q0": old_q0,
+                                    "final_q0": new_q0,
+                                    "low_score_items_after_revision": civil_llm_rubric_low_items,
+                                }
+                            else:
+                                prometheus_revision = {
+                                    **feedback,
+                                    "applied": False,
+                                    "error": "revision_rejected_by_validation_or_empty_answer",
+                                    "initial_q0": old_q0,
+                                    "candidate_q0": new_q0,
+                                }
+                        except Exception as revision_exc:  # noqa: BLE001
+                            prometheus_revision = {
+                                **feedback,
+                                "applied": False,
+                                "error": f"{type(revision_exc).__name__}: {revision_exc}",
+                            }
+
+                    q0_score = _civil_llm_rubric_q0_score(civil_llm_rubric)
+                    if q0_score is not None:
+                        civil_llm_rubric_q0_scores.append(q0_score)
+                    latencies.append(latency)
+
                     if raw_schema_compliant:
                         parse_success += 1
                     if validation.get("is_valid", False):
@@ -1189,7 +1536,6 @@ def run(
                     if repaired_answer:
                         answer_non_empty_repaired += 1
 
-                    repaired_cite_rate = _citation_match_rate(repaired_citations, eval_context)
                     citation_rates_strict.append(strict_cite_rate)
                     citation_rates_repaired.append(repaired_cite_rate)
 
@@ -1237,6 +1583,14 @@ def run(
                             ),
                             "retry_reason": retry_reason,
                             "retry_stage": retry_stage,
+                            "civil_llm_rubric_q0": q0_score,
+                            "civil_llm_rubric_judge_status": civil_llm_rubric.get(
+                                "judge_status"
+                            ),
+                            "civil_llm_rubric_low_score_items": civil_llm_rubric_low_items,
+                            "civil_llm_rubric": civil_llm_rubric,
+                            "civil_llm_rubric_initial": civil_llm_rubric_initial,
+                            "prometheus_revision": prometheus_revision,
                             "benchmark_mode": benchmark_mode,
                             "derived_query": routing_trace.get("derived_query") or _case_query(case),
                             "retrieved_context_count": len(eval_context),
@@ -1278,6 +1632,30 @@ def run(
                         context=eval_context,
                         complaint=complaint_text,
                     )
+                    fallback_rubric = _run_civil_llm_rubric_for_benchmark(
+                        case_id=case_id,
+                        complaint_text=complaint_text,
+                        generated_answer=fallback_answer,
+                        references=eval_context,
+                        citations=repaired_citations,
+                        routing_trace={},
+                        validation=validation,
+                        query_signals=_build_case_query_signals(case),
+                        legal_citations=[],
+                        legal_citation_warnings=[],
+                        generation_metadata={
+                            "benchmark_mode": benchmark_mode,
+                            "generation_mode": "exception_fallback",
+                            "fallback_used": True,
+                            "parse_retry_count": 0,
+                            "legal_grounding_status": "not_requested",
+                        },
+                        citation_match_rate=fallback_cite_rate,
+                    )
+                    fallback_q0 = _civil_llm_rubric_q0_score(fallback_rubric)
+                    fallback_low_items = _civil_llm_rubric_low_items(fallback_rubric)
+                    if fallback_q0 is not None:
+                        civil_llm_rubric_q0_scores.append(fallback_q0)
                     record.update(
                         {
                             "status": "failed_fallback",
@@ -1314,6 +1692,19 @@ def run(
                             "integrity_gate_passed": False,
                             "retry_reason": "EXCEPTION_FALLBACK",
                             "retry_stage": "exception",
+                            "civil_llm_rubric_q0": fallback_q0,
+                            "civil_llm_rubric_judge_status": fallback_rubric.get(
+                                "judge_status"
+                            ),
+                            "civil_llm_rubric_low_score_items": fallback_low_items,
+                            "civil_llm_rubric": fallback_rubric,
+                            "civil_llm_rubric_initial": fallback_rubric,
+                            "prometheus_revision": {
+                                "triggered": False,
+                                "applied": False,
+                                "source": "exception_fallback",
+                                "low_score_items": fallback_low_items,
+                            },
                             "benchmark_mode": benchmark_mode,
                             "derived_query": query,
                             "retrieved_context_count": len(eval_context),
@@ -1365,6 +1756,13 @@ def run(
                 "citation_match_rate": round(statistics.fmean(citation_rates_repaired), 4)
                 if citation_rates_repaired
                 else 0.0,
+                "civil_llm_rubric_q0_avg": round(
+                    statistics.fmean(civil_llm_rubric_q0_scores),
+                    4,
+                )
+                if civil_llm_rubric_q0_scores
+                else None,
+                "civil_llm_rubric_revision_count": civil_llm_rubric_revision_count,
                 "avg_latency_sec": round(statistics.fmean(latencies), 4) if latencies else None,
                 "p95_latency_sec": round(sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)], 4)
                 if latencies
@@ -1407,12 +1805,12 @@ def _write_summary_md(report: Dict[str, Any], out_path: Path) -> None:
     lines.append(f"- 케이스 수: {cfg['cases_count']}")
     lines.append("- 추가 지표: scenario_type/risk_level/requires_multi_request/time_sensitivity 슬라이스")
     lines.append("")
-    lines.append("| model | status | parse_success_rate | answer_non_empty_rate_strict | answer_non_empty_rate_repaired | citation_match_rate_strict | citation_match_rate_repaired | avg_latency_sec | p95_latency_sec |")
-    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    lines.append("| model | status | parse_success_rate | answer_non_empty_rate_strict | answer_non_empty_rate_repaired | citation_match_rate_strict | citation_match_rate_repaired | civil_llm_rubric_q0_avg | rubric_revision_count | avg_latency_sec | p95_latency_sec |")
+    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
     for row in report["summary"]:
         lines.append(
-            "| {model_name} | {status} | {parse_success_rate} | {answer_non_empty_rate_strict} | {answer_non_empty_rate_repaired} | {citation_match_rate_strict} | {citation_match_rate_repaired} | {avg_latency_sec} | {p95_latency_sec} |".format(
+            "| {model_name} | {status} | {parse_success_rate} | {answer_non_empty_rate_strict} | {answer_non_empty_rate_repaired} | {citation_match_rate_strict} | {citation_match_rate_repaired} | {civil_q0} | {rubric_revisions} | {avg_latency_sec} | {p95_latency_sec} |".format(
                 model_name=row.get("model_name", ""),
                 status=row.get("status", ""),
                 parse_success_rate=row.get("parse_success_rate", "-"),
@@ -1420,6 +1818,8 @@ def _write_summary_md(report: Dict[str, Any], out_path: Path) -> None:
                 answer_non_empty_rate_repaired=row.get("answer_non_empty_rate_repaired", "-"),
                 citation_match_rate_strict=row.get("citation_match_rate_strict", "-"),
                 citation_match_rate_repaired=row.get("citation_match_rate_repaired", "-"),
+                civil_q0=row.get("civil_llm_rubric_q0_avg", "-"),
+                rubric_revisions=row.get("civil_llm_rubric_revision_count", "-"),
                 avg_latency_sec=row.get("avg_latency_sec", "-"),
                 p95_latency_sec=row.get("p95_latency_sec", "-"),
             )
@@ -1455,6 +1855,95 @@ def _append_jsonl(path: Path, row: Dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _write_civil_llm_rubric_artifacts(report: Dict[str, Any], output_dir: Path) -> None:
+    results = [row for row in report.get("results", []) if isinstance(row, dict)]
+    qids = list(RUBRIC_OPTIONS.keys())
+    scores_path = output_dir / "civil_llm_rubric_scores.jsonl"
+    summary_path = output_dir / "civil_llm_rubric_summary.md"
+    scores_path.write_text("", encoding="utf-8")
+
+    q_scores: Dict[str, List[float]] = {qid: [] for qid in qids}
+    q_expected_scores: Dict[str, List[float]] = {qid: [] for qid in qids}
+    final_q0_scores: List[float] = []
+    revision_applied = 0
+    human_review = 0
+
+    for row in results:
+        rubric = row.get("civil_llm_rubric") if isinstance(row.get("civil_llm_rubric"), dict) else {}
+        raw = rubric.get("llm_rubric_raw") if isinstance(rubric.get("llm_rubric_raw"), dict) else {}
+        score_row: Dict[str, Any] = {
+            "model_id": row.get("model_id"),
+            "model_name": row.get("model_name"),
+            "case_id": row.get("case_id"),
+            "status": row.get("status"),
+            "judge_status": rubric.get("judge_status"),
+            "q0_final": row.get("civil_llm_rubric_q0"),
+            "prometheus_revision_applied": bool(
+                (row.get("prometheus_revision") or {}).get("applied")
+            ),
+            "low_score_items": row.get("civil_llm_rubric_low_score_items", []),
+        }
+        for qid in qids:
+            item = raw.get(qid) if isinstance(raw.get(qid), dict) else {}
+            value = item.get("score_0_10")
+            expected = item.get("expected_1_4")
+            score_row[f"{qid}_expected_1_4"] = expected
+            score_row[f"{qid}_score_0_10"] = value
+            try:
+                q_expected_scores[qid].append(float(expected))
+            except (TypeError, ValueError):
+                pass
+            try:
+                q_scores[qid].append(float(value))
+            except (TypeError, ValueError):
+                pass
+
+        q0 = row.get("civil_llm_rubric_q0")
+        try:
+            q0_float = float(q0)
+            final_q0_scores.append(q0_float)
+            if q0_float < 6.0:
+                human_review += 1
+        except (TypeError, ValueError):
+            pass
+        if score_row["prometheus_revision_applied"]:
+            revision_applied += 1
+        _append_jsonl(scores_path, score_row)
+
+    lines = [
+        "# Civil Complaint LLM-Rubric Summary",
+        "",
+        "- source: direct benchmark runtime evaluation",
+        "- rubric: docs/40_delivery/week11/llm_evaluation/Civil_Complaint_LLM_Rubric.md",
+        f"- total_rows: {len(results)}",
+        f"- revision_applied: {revision_applied}",
+        f"- q0_below_6_review_count: {human_review}",
+        f"- q0_final_avg: {round(statistics.fmean(final_q0_scores), 4) if final_q0_scores else 'N/A'}",
+        "",
+        "## Q 평균",
+        "",
+        "| qid | avg_expected_1_4 | avg_score_0_10 | count |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for qid in qids:
+        values = q_scores.get(qid, [])
+        expected_values = q_expected_scores.get(qid, [])
+        expected_avg = round(statistics.fmean(expected_values), 4) if expected_values else "N/A"
+        avg = round(statistics.fmean(values), 4) if values else "N/A"
+        lines.append(f"| {qid} | {expected_avg} | {avg} | {len(values)} |")
+
+    lines.extend(
+        [
+            "",
+            "## 산출물",
+            "",
+            f"- scores_jsonl: `{scores_path.name}`",
+            "- note: 이전 `scripts/evaluate_llm_rubric_civil_replies.py` 후처리 루브릭이 아니라 direct 실행 중 새 런타임 루브릭으로 계산한 결과입니다.",
+        ]
+    )
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -1579,6 +2068,11 @@ def main() -> None:
             "legal_grounding_error": row.get("legal_grounding_error", ""),
             "legal_context_count": row.get("legal_context_count", 0),
             "legal_context_refs": row.get("legal_context_refs", []),
+            "civil_llm_rubric_q0": row.get("civil_llm_rubric_q0"),
+            "civil_llm_rubric_judge_status": row.get("civil_llm_rubric_judge_status"),
+            "prometheus_revision_applied": bool(
+                (row.get("prometheus_revision") or {}).get("applied")
+            ),
             "error": row.get("error"),
         }
         parsed_answer_row = {
@@ -1607,9 +2101,20 @@ def main() -> None:
             "legal_context_refs": row.get("legal_context_refs", []),
             "legal_citations": row.get("legal_citations", []),
             "legal_citation_warnings": row.get("legal_citation_warnings", []),
+            "civil_llm_rubric_q0": row.get("civil_llm_rubric_q0"),
+            "civil_llm_rubric_judge_status": row.get("civil_llm_rubric_judge_status"),
+            "civil_llm_rubric_low_score_items": row.get(
+                "civil_llm_rubric_low_score_items",
+                [],
+            ),
+            "civil_llm_rubric": row.get("civil_llm_rubric", {}),
+            "civil_llm_rubric_initial": row.get("civil_llm_rubric_initial", {}),
+            "prometheus_revision": row.get("prometheus_revision", {}),
         }
         _append_jsonl(raw_response_jsonl, raw_response_row)
         _append_jsonl(parsed_answer_jsonl, parsed_answer_row)
+
+    _write_civil_llm_rubric_artifacts(report, output_dir)
 
     print(f"[DONE] report: {report_json}")
     print(f"[DONE] summary: {summary_md}")
