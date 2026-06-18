@@ -219,6 +219,7 @@ __marimo__/
 data/*.zip
 data/chroma_backups/
 data/processed/
+data/structured/
 data/raw_data/
 
 # Local virtual environments

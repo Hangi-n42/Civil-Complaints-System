@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from scripts.build_index import _build_api_case_record
+import json
+import logging
+
+from scripts.build_index import _build_api_case_record, _save_structured_outputs
 
 
 def test_build_api_case_record_preserves_be1_search_signals():
@@ -117,3 +120,35 @@ def test_build_api_case_record_falls_back_to_raw_text_when_structured_text_empty
     assert record["structured_text"] == {}
     assert record["metadata"]["index_text_source"] == "raw_text_fallback_empty_structured"
     assert record["metadata"]["empty_structured_text_fallback"] is True
+
+
+def test_save_structured_outputs_writes_default_artifacts(tmp_path):
+    structured_rows = [
+        {
+            "case_id": "CASE-STRUCTURED-001",
+            "observation": {"text": "도로가 파손되었습니다."},
+            "result": {"text": "통행 불편이 있습니다."},
+            "request": {"text": "보수를 요청합니다."},
+            "context": {"text": "출근 시간대"},
+            "validation": {"is_valid": True},
+        }
+    ]
+
+    paths = _save_structured_outputs(
+        input_dir="data/raw_data",
+        collection_name="civil_cases_v1",
+        structured_rows=structured_rows,
+        failures=[],
+        logger=logging.getLogger("test_build_index_contract"),
+        output_dir=tmp_path,
+    )
+
+    assert paths["output"].exists()
+    assert paths["summary"].exists()
+    assert paths["failures"].exists()
+    assert json.loads(paths["output"].read_text(encoding="utf-8")) == structured_rows
+    summary = json.loads(paths["summary"].read_text(encoding="utf-8"))
+    assert summary["structured_count"] == 1
+    assert summary["failed_count"] == 0
+    assert summary["schema_pass_rate"] == 1.0
+    assert json.loads(paths["failures"].read_text(encoding="utf-8")) == []

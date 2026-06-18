@@ -25,6 +25,97 @@ from app.core.logging import pipeline_logger
 from app.ingestion.service import get_ingestion_service
 from app.structuring.service import get_structuring_service
 
+STRUCTURED_OUTPUT_DIR = project_root / "data" / "structured"
+STRUCTURED_FIELDS = ("observation", "result", "request", "context")
+
+
+def _safe_filename_part(value: str) -> str:
+    """파일명에 쓰기 어려운 문자를 안전한 밑줄로 바꾼다."""
+    cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in str(value or ""))
+    return cleaned.strip("_") or "structured"
+
+
+def _structured_field_text(row: Dict[str, Any], field: str) -> str:
+    """최종 구조화 결과의 4요소 text를 안전하게 읽는다."""
+    value = row.get(field)
+    if isinstance(value, dict):
+        return str(value.get("text") or value.get("request") or "").strip()
+    return str(value or "").strip()
+
+
+def _build_structured_summary(
+    *,
+    input_dir: str,
+    collection_name: str,
+    output_path: Path,
+    structured_rows: list[Dict[str, Any]],
+    failures: list[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """data/structured 저장 산출물의 최소 품질 지표를 요약한다."""
+    schema_passed = 0
+    empty_fields = 0
+    for row in structured_rows:
+        validation = row.get("validation") if isinstance(row.get("validation"), dict) else {}
+        if validation.get("is_valid") is True:
+            schema_passed += 1
+        for field in STRUCTURED_FIELDS:
+            if not _structured_field_text(row, field):
+                empty_fields += 1
+
+    denominator = len(structured_rows) * len(STRUCTURED_FIELDS)
+    return {
+        "generated_at": datetime.now().isoformat(),
+        "input_dir": input_dir,
+        "collection_name": collection_name,
+        "output_path": str(output_path),
+        "structured_count": len(structured_rows),
+        "failed_count": len(failures),
+        "schema_passed": schema_passed,
+        "schema_pass_rate": round(schema_passed / len(structured_rows), 4) if structured_rows else 0.0,
+        "empty_field_count": empty_fields,
+        "empty_field_rate": round(empty_fields / denominator, 4) if denominator else 0.0,
+        "fields": list(STRUCTURED_FIELDS),
+    }
+
+
+def _save_structured_outputs(
+    *,
+    input_dir: str,
+    collection_name: str,
+    structured_rows: list[Dict[str, Any]],
+    failures: list[Dict[str, Any]],
+    logger,
+    output_dir: Path = STRUCTURED_OUTPUT_DIR,
+) -> Dict[str, Path]:
+    """메인 구조화-인덱싱 파이프라인의 최종 구조화 결과를 항상 파일로 저장한다."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prefix = f"{_safe_filename_part(collection_name)}_structured_{stamp}"
+    output_path = output_dir / f"{prefix}.json"
+    summary_path = output_dir / f"{prefix}.summary.json"
+    failures_path = output_dir / f"{prefix}.failures.json"
+
+    summary = _build_structured_summary(
+        input_dir=input_dir,
+        collection_name=collection_name,
+        output_path=output_path,
+        structured_rows=structured_rows,
+        failures=failures,
+    )
+
+    output_path.write_text(json.dumps(structured_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    failures_path.write_text(json.dumps(failures, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info(
+        "BE1 최종 구조화 결과 저장 완료: output=%s summary=%s failures=%s count=%d failed=%d",
+        output_path,
+        summary_path,
+        failures_path,
+        len(structured_rows),
+        len(failures),
+    )
+    return {"output": output_path, "summary": summary_path, "failures": failures_path}
+
 
 def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any]) -> Dict[str, Any]:
     obs = structured.get("observation", {})
@@ -246,6 +337,8 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
     logger.info(f"인덱싱 시작. 찾은 JSON 파일 수: {len(json_files)}{f' (limit={limit})' if limit > 0 else ''}")
 
     docs_to_index = []
+    structured_outputs = []
+    structured_failures = []
     normalized_items = []
 
     for file_path in json_files:
@@ -279,6 +372,13 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
                     })
 
         except Exception as e:
+            structured_failures.append(
+                {
+                    "stage": "load_input_file",
+                    "file_path": str(file_path),
+                    "error": str(e),
+                }
+            )
             logger.error(f"파일 처리 중 오류 발생 ({file_path}): {e}")
 
     # 1. Ingestion 전처리 (clean + mask + global dedup)
@@ -286,6 +386,14 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
 
     for normalized in normalized_list:
         if normalized.get("needs_review") or str(normalized.get("pii_status") or "").upper() in {"REVIEW", "QUARANTINED"}:
+            structured_failures.append(
+                {
+                    "stage": "pii_review_skip",
+                    "case_id": str(normalized.get("case_id") or ""),
+                    "pii_status": str(normalized.get("pii_status") or ""),
+                    "reason": "needs_review_or_quarantined",
+                }
+            )
             logger.warning(
                 "PII 검수 필요 문서 스킵: case_id=%s status=%s",
                 normalized.get("case_id"),
@@ -299,6 +407,7 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
 
         # 2. Structuring 수행 (하이브리드 아키텍처)
         structured = await structuring_svc.structure(normalized)
+        structured_outputs.append(structured)
 
         api_case_record = _build_api_case_record(normalized, structured)
         docs_to_index.append(api_case_record)
@@ -325,6 +434,14 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
         print(f"Request: {req_text[:100]}..." if len(req_text) > 100 else f"Request: {req_text}")
         print(f"Context: {ctx_text[:100]}..." if len(ctx_text) > 100 else f"Context: {ctx_text}")
         print("-----------------------\n")
+
+    _save_structured_outputs(
+        input_dir=input_dir,
+        collection_name=collection_name,
+        structured_rows=structured_outputs,
+        failures=structured_failures,
+        logger=logger,
+    )
 
     logger.info(f"변환 완료. 총 문서 수: {len(docs_to_index)}. BE2 REST 인덱싱 진행 중...")
     
