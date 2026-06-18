@@ -285,6 +285,14 @@ async def main(input_dir: str, api_url: str, collection_name: str, batch_size: i
     normalized_list = await ingestion_svc.process(normalized_items)
 
     for normalized in normalized_list:
+        if normalized.get("needs_review") or str(normalized.get("pii_status") or "").upper() in {"REVIEW", "QUARANTINED"}:
+            logger.warning(
+                "PII 검수 필요 문서 스킵: case_id=%s status=%s",
+                normalized.get("case_id"),
+                normalized.get("pii_status"),
+            )
+            continue
+
         # 구조화 입력은 정제/마스킹된 텍스트로 맞춘다.
         if normalized.get("text"):
             normalized["raw_text"] = normalized["text"]

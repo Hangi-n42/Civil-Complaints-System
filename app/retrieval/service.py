@@ -520,25 +520,52 @@ class RetrievalService:
         rebuild: bool = False,
         collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
+        safe_documents = [
+            record
+            for record in documents
+            if isinstance(record, dict) and not self._is_pii_unsafe_record(record)
+        ]
+        valid_document_count = len(
+            [record for record in documents if isinstance(record, dict)]
+        )
+        skipped_pii_count = valid_document_count - len(safe_documents)
         normalized_documents = [
             self._normalize_record(record, index=index)
-            for index, record in enumerate(documents)
-            if isinstance(record, dict)
+            for index, record in enumerate(safe_documents)
         ]
+        safe_normalized_documents = [
+            record
+            for record in normalized_documents
+            if str(record.get("chunk_text") or "").strip()
+        ]
+        skipped_empty_count = len(normalized_documents) - len(safe_normalized_documents)
 
         store = self._get_vectorstore()
         collection_key = collection_name or self.default_collection_name
         if rebuild:
             store.reset_collection(collection_key)
 
-        result = store.upsert_records(collection_key, normalized_documents)
+        result = store.upsert_records(collection_key, safe_normalized_documents)
         return {
             "indexed_count": int(result.get("indexed_count", 0)),
             "chunk_count": int(result.get("chunk_count", 0)),
             "index_name": collection_key,
             "rebuild": rebuild,
             "records": result.get("records", []),
+            "skipped_pii_count": skipped_pii_count,
+            "skipped_empty_count": skipped_empty_count,
         }
+
+    def _is_pii_unsafe_record(self, record: Dict[str, Any]) -> bool:
+        metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        needs_review = record.get("needs_review", metadata.get("needs_review"))
+        if isinstance(needs_review, str):
+            needs_review = needs_review.strip().lower() in {"1", "true", "yes", "y"}
+        if bool(needs_review):
+            return True
+
+        status = str(record.get("pii_status") or metadata.get("pii_status") or "").strip().upper()
+        return status in {"REVIEW", "QUARANTINED"}
 
     def _tokenize(self, text: str) -> set[str]:
         tokens = re.findall(r"[A-Za-z0-9가-힣_]+", text.lower())

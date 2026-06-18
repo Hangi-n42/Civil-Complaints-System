@@ -39,5 +39,5 @@ async def test_process_masks_search_text_with_structuring_text():
     assert "010-1111-2222" not in row["text"]
     assert "010-1111-2222" not in row["search_text"]
     assert "test@example.com" not in row["search_text"]
-    assert "[REDACTED:PHONE]" in row["search_text"]
-    assert "[REDACTED:EMAIL]" in row["search_text"]
+    assert "[전화번호]" in row["search_text"]
+    assert "[이메일]" in row["search_text"]
