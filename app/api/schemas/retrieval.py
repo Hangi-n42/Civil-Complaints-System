@@ -237,6 +237,8 @@ class RoutingHint(BaseModel):
 class RoutingComplexityTrace(BaseModel):
     """라우팅 복잡도 산정 근거"""
 
+    model_config = ConfigDict(extra="allow")
+
     intent_count: int = 1
     constraint_count: int = 0
     entity_diversity: int = 1

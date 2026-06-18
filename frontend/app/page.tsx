@@ -279,7 +279,7 @@ export default function QueuePage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      <div className="max-w-44 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
+                      <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{c.region}</td>
                     <td className="px-4 py-3">
