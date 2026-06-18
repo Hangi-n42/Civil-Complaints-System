@@ -172,8 +172,8 @@ async def test_structure_masks_pii_before_structuring(monkeypatch):
         }
     )
 
-    assert "[REDACTED:PHONE]" in result["raw_text"]
-    assert "[REDACTED:EMAIL]" in result["raw_text"]
+    assert "[전화번호]" in result["raw_text"]
+    assert "[이메일]" in result["raw_text"]
     assert "010-1234-5678" not in result["raw_text"]
     assert "test.user@example.com" not in result["raw_text"]
 
