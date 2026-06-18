@@ -152,6 +152,7 @@ class IngestionService:
     def __init__(self):
         """초기화"""
         self.logger = pipeline_logger
+        self._pii_pipeline = None
 
     async def load_csv(self, file_path: str) -> List[Dict[str, Any]]:
         """
@@ -259,30 +260,22 @@ class IngestionService:
         Returns:
             마스킹된 텍스트
         """
-        try:
-            # 개인정보가 로그에 노출되지 않도록 원문 preview를 남기지 않는다.
-            self.logger.debug("PII 마스킹: len=%d", 0 if text is None else len(text))
-            if text is None:
-                return ""
+        self.logger.debug("PII 마스킹: len=%d", 0 if text is None else len(text))
+        decision = self._sanitize_pii(text)
+        if decision.status.value != "PASSED" or decision.sanitized_text is None:
+            reasons = ",".join(decision.reasons) or decision.status.value
+            raise IngestionError(f"PII 마스킹 실패: {reasons}")
+        return decision.sanitized_text
 
-            masked = str(text)
+    def _get_pii_pipeline(self):
+        if self._pii_pipeline is None:
+            from src.structuring.pii.pipeline import PiiSanitizationPipeline
 
-            pii_patterns = [
-                (r"\b01[0-9][-.]?\d{3,4}[-.]?\d{4}\b", "PHONE"),
-                (r"\b\d{2,3}[-.]?\d{3,4}[-.]?\d{4}\b", "PHONE"),
-                (r"(?<!\d)\d{6}-?[1-4]\d{6}(?!\d)", "SSN"),
-                (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "EMAIL"),
-                (r"\b(?:\d{2,6}-){2,}\d{2,6}\b", "ACCOUNT"),
-                (r"\b\d{2,3}[가-힣]\d{4}\b", "VEHICLE"),
-            ]
+            self._pii_pipeline = PiiSanitizationPipeline(logger=self.logger)
+        return self._pii_pipeline
 
-            for pattern, label in pii_patterns:
-                masked = re.sub(pattern, f"[REDACTED:{label}]", masked)
-
-            return masked
-        except Exception as e:
-            self.logger.error(f"PII 마스킹 실패: {str(e)}")
-            raise IngestionError(f"PII 마스킹 실패: {str(e)}") from e
+    def _sanitize_pii(self, text: str | None):
+        return self._get_pii_pipeline().sanitize_for_rag(text)
 
     def _document_signature(self, text: str) -> str:
         normalized = self._normalize_for_dedup(text)
@@ -574,9 +567,75 @@ class IngestionService:
                 return cleaned
 
             async def _mask_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
-                masked = {**doc, "text": await self.mask_pii(doc.get("text", ""))}
-                if "search_text" in doc:
-                    masked["search_text"] = await self.mask_pii(doc.get("search_text", ""))
+                text_decision = self._sanitize_pii(doc.get("text", ""))
+                search_decision = (
+                    self._sanitize_pii(doc.get("search_text", ""))
+                    if "search_text" in doc
+                    else None
+                )
+                decisions = [text_decision]
+                if search_decision is not None:
+                    decisions.append(search_decision)
+
+                unsafe = [
+                    decision
+                    for decision in decisions
+                    if decision.status.value != "PASSED" or decision.sanitized_text is None
+                ]
+                if unsafe:
+                    reasons = sorted(
+                        {
+                            reason
+                            for decision in unsafe
+                            for reason in (decision.reasons or [decision.status.value])
+                        }
+                    )
+                    findings = [
+                        finding
+                        for decision in unsafe
+                        for finding in decision.findings
+                    ]
+                    status = (
+                        "QUARANTINED"
+                        if any(decision.status.value == "QUARANTINED" for decision in unsafe)
+                        else "REVIEW"
+                    )
+                    metadata = dict(doc.get("metadata") or {})
+                    metadata.update(
+                        {
+                            "pii_status": status,
+                            "needs_review": True,
+                            "pii_reasons": "|".join(reasons),
+                        }
+                    )
+                    masked = {
+                        **doc,
+                        "text": "",
+                        "raw_text": "",
+                        "needs_review": True,
+                        "pii_status": status,
+                        "pii_reasons": reasons,
+                        "pii_findings": findings,
+                        "metadata": metadata,
+                    }
+                    if "search_text" in doc:
+                        masked["search_text"] = ""
+                    return masked
+
+                masked = {
+                    **doc,
+                    "text": text_decision.sanitized_text or "",
+                    "raw_text": text_decision.sanitized_text or "",
+                    "needs_review": False,
+                    "pii_status": "PASSED",
+                    "pii_reasons": [],
+                    "pii_findings": [],
+                }
+                if "search_text" in doc and search_decision is not None:
+                    masked["search_text"] = search_decision.sanitized_text or ""
+                metadata = dict(masked.get("metadata") or {})
+                metadata.update({"pii_status": "PASSED", "needs_review": False})
+                masked["metadata"] = metadata
                 return masked
 
             if clean:
