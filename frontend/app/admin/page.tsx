@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { mockHazardStatistics, mockModelBenchmarkReport } from "@/lib/mockData";
+import { getRecentCompletedWeekRanges, formatWeekRange } from "@/lib/weekRange";
 import AppSidebar from "@/components/AppSidebar";
 
 export default function AdminDashboardPage() {
@@ -16,13 +17,14 @@ export default function AdminDashboardPage() {
   const maxCatCount = Math.max(...stats.category_stats.count);
   const maxHazardCount = Math.max(...stats.hazard_top5.map((h) => h.count));
 
-  // 주간 트렌드 하드코딩 데이터 (Streamlit과 동일)
-  const weeklyData = [
-    { week: "1주차", count: 58 },
-    { week: "2주차", count: 71 },
-    { week: "3주차", count: 94 },
-    { week: "4주차", count: 64 },
-  ];
+  // 주간 트렌드: 건수는 데모용 목업(Streamlit과 동일)이며, 날짜 구간만 오늘 기준
+  // "지난 4주(완료 주, 월~일)"로 계산해 N주차 라벨의 모호함을 없앤다.
+  const WEEKLY_COUNTS = [58, 71, 94, 64];
+  const weeklyData = getRecentCompletedWeekRanges(new Date(), WEEKLY_COUNTS.length).map((range, i) => ({
+    week: `${i + 1}주차`,
+    range: formatWeekRange(range),
+    count: WEEKLY_COUNTS[i],
+  }));
   const maxWeeklyCount = Math.max(...weeklyData.map((w) => w.count));
 
   return (
@@ -179,7 +181,8 @@ export default function AdminDashboardPage() {
 
           {/* 주간 트렌드 (수직 막대) */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <h3 className="text-base font-black text-blue-900 mb-6">주간 트렌드 (지난 4주)</h3>
+            <h3 className="text-base font-black text-blue-900 mb-1">주간 트렌드 (지난 4주)</h3>
+            <p className="text-xs font-medium text-slate-400 mb-5">완료 주(월~일) 기준</p>
             <div className="flex items-end justify-around h-48 px-4 mt-4">
               {weeklyData.map((item) => {
                 const heightPct = (item.count / maxWeeklyCount) * 100;
@@ -193,6 +196,7 @@ export default function AdminDashboardPage() {
                       ></div>
                     </div>
                     <div className="text-xs font-bold text-slate-600 mt-2">{item.week}</div>
+                    <div className="text-[10px] font-medium text-slate-400 mt-0.5">{item.range}</div>
                   </div>
                 );
               })}
