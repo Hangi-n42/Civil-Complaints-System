@@ -62,7 +62,6 @@ def _compact_result(item: dict[str, Any]) -> dict[str, Any]:
         "chunk_id": _clean(item.get("chunk_id")),
         "score": round(float(item.get("score") or 0.0), 6),
         "entity_texts": _split_pipe(metadata.get("entity_texts")),
-        "issue_types": _split_pipe(metadata.get("issue_types")),
         "legal_ref_names": _split_pipe(metadata.get("legal_ref_names")),
         "responsible_units_source": _clean(metadata.get("responsible_units_source")),
     }
@@ -85,17 +84,16 @@ def _render_markdown(report: dict[str, Any]) -> str:
         lines += [
             f"### {query['query']}",
             "",
-            "| 순위 | case_id | 점수 | entity_texts 수 | issue_types | legal_refs 수 | 부서 출처 |",
-            "| ---: | --- | ---: | ---: | --- | ---: | --- |",
+            "| 순위 | case_id | 점수 | entity_texts 수 | legal_refs 수 | 부서 출처 |",
+            "| ---: | --- | ---: | ---: | ---: | --- |",
         ]
         if not query["results"]:
-            lines += ["| - | 결과 없음 | 0 | 0 | - | 0 | - |", ""]
+            lines += ["| - | 결과 없음 | 0 | 0 | 0 | - |", ""]
             continue
         for row in query["results"]:
-            issue_types = ", ".join(row["issue_types"]) if row["issue_types"] else "-"
             lines.append(
                 f"| {row['rank']} | `{row['case_id']}` | {row['score']:.4f} | "
-                f"{len(row['entity_texts'])} | {issue_types} | "
+                f"{len(row['entity_texts'])} | "
                 f"{len(row['legal_ref_names'])} | `{row['responsible_units_source'] or '-'}` |"
             )
         lines.append("")
@@ -104,7 +102,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         "## 판단 기준",
         "",
         "- 빈 결과가 없어야 한다.",
-        "- `entity_texts`, `issue_types`, `legal_refs`, `responsible_units_source`가 검색 결과 metadata에서 읽혀야 한다.",
+        "- `entity_texts`, `legal_refs`, `responsible_units_source`가 검색 결과 metadata에서 읽혀야 한다.",
         "- 이 리포트는 민원 원문과 검색 snippet을 포함하지 않는다.",
         "",
     ]

@@ -2,7 +2,6 @@
 
 from app.structuring.enrichment import (
     FACILITY_KEYWORDS,
-    classify_issue_type,
     normalize_entity_texts,
 )
 
@@ -156,34 +155,6 @@ def test_entity_texts_covers_tax_safety_logistics_and_support_objects():
     assert "지원사업" in texts
 
 
-# ── issue_type 분류 ──────────────────────────────────────────────────────
-def test_issue_type_license_dominates():
-    res = classify_issue_type("운전면허 적성검사 1종 보통 응시 문의")
-    assert res[0]["name"] == "면허/자격"
-    assert res[0]["confidence"] > 0.6
-    assert res[0]["evidence"]                        # 매칭 근거 포함
-
-
-def test_issue_type_facility_repair():
-    res = classify_issue_type("도로가 파손되어 보수와 정비를 요청합니다")
-    assert res[0]["name"] == "시설 개선/보수"
-
-
-def test_issue_type_confidence_scales_with_matches():
-    one = classify_issue_type("보상 문의")          # 1 매칭
-    two = classify_issue_type("손해배상 보상 합의금")  # 다수 매칭
-    assert two[0]["confidence"] > one[0]["confidence"]
-
-
-def test_issue_type_empty_when_no_signal():
-    assert classify_issue_type("안녕하세요 잘 부탁드립니다") == []
-
-
-def test_issue_type_top_n_limit():
-    text = "면허 허가 갱신 보상 단속 지원금 증빙 예약 보수 법령"
-    assert len(classify_issue_type(text, top_n=3)) == 3
-
-
 # ── legal_refs (요청 #2) ──────────────────────────────────────────────────
 from app.structuring.enrichment import classify_legal_refs, build_key_terms
 
@@ -226,9 +197,8 @@ def test_legal_refs_every_item_has_confidence_and_evidence():
 def test_key_terms_prioritizes_specific_objects_and_admin_terms():
     text = "3톤 미만 지게차 면허 적성검사 갱신 신청 절차 문의"
     et = normalize_entity_texts([], text)
-    it = classify_issue_type(text)
     lr = classify_legal_refs(text)
-    kt = build_key_terms(text, et, it, lr)
+    kt = build_key_terms(text, et, lr)
     assert "지게차" in kt
     assert "적성검사" in kt
     assert 3 <= len(kt) <= 8
@@ -236,7 +206,7 @@ def test_key_terms_prioritizes_specific_objects_and_admin_terms():
 
 def test_key_terms_excludes_generic_words():
     text = "지게차 면허 신청 문의 절차 방법"
-    kt = build_key_terms(text, normalize_entity_texts([], text), classify_issue_type(text), classify_legal_refs(text))
+    kt = build_key_terms(text, normalize_entity_texts([], text), classify_legal_refs(text))
     for g in ["신청", "문의", "절차", "방법"]:
         assert g not in kt
 
@@ -244,12 +214,12 @@ def test_key_terms_excludes_generic_words():
 def test_key_terms_drops_substring_of_longer_term():
     # 'OBJECT' canonical 과 행정어가 부분문자열 관계일 때 더 긴 표현만 유지
     et = [{"text": "가설건축물", "label": "OBJECT", "confidence": 0.9, "evidence": ["가설건축물"]}]
-    kt = build_key_terms("가설건축물 건축물 허가", et, [], classify_legal_refs("가설건축물 건축물 허가"))
+    kt = build_key_terms("가설건축물 건축물 허가", et, classify_legal_refs("가설건축물 건축물 허가"))
     assert "가설건축물" in kt
     assert "건축물" not in kt          # 부분문자열 → 제외
 
 
 def test_key_terms_respects_limit():
     text = "지게차 굴착기 가로등 면허 허가 등록 갱신 보상 단속 보조금 증명서 예약 보수"
-    kt = build_key_terms(text, normalize_entity_texts([], text), classify_issue_type(text), classify_legal_refs(text), limit=8)
+    kt = build_key_terms(text, normalize_entity_texts([], text), classify_legal_refs(text), limit=8)
     assert len(kt) <= 8

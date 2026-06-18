@@ -27,7 +27,6 @@ from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 METADATA_SOFT_RERANK_WEIGHTS = {
     "legal_ref_ids": 0.08,
     "legal_ref_names": 0.06,
-    "issue_types": 0.05,
     "entity_texts": 0.04,
     "responsible_units": 0.03,
 }
@@ -338,6 +337,36 @@ class RetrievalService:
             return values[0] if values else ""
         return " ".join(str(value or "").split())
 
+    def _extract_civil_category(self, record: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, str]:
+        """BE1 시민 표시용 카테고리를 색인 메타데이터 형태로 표준화한다."""
+        civil_category = record.get("civil_category")
+        if not isinstance(civil_category, dict):
+            civil_category = metadata.get("civil_category") if isinstance(metadata.get("civil_category"), dict) else {}
+
+        primary = str(
+            civil_category.get("primary")
+            or record.get("civil_category_primary")
+            or metadata.get("civil_category_primary")
+            or ""
+        ).strip()
+        secondary = str(
+            civil_category.get("secondary")
+            or record.get("civil_category_secondary")
+            or metadata.get("civil_category_secondary")
+            or ""
+        ).strip()
+        source = str(
+            civil_category.get("source")
+            or record.get("civil_category_source")
+            or metadata.get("civil_category_source")
+            or ""
+        ).strip()
+        return {
+            "primary": primary,
+            "secondary": secondary,
+            "source": source,
+        }
+
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
@@ -373,14 +402,6 @@ class RetrievalService:
         legal_ref_ids = legal_ref_ids or self._extract_signal_values(
             record.get("legal_ref_ids", metadata.get("legal_ref_ids")),
             keys=("law_id", "id", "text", "name"),
-        )
-        issue_type_value = record.get(
-            "issue_type",
-            record.get("issue_types", metadata.get("issue_type", metadata.get("issue_types"))),
-        )
-        issue_types = self._extract_signal_values(
-            issue_type_value,
-            keys=("name", "text"),
         )
         key_terms = self._extract_signal_values(
             record.get("key_terms", metadata.get("key_terms")),
@@ -439,6 +460,7 @@ class RetrievalService:
             record.get("urgency_level", metadata.get("urgency", metadata.get("urgency_level"))),
         )
         urgency_level = self._extract_urgency_level(urgency_value)
+        civil_category = self._extract_civil_category(record, metadata)
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
@@ -472,11 +494,13 @@ class RetrievalService:
             "search_entity_texts": search_entity_texts,
             "legal_ref_names": legal_ref_names,
             "legal_ref_ids": legal_ref_ids,
-            "issue_types": issue_types,
             "key_terms": key_terms,
             "responsible_units": responsible_units,
             "responsible_units_source": responsible_units_source,
             "responsible_units_confidence": responsible_units_confidence,
+            "civil_category_primary": civil_category["primary"],
+            "civil_category_secondary": civil_category["secondary"],
+            "civil_category_source": civil_category["source"],
             "urgency_level": urgency_level,
             "summary": {
                 "observation": self._get_observation_text(record),
@@ -496,25 +520,52 @@ class RetrievalService:
         rebuild: bool = False,
         collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
+        safe_documents = [
+            record
+            for record in documents
+            if isinstance(record, dict) and not self._is_pii_unsafe_record(record)
+        ]
+        valid_document_count = len(
+            [record for record in documents if isinstance(record, dict)]
+        )
+        skipped_pii_count = valid_document_count - len(safe_documents)
         normalized_documents = [
             self._normalize_record(record, index=index)
-            for index, record in enumerate(documents)
-            if isinstance(record, dict)
+            for index, record in enumerate(safe_documents)
         ]
+        safe_normalized_documents = [
+            record
+            for record in normalized_documents
+            if str(record.get("chunk_text") or "").strip()
+        ]
+        skipped_empty_count = len(normalized_documents) - len(safe_normalized_documents)
 
         store = self._get_vectorstore()
         collection_key = collection_name or self.default_collection_name
         if rebuild:
             store.reset_collection(collection_key)
 
-        result = store.upsert_records(collection_key, normalized_documents)
+        result = store.upsert_records(collection_key, safe_normalized_documents)
         return {
             "indexed_count": int(result.get("indexed_count", 0)),
             "chunk_count": int(result.get("chunk_count", 0)),
             "index_name": collection_key,
             "rebuild": rebuild,
             "records": result.get("records", []),
+            "skipped_pii_count": skipped_pii_count,
+            "skipped_empty_count": skipped_empty_count,
         }
+
+    def _is_pii_unsafe_record(self, record: Dict[str, Any]) -> bool:
+        metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        needs_review = record.get("needs_review", metadata.get("needs_review"))
+        if isinstance(needs_review, str):
+            needs_review = needs_review.strip().lower() in {"1", "true", "yes", "y"}
+        if bool(needs_review):
+            return True
+
+        status = str(record.get("pii_status") or metadata.get("pii_status") or "").strip().upper()
+        return status in {"REVIEW", "QUARANTINED"}
 
     def _tokenize(self, text: str) -> set[str]:
         tokens = re.findall(r"[A-Za-z0-9가-힣_]+", text.lower())
@@ -738,7 +789,6 @@ class RetrievalService:
             "entity_texts",
             "legal_ref_names",
             "legal_ref_ids",
-            "issue_types",
             "key_terms",
             "responsible_units",
         ):

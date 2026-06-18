@@ -18,7 +18,6 @@ def test_extract_query_signals_from_be1_structured_output():
             {"name": "건설기계관리법", "law_id": "001234"},
             {"name": "건설기계관리법", "law_id": "001234"},
         ],
-        "issue_type": [{"name": "면허/자격"}],
         "key_terms": ["지게차", " 면허 ", "지게차"],
         "responsible_unit": [{"name": "교통국", "source": "be1_structured"}],
         "urgency": {"level": "높음"},
@@ -30,7 +29,6 @@ def test_extract_query_signals_from_be1_structured_output():
         "entity_texts": ["지게차"],
         "legal_ref_names": ["건설기계관리법"],
         "legal_ref_ids": ["001234"],
-        "issue_types": ["면허/자격"],
         "key_terms": ["지게차", "면허"],
         "responsible_units": ["교통국"],
         "responsible_units_source": "be1_structured",
@@ -43,14 +41,12 @@ def test_overlap_by_field_accepts_pipe_encoded_metadata():
         "entity_texts": ["가로등"],
         "legal_ref_names": [],
         "legal_ref_ids": ["001706"],
-        "issue_types": ["시설보수"],
         "key_terms": ["조명", "점검"],
         "responsible_units": [],
     }
     metadata = {
         "entity_texts": "가로등|공원",
         "legal_ref_ids": ["001706"],
-        "issue_types": "시설보수",
         "key_terms": "점검|야간",
     }
 
@@ -58,7 +54,6 @@ def test_overlap_by_field_accepts_pipe_encoded_metadata():
 
     assert overlaps["entity_texts"]["values"] == ["가로등"]
     assert overlaps["legal_ref_ids"]["count"] == 1
-    assert overlaps["issue_types"]["count"] == 1
     assert overlaps["key_terms"]["values"] == ["점검"]
 
 
@@ -126,7 +121,6 @@ def test_build_summary_and_markdown_are_korean_report_ready():
                     "entity_texts": 1,
                     "legal_ref_names": 0,
                     "legal_ref_ids": 0,
-                    "issue_types": 1,
                     "key_terms": 2,
                     "responsible_units": 0,
                 },

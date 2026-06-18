@@ -28,7 +28,7 @@ from app.core.config import settings
 from app.evaluation.datasets import QrelRecord
 from app.evaluation.metrics import RunRecord, evaluate_run
 from app.retrieval.service import RetrievalService
-from app.structuring.enrichment import build_key_terms, classify_issue_type, normalize_entity_texts
+from app.structuring.enrichment import build_key_terms, normalize_entity_texts
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from scripts.eval_hybrid_noself import rrf
 from scripts.eval_noself import get, take_top
@@ -46,7 +46,7 @@ RRF_K = 60
 GROUNDING_K = 5
 LLM_FILTER_POOL = 10
 METRIC_KEYS = ["nDCG@5", "nDCG@10", "P@5", "R@10"]
-SIGNAL_FIELDS = ["entity_texts", "legal_ref_names", "legal_ref_ids", "issue_types", "key_terms", "responsible_units"]
+SIGNAL_FIELDS = ["entity_texts", "legal_ref_names", "legal_ref_ids", "key_terms", "responsible_units"]
 
 
 def _clean_list(values: list[Any]) -> list[str]:
@@ -158,15 +158,13 @@ def build_case_map(corpus: list[dict[str, Any]]) -> dict[str, dict[str, str]]:
 
 def build_signals(text: str, *, category: str = "", source: str = "") -> dict[str, list[str]]:
     entity_texts = normalize_entity_texts([], text)
-    issue_types = classify_issue_type(text)
     legal_refs = get_legal_ref_matcher().match(text)
-    key_terms = build_key_terms(text, entity_texts, issue_types, legal_refs)
+    key_terms = build_key_terms(text, entity_texts, legal_refs)
     responsible_units = _clean_list([category, source])
     return {
         "entity_texts": _clean_list([item.get("text") for item in entity_texts]),
         "legal_ref_names": _clean_list([item.get("name") for item in legal_refs]),
         "legal_ref_ids": _clean_list([item.get("law_id") for item in legal_refs]),
-        "issue_types": _clean_list([item.get("name") for item in issue_types]),
         "key_terms": _clean_list(key_terms),
         "responsible_units": responsible_units,
     }

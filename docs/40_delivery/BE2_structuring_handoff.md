@@ -12,7 +12,6 @@ BE2가 요청한 6개 항목을 BE1 구조화 결과(`StructuringService.structu
 | ① normalized_entities | **`entity_texts`** | ✅ | 이름만 다름(아래 주의 참고) |
 | ② legal_refs | **`legal_refs`** | ✅ | `law_id`·`source` 추가(더 풍부) |
 | ③ responsible_unit | **`responsible_unit`** | ✅ | 플래그 on + 인덱스 필요(아래) |
-| ④ issue_type | **`issue_type`** | ✅ | 요청 형식 그대로 |
 | ⑤ key_terms | **`key_terms`** | ✅ | 랭킹된 문자열 3~8개 |
 | ⑥ confidence + evidence | 모든 추론 필드 포함 | ✅ | 미보정(soft 신호 전용) |
 | (보너스) 긴급도 | **`urgency`** | ✅ | Track B 산출(검색엔 선택) |
@@ -59,11 +58,6 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
   ],
   // ③ 담당부서 후보 (플래그 on 시 채워짐)
   "responsible_unit": [],
-  // ④ 쟁점 유형
-  "issue_type": [
-    {"name": "면허/자격", "confidence": 0.95, "evidence": ["면허", "적성검사", "조종"]},
-    {"name": "갱신/연장", "confidence": 0.64, "evidence": ["갱신"]}
-  ],
   // ⑤ 핵심 키워드
   "key_terms": ["지게차", "적성검사", "면허", "갱신", "조종"]
 }
@@ -130,18 +124,11 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 - **상대 confidence(#346 Phase 2)**: `aggregate_candidates()`는 내부 `_rank_score`로 순위를 정하고, 출력 `confidence`는 top1/top2 마진, 같은 부서 multi-hit, evidence term 수, rank/gap decay로 별도 계산합니다. 100건 평가에서 Recall@3=0.6947, MRR@3=0.6000을 유지하면서 NONE abstention은 0.0000→0.8000(threshold=0.4)으로 개선됐습니다. 다만 아직 보정 확률은 아니고, 본청 마스터 밖 업무는 계속 낮은 신뢰/무답 후보로 처리해야 합니다.
 - **CrossEncoder 리랭커(#346 Phase 3)**: `RESPONSIBLE_UNIT_USE_RERANKER=false`가 기본입니다. `true`로 켜면 `BAAI/bge-reranker-v2-m3`가 task 후보를 재점수화하지만, 100건 top_k_tasks=5 비교에서 Recall@3 0.6211→0.6421로 소폭 개선되는 수준이고 운영 기본 Phase 2 top_k_tasks=20(Recall@3=0.6947)보다 낮았습니다. CPU 비용도 커서 운영에서는 사용하지 않습니다.
 
-### ④ `issue_type`
-```jsonc
-[{"name": "면허/자격", "confidence": 0.5~0.95, "evidence": ["면허", "적성검사", "조종"]}]
-```
-- 10유형: 면허/자격·허가/등록·갱신/연장·보상/배상·단속/점검·지원금/급여·증빙/서류·예매/예약·시설 개선/보수·법령 해석. 상위 3개.
-- BE2의 "단어는 같지만 쟁점이 다른 민원" 강등 용도에 직접 사용.
-
 ### ⑤ `key_terms`
 ```jsonc
 ["지게차", "적성검사", "면허", "갱신", "조종"]   // 중요도 순 랭킹 문자열 3~8개
 ```
-- entity_texts(객체) > 행정어 사전 > issue_type 근거 > legal_refs 근거 순 가중. "신청/문의/절차" 같은 일반어 배제.
+- entity_texts(객체) > 행정어 사전 > legal_refs 근거 순 가중. "신청/문의/절차" 같은 일반어 배제.
 - 추출 필드라 항목별 confidence 대신 **순위가 중요도**를 인코딩.
 
 ---
@@ -151,12 +138,11 @@ out  = await structuring_service.structure(to_structuring_record(recs[0]))
 1. **호출**: BE1 `structure(record)` → 위 필드가 포함된 dict 반환. (별도 API/엔드포인트는 기존 /search 파이프라인의 구조화 단계 산출물에 그대로 추가됨.)
 2. **rerank 신호 사용**(BE2가 밝힌 soft-rerank 의도대로 — hard filter 아님):
    - **같은 `legal_refs.name`(또는 `law_id`)** → 후보 가점.
-   - **같은 `issue_type.name`** → 가점("단어 같고 쟁점 다른" 케이스 강등).
    - **`entity_texts.text` 겹침** → 객체 일치 가점.
    - **같은 `responsible_unit.name`** → 가점.
    - **`key_terms` 겹침** → BM25/키워드 부스트.
    - 각 신호를 **confidence로 가중**(높으면 강하게, 낮으면 약하게/무시) — 요청대로.
-3. **임베딩/색인**: BE2가 민원을 인덱싱할 때 위 필드를 metadata로 넣어두면 rerank가 쉬워집니다(예: issue_type/entity_texts/law_id를 chunk metadata로). `entity_texts`는 hard filter가 아니라 약한 soft rerank 신호로만 사용합니다.
+3. **임베딩/색인**: BE2가 민원을 인덱싱할 때 위 필드를 metadata로 넣어두면 rerank가 쉬워집니다(예: entity_texts/law_id를 chunk metadata로). `entity_texts`는 hard filter가 아니라 약한 soft rerank 신호로만 사용합니다.
 
 ---
 

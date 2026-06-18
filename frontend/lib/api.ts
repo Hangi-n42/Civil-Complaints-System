@@ -11,11 +11,22 @@ export type CaseStructuredFields = {
   responsible_unit?: ResponsibleUnit[];
 };
 
+export type CivilCategory = {
+  primary?: string;
+  secondary?: string;
+  secondary_candidates?: string[];
+  confidence?: number;
+  evidence?: string[];
+  source?: string;
+};
+
 export type AssignedCase = {
   case_id: string;
   title?: string;
   received_at: string;
   category: string;
+  category_display?: string;
+  civil_category?: CivilCategory;
   region: string;
   priority: string;
   status?: string;

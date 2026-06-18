@@ -216,11 +216,13 @@ class ChromaVectorStore:
             "entity_texts": _join_metadata_list(entity_texts),
             "legal_ref_names": _join_metadata_list(record.get("legal_ref_names")),
             "legal_ref_ids": _join_metadata_list(record.get("legal_ref_ids")),
-            "issue_types": _join_metadata_list(record.get("issue_types")),
             "key_terms": _join_metadata_list(record.get("key_terms")),
             "responsible_units": _join_metadata_list(record.get("responsible_units")),
             "responsible_units_source": _first_metadata_value(record.get("responsible_units_source")),
             "responsible_units_confidence": float(record.get("responsible_units_confidence") or 0.0),
+            "civil_category_primary": _first_metadata_value(record.get("civil_category_primary")),
+            "civil_category_secondary": _first_metadata_value(record.get("civil_category_secondary")),
+            "civil_category_source": _first_metadata_value(record.get("civil_category_source")),
             "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
             "summary_observation": _normalize_text(summary.get("observation")),
@@ -327,10 +329,12 @@ class ChromaVectorStore:
             entity_texts = _split_metadata_list(metadata.get("entity_texts"))
             legal_ref_names = _split_metadata_list(metadata.get("legal_ref_names"))
             legal_ref_ids = _split_metadata_list(metadata.get("legal_ref_ids"))
-            issue_types = _split_metadata_list(metadata.get("issue_types"))
             key_terms = _split_metadata_list(metadata.get("key_terms"))
             responsible_units = _split_metadata_list(metadata.get("responsible_units"))
             responsible_units_source = _first_metadata_value(metadata.get("responsible_units_source"))
+            civil_category_primary = _first_metadata_value(metadata.get("civil_category_primary"))
+            civil_category_secondary = _first_metadata_value(metadata.get("civil_category_secondary"))
+            civil_category_source = _first_metadata_value(metadata.get("civil_category_source"))
             try:
                 responsible_units_confidence = float(metadata.get("responsible_units_confidence") or 0.0)
             except (TypeError, ValueError):
@@ -389,11 +393,13 @@ class ChromaVectorStore:
                         "entity_texts": entity_texts,
                         "legal_ref_names": legal_ref_names,
                         "legal_ref_ids": legal_ref_ids,
-                        "issue_types": issue_types,
                         "key_terms": key_terms,
                         "responsible_units": responsible_units,
                         "responsible_units_source": responsible_units_source,
                         "responsible_units_confidence": responsible_units_confidence,
+                        "civil_category_primary": civil_category_primary,
+                        "civil_category_secondary": civil_category_secondary,
+                        "civil_category_source": civil_category_source,
                         "urgency_level": str(metadata.get("urgency_level") or ""),
                         "created_at_ts": int(created_at_ts or 0),
                     },

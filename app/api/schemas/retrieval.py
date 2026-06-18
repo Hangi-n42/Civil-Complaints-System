@@ -148,7 +148,6 @@ class SearchQuerySignals(BaseModel):
     entity_texts: List[str] = Field(default_factory=list)
     legal_ref_names: List[str] = Field(default_factory=list)
     legal_ref_ids: List[str] = Field(default_factory=list)
-    issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
     responsible_units_source: Optional[str] = None
@@ -158,7 +157,6 @@ class SearchQuerySignals(BaseModel):
         "entity_texts",
         "legal_ref_names",
         "legal_ref_ids",
-        "issue_types",
         "key_terms",
         "responsible_units",
         mode="before",
@@ -177,7 +175,6 @@ class SearchQuerySignals(BaseModel):
         "entity_texts",
         "legal_ref_names",
         "legal_ref_ids",
-        "issue_types",
         "key_terms",
         "responsible_units",
     )
@@ -240,6 +237,8 @@ class RoutingHint(BaseModel):
 class RoutingComplexityTrace(BaseModel):
     """라우팅 복잡도 산정 근거"""
 
+    model_config = ConfigDict(extra="allow")
+
     intent_count: int = 1
     constraint_count: int = 0
     entity_diversity: int = 1
@@ -281,11 +280,13 @@ class SearchResultMetadata(BaseModel):
     entity_texts: List[str] = Field(default_factory=list)
     legal_ref_names: List[str] = Field(default_factory=list)
     legal_ref_ids: List[str] = Field(default_factory=list)
-    issue_types: List[str] = Field(default_factory=list)
     key_terms: List[str] = Field(default_factory=list)
     responsible_units: List[str] = Field(default_factory=list)
     responsible_units_source: Optional[str] = None
     responsible_units_confidence: Optional[float] = None
+    civil_category_primary: Optional[str] = None
+    civil_category_secondary: Optional[str] = None
+    civil_category_source: Optional[str] = None
     urgency_level: Optional[str] = None
     strategy_id: Optional[str] = None
     route_key: Optional[str] = None

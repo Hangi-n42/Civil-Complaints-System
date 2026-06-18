@@ -30,9 +30,9 @@ from app.core.logging import pipeline_logger
 from app.structuring.enrichment import (
     FACILITY_KEYWORDS,
     build_key_terms,
-    classify_issue_type,
     normalize_entity_texts,
 )
+from app.structuring.civil_category import classify_civil_category
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.llm_extractor import LLMSemanticExtractor
 from app.structuring.merger import ResultMerger
@@ -751,16 +751,21 @@ class StructuringService:
 
             # BE1 고도화 — 검색 신호 보강 필드 (규칙 #6: confidence + evidence 포함)
             candidate["entity_texts"] = normalize_entity_texts(entities, text)   # 요청 #1
-            candidate["issue_type"] = classify_issue_type(text)                  # 요청 #4
             candidate["legal_refs"] = get_legal_ref_matcher().match(text)        # 요청 #2 (사전+도메인)
             candidate["key_terms"] = build_key_terms(                            # 요청 #5
                 text,
                 candidate["entity_texts"],
-                candidate["issue_type"],
                 candidate["legal_refs"],
             )
             candidate["responsible_unit"] = self._assign_responsible_unit(       # 요청 #3
                 text, candidate["entity_texts"], candidate["key_terms"]
+            )
+            candidate["civil_category"] = classify_civil_category(              # 처리인 표시용 분야/세부태그
+                text=text,
+                category=normalized["category"],
+                responsible_unit=candidate["responsible_unit"],
+                entity_texts=candidate["entity_texts"],
+                key_terms=candidate["key_terms"],
             )
             candidate["urgency"] = self._score_urgency(text, normalized["category"])  # 긴급도(Track B)
 

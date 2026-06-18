@@ -705,7 +705,7 @@ class GenerationService:
                 return [], "", {"status": "disabled", "error": ""}
             from app.structuring.legal_dictionary import get_legal_ref_matcher
             from app.structuring.enrichment import (
-                build_key_terms, classify_issue_type, normalize_entity_texts,
+                build_key_terms, normalize_entity_texts,
             )
             from app.generation.citation.legal_citation import (
                 retrieve_legal_context, build_legal_context_block, LEGAL_CITATION_INSTRUCTION,
@@ -741,8 +741,7 @@ class GenerationService:
             ]
             if not kt:
                 et = normalize_entity_texts([], query)
-                it = classify_issue_type(query)
-                kt = build_key_terms(query, et, it, refs)
+                kt = build_key_terms(query, et, refs)
             articles = retrieve_legal_context(query, refs, key_terms=kt, top_k=5)
             if not articles:
                 return [], "", {"status": "no_candidates", "error": ""}

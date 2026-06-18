@@ -17,9 +17,9 @@ async def test_mask_pii_phone_email_ssn():
     text = "연락처는 010-1234-5678, 이메일 test.user@example.com, 주민번호 900101-1234567입니다."
     masked = await service.mask_pii(text)
 
-    assert "[REDACTED:PHONE]" in masked
-    assert "[REDACTED:EMAIL]" in masked
-    assert "[REDACTED:SSN]" in masked
+    assert "[전화번호]" in masked
+    assert "[이메일]" in masked
+    assert "[주민등록번호]" in masked
     assert "010-1234-5678" not in masked
     assert "test.user@example.com" not in masked
     assert "900101-1234567" not in masked

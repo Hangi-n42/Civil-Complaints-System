@@ -47,7 +47,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 1. `preprocessing.py` 또는 `_normalize_required()`에서 원천 `consulting_content`를 민원인 원문 중심으로 정규화한다.
 2. Rule NER로 `entities`를 추출한다.
 3. 설정에 따라 constrained extractor 또는 기존 LLM extractor와 merger를 통해 `observation`, `result`, `request`, `context` 4요소를 생성한다.
-4. BE2 검색 보조 신호인 `entity_texts`, `issue_type`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 보강한다.
+4. BE2 검색 보조 신호인 `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 보강한다.
 5. `validate_schema()`로 필수 구조와 entity label을 검증한다.
 6. `scripts/build_index.py`가 BE1 구조화 결과를 BE2 `/api/v1/index` 입력 레코드로 변환해 전달한다.
 
@@ -62,7 +62,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 ### BE2
 
 - `IndexRecord`는 `extra="allow"`를 사용하므로 기존 필드 외 선택 필드를 받을 수 있다.
-- `RetrievalService._normalize_record()`는 `entity_texts`, `legal_refs`, `issue_type`, `key_terms`, `responsible_unit`, `responsible_units_source`, `urgency`를 이미 읽을 수 있다.
+- `RetrievalService._normalize_record()`는 `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `responsible_units_source`, `urgency`를 읽을 수 있다.
 - `ChromaVectorStore._build_metadata()`는 정규화된 검색 신호를 Chroma metadata 문자열로 평탄화한다.
 - 따라서 BE1 인덱싱 레코드에 위 필드를 추가 전달하는 것은 기존 API contract 변경이 아니라 누락된 optional signal 보존이다.
 
@@ -83,7 +83,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 ### A. 승인 없이 반영 가능한 개선
 
 1. BE1 구조화 결과의 검색 보조 신호가 `scripts/build_index.py` 변환 과정에서 BE2로 전달되지 않는 문제
-   - 원인: `_build_api_case_record()`가 `entities`만 복사하고 `entity_texts`, `legal_refs`, `issue_type`, `key_terms`, `responsible_unit`, `urgency`를 누락한다.
+   - 원인: `_build_api_case_record()`가 `entities`만 복사하고 `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 누락한다.
    - 영향: BE2 Chroma metadata에 soft rerank 신호가 빠질 수 있다.
    - 변경 방향: BE2가 이미 읽을 수 있는 optional top-level 필드로 그대로 보존한다.
 
@@ -99,7 +99,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 
 ### B. 승인 필요한 개선
 
-1. BE1 출력 DTO에 `entity_texts`, `issue_type`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 공식 필수/권장 스키마로 승격
+1. BE1 출력 DTO에 `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 공식 필수/권장 스키마로 승격
    - 사유: DTO/schema 문서와 소비자 계약을 변경한다.
 
 2. BE3 `PromptFactory`의 raw 원문 추출 로직을 BE1 `preprocessing.py`로 통합
@@ -138,7 +138,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 ### Iteration 2 - 승인 없이 가능한 개선 반영
 
 - 변경 내용
-  - `scripts/build_index.py`의 `_build_api_case_record()`가 BE1 구조화 결과의 `entity_texts`, `issue_type`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 BE2 인덱싱 레코드 top-level optional field로 보존하도록 수정했다.
+  - `scripts/build_index.py`의 `_build_api_case_record()`가 BE1 구조화 결과의 `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`를 BE2 인덱싱 레코드 top-level optional field로 보존하도록 수정했다.
   - `scripts/generate_week2_delivery_samples.py`가 원천 `consulting_content`를 가진 레코드에서는 `to_structuring_record()` 결과를 우선해 `raw_text`를 구성하도록 수정했다.
   - `scripts/run_week2_be1_e2e.py`의 raw fallback 수집 경로가 AI Hub 원천 `source_id/consulting_content` 형식을 `to_structuring_record()`로 정규화하도록 수정했다.
 - 변경 전
@@ -176,7 +176,7 @@ BE1 구조화 흐름은 원천 민원 입력을 `StructuringService.structure()`
 
 1. BE1 검색 보조 신호의 BE2 인덱싱 레코드 보존
    - 파일: `scripts/build_index.py`
-   - 목적: `entity_texts`, `issue_type`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`가 Chroma metadata로 이어질 수 있게 한다.
+   - 목적: `entity_texts`, `legal_refs`, `key_terms`, `responsible_unit`, `urgency`가 Chroma metadata로 이어질 수 있게 한다.
    - 계약 영향: 없음. BE2 `IndexRecord`는 extra field를 허용하고, `RetrievalService._normalize_record()`는 해당 필드를 이미 해석한다.
 
 2. Week2 샘플 생성 입력 정합성 보정

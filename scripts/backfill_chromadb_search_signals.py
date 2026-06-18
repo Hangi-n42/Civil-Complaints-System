@@ -2,7 +2,7 @@
 
 용도:
   PR #318 이전에 만들어진 `civil_cases_v1` 컬렉션은 `entity_texts`,
-  `legal_ref_*`, `issue_types`, `key_terms` 같은 metadata가 없다. 전체
+  `legal_ref_*`, `key_terms` 같은 metadata가 없다. 전체
   임베딩을 다시 만들지 않고, 저장된 document text와 기존 metadata만 읽어
   deterministic enrichment 신호를 계산한 뒤 metadata만 update한다.
 
@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.core.config import settings
-from app.structuring.enrichment import build_key_terms, classify_issue_type, normalize_entity_texts
+from app.structuring.enrichment import build_key_terms, normalize_entity_texts
 from app.structuring.legal_dictionary import get_legal_ref_matcher
 from app.structuring.urgency.scorer import UrgencyScorer
 
@@ -33,7 +33,6 @@ SEARCH_SIGNAL_FIELDS = [
     "entity_texts",
     "legal_ref_names",
     "legal_ref_ids",
-    "issue_types",
     "key_terms",
     "responsible_units",
     "responsible_units_source",
@@ -73,9 +72,8 @@ def _build_signals(text: str, metadata: dict[str, Any]) -> dict[str, str]:
     category = str(metadata.get("category") or "")
     source = str(metadata.get("source") or "")
     entity_texts = normalize_entity_texts([], text)
-    issue_types = classify_issue_type(text)
     legal_refs = get_legal_ref_matcher().match(text)
-    key_terms = build_key_terms(text, entity_texts, issue_types, legal_refs)
+    key_terms = build_key_terms(text, entity_texts, legal_refs)
     urgency = _URGENCY_SCORER.score(text, category=category)
 
     responsible_units = []
@@ -89,7 +87,6 @@ def _build_signals(text: str, metadata: dict[str, Any]) -> dict[str, str]:
         "entity_texts": _join_pipe([item.get("text") for item in entity_texts]),
         "legal_ref_names": _join_pipe([item.get("name") for item in legal_refs]),
         "legal_ref_ids": _join_pipe([item.get("law_id") for item in legal_refs]),
-        "issue_types": _join_pipe([item.get("name") for item in issue_types]),
         "key_terms": _join_pipe(key_terms),
         "responsible_units": responsible_units_value,
         "responsible_units_source": "category_source_fallback" if responsible_units_value else "",
