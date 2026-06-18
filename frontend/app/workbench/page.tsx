@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import { readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
+import { confidenceBand, firstEvidence, validResponsibleUnits, reviewAssignment, buildTransferMemo, type ResponsibleUnit } from "@/lib/responsibleUnit";
 import {
   buildDraftTextareaValue,
   computeSegmentViewMode,
@@ -290,14 +291,16 @@ function WorkbenchContent() {
     persistStatuses({});
   }
 
-  async function handleSearch() {
+  // 유사 민원 검색을 실행하고 결과 번들을 반환한다.
+  // /qa가 검색 단계의 routing_hint를 필수로 요구하므로 초안 생성에서도 재사용한다.
+  async function runSearch(): Promise<SearchResponseData | null> {
     const query = searchQuery.trim();
     const effectiveQuery = query || buildDefaultQuery(selectedCase).trim();
     if (!effectiveQuery) {
       setSearchStage("empty");
       setSearchBundle(null);
       setSearchError(null);
-      return;
+      return null;
     }
 
     setSearchStage("loading");
@@ -323,7 +326,7 @@ function WorkbenchContent() {
       setRoutingHint(null);
       setStrategyId(null);
       setRouteKey(null);
-      return;
+      return null;
     }
 
     setSearchBundle(response.data);
@@ -332,6 +335,11 @@ function WorkbenchContent() {
     setStrategyId(response.data.strategyId);
     setRouteKey(response.data.routeKey);
     setSearchStage(response.data.retrievedDocs.length > 0 ? "success" : "empty");
+    return response.data;
+  }
+
+  async function handleSearch() {
+    await runSearch();
   }
 
   async function handleGenerateDraft() {
@@ -339,12 +347,26 @@ function WorkbenchContent() {
     setDraftError(null);
 
     try {
+      // 검색이 선행되지 않았으면 유사 민원 검색을 자동으로 먼저 수행한다.
+      // (/qa는 검색이 만들어내는 routing_hint가 없으면 400으로 실패하기 때문이다.)
+      let bundle = searchBundle;
+      if (!bundle || !routingHint) {
+        bundle = await runSearch();
+      }
+
+      const effectiveRoutingHint = bundle?.routingHint || routingHint || undefined;
+      if (!effectiveRoutingHint) {
+        setDraftStage("error");
+        setDraftError("유사 민원 검색에 실패해 초안을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
       const response = await runQaApi({
         complaintId: selectedCase.case_id,
-        query: searchBundle?.query || searchQuery || buildDefaultQuery(selectedCase),
-        routingHint: routingHint || undefined,
-        useSearchResults: Boolean(searchBundle?.results?.length || searchBundle?.searchResults?.length),
-        searchResults: searchBundle?.results || searchBundle?.searchResults || [],
+        query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
+        routingHint: effectiveRoutingHint,
+        useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
+        searchResults: bundle?.results || bundle?.searchResults || [],
         filters: {
           region: searchRegion !== "전체" ? searchRegion : undefined,
           category: searchCategory !== "전체" ? searchCategory : undefined,
@@ -458,7 +480,7 @@ function WorkbenchContent() {
                     >
                       <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
                       <div className="text-slate-600">{item.received_at || "-"}</div>
-                      <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryLabel(item)}</div>
+                      <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryPrimary(item)}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
                     </button>
@@ -486,9 +508,12 @@ function WorkbenchContent() {
               </div>
 
               <div className="border border-slate-300 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
-                  <div className="text-sm font-bold text-slate-900">민원 요약 (AI 분석)</div>
-                  <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
+                <div className="flex items-center justify-between gap-2 border-b border-slate-300 bg-slate-50 px-3 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="shrink-0 text-sm font-bold text-slate-900">민원 요약 (AI 분석)</div>
+                    <span className="truncate rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800" title={getCaseCategoryLabel(selectedCase)}>분야: {getCaseCategoryLabel(selectedCase)}</span>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
                 </div>
                 <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
                   <div>관찰내용</div>
@@ -501,6 +526,14 @@ function WorkbenchContent() {
                   <div className="truncate">{summaryRequest}</div>
                 </div>
               </div>
+
+              <ResponsibleUnitCard
+                units={selectedCase.structured?.responsible_unit}
+                assignee={selectedCase.assignee}
+                caseTitle={selectedCase.title || getCaseDisplayTitle(selectedCase)}
+                observation={summaryObservation}
+                request={summaryRequest}
+              />
 
               <div className="border border-slate-300 bg-white">
                 <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
@@ -684,6 +717,143 @@ function buildCaseContext(caseItem: WorkbenchCase): WorkbenchCaseContext {
   };
 }
 
+function ConfidenceBadge({ confidence }: { confidence?: number }) {
+  const band = confidenceBand(confidence);
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+      <span className="inline-flex gap-0.5" aria-hidden="true">
+        {[1, 2, 3].map((i) => (
+          <span key={i} className={`h-1.5 w-1.5 rounded-full ${i <= band.level ? "bg-blue-500" : "bg-slate-200"}`} />
+        ))}
+      </span>
+      신뢰도 {band.label}
+    </span>
+  );
+}
+
+// 백엔드 담당부서 추천(responsible_unit) 표시 카드.
+// A) 현재 배정 ↔ AI 추천 비교(무판정, 다를 때 이관·협조 검토 안내)
+// B) 추천 부서로 보내는 '이관 전달문' 생성(편집·복사). confidence는 %가 아닌 정성 단계로 표기.
+function ResponsibleUnitCard({ units, assignee, caseTitle, observation, request }: {
+  units?: ResponsibleUnit[];
+  assignee?: string;
+  caseTitle?: string;
+  observation?: string;
+  request?: string;
+}) {
+  const [memoText, setMemoText] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const list = validResponsibleUnits(units);
+  const primary = list[0];
+  const alternates = list.slice(1);
+  const evidence = firstEvidence(primary);
+  const review = reviewAssignment(assignee, units);
+
+  function openMemo() {
+    if (!primary) return;
+    setMemoText(
+      buildTransferMemo({
+        recommended: primary.name,
+        currentUnit: assignee,
+        caseTitle,
+        observation,
+        request,
+        confidenceLabel: confidenceBand(primary.confidence).label,
+        evidence,
+      }),
+    );
+    setCopied(false);
+  }
+
+  async function copyMemo() {
+    if (memoText == null) return;
+    try {
+      await navigator.clipboard.writeText(memoText);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className="border border-slate-300 bg-white">
+      <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
+        <div className="text-sm font-bold text-slate-900">담당부서 추천</div>
+        <span className="text-[11px] font-semibold text-slate-400">AI 추천 · 자동결정 아님</span>
+      </div>
+
+      {primary ? (
+        <div className="px-3 py-2.5">
+          {review.status !== "none" && (
+            <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+              <span className="text-slate-500">현재 배정: <span className="font-semibold text-slate-700">{review.status === "unassigned" ? "미지정" : review.current}</span></span>
+              {review.status === "differ" && <span className="font-semibold text-amber-700">· 추천과 다름 — 이관·협조 검토</span>}
+              {review.status === "match" && <span className="font-semibold text-emerald-700">· 추천과 일치</span>}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-800">{primary.name}</span>
+            <ConfidenceBadge confidence={primary.confidence} />
+          </div>
+
+          {evidence && (
+            <div className="mt-2 truncate text-[12px] text-slate-500" title={evidence}>
+              근거: {evidence}
+            </div>
+          )}
+
+          {alternates.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
+              <span className="text-[11px] font-semibold text-slate-400">대안</span>
+              {alternates.map((unit) => (
+                <span key={unit.name} className="rounded border border-slate-300 px-2 py-0.5 text-[12px] text-slate-600">{unit.name}</span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-2.5 flex items-center gap-2 border-t border-slate-100 pt-2.5">
+            <button
+              type="button"
+              onClick={memoText == null ? openMemo : () => setMemoText(null)}
+              className="rounded border border-blue-300 bg-white px-2.5 py-1 text-[12px] font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              {memoText == null ? `${primary.name}로 이관 전달문 작성` : "전달문 닫기"}
+            </button>
+          </div>
+
+          {memoText != null && (
+            <div className="mt-2">
+              <textarea
+                value={memoText}
+                onChange={(e) => { setMemoText(e.target.value); setCopied(false); }}
+                rows={10}
+                className="w-full resize-y rounded border border-slate-300 bg-slate-50 p-2 text-[12px] leading-5 text-slate-700 outline-none focus:border-blue-400"
+              />
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={copyMemo}
+                  className="rounded border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  복사
+                </button>
+                {copied && <span className="text-[11px] font-semibold text-emerald-700">복사됨</span>}
+                <span className="text-[11px] text-slate-400">담당자가 검토·수정 후 사용하세요.</span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-2.5 text-[11px] leading-relaxed text-slate-400">신뢰도는 정답셋이 없는 상대 추정치입니다 · 담당자가 최종 확인하세요.</div>
+        </div>
+      ) : (
+        <div className="px-3 py-3 text-[12px] text-slate-500">자동 추천 없음 — 유사 민원 검색 결과의 부서 태그를 참고하세요.</div>
+      )}
+    </div>
+  );
+}
+
 function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrace: RoutingTrace; strategyId: string; routeKey: string } {
   const category = caseItem.civil_category?.primary || caseItem.category || "일반";
   const displayCategory = getCaseCategoryLabel(caseItem);
@@ -720,6 +890,15 @@ function getCaseCategoryLabel(caseItem: Pick<WorkbenchCase, "category" | "catego
     return `${primary} > ${secondary}`;
   }
   return primary || caseItem.category || "기타";
+}
+
+// 좁은 리스트용 — 대분류(primary)만. category_display가 "대분류 > 세부"라 잘리기 쉬워서
+// 리스트에서는 대분류만 보여주고 전체는 hover(title)/중앙 패널에서 확인한다.
+function getCaseCategoryPrimary(caseItem: Pick<WorkbenchCase, "category" | "category_display" | "civil_category">): string {
+  const primary = caseItem.civil_category?.primary;
+  if (primary) return primary;
+  if (caseItem.category_display) return caseItem.category_display.split(">")[0].trim();
+  return caseItem.category || "기타";
 }
 
 function mapCategoryToTopicType(category: string): TopicType {

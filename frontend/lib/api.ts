@@ -1,4 +1,5 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
+import type { ResponsibleUnit } from "./responsibleUnit";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -7,6 +8,7 @@ export type CaseStructuredFields = {
   request?: { text?: string };
   result?: { text?: string };
   context?: { text?: string };
+  responsible_unit?: ResponsibleUnit[];
 };
 
 export type CivilCategory = {
@@ -214,6 +216,30 @@ export async function fetchUiCasesApi(): Promise<ApiResponse<{ cases: AssignedCa
     return { data: { cases }, error: null };
   } catch (error) {
     return { data: { cases: mockAssignedCases }, error: toApiError(error) };
+  }
+}
+
+export type CategoryStat = { name: string; count: number };
+export type TrendPoint = { year: string; count: number };
+export type AdminOverviewData = {
+  year: string;
+  available_years: string[];
+  total: number;
+  categories: CategoryStat[];
+  regions: CategoryStat[];
+  issues: CategoryStat[];
+  trend: TrendPoint[];
+};
+
+// 관리자 대시보드 실데이터 종합(카테고리·지역·이슈유형·연도추이). year=연도 또는 "all"/undefined(전체).
+export async function fetchAdminOverviewApi(year?: string): Promise<ApiResponse<AdminOverviewData>> {
+  const empty: AdminOverviewData = { year: year || "all", available_years: [], total: 0, categories: [], regions: [], issues: [], trend: [] };
+  try {
+    const query = year ? `?year=${encodeURIComponent(year)}` : "";
+    const payload = await fetchBackend<AdminOverviewData>(`/api/v1/admin/overview${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: empty, error: toApiError(error) };
   }
 }
 

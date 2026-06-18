@@ -30,8 +30,40 @@
         "confidence": 0.91
       },
       "entities": [
-        {"label": "FACILITY", "text": "브런치 콘서트"},
-        {"label": "ADMIN_UNIT", "text": "문화행사팀"}
+        {
+          "label": "FACILITY",
+          "text": "브런치 콘서트"
+        },
+        {
+          "label": "ADMIN_UNIT",
+          "text": "문화행사팀"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "문화유산과",
+          "evidence": [
+            "국가유산 체제전환 관련 업무(조례 등 제․개정, 제도 정비 등)"
+          ],
+          "confidence": 0.1758,
+          "source": "be1_structured"
+        },
+        {
+          "name": "전국체전기획단",
+          "evidence": [
+            "개·폐회식 관람객 입퇴장 게이트 운영 등 인파관리"
+          ],
+          "confidence": 0.0694,
+          "source": "be1_structured"
+        },
+        {
+          "name": "문화국",
+          "evidence": [
+            "국 회의 및 타 부서 회의 참가 등 회의 전반 운영"
+          ],
+          "confidence": 0.0,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -66,8 +98,43 @@
         "confidence": 0.92
       },
       "entities": [
-        {"label": "FACILITY", "text": "국립아시아문화전당"},
-        {"label": "ADMIN_UNIT", "text": "관람지원팀"}
+        {
+          "label": "FACILITY",
+          "text": "국립아시아문화전당"
+        },
+        {
+          "label": "ADMIN_UNIT",
+          "text": "관람지원팀"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "국제협력과",
+          "evidence": [
+            "기획조정실(기획관, 재정관), 관광마이스국, 도시혁신균형실(미래공간전략국, 도시계획국, 주택건축국), 비서실, 자치경찰위원회 소관, 문화국 세계적 미술관 유치에 관한 건 영어권 통역 및 번역지원(부시장/실·국장 이상)",
+            "영어"
+          ],
+          "confidence": 0.3928,
+          "source": "be1_structured"
+        },
+        {
+          "name": "관광마이스국",
+          "evidence": [
+            "부서 내 영어 통번역 지원",
+            "영어"
+          ],
+          "confidence": 0.2483,
+          "source": "be1_structured"
+        },
+        {
+          "name": "관광정책과",
+          "evidence": [
+            "부서 내 영어 통번역 지원",
+            "영어"
+          ],
+          "confidence": 0.1406,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -102,8 +169,40 @@
         "confidence": 0.93
       },
       "entities": [
-        {"label": "FACILITY", "text": "어린이보호구역"},
-        {"label": "HAZARD", "text": "불법 주정차"}
+        {
+          "label": "FACILITY",
+          "text": "어린이보호구역"
+        },
+        {
+          "label": "HAZARD",
+          "text": "불법 주정차"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "도로안전과",
+          "evidence": [
+            "교량(투신방지시설 포함), 고가도로, 보도육교, 터널, 지하차도(보도), 도로옹벽, 도로사면 등"
+          ],
+          "confidence": 0.217,
+          "source": "be1_structured"
+        },
+        {
+          "name": "대중교통과",
+          "evidence": [
+            "과속·난폭운전·불친절 등 근절, 친절·서비스 개선 시책"
+          ],
+          "confidence": 0.1115,
+          "source": "be1_structured"
+        },
+        {
+          "name": "택시운수과",
+          "evidence": [
+            "택시 승차대(승강장) 관리"
+          ],
+          "confidence": 0.0,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -138,8 +237,41 @@
         "confidence": 0.91
       },
       "entities": [
-        {"label": "FACILITY", "text": "하천 산책로"},
-        {"label": "HAZARD", "text": "악취"}
+        {
+          "label": "FACILITY",
+          "text": "하천 산책로"
+        },
+        {
+          "label": "HAZARD",
+          "text": "악취"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "하천관리과",
+          "evidence": [
+            "민원 키워드 담당부서 힌트: 하천",
+            "하천"
+          ],
+          "confidence": 0.666,
+          "source": "be1_structured"
+        },
+        {
+          "name": "자원순환과",
+          "evidence": [
+            "폐기물 관련 주민지원기금 운용 및 관리"
+          ],
+          "confidence": 0.4532,
+          "source": "be1_structured"
+        },
+        {
+          "name": "원자력안전과",
+          "evidence": [
+            "방사성폐기물(고준위, 중저준위) 관련 정부정책결정 대응 및 지역주민 홍보"
+          ],
+          "confidence": 0.3086,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -174,8 +306,41 @@
         "confidence": 0.92
       },
       "entities": [
-        {"label": "FACILITY", "text": "이면도로"},
-        {"label": "HAZARD", "text": "포트홀"}
+        {
+          "label": "FACILITY",
+          "text": "이면도로"
+        },
+        {
+          "label": "HAZARD",
+          "text": "포트홀"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "도로안전과",
+          "evidence": [
+            "교량(투신방지시설 포함), 고가도로, 보도육교, 터널, 지하차도(보도), 도로옹벽, 도로사면 등"
+          ],
+          "confidence": 0.4,
+          "source": "be1_structured"
+        },
+        {
+          "name": "도로계획과",
+          "evidence": [
+            "가설건축물 관련 업무"
+          ],
+          "confidence": 0.2487,
+          "source": "be1_structured"
+        },
+        {
+          "name": "산업입지과",
+          "evidence": [
+            "동남권, 오리 일반산업단지 진입도로(준공) 관련사항",
+            "진입"
+          ],
+          "confidence": 0.1198,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -210,8 +375,41 @@
         "confidence": 0.91
       },
       "entities": [
-        {"label": "FACILITY", "text": "근린공원"},
-        {"label": "FACILITY", "text": "조명"}
+        {
+          "label": "FACILITY",
+          "text": "근린공원"
+        },
+        {
+          "label": "FACILITY",
+          "text": "조명"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "공원여가정책과",
+          "evidence": [
+            "민원 키워드 담당부서 힌트: 근린공원",
+            "근린공원"
+          ],
+          "confidence": 0.8548,
+          "source": "be1_structured"
+        },
+        {
+          "name": "대중교통과",
+          "evidence": [
+            "과속·난폭운전·불친절 등 근절, 친절·서비스 개선 시책"
+          ],
+          "confidence": 0.5948,
+          "source": "be1_structured"
+        },
+        {
+          "name": "공원도시과",
+          "evidence": [
+            "온천, 덕천, 명장, 사상, 동래사적공원내 공원시설 토목 분야(도로, 건축 부대 토목 포함)에 관한 사항 -설계도서 검토, 건설사업관리(토목 시공 감리) 감독에 관한 사항"
+          ],
+          "confidence": 0.4914,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -246,8 +444,42 @@
         "confidence": 0.93
       },
       "entities": [
-        {"label": "FACILITY", "text": "기계설비"},
-        {"label": "TIME", "text": "다음 해"}
+        {
+          "label": "FACILITY",
+          "text": "기계설비"
+        },
+        {
+          "label": "TIME",
+          "text": "다음 해"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "기술심사과",
+          "evidence": [
+            "팀내 예산, 의회 업무 건설기술심의위원회 구성 및 관리(설계심의분과위원회 구성 및 운영) 건설기술심의(도로,단지, 철도, 방재) 기술자평가(SOQ), 기술제안서평가(TP) 분야별 건설기술심의 사후평가"
+          ],
+          "confidence": 0.4498,
+          "source": "be1_structured"
+        },
+        {
+          "name": "중대재해예방과",
+          "evidence": [
+            "중대시민재해 점검계획 수립 추진 공중이용시설 안전계획 수립 점검 위험성 평가용역 안전보건 관계 법령 등 의무이행 점검",
+            "점검"
+          ],
+          "confidence": 0.2861,
+          "source": "be1_structured"
+        },
+        {
+          "name": "도로안전과",
+          "evidence": [
+            "도시기초시설물 사업장 점검 및 평가 업무",
+            "점검"
+          ],
+          "confidence": 0.1848,
+          "source": "be1_structured"
+        }
       ]
     }
   },
@@ -282,8 +514,41 @@
         "confidence": 0.92
       },
       "entities": [
-        {"label": "ADMIN_UNIT", "text": "사회적경제과"},
-        {"label": "FACILITY", "text": "사회적기업"}
+        {
+          "label": "ADMIN_UNIT",
+          "text": "사회적경제과"
+        },
+        {
+          "label": "FACILITY",
+          "text": "사회적기업"
+        }
+      ],
+      "responsible_unit": [
+        {
+          "name": "돌봄복지과",
+          "evidence": [
+            "ㆍ지역사회투자서비스사업 운영 전반에 관한 사항 ㆍ부산지역사회서비스심의위원회 구성·운영에 관한 사항 ㆍ부산지역사회서비스지원단 운영 및 관리 감독에 관한 사항 ㆍ청년사회서비스사업단 운영 전반에 관한 사항 ㆍ가사·간병 방문지원사업 운영",
+            "지역"
+          ],
+          "confidence": 0.3746,
+          "source": "be1_structured"
+        },
+        {
+          "name": "중소상공인지원과",
+          "evidence": [
+            "･예산에 관한 사항 ･소상공인 통합교육, 경영전략 컨설팅, 법률서비스 지원 ･브랜드·지식서비스 품질 개선, 온라인마케팅 활성화 지원 ･자영업자 청년고용일자리 지원"
+          ],
+          "confidence": 0.2347,
+          "source": "be1_structured"
+        },
+        {
+          "name": "사회재난과",
+          "evidence": [
+            "사회재난 대응 추진(초기대응) : 상황판단회의 개최 지원, 초기 상황 관리 및 보고, 주요 업무보고 및 각종 회의자료 작성, 화재 재난 및 산물 재난에 관한 사항, 화재예방 안전기동단 운영, 대테러 관련 업무에 관한 사항, 안전취약계층 화재방지시설 설치 사업"
+          ],
+          "confidence": 0.1281,
+          "source": "be1_structured"
+        }
       ]
     }
   }
