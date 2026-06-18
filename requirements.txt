@@ -11,6 +11,7 @@ blinker==1.9.0
 bm25s==0.3.9
 kiwipiepy==0.23.1
 ko-pii==1.15.2
+kss==6.0.6
 bm25s==0.3.9
 build==1.4.0
 cachetools==5.5.2

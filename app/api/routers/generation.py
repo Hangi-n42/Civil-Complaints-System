@@ -34,6 +34,7 @@ from app.retrieval.router.adaptive_router import (
     build_strategy_id,
     parse_route_key,
 )
+from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
@@ -58,16 +59,18 @@ def _derive_request_segments(query: str) -> list[str]:
     if not cleaned:
         return []
 
-    delimiters = [" 및 ", " 그리고 ", ",", ";"]
-    segments = [cleaned]
-    for delimiter in delimiters:
-        next_segments = []
-        for item in segments:
-            next_segments.extend(item.split(delimiter))
-        segments = next_segments
+    # /search와 /qa fallback이 같은 의미 기반 요청 분해 규칙을 쓰도록 BE1 analyzer에 위임한다.
+    try:
+        output = build_analyzer_output(cleaned, "general")
+        segments = output.get("request_segments")
+    except Exception:
+        segments = None
 
-    normalized = [item.strip() for item in segments if item.strip()]
-    return normalized if normalized else [cleaned]
+    if isinstance(segments, list):
+        normalized = [str(item or "").strip() for item in segments if str(item or "").strip()]
+        if normalized:
+            return normalized
+    return [cleaned]
 
 
 def _is_strategy_consistent(strategy_id: str, route_key: str) -> bool:
@@ -114,6 +117,10 @@ def _validate_week6_qa_request(request: QARequest) -> str | None:
 
 def _build_trace_from_route_key(route_key: str, query: str) -> dict:
     topic_type, complexity_level = parse_route_key(route_key)
+    try:
+        analyzer_output = build_analyzer_output(query, topic_type)
+    except Exception:
+        analyzer_output = {}
 
     if complexity_level == "high":
         complexity_score = 0.8
@@ -125,9 +132,10 @@ def _build_trace_from_route_key(route_key: str, query: str) -> dict:
     return {
         "topic_type": topic_type,
         "complexity_level": complexity_level,
-        "complexity_score": complexity_score,
-        "request_segments": _derive_request_segments(query),
-        "complexity_trace": {
+        "complexity_score": float(analyzer_output.get("complexity_score") or complexity_score),
+        "request_segments": analyzer_output.get("request_segments") or _derive_request_segments(query),
+        "complexity_trace": analyzer_output.get("complexity_trace")
+        or {
             "intent_count": 1,
             "constraint_count": 0,
             "entity_diversity": 1,
