@@ -634,12 +634,8 @@ function WorkbenchContent() {
                               <div className="truncate text-[13px] font-semibold text-slate-900">{doc.title}</div>
                               <div className="line-clamp-1 text-[11px] text-slate-500">{doc.snippet}</div>
                             </div>
-                            <div className="text-right text-[11px] text-slate-500">
-                              <div className="font-bold text-slate-900">{Math.round(Number(doc.score) * 100)}%</div>
-                              <div className="flex items-center justify-end gap-1">
-                                <span>COMPLETED</span>
-                                <span className="text-slate-400">{expandedDocId === doc.docId ? "▲" : "▼"}</span>
-                              </div>
+                            <div className="shrink-0 text-[11px] text-slate-400">
+                              {expandedDocId === doc.docId ? "▲" : "▼"}
                             </div>
                           </div>
                         </button>
