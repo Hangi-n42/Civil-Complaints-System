@@ -267,6 +267,10 @@ class RetrievalService:
         if raw_text:
             return raw_text
 
+        chunk_text = str(record.get("chunk_text", "")).strip()
+        if chunk_text:
+            return chunk_text
+
         return str(record.get("text", "")).strip()
 
     def _dedupe_strings(self, values: List[Any]) -> List[str]:
