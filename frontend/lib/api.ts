@@ -219,6 +219,25 @@ export async function fetchUiCasesApi(): Promise<ApiResponse<{ cases: AssignedCa
   }
 }
 
+export type CategoryStat = { name: string; count: number };
+export type CategoryStatsData = {
+  year: string;
+  available_years: string[];
+  total: number;
+  categories: CategoryStat[];
+};
+
+// 관리자 카테고리별 발생 현황(부산 대분류). year=연도 또는 "all"/undefined(전체).
+export async function fetchCategoryStatsApi(year?: string): Promise<ApiResponse<CategoryStatsData>> {
+  try {
+    const query = year ? `?year=${encodeURIComponent(year)}` : "";
+    const payload = await fetchBackend<CategoryStatsData>(`/api/v1/admin/category-stats${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: { year: year || "all", available_years: [], total: 0, categories: [] }, error: toApiError(error) };
+  }
+}
+
 export async function searchCasesApi(params: {
   complaintId: string;
   query: string;
