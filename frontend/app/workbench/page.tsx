@@ -515,15 +515,15 @@ function WorkbenchContent() {
                   </div>
                   <span className="shrink-0 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
                 </div>
-                <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <div>관찰내용</div>
-                  <div>문제분석</div>
-                  <div>요청사항</div>
+                <div className="grid gap-x-3 border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  <div>요약</div>
+                  <div>핵심요청</div>
+                  <div>확인필요</div>
                 </div>
-                <div className="grid px-3 py-2 text-[12px] text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <div className="truncate pr-2">{summaryObservation}</div>
-                  <div className="truncate pr-2">{summaryAnalysis}</div>
-                  <div className="truncate">{summaryRequest}</div>
+                <div className="grid items-start gap-x-3 px-3 py-2 text-[12px] leading-5 text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  <div className="break-words">{summaryObservation}</div>
+                  <div className="break-words">{summaryAnalysis}</div>
+                  <div className="break-words">{summaryRequest}</div>
                 </div>
               </div>
 
