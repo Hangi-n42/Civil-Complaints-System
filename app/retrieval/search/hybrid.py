@@ -128,7 +128,6 @@ class HybridRetriever:
                 "entity_texts": _split_pipe_list(meta.get("entity_texts")),
                 "legal_ref_names": _split_pipe_list(meta.get("legal_ref_names")),
                 "legal_ref_ids": _split_pipe_list(meta.get("legal_ref_ids")),
-                "issue_types": _split_pipe_list(meta.get("issue_types")),
                 "key_terms": _split_pipe_list(meta.get("key_terms")),
                 "responsible_units": _split_pipe_list(meta.get("responsible_units")),
                 "responsible_units_source": str(meta.get("responsible_units_source") or ""),

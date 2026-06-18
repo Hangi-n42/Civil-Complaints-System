@@ -42,10 +42,10 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         # BE2는 아래 선택 필드를 이미 soft rerank metadata로 해석할 수 있으므로
         # BE1 구조화 결과에서 누락 없이 보존한다.
         "entity_texts": structured.get("entity_texts", []),
-        "issue_type": structured.get("issue_type", []),
         "legal_refs": structured.get("legal_refs", []),
         "key_terms": structured.get("key_terms", []),
         "responsible_unit": structured.get("responsible_unit", []),
+        "civil_category": structured.get("civil_category", {}),
         "urgency": structured.get("urgency", {}),
     }
 
@@ -106,6 +106,11 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "index_text_source": index_text_source,
         "empty_structured_text_fallback": empty_structured_text_fallback,
     }
+    civil_category = structured.get("civil_category") if isinstance(structured.get("civil_category"), dict) else {}
+    if civil_category:
+        metadata["civil_category_primary"] = str(civil_category.get("primary") or "")
+        metadata["civil_category_secondary"] = str(civil_category.get("secondary") or "")
+        metadata["civil_category_source"] = str(civil_category.get("source") or "")
 
     def _field(raw: Dict[str, Any], text: str) -> Dict[str, Any]:
         field: Dict[str, Any] = {"text": text}

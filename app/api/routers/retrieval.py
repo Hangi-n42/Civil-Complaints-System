@@ -436,7 +436,6 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "entity_texts": metadata.get("entity_texts", []),
                     "legal_ref_names": metadata.get("legal_ref_names", []),
                     "legal_ref_ids": metadata.get("legal_ref_ids", []),
-                    "issue_types": metadata.get("issue_types", []),
                     "key_terms": metadata.get("key_terms", []),
                     "responsible_units": metadata.get("responsible_units", []),
                     "responsible_units_source": metadata.get("responsible_units_source"),

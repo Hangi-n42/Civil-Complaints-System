@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from app.retrieval.law_article_store import get_law_article_store  # noqa: E402
 from app.structuring.legal_dictionary import get_legal_ref_matcher  # noqa: E402
 from app.structuring.enrichment import (  # noqa: E402
-    build_key_terms, classify_issue_type, normalize_entity_texts,
+    build_key_terms, normalize_entity_texts,
 )
 from app.structuring.law_corpus import validate_citations  # noqa: E402
 
@@ -44,10 +44,9 @@ def main():
 
     for q in QUERIES:
         et = normalize_entity_texts([], q)
-        it = classify_issue_type(q)
         refs = matcher.match(q)
         law_ids = [r["law_id"] for r in refs if r.get("law_id")]
-        kt = build_key_terms(q, et, it, refs)
+        kt = build_key_terms(q, et, refs)
         hits = store.search(q, law_ids=law_ids, key_terms=kt, top_k=3)
         print(f"\n■ {q}")
         print(f"   법령 필터: {[(r['name'], r.get('law_id')) for r in refs][:3]}")

@@ -107,7 +107,6 @@ def test_build_case_query_signals_uses_structured_be1_fields():
         "structured": {
             "entity_texts": [{"text": "위반건축물"}],
             "legal_refs": [{"name": "건축법", "law_id": "001823"}],
-            "issue_type": [{"name": "단속"}],
             "key_terms": ["이행강제금"],
             "responsible_unit": [{"name": "건축과", "source": "be1_structured"}],
             "urgency": {"level": "보통"},

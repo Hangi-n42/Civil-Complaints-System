@@ -66,7 +66,6 @@ from app.generation.validators.qa_response_validator import (
 )
 from app.structuring.enrichment import (
     build_key_terms,
-    classify_issue_type,
     normalize_entity_texts,
 )
 from app.structuring.legal_dictionary import get_legal_ref_matcher
@@ -405,7 +404,6 @@ def _extract_query_signals_from_structured(structured: Dict[str, Any]) -> Dict[s
         "entity_texts": _clean_signal_values(structured.get("entity_texts"), "text"),
         "legal_ref_names": _clean_signal_values(structured.get("legal_refs"), "name"),
         "legal_ref_ids": _clean_signal_values(structured.get("legal_refs"), "law_id"),
-        "issue_types": _clean_signal_values(structured.get("issue_type"), "name"),
         "key_terms": _clean_signal_values(structured.get("key_terms")),
         "responsible_units": _clean_signal_values(structured.get("responsible_unit"), "name"),
         "responsible_units_source": responsible_sources[0] if responsible_sources else "",
@@ -437,13 +435,11 @@ def _build_case_query_signals(case: Dict[str, Any]) -> Dict[str, Any]:
     )
     legal_refs = get_legal_ref_matcher().match(raw_text)
     entity_texts = normalize_entity_texts([], raw_text)
-    issue_types = classify_issue_type(raw_text)
-    key_terms = build_key_terms(raw_text, entity_texts, issue_types, legal_refs)
+    key_terms = build_key_terms(raw_text, entity_texts, legal_refs)
     return {
         "entity_texts": _clean_signal_values(entity_texts, "text"),
         "legal_ref_names": _clean_signal_values(legal_refs, "name"),
         "legal_ref_ids": _clean_signal_values(legal_refs, "law_id"),
-        "issue_types": _clean_signal_values(issue_types, "name"),
         "key_terms": _clean_signal_values(key_terms),
     }
 
