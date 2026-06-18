@@ -480,7 +480,7 @@ function WorkbenchContent() {
                     >
                       <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
                       <div className="text-slate-600">{item.received_at || "-"}</div>
-                      <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryLabel(item)}</div>
+                      <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryPrimary(item)}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
                     </button>
@@ -508,9 +508,12 @@ function WorkbenchContent() {
               </div>
 
               <div className="border border-slate-300 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
-                  <div className="text-sm font-bold text-slate-900">민원 요약 (AI 분석)</div>
-                  <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
+                <div className="flex items-center justify-between gap-2 border-b border-slate-300 bg-slate-50 px-3 py-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="shrink-0 text-sm font-bold text-slate-900">민원 요약 (AI 분석)</div>
+                    <span className="truncate rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800" title={getCaseCategoryLabel(selectedCase)}>분야: {getCaseCategoryLabel(selectedCase)}</span>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
                 </div>
                 <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
                   <div>관찰내용</div>
@@ -887,6 +890,15 @@ function getCaseCategoryLabel(caseItem: Pick<WorkbenchCase, "category" | "catego
     return `${primary} > ${secondary}`;
   }
   return primary || caseItem.category || "기타";
+}
+
+// 좁은 리스트용 — 대분류(primary)만. category_display가 "대분류 > 세부"라 잘리기 쉬워서
+// 리스트에서는 대분류만 보여주고 전체는 hover(title)/중앙 패널에서 확인한다.
+function getCaseCategoryPrimary(caseItem: Pick<WorkbenchCase, "category" | "category_display" | "civil_category">): string {
+  const primary = caseItem.civil_category?.primary;
+  if (primary) return primary;
+  if (caseItem.category_display) return caseItem.category_display.split(">")[0].trim();
+  return caseItem.category || "기타";
 }
 
 function mapCategoryToTopicType(category: string): TopicType {
