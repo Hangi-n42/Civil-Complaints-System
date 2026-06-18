@@ -1,0 +1,95 @@
+{
+  "provider": "local",
+  "model": "exaone3.5:7.8b",
+  "base_url": "http://localhost:11434",
+  "timeout_seconds": 180.0,
+  "max_candidates_per_scenario": 1,
+  "llm_options": {
+    "temperature": 0.0,
+    "num_ctx": 4096,
+    "num_predict": 1536,
+    "num_gpu": -1,
+    "keep_alive": "10m",
+    "stream": true
+  },
+  "warmup": {
+    "ok": true,
+    "duration_seconds": 3.342,
+    "response": {
+      "ok": true
+    },
+    "ollama_ps": {
+      "models": [
+        {
+          "name": "exaone3.5:7.8b",
+          "model": "exaone3.5:7.8b",
+          "size": 5462598612,
+          "digest": "c7c4e3d1ca22fe9225f18b35eb719f67e2ca96a42e7fd17294a45b83ba8fbf03",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "exaone",
+            "families": [
+              "exaone"
+            ],
+            "parameter_size": "7.8B",
+            "quantization_level": "Q4_K_M"
+          },
+          "expires_at": "2026-06-19T01:51:41.4776536+09:00",
+          "size_vram": 2269433036,
+          "context_length": 4096
+        }
+      ]
+    }
+  },
+  "scenario_count": 3,
+  "schema_valid_rate": 1.0,
+  "grounding_pass_rate": 1.0,
+  "avg_actionability_score": 0.9778,
+  "forbidden_term_rate": 0.0,
+  "fallback_rate": 0.0,
+  "scenarios": [
+    {
+      "scenario": "도로 침하/싱크홀 급증",
+      "schema_valid": true,
+      "grounding_pass": true,
+      "actionability_score": 1.0,
+      "forbidden_terms": false,
+      "fallback": false,
+      "insight_type": "SAFETY_RISK_SIGNAL",
+      "candidate_count": 7,
+      "evaluated_candidate_count": 1,
+      "duration_seconds": 264.603,
+      "quality_failures": [],
+      "quality_warnings": []
+    },
+    {
+      "scenario": "복지 지원 기준/신청 절차",
+      "schema_valid": true,
+      "grounding_pass": true,
+      "actionability_score": 1.0,
+      "forbidden_terms": false,
+      "fallback": false,
+      "insight_type": "POLICY_IMPROVEMENT_OPPORTUNITY",
+      "candidate_count": 2,
+      "evaluated_candidate_count": 1,
+      "duration_seconds": 224.694,
+      "quality_failures": [],
+      "quality_warnings": []
+    },
+    {
+      "scenario": "대형폐기물 배출 안내",
+      "schema_valid": true,
+      "grounding_pass": true,
+      "actionability_score": 0.9333,
+      "forbidden_terms": false,
+      "fallback": false,
+      "insight_type": "PUBLIC_GUIDANCE_NEEDED",
+      "candidate_count": 1,
+      "evaluated_candidate_count": 1,
+      "duration_seconds": 301.79,
+      "quality_failures": [],
+      "quality_warnings": []
+    }
+  ]
+}

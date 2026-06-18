@@ -112,5 +112,62 @@ class Settings:
     # BE3 법령 조문 인용 그라운딩(Phase B). 인덱스/모델 미가용 시 자동 무동작.
     ENABLE_LEGAL_CITATIONS: bool = os.getenv("ENABLE_LEGAL_CITATIONS", "true").lower() == "true"
 
+    # Complaint Intelligence Layer 설정(sidecar). 기존 RAG/라우팅 흐름을 바꾸지 않고
+    # 분석 API에서만 사용하는 임계값과 가중치다.
+    CI_RECENT_HOURS: int = int(os.getenv("CI_RECENT_HOURS", "3"))
+    CI_BASELINE_DAYS: int = int(os.getenv("CI_BASELINE_DAYS", "7"))
+    CI_MIN_RECENT_COUNT: int = int(os.getenv("CI_MIN_RECENT_COUNT", "3"))
+    CI_MIN_SURGE_RATIO: float = float(os.getenv("CI_MIN_SURGE_RATIO", "2.5"))
+    CI_SEMANTIC_THRESHOLD: float = float(os.getenv("CI_SEMANTIC_THRESHOLD", "0.78"))
+    CI_MERGE_THRESHOLD: float = float(os.getenv("CI_MERGE_THRESHOLD", "0.84"))
+    CI_WATCH_THRESHOLD: float = float(os.getenv("CI_WATCH_THRESHOLD", "0.50"))
+    CI_WARNING_THRESHOLD: float = float(os.getenv("CI_WARNING_THRESHOLD", "0.70"))
+    CI_CRITICAL_THRESHOLD: float = float(os.getenv("CI_CRITICAL_THRESHOLD", "0.85"))
+    CI_INSIGHT_DAYS: int = int(os.getenv("CI_INSIGHT_DAYS", "30"))
+    CI_MIN_AFFECTED_COUNT: int = int(os.getenv("CI_MIN_AFFECTED_COUNT", "5"))
+    CI_RECURRING_DAYS: int = int(os.getenv("CI_RECURRING_DAYS", "30"))
+    CI_MIN_RECURRING_COUNT: int = int(os.getenv("CI_MIN_RECURRING_COUNT", "5"))
+    CI_REGIONAL_GAP_MIN_COUNT: int = int(os.getenv("CI_REGIONAL_GAP_MIN_COUNT", "5"))
+    CI_DEPARTMENT_BOTTLENECK_MIN_COUNT: int = int(os.getenv("CI_DEPARTMENT_BOTTLENECK_MIN_COUNT", "5"))
+    CI_PROCESS_DELAY_HOURS: float = float(os.getenv("CI_PROCESS_DELAY_HOURS", "72"))
+    CI_REPEAT_RISK_COUNT: int = int(os.getenv("CI_REPEAT_RISK_COUNT", "3"))
+    CI_NIGHT_START_HOUR: int = int(os.getenv("CI_NIGHT_START_HOUR", "20"))
+    CI_NIGHT_END_HOUR: int = int(os.getenv("CI_NIGHT_END_HOUR", "6"))
+    PUBLIC_INSIGHT_ENABLED: bool = os.getenv("PUBLIC_INSIGHT_ENABLED", "true").lower() == "true"
+    PUBLIC_INSIGHT_LLM_ENABLED: bool = os.getenv("PUBLIC_INSIGHT_LLM_ENABLED", "true").lower() == "true"
+    PUBLIC_INSIGHT_LLM_PROVIDER: str = os.getenv("PUBLIC_INSIGHT_LLM_PROVIDER", "fake")
+    PUBLIC_INSIGHT_LLM_BASE_URL: str = os.getenv("PUBLIC_INSIGHT_LLM_BASE_URL", "")
+    PUBLIC_INSIGHT_LLM_MODEL: str = os.getenv("PUBLIC_INSIGHT_LLM_MODEL", "")
+    PUBLIC_INSIGHT_LLM_TIMEOUT_SECONDS: float = float(os.getenv("PUBLIC_INSIGHT_LLM_TIMEOUT_SECONDS", "180"))
+    PUBLIC_INSIGHT_LLM_TEMPERATURE: float = float(os.getenv("PUBLIC_INSIGHT_LLM_TEMPERATURE", "0"))
+    PUBLIC_INSIGHT_LLM_NUM_CTX: int = int(os.getenv("PUBLIC_INSIGHT_LLM_NUM_CTX", "4096"))
+    PUBLIC_INSIGHT_LLM_NUM_PREDICT: int = int(os.getenv("PUBLIC_INSIGHT_LLM_NUM_PREDICT", "1536"))
+    # Ollama num_gpu=-1은 가능한 GPU 레이어 오프로딩을 요청한다. VRAM이 부족하면 Ollama가 CPU를 함께 사용한다.
+    PUBLIC_INSIGHT_LLM_NUM_GPU: int = int(os.getenv("PUBLIC_INSIGHT_LLM_NUM_GPU", "-1"))
+    PUBLIC_INSIGHT_LLM_KEEP_ALIVE: str = os.getenv("PUBLIC_INSIGHT_LLM_KEEP_ALIVE", "10m")
+    PUBLIC_INSIGHT_LLM_STREAM: bool = os.getenv("PUBLIC_INSIGHT_LLM_STREAM", "true").lower() == "true"
+    PUBLIC_INSIGHT_MAX_REPRESENTATIVE_COMPLAINTS: int = int(os.getenv("PUBLIC_INSIGHT_MAX_REPRESENTATIVE_COMPLAINTS", "8"))
+    PUBLIC_INSIGHT_MAX_EVIDENCE_CHARS_PER_COMPLAINT: int = int(os.getenv("PUBLIC_INSIGHT_MAX_EVIDENCE_CHARS_PER_COMPLAINT", "500"))
+    PUBLIC_INSIGHT_MIN_CANDIDATE_COMPLAINT_COUNT: int = int(os.getenv("PUBLIC_INSIGHT_MIN_CANDIDATE_COMPLAINT_COUNT", "5"))
+    PUBLIC_INSIGHT_MIN_GROUNDING_SCORE: float = float(os.getenv("PUBLIC_INSIGHT_MIN_GROUNDING_SCORE", "0.65"))
+    PUBLIC_INSIGHT_MIN_CONFIDENCE: float = float(os.getenv("PUBLIC_INSIGHT_MIN_CONFIDENCE", "0.45"))
+    PUBLIC_INSIGHT_ANALYSIS_WINDOW_DAYS: int = int(os.getenv("PUBLIC_INSIGHT_ANALYSIS_WINDOW_DAYS", "30"))
+    PUBLIC_INSIGHT_RECENT_WINDOW_HOURS: int = int(os.getenv("PUBLIC_INSIGHT_RECENT_WINDOW_HOURS", "3"))
+    PUBLIC_INSIGHT_BASELINE_WINDOW_DAYS: int = int(os.getenv("PUBLIC_INSIGHT_BASELINE_WINDOW_DAYS", "7"))
+    PUBLIC_INSIGHT_HIGH_REPEAT_COUNT: int = int(os.getenv("PUBLIC_INSIGHT_HIGH_REPEAT_COUNT", "10"))
+    PUBLIC_INSIGHT_PROCESS_DELAY_MINUTES_THRESHOLD: int = int(os.getenv("PUBLIC_INSIGHT_PROCESS_DELAY_MINUTES_THRESHOLD", "1440"))
+    PUBLIC_INSIGHT_REOPEN_RATE_THRESHOLD: float = float(os.getenv("PUBLIC_INSIGHT_REOPEN_RATE_THRESHOLD", "0.20"))
+    PUBLIC_INSIGHT_REGIONAL_CONCENTRATION_THRESHOLD: float = float(os.getenv("PUBLIC_INSIGHT_REGIONAL_CONCENTRATION_THRESHOLD", "0.40"))
+    PUBLIC_INSIGHT_PRIORITY_HIGH_THRESHOLD: float = float(os.getenv("PUBLIC_INSIGHT_PRIORITY_HIGH_THRESHOLD", "0.70"))
+    PUBLIC_INSIGHT_PRIORITY_CRITICAL_THRESHOLD: float = float(os.getenv("PUBLIC_INSIGHT_PRIORITY_CRITICAL_THRESHOLD", "0.85"))
+    PUBLIC_INSIGHT_FALLBACK_ON_LLM_ERROR: bool = os.getenv("PUBLIC_INSIGHT_FALLBACK_ON_LLM_ERROR", "true").lower() == "true"
+    PUBLIC_INSIGHT_REQUIRE_HUMAN_REVIEW_FOR_POLICY: bool = os.getenv("PUBLIC_INSIGHT_REQUIRE_HUMAN_REVIEW_FOR_POLICY", "true").lower() == "true"
+    PUBLIC_INSIGHT_REQUIRE_HUMAN_REVIEW_FOR_SAFETY: bool = os.getenv("PUBLIC_INSIGHT_REQUIRE_HUMAN_REVIEW_FOR_SAFETY", "true").lower() == "true"
+    CI_SCORE_WEIGHT_COUNT: float = float(os.getenv("CI_SCORE_WEIGHT_COUNT", "0.30"))
+    CI_SCORE_WEIGHT_SURGE: float = float(os.getenv("CI_SCORE_WEIGHT_SURGE", "0.25"))
+    CI_SCORE_WEIGHT_COHESION: float = float(os.getenv("CI_SCORE_WEIGHT_COHESION", "0.20"))
+    CI_SCORE_WEIGHT_SPATIAL: float = float(os.getenv("CI_SCORE_WEIGHT_SPATIAL", "0.15"))
+    CI_SCORE_WEIGHT_RISK: float = float(os.getenv("CI_SCORE_WEIGHT_RISK", "0.10"))
+
 
 settings = Settings()
