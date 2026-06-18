@@ -287,14 +287,16 @@ function WorkbenchContent() {
     persistStatuses({});
   }
 
-  async function handleSearch() {
+  // 유사 민원 검색을 실행하고 결과 번들을 반환한다.
+  // /qa가 검색 단계의 routing_hint를 필수로 요구하므로 초안 생성에서도 재사용한다.
+  async function runSearch(): Promise<SearchResponseData | null> {
     const query = searchQuery.trim();
     const effectiveQuery = query || buildDefaultQuery(selectedCase).trim();
     if (!effectiveQuery) {
       setSearchStage("empty");
       setSearchBundle(null);
       setSearchError(null);
-      return;
+      return null;
     }
 
     setSearchStage("loading");
@@ -320,7 +322,7 @@ function WorkbenchContent() {
       setRoutingHint(null);
       setStrategyId(null);
       setRouteKey(null);
-      return;
+      return null;
     }
 
     setSearchBundle(response.data);
@@ -329,6 +331,11 @@ function WorkbenchContent() {
     setStrategyId(response.data.strategyId);
     setRouteKey(response.data.routeKey);
     setSearchStage(response.data.retrievedDocs.length > 0 ? "success" : "empty");
+    return response.data;
+  }
+
+  async function handleSearch() {
+    await runSearch();
   }
 
   async function handleGenerateDraft() {
@@ -336,12 +343,26 @@ function WorkbenchContent() {
     setDraftError(null);
 
     try {
+      // 검색이 선행되지 않았으면 유사 민원 검색을 자동으로 먼저 수행한다.
+      // (/qa는 검색이 만들어내는 routing_hint가 없으면 400으로 실패하기 때문이다.)
+      let bundle = searchBundle;
+      if (!bundle || !routingHint) {
+        bundle = await runSearch();
+      }
+
+      const effectiveRoutingHint = bundle?.routingHint || routingHint || undefined;
+      if (!effectiveRoutingHint) {
+        setDraftStage("error");
+        setDraftError("유사 민원 검색에 실패해 초안을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
       const response = await runQaApi({
         complaintId: selectedCase.case_id,
-        query: searchBundle?.query || searchQuery || buildDefaultQuery(selectedCase),
-        routingHint: routingHint || undefined,
-        useSearchResults: Boolean(searchBundle?.results?.length || searchBundle?.searchResults?.length),
-        searchResults: searchBundle?.results || searchBundle?.searchResults || [],
+        query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
+        routingHint: effectiveRoutingHint,
+        useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
+        searchResults: bundle?.results || bundle?.searchResults || [],
         filters: {
           region: searchRegion !== "전체" ? searchRegion : undefined,
           category: searchCategory !== "전체" ? searchCategory : undefined,
