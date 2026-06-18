@@ -257,7 +257,6 @@ export default function QueuePage() {
                   <th className="px-4 py-3">케이스ID</th>
                   <th className="px-4 py-3">접수일</th>
                   <th className="px-4 py-3">카테고리</th>
-                  <th className="px-4 py-3">지역</th>
                   <th className="px-4 py-3">우선순위</th>
                   <th className="px-5 py-3">상태</th>
                 </tr>
@@ -281,7 +280,6 @@ export default function QueuePage() {
                     <td className="px-4 py-3 text-sm text-slate-600">
                       <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{c.region}</td>
                     <td className="px-4 py-3">
                       <PriorityBadge priority={c.priority} />
                     </td>
@@ -292,7 +290,7 @@ export default function QueuePage() {
                 ))}
                 {filteredCases.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
+                    <td colSpan={6} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
                       조건에 맞는 민원이 없습니다. 필터를 조정해보세요.
                     </td>
                   </tr>

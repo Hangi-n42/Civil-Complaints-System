@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.core.config import settings
@@ -62,21 +62,47 @@ def _count_values(rows: List[Dict[str, Any]], getter) -> Counter:
     return counts
 
 
-def aggregate_overview(index: List[Dict[str, Any]], year: Optional[str], top_n: int = 8) -> Dict[str, Any]:
-    """대시보드 전체 실데이터 집계: 카테고리/지역/이슈유형(연도 필터) + 연도별 추이."""
-    base = aggregate_categories(index, year)  # year/available_years/total/categories
-    selected = year if (year and year != "all") else None
-    rows = [d for d in index if selected is None or d.get("year") == selected]
+def aggregate_overview(
+    index: List[Dict[str, Any]],
+    year: Optional[str],
+    categories: Optional[List[str]] = None,
+    top_n: int = 8,
+) -> Dict[str, Any]:
+    """대시보드 전체 실데이터 집계: 카테고리/지역/이슈유형 + 연도별 추이.
 
+    year: 연도 필터(지역·이슈·건수에 적용). categories: 카테고리 드릴다운(복수 선택,
+    합집합). 선택된 분야 중 하나라도 해당하면 포함하며 지역·이슈·건수·추이에 적용한다.
+    카테고리 목록(반환 'categories')은 셀렉터이므로 연도만 반영한다.
+    """
+    base = aggregate_categories(index, year)  # 반환 categories는 셀렉터(연도만 반영)
+    selected_year = year if (year and year != "all") else None
+    if isinstance(categories, str):  # 단일 문자열로 와도 허용
+        categories = [categories]
+    selected_cats = {c for c in categories if c} if categories else None
+
+    def _match(d: Dict[str, Any]) -> bool:
+        if selected_year is not None and d.get("year") != selected_year:
+            return False
+        if selected_cats is not None and (d.get("primary") or _UNCLASSIFIED) not in selected_cats:
+            return False
+        return True
+
+    rows = [d for d in index if _match(d)]
     regions = _count_values(rows, lambda d: d.get("region"))
     issues = _count_values(rows, lambda d: d.get("issues"))
 
-    # 연도별 추이는 연도 축이므로 필터하지 않고 전체를 오름차순으로 낸다.
-    year_counts = Counter(d["year"] for d in index if d.get("year"))
+    # 연도별 추이는 연도 축이라 연도 필터는 안 받지만, 카테고리 드릴다운은 반영한다.
+    trend_rows = [
+        d for d in index
+        if selected_cats is None or (d.get("primary") or _UNCLASSIFIED) in selected_cats
+    ]
+    year_counts = Counter(d["year"] for d in trend_rows if d.get("year"))
     trend = [{"year": y, "count": year_counts[y]} for y in sorted(year_counts)]
 
     return {
         **base,
+        "category": sorted(selected_cats) if selected_cats else [],
+        "total": len(rows),  # 연도만 반영한 base.total을 카테고리까지 반영한 값으로 덮어쓴다
         "regions": [{"name": name, "count": count} for name, count in regions.most_common(top_n)],
         "issues": [{"name": name, "count": count} for name, count in issues.most_common(top_n)],
         "trend": trend,
@@ -139,11 +165,15 @@ def _build_index() -> List[Dict[str, Optional[str]]]:
 
 
 @router.get("/overview")
-async def overview(year: Optional[str] = None):
+async def overview(
+    year: Optional[str] = None,
+    category: Optional[List[str]] = Query(default=None),
+):
     """관리자 대시보드 실데이터 종합: 카테고리/지역/이슈유형/연도별 추이.
 
-    year=연도(예 '2024') 또는 'all'(기본). 카테고리·지역·이슈는 연도 필터,
-    연도별 추이는 전체 연도 축.
+    year=연도(예 '2024') 또는 'all'(기본). category=카테고리 드릴다운(복수 가능,
+    예 '?category=사회복지&category=교통·물류'). 카테고리 목록은 셀렉터라 연도만
+    반영하고, 지역·이슈·건수·추이는 선택된 분야 합집합으로 반영한다.
     """
     request_id = make_request_id()
     try:
@@ -168,5 +198,5 @@ async def overview(year: Optional[str] = None):
         "success": True,
         "request_id": request_id,
         "timestamp": now_iso(),
-        "data": aggregate_overview(index, year),
+        "data": aggregate_overview(index, year, category),
     }

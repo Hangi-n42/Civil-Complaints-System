@@ -91,3 +91,38 @@ def test_aggregate_overview_year_filter_keeps_full_trend():
     assert {r["name"] for r in out["regions"]} == {"서울"}
     # trend는 연도 필터와 무관하게 전체
     assert out["trend"] == [{"year": "2023", "count": 1}, {"year": "2024", "count": 2}]
+
+
+def test_aggregate_overview_category_drilldown():
+    out = aggregate_overview(_ov_idx(), "all", ["교통·물류"])
+    assert out["category"] == ["교통·물류"]
+    assert out["total"] == 2  # 교통·물류 2건(2024 서울, 2023 경기)
+    assert {r["name"]: r["count"] for r in out["regions"]} == {"서울": 1, "경기": 1}
+    assert {i["name"]: i["count"] for i in out["issues"]} == {"단속/점검": 2, "허가/등록": 1}
+    # 추이는 카테고리 드릴다운을 반영(해당 분야의 연도별 분포)
+    assert out["trend"] == [{"year": "2023", "count": 1}, {"year": "2024", "count": 1}]
+    # 카테고리 목록은 셀렉터라 그대로 전체 유지
+    assert {c["name"]: c["count"] for c in out["categories"]} == {"교통·물류": 2, "사회복지": 1}
+
+
+def test_aggregate_overview_category_and_year_combined():
+    out = aggregate_overview(_ov_idx(), "2024", ["교통·물류"])
+    assert out["total"] == 1  # 2024 ∩ 교통·물류
+    assert {r["name"] for r in out["regions"]} == {"서울"}
+    # trend는 연도와 무관하게 카테고리 전체 연도 축
+    assert out["trend"] == [{"year": "2023", "count": 1}, {"year": "2024", "count": 1}]
+
+
+def test_aggregate_overview_multi_category_union():
+    out = aggregate_overview(_ov_idx(), "all", ["교통·물류", "사회복지"])
+    assert sorted(out["category"]) == ["교통·물류", "사회복지"]
+    assert out["total"] == 3  # 두 분야 합집합 = 전체 3건
+    assert {r["name"]: r["count"] for r in out["regions"]} == {"서울": 2, "경기": 1}
+    assert {i["name"]: i["count"] for i in out["issues"]} == {"단속/점검": 2, "허가/등록": 1}
+
+
+def test_aggregate_overview_string_category_is_coerced():
+    # 단일 문자열도 1-요소 리스트로 허용된다.
+    out = aggregate_overview(_ov_idx(), "all", "사회복지")
+    assert out["category"] == ["사회복지"]
+    assert out["total"] == 1
