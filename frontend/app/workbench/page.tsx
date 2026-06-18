@@ -631,8 +631,8 @@ function WorkbenchContent() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className="text-[11px] font-bold text-slate-700">유사민원 {index + 1}</div>
-                              <div className="truncate text-[13px] font-semibold text-slate-900">{doc.title}</div>
-                              <div className="line-clamp-1 text-[11px] text-slate-500">{doc.snippet}</div>
+                              <div className="break-words text-[13px] font-semibold text-slate-900">{doc.title}</div>
+                              <div className="mt-0.5 break-words text-[11px] leading-4 text-slate-500">{doc.snippet}</div>
                             </div>
                             <div className="shrink-0 text-[11px] text-slate-400">
                               {expandedDocId === doc.docId ? "▲" : "▼"}
