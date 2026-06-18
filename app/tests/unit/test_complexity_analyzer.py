@@ -4,6 +4,7 @@ from app.retrieval.analyzers.complexity_analyzer import (
     COMPLEXITY_LEVEL_HIGH_THRESHOLD,
     COMPLEXITY_LEVEL_MEDIUM_THRESHOLD,
     build_analyzer_output,
+    _split_sentences_with_source,
     analyze,
 )
 
@@ -133,3 +134,69 @@ def test_request_segments_remove_duplicate_and_partial_segments():
     assert output["request_segments"] == ["도로 보수 요청드립니다."]
     assert output["intent_count"] == 1
     assert output["is_multi"] is False
+
+
+def test_sentence_splitter_uses_kss_when_available(monkeypatch):
+    from app.retrieval.analyzers import complexity_analyzer
+
+    def fake_splitter(text: str, **kwargs):
+        return ["첫 번째 문장입니다.", "두 번째 문장입니다."]
+
+    monkeypatch.setenv("COMPLEXITY_ANALYZER_USE_KSS", "true")
+    monkeypatch.setattr(complexity_analyzer, "_load_kss_sentence_splitter", lambda: fake_splitter)
+
+    sentences, source = _split_sentences_with_source("첫 번째 문장입니다. 두 번째 문장입니다.")
+
+    assert source == "kss"
+    assert sentences == ["첫 번째 문장입니다.", "두 번째 문장입니다."]
+
+
+def test_sentence_splitter_falls_back_to_regex_without_kss(monkeypatch):
+    from app.retrieval.analyzers import complexity_analyzer
+
+    monkeypatch.setattr(complexity_analyzer, "_load_kss_sentence_splitter", lambda: None)
+
+    sentences, source = _split_sentences_with_source("첫 번째 문장입니다. 두 번째 문장입니다.")
+
+    assert source == "regex"
+    assert sentences == ["첫 번째 문장입니다.", "두 번째 문장입니다."]
+
+
+def test_request_segments_split_shared_predicate_for_distinct_requests():
+    text = "도로 보수와 불법주정차 단속을 요청합니다."
+
+    output = build_analyzer_output(text, "traffic")
+
+    assert output["request_segments"] == [
+        "도로 보수 요청합니다.",
+        "불법주정차 단속 요청합니다.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+    assert output["complexity_trace"]["shared_predicate_split_count"] >= 2
+
+
+def test_request_segments_split_compact_request_list_only():
+    text = "영어 가이드 투어 운영 여부, 신청 기한, 신청 경로, 잔여석 부족 시 대안 안내 요청"
+
+    output = build_analyzer_output(text, "general")
+
+    assert output["request_segments"] == [
+        "영어 가이드 투어 운영 여부 요청",
+        "신청 기한 요청",
+        "신청 경로 요청",
+        "잔여석 부족 시 대안 안내 요청",
+    ]
+    assert output["intent_count"] == 4
+    assert output["is_multi"] is True
+
+
+def test_generation_fallback_uses_complexity_analyzer_segments():
+    from app.api.routers.generation import _derive_request_segments
+
+    text = "도로 보수와 불법주정차 단속을 요청합니다."
+
+    assert _derive_request_segments(text) == [
+        "도로 보수 요청합니다.",
+        "불법주정차 단속 요청합니다.",
+    ]
