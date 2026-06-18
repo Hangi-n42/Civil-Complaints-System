@@ -1,4 +1,5 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
+import type { ResponsibleUnit } from "./responsibleUnit";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -7,6 +8,7 @@ export type CaseStructuredFields = {
   request?: { text?: string };
   result?: { text?: string };
   context?: { text?: string };
+  responsible_unit?: ResponsibleUnit[];
 };
 
 export type AssignedCase = {
