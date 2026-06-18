@@ -84,6 +84,23 @@ class _E2EStubCitationMapper:
         return True, 0, []
 
 
+def _assert_civil_llm_rubric_attached(qa_data: dict) -> None:
+    assert qa_data["quality_signals"]["civil_llm_rubric_q0"] is not None
+    assert qa_data["quality_signals"]["civil_llm_rubric_judge_status"] == "rule_fallback"
+    rubric = qa_data["generation_metadata"]["civil_llm_rubric"]
+    assert rubric["rubric_version"] == "civil_llm_rubric_q0_q7_v1.0"
+    assert set(rubric["llm_rubric_raw"].keys()) == {
+        "q0",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+    }
+
+
 def _fixture_path() -> Path:
     return Path(__file__).resolve().parents[1] / "fixtures" / "week6_search_qa_e2e_sample10.json"
 
@@ -199,20 +216,23 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
             "retrieval",
             "generation",
         }
-        assert set(qa_data["quality_signals"].keys()) == {
+        assert {
             "citation_coverage",
             "hallucination_flag",
             "segment_coverage",
-        }
-        assert qa_data["generation_metadata"] == {
-                "fallback_used": False,
-                "parse_retry_count": 0,
-                "grounding_evidence_count": 1,
-                "citation_count": 1,
-                "generation_mode": "default",
-            "legal_grounding_status": "not_requested",
-            "legal_grounding_error": "",
-        }
+            "civil_llm_rubric_q0",
+            "civil_llm_rubric_human_review_required",
+            "civil_llm_rubric_judge_status",
+        }.issubset(qa_data["quality_signals"].keys())
+        metadata = qa_data["generation_metadata"]
+        assert metadata["fallback_used"] is False
+        assert metadata["parse_retry_count"] == 0
+        assert metadata["grounding_evidence_count"] == 1
+        assert metadata["citation_count"] == 1
+        assert metadata["generation_mode"] == "default"
+        assert metadata["legal_grounding_status"] == "not_requested"
+        assert metadata["legal_grounding_error"] == ""
+        _assert_civil_llm_rubric_attached(qa_data)
         assert len(qa_data["structured_output"]["request_segments"]) >= 1
 
     assert retrieval_service.calls

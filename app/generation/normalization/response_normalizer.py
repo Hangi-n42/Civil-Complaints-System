@@ -97,11 +97,15 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     quality = data.get("quality_signals") if isinstance(data.get("quality_signals"), dict) else {}
-    data["quality_signals"] = {
+    normalized_quality = {
         "citation_coverage": float(quality.get("citation_coverage", 0.0) or 0.0),
         "hallucination_flag": bool(quality.get("hallucination_flag", False)),
         "segment_coverage": float(quality.get("segment_coverage", 0.0) or 0.0),
     }
+    for key, value in quality.items():
+        if key not in normalized_quality:
+            normalized_quality[key] = value
+    data["quality_signals"] = normalized_quality
 
     generation_metadata = (
         data.get("generation_metadata")
@@ -109,7 +113,7 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
         else {}
     )
     generation_mode = str(generation_metadata.get("generation_mode") or "default").strip()
-    data["generation_metadata"] = {
+    normalized_generation_metadata = {
         "fallback_used": bool(generation_metadata.get("fallback_used", False)),
         "parse_retry_count": max(
             0,
@@ -131,6 +135,15 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
             generation_metadata.get("legal_grounding_error") or ""
         ),
     }
+    if isinstance(generation_metadata.get("civil_llm_rubric"), dict):
+        normalized_generation_metadata["civil_llm_rubric"] = generation_metadata[
+            "civil_llm_rubric"
+        ]
+    if isinstance(generation_metadata.get("prometheus_revision"), dict):
+        normalized_generation_metadata["prometheus_revision"] = generation_metadata[
+            "prometheus_revision"
+        ]
+    data["generation_metadata"] = normalized_generation_metadata
 
     return data
 

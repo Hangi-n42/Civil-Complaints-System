@@ -1,4 +1,5 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
+import type { ResponsibleUnit } from "./responsibleUnit";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -7,6 +8,7 @@ export type CaseStructuredFields = {
   request?: { text?: string };
   result?: { text?: string };
   context?: { text?: string };
+  responsible_unit?: ResponsibleUnit[];
 };
 
 export type CivilCategory = {
@@ -217,6 +219,35 @@ export async function fetchUiCasesApi(): Promise<ApiResponse<{ cases: AssignedCa
   }
 }
 
+export type CategoryStat = { name: string; count: number };
+export type TrendPoint = { year: string; count: number };
+export type AdminOverviewData = {
+  year: string;
+  category?: string[];
+  available_years: string[];
+  total: number;
+  categories: CategoryStat[];
+  regions: CategoryStat[];
+  issues: CategoryStat[];
+  trend: TrendPoint[];
+};
+
+// 관리자 대시보드 실데이터 종합(카테고리·지역·이슈유형·연도추이).
+// year=연도 또는 "all"/undefined(전체). categories=카테고리 드릴다운(복수, 합집합으로 지역·이슈·건수·추이에 적용).
+export async function fetchAdminOverviewApi(year?: string, categories?: string[]): Promise<ApiResponse<AdminOverviewData>> {
+  const empty: AdminOverviewData = { year: year || "all", available_years: [], total: 0, categories: [], regions: [], issues: [], trend: [] };
+  try {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    (categories ?? []).forEach((c) => { if (c) params.append("category", c); });
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const payload = await fetchBackend<AdminOverviewData>(`/api/v1/admin/overview${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: empty, error: toApiError(error) };
+  }
+}
+
 export async function searchCasesApi(params: {
   complaintId: string;
   query: string;
@@ -275,6 +306,99 @@ export async function runQaApi(params: {
     return { data: mapQaData(payload, params), error: null };
   } catch (error) {
     return { data: mockQaData(params), error: toApiError(error) };
+  }
+}
+
+// SSE 프레임("event: X\ndata: Y") 1개를 파싱한다. data 라인이 없으면 null.
+export function parseSseFrame(frame: string): { event: string; data: unknown } | null {
+  let event = "message";
+  const dataLines: string[] = [];
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (dataLines.length === 0) return null;
+  try {
+    return { event, data: JSON.parse(dataLines.join("\n")) };
+  } catch {
+    return null;
+  }
+}
+
+// 초안 생성을 SSE(/qa/stream)로 호출한다. 백엔드가 보내는 실제 단계(retrieving→grounding→
+// generating)를 onStage로 흘려보내고, done 이벤트의 최종 응답을 반환한다.
+// 스트림이 불가하거나 done 없이 끝나면 기존 비스트림 /qa로 폴백해 초안 생성은 보장한다.
+export async function streamQaApi(
+  params: {
+    complaintId: string;
+    query: string;
+    routingHint?: RoutingHint;
+    useSearchResults?: boolean;
+    searchResults?: RetrievedDoc[];
+    filters?: {
+      region?: string;
+      category?: string;
+    };
+    caseContext?: WorkbenchCaseContext;
+  },
+  onStage?: (stage: string, label: string) => void,
+): Promise<ApiResponse<QaResponseData>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/qa/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        complaint_id: params.complaintId,
+        query: params.query,
+        routing_hint: toBackendRoutingHint(params.routingHint),
+        use_search_results: params.useSearchResults,
+        search_results: (params.searchResults || []).map(toQaSearchResult),
+        filters: normalizeSearchFilters(params.filters),
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      return runQaApi(params); // 스트림 불가 → 비스트림 폴백
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let doneData: QaResponseData | null = null;
+    let errorMessage: string | null = null;
+
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        const frame = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const parsed = frame.trim() ? parseSseFrame(frame) : null;
+        if (!parsed) continue;
+        if (parsed.event === "stage") {
+          const d = parsed.data as { stage?: string; label?: string };
+          if (d.stage) onStage?.(d.stage, d.label || "");
+        } else if (parsed.event === "done") {
+          const d = parsed.data as BackendEnvelope<BackendQaData>;
+          if (d.data) doneData = mapQaData(d.data, params);
+        } else if (parsed.event === "error") {
+          const d = parsed.data as { error?: { message?: string } };
+          errorMessage = d.error?.message || "초안 생성 중 오류가 발생했습니다.";
+        }
+      }
+    }
+
+    if (errorMessage) {
+      return { data: mockQaData(params), error: { message: errorMessage } };
+    }
+    if (doneData) {
+      return { data: doneData, error: null };
+    }
+    return runQaApi(params); // done 없이 종료 → 폴백
+  } catch {
+    return runQaApi(params); // 네트워크/파싱 실패 → 폴백
   }
 }
 

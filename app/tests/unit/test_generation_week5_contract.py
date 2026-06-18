@@ -112,6 +112,113 @@ class _EmptyAnswerGenerationService:
         }
 
 
+class _PrometheusRevisionGenerationService:
+    model = "stub-prometheus-model"
+
+    def __init__(self):
+        self.prometheus_calls = 0
+        self.revision_calls = 0
+
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
+        first = context[0]
+        return {
+            "answer": "검토가 필요합니다.",
+            "citations": [
+                {
+                    "doc_id": first.get("doc_id"),
+                    "chunk_id": first.get("chunk_id"),
+                    "case_id": first.get("case_id"),
+                    "snippet": first.get("snippet"),
+                    "relevance_score": 0.91,
+                }
+            ],
+            "limitations": "현장 확인 전 최종 확정은 어렵습니다.",
+            "structured_output": {
+                "summary": "짧은 초안",
+                "action_items": ["검토"],
+                "request_segments": [],
+            },
+            "generation_metadata": {
+                "fallback_used": False,
+                "parse_retry_count": 0,
+                "generation_mode": "default",
+            },
+        }
+
+    async def call_ollama(self, prompt, temperature=0.0, response_schema=None):
+        import json
+
+        if "[PROMETHEUS REVISION TASK]" in prompt:
+            self.revision_calls += 1
+            return json.dumps(
+                {
+                    "answer": (
+                        "1. 귀하께서 제기하신 도로 파손 및 주변 안전 우려 민원에 대해 답변드립니다.\n\n"
+                        "2. 해당 사항은 현장 확인과 소관 부서 검토가 필요한 사안으로 이해됩니다.\n\n"
+                        "3. 검토 의견은 다음과 같습니다. 담당부서에서 도로 파손 상태와 통행 안전 위험을 확인하고, "
+                        "보수 가능 여부와 필요한 안전조치 범위를 검토하겠습니다. 불법 주정차 관련 사항은 소관 부서와 "
+                        "협의하여 단속 또는 계도 가능 여부를 확인하겠습니다.\n\n"
+                        "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 후속 절차를 안내드리겠습니다."
+                    ),
+                    "citations": [
+                        {
+                            "doc_id": "DOC-001",
+                            "chunk_id": "CASE-1__chunk-0",
+                            "case_id": "CASE-1",
+                            "snippet": "도로 파손과 안전 우려 민원은 현장 확인 후 담당 부서에서 검토합니다.",
+                            "relevance_score": 0.91,
+                        }
+                    ],
+                    "limitations": "현장 확인 결과에 따라 처리 방향이 달라질 수 있습니다.",
+                    "structured_output": {
+                        "summary": "도로 파손 및 주변 안전 우려 민원",
+                        "action_items": ["현장 확인", "보수 가능 여부 검토", "소관 부서 협의"],
+                        "request_segments": [],
+                    },
+                },
+                ensure_ascii=False,
+            )
+
+        self.prometheus_calls += 1
+        return json.dumps(
+            {
+                "feedback": "답변이 지나치게 짧아 민원 요지와 처리 절차가 충분히 드러나지 않습니다.",
+                "strengths": ["민원 검토 필요성은 언급했습니다."],
+                "weaknesses": ["도로 파손과 안전 우려에 대한 구체적 절차가 부족합니다."],
+                "revision_hint": "현장 확인, 소관 부서 검토, 후속 문의 안내를 포함해 공문형 답변으로 보강하세요.",
+                "risk_flags": ["too_short"],
+            },
+            ensure_ascii=False,
+        )
+
+
+def _assert_civil_llm_rubric_attached(data: dict) -> None:
+    quality = data["quality_signals"]
+    assert quality["civil_llm_rubric_q0"] is not None
+    assert quality["civil_llm_rubric_human_review_required"] in {True, False}
+    assert quality["civil_llm_rubric_judge_status"] in {
+        "rule_fallback",
+        "llm_judge",
+        "llm_judge_partial_with_rule_fallback",
+        "error",
+    }
+
+    rubric = data["generation_metadata"]["civil_llm_rubric"]
+    assert rubric["rubric_version"] == "civil_llm_rubric_q0_q7_v1.0"
+    assert rubric["judge_prompt_version"] == "judge_prompt_2026_06_18"
+    assert set(rubric["llm_rubric_raw"].keys()) == {
+        "q0",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+    }
+    assert rubric["safety_layer"]["final_q0_score_0_10"] == quality["civil_llm_rubric_q0"]
+
+
 def test_qa_requires_routing_hint(monkeypatch):
     client = TestClient(app)
     response = client.post(
@@ -265,20 +372,23 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert "confidence" not in data
     assert "question" not in data
     assert set(data["latency_ms"].keys()) == {"analyzer", "router", "retrieval", "generation"}
-    assert set(data["quality_signals"].keys()) == {
+    assert {
         "citation_coverage",
         "hallucination_flag",
         "segment_coverage",
-    }
-    assert data["generation_metadata"] == {
-        "fallback_used": False,
-        "parse_retry_count": 0,
-        "grounding_evidence_count": 1,
-        "citation_count": 1,
-        "generation_mode": "default",
-        "legal_grounding_status": "not_requested",
-        "legal_grounding_error": "",
-    }
+        "civil_llm_rubric_q0",
+        "civil_llm_rubric_human_review_required",
+        "civil_llm_rubric_judge_status",
+    }.issubset(data["quality_signals"].keys())
+    metadata = data["generation_metadata"]
+    assert metadata["fallback_used"] is False
+    assert metadata["parse_retry_count"] == 0
+    assert metadata["grounding_evidence_count"] == 1
+    assert metadata["citation_count"] == 1
+    assert metadata["generation_mode"] == "default"
+    assert metadata["legal_grounding_status"] == "not_requested"
+    assert metadata["legal_grounding_error"] == ""
+    _assert_civil_llm_rubric_attached(data)
     assert body["qa_validation"]["is_valid"] is True
     assert body["search_trace"]["retrieved_count"] == 1
     assert body["citation_validation"]["is_valid"] is True
@@ -564,15 +674,15 @@ def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypat
     assert data["legal_citations"] == []
     assert data["legal_citation_warnings"] == []
     assert data["quality_signals"]["citation_coverage"] == 0.0
-    assert data["generation_metadata"] == {
-        "fallback_used": True,
-        "parse_retry_count": 0,
-        "grounding_evidence_count": 0,
-        "citation_count": 0,
-        "generation_mode": "no_evidence_fallback",
-        "legal_grounding_status": "not_requested",
-        "legal_grounding_error": "",
-    }
+    metadata = data["generation_metadata"]
+    assert metadata["fallback_used"] is True
+    assert metadata["parse_retry_count"] == 0
+    assert metadata["grounding_evidence_count"] == 0
+    assert metadata["citation_count"] == 0
+    assert metadata["generation_mode"] == "no_evidence_fallback"
+    assert metadata["legal_grounding_status"] == "not_requested"
+    assert metadata["legal_grounding_error"] == ""
+    _assert_civil_llm_rubric_attached(data)
     assert "유사 민원 근거가 충분하지 않아" in data["limitations"][0]
     assert "충분히 유사한 사례는 확인되지 않았습니다" in data["answer"]
     assert retrieval_service.calls[0]["grounding_filter"] is True
@@ -627,16 +737,95 @@ def test_qa_marks_api_fallback_when_generation_answer_is_empty(monkeypatch):
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["answer"].strip()
-    assert data["generation_metadata"] == {
-        "fallback_used": True,
-        "parse_retry_count": 1,
-        "grounding_evidence_count": 1,
-        "citation_count": 1,
-        "generation_mode": "api_answer_fallback",
-        "legal_grounding_status": "not_requested",
-        "legal_grounding_error": "",
-    }
+    metadata = data["generation_metadata"]
+    assert metadata["fallback_used"] is True
+    assert metadata["parse_retry_count"] == 1
+    assert metadata["grounding_evidence_count"] == 1
+    assert metadata["citation_count"] == 1
+    assert metadata["generation_mode"] == "api_answer_fallback"
+    assert metadata["legal_grounding_status"] == "not_requested"
+    assert metadata["legal_grounding_error"] == ""
+    _assert_civil_llm_rubric_attached(data)
     assert any("API 안전 폴백" in item for item in data["limitations"])
+
+
+def test_qa_runs_prometheus_feedback_and_revises_low_score_answer(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "도로 파손과 안전 우려 민원은 현장 확인 후 담당 부서에서 검토합니다.",
+                "score": 0.91,
+            }
+        ]
+    )
+    generation_service = _PrometheusRevisionGenerationService()
+    monkeypatch.setattr(
+        generation_router.settings,
+        "CIVIL_LLM_RUBRIC_USE_LLM_JUDGE",
+        False,
+    )
+    monkeypatch.setattr(
+        generation_router.settings,
+        "ENABLE_PROMETHEUS_RUBRIC_FEEDBACK",
+        True,
+    )
+    monkeypatch.setattr(
+        generation_router.settings,
+        "PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE",
+        2.0,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: generation_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-PROM-1",
+            "query": "도로가 파손되어 위험하고 주변 불법 주차도 걱정됩니다.",
+            "routing_hint": {
+                "strategy_id": "topic_general_high_v1",
+                "route_key": "general/high",
+                "top_k": 1,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert "도로 파손 상태와 통행 안전 위험" in data["answer"]
+    assert generation_service.prometheus_calls == 1
+    assert generation_service.revision_calls == 1
+
+    revision = data["generation_metadata"]["prometheus_revision"]
+    assert revision["attempted"] is True
+    assert revision["applied"] is True
+    assert revision["trigger_threshold_1_4"] == 2.0
+    assert any(item["qid"] == "q7" for item in revision["initial_low_score_items"])
+
+    rubric = data["generation_metadata"]["civil_llm_rubric"]
+    assert rubric["prometheus_feedback"]["triggered"] is True
+    assert rubric["prometheus_revision"]["applied"] is True
 
 
 def test_qa_passes_be1_query_signals_to_retrieval_and_generation(monkeypatch):

@@ -9,6 +9,7 @@ from app.api.error_utils import error_response, make_request_id
 from app.core.config import settings
 from app.core.logging import api_logger
 from app.api.routers import (
+    admin_router,
     chroma_debug_router,
     complaint_intelligence_router,
     generation_router,
@@ -54,6 +55,7 @@ app.include_router(generation_router)
 app.include_router(chroma_debug_router)
 app.include_router(ui_router)
 app.include_router(complaint_intelligence_router)
+app.include_router(admin_router)
 
 
 @app.exception_handler(RequestValidationError)
