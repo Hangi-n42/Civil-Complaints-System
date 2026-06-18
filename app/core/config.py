@@ -112,5 +112,32 @@ class Settings:
     # BE3 법령 조문 인용 그라운딩(Phase B). 인덱스/모델 미가용 시 자동 무동작.
     ENABLE_LEGAL_CITATIONS: bool = os.getenv("ENABLE_LEGAL_CITATIONS", "true").lower() == "true"
 
+    # Civil Complaint LLM-Rubric vNext: QA 초안 생성 직후 운영 응답에 평가 리포트를 붙인다.
+    ENABLE_CIVIL_LLM_RUBRIC: bool = os.getenv("ENABLE_CIVIL_LLM_RUBRIC", "true").lower() == "true"
+    CIVIL_LLM_RUBRIC_USE_LLM_JUDGE: bool = os.getenv("CIVIL_LLM_RUBRIC_USE_LLM_JUDGE", "true").lower() == "true"
+    CIVIL_LLM_RUBRIC_VERSION: str = os.getenv(
+        "CIVIL_LLM_RUBRIC_VERSION",
+        "civil_llm_rubric_q0_q7_v1.0",
+    )
+    CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION: str = os.getenv(
+        "CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION",
+        "judge_prompt_2026_06_18",
+    )
+    CIVIL_LLM_RUBRIC_MAX_CONTEXTS: int = int(os.getenv("CIVIL_LLM_RUBRIC_MAX_CONTEXTS", "5"))
+    CIVIL_LLM_RUBRIC_TEMPERATURE: float = float(os.getenv("CIVIL_LLM_RUBRIC_TEMPERATURE", "0.0"))
+    ENABLE_PROMETHEUS_RUBRIC_FEEDBACK: bool = os.getenv(
+        "ENABLE_PROMETHEUS_RUBRIC_FEEDBACK",
+        "true",
+    ).lower() == "true"
+    PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE: float = float(
+        os.getenv("PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE", "2.0")
+    )
+    PROMETHEUS_RUBRIC_MAX_REGENERATION_ATTEMPTS: int = int(
+        os.getenv("PROMETHEUS_RUBRIC_MAX_REGENERATION_ATTEMPTS", "1")
+    )
+    PROMETHEUS_RUBRIC_TEMPERATURE: float = float(
+        os.getenv("PROMETHEUS_RUBRIC_TEMPERATURE", "0.0")
+    )
+
 
 settings = Settings()

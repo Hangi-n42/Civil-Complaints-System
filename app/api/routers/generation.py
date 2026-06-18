@@ -13,8 +13,14 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.api.schemas.generation import QARequest, QAResponse
+from app.core.config import settings
 from app.core.exceptions import GenerationError, RetrievalError
 from app.core.logging import api_logger
+from app.evaluation.civil_llm_rubric import get_civil_llm_rubric_evaluator
+from app.evaluation.prometheus_feedback import (
+    get_prometheus_feedback_engine,
+    select_low_score_items,
+)
 from app.generation.context_mapper import map_retrieval_to_qa_context
 from app.generation.citation.citation_mapper import get_citation_mapper
 from app.generation.normalization.response_normalizer import (
@@ -312,6 +318,396 @@ def _citation_coverage(citation_count: int, mismatch_count: int) -> float:
     return round(min(1.0, valid_count / citation_count), 4)
 
 
+async def _attach_civil_llm_rubric(
+    *,
+    unified_payload: dict,
+    request: QARequest,
+    references: list[dict],
+    generation_service,
+    citation_validation: dict | None = None,
+    query_signals: dict | None = None,
+) -> dict | None:
+    """Attach runtime Civil Complaint LLM-Rubric report to the QA payload."""
+    if not settings.ENABLE_CIVIL_LLM_RUBRIC:
+        return None
+
+    generation_metadata = (
+        unified_payload.get("generation_metadata")
+        if isinstance(unified_payload.get("generation_metadata"), dict)
+        else {}
+    )
+    quality_signals = (
+        unified_payload.get("quality_signals")
+        if isinstance(unified_payload.get("quality_signals"), dict)
+        else {}
+    )
+    llm_call = (
+        getattr(generation_service, "call_ollama", None)
+        if settings.CIVIL_LLM_RUBRIC_USE_LLM_JUDGE
+        else None
+    )
+
+    try:
+        rubric_result = await get_civil_llm_rubric_evaluator().evaluate(
+            case_id=str(request.complaint_id or ""),
+            complaint_text=request.query,
+            generated_answer=str(unified_payload.get("answer") or ""),
+            references=references,
+            citations=unified_payload.get("citations")
+            if isinstance(unified_payload.get("citations"), list)
+            else [],
+            routing_trace=unified_payload.get("routing_trace")
+            if isinstance(unified_payload.get("routing_trace"), dict)
+            else {},
+            quality_signals=quality_signals,
+            citation_validation=citation_validation or {},
+            legal_citations=unified_payload.get("legal_citations")
+            if isinstance(unified_payload.get("legal_citations"), list)
+            else [],
+            legal_citation_warnings=unified_payload.get("legal_citation_warnings")
+            if isinstance(unified_payload.get("legal_citation_warnings"), list)
+            else [],
+            query_signals=query_signals,
+            generation_metadata=generation_metadata,
+            llm_call=llm_call if callable(llm_call) else None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        api_logger.warning(
+            "civil_llm_rubric_failed request_id=%s error=%s",
+            str(request.request_id or ""),
+            str(exc),
+        )
+        rubric_result = {
+            "case_id": str(request.complaint_id or ""),
+            "rubric_version": settings.CIVIL_LLM_RUBRIC_VERSION,
+            "judge_prompt_version": settings.CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION,
+            "judge_status": "error",
+            "error": f"{type(exc).__name__}: {exc}",
+            "diagnostics": {
+                "main_failure_reasons": ["rubric_runtime_error"],
+                "recommended_fix": ["런타임 평가기 오류 로그를 확인해야 합니다."],
+                "human_review_required": True,
+            },
+        }
+
+    generation_metadata = dict(generation_metadata)
+    generation_metadata["civil_llm_rubric"] = rubric_result
+    unified_payload["generation_metadata"] = generation_metadata
+
+    safety_layer = (
+        rubric_result.get("safety_layer")
+        if isinstance(rubric_result.get("safety_layer"), dict)
+        else {}
+    )
+    diagnostics = (
+        rubric_result.get("diagnostics")
+        if isinstance(rubric_result.get("diagnostics"), dict)
+        else {}
+    )
+    quality_signals = dict(quality_signals)
+    quality_signals["civil_llm_rubric_q0"] = safety_layer.get(
+        "final_q0_score_0_10"
+    )
+    quality_signals["civil_llm_rubric_human_review_required"] = bool(
+        diagnostics.get("human_review_required", False)
+    )
+    quality_signals["civil_llm_rubric_judge_status"] = str(
+        rubric_result.get("judge_status") or "unknown"
+    )
+    unified_payload["quality_signals"] = quality_signals
+    return rubric_result
+
+
+async def _parse_prometheus_revision_response(
+    *,
+    generation_service,
+    response_text: str,
+    context: list[dict],
+) -> dict:
+    parser = getattr(generation_service, "parse_json_response_relaxed", None)
+    if callable(parser):
+        return await parser(response_text, context)
+
+    payload = json.loads(str(response_text or "").strip())
+    if not isinstance(payload, dict):
+        raise ValueError("Prometheus revision response must be a JSON object")
+    return payload
+
+
+async def _maybe_apply_prometheus_revision(
+    *,
+    unified_payload: dict,
+    request: QARequest,
+    generation_service,
+    context: list[dict],
+    current_citations: list,
+    retrieval_elapsed_ms: int,
+    generation_elapsed_ms: int,
+    routing_trace: dict,
+    strategy_id: str,
+    route_key: str,
+    query_signals: dict | None,
+) -> dict | None:
+    if (
+        not settings.ENABLE_PROMETHEUS_RUBRIC_FEEDBACK
+        or settings.PROMETHEUS_RUBRIC_MAX_REGENERATION_ATTEMPTS <= 0
+    ):
+        return None
+
+    generation_metadata = (
+        unified_payload.get("generation_metadata")
+        if isinstance(unified_payload.get("generation_metadata"), dict)
+        else {}
+    )
+    initial_rubric = generation_metadata.get("civil_llm_rubric")
+    if not isinstance(initial_rubric, dict):
+        return None
+
+    low_items = select_low_score_items(
+        initial_rubric,
+        threshold_1_4=settings.PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE,
+    )
+    if not low_items:
+        return None
+
+    llm_call = getattr(generation_service, "call_ollama", None)
+    if not callable(llm_call):
+        return None
+
+    engine = get_prometheus_feedback_engine()
+    revision_summary = {
+        "attempted": True,
+        "applied": False,
+        "attempt_count": 1,
+        "trigger_threshold_1_4": settings.PROMETHEUS_RUBRIC_TRIGGER_MAX_CHOICE,
+        "initial_low_score_items": low_items,
+        "initial_q0_final": (
+            initial_rubric.get("safety_layer", {}).get("final_q0_score_0_10")
+            if isinstance(initial_rubric.get("safety_layer"), dict)
+            else None
+        ),
+    }
+
+    try:
+        prometheus_feedback = await engine.build_feedback(
+            case_id=str(request.complaint_id or ""),
+            complaint_text=request.query,
+            generated_answer=str(unified_payload.get("answer") or ""),
+            references=context,
+            citations=unified_payload.get("citations")
+            if isinstance(unified_payload.get("citations"), list)
+            else [],
+            rubric_result=initial_rubric,
+            llm_call=llm_call,
+        )
+        if not prometheus_feedback.get("triggered"):
+            return None
+
+        revision_prompt = engine.build_revision_prompt(
+            complaint_text=request.query,
+            current_answer=str(unified_payload.get("answer") or ""),
+            references=context,
+            citations=unified_payload.get("citations")
+            if isinstance(unified_payload.get("citations"), list)
+            else [],
+            prometheus_feedback=prometheus_feedback,
+        )
+        revision_start = perf_counter()
+        response_text = await llm_call(
+            revision_prompt,
+            temperature=settings.PROMETHEUS_RUBRIC_TEMPERATURE,
+            response_schema=engine.revision_schema(),
+        )
+        revised_result = await _parse_prometheus_revision_response(
+            generation_service=generation_service,
+            response_text=response_text,
+            context=context,
+        )
+        generation_elapsed_ms += int((perf_counter() - revision_start) * 1000)
+    except Exception as exc:  # noqa: BLE001
+        revision_summary["error"] = f"{type(exc).__name__}: {exc}"
+        _store_prometheus_revision_metadata(
+            unified_payload=unified_payload,
+            prometheus_feedback={
+                "triggered": True,
+                "source": "prometheus_error",
+                "low_score_items": low_items,
+                "error": revision_summary["error"],
+            },
+            revision_summary=revision_summary,
+        )
+        api_logger.warning(
+            "prometheus_revision_failed request_id=%s error=%s",
+            str(request.request_id or ""),
+            revision_summary["error"],
+        )
+        return None
+
+    revised_citations = normalize_citations(
+        revised_result.get("citations") or current_citations,
+        context=context,
+    )
+    revised_answer = ensure_citation_tokens(
+        _compose_answer_from_payload(revised_result, revised_citations),
+        citations=revised_citations,
+        complaint=request.query,
+        context=context,
+    )
+    revised_limitations = (
+        str(revised_result.get("limitations") or "").strip()
+        or "Prometheus-style 피드백을 반영해 재작성한 답변입니다."
+    )
+    revised_validation = build_validation_result(
+        answer=revised_answer,
+        citations=revised_citations,
+        limitations=revised_limitations,
+        context=context,
+        complaint=request.query,
+    )
+    if not revised_validation["is_valid"]:
+        revision_summary["error"] = "revised_answer_validation_failed"
+        revision_summary["validation_errors"] = revised_validation.get("errors", [])
+        _store_prometheus_revision_metadata(
+            unified_payload=unified_payload,
+            prometheus_feedback=prometheus_feedback,
+            revision_summary=revision_summary,
+        )
+        return None
+
+    citation_mapper = get_citation_mapper()
+    revised_is_valid, revised_mismatch_count, revised_mismatch_details = (
+        citation_mapper.validate_citations_against_context(
+            citations=[
+                c.model_dump() if hasattr(c, "model_dump") else c
+                for c in revised_citations
+            ],
+            retrieval_context=context,
+        )
+    )
+    response_citations = []
+    for item in revised_citations:
+        if hasattr(item, "model_dump"):
+            item = item.model_dump()
+        response_citations.append(
+            {
+                "doc_id": str(item.get("doc_id") or item.get("case_id") or ""),
+                "source": str(item.get("source") or "retrieval"),
+                "quote": str(item.get("snippet") or ""),
+            }
+        )
+
+    revised_structured = normalize_structured_output(
+        revised_result.get("structured_output"),
+        request_segments=routing_trace.get("request_segments") or [],
+    )
+    next_generation_metadata = dict(generation_metadata)
+    next_generation_metadata.pop("civil_llm_rubric", None)
+    revision_summary.update(
+        {
+            "applied": True,
+            "feedback_source": prometheus_feedback.get("source"),
+            "revision_model": str(getattr(generation_service, "model", "") or ""),
+        }
+    )
+    next_generation_metadata["prometheus_revision"] = revision_summary
+
+    revised_payload = normalize_response(
+        {
+            "complaint_id": request.complaint_id,
+            "strategy_id": strategy_id,
+            "route_key": route_key,
+            "routing_trace": routing_trace,
+            "structured_output": {
+                "summary": revised_structured.get("summary", ""),
+                "action_items": revised_structured.get("action_items", []),
+                "request_segments": revised_structured.get("request_segments", []),
+            },
+            "answer": revised_answer,
+            "citations": response_citations,
+            "legal_citations": unified_payload.get("legal_citations", []),
+            "legal_citation_warnings": unified_payload.get(
+                "legal_citation_warnings",
+                [],
+            ),
+            "limitations": [revised_limitations],
+            "latency_ms": {
+                "analyzer": 0,
+                "router": 0,
+                "retrieval": retrieval_elapsed_ms,
+                "generation": generation_elapsed_ms,
+            },
+            "quality_signals": {
+                "citation_coverage": _citation_coverage(
+                    len(response_citations),
+                    revised_mismatch_count,
+                ),
+                "hallucination_flag": (
+                    not revised_is_valid
+                    or bool(unified_payload.get("legal_citation_warnings"))
+                ),
+                "segment_coverage": _segment_coverage(
+                    revised_answer,
+                    routing_trace.get("request_segments") or [],
+                ),
+            },
+            "generation_metadata": next_generation_metadata,
+        }
+    )
+    final_rubric = await _attach_civil_llm_rubric(
+        unified_payload=revised_payload,
+        request=request,
+        references=context,
+        generation_service=generation_service,
+        citation_validation={
+            "is_valid": revised_is_valid,
+            "mismatch_count": revised_mismatch_count,
+            "details": {"mismatches": revised_mismatch_details},
+        },
+        query_signals=query_signals,
+    )
+    if isinstance(final_rubric, dict):
+        revision_summary["final_q0_final"] = (
+            final_rubric.get("safety_layer", {}).get("final_q0_score_0_10")
+            if isinstance(final_rubric.get("safety_layer"), dict)
+            else None
+        )
+        final_rubric["prometheus_feedback"] = prometheus_feedback
+        final_rubric["prometheus_revision"] = revision_summary
+        revised_payload["generation_metadata"]["civil_llm_rubric"] = final_rubric
+        revised_payload["generation_metadata"]["prometheus_revision"] = revision_summary
+
+    return {
+        "payload": revised_payload,
+        "qa_validation": revised_validation,
+        "citation_validation": {
+            "is_valid": revised_is_valid,
+            "mismatch_count": revised_mismatch_count,
+            "details": {"mismatches": revised_mismatch_details},
+        },
+    }
+
+
+def _store_prometheus_revision_metadata(
+    *,
+    unified_payload: dict,
+    prometheus_feedback: dict,
+    revision_summary: dict,
+) -> None:
+    generation_metadata = (
+        unified_payload.get("generation_metadata")
+        if isinstance(unified_payload.get("generation_metadata"), dict)
+        else {}
+    )
+    generation_metadata = dict(generation_metadata)
+    generation_metadata["prometheus_revision"] = revision_summary
+    rubric = generation_metadata.get("civil_llm_rubric")
+    if isinstance(rubric, dict):
+        rubric["prometheus_feedback"] = prometheus_feedback
+        rubric["prometheus_revision"] = revision_summary
+        generation_metadata["civil_llm_rubric"] = rubric
+    unified_payload["generation_metadata"] = generation_metadata
+
+
 def _segment_coverage(answer: str, request_segments: list[str]) -> float:
     segments = [str(item).strip() for item in request_segments if str(item).strip()]
     if not segments:
@@ -502,6 +898,14 @@ async def _generate_qa(
             strategy_id=strategy_id,
             routing_trace=routing_trace,
             retrieval_elapsed_ms=retrieval_elapsed_ms,
+        )
+        await _attach_civil_llm_rubric(
+            unified_payload=unified_payload,
+            request=request,
+            references=[],
+            generation_service=generation_service,
+            citation_validation={"is_valid": False, "mismatch_count": 0},
+            query_signals=query_signals,
         )
         contract_missing = validate_unified_contract(unified_payload)
         if contract_missing:
@@ -789,6 +1193,38 @@ async def _generate_qa(
             },
         }
     )
+    await _attach_civil_llm_rubric(
+        unified_payload=unified_payload,
+        request=request,
+        references=context,
+        generation_service=generation_service,
+        citation_validation={
+            "is_valid": is_valid,
+            "mismatch_count": mismatch_count,
+            "details": {"mismatches": mismatch_details},
+        },
+        query_signals=query_signals,
+    )
+    prometheus_revision_result = await _maybe_apply_prometheus_revision(
+        unified_payload=unified_payload,
+        request=request,
+        generation_service=generation_service,
+        context=context,
+        current_citations=citations,
+        retrieval_elapsed_ms=retrieval_elapsed_ms,
+        generation_elapsed_ms=generation_elapsed_ms,
+        routing_trace=routing_trace,
+        strategy_id=strategy_id,
+        route_key=route_key,
+        query_signals=query_signals,
+    )
+    if prometheus_revision_result is not None:
+        unified_payload = prometheus_revision_result["payload"]
+        validation = prometheus_revision_result["qa_validation"]
+        citation_result = prometheus_revision_result["citation_validation"]
+        is_valid = bool(citation_result["is_valid"])
+        mismatch_count = int(citation_result["mismatch_count"])
+        mismatch_details = citation_result.get("details", {}).get("mismatches", [])
 
     contract_missing = validate_unified_contract(unified_payload)
     if contract_missing:

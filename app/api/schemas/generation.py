@@ -150,6 +150,8 @@ class GenerationMetadata(BaseModel):
         "error",
     ] = "not_requested"
     legal_grounding_error: str = ""
+    civil_llm_rubric: Dict[str, Any] = Field(default_factory=dict)
+    prometheus_revision: Dict[str, Any] = Field(default_factory=dict)
 
 
 class QAResponseData(BaseModel):
