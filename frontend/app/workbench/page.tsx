@@ -11,7 +11,7 @@ import {
   type CivilCategory,
   fetchUiCasesApi,
   type AssignedCase,
-  runQaApi,
+  streamQaApi,
   searchCasesApi,
   type QaResponseData,
   type RetrievedDoc,
@@ -39,11 +39,11 @@ const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
 
-// 초안 생성 진행 단계 (체감 대기시간 완화용).
-// SEAM: 지금은 프론트 타이머로 단계를 추정해 보여줄 뿐 실제 백엔드 파이프라인과 1:1 동기화되지는 않는다.
-// 백엔드가 단계 이벤트(SSE)를 제공하면 타이머를 걷어내고 수신 이벤트로 draftProgressStep만 갱신하면 된다.
+// 초안 생성 진행 단계. 백엔드 /qa/stream SSE가 보내는 실제 단계를 그대로 표시한다(타이머 추정 아님).
+// 라벨은 백엔드 QA_STAGE_LABELS와 1:1로 일치한다(retrieving/grounding/generating).
 const DRAFT_PROGRESS_STAGES = ["유사 사례 분석 중", "관련 근거 정리 중", "초안 작성 중"] as const;
-const DRAFT_PROGRESS_STEP_MS = 2500;
+// 백엔드 SSE 단계명 → 진행 표시 인덱스.
+const QA_STAGE_TO_STEP: Record<string, number> = { retrieving: 0, grounding: 1, generating: 2 };
 
 type WorkbenchStructuredFields = {
   observation?: { text?: string };
@@ -108,8 +108,6 @@ function WorkbenchContent() {
   const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || mockAssignedCases[0]?.case_id || "");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchRegion, setSearchRegion] = useState("전체");
-  const [searchCategory, setSearchCategory] = useState("전체");
   const [searchStage, setSearchStage] = useState<SearchStage>("empty");
   const [searchBundle, setSearchBundle] = useState<SearchResponseData | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -159,14 +157,6 @@ function WorkbenchContent() {
     return buildCaseContext(selectedCase);
   }, [selectedCase]);
 
-  const regionOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(caseList.map((item) => item.region).filter(Boolean)))];
-  }, [caseList]);
-
-  const categoryOptions = useMemo(() => {
-    return ["전체", ...Array.from(new Set(caseList.map((item) => item.category).filter(Boolean)))];
-  }, [caseList]);
-
   useEffect(() => {
     if (caseList.length === 0) {
       return;
@@ -207,8 +197,6 @@ function WorkbenchContent() {
     }
 
     setSearchQuery("");
-    setSearchRegion(selectedCase.region || "전체");
-    setSearchCategory(selectedCase.category || "전체");
     setSearchStage("empty");
     setSearchBundle(null);
     setSearchError(null);
@@ -312,10 +300,6 @@ function WorkbenchContent() {
       complaintId: selectedCase.case_id,
       query: effectiveQuery,
       topK: 5,
-      filters: {
-        region: searchRegion !== "전체" ? searchRegion : undefined,
-        category: searchCategory !== "전체" ? searchCategory : undefined,
-      },
       caseContext,
     });
 
@@ -345,6 +329,7 @@ function WorkbenchContent() {
   async function handleGenerateDraft() {
     setDraftStage("loading");
     setDraftError(null);
+    setDraftProgressStep(0);
 
     try {
       // 검색이 선행되지 않았으면 유사 민원 검색을 자동으로 먼저 수행한다.
@@ -361,18 +346,18 @@ function WorkbenchContent() {
         return;
       }
 
-      const response = await runQaApi({
-        complaintId: selectedCase.case_id,
-        query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
-        routingHint: effectiveRoutingHint,
-        useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
-        searchResults: bundle?.results || bundle?.searchResults || [],
-        filters: {
-          region: searchRegion !== "전체" ? searchRegion : undefined,
-          category: searchCategory !== "전체" ? searchCategory : undefined,
+      const response = await streamQaApi(
+        {
+          complaintId: selectedCase.case_id,
+          query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
+          routingHint: effectiveRoutingHint,
+          useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
+          searchResults: bundle?.results || bundle?.searchResults || [],
+          caseContext,
         },
-        caseContext,
-      });
+        // 백엔드가 보내는 실제 단계로 진행도를 갱신한다.
+        (stage) => setDraftProgressStep(QA_STAGE_TO_STEP[stage] ?? 0),
+      );
 
       if (response.error) {
         setDraftStage("error");
@@ -409,16 +394,6 @@ function WorkbenchContent() {
   useEffect(() => {
     setDraftEditorValue(draftTextareaValue);
   }, [draftTextareaValue]);
-
-  // 초안 생성 중 진행 단계를 순차로 진전시킨다 (마지막 단계에서 정지).
-  useEffect(() => {
-    if (draftStage !== "loading") return;
-    setDraftProgressStep(0);
-    const timer = setInterval(() => {
-      setDraftProgressStep((prev) => Math.min(prev + 1, DRAFT_PROGRESS_STAGES.length - 1));
-    }, DRAFT_PROGRESS_STEP_MS);
-    return () => clearInterval(timer);
-  }, [draftStage]);
 
   const currentStatus = caseStatuses[selectedCase.case_id] || selectedCase.status || "미처리";
   const topDocs = searchBundle?.results || searchBundle?.retrievedDocs || [];
@@ -513,17 +488,16 @@ function WorkbenchContent() {
                     <div className="shrink-0 text-sm font-bold text-slate-900">민원 요약 (AI 분석)</div>
                     <span className="truncate rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800" title={getCaseCategoryLabel(selectedCase)}>분야: {getCaseCategoryLabel(selectedCase)}</span>
                   </div>
-                  <span className="shrink-0 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-700">TOPIC: welfare / LEVEL: high</span>
                 </div>
-                <div className="grid border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <div>관찰내용</div>
-                  <div>문제분석</div>
-                  <div>요청사항</div>
+                <div className="grid gap-x-3 border-b border-slate-300 bg-[#e7ebf2] px-3 py-2 text-[11px] font-bold text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  <div>요약</div>
+                  <div>핵심요청</div>
+                  <div>확인필요</div>
                 </div>
-                <div className="grid px-3 py-2 text-[12px] text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                  <div className="truncate pr-2">{summaryObservation}</div>
-                  <div className="truncate pr-2">{summaryAnalysis}</div>
-                  <div className="truncate">{summaryRequest}</div>
+                <div className="grid items-start gap-x-3 px-3 py-2 text-[12px] leading-5 text-slate-700" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  <div className="break-words">{summaryObservation}</div>
+                  <div className="break-words">{summaryAnalysis}</div>
+                  <div className="break-words">{summaryRequest}</div>
                 </div>
               </div>
 
@@ -584,31 +558,13 @@ function WorkbenchContent() {
                   </button>
                 </div>
 
-                <div className="grid gap-2 border-b border-slate-300 px-2 py-2 sm:grid-cols-[1fr_200px_200px]">
+                <div className="border-b border-slate-300 px-2 py-2">
                   <input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    className="h-9 border border-slate-300 px-2 text-sm outline-none"
+                    className="h-9 w-full border border-slate-300 px-2 text-sm outline-none"
                     placeholder="검색어"
                   />
-                  <select
-                    value={searchCategory}
-                    onChange={(event) => setSearchCategory(event.target.value)}
-                    className="h-9 border border-slate-300 px-2 text-sm outline-none"
-                  >
-                    {categoryOptions.map((category) => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={searchRegion}
-                    onChange={(event) => setSearchRegion(event.target.value)}
-                    className="h-9 border border-slate-300 px-2 text-sm outline-none"
-                  >
-                    {regionOptions.map((region) => (
-                      <option key={region} value={region}>{region}</option>
-                    ))}
-                  </select>
                 </div>
 
                 {searchStage === "error" && <div className="px-3 py-2 text-xs text-red-600">{searchError}</div>}
@@ -631,15 +587,11 @@ function WorkbenchContent() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className="text-[11px] font-bold text-slate-700">유사민원 {index + 1}</div>
-                              <div className="truncate text-[13px] font-semibold text-slate-900">{doc.title}</div>
-                              <div className="line-clamp-1 text-[11px] text-slate-500">{doc.snippet}</div>
+                              <div className="line-clamp-2 break-words text-[13px] font-semibold text-slate-900" title={doc.summary?.observation || doc.title}>{doc.summary?.observation || doc.title}</div>
+                              <div className="mt-0.5 line-clamp-1 break-words text-[11px] leading-4 text-slate-500" title={doc.snippet}>{doc.snippet}</div>
                             </div>
-                            <div className="text-right text-[11px] text-slate-500">
-                              <div className="font-bold text-slate-900">{Math.round(Number(doc.score) * 100)}%</div>
-                              <div className="flex items-center justify-end gap-1">
-                                <span>COMPLETED</span>
-                                <span className="text-slate-400">{expandedDocId === doc.docId ? "▲" : "▼"}</span>
-                              </div>
+                            <div className="shrink-0 text-[11px] text-slate-400">
+                              {expandedDocId === doc.docId ? "▲" : "▼"}
                             </div>
                           </div>
                         </button>
