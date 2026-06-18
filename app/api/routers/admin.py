@@ -48,6 +48,41 @@ def aggregate_categories(index: List[Dict[str, Optional[str]]], year: Optional[s
     }
 
 
+def _count_values(rows: List[Dict[str, Any]], getter) -> Counter:
+    """스칼라 또는 리스트 필드를 건수로 집계한다(리스트는 항목별 가산)."""
+    counts: Counter = Counter()
+    for row in rows:
+        value = getter(row)
+        if isinstance(value, list):
+            for item in value:
+                if item:
+                    counts[item] += 1
+        elif value:
+            counts[value] += 1
+    return counts
+
+
+def aggregate_overview(index: List[Dict[str, Any]], year: Optional[str], top_n: int = 8) -> Dict[str, Any]:
+    """대시보드 전체 실데이터 집계: 카테고리/지역/이슈유형(연도 필터) + 연도별 추이."""
+    base = aggregate_categories(index, year)  # year/available_years/total/categories
+    selected = year if (year and year != "all") else None
+    rows = [d for d in index if selected is None or d.get("year") == selected]
+
+    regions = _count_values(rows, lambda d: d.get("region"))
+    issues = _count_values(rows, lambda d: d.get("issues"))
+
+    # 연도별 추이는 연도 축이므로 필터하지 않고 전체를 오름차순으로 낸다.
+    year_counts = Counter(d["year"] for d in index if d.get("year"))
+    trend = [{"year": y, "count": year_counts[y]} for y in sorted(year_counts)]
+
+    return {
+        **base,
+        "regions": [{"name": name, "count": count} for name, count in regions.most_common(top_n)],
+        "issues": [{"name": name, "count": count} for name, count in issues.most_common(top_n)],
+        "trend": trend,
+    }
+
+
 def _primary_for(meta: Dict[str, Any]) -> str:
     """단일 케이스 메타데이터에서 civil_category.primary를 계산한다(adapter와 동일 신호)."""
     depts = _split_pipe(meta.get("responsible_units"))
@@ -92,22 +127,31 @@ def _build_index() -> List[Dict[str, Optional[str]]]:
             seen.add(case_id)
         created = str(meta.get("created_at") or "")
         year = created[:4] if created[:4].isdigit() else None
-        index.append({"primary": _primary_for(meta), "year": year})
+        index.append({
+            "primary": _primary_for(meta),
+            "year": year,
+            "region": (str(meta.get("region") or "").strip() or None),
+            "issues": _split_pipe(meta.get("issue_types")),
+        })
 
     _doc_index = index
     return index
 
 
-@router.get("/category-stats")
-async def category_stats(year: Optional[str] = None):
-    """카테고리별(부산 대분류) 발생 현황. year=연도(예 '2024') 또는 'all'(기본)."""
+@router.get("/overview")
+async def overview(year: Optional[str] = None):
+    """관리자 대시보드 실데이터 종합: 카테고리/지역/이슈유형/연도별 추이.
+
+    year=연도(예 '2024') 또는 'all'(기본). 카테고리·지역·이슈는 연도 필터,
+    연도별 추이는 전체 연도 축.
+    """
     request_id = make_request_id()
     try:
         index = _build_index()
     except Exception as exc:  # 인덱스/컬렉션 미가용
         api_logger.error(
             "api_error endpoint=%s request_id=%s error_code=%s message=%s",
-            "/api/v1/admin/category-stats",
+            "/api/v1/admin/overview",
             request_id,
             "INTERNAL_SERVER_ERROR",
             str(exc),
@@ -115,7 +159,7 @@ async def category_stats(year: Optional[str] = None):
         return error_response(
             request_id=request_id,
             error_code="INTERNAL_SERVER_ERROR",
-            message="카테고리 통계 집계 중 오류가 발생했습니다.",
+            message="대시보드 통계 집계 중 오류가 발생했습니다.",
             retryable=True,
             details={"reason": str(exc)},
         )
@@ -124,5 +168,5 @@ async def category_stats(year: Optional[str] = None):
         "success": True,
         "request_id": request_id,
         "timestamp": now_iso(),
-        "data": aggregate_categories(index, year),
+        "data": aggregate_overview(index, year),
     }

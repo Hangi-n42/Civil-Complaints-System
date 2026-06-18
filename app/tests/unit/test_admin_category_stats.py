@@ -1,6 +1,11 @@
 """admin 카테고리 통계 집계(순수 함수) 단위 테스트."""
 
-from app.api.routers.admin import _split_pipe, aggregate_categories
+from app.api.routers.admin import (
+    _count_values,
+    _split_pipe,
+    aggregate_categories,
+    aggregate_overview,
+)
 
 
 def test_split_pipe():
@@ -50,3 +55,39 @@ def test_aggregate_none_year_means_all():
     out = aggregate_categories(_idx(), None)
     assert out["year"] == "all"
     assert out["total"] == 4
+
+
+def test_count_values_scalar_and_list():
+    rows = [
+        {"r": "서울", "i": ["a", "b"]},
+        {"r": "서울", "i": ["a"]},
+        {"r": "경기", "i": []},
+    ]
+    assert dict(_count_values(rows, lambda d: d["r"])) == {"서울": 2, "경기": 1}
+    assert dict(_count_values(rows, lambda d: d["i"])) == {"a": 2, "b": 1}
+
+
+def _ov_idx():
+    return [
+        {"primary": "교통·물류", "year": "2024", "region": "서울", "issues": ["단속/점검", "허가/등록"]},
+        {"primary": "교통·물류", "year": "2023", "region": "경기", "issues": ["단속/점검"]},
+        {"primary": "사회복지", "year": "2024", "region": "서울", "issues": []},
+    ]
+
+
+def test_aggregate_overview_all():
+    out = aggregate_overview(_ov_idx(), "all")
+    assert out["total"] == 3
+    assert {c["name"]: c["count"] for c in out["categories"]}["교통·물류"] == 2
+    assert {r["name"]: r["count"] for r in out["regions"]} == {"서울": 2, "경기": 1}
+    assert {i["name"]: i["count"] for i in out["issues"]}["단속/점검"] == 2
+    # 연도별 추이: 전체, 오름차순
+    assert out["trend"] == [{"year": "2023", "count": 1}, {"year": "2024", "count": 2}]
+
+
+def test_aggregate_overview_year_filter_keeps_full_trend():
+    out = aggregate_overview(_ov_idx(), "2024")
+    assert out["total"] == 2  # 2024만
+    assert {r["name"] for r in out["regions"]} == {"서울"}
+    # trend는 연도 필터와 무관하게 전체
+    assert out["trend"] == [{"year": "2023", "count": 1}, {"year": "2024", "count": 2}]
