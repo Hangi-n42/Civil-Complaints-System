@@ -26,7 +26,7 @@ ARES는 생성 답변 하나만 평가하는 루브릭이라기보다, RAG 파�
 | `/qa` 응답 | answer faithfulness와 answer relevance 평가에 사용 |
 | `routing_trace` | topic, complexity, request segment 기반 slice 평가에 사용 |
 | `citations` | 답변 문장과 검색 근거 연결성 평가에 사용 |
-| LLM-Rubric Q0~Q8 | ARES 점수를 Q2, Q4, Q8 보조 신호로 연결 |
+| LLM-Rubric Q0~Q7 | ARES 점수를 Q2, Q4, Q0/manual completeness/Q7 보조 신호로 연결 |
 | Workbench | 담당자가 답변과 평가 피드백을 함께 검토하는 UI로 확장 |
 
 결론적으로 ARES 전체 구현보다는 ARES-lite가 적합하다.
@@ -52,7 +52,7 @@ ARES는 생성 답변 하나만 평가하는 루브릭이라기보다, RAG 파�
 | --- | --- |
 | Context Relevance | Q2 근거 충분성, retrieval 평가 |
 | Answer Faithfulness | Q2 근거 충분성, Q4 인용 정확성, semantic risk flags |
-| Answer Relevance | Q8 업무 완결성, Q5 최적 출처성 |
+| Answer Relevance | Q0 종합 품질, manual_completeness_features, Q7 답변 효율성 보조 신호 |
 
 ## 4. 목표 적용 구조
 
@@ -277,14 +277,14 @@ ARES-lite는 LLM-Rubric을 대체하지 않는다.
 
 | 구분 | 역할 |
 | --- | --- |
-| LLM-Rubric | 최종 답변 품질을 Q0~Q8로 평가 |
+| LLM-Rubric | 최종 답변 품질을 Q0~Q7과 manual/safety feature로 평가 |
 | ARES-lite | RAG 파이프라인의 검색 관련성, 근거 충실성, 답변 관련성을 별도 진단 |
 | Prometheus-style feedback | LLM-Rubric 각 Q 항목의 자연어 피드백을 강화 |
 
 초기에는 ARES-lite 결과를 다음 방식으로 연결한다.
 
 - `answer_faithfulness` 낮음: Q2, Q4, semantic risk 검토 대상으로 표시
-- `answer_relevance` 낮음: Q8 낮음의 원인으로 표시
+- `answer_relevance` 낮음: Q0 종합 품질 저하 및 `manual_completeness_features` 누락 원인으로 표시
 - `context_relevance` 낮음: 검색 실패 또는 라우팅 실패로 분류
 
 Q0 공식 점수에 바로 합산하지 않고, 별도 보조 지표로 보고한다. 사람 평가와
@@ -306,7 +306,7 @@ Q0 공식 점수에 바로 합산하지 않고, 별도 보조 지표로 보고�
 | context relevance 저점 사례 탐지 precision | 0.80 이상 |
 | unsupported claim 탐지 precision | 0.75 이상 |
 | missing segment 탐지 precision | 0.75 이상 |
-| Q8 저점 사유 설명 가능 비율 | 0.80 이상 |
+| Q0/manual completeness 저점 사유 설명 가능 비율 | 0.80 이상 |
 | 평가 결과 JSON 파싱 성공률 | 0.98 이상 |
 
 ## 11. 단계별 적용 계획
@@ -321,7 +321,7 @@ Q0 공식 점수에 바로 합산하지 않고, 별도 보조 지표로 보고�
 
 3. **LLM-Rubric 리포트와 병합**
    - `rubric_report.json`에 `ares_lite_summary` 추가 검토
-   - Q2/Q4/Q8 저점 사유와 연결
+   - Q2/Q4/Q0/manual_completeness 저점 사유와 연결
 
 4. **Workbench 표시**
    - 답변 옆에 근거 관련성, 근거 충실성, 답변 관련성 표시
@@ -345,7 +345,7 @@ Q0 공식 점수에 바로 합산하지 않고, 별도 보조 지표로 보고�
 본 프로젝트는 ARES의 RAG 평가 관점을 참고하여 검색 근거의 관련성,
 생성 답변의 근거 충실성, 민원 요청에 대한 답변 관련성을 별도로 평가하는
 ARES-lite 레이어를 설계한다. 이 레이어는 기존 LLM-Rubric을 대체하지 않고,
-Q2 근거 충분성, Q4 인용 정확성, Q8 업무 완결성 저점의 원인을 설명하는
+Q2 근거 충분성, Q4 인용 정확성, Q0/manual completeness 저점의 원인을 설명하는
 보조 평가 신호로 사용한다.
 
 초기 구현은 synthetic data 기반 judge fine-tuning과 PPI까지 포함하는
