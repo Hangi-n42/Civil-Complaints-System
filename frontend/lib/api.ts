@@ -472,7 +472,6 @@ export async function searchCasesApi(params: {
         query: params.query,
         top_k: params.topK || 5,
         filters,
-        collection_name: "civil_cases_v1",
       }),
     });
 
