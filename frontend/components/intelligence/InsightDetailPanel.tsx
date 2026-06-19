@@ -1,17 +1,21 @@
 import type { IntelPublicInsightCard } from "@/lib/api";
 import { InsightPriorityBadge } from "./InsightPriorityBadge";
 import { groupActionsByHorizon, labeledCount } from "./insight";
+import { EvidencePackDrawer } from "./EvidencePackDrawer";
 
-// 상세 패널 하단 액션 버튼(§4.3 ⑥). 동작 연결은 후속 단계(#428) — 지금은 자리만.
-const ACTION_BUTTONS = ["확인 처리", "담당 부서 공유", "조치 계획으로 전환", "기각", "EvidencePack 보기"];
+// 상세 패널 하단 액션 버튼(§4.3 ⑥). 동작 연결은 차기 — 지금은 자리만.
+// (EvidencePack 보기는 아래 EvidencePackDrawer로 실제 제공)
+const ACTION_BUTTONS = ["확인 처리", "담당 부서 공유", "조치 계획으로 전환", "기각"];
 
 // 행정 인사이트 상세 패널(핸드오프 §4.3). 우측 슬라이드 패널 + 반투명 배경 클릭/닫기.
 export function InsightDetailPanel({
   insight,
   onClose,
+  onOpenAlert,
 }: {
   insight: IntelPublicInsightCard;
   onClose: () => void;
+  onOpenAlert?: (alertId: string) => void;
 }) {
   const actionGroups = groupActionsByHorizon(insight.recommended_actions);
 
@@ -115,9 +119,23 @@ export function InsightDetailPanel({
               </div>
             )}
             <div className="text-[11px] text-slate-400">
-              대표 근거 민원 {insight.representative_evidence_ids.length}건 · 연결 경보 {insight.linked_alert_ids.length}건
+              대표 근거 민원 {insight.representative_evidence_ids.length}건 ·{" "}
+              {insight.linked_alert_ids.length > 0 && onOpenAlert ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenAlert(insight.linked_alert_ids[0])}
+                  className="font-semibold text-blue-600 hover:underline"
+                >
+                  연결 경보 {insight.linked_alert_ids.length}건
+                </button>
+              ) : (
+                <span>연결 경보 {insight.linked_alert_ids.length}건</span>
+              )}
             </div>
           </section>
+
+          {/* 근거 패키지(관리자/디버그) — masked_text만 */}
+          <EvidencePackDrawer insightId={insight.id} />
 
           {/* 5. 불확실성 · 추가 확인 */}
           {insight.uncertainty.length > 0 && (

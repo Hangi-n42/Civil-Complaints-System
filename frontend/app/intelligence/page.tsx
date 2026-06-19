@@ -6,6 +6,7 @@ import { fetchIntelDashboardApi, type IntelDashboardData, type IntelPublicInsigh
 import { IssueAlertList } from "@/components/intelligence/IssueAlertList";
 import { PublicInsightList } from "@/components/intelligence/PublicInsightList";
 import { InsightDetailPanel } from "@/components/intelligence/InsightDetailPanel";
+import { findById } from "@/components/intelligence/links";
 
 // summary 6종 → 상단 KPI 카드 메타(라벨/좌측 강조색). 값은 런타임에 채운다.
 const SUMMARY_CARDS: Array<{ key: keyof IntelDashboardData["summary"]; label: string; accent: string }> = [
@@ -23,6 +24,7 @@ export default function IntelligencePage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("issue_alerts");
   const [selectedInsight, setSelectedInsight] = useState<IntelPublicInsightCard | null>(null);
+  const [focusedAlertId, setFocusedAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,6 +45,21 @@ export default function IntelligencePage() {
 
   const summary = data?.summary;
   const tabs = data?.tabs ?? [];
+
+  // 경보 → 연결 인사이트: 인사이트 탭으로 전환하고 상세 패널을 연다.
+  function goToInsight(insightId: string) {
+    const insight = data ? findById(data.public_insights, insightId) : undefined;
+    if (!insight) return;
+    setActiveTab("public_insights");
+    setSelectedInsight(insight);
+  }
+
+  // 인사이트 → 연결 경보: 경보 탭으로 전환하고 해당 경보를 포커스(하이라이트)한다.
+  function goToAlert(alertId: string) {
+    setSelectedInsight(null);
+    setActiveTab("issue_alerts");
+    setFocusedAlertId(alertId);
+  }
 
   return (
     <div className="min-h-screen bg-[#eef2f7] text-slate-900">
@@ -109,7 +126,7 @@ export default function IntelligencePage() {
                   </div>
                 ) : activeTab === "issue_alerts" ? (
                   data && data.issue_alerts.length > 0 ? (
-                    <IssueAlertList alerts={data.issue_alerts} />
+                    <IssueAlertList alerts={data.issue_alerts} onOpenInsight={goToInsight} focusedAlertId={focusedAlertId} />
                   ) : (
                     <div className="py-12 text-center text-sm font-medium text-slate-500">
                       {data?.empty_state?.issue_alerts ?? "표시할 실시간 이슈가 없습니다."}
@@ -129,7 +146,7 @@ export default function IntelligencePage() {
       </div>
 
       {selectedInsight && (
-        <InsightDetailPanel insight={selectedInsight} onClose={() => setSelectedInsight(null)} />
+        <InsightDetailPanel insight={selectedInsight} onClose={() => setSelectedInsight(null)} onOpenAlert={goToAlert} />
       )}
     </div>
   );
