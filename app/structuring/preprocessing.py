@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from pathlib import Path
@@ -34,6 +35,8 @@ _ANSWER_LABELS = {"A", "답변"}
 _CUSTOMER_SPEAKERS = {"고객", "민원인", "내담자", "문의자", "질문자", "사용자"}
 _AGENT_SPEAKERS = {"상담원", "상담사", "상담자", "담당자", "직원", "공무원"}
 _PLACEHOLDER_TITLES = {"", "제목없음", "처리실패", "파싱실패"}
+_HTML_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _clean_content(text: Any) -> str:
@@ -59,6 +62,55 @@ def _normalize_text(text: Any) -> str:
     normalized = re.sub(r"[ \t]*\n[ \t]*", "\n", normalized)
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)
     return normalized.strip(" \t\n\"'“”‘’「『」』")
+
+
+def _clean_policy_qna_text(text: Any) -> str:
+    """정책 Q&A API 본문의 HTML 엔티티와 줄바꿈 태그를 일반 텍스트로 정리한다."""
+    unescaped = html.unescape(str(text or ""))
+    unescaped = _HTML_BR_RE.sub("\n", unescaped)
+    unescaped = _HTML_TAG_RE.sub(" ", unescaped)
+    return _normalize_text(unescaped)
+
+
+def _policy_qna_category(data: Dict[str, Any]) -> str:
+    """정책 Q&A 원천에서 보수적으로 카테고리 역할을 할 부서명을 고른다."""
+    subj_list = data.get("subjList")
+    if isinstance(subj_list, list) and subj_list:
+        names = [
+            _clean_policy_qna_text(item.get("subjName") or item.get("name") or item.get("subjNm"))
+            for item in subj_list
+            if isinstance(item, dict)
+        ]
+        joined = " > ".join(name for name in names if name)
+        if joined:
+            return joined
+    return _clean_policy_qna_text(data.get("deptName") or data.get("dutySctnNm"))
+
+
+def _unwrap_policy_qna_record(raw_record: Dict[str, Any]) -> Dict[str, Any]:
+    """resultData 래퍼형 정책 Q&A 원천을 기존 전처리 필드로 변환한다."""
+    data = raw_record.get("resultData") if isinstance(raw_record.get("resultData"), dict) else raw_record
+    if not isinstance(data, dict) or not any(key in data for key in ("qnaTitl", "qstnCntnCl", "ansCntnCl")):
+        return raw_record
+
+    title = _clean_policy_qna_text(data.get("qnaTitl"))
+    question = _clean_policy_qna_text(data.get("qstnCntnCl"))
+    answer = _clean_policy_qna_text(data.get("ansCntnCl"))
+    source_id = _clean_policy_qna_text(data.get("faqNo") or raw_record.get("source_id"))
+    source = _clean_policy_qna_text(data.get("ancName") or data.get("deptName") or raw_record.get("source"))
+
+    return {
+        **raw_record,
+        "source_id": source_id,
+        "source": source,
+        "consulting_date": data.get("regDate") or raw_record.get("consulting_date"),
+        "consulting_category": _policy_qna_category(data),
+        "title": title,
+        "client_question": question,
+        "consultant_answer": answer,
+        "consulting_turns": "2" if answer else "1",
+        "original_length": len(question),
+    }
 
 
 def _split_labeled_sections(text: str, marker_re: re.Pattern[str]) -> List[Tuple[str, str]]:
@@ -190,28 +242,35 @@ def normalize_category(category: Any) -> str:
 
 def process_raw_record(raw_record: Dict[str, Any]) -> Dict[str, Any]:
     """원천 레코드(raw_data) 1건을 processed 레코드 형태로 변환한다."""
-    parsed = parse_consulting_content(
-        raw_record.get("consulting_content"),
-        source=str(raw_record.get("source") or ""),
-    )
+    normalized_raw = _unwrap_policy_qna_record(raw_record)
+    parsed = {
+        "title": _normalize_text(normalized_raw.get("title")),
+        "client_question": _normalize_text(normalized_raw.get("client_question")),
+        "consultant_answer": _normalize_text(normalized_raw.get("consultant_answer")),
+    }
+    if normalized_raw.get("consulting_content") and not parsed["client_question"]:
+        parsed = parse_consulting_content(
+            normalized_raw.get("consulting_content"),
+            source=str(normalized_raw.get("source") or ""),
+        )
 
     return {
-        "source_id": str(raw_record.get("source_id") or "").strip(),
-        "source": str(raw_record.get("source") or "").strip(),
-        "consulting_date": format_consulting_date(raw_record.get("consulting_date")),
-        "consulting_category": normalize_category(raw_record.get("consulting_category")),
+        "source_id": str(normalized_raw.get("source_id") or "").strip(),
+        "source": str(normalized_raw.get("source") or "").strip(),
+        "consulting_date": format_consulting_date(normalized_raw.get("consulting_date")),
+        "consulting_category": normalize_category(normalized_raw.get("consulting_category")),
         "title": parsed["title"],
         "client_question": parsed["client_question"],
         "consultant_answer": parsed["consultant_answer"],
-        "consulting_turns": raw_record.get("consulting_turns"),
-        "original_length": raw_record.get("original_length", raw_record.get("consulting_length")),
+        "consulting_turns": normalized_raw.get("consulting_turns"),
+        "original_length": normalized_raw.get("original_length", normalized_raw.get("consulting_length")),
         "parsing_success": bool(parsed["client_question"] or parsed["title"]),
     }
 
 
 def _prepared_record(rec: Dict[str, Any]) -> Dict[str, Any]:
     """processed/raw 어느 쪽이 들어와도 civil_text가 읽을 수 있는 필드를 만든다."""
-    prepared = dict(rec)
+    prepared = _unwrap_policy_qna_record(dict(rec))
     if prepared.get("consulting_content") and not str(prepared.get("client_question") or "").strip():
         parsed = parse_consulting_content(
             prepared.get("consulting_content"),

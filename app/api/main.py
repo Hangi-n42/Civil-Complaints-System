@@ -11,6 +11,7 @@ from app.core.logging import api_logger
 from app.api.routers import (
     admin_router,
     chroma_debug_router,
+    complaint_intelligence_router,
     generation_router,
     retrieval_router,
     structuring_router,
@@ -53,6 +54,7 @@ app.include_router(structuring_router)
 app.include_router(generation_router)
 app.include_router(chroma_debug_router)
 app.include_router(ui_router)
+app.include_router(complaint_intelligence_router)
 app.include_router(admin_router)
 
 
@@ -127,6 +129,12 @@ async def root():
             "qa": "/api/v1/qa",
             "qa_stream": "/api/v1/qa/stream",
             "ui_cases": "/api/v1/ui/cases",
+            "complaint_issue_alerts": "/complaint-intelligence/issue-alerts",
+            "complaint_public_insights": "/complaint-intelligence/public-insights",
+            "complaint_dashboard": "/complaint-intelligence/dashboard",
+            "complaint_run_analysis": "/complaint-intelligence/run-analysis",
+            "complaint_dashboard_run_analysis": "/complaint-intelligence/dashboard/run-analysis",
+            "complaint_public_insight_run_analysis": "/complaint-intelligence/public-insights/run-analysis",
         },
     }
 
