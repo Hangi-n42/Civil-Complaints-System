@@ -27,11 +27,40 @@ class PiiSanitizationPipeline:
         self.adapter = adapter or KoPiiAdapter()
         self.logger = logger or logging.getLogger(__name__)
 
-    def sanitize_for_rag(self, text: str | None) -> PiiPipelineDecision:
+    def _normalize_policy(self, policy: str | None) -> str:
+        normalized = str(policy or "fail_closed").strip().lower().replace("_", "-")
+        if normalized in {"mask-only", "maskonly", "mask"}:
+            return "mask-only"
+        return "fail-closed"
+
+    def _sanitize_mask_only(self, source: str) -> PiiPipelineDecision:
+        """MVP 색인량 우선 모드: 사전 review/postcheck 없이 마스킹 결과를 통과시킨다."""
+        first_pass = self.adapter.redact(source)
+        if not first_pass.ok:
+            self.logger.warning("PII mask-only quarantined error=%s", first_pass.error_code)
+            return quarantined([first_pass.error_code or "KO_PII_ERROR"])
+
+        sanitized = redact_address_and_vehicle(first_pass.text)
+        self.logger.debug("PII mask-only passed len=%d", len(sanitized))
+        return passed(
+            sanitized,
+            engine_summary={
+                **first_pass.summary,
+                "policy": "mask-only",
+                "postcheck": False,
+                "review_risk_check": False,
+            },
+        )
+
+    def sanitize_for_rag(self, text: str | None, *, policy: str | None = None) -> PiiPipelineDecision:
         source = "" if text is None else str(text)
+        normalized_policy = self._normalize_policy(policy)
         self.logger.debug("PII sanitize start len=%d", len(source))
         if not source:
-            return passed("", engine_summary={"empty": True})
+            return passed("", engine_summary={"empty": True, "policy": normalized_policy})
+
+        if normalized_policy == "mask-only":
+            return self._sanitize_mask_only(source)
 
         review_reasons = detect_review_risks(source)
         if review_reasons:

@@ -41,3 +41,25 @@ async def test_process_masks_search_text_with_structuring_text():
     assert "test@example.com" not in row["search_text"]
     assert "[전화번호]" in row["search_text"]
     assert "[이메일]" in row["search_text"]
+
+
+@pytest.mark.asyncio
+async def test_process_mask_only_keeps_school_grade_records_indexable():
+    service = IngestionService()
+    processed = await service.process(
+        [
+            {
+                "case_id": "CASE-PII-MVP",
+                "text": "학생 홍길동 서울초등학교 3학년 2반 통학로 민원",
+                "search_text": "학생 홍길동 서울초등학교 3학년 2반 통학로 민원",
+            }
+        ],
+        pii_policy="mask-only",
+    )
+
+    row = processed[0]
+    assert row["needs_review"] is False
+    assert row["pii_status"] == "PASSED"
+    assert row["text"]
+    assert row["search_text"]
+    assert row["metadata"]["pii_policy"] == "mask-only"

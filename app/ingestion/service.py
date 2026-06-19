@@ -250,7 +250,7 @@ class IngestionService:
             self.logger.error(f"텍스트 정제 실패: {str(e)}")
             raise IngestionError(f"텍스트 정제 실패: {str(e)}") from e
 
-    async def mask_pii(self, text: str) -> str:
+    async def mask_pii(self, text: str, *, pii_policy: str | None = None) -> str:
         """
         개인정보 마스킹
 
@@ -261,7 +261,7 @@ class IngestionService:
             마스킹된 텍스트
         """
         self.logger.debug("PII 마스킹: len=%d", 0 if text is None else len(text))
-        decision = self._sanitize_pii(text)
+        decision = self._sanitize_pii(text, pii_policy=pii_policy)
         if decision.status.value != "PASSED" or decision.sanitized_text is None:
             reasons = ",".join(decision.reasons) or decision.status.value
             raise IngestionError(f"PII 마스킹 실패: {reasons}")
@@ -274,8 +274,8 @@ class IngestionService:
             self._pii_pipeline = PiiSanitizationPipeline(logger=self.logger)
         return self._pii_pipeline
 
-    def _sanitize_pii(self, text: str | None):
-        return self._get_pii_pipeline().sanitize_for_rag(text)
+    def _sanitize_pii(self, text: str | None, *, pii_policy: str | None = None):
+        return self._get_pii_pipeline().sanitize_for_rag(text, policy=pii_policy)
 
     def _document_signature(self, text: str) -> str:
         normalized = self._normalize_for_dedup(text)
@@ -543,7 +543,11 @@ class IngestionService:
             raise IngestionError(f"Training 디렉토리 로드 실패: {exc}") from exc
 
     async def process(
-        self, documents: List[Dict[str, Any]], clean: bool = True, mask_pii: bool = True
+        self,
+        documents: List[Dict[str, Any]],
+        clean: bool = True,
+        mask_pii: bool = True,
+        pii_policy: str | None = None,
     ) -> List[Dict[str, Any]]:
         """
         종합 처리 파이프라인
@@ -567,9 +571,9 @@ class IngestionService:
                 return cleaned
 
             async def _mask_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
-                text_decision = self._sanitize_pii(doc.get("text", ""))
+                text_decision = self._sanitize_pii(doc.get("text", ""), pii_policy=pii_policy)
                 search_decision = (
-                    self._sanitize_pii(doc.get("search_text", ""))
+                    self._sanitize_pii(doc.get("search_text", ""), pii_policy=pii_policy)
                     if "search_text" in doc
                     else None
                 )
@@ -606,6 +610,7 @@ class IngestionService:
                             "pii_status": status,
                             "needs_review": True,
                             "pii_reasons": "|".join(reasons),
+                            "pii_policy": pii_policy or "fail_closed",
                         }
                     )
                     masked = {
@@ -634,7 +639,13 @@ class IngestionService:
                 if "search_text" in doc and search_decision is not None:
                     masked["search_text"] = search_decision.sanitized_text or ""
                 metadata = dict(masked.get("metadata") or {})
-                metadata.update({"pii_status": "PASSED", "needs_review": False})
+                metadata.update(
+                    {
+                        "pii_status": "PASSED",
+                        "needs_review": False,
+                        "pii_policy": pii_policy or "fail_closed",
+                    }
+                )
                 masked["metadata"] = metadata
                 return masked
 

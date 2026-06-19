@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 
-from scripts.build_index import _build_api_case_record, _save_structured_outputs
+from scripts.build_index import _build_api_case_record, _read_existing_case_ids, _save_structured_outputs
 
 
 def test_build_api_case_record_preserves_be1_search_signals():
@@ -92,6 +93,47 @@ def test_build_api_case_record_uses_answer_included_search_text_for_index_text()
     assert record["metadata"]["empty_structured_text_fallback"] is False
 
 
+def test_build_api_case_record_preserves_policy_qna_identity():
+    normalized = {
+        "source_id": "175436",
+        "submitted_at": "2019-01-02T00:00:00+09:00",
+        "region": "전국",
+        "search_text": "제한차량 운행허가 신청 방법\n온라인 신청 방법을 안내합니다.",
+        "metadata": {
+            "content_type": "policy_qna",
+            "document_type": "policy_qna",
+            "adapter": "prepare_processed_append_inputs",
+            "input_schema": "processed",
+            "source_file": "data/processed/civil_policy_qna_processed.json",
+        },
+    }
+    structured = {
+        "case_id": "CASE-POLICY-175436",
+        "source": "국토교통부",
+        "created_at": "2019-01-02T00:00:00+09:00",
+        "category": "교통·물류 > 도로시설물",
+        "region": "전국",
+        "structured_by": "constrained",
+        "validation": {"is_valid": True, "errors": []},
+        "observation": {"text": "", "confidence": 0.0},
+        "result": {"text": "", "confidence": 0.0, "status": "pending"},
+        "request": {"request": "제한차량 운행허가신청 방법 안내", "confidence": 0.9},
+        "context": {"text": "", "confidence": 0.0},
+        "entities": [],
+    }
+
+    record = _build_api_case_record(normalized, structured)
+
+    assert record["text"] == normalized["search_text"]
+    assert record["content_type"] == "policy_qna"
+    assert record["document_type"] == "policy_qna"
+    assert record["source_id"] == "175436"
+    assert record["metadata"]["content_type"] == "policy_qna"
+    assert record["metadata"]["document_type"] == "policy_qna"
+    assert record["metadata"]["source_id"] == "175436"
+    assert record["metadata"]["adapter"] == "prepare_processed_append_inputs"
+
+
 def test_build_api_case_record_falls_back_to_raw_text_when_structured_text_empty():
     normalized = {
         "text": "민원 원문 fallback",
@@ -152,3 +194,32 @@ def test_save_structured_outputs_writes_default_artifacts(tmp_path):
     assert summary["failed_count"] == 0
     assert summary["schema_pass_rate"] == 1.0
     assert json.loads(paths["failures"].read_text(encoding="utf-8")) == []
+
+
+def test_read_existing_case_ids_from_chroma_sqlite(tmp_path):
+    db_dir = tmp_path / "chroma_db"
+    db_dir.mkdir()
+    con = sqlite3.connect(db_dir / "chroma.sqlite3")
+    try:
+        cur = con.cursor()
+        cur.execute("create table collections (id text, name text)")
+        cur.execute("create table segments (id text, collection text)")
+        cur.execute("create table embeddings (id integer, segment_id text)")
+        cur.execute("create table embedding_metadata (id integer, key text, string_value text)")
+        cur.execute("insert into collections values ('col-1', 'civil_cases_v3')")
+        cur.execute("insert into segments values ('seg-1', 'col-1')")
+        cur.execute("insert into embeddings values (1, 'seg-1')")
+        cur.execute("insert into embeddings values (2, 'seg-1')")
+        cur.execute("insert into embedding_metadata values (1, 'case_id', 'CASE-POLICY-1')")
+        cur.execute("insert into embedding_metadata values (2, 'case_id', 'CASE-POLICY-2')")
+        con.commit()
+    finally:
+        con.close()
+
+    case_ids = _read_existing_case_ids(
+        "civil_cases_v3",
+        logger=logging.getLogger("test_build_index_contract"),
+        persist_dir=db_dir,
+    )
+
+    assert case_ids == {"CASE-POLICY-1", "CASE-POLICY-2"}
