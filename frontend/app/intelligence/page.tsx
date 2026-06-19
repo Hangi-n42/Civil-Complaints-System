@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import { fetchIntelDashboardApi, type IntelDashboardData } from "@/lib/api";
+import { IssueAlertList } from "@/components/intelligence/IssueAlertList";
 
 // summary 6종 → 상단 KPI 카드 메타(라벨/좌측 강조색). 값은 런타임에 채운다.
 const SUMMARY_CARDS: Array<{ key: keyof IntelDashboardData["summary"]; label: string; accent: string }> = [
@@ -39,8 +40,6 @@ export default function IntelligencePage() {
 
   const summary = data?.summary;
   const tabs = data?.tabs ?? [];
-  const activeCount = activeTab === "issue_alerts" ? data?.issue_alerts.length ?? 0 : data?.public_insights.length ?? 0;
-  const emptyMessage = data?.empty_state?.[activeTab] ?? "표시할 항목이 없습니다.";
 
   return (
     <div className="min-h-screen bg-[#eef2f7] text-slate-900">
@@ -105,11 +104,21 @@ export default function IntelligencePage() {
                     <div className="h-3 w-full animate-pulse rounded bg-slate-200" />
                     <div className="h-3 w-9/12 animate-pulse rounded bg-slate-200" />
                   </div>
-                ) : activeCount === 0 ? (
-                  <div className="py-12 text-center text-sm font-medium text-slate-500">{emptyMessage}</div>
+                ) : activeTab === "issue_alerts" ? (
+                  data && data.issue_alerts.length > 0 ? (
+                    <IssueAlertList alerts={data.issue_alerts} />
+                  ) : (
+                    <div className="py-12 text-center text-sm font-medium text-slate-500">
+                      {data?.empty_state?.issue_alerts ?? "표시할 실시간 이슈가 없습니다."}
+                    </div>
+                  )
+                ) : data && data.public_insights.length > 0 ? (
+                  <div className="py-12 text-center text-sm font-medium text-slate-500">
+                    행정 인사이트 {data.public_insights.length}건 — 카드는 다음 단계(#427)에서 표시됩니다.
+                  </div>
                 ) : (
                   <div className="py-12 text-center text-sm font-medium text-slate-500">
-                    {activeCount}건 — 상세 카드는 다음 단계에서 표시됩니다{activeTab === "issue_alerts" ? " (#426)" : " (#427)"}.
+                    {data?.empty_state?.public_insights ?? "표시할 행정 인사이트가 없습니다."}
                   </div>
                 )}
               </div>
