@@ -248,6 +248,211 @@ export async function fetchAdminOverviewApi(year?: string, categories?: string[]
   }
 }
 
+// ── 민원 인텔리전스(Complaint Intelligence) ─────────────────────────────
+// 백엔드 read model(app/api/routers/complaint_intelligence.py)을 그대로 받는다.
+// 카드가 이미 FE-shaped라 snake_case를 유지하고 별도 camelCase 매퍼를 두지 않는다.
+
+export type IntelDashboardSummary = {
+  alert_count: number;
+  critical_alert_count: number;
+  public_insight_count: number;
+  high_priority_insight_count: number;
+  human_review_required_count: number;
+  linked_alert_count: number;
+};
+
+export type IntelIssueAlertCard = {
+  id: string;
+  status: string;
+  severity: string;
+  severity_label: string;
+  color: string;
+  title: string;
+  summary: string;
+  topic: string;
+  region: string | null;
+  center: Record<string, number> | null;
+  radius: number | null;
+  recent_count: number;
+  baseline: number;
+  surge_ratio: number;
+  confidence: number;
+  keywords: string[];
+  representative_complaint_ids: string[];
+  linked_insight_ids: string[];
+  map_focus: Record<string, unknown> | null;
+  first_seen: string;
+  last_seen: string;
+};
+
+export type IntelActionItem = {
+  action: string;
+  horizon: string;
+  action_type: string;
+  responsible_unit_hint: string | null;
+  why: string;
+  supporting_evidence_ids: string[];
+  expected_impact: string | null;
+  risk_or_dependency: string | null;
+};
+
+export type IntelPublicInsightCard = {
+  id: string;
+  type: string;
+  type_label: string;
+  status: string;
+  priority: string;
+  priority_label: string;
+  color: string;
+  title: string;
+  summary: string;
+  problem_diagnosis: string;
+  topic: string;
+  target_area: string;
+  affected_count: number;
+  affected_region: Record<string, unknown> | null;
+  related_department: string | null;
+  window_start: string;
+  window_end: string;
+  confidence: number;
+  grounding_score: number;
+  requires_human_review: boolean;
+  linked_alert_ids: string[];
+  representative_evidence_ids: string[];
+  top_aspects: Array<Record<string, unknown>>;
+  citizen_requests: Array<Record<string, unknown>>;
+  recommended_actions: IntelActionItem[];
+  uncertainty: string[];
+  metrics: Record<string, number | string>;
+};
+
+export type IntelDashboardData = {
+  summary: IntelDashboardSummary;
+  tabs: Array<{ id: string; label: string }>;
+  issue_alerts: IntelIssueAlertCard[];
+  public_insights: IntelPublicInsightCard[];
+  empty_state: Record<string, string>; // 알려진 키: issue_alerts, public_insights
+};
+
+// run-analysis 요청 이벤트(핸드오프 §2.2). events 소스가 정해지기 전까지는 미사용.
+export type IntelAnalysisEvent = {
+  id: string;
+  received_at: string;
+  body: string;
+  region?: string;
+  final_department?: string;
+  status?: string;
+  structured_elements?: Record<string, { text?: string; confidence?: number }>;
+};
+
+// EvidencePack 대표 민원(관리자/디버그). 원문 PII 없이 masked_text만 노출된다(§5).
+export type IntelEvidenceComplaint = {
+  complaint_id?: string;
+  source_complaint_ids?: string[];
+  masked_text?: string;
+  created_at?: string;
+  region?: string | null;
+  department?: string | null;
+  status?: string | null;
+  structured_elements?: Record<string, unknown>;
+};
+
+export type IntelEvidencePack = {
+  candidate_id: string;
+  type_hint: string | null;
+  topic_label: string;
+  region_summary: Record<string, unknown> | null;
+  department_summary: Record<string, unknown> | null;
+  window_start: string;
+  window_end: string;
+  complaint_count: number;
+  baseline_count: number | null;
+  trend_metrics: Record<string, number | string>;
+  operational_metrics: Record<string, number | string>;
+  representative_complaints: IntelEvidenceComplaint[];
+  key_phrases: string[];
+  extracted_aspects: Array<Record<string, unknown>>;
+  citizen_requests: Array<Record<string, unknown>>;
+  linked_alert_ids: string[];
+  similar_past_patterns: Array<Record<string, unknown>>;
+  allowed_action_catalog: string[];
+};
+
+// 백엔드 호출 실패 시에도 탭이 렌더되도록 비어 있는 대시보드로 폴백한다(fetchAdminOverviewApi 패턴).
+const EMPTY_INTEL_DASHBOARD: IntelDashboardData = {
+  summary: {
+    alert_count: 0,
+    critical_alert_count: 0,
+    public_insight_count: 0,
+    high_priority_insight_count: 0,
+    human_review_required_count: 0,
+    linked_alert_count: 0,
+  },
+  tabs: [
+    { id: "issue_alerts", label: "실시간 이슈" },
+    { id: "public_insights", label: "행정 인사이트" },
+  ],
+  issue_alerts: [],
+  public_insights: [],
+  empty_state: {
+    issue_alerts: "현재 표시할 실시간 이슈가 없습니다.",
+    public_insights: "현재 표시할 행정 인사이트가 없습니다.",
+  },
+};
+
+// 저장된 대시보드 조회. ⚠️ 경로는 루트(/complaint-intelligence/...), /api/v1 접두사 없음.
+export async function fetchIntelDashboardApi(filters?: {
+  status?: string;
+  type?: string;
+}): Promise<ApiResponse<IntelDashboardData>> {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.type) params.set("type", filters.type);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const payload = await fetchBackend<IntelDashboardData>(`/complaint-intelligence/dashboard${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: EMPTY_INTEL_DASHBOARD, error: toApiError(error) };
+  }
+}
+
+// 분석 실행 후 대시보드 카드 응답 수신. 응답 구조는 GET /dashboard와 동일(DashboardResponse).
+export async function runIntelAnalysisApi(payload: {
+  request_id?: string;
+  events: IntelAnalysisEvent[];
+}): Promise<ApiResponse<IntelDashboardData>> {
+  try {
+    const data = await fetchBackend<IntelDashboardData>("/complaint-intelligence/dashboard/run-analysis", {
+      method: "POST",
+      body: JSON.stringify({ request_id: payload.request_id, events: payload.events }),
+    });
+    return { data, error: null };
+  } catch (error) {
+    return { data: EMPTY_INTEL_DASHBOARD, error: toApiError(error) };
+  }
+}
+
+// EvidencePack(관리자/디버그) 단건. 백엔드가 봉투 없이 모델을 직접 반환하므로 fetchBackend 대신 raw fetch.
+export async function fetchEvidencePackApi(
+  insightId: string,
+): Promise<ApiResponse<IntelEvidencePack | null>> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/complaint-intelligence/public-insights/${encodeURIComponent(insightId)}/evidence-pack`,
+      { headers: { "Content-Type": "application/json" } },
+    );
+    if (!response.ok) {
+      const detail = (await response.json().catch(() => ({}))) as { detail?: string };
+      throw new Error(detail.detail || `EvidencePack 요청 실패 (${response.status})`);
+    }
+    const pack = (await response.json()) as IntelEvidencePack;
+    return { data: pack, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
 export async function searchCasesApi(params: {
   complaintId: string;
   query: string;
