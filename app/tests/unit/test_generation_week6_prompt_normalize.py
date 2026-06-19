@@ -149,6 +149,33 @@ def test_prompt_factory_build_from_dataset_record_extracts_raw_content():
     assert "교통/도로 행정 기준" in prompt
 
 
+def test_prompt_factory_record_trace_passes_title_question_boundary():
+    record = {
+        "source_id": "ACAS-1",
+        "source": "항공",
+        "consulting_category": "항공관제",
+        "title": "공중충돌경고장치(ACAS/TCAS)가 무엇입니까?",
+        "client_question": (
+            "○ 공중충돌경고장치란 무엇인가요?\n"
+            "○ 공중충돌경고장치의 원리는 무엇입니까?"
+        ),
+    }
+    query = "공중충돌경고장치(ACAS/TCAS)가 무엇입니까?. ○ 공중충돌경고장치란 무엇인가요? ○ 공중충돌경고장치의 원리는 무엇입니까?"
+
+    _query, trace = PromptFactory._derive_query_and_trace(
+        record=record,
+        query=query,
+        routing_trace={},
+    )
+
+    assert trace["complexity_trace"]["title_question_boundary_used"] is True
+    assert trace["complexity_trace"]["title_duplicate_dropped_count"] == 1
+    assert trace["request_segments"] == [
+        "○ 공중충돌경고장치란 무엇인가요?",
+        "○ 공중충돌경고장치의 원리는 무엇입니까?",
+    ]
+
+
 def test_prompt_factory_treats_raw_query_as_complaint_reply_input():
     raw_query = (
         "제목 : 제2 판교 버스 문제\n\n"

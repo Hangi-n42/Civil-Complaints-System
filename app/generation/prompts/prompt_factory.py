@@ -488,6 +488,39 @@ class PromptFactory:
         return query
 
     @classmethod
+    def _extract_title_question_boundary(cls, record: Dict[str, Any]) -> Tuple[str, str]:
+        """record에 이미 분리된 제목/민원인 원문 경계가 있으면 반환한다."""
+        data = record.get("resultData") if isinstance(record.get("resultData"), dict) else record
+        if not isinstance(data, dict):
+            return "", ""
+
+        title = str(data.get("title") or data.get("qnaTitl") or "").strip()
+        question = str(
+            data.get("client_question")
+            or data.get("qstnCntnCl")
+            or data.get("question")
+            or ""
+        ).strip()
+        if title or question:
+            return title, question
+
+        raw_text = str(
+            data.get("consulting_content")
+            or data.get("raw_text")
+            or data.get("text")
+            or ""
+        ).strip()
+        if not raw_text:
+            return "", ""
+
+        title_match = cls._TITLE_RE.search(raw_text)
+        q_blocks = [match.group(1).strip() for match in cls._Q_RE.finditer(raw_text) if match.group(1).strip()]
+        return (
+            title_match.group(1).strip() if title_match else "",
+            "\n".join(q_blocks),
+        )
+
+    @classmethod
     def _extract_request_segments_from_raw_text(cls, raw_text: str) -> List[str]:
         """원문에서 다중 요청 단위를 추출한다."""
         text = str(raw_text or "").strip()
@@ -781,12 +814,21 @@ class PromptFactory:
         complexity_level = str(derived_trace.get("complexity_level") or "").strip().lower()
         if not complexity_level or "complexity_score" not in derived_trace or "request_segments" not in derived_trace:
             try:
-                analysis = build_analyzer_output(query, topic_type=topic_type or "general")
+                title, question = cls._extract_title_question_boundary(record)
+                analysis = build_analyzer_output(
+                    query,
+                    topic_type=topic_type or "general",
+                    title=title or None,
+                    question=question or None,
+                )
                 derived_trace.setdefault("complexity_level", str(analysis.get("complexity_level") or "medium"))
                 derived_trace.setdefault("complexity_score", float(analysis.get("complexity_score") or 0.5))
                 request_segments = analysis.get("request_segments")
                 if isinstance(request_segments, list) and request_segments:
                     derived_trace.setdefault("request_segments", request_segments[:5])
+                complexity_trace = analysis.get("complexity_trace")
+                if isinstance(complexity_trace, dict):
+                    derived_trace.setdefault("complexity_trace", complexity_trace)
             except Exception:
                 derived_trace.setdefault(
                     "complexity_level",
