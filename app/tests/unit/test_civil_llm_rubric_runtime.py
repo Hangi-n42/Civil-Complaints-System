@@ -5,6 +5,7 @@ import json
 import pytest
 
 from app.evaluation.civil_llm_rubric import CivilComplaintRubricEvaluator
+from app.evaluation.prometheus_feedback import select_low_score_items
 
 
 @pytest.mark.asyncio
@@ -79,3 +80,86 @@ async def test_runtime_rubric_uses_independent_q_prompts_and_q2_reference_only()
     assert "[생성 답변]" not in prompts[2]
     assert result["llm_rubric_raw"]["q0"]["source"] == "llm_judge_synthetic_probs"
     assert result["llm_rubric_raw"]["q0"]["argmax"] == 4
+
+
+@pytest.mark.asyncio
+async def test_runtime_rubric_semantic_citation_support_affects_q4():
+    evaluator = CivilComplaintRubricEvaluator(use_llm_judge=False)
+
+    supported = await evaluator.evaluate(
+        case_id="CMP-3",
+        complaint_text="The road pothole creates pedestrian safety risk.",
+        generated_answer=(
+            "The road pothole creates pedestrian safety risk, so the department "
+            "should inspect the site and review repair necessity."
+        ),
+        references=[
+            {
+                "doc_id": "DOC-ROAD",
+                "snippet": (
+                    "Road pothole complaints are reviewed through site inspection "
+                    "and repair necessity assessment for pedestrian safety."
+                ),
+            }
+        ],
+        citations=[
+            {
+                "doc_id": "DOC-ROAD",
+                "snippet": (
+                    "Road pothole complaints are reviewed through site inspection "
+                    "and repair necessity assessment for pedestrian safety."
+                ),
+            }
+        ],
+        citation_validation={"is_valid": True, "mismatch_count": 0},
+    )
+    unsupported = await evaluator.evaluate(
+        case_id="CMP-4",
+        complaint_text="The road pothole creates pedestrian safety risk.",
+        generated_answer="Music room weekend use can be allocated after schedule coordination.",
+        references=[
+            {
+                "doc_id": "DOC-ROAD",
+                "snippet": (
+                    "Road pothole complaints are reviewed through site inspection "
+                    "and repair necessity assessment for pedestrian safety."
+                ),
+            }
+        ],
+        citations=[
+            {
+                "doc_id": "DOC-ROAD",
+                "snippet": (
+                    "Road pothole complaints are reviewed through site inspection "
+                    "and repair necessity assessment for pedestrian safety."
+                ),
+            }
+        ],
+        citation_validation={"is_valid": True, "mismatch_count": 0},
+    )
+
+    assert supported["rule_features"]["semantic_citation_support_rate"] > 0
+    assert supported["llm_rubric_raw"]["q4"]["score_0_10"] > unsupported["llm_rubric_raw"]["q4"]["score_0_10"]
+
+
+def test_low_score_items_include_safety_capped_q0_below_six():
+    low_items = select_low_score_items(
+        {
+            "llm_rubric_raw": {
+                "q0": {
+                    "name": "전체 민원 회신 만족도",
+                    "expected_1_4": 3.0,
+                    "argmax": 3,
+                    "score_0_10": 6.67,
+                }
+            },
+            "safety_layer": {
+                "final_q0_score_0_10": 5.0,
+                "cap_reason": "missing_legal_basis",
+            },
+        },
+        threshold_1_4=2.0,
+    )
+
+    assert low_items[0]["qid"] == "q0"
+    assert low_items[0]["cap_reason"] == "missing_legal_basis"

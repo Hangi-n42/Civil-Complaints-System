@@ -236,6 +236,66 @@ def _normalize_review_body(text: str) -> str:
         rendered,
     )
     rendered = re.sub(
+        r"현장\s*조사\s*실시\s*[:：]?",
+        "현장 확인이 필요한 사항입니다. ",
+        rendered,
+    )
+    rendered = re.sub(
+        r"주민\s*의견\s*수렴\s*[:：]?",
+        "주민 의견 확인 필요성도 함께 검토하겠습니다. ",
+        rendered,
+    )
+    rendered = re.sub(
+        r"개선\s*계획\s*수립\s*[:：]?",
+        "개선 가능 여부는 관련 계획과 예산 여건을 확인해 검토하겠습니다. ",
+        rendered,
+    )
+    rendered = re.sub(
+        r"대체\s*공간\s*연계\s*검토\s*[:：]?",
+        "대체 공간 연계 가능 여부를 확인하겠습니다. ",
+        rendered,
+    )
+    rendered = re.sub(
+        r"조치\s*방향\s*[:：]?",
+        "처리 방향은 ",
+        rendered,
+    )
+    rendered = re.sub(
+        r"담당\s*부서의\s*연락처를\s*다시\s*제공하겠습니다",
+        "담당부서 연락 가능 경로를 확인하여 안내드리겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"연락이\s*이루어질\s*수\s*있도록\s*최선을\s*다하겠습니다",
+        "문의가 원활히 접수될 수 있는 절차를 확인하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<target>[^.\n]{2,80})을\s*할당하는\s*방안을\s*검토\s*중입니다",
+        lambda match: f"{match.group('target')} 배정 가능 여부는 운영 일정과 공간 여건을 확인해 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<target>[^.\n]{2,80})의\s*사용을\s*검토할\s*수\s*있습니다",
+        lambda match: f"{match.group('target')} 사용 가능 여부는 운영 기준과 현장 여건을 확인해 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"신속한\s*조치를\s*취할\s*(?:계획입니다|것을\s*약속드립니다)",
+        "신속한 처리 가능 여부를 현장 여건과 소관 권한 확인 후 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"민원\s*제기하신\s*부분에\s*대한\s*신속한\s*개선을\s*위해\s*최선을\s*다하겠습니다",
+        "민원 제기하신 부분은 현장 여건과 관련 기준을 확인한 뒤 개선 가능 여부를 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
+        r"(?P<object>[^.\n]{2,60})(?:을|를)\s*보다\s*넉넉하게\s*하여\s*[^.\n]{0,60}조치하겠습니다",
+        lambda match: f"{match.group('object')} 확충 가능 여부는 현장 이용 상황과 관리 기준을 확인해 검토하겠습니다",
+        rendered,
+    )
+    rendered = re.sub(
         r"권장드립니다",
         "검토할 필요가 있습니다",
         rendered,

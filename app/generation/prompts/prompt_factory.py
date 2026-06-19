@@ -285,6 +285,8 @@ class PromptFactory:
                 "- Do not promise installation, demolition, enforcement, budget allocation, hearings, or a completion schedule unless the context explicitly supports that commitment for the current complaint.\n"
                 "- Write from the responding agency's perspective. Do not tell the agency to '검토해 주시기 바랍니다' or present internal action proposals as citizen instructions.\n"
                 "- action_items must be evidence-safe. When authority or facts are uncertain, use 확인·협의·안내 actions instead of promising implementation.\n"
+                "- In answer paragraph 3, do not use internal plan labels such as '현장 조사 실시:', '주민 의견 수렴:', '조치 방향:', '개선 계획 수립:', or '추가 조치 필요성:'. Write them as natural sentences.\n"
+                "- Do not write that the agency will provide a contact number, allocate a time slot, conduct a resident hearing, or prepare a plan unless the current context explicitly proves that decision.\n"
                 "- If the complaint contains redacted locations such as ▲▲, keep them redacted and do not guess the real place/name.\n"
                 "- If the context does not prove a concrete policy, schedule, ordinance, or responsible agency, state that 담당부서 확인/현장 검토가 필요합니다.\n"
                 "- Cite a law in answer only when the supplied article text directly supports the stated conclusion. Otherwise omit the law name and article number.\n"
