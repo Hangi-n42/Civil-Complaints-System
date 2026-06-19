@@ -135,3 +135,51 @@ def test_process_raw_record_keeps_processed_shape():
     assert processed["client_question"] == "전시 관람 시간이 궁금합니다."
     assert processed["consultant_answer"] == "10시부터 운영합니다."
     assert processed["parsing_success"] is True
+
+
+def test_process_raw_record_unwraps_policy_qna_result_data():
+    raw = {
+        "resultCode": "S00",
+        "resultData": {
+            "faqNo": 6899257,
+            "ancName": "방위사업청",
+            "deptName": "방위사업청 방위사업정책국 표준기획과",
+            "regDate": "20251223",
+            "qnaTitl": "방위사업청 행정규칙에 관한 질의",
+            "qstnCntnCl": "공개등급 기준이 궁금합니다.&lt;br /&gt;확인 부탁드립니다.",
+            "ansCntnCl": "안녕하십니까?&lt;br /&gt;검토 결과를 안내드립니다.",
+        },
+    }
+
+    processed = process_raw_record(raw)
+
+    assert processed["source_id"] == "6899257"
+    assert processed["source"] == "방위사업청"
+    assert processed["consulting_date"] == "2025-12-23"
+    assert processed["consulting_category"] == "방위사업청 방위사업정책국 표준기획과"
+    assert processed["title"] == "방위사업청 행정규칙에 관한 질의"
+    assert processed["client_question"] == "공개등급 기준이 궁금합니다.\n확인 부탁드립니다."
+    assert processed["consultant_answer"] == "안녕하십니까?\n검토 결과를 안내드립니다."
+    assert processed["parsing_success"] is True
+
+
+def test_to_structuring_record_accepts_policy_qna_wrapper_directly():
+    raw = {
+        "resultData": {
+            "faqNo": "6899311",
+            "ancName": "방위사업청",
+            "deptName": "방위사업청 방위산업진흥국 방산정책과",
+            "regDate": "20251223",
+            "qnaTitl": "군용화약류 운반책임자 유권해석 요청",
+            "qstnCntnCl": "운반책임자 지정 범위를 알려주세요.",
+            "ansCntnCl": "답변 본문",
+        }
+    }
+
+    out = to_structuring_record(raw)
+
+    assert out["case_id"] == "6899311"
+    assert out["text"] == "군용화약류 운반책임자 유권해석 요청\n운반책임자 지정 범위를 알려주세요."
+    assert out["category"] == "방위사업청 방위산업진흥국 방산정책과"
+    assert out["region"] == "방위사업청"
+    assert out["created_at"] == "2025-12-23"
