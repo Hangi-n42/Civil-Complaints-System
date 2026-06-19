@@ -230,6 +230,11 @@ class ChromaVectorStore:
             "pipeline_version": str(metadata.get("pipeline_version") or "week2"),
             "structuring_confidence": float(metadata.get("structuring_confidence") or 0.0),
             "content_type": str(metadata.get("content_type") or "full"),
+            "document_type": str(metadata.get("document_type") or metadata.get("content_type") or "full"),
+            "source_id": str(metadata.get("source_id") or record.get("source_id") or ""),
+            "index_text_source": str(metadata.get("index_text_source") or ""),
+            "structured_by": str(metadata.get("structured_by") or record.get("structured_by") or ""),
+            "is_valid": bool(metadata.get("is_valid", record.get("is_valid", False))),
         }
 
     def upsert_records(self, collection_name: str, records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:

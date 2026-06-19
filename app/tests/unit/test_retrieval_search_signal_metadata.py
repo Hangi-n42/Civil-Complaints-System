@@ -51,6 +51,17 @@ def test_normalize_record_preserves_be1_search_signal_metadata():
     assert normalized["urgency_level"] == "보통"
 
 
+def test_normalize_record_uses_stable_default_chunk_id():
+    service = RetrievalService()
+    record = _be1_structured_record()
+
+    first = service._normalize_record(record, index=3)
+    second = service._normalize_record(record, index=17)
+
+    assert first["chunk_id"] == "CASE-2026-000301__chunk-0"
+    assert second["chunk_id"] == "CASE-2026-000301__chunk-0"
+
+
 def test_chroma_metadata_flattens_be1_search_signals_for_storage():
     service = RetrievalService()
     store = ChromaVectorStore(
@@ -73,6 +84,35 @@ def test_chroma_metadata_flattens_be1_search_signals_for_storage():
     assert metadata["civil_category_secondary"] == "도로시설물"
     assert metadata["civil_category_source"] == "responsible_unit"
     assert metadata["urgency_level"] == "보통"
+
+
+def test_chroma_metadata_preserves_policy_qna_identity():
+    service = RetrievalService()
+    store = ChromaVectorStore(
+        persist_directory="/tmp/retrieval-test-chroma",
+        embedding_model_name="stub-model",
+        embedding_device="cpu",
+    )
+    record = _be1_structured_record()
+    record["case_id"] = "CASE-POLICY-175436"
+    record["source_id"] = "175436"
+    record["content_type"] = "policy_qna"
+    record["document_type"] = "policy_qna"
+    record["metadata"] = {
+        "index_text_source": "search_text_with_answer",
+        "structured_by": "policy_qna_repair",
+        "is_valid": True,
+    }
+    normalized = service._normalize_record(record, index=0)
+
+    metadata = store._build_metadata(normalized)
+
+    assert metadata["content_type"] == "policy_qna"
+    assert metadata["document_type"] == "policy_qna"
+    assert metadata["source_id"] == "175436"
+    assert metadata["index_text_source"] == "search_text_with_answer"
+    assert metadata["structured_by"] == "policy_qna_repair"
+    assert metadata["is_valid"] is True
 
 
 def test_chroma_query_restores_search_signal_metadata_as_lists(monkeypatch):

@@ -24,6 +24,7 @@ from typing import Any, Dict
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from app.core.config import settings
 from app.core.logging import pipeline_logger
 from app.ingestion.service import get_ingestion_service
 from app.structuring.service import get_structuring_service
@@ -77,7 +78,15 @@ def _read_normalized_items(json_files: list[Path], ingestion_svc, exclude_case_i
     return items
 
 
-async def main(input_dir: str, collection_name: str, batch_size: int, rebuild: bool, limit: int, resume: bool = False) -> None:
+async def main(
+    input_dir: str,
+    collection_name: str,
+    batch_size: int,
+    rebuild: bool,
+    limit: int,
+    resume: bool = False,
+    pii_policy: str | None = None,
+) -> None:
     logger = pipeline_logger
     ingestion_svc = get_ingestion_service()
     structuring_svc = get_structuring_service()
@@ -96,10 +105,18 @@ async def main(input_dir: str, collection_name: str, batch_size: int, rebuild: b
         exclude_case_ids = _existing_case_ids(collection_name)
         rebuild = False  # 이어하기는 절대 컬렉션을 비우지 않는다
         logger.info(f"resume 모드: '{collection_name}' 기존 {len(exclude_case_ids)}건 보존, 나머지만 색인")
-    logger.info(f"재색인 시작. 원천 파일 {len(json_files)}개 → 컬렉션 '{collection_name}' (rebuild={rebuild})")
+    effective_pii_policy = str(pii_policy or settings.PII_SANITIZATION_POLICY or "fail_closed")
+    logger.info(
+        "재색인 시작. 원천 파일 %d개 → 컬렉션 '%s' (rebuild=%s, pii_policy=%s)",
+        len(json_files),
+        collection_name,
+        rebuild,
+        effective_pii_policy,
+    )
 
     normalized_list = await ingestion_svc.process(
-        _read_normalized_items(json_files, ingestion_svc, exclude_case_ids=exclude_case_ids)
+        _read_normalized_items(json_files, ingestion_svc, exclude_case_ids=exclude_case_ids),
+        pii_policy=effective_pii_policy,
     )
     total_docs = len(normalized_list)
     logger.info(f"정제 완료 {total_docs}건. 구조화→색인 시작.")
@@ -152,5 +169,21 @@ if __name__ == "__main__":
     parser.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--resume", action="store_true", help="대상 컬렉션의 기존 case_id 는 건너뛰고 이어서 색인(미완성 재색인 복구)")
+    parser.add_argument(
+        "--pii-policy",
+        choices=("fail-closed", "fail_closed", "mask-only", "mask_only"),
+        default=settings.PII_SANITIZATION_POLICY,
+        help="PII 처리 정책. mask-only는 사전 review/postcheck 없이 마스킹 결과를 색인에 사용",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.input_dir, args.collection_name, args.batch_size, args.rebuild, args.limit, args.resume))
+    asyncio.run(
+        main(
+            args.input_dir,
+            args.collection_name,
+            args.batch_size,
+            args.rebuild,
+            args.limit,
+            args.resume,
+            args.pii_policy,
+        )
+    )

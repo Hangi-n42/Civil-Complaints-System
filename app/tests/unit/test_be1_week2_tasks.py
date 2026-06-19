@@ -179,6 +179,31 @@ async def test_structure_masks_pii_before_structuring(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_structure_uses_mask_only_policy_for_second_pii_pass(monkeypatch):
+    service = StructuringService()
+    monkeypatch.setattr(settings, "STRUCTURING_CONSTRAINED", False)
+
+    async def fake_extract(text: str):
+        assert text
+        return FourElementsLLMOutput(), 0
+
+    monkeypatch.setattr(service._llm_extractor, "extract", fake_extract)
+
+    result = await service.structure(
+        {
+            "case_id": "CASE-PII-MASK-ONLY",
+            "source": "test",
+            "created_at": "2026-06-19",
+            "raw_text": "학생 홍길동 서울초등학교 3학년 2반 통학로 민원",
+            "metadata": {"pii_policy": "mask-only"},
+        }
+    )
+
+    assert result["metadata"]["pii_policy"] == "mask-only"
+    assert result["raw_text"]
+
+
+@pytest.mark.asyncio
 async def test_structure_parses_raw_consulting_content_without_answer_or_supervision():
     service = StructuringService()
     result = await service.structure(
@@ -223,6 +248,121 @@ async def test_validate_schema_accepts_constrained_structured_by():
     validation = await service.validate_schema(payload)
 
     assert "invalid_structured_by_value" not in validation["errors"]
+
+
+@pytest.mark.asyncio
+async def test_validate_schema_accepts_policy_qna_empty_result_context():
+    service = StructuringService()
+    payload = {
+        "case_id": "CASE-POLICY-175436",
+        "source": "국토교통부",
+        "created_at": "2019-01-02T00:00:00+09:00",
+        "admin_unit": "전국",
+        "priority": "보통",
+        "raw_text": "제한차량 운행허가 신청 방법을 알려주세요.",
+        "observation": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "result": {"text": "", "confidence": 0.0, "evidence_span": [0, 0], "status": "pending"},
+        "request": {"text": "제한차량 운행허가 신청 방법 안내", "confidence": 0.9, "evidence_span": [0, 20]},
+        "context": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "entities": [],
+        "structured_by": "constrained",
+        "metadata": {"content_type": "policy_qna", "document_type": "policy_qna"},
+        "extraction_meta": {"llm_latency_ms": 1, "llm_non_null_count": 1},
+    }
+
+    validation = await service.validate_schema(payload)
+
+    assert validation["is_valid"] is True
+    assert "empty_field:observation" not in validation["errors"]
+    assert "empty_field:result" not in validation["errors"]
+    assert "empty_field:context" not in validation["errors"]
+    assert "empty_policy_qna_core" not in validation["errors"]
+
+
+@pytest.mark.asyncio
+async def test_validate_schema_rejects_policy_qna_without_observation_or_request():
+    service = StructuringService()
+    payload = {
+        "case_id": "CASE-POLICY-EMPTY",
+        "source": "국토교통부",
+        "created_at": "2019-01-02T00:00:00+09:00",
+        "admin_unit": "전국",
+        "priority": "보통",
+        "raw_text": "내용",
+        "observation": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "result": {"text": "", "confidence": 0.0, "evidence_span": [0, 0], "status": "pending"},
+        "request": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "context": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "entities": [],
+        "metadata": {"content_type": "policy_qna", "document_type": "policy_qna"},
+    }
+
+    validation = await service.validate_schema(payload)
+
+    assert validation["is_valid"] is False
+    assert "empty_policy_qna_core" in validation["errors"]
+
+
+@pytest.mark.asyncio
+async def test_policy_qna_repair_fills_minimum_fields_and_validates():
+    service = StructuringService()
+    candidate = {
+        "case_id": "CASE-POLICY-175659",
+        "source": "국토교통부",
+        "created_at": "2025-07-18T00:00:00+09:00",
+        "category": "도시·건축·주택 > 도시계획",
+        "region": "전국",
+        "admin_unit": "전국",
+        "priority": "보통",
+        "raw_text": "토지의 평가기준\n토지 가격을 평가하는 기준에 대해 알고 싶습니다.",
+        "observation": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "result": {"text": "", "confidence": 0.0, "evidence_span": [0, 0], "status": "pending"},
+        "request": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "context": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+        "entities": [],
+        "structured_by": "fallback",
+        "metadata": {"content_type": "policy_qna", "document_type": "policy_qna"},
+        "validation": {"is_valid": False, "errors": ["empty_policy_qna_core"]},
+    }
+    search_text = (
+        "토지의 평가기준\n"
+        "토지 가격을 평가하는 기준에 대해 알고 싶습니다.\n"
+        "공익사업에 편입되는 토지는 공시지가와 지가변동률 등을 고려하여 평가합니다."
+    )
+
+    repaired = service._repair_policy_qna_candidate(
+        candidate,
+        search_text=search_text,
+        repair_reasons=candidate["validation"]["errors"],
+    )
+    validation = await service.validate_schema(
+        repaired,
+        extraction_method=repaired["structured_by"],
+    )
+
+    assert repaired["structured_by"] == "policy_qna_repair"
+    assert repaired["observation"]["text"] == "토지의 평가기준"
+    assert repaired["request"]["text"] == "토지 가격을 평가하는 기준에 대해 알고 싶습니다."
+    assert repaired["request"]["request"] == repaired["request"]["text"]
+    assert repaired["result"]["status"] == "present"
+    assert repaired["result"]["text"].startswith("공익사업에 편입되는 토지는")
+    assert validation["is_valid"] is True
+
+
+def test_policy_qna_force_repair_flag_selects_repair_path():
+    service = StructuringService()
+    candidate = {
+        "metadata": {
+            "content_type": "policy_qna",
+            "document_type": "policy_qna",
+            "force_policy_qna_repair": True,
+        },
+        "structured_by": "constrained",
+        "validation": {"is_valid": True},
+    }
+
+    assert service._should_repair_policy_qna(candidate) is True
+    assert service._empty_policy_qna_merged()["extraction_meta"]["llm_model"] == "skipped_for_policy_qna_repair"
 
 
 @pytest.mark.asyncio

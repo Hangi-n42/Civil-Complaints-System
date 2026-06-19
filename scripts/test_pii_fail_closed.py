@@ -82,6 +82,20 @@ def test_name_school_grade_class_combination_goes_to_review():
     assert decision.sanitized_text is None
 
 
+def test_mask_only_policy_does_not_review_school_grade_combination():
+    pipeline = PiiSanitizationPipeline(adapter=PassthroughAdapter())
+    decision = pipeline.sanitize_for_rag(
+        "홍길동 서울초등학교 3학년 2반 통학로 민원",
+        policy="mask-only",
+    )
+
+    assert decision.status == PiiStatus.PASSED
+    assert decision.needs_review is False
+    assert decision.sanitized_text == "홍길동 서울초등학교 3학년 2반 통학로 민원"
+    assert decision.engine_summary["policy"] == "mask-only"
+    assert decision.engine_summary["postcheck"] is False
+
+
 def test_postcheck_residual_core_pii_is_quarantined():
     pipeline = PiiSanitizationPipeline(adapter=PassthroughAdapter())
     decision = pipeline.sanitize_for_rag("연락처 010-1234-5678")

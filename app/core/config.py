@@ -77,6 +77,9 @@ class Settings:
     # 검증 설정
     MIN_CONFIDENCE_SCORE: float = float(os.getenv("MIN_CONFIDENCE_SCORE", 0.5))
     MAX_RETRY_COUNT: int = int(os.getenv("MAX_RETRY_COUNT", 3))
+    # PII 마스킹 정책. 기본값은 운영 안전을 위해 fail_closed 이며,
+    # MVP 색인량 우선 실험은 build_index.py --pii-policy mask-only 로 명시한다.
+    PII_SANITIZATION_POLICY: str = os.getenv("PII_SANITIZATION_POLICY", "fail_closed").strip().lower()
 
     # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
     # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b

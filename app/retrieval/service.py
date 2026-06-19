@@ -201,11 +201,14 @@ class RetrievalService:
         if candidate and re.fullmatch(rf"{re.escape(case_id)}__chunk-\d+", candidate):
             return candidate
 
-        raw_index = record.get("chunk_index", index)
+        # 명시 chunk_index가 없는 단일 문서는 입력/배치 순서와 무관하게 같은 upsert key를 써야 한다.
+        raw_index = record.get("chunk_index")
+        if raw_index in (None, ""):
+            raw_index = 0
         try:
             chunk_index = max(0, int(raw_index))
         except (TypeError, ValueError):
-            chunk_index = max(0, index)
+            chunk_index = 0
 
         return f"{case_id}__chunk-{chunk_index}"
 
@@ -240,6 +243,16 @@ class RetrievalService:
         return ""
 
     def _build_chunk_text(self, record: Dict[str, Any]) -> str:
+        metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        content_type = str(record.get("content_type") or metadata.get("content_type") or "").strip()
+        document_type = str(record.get("document_type") or metadata.get("document_type") or "").strip()
+        if "policy_qna" in {content_type.lower(), document_type.lower()}:
+            # 정책 Q&A는 4요소 요약보다 질문+답변 전문이 검색 근거로 더 적합하다.
+            for key in ("text", "search_text", "raw_text"):
+                text = str(record.get(key) or "").strip()
+                if text:
+                    return text
+
         structured_text = record.get("structured_text")
         if isinstance(structured_text, dict):
             ordered = [
@@ -374,6 +387,14 @@ class RetrievalService:
         created_at_ts = int(datetime.fromisoformat(created_at).timestamp())
 
         metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        validation = record.get("validation") if isinstance(record.get("validation"), dict) else {}
+        content_type = str(record.get("content_type") or metadata.get("content_type") or "full").strip() or "full"
+        document_type = (
+            str(record.get("document_type") or metadata.get("document_type") or content_type).strip()
+            or content_type
+        )
+        source_id = str(record.get("source_id") or metadata.get("source_id") or "").strip()
+        index_text_source = str(record.get("index_text_source") or metadata.get("index_text_source") or "").strip()
         source = (
             str(record.get("source") or metadata.get("source") or "unknown").strip()
             or "unknown"
@@ -482,6 +503,9 @@ class RetrievalService:
             "case_id": case_id,
             "chunk_text": chunk_text,
             "chunk_type": str(record.get("chunk_type", "combined")),
+            "source_id": source_id,
+            "content_type": content_type,
+            "document_type": document_type,
             "source": source,
             "created_at": created_at,
             "created_at_ts": created_at_ts,
@@ -509,8 +533,13 @@ class RetrievalService:
             "metadata": {
                 "pipeline_version": "week2",
                 "structuring_confidence": confidence,
-                "content_type": "full",
+                "content_type": content_type,
+                "document_type": document_type,
+                "source_id": source_id,
+                "index_text_source": index_text_source,
                 "created_at_ts": created_at_ts,
+                "structured_by": str(record.get("structured_by") or metadata.get("structured_by") or ""),
+                "is_valid": bool(record.get("is_valid", metadata.get("is_valid", validation.get("is_valid", False)))),
             },
         }
 
