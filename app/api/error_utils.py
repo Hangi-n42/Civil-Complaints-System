@@ -45,6 +45,11 @@ ERROR_POLICY: Dict[str, Dict[str, Any]] = {
         "RESPONSE_SCHEMA_MISMATCH": {"status_code": 422, "retryable": False},
     "NORMALIZE_RESPONSE_ERROR": {"status_code": 500, "retryable": True},
     "ROUTING_STRATEGY_INCONSISTENT": {"status_code": 400, "retryable": False},
+    # Complaint Intelligence 중복 병합 sidecar
+    "DUPLICATE_GROUP_NOT_CONFIRMED": {"status_code": 409, "retryable": False},
+    "DUPLICATE_GROUP_INVALID_STATUS": {"status_code": 409, "retryable": False},
+    "DUPLICATE_GROUP_BLOCKED_BY_RISK": {"status_code": 409, "retryable": False},
+    "DUPLICATE_GROUP_EVENT_NOT_FOUND": {"status_code": 409, "retryable": False},
 }
 
 
