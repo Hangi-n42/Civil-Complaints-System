@@ -1,0 +1,30 @@
+{
+  "note": "v3 루브릭 파일럿 채점 결과(점수만, 원문 미포함). A=메인 Claude, B=독립 서브에이전트.",
+  "self_consistency": {"exact_match": "20/24", "within_1": "24/24", "label0_match": "8/8", "disagreements": "4건 모두 1<->2 경계(material_conditions=2 판정)"},
+  "scores": [
+    {"qid": "Q-0003", "docid": "CASE-300041", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0004", "docid": "CASE-001347", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0005", "docid": "CASE-80123", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0009", "docid": "CASE-301206", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0012", "docid": "CASE-600315", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0015", "docid": "CASE-000170", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0016", "docid": "CASE-001172", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0018", "docid": "CASE-300999", "existing": 0, "A": 0, "B": 0},
+    {"qid": "Q-0001", "docid": "CASE-500786", "existing": 1, "A": 1, "B": 1},
+    {"qid": "Q-0002", "docid": "CASE-001694", "existing": 1, "A": 2, "B": 2},
+    {"qid": "Q-0003", "docid": "CASE-300248", "existing": 1, "A": 0, "B": 0},
+    {"qid": "Q-0004", "docid": "CASE-001243", "existing": 1, "A": 0, "B": 0},
+    {"qid": "Q-0005", "docid": "CASE-001282", "existing": 1, "A": 0, "B": 0},
+    {"qid": "Q-0006", "docid": "CASE-501267", "existing": 1, "A": 1, "B": 1},
+    {"qid": "Q-0007", "docid": "CASE-700501", "existing": 1, "A": 1, "B": 1},
+    {"qid": "Q-0009", "docid": "CASE-002312", "existing": 1, "A": 0, "B": 0},
+    {"qid": "Q-0001", "docid": "CASE-500516", "existing": 2, "A": 2, "B": 2},
+    {"qid": "Q-0002", "docid": "CASE-001589", "existing": 2, "A": 2, "B": 2},
+    {"qid": "Q-0003", "docid": "CASE-301565", "existing": 2, "A": 2, "B": 2},
+    {"qid": "Q-0005", "docid": "CASE-001443", "existing": 2, "A": 2, "B": 1},
+    {"qid": "Q-0006", "docid": "CASE-500108", "existing": 2, "A": 2, "B": 1},
+    {"qid": "Q-0007", "docid": "CASE-700369", "existing": 2, "A": 2, "B": 2},
+    {"qid": "Q-0008", "docid": "CASE-001540", "existing": 2, "A": 2, "B": 2},
+    {"qid": "Q-0009", "docid": "CASE-300546", "existing": 2, "A": 2, "B": 1}
+  ]
+}
