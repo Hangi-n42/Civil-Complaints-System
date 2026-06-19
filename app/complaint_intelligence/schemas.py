@@ -139,6 +139,34 @@ class RepresentativeComplaint(BaseModel):
     received_at: datetime
 
 
+def _masked_string_list(value: Any) -> tuple[List[str], List[str]]:
+    """문자열/객체 리스트를 PII-safe 문자열 리스트로 정규화한다."""
+
+    if value is None:
+        return [], []
+    if isinstance(value, str):
+        raw_items = [item.strip() for item in value.split("|") if item.strip()]
+    elif isinstance(value, list):
+        raw_items = []
+        for item in value:
+            if isinstance(item, dict):
+                raw_items.append(str(item.get("text") or item.get("name") or item.get("value") or ""))
+            else:
+                raw_items.append(str(item or ""))
+    else:
+        raw_items = [str(value)]
+
+    masked_items: List[str] = []
+    detected: List[str] = []
+    for item in raw_items:
+        if not item.strip():
+            continue
+        masked = mask_pii(item)
+        masked_items.append(masked.text)
+        detected.extend(masked.detected_labels)
+    return masked_items, detected
+
+
 class ComplaintIntelligenceEvent(BaseModel):
     """기존 민원 처리 흐름 옆에서 수집되는 공공 인사이트 분석 이벤트."""
 
@@ -167,6 +195,12 @@ class ComplaintIntelligenceEvent(BaseModel):
     evaluation: EvaluationTrace = Field(default_factory=EvaluationTrace)
     feedback: Optional[str] = None
     structured_elements: StructuredComplaintElements = Field(default_factory=StructuredComplaintElements)
+    request_segments: List[str] = Field(default_factory=list)
+    responsible_unit: List[str] = Field(default_factory=list)
+    civil_category: Optional[str] = None
+    entity_texts: List[str] = Field(default_factory=list)
+    urgency: Optional[str] = None
+    risk_level: Optional[str] = None
     embedding: Optional[List[float]] = None
     pipeline_version: Optional[str] = None
     prompt_version: Optional[str] = None
@@ -199,6 +233,16 @@ class ComplaintIntelligenceEvent(BaseModel):
             handling_time = payload.get("processing_time_minutes") or payload.get("elapsed_minutes")
             if handling_time is not None:
                 payload["handling_time_minutes"] = handling_time
+        if "civil_category" not in payload:
+            civil_category = payload.get("civil_category_primary") or payload.get("final_category") or payload.get("predicted_category")
+            if civil_category is not None:
+                payload["civil_category"] = civil_category
+        if "responsible_unit" not in payload:
+            units = payload.get("responsible_units") or payload.get("responsible_unit_candidates")
+            if units is not None:
+                payload["responsible_unit"] = units
+        if "entity_texts" not in payload and isinstance(payload.get("entities"), list):
+            payload["entity_texts"] = payload.get("entities")
 
         structured_source = payload.get("structured_elements") or payload.get("structured_text")
         structured_elements = dict(structured_source) if isinstance(structured_source, dict) else {}
@@ -210,6 +254,15 @@ class ComplaintIntelligenceEvent(BaseModel):
 
         detected: list[str] = []
         for field in ("title", "body", "masked_text", "answer", "feedback", "reviewer_feedback"):
+            if field in payload and payload.get(field) is not None:
+                masked = mask_pii(str(payload.get(field)))
+                payload[field] = masked.text
+                detected.extend(masked.detected_labels)
+        for field in ("request_segments", "responsible_unit", "entity_texts"):
+            if field in payload:
+                payload[field], field_detected = _masked_string_list(payload.get(field))
+                detected.extend(field_detected)
+        for field in ("civil_category", "urgency", "risk_level"):
             if field in payload and payload.get(field) is not None:
                 masked = mask_pii(str(payload.get(field)))
                 payload[field] = masked.text

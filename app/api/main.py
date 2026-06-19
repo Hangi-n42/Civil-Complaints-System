@@ -135,6 +135,12 @@ async def root():
             "complaint_run_analysis": "/complaint-intelligence/run-analysis",
             "complaint_dashboard_run_analysis": "/complaint-intelligence/dashboard/run-analysis",
             "complaint_public_insight_run_analysis": "/complaint-intelligence/public-insights/run-analysis",
+            "duplicate_groups_run_analysis": "/complaint-intelligence/duplicate-groups/run-analysis",
+            "duplicate_groups": "/complaint-intelligence/duplicate-groups",
+            "duplicate_group_confirm": "/complaint-intelligence/duplicate-groups/{merge_id}/confirm",
+            "duplicate_group_split": "/complaint-intelligence/duplicate-groups/{merge_id}/split",
+            "duplicate_group_reject": "/complaint-intelligence/duplicate-groups/{merge_id}/reject",
+            "duplicate_group_draft_reply": "/complaint-intelligence/duplicate-groups/{merge_id}/draft-reply",
         },
     }
 

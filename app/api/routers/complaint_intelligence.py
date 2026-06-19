@@ -5,10 +5,17 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from app.api.error_utils import make_request_id, now_iso
+from app.api.error_utils import error_response, make_request_id, now_iso
 from app.complaint_intelligence import get_complaint_intelligence_service
+from app.complaint_intelligence.duplicate_merger.service import DuplicateGroupNotFound, DuplicateMergeConflict
+from app.complaint_intelligence.duplicate_merger.schemas import (
+    DraftReplyPayload,
+    DuplicateMergeRecord,
+    DuplicateMergeStatus,
+)
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
 from app.complaint_intelligence.schemas import (
     ComplaintIntelligenceEvent,
@@ -181,6 +188,53 @@ class DashboardResponse(BaseModel):
     data: DashboardData
 
 
+class DuplicateGroupsData(BaseModel):
+    """중복 병합 그룹 목록 응답 데이터."""
+
+    event_count: Optional[int] = None
+    count: int
+    duplicate_groups: list[DuplicateMergeRecord]
+
+
+class DuplicateGroupsResponse(BaseModel):
+    """중복 병합 그룹 목록 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: DuplicateGroupsData
+
+
+class DuplicateGroupData(BaseModel):
+    """중복 병합 그룹 단건 응답 데이터."""
+
+    duplicate_group: DuplicateMergeRecord
+
+
+class DuplicateGroupResponse(BaseModel):
+    """중복 병합 그룹 단건 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: DuplicateGroupData
+
+
+class DuplicateDraftReplyData(BaseModel):
+    """중복 병합 대표 답변 payload 응답 데이터."""
+
+    draft_reply_payload: DraftReplyPayload
+
+
+class DuplicateDraftReplyResponse(BaseModel):
+    """중복 병합 대표 답변 payload 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: DuplicateDraftReplyData
+
+
 @router.post("/run-analysis", response_model=RunAnalysisResponse)
 async def run_analysis(request: RunAnalysisRequest) -> RunAnalysisResponse:
     """민원 이벤트 배치를 분석해 경보와 공공기관 행정 인사이트를 생성한다."""
@@ -250,6 +304,124 @@ async def get_dashboard(
         request_id=make_request_id(),
         timestamp=now_iso(),
         data=_dashboard_data(alerts, insights),
+    )
+
+
+@router.post("/duplicate-groups/run-analysis", response_model=DuplicateGroupsResponse)
+async def run_duplicate_group_analysis(request: RunAnalysisRequest) -> DuplicateGroupsResponse:
+    """중복 민원 병합 후보 그룹 분석을 명시적으로 실행한다."""
+
+    request_id = request.request_id or make_request_id()
+    service = get_complaint_intelligence_service()
+    groups = service.run_duplicate_analysis(request.events)
+    api_logger.info(
+        "Duplicate merge analysis completed: request_id=%s events=%s groups=%s",
+        request_id,
+        len(request.events),
+        len(groups),
+    )
+    return DuplicateGroupsResponse(
+        request_id=request_id,
+        timestamp=now_iso(),
+        data=DuplicateGroupsData(
+            event_count=len(request.events),
+            count=len(groups),
+            duplicate_groups=groups,
+        ),
+    )
+
+
+@router.get("/duplicate-groups", response_model=DuplicateGroupsResponse)
+async def list_duplicate_groups(status: Optional[DuplicateMergeStatus] = None) -> DuplicateGroupsResponse:
+    """저장된 중복 병합 추천 그룹을 조회한다."""
+
+    groups = get_complaint_intelligence_service().list_duplicate_groups(status=status)
+    return DuplicateGroupsResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateGroupsData(count=len(groups), duplicate_groups=groups),
+    )
+
+
+@router.get("/duplicate-groups/{merge_id}", response_model=DuplicateGroupResponse)
+async def get_duplicate_group(merge_id: str) -> DuplicateGroupResponse:
+    """중복 병합 추천 그룹 단건을 조회한다."""
+
+    group = get_complaint_intelligence_service().get_duplicate_group(merge_id)
+    if group is None:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    return DuplicateGroupResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateGroupData(duplicate_group=group),
+    )
+
+
+@router.post("/duplicate-groups/{merge_id}/confirm", response_model=DuplicateGroupResponse)
+async def confirm_duplicate_group(merge_id: str) -> DuplicateGroupResponse | JSONResponse:
+    """담당자 승인으로 candidate 그룹을 confirmed 상태로 전환한다."""
+
+    try:
+        group = get_complaint_intelligence_service().confirm_duplicate_group(merge_id)
+    except DuplicateGroupNotFound:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    except DuplicateMergeConflict as exc:
+        return _duplicate_conflict_response(exc)
+    return DuplicateGroupResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateGroupData(duplicate_group=group),
+    )
+
+
+@router.post("/duplicate-groups/{merge_id}/split", response_model=DuplicateGroupResponse)
+async def split_duplicate_group(merge_id: str) -> DuplicateGroupResponse | JSONResponse:
+    """중복 병합 그룹을 split 상태로 전환한다."""
+
+    try:
+        group = get_complaint_intelligence_service().split_duplicate_group(merge_id)
+    except DuplicateGroupNotFound:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    except DuplicateMergeConflict as exc:
+        return _duplicate_conflict_response(exc)
+    return DuplicateGroupResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateGroupData(duplicate_group=group),
+    )
+
+
+@router.post("/duplicate-groups/{merge_id}/reject", response_model=DuplicateGroupResponse)
+async def reject_duplicate_group(merge_id: str) -> DuplicateGroupResponse | JSONResponse:
+    """담당자 검토 결과 candidate 그룹을 rejected 상태로 전환한다."""
+
+    try:
+        group = get_complaint_intelligence_service().reject_duplicate_group(merge_id)
+    except DuplicateGroupNotFound:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    except DuplicateMergeConflict as exc:
+        return _duplicate_conflict_response(exc)
+    return DuplicateGroupResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateGroupData(duplicate_group=group),
+    )
+
+
+@router.post("/duplicate-groups/{merge_id}/draft-reply", response_model=DuplicateDraftReplyResponse)
+async def build_duplicate_draft_reply(merge_id: str) -> DuplicateDraftReplyResponse | JSONResponse:
+    """confirmed 그룹에 대해서만 BE3 대표 답변 payload를 생성한다."""
+
+    try:
+        payload = get_complaint_intelligence_service().build_duplicate_draft_reply_payload(merge_id)
+    except DuplicateGroupNotFound:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    except DuplicateMergeConflict as exc:
+        return _duplicate_conflict_response(exc)
+    return DuplicateDraftReplyResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateDraftReplyData(draft_reply_payload=payload),
     )
 
 
@@ -393,6 +565,19 @@ def _insight_card(insight: PublicAgencyInsight) -> DashboardPublicInsightCard:
         ],
         uncertainty=list(insight.uncertainty),
         metrics=dict(insight.metrics),
+    )
+
+
+def _duplicate_conflict_response(exc: DuplicateMergeConflict) -> JSONResponse:
+    """중복 병합 상태 전이 충돌을 공통 에러 포맷으로 변환한다."""
+
+    return error_response(
+        request_id=make_request_id(),
+        error_code=exc.code,
+        message=exc.message,
+        status_code=409,
+        retryable=False,
+        details=exc.details,
     )
 
 
