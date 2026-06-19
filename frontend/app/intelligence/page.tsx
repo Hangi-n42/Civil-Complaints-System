@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import AppSidebar from "@/components/AppSidebar";
-import { fetchIntelDashboardApi, type IntelDashboardData } from "@/lib/api";
+import { fetchIntelDashboardApi, type IntelDashboardData, type IntelPublicInsightCard } from "@/lib/api";
 import { IssueAlertList } from "@/components/intelligence/IssueAlertList";
+import { PublicInsightList } from "@/components/intelligence/PublicInsightList";
+import { InsightDetailPanel } from "@/components/intelligence/InsightDetailPanel";
 
 // summary 6종 → 상단 KPI 카드 메타(라벨/좌측 강조색). 값은 런타임에 채운다.
 const SUMMARY_CARDS: Array<{ key: keyof IntelDashboardData["summary"]; label: string; accent: string }> = [
@@ -20,6 +22,7 @@ export default function IntelligencePage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("issue_alerts");
+  const [selectedInsight, setSelectedInsight] = useState<IntelPublicInsightCard | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,9 +116,7 @@ export default function IntelligencePage() {
                     </div>
                   )
                 ) : data && data.public_insights.length > 0 ? (
-                  <div className="py-12 text-center text-sm font-medium text-slate-500">
-                    행정 인사이트 {data.public_insights.length}건 — 카드는 다음 단계(#427)에서 표시됩니다.
-                  </div>
+                  <PublicInsightList insights={data.public_insights} onSelect={setSelectedInsight} />
                 ) : (
                   <div className="py-12 text-center text-sm font-medium text-slate-500">
                     {data?.empty_state?.public_insights ?? "표시할 행정 인사이트가 없습니다."}
@@ -126,6 +127,10 @@ export default function IntelligencePage() {
           </div>
         </main>
       </div>
+
+      {selectedInsight && (
+        <InsightDetailPanel insight={selectedInsight} onClose={() => setSelectedInsight(null)} />
+      )}
     </div>
   );
 }
