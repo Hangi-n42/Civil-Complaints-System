@@ -240,6 +240,16 @@ def _contains(pattern: str, text: str) -> bool:
     return re.search(pattern, str(text or ""), flags=re.IGNORECASE) is not None
 
 
+def _token_overlap_ratio(source_text: str, target_text: str) -> float:
+    source_terms = _keywords(source_text)
+    if not source_terms:
+        return 0.0
+    target_terms = _keywords(target_text)
+    if not target_terms:
+        return 0.0
+    return len(source_terms & target_terms) / len(source_terms)
+
+
 def _source_priority(item: dict[str, Any]) -> int:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
     haystack = " ".join(
@@ -566,14 +576,16 @@ class CivilComplaintRubricEvaluator:
         citation_count = len(citations)
         mismatch_count = int(citation_validation.get("mismatch_count", 0) or 0)
         valid_citation_count = max(0, citation_count - max(0, mismatch_count))
-        coverage = float(
-            quality_signals.get(
-                "citation_coverage",
-                min(1.0, citation_count / claim_count) if claim_count else 0.0,
-            )
-            or 0.0
-        )
+        claim_count_for_citation = max(1, min(claim_count, 3))
+        structural_coverage = min(1.0, citation_count / claim_count_for_citation)
+        signal_coverage = float(quality_signals.get("citation_coverage", structural_coverage) or 0.0)
+        coverage = min(signal_coverage, structural_coverage)
         support_rate = valid_citation_count / citation_count if citation_count else 0.0
+        semantic_support_rate = self._semantic_citation_support_rate(
+            body_sentences=body_sentences,
+            citations=citations,
+            references=references,
+        )
 
         sentence_norms = [" ".join(TOKEN_RE.findall(item.casefold())) for item in body_sentences]
         duplicate_count = len(sentence_norms) - len(set(sentence_norms))
@@ -606,9 +618,24 @@ class CivilComplaintRubricEvaluator:
             reference_priorities=reference_priorities,
             cited_priorities=cited_priorities,
         )
+        internal_label_count = len(
+            re.findall(
+                r"(확인|협의|안내|조치|지원|개선|설치|이용\s*시간|CCTV\s*설치|정기적인\s*보충|시민\s*안내)\s*(조치|방향|강화|검토)?\s*:",
+                generated_body,
+            )
+        )
+        awkward_fragment_count = len(
+            re.findall(
+                r"\b을\s+위한|[.!?]\s*[a-z]\.|\[미검증\s*인용\s*제거\]|"
+                r"현재로서는\s+해당\s+문서의\s+부재가|감사합니다",
+                generated_body,
+            )
+        )
         unsafe_promise_flag = _contains(
-            r"즉시\s*(설치|철거|보수|완료|처리)|반드시\s*(조치|해결)|"
-            r"(설치|철거|보수|정비|완료)하겠습니다|확정되었습니다",
+            r"즉시\s*(설치|철거|보수|완료|처리|조치)|반드시\s*(조치|해결)|"
+            r"(설치|철거|보수|정비|완료|개선|확대|보충|단속|제공|수립|실시|추진)하겠습니다|"
+            r"(조치|추진|확대|설치|개선|보충|실시|수립)(할|될)\s*예정|"
+            r"(조치|추진|확대|설치|개선|보충|실시|수립)\s*계획입니다|확정되었습니다",
             generated_body,
         )
         emotional_response_flag = _contains(
@@ -641,11 +668,14 @@ class CivilComplaintRubricEvaluator:
             "claim_count": claim_count,
             "citation_coverage_rate": _round(_clamp(coverage, 0.0, 1.0), 4),
             "citation_support_rate_strict": _round(support_rate, 4),
+            "semantic_citation_support_rate": _round(semantic_support_rate, 4),
             "source_priority_mean": _round(source_priority_mean, 4) if source_priority_mean is not None else None,
             "best_source_missed_count": best_source_missed_count,
             "repetition_ratio": _round(repetition_ratio, 4),
             "template_ratio": _round(template_hits / 4.0, 4),
             "debug_token_count": debug_tokens,
+            "internal_label_count": internal_label_count,
+            "awkward_fragment_count": awkward_fragment_count,
             "answer_token_length": len(str(generated_body or "")),
             "consultant_length_ratio": None,
             "procedure_anchor_count": procedure_anchor_count,
@@ -682,6 +712,51 @@ class CivilComplaintRubricEvaluator:
                     break
             priorities.append(matched if matched is not None else 5)
         return priorities
+
+    @staticmethod
+    def _semantic_citation_support_rate(
+        *,
+        body_sentences: list[str],
+        citations: list[dict[str, Any]],
+        references: list[dict[str, Any]],
+    ) -> float:
+        if not citations or not body_sentences:
+            return 0.0
+
+        citation_text = " ".join(
+            str(
+                item.get("snippet")
+                or item.get("quote")
+                or item.get("text")
+                or item.get("title")
+                or ""
+            )
+            for item in citations
+        )
+        if not citation_text.strip():
+            citation_ids = {
+                str(item.get(key) or "").strip()
+                for item in citations
+                for key in ("doc_id", "case_id", "chunk_id", "source")
+                if str(item.get(key) or "").strip()
+            }
+            matched_refs = [
+                item
+                for item in references
+                if any(str(item.get(key) or "").strip() in citation_ids for key in ("doc_id", "case_id", "chunk_id", "source"))
+            ]
+            citation_text = " ".join(
+                str(item.get("snippet") or item.get("text") or item.get("title") or "")
+                for item in matched_refs
+            )
+        if not citation_text.strip():
+            return 0.0
+
+        supported = 0
+        for sentence in body_sentences:
+            if _token_overlap_ratio(sentence, citation_text) >= 0.12:
+                supported += 1
+        return supported / len(body_sentences)
 
     @staticmethod
     def _best_source_missed_count(
@@ -723,7 +798,7 @@ class CivilComplaintRubricEvaluator:
 
         return {
             "complaint_issue_identified": bool(
-                segment_coverage >= 0.5 or overlap >= 0.2 or not segments
+                segment_coverage >= 0.5 or overlap >= 0.03 or not segments
             ),
             "judgment_or_answer_present": _contains(
                 r"검토|확인|조치|가능|불가|어렵|예정|안내|처리|협의",
@@ -766,7 +841,17 @@ class CivilComplaintRubricEvaluator:
         q_expected: dict[str, float] = {}
         debug_penalty = 0.8 if rule_features["debug_token_count"] else 0.0
         emotional_penalty = 1.4 if rule_features["emotional_response_flag"] else 0.0
-        q_expected["q1"] = _clamp(3.4 - debug_penalty - emotional_penalty, 1.0, 4.0)
+        style_penalty = min(
+            1.2,
+            float(rule_features["internal_label_count"]) * 0.2
+            + float(rule_features["awkward_fragment_count"]) * 0.25
+            + (0.35 if rule_features["unsafe_promise_flag"] else 0.0),
+        )
+        q_expected["q1"] = _clamp(
+            3.6 - debug_penalty - emotional_penalty - style_penalty,
+            1.0,
+            4.0,
+        )
 
         if reference_count <= 0:
             q_expected["q2"] = 1.0
@@ -777,12 +862,19 @@ class CivilComplaintRubricEvaluator:
         else:
             q_expected["q2"] = 3.5
 
-        citation_rate = min(
-            1.0,
-            rule_features["postprocessed_citation_count"] / max(1, rule_features["claim_count"]),
+        citation_rate = float(rule_features.get("citation_coverage_rate", 0.0) or 0.0)
+        semantic_support = float(rule_features.get("semantic_citation_support_rate", 0.0) or 0.0)
+        if rule_features["postprocessed_citation_count"] > 0 and semantic_support >= 0.5:
+            # The public answer no longer exposes [[출처 n]] tokens, but a
+            # structured citation still needs lexical support from the cited
+            # snippet. A single weakly related citation should not receive a
+            # full coverage score for every generated claim.
+            citation_rate = max(citation_rate, 0.5)
+        q_expected["q3"] = 1.0 + 3.0 * min(1.0, citation_rate)
+        q_expected["q4"] = 1.0 + 3.0 * min(
+            float(rule_features["citation_support_rate_strict"]),
+            semantic_support,
         )
-        q_expected["q3"] = 1.0 + 3.0 * citation_rate
-        q_expected["q4"] = 1.0 + 3.0 * float(rule_features["citation_support_rate_strict"])
 
         priority = rule_features.get("source_priority_mean")
         if priority is None:
@@ -794,7 +886,12 @@ class CivilComplaintRubricEvaluator:
         elif priority <= 3.5:
             q_expected["q5"] = 2.8
         else:
-            q_expected["q5"] = 2.0
+            q_expected["q5"] = (
+                3.0
+                if rule_features["citation_support_rate_strict"] >= 1.0
+                and semantic_support >= 0.5
+                else 2.0
+            )
         if rule_features["best_source_missed_count"]:
             q_expected["q5"] -= 0.5
 
@@ -802,7 +899,10 @@ class CivilComplaintRubricEvaluator:
             4.0
             - float(rule_features["repetition_ratio"]) * 2.0
             - min(1.2, rule_features["debug_token_count"] * 0.25)
-            - float(rule_features["template_ratio"]) * 0.5,
+            - min(1.0, float(rule_features["internal_label_count"]) * 0.18)
+            - min(0.8, float(rule_features["awkward_fragment_count"]) * 0.25)
+            - (0.35 if int(rule_features["claim_count"]) >= 9 else 0.0)
+            - (0.25 if rule_features["unsafe_promise_flag"] else 0.0),
             1.0,
             4.0,
         )
@@ -810,14 +910,24 @@ class CivilComplaintRubricEvaluator:
         length = int(rule_features["answer_token_length"])
         if length < 80:
             q_expected["q7"] = 1.8
-        elif length < 180:
-            q_expected["q7"] = 2.5
+        elif length < 160:
+            q_expected["q7"] = 2.4
+        elif length <= 520:
+            q_expected["q7"] = 3.6
+        elif length <= 850:
+            q_expected["q7"] = 3.0
         elif length <= 1200:
-            q_expected["q7"] = 3.5
-        elif length <= 1800:
-            q_expected["q7"] = 2.8
+            q_expected["q7"] = 2.5
         else:
-            q_expected["q7"] = 2.0
+            q_expected["q7"] = 1.8
+        q_expected["q7"] = _clamp(
+            q_expected["q7"]
+            - min(0.8, float(rule_features["internal_label_count"]) * 0.12)
+            - min(0.6, float(rule_features["awkward_fragment_count"]) * 0.2)
+            - (0.4 if int(rule_features["claim_count"]) >= 10 else 0.0),
+            1.0,
+            4.0,
+        )
 
         core_missing = self._manual_core_missing_count(manual_features)
         q0_base = sum(q_expected[f"q{index}"] for index in range(1, 8)) / 7.0

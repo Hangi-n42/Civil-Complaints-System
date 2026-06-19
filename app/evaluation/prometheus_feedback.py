@@ -63,7 +63,12 @@ def select_low_score_items(
     if isinstance(safety_layer, dict):
         final_q0_0_10 = _score(safety_layer.get("final_q0_score_0_10"))
         final_q0_1_4 = 1.0 + max(0.0, min(10.0, final_q0_0_10)) / 10.0 * 3.0
-        if final_q0_1_4 <= threshold_1_4 and not any(item["qid"] == "q0" for item in low_items):
+        # Safety caps are final public-quality decisions. Even when the raw
+        # q0 expected score is above the Prometheus 1-4 trigger threshold,
+        # a capped final q0 below 6/10 should still enter the revision path.
+        if (
+            final_q0_1_4 <= threshold_1_4 or final_q0_0_10 < 6.0
+        ) and not any(item["qid"] == "q0" for item in low_items):
             low_items.insert(
                 0,
                 {
