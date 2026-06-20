@@ -114,6 +114,16 @@ def _validate_week6_qa_request(request: QARequest) -> str | None:
         normalized_route_key,
     ):
         return "routing_hint.strategy_id and routing_hint.route_key are inconsistent"
+    if request.routing_trace is not None:
+        trace_route_key = str(request.routing_trace.route_key or "").strip()
+        if trace_route_key and trace_route_key.count("/") != 1:
+            return "routing_trace.route_key must contain exactly one slash (topic/complexity)"
+        if trace_route_key and _normalize_route_key(trace_route_key) != normalized_route_key:
+            return "routing_trace.route_key and routing_hint.route_key are inconsistent"
+
+        trace_strategy_id = str(request.routing_trace.strategy_id or "").strip()
+        if trace_strategy_id and trace_strategy_id != request.routing_hint.strategy_id:
+            return "routing_trace.strategy_id and routing_hint.strategy_id are inconsistent"
     if request.routing_hint.top_k < 1:
         return "routing_hint.top_k must be >= 1"
     if request.routing_hint.snippet_max_chars < 120:
@@ -150,6 +160,65 @@ def _build_trace_from_route_key(route_key: str, query: str) -> dict:
         },
         "route_reason": "search 단계 routing_hint 값을 그대로 계승했습니다.",
     }
+
+
+def _clean_request_segments(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [
+        str(item or "").strip()
+        for item in value
+        if str(item or "").strip()
+    ]
+
+
+def _add_trace_warning(trace: dict, code: str) -> None:
+    warnings = trace.get("warnings")
+    if not isinstance(warnings, list):
+        warnings = []
+    normalized = [str(item) for item in warnings if str(item or "").strip()]
+    if code not in normalized:
+        normalized.append(code)
+    trace["warnings"] = normalized
+
+
+def _build_qa_routing_trace(
+    request: QARequest,
+    *,
+    route_key: str,
+    strategy_id: str,
+) -> dict:
+    """Build the canonical /qa trace from /search trace, with explicit fallback markers."""
+    if request.routing_trace is None:
+        trace = _build_trace_from_route_key(route_key, request.query)
+        trace["route_key"] = route_key
+        trace["strategy_id"] = strategy_id
+        request_segments = _clean_request_segments(trace.get("request_segments"))
+        if not request_segments:
+            request_segments = _derive_request_segments(request.query)
+            trace["request_segments"] = request_segments
+        trace["segment_count"] = len(request_segments) if request_segments else 1
+        _add_trace_warning(trace, "routing_trace_missing_recomputed_from_routing_hint")
+        return trace
+
+    trace = request.routing_trace.model_dump()
+    if not str(trace.get("route_key") or "").strip():
+        trace["route_key"] = route_key
+        _add_trace_warning(trace, "routing_trace_route_key_missing_filled_from_hint")
+    if not str(trace.get("strategy_id") or "").strip():
+        trace["strategy_id"] = strategy_id
+        _add_trace_warning(trace, "routing_trace_strategy_id_missing_filled_from_hint")
+
+    request_segments = _clean_request_segments(trace.get("request_segments"))
+    if not request_segments:
+        request_segments = _derive_request_segments(request.query)
+        trace["request_segments"] = request_segments
+        _add_trace_warning(trace, "routing_trace_request_segments_missing_recomputed")
+    else:
+        trace["request_segments"] = request_segments
+
+    trace["segment_count"] = len(request_segments) if request_segments else 1
+    return trace
 
 
 def _log_error(
@@ -784,6 +853,21 @@ async def _generate_qa(
         if request.query_signals is not None
         else None
     )
+    route_key = (
+        _normalize_route_key(request.routing_hint.route_key)
+        if request.routing_hint
+        else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
+    )
+    strategy_id = (
+        request.routing_hint.strategy_id
+        if request.routing_hint
+        else build_strategy_id("general", DEFAULT_COMPLEXITY_LEVEL)
+    )
+    routing_trace = _build_qa_routing_trace(
+        request,
+        route_key=route_key,
+        strategy_id=strategy_id,
+    )
 
     try:
         retrieval_start = perf_counter()
@@ -806,6 +890,14 @@ async def _generate_qa(
                 filters=filters,
                 grounding_filter=True,
                 grounding_pool=max(5, grounding_top_k),
+                topic_type=routing_trace.get("topic_type"),
+                request_segments=routing_trace.get("request_segments"),
+                retrieval_policy=routing_trace.get("retrieval_policy"),
+                snippet_max_chars=(
+                    request.routing_hint.snippet_max_chars
+                    if request.routing_hint
+                    else None
+                ),
                 query_signals=query_signals,
             )
         retrieval_elapsed_ms = int((perf_counter() - retrieval_start) * 1000)
@@ -885,21 +977,6 @@ async def _generate_qa(
                 headers={"X-Contract-Version": CONTRACT_VERSION},
             )
 
-        route_key = (
-            _normalize_route_key(request.routing_hint.route_key)
-            if request.routing_hint
-            else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
-        )
-        strategy_id = (
-            request.routing_hint.strategy_id
-            if request.routing_hint
-            else build_strategy_id("general", DEFAULT_COMPLEXITY_LEVEL)
-        )
-        routing_trace = (
-            request.routing_trace.model_dump()
-            if request.routing_trace is not None
-            else _build_trace_from_route_key(route_key, request.query)
-        )
         unified_payload = _build_no_similar_case_payload(
             request=request,
             route_key=route_key,
@@ -950,12 +1027,6 @@ async def _generate_qa(
     try:
         await _emit_stage(stage_callback, "generating")
         generation_start = perf_counter()
-        route_key = _normalize_route_key(request.routing_hint.route_key) if request.routing_hint else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
-        routing_trace = (
-            request.routing_trace.model_dump()
-            if request.routing_trace is not None
-            else _build_trace_from_route_key(route_key, request.query)
-        )
         result = await generation_service.generate_qa(
             query=request.query,
             context=context,
@@ -1126,14 +1197,6 @@ async def _generate_qa(
                 "quote": str(item.get("snippet") or ""),
             }
         )
-
-    route_key = _normalize_route_key(request.routing_hint.route_key) if request.routing_hint else f"general/{DEFAULT_COMPLEXITY_LEVEL}"
-    strategy_id = request.routing_hint.strategy_id if request.routing_hint else build_strategy_id("general", DEFAULT_COMPLEXITY_LEVEL)
-    routing_trace = (
-        request.routing_trace.model_dump()
-        if request.routing_trace is not None
-        else _build_trace_from_route_key(route_key, request.query)
-    )
 
     request_segments = routing_trace.get("request_segments") or []
     generated_structured = normalize_structured_output(

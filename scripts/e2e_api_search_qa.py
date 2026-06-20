@@ -124,9 +124,17 @@ def main() -> None:
         qa_data = qa_json.get("data") or {}
         citations = qa_data.get("citations") or []
         answer = str(qa_data.get("answer") or "")
+        search_segments = (routing_trace or {}).get("request_segments") or []
+        qa_segments = (qa_data.get("routing_trace") or {}).get("request_segments") or []
+        if search_segments != qa_segments:
+            raise RuntimeError(
+                "request_segments mismatch: "
+                f"search={json.dumps(search_segments, ensure_ascii=False)} "
+                f"qa={json.dumps(qa_segments, ensure_ascii=False)}"
+            )
 
         print(
-            f"/qa ok answer_chars={len(answer)} citations={len(citations)} model={((qa_json.get('meta') or {}).get('model'))}"
+            f"/qa ok answer_chars={len(answer)} citations={len(citations)} segments={len(qa_segments)} model={((qa_json.get('meta') or {}).get('model'))}"
         )
         print("answer_preview=", answer[:300].replace("\n", " "))
 
