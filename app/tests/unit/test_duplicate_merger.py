@@ -7,7 +7,9 @@ from fastapi.testclient import TestClient
 
 from app.api.main import app
 from app.complaint_intelligence import set_complaint_intelligence_service
+from app.complaint_intelligence.duplicate_merger.scoring import analysis_text, score_duplicate_pair
 from app.complaint_intelligence.repository import InMemoryComplaintIntelligenceRepository
+from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from app.complaint_intelligence.service import ComplaintIntelligenceService
 
 
@@ -61,6 +63,39 @@ def _run_analysis(client: TestClient, events: list[dict]) -> dict:
     return response.json()["data"]
 
 
+def _scoring_event(
+    event_id: str,
+    *,
+    observation: str,
+    request_text: str,
+    request_segments: list[str],
+    entity_texts: list[str],
+    masked_text: str = "",
+) -> ComplaintIntelligenceEvent:
+    return ComplaintIntelligenceEvent.model_validate(
+        {
+            "id": event_id,
+            "received_at": BASE_TIME.isoformat(),
+            "body": "",
+            "masked_text": masked_text,
+            "region": "공통동",
+            "final_department": "민원관리과",
+            "civil_category": "일반민원",
+            "entity_texts": entity_texts,
+            "request_segments": request_segments,
+            "structured_elements": {
+                "observation": {"text": observation},
+                "request": {"text": request_text},
+                "context": {"text": "비교용 구조화 텍스트입니다."},
+            },
+        }
+    )
+
+
+def _duplicate_score_evidence_value(result) -> float:
+    return next(item.value for item in result.evidence if item.type == "duplicate_score")
+
+
 def test_same_apartment_noise_complaints_create_candidate_group_with_contract_fields() -> None:
     client = TestClient(app)
     events = [
@@ -94,6 +129,49 @@ def test_same_apartment_noise_complaints_create_candidate_group_with_contract_fi
     assert "confirm" in group["allowed_actions"]
     assert "draft_reply" in group["blocked_actions"]
     assert group["representative"]["selection_reason"]
+
+
+def test_redaction_placeholders_do_not_inflate_scoring_similarity_or_score() -> None:
+    base_left = _scoring_event(
+        "placeholder-base-left",
+        observation="가로등 점멸 고장 신고입니다.",
+        request_text="가로등 점검 요청",
+        request_segments=["가로등 점검 요청"],
+        entity_texts=["가로등"],
+    )
+    base_right = _scoring_event(
+        "placeholder-base-right",
+        observation="복지 급여 지급 일정 문의입니다.",
+        request_text="복지 급여 지급 일정 문의",
+        request_segments=["복지 급여 지급 일정 문의"],
+        entity_texts=["복지급여"],
+    )
+    redacted_left = _scoring_event(
+        "placeholder-redacted-left",
+        observation="가로등 점멸 고장 신고입니다. [REDACTED:PHONE]",
+        request_text="가로등 점검 요청 [REDACTED:EMAIL]",
+        request_segments=["가로등 점검 요청 [REDACTED:PHONE]"],
+        entity_texts=["가로등", "[REDACTED:PHONE]"],
+        masked_text="[REDACTED:PHONE]",
+    )
+    redacted_right = _scoring_event(
+        "placeholder-redacted-right",
+        observation="복지 급여 지급 일정 문의입니다. [REDACTED:PHONE]",
+        request_text="복지 급여 지급 일정 문의 [REDACTED:EMAIL]",
+        request_segments=["복지 급여 지급 일정 문의 [REDACTED:PHONE]"],
+        entity_texts=["복지급여", "[REDACTED:PHONE]"],
+        masked_text="[REDACTED:PHONE]",
+    )
+
+    base_result = score_duplicate_pair(base_left, base_right)
+    redacted_result = score_duplicate_pair(redacted_left, redacted_right)
+
+    assert "[REDACTED:" not in analysis_text(redacted_left)
+    assert "[REDACTED:" not in analysis_text(redacted_right)
+    assert redacted_result.breakdown["semantic_similarity"] == base_result.breakdown["semantic_similarity"]
+    assert redacted_result.breakdown["request_segment_similarity"] == base_result.breakdown["request_segment_similarity"]
+    assert redacted_result.score == base_result.score
+    assert _duplicate_score_evidence_value(redacted_result) == _duplicate_score_evidence_value(base_result)
 
 
 def test_same_keywords_different_locations_get_location_mismatch_or_separate_groups() -> None:
@@ -169,6 +247,8 @@ def test_confirmed_group_returns_pii_safe_draft_reply_payload() -> None:
         ),
     ]
     data = _run_analysis(client, events)
+    assert data["count"] == 1
+    assert "[REDACTED:" not in analysis_text(ComplaintIntelligenceEvent.model_validate(events[0]))
     merge_id = data["duplicate_groups"][0]["merge_id"]
 
     confirm_response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/confirm")
