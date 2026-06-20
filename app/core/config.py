@@ -29,7 +29,7 @@ class Settings:
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b-instruct")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")
     OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 120))
     GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 640))
     GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 2048))
@@ -37,7 +37,7 @@ class Settings:
     # ChromaDB 설정
     CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "chroma_db"))
     CHROMA_PERSIST_DIRECTORY: Optional[str] = CHROMA_DB_PATH
-    DEFAULT_CHROMA_COLLECTION: str = os.getenv("DEFAULT_CHROMA_COLLECTION", "civil_cases_v1")
+    DEFAULT_CHROMA_COLLECTION: str = os.getenv("DEFAULT_CHROMA_COLLECTION", "civil_cases_v3")
 
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")

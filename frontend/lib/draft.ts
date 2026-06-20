@@ -35,6 +35,21 @@ export function computeSegmentViewMode(params: { draftStage: DraftStage; segment
   return "empty";
 }
 
+/** 응답이 단일로 축소돼도 원본 민원에 명시된 복합 세그먼트가 있으면 그 기준을 우선한다. */
+export function selectDraftRequestSegments(params: {
+  responseSegments?: string[];
+  fallbackSegments?: string[];
+}): string[] {
+  const responseSegments = normalizeSegments(params.responseSegments);
+  const fallbackSegments = normalizeSegments(params.fallbackSegments);
+
+  if (fallbackSegments.length > responseSegments.length && fallbackSegments.length > 1) return fallbackSegments;
+  if (responseSegments.length > 1) return responseSegments;
+  if (fallbackSegments.length > 1) return fallbackSegments;
+  if (responseSegments.length > 0) return responseSegments;
+  return fallbackSegments;
+}
+
 export type SupplementarySegment = {
   index: number;
   text: string;
@@ -48,4 +63,10 @@ export function pairSegmentsWithActions(requestSegments: string[], actionItems: 
     text,
     action: actionItems[index],
   }));
+}
+
+function normalizeSegments(segments?: string[]): string[] {
+  return (segments || [])
+    .map((segment) => String(segment || "").split(/\s+/).join(" "))
+    .filter(Boolean);
 }

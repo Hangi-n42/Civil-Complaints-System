@@ -35,6 +35,8 @@ export type AssignedCase = {
   text?: string;
   summary?: string;
   description?: string;
+  request_segments?: string[];
+  requestSegments?: string[];
   structured?: CaseStructuredFields;
 };
 
@@ -75,6 +77,7 @@ export type WorkbenchCaseContext = {
   region?: string;
   summary?: string;
   priority?: string;
+  requestSegments?: string[];
 };
 
 export type RetrievedDoc = {
@@ -489,6 +492,7 @@ export async function runQaApi(params: {
   complaintId: string;
   query: string;
   routingHint?: RoutingHint;
+  routingTrace?: RoutingTrace;
   useSearchResults?: boolean;
   searchResults?: RetrievedDoc[];
   filters?: {
@@ -505,6 +509,7 @@ export async function runQaApi(params: {
         complaint_id: params.complaintId,
         query: params.query,
         routing_hint: toBackendRoutingHint(params.routingHint),
+        routing_trace: toBackendRoutingTrace(params.routingTrace, params.caseContext, params.routingHint),
         use_search_results: params.useSearchResults,
         search_results: (params.searchResults || []).map(toQaSearchResult),
         filters,
@@ -541,6 +546,7 @@ export async function streamQaApi(
     complaintId: string;
     query: string;
     routingHint?: RoutingHint;
+    routingTrace?: RoutingTrace;
     useSearchResults?: boolean;
     searchResults?: RetrievedDoc[];
     filters?: {
@@ -559,6 +565,7 @@ export async function streamQaApi(
         complaint_id: params.complaintId,
         query: params.query,
         routing_hint: toBackendRoutingHint(params.routingHint),
+        routing_trace: toBackendRoutingTrace(params.routingTrace, params.caseContext, params.routingHint),
         use_search_results: params.useSearchResults,
         search_results: (params.searchResults || []).map(toQaSearchResult),
         filters: normalizeSearchFilters(params.filters),
@@ -629,13 +636,19 @@ export function clearDraftSnapshot() {
 }
 
 function buildRoutingTrace(category: string): RoutingTrace {
+  return buildRoutingTraceWithSegments(category, []);
+}
+
+function buildRoutingTraceWithSegments(category: string, requestSegments: string[]): RoutingTrace {
   const topicType = mapCategoryToTopic(category);
+  const normalizedSegments = normalizeSegments(requestSegments);
   return {
     topicType,
     complexityLevel: "medium",
     complexityScore: 0.58,
+    requestSegments: normalizedSegments,
     complexityTrace: {
-      intent_count: 1,
+      intent_count: Math.max(1, normalizedSegments.length),
       constraint_count: 1,
       entity_diversity: 1,
       policy_reference_count: 0,
@@ -671,7 +684,11 @@ function mapSearchData(payload: BackendSearchData, params: {
   filters?: { region?: string; category?: string };
   caseContext?: WorkbenchCaseContext;
 }): SearchResponseData {
-  const routingTrace = toRoutingTrace(payload.routing_trace, params.caseContext?.category || params.filters?.category || "일반");
+  const routingTrace = toRoutingTrace(
+    payload.routing_trace,
+    params.caseContext?.category || params.filters?.category || "일반",
+    params.caseContext?.requestSegments,
+  );
   const strategyId = payload.strategy_id || payload.routing_hint?.strategy_id || routingTrace.strategyId || `topic_${routingTrace.topicType}_${routingTrace.complexityLevel}_v1`;
   const routeKey = payload.route_key || payload.routing_hint?.route_key || routingTrace.routeKey || `${routingTrace.topicType}/${routingTrace.complexityLevel}`;
   const docs = (payload.retrieved_docs || payload.results || payload.items || [])
@@ -696,19 +713,20 @@ function mapSearchData(payload: BackendSearchData, params: {
   };
 }
 
-function toRoutingTrace(input: BackendRoutingTrace | undefined, fallbackCategory: string): RoutingTrace {
-  const fallback = buildRoutingTrace(fallbackCategory);
+function toRoutingTrace(input: BackendRoutingTrace | undefined, fallbackCategory: string, fallbackSegments?: string[]): RoutingTrace {
+  const fallback = buildRoutingTraceWithSegments(fallbackCategory, fallbackSegments || []);
   const topicType = normalizeTopicType(input?.topic_type) || fallback.topicType;
   const complexityLevel = normalizeComplexityLevel(input?.complexity_level) || fallback.complexityLevel;
   const complexityTrace = input?.complexity_trace || {};
+  const requestSegments = preferDetailedSegments(input?.request_segments, fallback.requestSegments);
 
   return {
     topicType,
     complexityLevel,
     complexityScore: Number(input?.complexity_score ?? fallback.complexityScore),
-    requestSegments: input?.request_segments || [],
+    requestSegments,
     complexityTrace: {
-      intent_count: Number(complexityTrace.intent_count ?? fallback.complexityTrace.intent_count),
+      intent_count: Math.max(requestSegments.length, Number(complexityTrace.intent_count ?? fallback.complexityTrace.intent_count)),
       constraint_count: Number(complexityTrace.constraint_count ?? fallback.complexityTrace.constraint_count),
       entity_diversity: Number(complexityTrace.entity_diversity ?? fallback.complexityTrace.entity_diversity),
       policy_reference_count: Number(complexityTrace.policy_reference_count ?? fallback.complexityTrace.policy_reference_count),
@@ -772,6 +790,32 @@ function toBackendRoutingHint(hint?: RoutingHint): BackendRoutingHint | undefine
   };
 }
 
+function toBackendRoutingTrace(
+  trace: RoutingTrace | undefined,
+  caseContext: WorkbenchCaseContext | undefined,
+  hint?: RoutingHint,
+): BackendRoutingTrace | undefined {
+  const fallbackTrace = buildRoutingTraceWithSegments(caseContext?.category || "일반", caseContext?.requestSegments || []);
+  const sourceTrace = trace || (fallbackTrace.requestSegments?.length ? fallbackTrace : undefined);
+  if (!sourceTrace) return undefined;
+
+  const requestSegments = preferDetailedSegments(sourceTrace.requestSegments, caseContext?.requestSegments);
+  return {
+    topic_type: sourceTrace.topicType || hint?.topicType || fallbackTrace.topicType,
+    complexity_level: sourceTrace.complexityLevel || hint?.complexityLevel || fallbackTrace.complexityLevel,
+    complexity_score: Number(sourceTrace.complexityScore ?? fallbackTrace.complexityScore),
+    request_segments: requestSegments,
+    complexity_trace: {
+      ...sourceTrace.complexityTrace,
+      intent_count: Math.max(requestSegments.length, sourceTrace.complexityTrace?.intent_count || 1),
+    },
+    route_reason: sourceTrace.routeReason || "선택된 민원의 요청 세그먼트를 초안 생성에 전달했습니다.",
+    route_key: hint?.route_key || sourceTrace.routeKey,
+    strategy_id: hint?.strategy_id || sourceTrace.strategyId,
+    applied_filters: sourceTrace.appliedFilters || {},
+  };
+}
+
 function toQaSearchResult(item: RetrievedDoc) {
   const caseId = item.caseId || item.case_id || item.docId;
   return {
@@ -788,6 +832,10 @@ function mapQaData(payload: BackendQaData, params: {
   query: string;
   caseContext?: WorkbenchCaseContext;
 }): QaResponseData {
+  const requestSegments = preferDetailedSegments(
+    payload.structured_output?.request_segments,
+    params.caseContext?.requestSegments,
+  );
   return {
     complaintId: payload.complaint_id || params.complaintId,
     answer: payload.answer || "",
@@ -796,7 +844,7 @@ function mapQaData(payload: BackendQaData, params: {
     structuredOutput: {
       summary: payload.structured_output?.summary || params.caseContext?.summary || params.query,
       actionItems: payload.structured_output?.action_items || [],
-      requestSegments: payload.structured_output?.request_segments || [params.caseContext?.summary || params.query].filter(Boolean),
+      requestSegments: requestSegments.length > 0 ? requestSegments : [params.caseContext?.summary || params.query].filter(Boolean),
     },
   };
 }
@@ -865,6 +913,7 @@ function mockQaData(params: {
 }): QaResponseData {
   const summary = params.caseContext?.summary || params.query || "민원 내용을 검토했습니다.";
   const department = params.routingHint?.suggestedDepartment || suggestDepartment(params.caseContext?.category);
+  const requestSegments = deriveMockRequestSegments(summary, params.caseContext?.requestSegments);
   const answer = [
     `안녕하세요. 접수하신 민원(${params.complaintId})은 ${department}에서 검토하겠습니다.`,
     "현장 확인 및 관련 부서 협의를 거쳐 처리 가능 여부와 예정 일정을 안내드리겠습니다.",
@@ -878,14 +927,32 @@ function mockQaData(params: {
     limitations: ["백엔드 API 호출 실패 후 프론트엔드 목업 데이터로 생성되었습니다."],
     structuredOutput: {
       summary,
-      actionItems: [
-        "담당 부서 배정 및 접수 내용 확인",
-        "현장 또는 관련 자료 확인",
-        "민원인에게 처리 계획 안내",
-      ],
-      requestSegments: [summary].filter(Boolean),
+      actionItems: requestSegments.map((segment) => `${segment} 관련 확인 및 안내`),
+      requestSegments,
     },
   };
+}
+
+function deriveMockRequestSegments(summary: string, explicitSegments?: string[]) {
+  const cleaned = normalizeSegments(explicitSegments);
+  if (cleaned.length > 0) return cleaned;
+  return [summary].filter(Boolean);
+}
+
+function preferDetailedSegments(primary?: string[], fallback?: string[]): string[] {
+  const primarySegments = normalizeSegments(primary);
+  const fallbackSegments = normalizeSegments(fallback);
+  if (fallbackSegments.length > primarySegments.length && fallbackSegments.length > 1) return fallbackSegments;
+  if (primarySegments.length > 1) return primarySegments;
+  if (fallbackSegments.length > 1) return fallbackSegments;
+  if (primarySegments.length > 0) return primarySegments;
+  return fallbackSegments;
+}
+
+function normalizeSegments(segments?: string[]): string[] {
+  return (segments || [])
+    .map((segment) => String(segment || "").split(/\s+/).join(" "))
+    .filter(Boolean);
 }
 
 function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> | null {

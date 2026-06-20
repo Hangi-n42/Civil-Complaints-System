@@ -142,7 +142,7 @@ def _build_routing_payload(query: str) -> dict:
         "chunk_policy": routing_decision.applied_params.chunk_policy,
         "retrieval_policy": routing_decision.retrieval_policy,
     }
-    merge_policy = "dedupe_max_score" if len(request_segments) > 1 else "single_query"
+    merge_policy = "segment_aware_dedupe" if len(request_segments) > 1 else "single_query"
 
     return {
         "strategy_id": routing_decision.strategy_id,
@@ -305,12 +305,11 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
     }
     routing["routing_hint"].update(fixed_search_hint)
     routing["applied_params"].update(fixed_search_hint)
-    routing["merge_policy"] = "single_query"
-    routing["routing_trace"]["merge_policy"] = "single_query"
+    segment_count = routing["routing_trace"]["segment_count"]
     routing["routing_trace"]["route_reason"] = (
-        "answer_hint_only; "
+        f"{'segment_aware_search' if segment_count > 1 else 'single_query_search'}; "
         f"complexity={routing['routing_trace']['complexity_level']}; "
-        f"top_k={request.top_k}; chunk_policy=balanced"
+        f"segments={segment_count}; top_k={request.top_k}; chunk_policy=balanced"
     )
     service = get_retrieval_service()
 
@@ -335,7 +334,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             filters=filters,
             collection_name=request.collection_name,
             topic_type=routing["routing_trace"]["topic_type"],
-            request_segments=None,
+            request_segments=routing["request_segments"] if segment_count > 1 else None,
             retrieval_policy=routing["retrieval_policy"],
             snippet_max_chars=fixed_search_hint["snippet_max_chars"],
             query_signals=request.query_signals.model_dump() if request.query_signals else None,
