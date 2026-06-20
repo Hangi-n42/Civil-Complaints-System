@@ -253,7 +253,11 @@ export async function fetchAdminOverviewApi(year?: string, categories?: string[]
 // 카드가 이미 FE-shaped라 snake_case를 유지하고 별도 camelCase 매퍼를 두지 않는다.
 
 export type IntelDashboardSummary = {
+  as_of?: string | null;
+  latest_event_at?: string | null;
+  event_count?: number;
   alert_count: number;
+  active_alert_count?: number;
   critical_alert_count: number;
   public_insight_count: number;
   high_priority_insight_count: number;
