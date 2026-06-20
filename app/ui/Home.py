@@ -2323,7 +2323,14 @@ def resolve_qa_contract(case: Dict[str, Any], top_k: int = 5) -> Dict[str, Any]:
             "snippet_max_chars": 1100,
             "chunk_policy": "balanced",
         }
-    return {"complaint_id": complaint_id, "routing_hint": routing_hint}
+    routing_trace = search_contract.get("routing_trace")
+    if not isinstance(routing_trace, dict):
+        routing_trace = None
+    return {
+        "complaint_id": complaint_id,
+        "routing_hint": routing_hint,
+        "routing_trace": routing_trace,
+    }
 
 
 def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
@@ -2347,10 +2354,12 @@ def run_workbench_qa(prompt: str, case: Dict[str, Any]) -> None:
 
     with st.spinner("AI 어시스턴트가 답변을 생성 중입니다... (약 8~12초)"):
         start_ts = time.time()
+        routing_trace = qa_payload.get("routing_trace")
         qa_data, qa_err = run_qa_via_api(
             complaint_id=str(qa_payload.get("complaint_id") or ""),
             query=str(qa_payload.get("query") or ""),
             routing_hint=dict(qa_payload.get("routing_hint") or {}),
+            routing_trace=routing_trace if isinstance(routing_trace, dict) else None,
             top_k=int(qa_payload.get("top_k") or 5),
             use_search_results=bool(qa_payload.get("use_search_results")),
             search_results=qa_payload.get("search_results") or [],
@@ -2582,10 +2591,12 @@ def run_single_call_qa(case: Dict[str, Any]) -> None:
     delay_seconds = random.uniform(8.0, 12.0)
     with st.spinner("내부 검색 모드로 /api/v1/qa 호출 중... (약 8~12초)"):
         start_ts = time.time()
+        routing_trace = payload.get("routing_trace")
         qa_data, qa_err = run_qa_via_api(
             complaint_id=str(payload.get("complaint_id") or ""),
             query=str(payload.get("query") or ""),
-            routing_hint=resolve_qa_contract(case, top_k=5)["routing_hint"],
+            routing_hint=dict(payload.get("routing_hint") or {}),
+            routing_trace=routing_trace if isinstance(routing_trace, dict) else None,
             top_k=int(payload.get("top_k") or 5),
             use_search_results=bool(payload.get("use_search_results")),
             search_results=payload.get("search_results") or [],

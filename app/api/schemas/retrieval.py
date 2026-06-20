@@ -261,6 +261,7 @@ class RoutingTrace(BaseModel):
     segment_count: Optional[int] = None
     merge_policy: Optional[str] = None
     retrieval_policy: Optional[str] = None
+    warnings: List[str] = Field(default_factory=list)
 
 
 class SearchSummary(BaseModel):

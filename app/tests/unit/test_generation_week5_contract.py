@@ -48,6 +48,20 @@ class _StubGenerationService:
         }
 
 
+class _TraceCapturingGenerationService(_StubGenerationService):
+    def __init__(self):
+        self.routing_trace = None
+
+    async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
+        self.routing_trace = routing_trace
+        return await super().generate_qa(
+            query,
+            context,
+            routing_trace=routing_trace,
+            query_signals=query_signals,
+        )
+
+
 class _StubCitationMapper:
     def validate_citations_against_context(self, citations, retrieval_context):
         return True, 0, []
@@ -219,6 +233,34 @@ def _assert_civil_llm_rubric_attached(data: dict) -> None:
     assert rubric["safety_layer"]["final_q0_score_0_10"] == quality["civil_llm_rubric_q0"]
 
 
+def _routing_trace(
+    *,
+    request_segments: list[str] | None = None,
+    route_key: str = "welfare/high",
+    strategy_id: str = "topic_welfare_high_v1",
+) -> dict:
+    return {
+        "topic_type": route_key.split("/", 1)[0],
+        "complexity_level": route_key.split("/", 1)[1],
+        "complexity_score": 0.82,
+        "request_segments": request_segments or ["보수 지연 확인", "관리비 이의제기 처리"],
+        "complexity_trace": {
+            "intent_count": 2,
+            "constraint_count": 0,
+            "entity_diversity": 1,
+            "policy_reference_count": 0,
+            "cross_sentence_dependency": False,
+        },
+        "route_reason": "segment_aware_search; complexity=high; segments=2",
+        "route_key": route_key,
+        "strategy_id": strategy_id,
+        "applied_filters": {},
+        "segment_count": len(request_segments or ["보수 지연 확인", "관리비 이의제기 처리"]),
+        "merge_policy": "segment_aware_dedupe",
+        "retrieval_policy": "admin_policy",
+    }
+
+
 def test_qa_requires_routing_hint(monkeypatch):
     client = TestClient(app)
     response = client.post(
@@ -258,6 +300,31 @@ def test_qa_rejects_inconsistent_strategy_and_route_key(monkeypatch):
     body = response.json()
     assert body["success"] is False
     assert body["error"]["code"] == "ROUTING_STRATEGY_INCONSISTENT"
+
+
+def test_qa_rejects_routing_trace_hint_mismatch(monkeypatch):
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-MISMATCH",
+            "query": "임대주택 보수 지연과 관리비 기준을 확인해주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "routing_trace": _routing_trace(route_key="general/high"),
+        },
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "ROUTING_STRATEGY_INCONSISTENT"
+    assert body["error"]["message"] == "routing_trace.route_key and routing_hint.route_key are inconsistent"
 
 
 def test_qa_rejects_malformed_route_key(monkeypatch):
@@ -395,6 +462,65 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert data["quality_signals"]["hallucination_flag"] is True
 
 
+def test_qa_preserves_search_routing_trace_request_segments(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    canonical_segments = ["보수 지연 확인", "관리비 이의제기 처리"]
+    generation_service = _TraceCapturingGenerationService()
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "보수 지연과 관리비 이의제기는 담당 부서 검토를 거칩니다.",
+                "score": 0.91,
+            }
+        ]
+    )
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: generation_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-SEGMENTS",
+            "query": "임대주택 보수 지연과 관리비 기준을 확인해주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "routing_trace": _routing_trace(request_segments=canonical_segments),
+            "use_search_results": True,
+            "search_results": retrieval_service.results,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["routing_trace"]["request_segments"] == canonical_segments
+    assert data["structured_output"]["request_segments"] == canonical_segments
+    assert generation_service.routing_trace["request_segments"] == canonical_segments
+
+
 def test_qa_internal_search_enables_grounding_filter(monkeypatch):
     from app.api.routers import generation as generation_router
 
@@ -446,6 +572,63 @@ def test_qa_internal_search_enables_grounding_filter(monkeypatch):
     assert retrieval_service.calls
     assert retrieval_service.calls[0]["grounding_filter"] is True
     assert retrieval_service.calls[0]["top_k"] == 5
+
+
+def test_qa_internal_search_passes_canonical_request_segments(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    canonical_segments = ["보수 지연 확인", "관리비 이의제기 처리"]
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-001",
+                "chunk_id": "CASE-1__chunk-0",
+                "case_id": "CASE-1",
+                "snippet": "보수 지연과 관리비 이의제기는 담당 부서 검토를 거칩니다.",
+                "score": 0.91,
+            }
+        ]
+    )
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: _StubGenerationService(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-INTERNAL-SEGMENTS",
+            "query": "임대주택 보수 지연과 관리비 기준을 확인해주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_welfare_high_v1",
+                "route_key": "welfare/high",
+                "top_k": 9,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "routing_trace": _routing_trace(request_segments=canonical_segments),
+        },
+    )
+
+    assert response.status_code == 200
+    search_call = retrieval_service.calls[0]
+    assert search_call["request_segments"] == canonical_segments
+    assert search_call["topic_type"] == "welfare"
+    assert search_call["retrieval_policy"] == "admin_policy"
+    assert response.json()["data"]["routing_trace"]["request_segments"] == canonical_segments
 
 
 def test_qa_reused_search_results_are_filtered_before_generation(monkeypatch):
