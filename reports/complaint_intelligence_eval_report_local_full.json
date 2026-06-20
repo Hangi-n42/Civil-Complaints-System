@@ -1,0 +1,3461 @@
+{
+  "evaluation_name": "complaint_intelligence_issue_and_public_insight_quality",
+  "scenario_file": "data\\evaluation\\complaint_intelligence_eval_scenarios.json",
+  "provider": "local",
+  "model": "exaone3.5:7.8b",
+  "base_url": "http://localhost:11434",
+  "demo_thresholds": false,
+  "scenario_count_requested": 13,
+  "scenario_count_evaluated": 13,
+  "limited_reason": null,
+  "scenario_count": 13,
+  "total_duration_seconds": 1637.01,
+  "targets": {
+    "fallback_rate": "<=0.25",
+    "direct_llm_success_rate": ">=0.75",
+    "json_parse_failure_count": "0",
+    "schema_validation_failure_count": "0",
+    "pii_leak_rate": "0",
+    "forbidden_ai_ops_term_rate": "0"
+  },
+  "target_results": {
+    "fallback_rate_met": true,
+    "direct_llm_success_rate_met": true,
+    "json_parse_failure_count_met": true,
+    "schema_validation_failure_count_met": true,
+    "pii_leak_rate_met": true,
+    "forbidden_ai_ops_term_rate_met": true
+  },
+  "summary": {
+    "overall_pass_rate": 0.5385,
+    "issue_detection": {
+      "scenario_count": 13,
+      "positive_scenario_count": 11,
+      "negative_scenario_count": 2,
+      "alert_recall": 1.0,
+      "alert_precision_on_negative": 1.0,
+      "expected_alert_hit_rate": 1.0,
+      "expected_topic_hit_rate": 1.0,
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "avg_alert_confidence": 0.7477,
+      "avg_surge_ratio": 4.4679,
+      "avg_recent_count": 4.4679
+    },
+    "public_agency_insight": {
+      "insight_presence_rate": 0.8462,
+      "expected_type_hit_rate": 1.0,
+      "required_aspect_hit_rate": 0.8462,
+      "required_action_type_hit_rate": 0.6154,
+      "action_evidence_coverage_rate": 0.8462,
+      "evidence_pack_presence_rate": 0.8462,
+      "grounding_pass_rate": 1.0,
+      "avg_grounding_score": 0.8462,
+      "avg_confidence": 0.7157,
+      "avg_actionability_score": 0.8154,
+      "fallback_rate": 0.0769,
+      "forbidden_ai_ops_term_rate": 0.0,
+      "pii_leak_rate": 0.0,
+      "human_review_requirement_pass_rate": 0.9231
+    }
+  },
+  "llm_evaluation": {
+    "providers": [
+      "local"
+    ],
+    "models": [
+      "exaone3.5:7.8b"
+    ],
+    "prompt_modes": [
+      "compact"
+    ],
+    "scenario_count": 13,
+    "candidate_count": 11,
+    "direct_llm_success_count": 10,
+    "fallback_count": 1,
+    "llm_failure_count": 1,
+    "fallback_rate": 0.0909,
+    "direct_llm_success_rate": 0.9091,
+    "json_parse_failure_count": 0,
+    "schema_validation_failure_count": 0,
+    "grounding_failure_count": 0,
+    "quality_gate_failure_count": 0,
+    "fallback_due_to_empty_actions_count": 0,
+    "invalid_evidence_id_count": 0,
+    "action_repair_attempt_count": 11,
+    "action_repair_success_count": 0,
+    "action_retry_attempt_count": 0,
+    "action_retry_success_count": 0,
+    "empty_actions_after_repair_count": 0,
+    "avg_llm_duration_ms": 148790.284,
+    "avg_retry_duration_ms": 0.0,
+    "p95_llm_duration_ms": 197981.512,
+    "raw_response_debug_enabled": false
+  },
+  "scenarios": [
+    {
+      "scenario_id": "sinkhole_hotspot",
+      "label": "도로 침하/싱크홀 급증",
+      "scenario_type": "positive_alert",
+      "source_policy": "real_text_excerpt_replayed_time",
+      "real_event_count": 6,
+      "synthetic_event_count": 0,
+      "event_count": 6,
+      "run_id": "ci-run-b58a5e64a9c8",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 1,
+        "severe_alert_count": 1,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.9964,
+        "avg_surge_ratio": 6.0,
+        "avg_recent_count": 6.0
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "demo-sinkhole_hotspot-001",
+          "demo-sinkhole_hotspot-002",
+          "demo-sinkhole_hotspot-003",
+          "demo-sinkhole_hotspot-004",
+          "demo-sinkhole_hotspot-005",
+          "demo-sinkhole_hotspot-006"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-283922903a3d",
+          "severity": "CRITICAL",
+          "topic": "도로 침하/싱크홀 위험",
+          "region": "중구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.9964
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-56deead250d7",
+          "type": "SAFETY_RISK_SIGNAL",
+          "priority": "HIGH",
+          "topic": "도로 침하/싱크홀 위험",
+          "affected_count": 6,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "aspects": [
+            "현장 안전",
+            "시설 파손",
+            "접근성/사용성"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "demo-sinkhole_hotspot-001",
+        "demo-sinkhole_hotspot-002",
+        "demo-sinkhole_hotspot-003",
+        "demo-sinkhole_hotspot-004",
+        "demo-sinkhole_hotspot-005",
+        "demo-sinkhole_hotspot-006"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 197981.512,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          197981.512
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 197981.512,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "sinkhole_hotspot",
+          "scenario_label": "도로 침하/싱크홀 급증",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "도로 침하 관련 안전 위험 신호",
+            "summary": "중구 지역에서 최근 3시간 동안 도로 침하 관련 민원이 급증하여 안전 위험이 확인됨.",
+            "problem_diagnosis": "도로 침하 관련 민원 급증으로 인한 현장 안전 위협 증가",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "지하수 변화나 지반 불안정으로 인한 도로 침하 발생 가능성",
+                "supporting_evidence_ids": [
+                  "demo-sinkhole_hotspot-001",
+                  "demo-sinkhole_hotspot-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "긴급 현장 점검",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "demo-sinkhole_hotspot-001",
+                  "demo-sinkhole_hotspot-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "지반 상태 정확한 분석 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-56deead250d7",
+            "type": "SAFETY_RISK_SIGNAL",
+            "priority": "HIGH",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "도로 침하 관련 안전 위험 신호",
+            "summary": "중구 지역에서 최근 3시간 동안 도로 침하 관련 민원이 급증하여 안전 위험이 확인됨.",
+            "problem_diagnosis": "도로 침하 관련 민원 급증으로 인한 현장 안전 위협 증가",
+            "recommended_actions": [
+              {
+                "action": "긴급 현장 점검",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "demo-sinkhole_hotspot-001",
+                  "demo-sinkhole_hotspot-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "demo-sinkhole_hotspot-001",
+              "demo-sinkhole_hotspot-002",
+              "demo-sinkhole_hotspot-003",
+              "demo-sinkhole_hotspot-004",
+              "demo-sinkhole_hotspot-005",
+              "demo-sinkhole_hotspot-006"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "demo-sinkhole_hotspot-001",
+              "masked_text": "도로 포트홀 및 침하 발생시 대처방법 도로 포트홀 및 침하 발생시 대처방법"
+            },
+            {
+              "evidence_id": "demo-sinkhole_hotspot-002",
+              "masked_text": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지? 도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?"
+            },
+            {
+              "evidence_id": "demo-sinkhole_hotspot-003",
+              "masked_text": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요? 도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?"
+            },
+            {
+              "evidence_id": "demo-sinkhole_hotspot-004",
+              "masked_text": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요? (경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?"
+            },
+            {
+              "evidence_id": "demo-sinkhole_hotspot-005",
+              "masked_text": "도로위에 물이 누수현상 및 땅꺼짐 도로위에 물이 누수현상 및 땅꺼짐"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "illegal_parking_enforcement",
+      "label": "불법주정차 특정 시간대 반복",
+      "scenario_type": "positive_alert",
+      "source_policy": "real_text_excerpt_replayed_time",
+      "real_event_count": 6,
+      "synthetic_event_count": 0,
+      "event_count": 6,
+      "run_id": "ci-run-2a9ad1050b07",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 2,
+        "severe_alert_count": 2,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.9184,
+        "avg_surge_ratio": 6.0,
+        "avg_recent_count": 6.0
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "demo-illegal_parking_enforcement-001",
+          "demo-illegal_parking_enforcement-002",
+          "demo-illegal_parking_enforcement-003",
+          "demo-illegal_parking_enforcement-004",
+          "demo-illegal_parking_enforcement-005",
+          "demo-illegal_parking_enforcement-006"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-8559356905a3",
+          "severity": "CRITICAL",
+          "topic": "초등학교 앞 불법주정차",
+          "region": "서구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.9969
+        },
+        {
+          "id": "issue-a56a5d173e9a",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "서구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.84
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-b5a5c91af943",
+          "type": "HOTSPOT_RESPONSE_REQUIRED",
+          "priority": "MEDIUM",
+          "topic": "초등학교 앞 불법주정차",
+          "affected_count": 6,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "ENFORCEMENT"
+          ],
+          "aspects": [
+            "단속 공백",
+            "안내 부족"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "demo-illegal_parking_enforcement-001",
+        "demo-illegal_parking_enforcement-002",
+        "demo-illegal_parking_enforcement-003",
+        "demo-illegal_parking_enforcement-004",
+        "demo-illegal_parking_enforcement-005",
+        "demo-illegal_parking_enforcement-006"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 153125.983,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          153125.983
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 153125.983,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "illegal_parking_enforcement",
+          "scenario_label": "불법주정차 특정 시간대 반복",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "초등학교 앞 불법주정차 민원 대응",
+            "summary": "초등학교 주변 불법주정차 민원이 급증, 특히 출퇴근 시간대 단속 부족 지적",
+            "problem_diagnosis": "출퇴근 시간대 불법주정차 단속 부족 및 안내 부족으로 인한 시민 불편",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "단속 인력 부족으로 인한 시간대별 단속 공백 발생",
+                "supporting_evidence_ids": [
+                  "demo-illegal_parking_enforcement-001",
+                  "demo-illegal_parking_enforcement-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "단속 강화 및 안내 표지 보강",
+                "action_type": "ENFORCEMENT",
+                "supporting_evidence_ids": [
+                  "demo-illegal_parking_enforcement-001",
+                  "demo-illegal_parking_enforcement-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "단속 인력 배치의 효율성"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-b5a5c91af943",
+            "type": "HOTSPOT_RESPONSE_REQUIRED",
+            "priority": "MEDIUM",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "초등학교 앞 불법주정차 민원 대응",
+            "summary": "초등학교 주변 불법주정차 민원이 급증, 특히 출퇴근 시간대 단속 부족 지적",
+            "problem_diagnosis": "출퇴근 시간대 불법주정차 단속 부족 및 안내 부족으로 인한 시민 불편",
+            "recommended_actions": [
+              {
+                "action": "단속 강화 및 안내 표지 보강",
+                "action_type": "ENFORCEMENT",
+                "supporting_evidence_ids": [
+                  "demo-illegal_parking_enforcement-001",
+                  "demo-illegal_parking_enforcement-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "demo-illegal_parking_enforcement-001",
+              "demo-illegal_parking_enforcement-002",
+              "demo-illegal_parking_enforcement-003",
+              "demo-illegal_parking_enforcement-004",
+              "demo-illegal_parking_enforcement-005",
+              "demo-illegal_parking_enforcement-006"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "demo-illegal_parking_enforcement-001",
+              "masked_text": "불법주정차 단속 및 거주자우선주차 지역 확대 요청 불법주정차 단속 및 거주자우선주차 지역 확대 요청"
+            },
+            {
+              "evidence_id": "demo-illegal_parking_enforcement-002",
+              "masked_text": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요 고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요"
+            },
+            {
+              "evidence_id": "demo-illegal_parking_enforcement-003",
+              "masked_text": "불법주차한 차량으로 인한 불편 및 위험 불법주차한 차량으로 인한 불편 및 위험"
+            },
+            {
+              "evidence_id": "demo-illegal_parking_enforcement-004",
+              "masked_text": "불법주정차 차량 신고 방법을 알고 싶습니다. 불법주정차 차량 신고 방법을 알고 싶습니다."
+            },
+            {
+              "evidence_id": "demo-illegal_parking_enforcement-005",
+              "masked_text": "불법주정차위반 단속 의견제출 방법 문의 불법주정차위반 단속 의견제출 방법 문의"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "bulky_waste_guidance",
+      "label": "대형폐기물 배출 방법 문의 반복",
+      "scenario_type": "positive_alert",
+      "source_policy": "real_text_excerpt_replayed_time",
+      "real_event_count": 6,
+      "synthetic_event_count": 0,
+      "event_count": 6,
+      "run_id": "ci-run-3454dc19edfd",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 2,
+        "severe_alert_count": 2,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8663,
+        "avg_surge_ratio": 6.0,
+        "avg_recent_count": 6.0
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "demo-bulky_waste_guidance-001",
+          "demo-bulky_waste_guidance-002",
+          "demo-bulky_waste_guidance-003",
+          "demo-bulky_waste_guidance-004",
+          "demo-bulky_waste_guidance-005",
+          "demo-bulky_waste_guidance-006"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-3b91966ffae1",
+          "severity": "CRITICAL",
+          "topic": "대형폐기물 배출 안내",
+          "region": "동구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.8927
+        },
+        {
+          "id": "issue-4029deb1fbf4",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "동구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.84
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-3b47aae2328c",
+          "type": "PUBLIC_GUIDANCE_NEEDED",
+          "priority": "LOW",
+          "topic": "대형폐기물 배출",
+          "affected_count": 6,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "PUBLIC_GUIDANCE"
+          ],
+          "aspects": [
+            "신청 절차",
+            "지원 기준"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "demo-bulky_waste_guidance-001",
+        "demo-bulky_waste_guidance-002",
+        "demo-bulky_waste_guidance-003",
+        "demo-bulky_waste_guidance-004",
+        "demo-bulky_waste_guidance-005",
+        "demo-bulky_waste_guidance-006"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 154856.006,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          154856.006
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 154856.006,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "bulky_waste_guidance",
+          "scenario_label": "대형폐기물 배출 방법 문의 반복",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "대형폐기물 배출 안내 개선 필요",
+            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 지원 기준에 대한 안내 부족이 확인됨.",
+            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 관련 정보에 대한 명확한 안내를 받지 못해 불편을 겪고 있음.",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "현재 제공되는 안내 자료가 충분하지 않거나 이해하기 어려움.",
+                "supporting_evidence_ids": [
+                  "demo-bulky_waste_guidance-001",
+                  "demo-bulky_waste_guidance-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "FAQ/안내 페이지 보강",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "demo-bulky_waste_guidance-001",
+                  "demo-bulky_waste_guidance-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "안내 자료의 효과성 검증 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-3b47aae2328c",
+            "type": "PUBLIC_GUIDANCE_NEEDED",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "대형폐기물 배출 안내 개선 필요",
+            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 지원 기준에 대한 안내 부족이 확인됨.",
+            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 관련 정보에 대한 명확한 안내를 받지 못해 불편을 겪고 있음.",
+            "recommended_actions": [
+              {
+                "action": "FAQ/안내 페이지 보강",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "demo-bulky_waste_guidance-001",
+                  "demo-bulky_waste_guidance-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "demo-bulky_waste_guidance-001",
+              "demo-bulky_waste_guidance-002",
+              "demo-bulky_waste_guidance-003",
+              "demo-bulky_waste_guidance-004",
+              "demo-bulky_waste_guidance-005",
+              "demo-bulky_waste_guidance-006"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "demo-bulky_waste_guidance-001",
+              "masked_text": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법 진북면 대형폐기물 수거 일정 및 스티커 발부 방법"
+            },
+            {
+              "evidence_id": "demo-bulky_waste_guidance-002",
+              "masked_text": "강동구 대형폐기물 배출 신고방법이 궁금합니다. 강동구 대형폐기물 배출 신고방법이 궁금합니다."
+            },
+            {
+              "evidence_id": "demo-bulky_waste_guidance-003",
+              "masked_text": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내 대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내"
+            },
+            {
+              "evidence_id": "demo-bulky_waste_guidance-004",
+              "masked_text": "대형폐기물 수거신청(서울특별시 강동구 암사동) 대형폐기물 수거신청(서울특별시 강동구 암사동)"
+            },
+            {
+              "evidence_id": "demo-bulky_waste_guidance-005",
+              "masked_text": "대형폐기물 배출신고에 대하여 절차가 궁금해요 대형폐기물 배출신고에 대하여 절차가 궁금해요"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "welfare_support_process",
+      "label": "복지 지원 기준/신청 절차 불편 반복",
+      "scenario_type": "positive_alert",
+      "source_policy": "real_text_excerpt_replayed_time",
+      "real_event_count": 6,
+      "synthetic_event_count": 0,
+      "event_count": 6,
+      "run_id": "ci-run-1e48ec1a6833",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "HUMAN_REVIEW_REQUIREMENT_FAILED",
+          "message": "정책/안전 유형에서 human review 요구가 지켜지지 않았습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 3,
+        "severe_alert_count": 3,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8521,
+        "avg_surge_ratio": 6.0,
+        "avg_recent_count": 6.0
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": false,
+        "representative_evidence_ids": [
+          "demo-welfare_support_process-001",
+          "demo-welfare_support_process-002",
+          "demo-welfare_support_process-003",
+          "demo-welfare_support_process-004",
+          "demo-welfare_support_process-005",
+          "demo-welfare_support_process-006"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-9303bb93e4e4",
+          "severity": "CRITICAL",
+          "topic": "복지 지원 신청/기준 안내",
+          "region": "중구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.8963
+        },
+        {
+          "id": "issue-e5636cf67197",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "중구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.84
+        },
+        {
+          "id": "issue-10314b834f96",
+          "severity": "WARNING",
+          "topic": "접근성/사용성 반복 불편",
+          "region": "중구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.82
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-56015bff0adc",
+          "type": "PUBLIC_GUIDANCE_NEEDED",
+          "priority": "LOW",
+          "topic": "복지 지원",
+          "affected_count": 6,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "PUBLIC_GUIDANCE"
+          ],
+          "aspects": [
+            "신청 절차",
+            "지원 기준",
+            "안내 부족"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "demo-welfare_support_process-001",
+        "demo-welfare_support_process-002",
+        "demo-welfare_support_process-003",
+        "demo-welfare_support_process-004",
+        "demo-welfare_support_process-005",
+        "demo-welfare_support_process-006"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 153449.896,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          153449.896
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 153449.896,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "welfare_support_process",
+          "scenario_label": "복지 지원 기준/신청 절차 불편 반복",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "복지 지원 신청 절차 안내 개선 필요",
+            "summary": "중구 지역에서 복지 지원 신청 관련 절차와 기준 이해 어려움으로 인한 민원 증가.",
+            "problem_diagnosis": "신청 전 단계에서 복지 지원 기준과 절차에 대한 명확한 안내 부족으로 시민 혼란 발생.",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "현재 제공되는 안내 자료가 복잡하고 이해하기 어려워 시민들이 어려움을 겪고 있다.",
+                "supporting_evidence_ids": [
+                  "demo-welfare_support_process-001",
+                  "demo-welfare_support_process-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "FAQ/안내 페이지 보강",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "demo-welfare_support_process-001",
+                  "demo-welfare_support_process-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "안내 내용의 효과성 검증 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-56015bff0adc",
+            "type": "PUBLIC_GUIDANCE_NEEDED",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "복지 지원 신청 절차 안내 개선 필요",
+            "summary": "중구 지역에서 복지 지원 신청 관련 절차와 기준 이해 어려움으로 인한 민원 증가.",
+            "problem_diagnosis": "신청 전 단계에서 복지 지원 기준과 절차에 대한 명확한 안내 부족으로 시민 혼란 발생.",
+            "recommended_actions": [
+              {
+                "action": "FAQ/안내 페이지 보강",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "demo-welfare_support_process-001",
+                  "demo-welfare_support_process-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "demo-welfare_support_process-001",
+              "demo-welfare_support_process-002",
+              "demo-welfare_support_process-003",
+              "demo-welfare_support_process-004",
+              "demo-welfare_support_process-005",
+              "demo-welfare_support_process-006"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "demo-welfare_support_process-001",
+              "masked_text": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차 학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차"
+            },
+            {
+              "evidence_id": "demo-welfare_support_process-002",
+              "masked_text": "긴급복지지원은 어떤 대상이 신청할수 있나요? 긴급복지지원은 어떤 대상이 신청할수 있나요?"
+            },
+            {
+              "evidence_id": "demo-welfare_support_process-003",
+              "masked_text": "긴급복지 지원 대상 및 기준 문의 긴급복지 지원 대상 및 기준 문의"
+            },
+            {
+              "evidence_id": "demo-welfare_support_process-004",
+              "masked_text": "주택관리사 자격증 신청절차 및 구비서류 주택관리사 자격증 신청절차 및 구비서류"
+            },
+            {
+              "evidence_id": "demo-welfare_support_process-005",
+              "masked_text": "2026년 기초연금 대상 및 지원 기준, 신청방법 2026년 기초연금 대상 및 지원 기준, 신청방법"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "HUMAN_REVIEW_REQUIREMENT_FAILED"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "odor_night_hotspot",
+      "label": "악취/냄새/하수 민원 야간 집중",
+      "scenario_type": "positive_alert",
+      "source_policy": "real_text_excerpt_replayed_time",
+      "real_event_count": 6,
+      "synthetic_event_count": 0,
+      "event_count": 6,
+      "run_id": "ci-run-ebfece8105e3",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "REQUIRED_ACTION_TYPE_MISSING",
+          "message": "필수 action_type이 추천 조치에 없습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 1,
+        "severe_alert_count": 1,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8942,
+        "avg_surge_ratio": 6.0,
+        "avg_recent_count": 6.0
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": false,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "demo-odor_night_hotspot-001",
+          "demo-odor_night_hotspot-002",
+          "demo-odor_night_hotspot-003",
+          "demo-odor_night_hotspot-004",
+          "demo-odor_night_hotspot-005",
+          "demo-odor_night_hotspot-006"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-153334f26cdc",
+          "severity": "CRITICAL",
+          "topic": "야간 하수 악취",
+          "region": "남구",
+          "recent_count": 6,
+          "surge_ratio": 6.0,
+          "confidence": 0.8942
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-c6c62969488c",
+          "type": "HOTSPOT_RESPONSE_REQUIRED",
+          "priority": "MEDIUM",
+          "topic": "야간 하수 악취",
+          "affected_count": 6,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "aspects": [
+            "안내 부족",
+            "생활환경 불편",
+            "접근성/사용성"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "demo-odor_night_hotspot-001",
+        "demo-odor_night_hotspot-002",
+        "demo-odor_night_hotspot-003",
+        "demo-odor_night_hotspot-004",
+        "demo-odor_night_hotspot-005",
+        "demo-odor_night_hotspot-006"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 141127.093,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          141127.093
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 141127.093,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "odor_night_hotspot",
+          "scenario_label": "악취/냄새/하수 민원 야간 집중",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "야간 악취 민원 대응",
+            "summary": "야간 시간대에 집중된 하수 악취 민원 처리 필요",
+            "problem_diagnosis": "야간 악취 민원 증가로 인한 시민 불편",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "하수 관리 시설의 부적절한 운영 또는 유지보수 부족",
+                "supporting_evidence_ids": [
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "즉시 현장 점검",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "원인 분석 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-c6c62969488c",
+            "type": "HOTSPOT_RESPONSE_REQUIRED",
+            "priority": "MEDIUM",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "야간 악취 민원 대응",
+            "summary": "야간 시간대에 집중된 하수 악취 민원 처리 필요",
+            "problem_diagnosis": "야간 악취 민원 증가로 인한 시민 불편",
+            "recommended_actions": [
+              {
+                "action": "즉시 현장 점검",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "demo-odor_night_hotspot-001",
+              "demo-odor_night_hotspot-002",
+              "demo-odor_night_hotspot-003",
+              "demo-odor_night_hotspot-004",
+              "demo-odor_night_hotspot-005",
+              "demo-odor_night_hotspot-006"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "demo-odor_night_hotspot-001",
+              "masked_text": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다. ▲▲▲공장 하수구 냄새 때문에 너무 불편합니다."
+            },
+            {
+              "evidence_id": "demo-odor_night_hotspot-002",
+              "masked_text": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요? 길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?"
+            },
+            {
+              "evidence_id": "demo-odor_night_hotspot-003",
+              "masked_text": "개인하수처리시설(정화조, 오수처리시설) 폐쇄 개인하수처리시설(정화조, 오수처리시설) 폐쇄"
+            },
+            {
+              "evidence_id": "demo-odor_night_hotspot-004",
+              "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치 개인하수처리시설(정화조, 오수처리시설) 설치"
+            },
+            {
+              "evidence_id": "demo-odor_night_hotspot-005",
+              "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고 개인하수처리시설(정화조, 오수처리시설) 설치/변경신고"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "REQUIRED_ACTION_TYPE_MISSING"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "public_bike_app_ux",
+      "label": "공공자전거/앱 예약·대여 UX 불편",
+      "scenario_type": "positive_alert",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-8bd8a6f1bfcd",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 3,
+        "severe_alert_count": 3,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8508,
+        "avg_surge_ratio": 4.3333,
+        "avg_recent_count": 4.3333
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 0.8,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-public_bike_app_ux-001",
+          "eval-public_bike_app_ux-002",
+          "eval-public_bike_app_ux-003",
+          "eval-public_bike_app_ux-004",
+          "eval-public_bike_app_ux-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-f97765d85b17",
+          "severity": "CRITICAL",
+          "topic": "공공자전거 예약/대여 불편",
+          "region": "성동구",
+          "recent_count": 3,
+          "surge_ratio": 3.0,
+          "confidence": 0.8923
+        },
+        {
+          "id": "issue-749ed35b5f81",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "성동구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.84
+        },
+        {
+          "id": "issue-d0f7c90f1949",
+          "severity": "WARNING",
+          "topic": "접근성/사용성 반복 불편",
+          "region": "성동구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.82
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-1b9dc3286402",
+          "type": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+          "priority": "LOW",
+          "topic": "접근성/사용성 반복 불편",
+          "affected_count": 5,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "SERVICE_DESIGN"
+          ],
+          "aspects": [
+            "신청 절차",
+            "안내 부족",
+            "접근성/사용성"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-public_bike_app_ux-001",
+        "eval-public_bike_app_ux-002",
+        "eval-public_bike_app_ux-003",
+        "eval-public_bike_app_ux-004",
+        "eval-public_bike_app_ux-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 145920.085,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          145920.085
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 145920.085,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "public_bike_app_ux",
+          "scenario_label": "공공자전거/앱 예약·대여 UX 불편",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "공공자전거 앱 사용성 개선 필요",
+            "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원 증가.",
+            "problem_diagnosis": "반복적인 앱 사용 불편 및 오류로 인한 시민 불만 증가",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "앱 인터페이스 설계의 복잡성으로 인한 사용자 혼란",
+                "supporting_evidence_ids": [
+                  "eval-public_bike_app_ux-001",
+                  "eval-public_bike_app_ux-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "앱 인터페이스 단순화",
+                "action_type": "SERVICE_DESIGN",
+                "supporting_evidence_ids": [
+                  "eval-public_bike_app_ux-001",
+                  "eval-public_bike_app_ux-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "현재 데이터 기반으로 장기적 효과 예측 어려움"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-1b9dc3286402",
+            "type": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 0.8,
+            "title": "공공자전거 앱 사용성 개선 필요",
+            "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원 증가.",
+            "problem_diagnosis": "반복적인 앱 사용 불편 및 오류로 인한 시민 불만 증가",
+            "recommended_actions": [
+              {
+                "action": "앱 인터페이스 단순화",
+                "action_type": "SERVICE_DESIGN",
+                "supporting_evidence_ids": [
+                  "eval-public_bike_app_ux-001",
+                  "eval-public_bike_app_ux-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-public_bike_app_ux-001",
+              "eval-public_bike_app_ux-002",
+              "eval-public_bike_app_ux-003",
+              "eval-public_bike_app_ux-004",
+              "eval-public_bike_app_ux-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-public_bike_app_ux-001",
+              "masked_text": "공공자전거 앱 예약 절차가 불편하고 대여 단계가 너무 복잡합니다. 공공자전거 앱 예약 절차가 불편하고 대여 단계가 너무 복잡합니다."
+            },
+            {
+              "evidence_id": "eval-public_bike_app_ux-002",
+              "masked_text": "대여 신청 중 결제 오류가 반복되어 자전거를 빌리지 못했습니다. 대여 신청 중 결제 오류가 반복되어 자전거를 빌리지 못했습니다."
+            },
+            {
+              "evidence_id": "eval-public_bike_app_ux-003",
+              "masked_text": "앱 로그인 후 예약 기준을 이해하기 어려워 현장에서 계속 문의합니다. 앱 로그인 후 예약 기준을 이해하기 어려워 현장에서 계속 문의합니다."
+            },
+            {
+              "evidence_id": "eval-public_bike_app_ux-004",
+              "masked_text": "공공자전거 대여 화면 안내가 부족해서 결제와 예약을 다시 해야 합니다. 공공자전거 대여 화면 안내가 부족해서 결제와 예약을 다시 해야 합니다."
+            },
+            {
+              "evidence_id": "eval-public_bike_app_ux-005",
+              "masked_text": "예약 취소와 재대여 절차가 복잡해 이용이 중단됩니다. 예약 취소와 재대여 절차가 복잡해 이용이 중단됩니다."
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "department_delay_backlog",
+      "label": "부서 처리 지연/미처리 누적",
+      "scenario_type": "positive_operational",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-117bfe7befe3",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "REQUIRED_ACTION_TYPE_MISSING",
+          "message": "필수 action_type이 추천 조치에 없습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 2,
+        "severe_alert_count": 2,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8731,
+        "avg_surge_ratio": 4.5,
+        "avg_recent_count": 4.5
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": false,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-department_delay_backlog-001",
+          "eval-department_delay_backlog-002",
+          "eval-department_delay_backlog-003",
+          "eval-department_delay_backlog-004",
+          "eval-department_delay_backlog-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-b887c462ab02",
+          "severity": "CRITICAL",
+          "topic": "반복 민원",
+          "region": "중구",
+          "recent_count": 4,
+          "surge_ratio": 4.0,
+          "confidence": 0.8863
+        },
+        {
+          "id": "issue-d0fac16ed682",
+          "severity": "WARNING",
+          "topic": "도로관리과 처리 지연/미처리 누적",
+          "region": "중구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.86
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-dd55ec6f57c9",
+          "type": "PROCESS_DELAY_RISK",
+          "priority": "LOW",
+          "topic": "도로관리과 처리 지연/미처리 누적",
+          "affected_count": 5,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "aspects": [
+            "처리 지연",
+            "안내 부족"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-department_delay_backlog-001",
+        "eval-department_delay_backlog-002",
+        "eval-department_delay_backlog-003",
+        "eval-department_delay_backlog-004",
+        "eval-department_delay_backlog-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 137841.971,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          137841.971
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 137841.971,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "department_delay_backlog",
+          "scenario_label": "부서 처리 지연/미처리 누적",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "도로관리과 처리 지연 민원 증가",
+            "summary": "중구 도로관리과에서 처리 지연 민원이 급증하여 시민 불만이 증가하고 있습니다.",
+            "problem_diagnosis": "도로 보수 요청의 처리 지연과 안내 부족으로 인한 민원 누적",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "인력 부족으로 인한 업무 과부하",
+                "supporting_evidence_ids": [
+                  "eval-department_delay_backlog-001",
+                  "eval-department_delay_backlog-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "처리 기준 점검 및 개선",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "eval-department_delay_backlog-001",
+                  "eval-department_delay_backlog-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "인력 현황 및 업무 부하 분석 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-dd55ec6f57c9",
+            "type": "PROCESS_DELAY_RISK",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "도로관리과 처리 지연 민원 증가",
+            "summary": "중구 도로관리과에서 처리 지연 민원이 급증하여 시민 불만이 증가하고 있습니다.",
+            "problem_diagnosis": "도로 보수 요청의 처리 지연과 안내 부족으로 인한 민원 누적",
+            "recommended_actions": [
+              {
+                "action": "처리 기준 점검 및 개선",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "eval-department_delay_backlog-001",
+                  "eval-department_delay_backlog-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-department_delay_backlog-001",
+              "eval-department_delay_backlog-002",
+              "eval-department_delay_backlog-003",
+              "eval-department_delay_backlog-004",
+              "eval-department_delay_backlog-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-department_delay_backlog-001",
+              "masked_text": "도로 보수 요청이 접수된 지 오래됐는데 처리되지 않았습니다. 도로 보수 요청이 접수된 지 오래됐는데 처리되지 않았습니다."
+            },
+            {
+              "evidence_id": "eval-department_delay_backlog-002",
+              "masked_text": "같은 부서 담당 민원이 계속 pending 상태로 남아 있습니다. 같은 부서 담당 민원이 계속 pending 상태로 남아 있습니다."
+            },
+            {
+              "evidence_id": "eval-department_delay_backlog-003",
+              "masked_text": "처리 기간 안내 없이 미처리 상태가 길어져 불편합니다. 처리 기간 안내 없이 미처리 상태가 길어져 불편합니다."
+            },
+            {
+              "evidence_id": "eval-department_delay_backlog-004",
+              "masked_text": "보수 요청 답변이 없어 진행 상황을 확인하고 싶습니다. 보수 요청 답변이 없어 진행 상황을 확인하고 싶습니다."
+            },
+            {
+              "evidence_id": "eval-department_delay_backlog-005",
+              "masked_text": "담당 부서에서 아직 조치 일정을 알려주지 않았습니다. 담당 부서에서 아직 조치 일정을 알려주지 않았습니다."
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "REQUIRED_ACTION_TYPE_MISSING"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "repeat_reopen_growth",
+      "label": "재민원/반복 민원 증가",
+      "scenario_type": "positive_operational",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-2bf244b3f7a3",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "REQUIRED_ASPECT_MISSING",
+          "message": "필수 aspect가 추출되지 않았습니다.",
+          "severity": "error",
+          "details": {}
+        },
+        {
+          "code": "REQUIRED_ACTION_TYPE_MISSING",
+          "message": "필수 action_type이 추천 조치에 없습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 1,
+        "severe_alert_count": 1,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.84,
+        "avg_surge_ratio": 5.0,
+        "avg_recent_count": 5.0
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": false,
+        "required_action_type_hit": false,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-repeat_reopen_growth-001",
+          "eval-repeat_reopen_growth-002",
+          "eval-repeat_reopen_growth-003",
+          "eval-repeat_reopen_growth-004",
+          "eval-repeat_reopen_growth-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-c6567e955591",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "관악구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.84
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-29bc0baecaf5",
+          "type": "REOPEN_OR_REPEAT_RISK",
+          "priority": "LOW",
+          "topic": "재민원/반복 민원 증가",
+          "affected_count": 5,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "PUBLIC_GUIDANCE"
+          ],
+          "aspects": [
+            "안내 부족",
+            "처리 실효성"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-repeat_reopen_growth-001",
+        "eval-repeat_reopen_growth-002",
+        "eval-repeat_reopen_growth-003",
+        "eval-repeat_reopen_growth-004",
+        "eval-repeat_reopen_growth-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 136700.481,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          136700.481
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 136700.481,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "repeat_reopen_growth",
+          "scenario_label": "재민원/반복 민원 증가",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "반복 민원 증가: 안내 및 처리 실효성 문제",
+            "summary": "관악구에서 악취 및 하수 냄새 관련 민원이 반복적으로 접수되고 있으며, 초기 처리 후에도 문제 해결이 미흡한 것으로 나타남.",
+            "problem_diagnosis": "동일 위치 및 주제의 민원이 반복적으로 재민원 상태로 접수되고 있어 초기 처리 및 후속 조치의 실효성에 의문 제기.",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "처리 후 후속 점검 및 안내 부족으로 인한 재발",
+                "supporting_evidence_ids": [
+                  "eval-repeat_reopen_growth-001",
+                  "eval-repeat_reopen_growth-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "처리 완료 안내 개선",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "eval-repeat_reopen_growth-001",
+                  "eval-repeat_reopen_growth-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "안내 개선 효과의 즉각적인 측정 어려움"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-29bc0baecaf5",
+            "type": "REOPEN_OR_REPEAT_RISK",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "반복 민원 증가: 안내 및 처리 실효성 문제",
+            "summary": "관악구에서 악취 및 하수 냄새 관련 민원이 반복적으로 접수되고 있으며, 초기 처리 후에도 문제 해결이 미흡한 것으로 나타남.",
+            "problem_diagnosis": "동일 위치 및 주제의 민원이 반복적으로 재민원 상태로 접수되고 있어 초기 처리 및 후속 조치의 실효성에 의문 제기.",
+            "recommended_actions": [
+              {
+                "action": "처리 완료 안내 개선",
+                "action_type": "PUBLIC_GUIDANCE",
+                "supporting_evidence_ids": [
+                  "eval-repeat_reopen_growth-001",
+                  "eval-repeat_reopen_growth-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-repeat_reopen_growth-001",
+              "eval-repeat_reopen_growth-002",
+              "eval-repeat_reopen_growth-003",
+              "eval-repeat_reopen_growth-004",
+              "eval-repeat_reopen_growth-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-repeat_reopen_growth-001",
+              "masked_text": "악취 민원을 처리했다고 했지만 같은 냄새가 다시 납니다. 악취 민원을 처리했다고 했지만 같은 냄새가 다시 납니다."
+            },
+            {
+              "evidence_id": "eval-repeat_reopen_growth-002",
+              "masked_text": "하수 냄새 신고를 여러 번 했는데 재발해서 다시 접수합니다. 하수 냄새 신고를 여러 번 했는데 재발해서 다시 접수합니다."
+            },
+            {
+              "evidence_id": "eval-repeat_reopen_growth-003",
+              "masked_text": "반복 민원인데 완료 안내 후에도 현장 상태가 바뀌지 않았습니다. 반복 민원인데 완료 안내 후에도 현장 상태가 바뀌지 않았습니다."
+            },
+            {
+              "evidence_id": "eval-repeat_reopen_growth-004",
+              "masked_text": "같은 위치 악취가 계속 반복되어 재점검이 필요합니다. 같은 위치 악취가 계속 반복되어 재점검이 필요합니다."
+            },
+            {
+              "evidence_id": "eval-repeat_reopen_growth-005",
+              "masked_text": "처리 완료라고 안내받았지만 냄새 문제가 다시 발생했습니다. 처리 완료라고 안내받았지만 냄새 문제가 다시 발생했습니다."
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "REQUIRED_ASPECT_MISSING",
+          "REQUIRED_ACTION_TYPE_MISSING"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "construction_noise_time_pattern",
+      "label": "소음/공사 민원 특정 시간대 집중",
+      "scenario_type": "positive_alert",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-e5d6316d8168",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "REQUIRED_ASPECT_MISSING",
+          "message": "필수 aspect가 추출되지 않았습니다.",
+          "severity": "error",
+          "details": {}
+        },
+        {
+          "code": "REQUIRED_ACTION_TYPE_MISSING",
+          "message": "필수 action_type이 추천 조치에 없습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 2,
+        "severe_alert_count": 2,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8681,
+        "avg_surge_ratio": 5.0,
+        "avg_recent_count": 5.0
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": false,
+        "required_action_type_hit": false,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 0.8,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-construction_noise_time_pattern-001",
+          "eval-construction_noise_time_pattern-002",
+          "eval-construction_noise_time_pattern-003",
+          "eval-construction_noise_time_pattern-004",
+          "eval-construction_noise_time_pattern-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-c6efb7bd4df7",
+          "severity": "CRITICAL",
+          "topic": "공사 소음 시간대 집중",
+          "region": "마포구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.8962
+        },
+        {
+          "id": "issue-f09db89471c6",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "마포구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.84
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-ceac56ae7da8",
+          "type": "RECURRING_COMPLAINT_PATTERN",
+          "priority": "LOW",
+          "topic": "불법주정차",
+          "affected_count": 5,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "POLICY_REVIEW"
+          ],
+          "aspects": [
+            "소음 기준 부족",
+            "점검 및 단속 미흡"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-construction_noise_time_pattern-001",
+        "eval-construction_noise_time_pattern-002",
+        "eval-construction_noise_time_pattern-003",
+        "eval-construction_noise_time_pattern-004",
+        "eval-construction_noise_time_pattern-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 149223.323,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          149223.323
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 149223.323,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "construction_noise_time_pattern",
+          "scenario_label": "소음/공사 민원 특정 시간대 집중",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "야간 공사 소음 민원 대응",
+            "summary": "마포구에서 퇴근 후 야간 시간대 공사 소음 관련 민원이 집중적으로 제기되고 있습니다.",
+            "problem_diagnosis": "야간 공사 소음에 대한 명확한 기준 안내와 현장 점검 부족으로 인한 민원 증가",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "야간 공사 소음 관리 기준이 명확하지 않아 단속이 미흡하다.",
+                "supporting_evidence_ids": [
+                  "eval-construction_noise_time_pattern-001",
+                  "eval-construction_noise_time_pattern-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "야간 공사 소음 기준 명시",
+                "action_type": "POLICY_REVIEW",
+                "supporting_evidence_ids": [
+                  "eval-construction_noise_time_pattern-001",
+                  "eval-construction_noise_time_pattern-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "기준 마련 과정에서의 시민 의견 수렴 필요성"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-ceac56ae7da8",
+            "type": "RECURRING_COMPLAINT_PATTERN",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 0.8,
+            "title": "야간 공사 소음 민원 대응",
+            "summary": "마포구에서 퇴근 후 야간 시간대 공사 소음 관련 민원이 집중적으로 제기되고 있습니다.",
+            "problem_diagnosis": "야간 공사 소음에 대한 명확한 기준 안내와 현장 점검 부족으로 인한 민원 증가",
+            "recommended_actions": [
+              {
+                "action": "야간 공사 소음 기준 명시",
+                "action_type": "POLICY_REVIEW",
+                "supporting_evidence_ids": [
+                  "eval-construction_noise_time_pattern-001",
+                  "eval-construction_noise_time_pattern-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-construction_noise_time_pattern-001",
+              "eval-construction_noise_time_pattern-002",
+              "eval-construction_noise_time_pattern-003",
+              "eval-construction_noise_time_pattern-004",
+              "eval-construction_noise_time_pattern-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-construction_noise_time_pattern-005",
+              "masked_text": "퇴근 이후 공사 소음이 집중되어 생활 불편이 큽니다. 퇴근 이후 공사 소음이 집중되어 생활 불편이 큽니다."
+            },
+            {
+              "evidence_id": "eval-construction_noise_time_pattern-004",
+              "masked_text": "같은 시간대 공사 차량 소음이 계속 발생합니다. 같은 시간대 공사 차량 소음이 계속 발생합니다."
+            },
+            {
+              "evidence_id": "eval-construction_noise_time_pattern-003",
+              "masked_text": "야간 작업 소음 기준 안내와 현장 점검을 요청합니다. 야간 작업 소음 기준 안내와 현장 점검을 요청합니다."
+            },
+            {
+              "evidence_id": "eval-construction_noise_time_pattern-002",
+              "masked_text": "밤마다 공사장 소음이 반복되어 단속이 필요합니다. 밤마다 공사장 소음이 반복되어 단속이 필요합니다."
+            },
+            {
+              "evidence_id": "eval-construction_noise_time_pattern-001",
+              "masked_text": "새벽 공사 소음과 진동 때문에 잠을 잘 수 없습니다. 새벽 공사 소음과 진동 때문에 잠을 잘 수 없습니다."
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "REQUIRED_ASPECT_MISSING",
+          "REQUIRED_ACTION_TYPE_MISSING"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "accessibility_usage_barrier",
+      "label": "접근성/고령자·장애인 이용 어려움",
+      "scenario_type": "positive_alert",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-52ba8991dcf6",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 4,
+        "severe_alert_count": 4,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.8424,
+        "avg_surge_ratio": 4.25,
+        "avg_recent_count": 4.25
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": true,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-accessibility_usage_barrier-001",
+          "eval-accessibility_usage_barrier-002",
+          "eval-accessibility_usage_barrier-004",
+          "eval-accessibility_usage_barrier-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-4ce7b42d6076",
+          "severity": "CRITICAL",
+          "topic": "대형폐기물 배출 안내",
+          "region": "중구",
+          "recent_count": 3,
+          "surge_ratio": 3.0,
+          "confidence": 0.8897
+        },
+        {
+          "id": "issue-e5636cf67197",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "중구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.84
+        },
+        {
+          "id": "issue-04fc65c89252",
+          "severity": "WARNING",
+          "topic": "공공자전거 예약/대여 불편",
+          "region": "중구",
+          "recent_count": 4,
+          "surge_ratio": 4.0,
+          "confidence": 0.82
+        },
+        {
+          "id": "issue-10314b834f96",
+          "severity": "WARNING",
+          "topic": "접근성/사용성 반복 불편",
+          "region": "중구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.82
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-a34bfbc4ecf9",
+          "type": "SERVICE_DESIGN_IMPROVEMENT",
+          "priority": "LOW",
+          "topic": "공공자전거 예약/대여 불편",
+          "affected_count": 4,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "SERVICE_DESIGN"
+          ],
+          "aspects": [
+            "신청 절차",
+            "안내 부족",
+            "접근성/사용성",
+            "소통 부족"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-accessibility_usage_barrier-001",
+        "eval-accessibility_usage_barrier-002",
+        "eval-accessibility_usage_barrier-004",
+        "eval-accessibility_usage_barrier-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 0,
+        "llm_failure_count": 1,
+        "fallback_count": 1,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 148296.922,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          148296.922
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {
+          "QUALITY_GATE_FAILED": 1
+        },
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": false,
+      "fallback_used": true,
+      "fallback_reason": {
+        "QUALITY_GATE_FAILED": 1
+      },
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 148296.922,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "accessibility_usage_barrier",
+          "scenario_label": "접근성/고령자·장애인 이용 어려움",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": false,
+          "fallback_used": true,
+          "fallback_reason": "QUALITY_GATE_FAILED",
+          "llm_draft_summary": {
+            "title": "공공자전거 앱 접근성 개선 필요",
+            "summary": "중구 지역에서 고령자와 장애인의 공공자전거 앱 사용 불편 지속",
+            "problem_diagnosis": "고령자와 장애인 대상 앱 접근성 및 안내 부족으로 인한 이용 어려움",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "현재 앱 디자인이 디지털 취약계층에게 부적합하다.",
+                "supporting_evidence_ids": [
+                  "eval-accessibility_usage_barrier-001",
+                  "eval-accessibility_usage_barrier-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "앱 UX 문구 개선",
+                "action_type": "SERVICE_DESIGN",
+                "supporting_evidence_ids": [
+                  "eval-accessibility_usage_barrier-001",
+                  "eval-accessibility_usage_barrier-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "UX 개선 효과의 지속성",
+              "피드백 반영 속도"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-a34bfbc4ecf9",
+            "type": "SERVICE_DESIGN_IMPROVEMENT",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "중구 공공자전거 예약/대여 불편 관련 반복 민원 개선 검토",
+            "summary": "2026-05-21부터 2026-06-20까지 중구에서 공공자전거 예약/대여 불편 관련 민원 4건이 확인되었습니다.",
+            "problem_diagnosis": "민원 내용상 신청 절차 관련 불편이 반복됩니다.",
+            "recommended_actions": [
+              {
+                "action": "신청/예약/이용 절차 단순화 검토",
+                "action_type": "SERVICE_DESIGN",
+                "supporting_evidence_ids": [
+                  "eval-accessibility_usage_barrier-001",
+                  "eval-accessibility_usage_barrier-002",
+                  "eval-accessibility_usage_barrier-004"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-accessibility_usage_barrier-001",
+              "eval-accessibility_usage_barrier-002",
+              "eval-accessibility_usage_barrier-004",
+              "eval-accessibility_usage_barrier-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-accessibility_usage_barrier-001",
+              "masked_text": "고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다. 고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다."
+            },
+            {
+              "evidence_id": "eval-accessibility_usage_barrier-002",
+              "masked_text": "장애인 이용자가 예약 화면에서 필요한 버튼을 찾기 어렵습니다. 장애인 이용자가 예약 화면에서 필요한 버튼을 찾기 어렵습니다."
+            },
+            {
+              "evidence_id": "eval-accessibility_usage_barrier-004",
+              "masked_text": "디지털 취약계층이 로그인과 본인 확인 단계에서 계속 막힙니다. 디지털 취약계층이 로그인과 본인 확인 단계에서 계속 막힙니다."
+            },
+            {
+              "evidence_id": "eval-accessibility_usage_barrier-005",
+              "masked_text": "앱 화면 접근성이 낮아 상담창구 문의가 반복됩니다. 앱 화면 접근성이 낮아 상담창구 문의가 반복됩니다."
+            },
+            {
+              "evidence_id": "eval-accessibility_usage_barrier-001",
+              "masked_text": "고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다. 접근성 부족으로 신청 중단과 반복 문의가 발생합니다. 고령자와 장애인을 위한 쉬운 안내와 대체 신청 경로를 요청합니다. 디지털 취약계층 관련 이용"
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "fallback template 기반 결과이므로 Local LLM draft 품질 판단에는 제한이 있습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "streetlight_failure_recurring",
+      "label": "가로등/보안등 고장 반복",
+      "scenario_type": "positive_alert",
+      "source_policy": "synthetic_evaluation_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-15d19b96c550",
+      "passed": false,
+      "issue_detection_passed": true,
+      "insight_passed": false,
+      "quality_gate_passed": true,
+      "failures": [
+        {
+          "code": "REQUIRED_ACTION_TYPE_MISSING",
+          "message": "필수 action_type이 추천 조치에 없습니다.",
+          "severity": "error",
+          "details": {}
+        }
+      ],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": true,
+        "alert_count": 2,
+        "severe_alert_count": 2,
+        "expected_topic_hit": true,
+        "avg_alert_confidence": 0.9183,
+        "avg_surge_ratio": 5.0,
+        "avg_recent_count": 5.0
+      },
+      "public_agency_insight": {
+        "passed": false,
+        "insight_count": 1,
+        "matched_expected_insight_count": 1,
+        "expected_type_required": true,
+        "expected_type_hit": true,
+        "required_aspect_hit": true,
+        "required_action_type_hit": false,
+        "action_evidence_coverage_rate": 1.0,
+        "evidence_pack_presence_rate": 1.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 1.0,
+        "avg_confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": [
+          "eval-streetlight_failure_recurring-001",
+          "eval-streetlight_failure_recurring-002",
+          "eval-streetlight_failure_recurring-003",
+          "eval-streetlight_failure_recurring-004",
+          "eval-streetlight_failure_recurring-005"
+        ]
+      },
+      "generated_alerts": [
+        {
+          "id": "issue-cea3a384ade1",
+          "severity": "CRITICAL",
+          "topic": "가로등/보안등 고장",
+          "region": "중구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.9967
+        },
+        {
+          "id": "issue-e5636cf67197",
+          "severity": "WARNING",
+          "topic": "재민원/반복 민원 증가",
+          "region": "중구",
+          "recent_count": 5,
+          "surge_ratio": 5.0,
+          "confidence": 0.84
+        }
+      ],
+      "generated_insights": [
+        {
+          "insight_id": "public-insight-7fb5f3552e80",
+          "type": "RECURRING_COMPLAINT_PATTERN",
+          "priority": "LOW",
+          "topic": "가로등/보안등",
+          "affected_count": 5,
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "aspects": [
+            "시설 파손",
+            "현장 안전"
+          ]
+        }
+      ],
+      "representative_evidence_ids": [
+        "eval-streetlight_failure_recurring-001",
+        "eval-streetlight_failure_recurring-002",
+        "eval-streetlight_failure_recurring-003",
+        "eval-streetlight_failure_recurring-004",
+        "eval-streetlight_failure_recurring-005"
+      ],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 1,
+        "insight_count": 1,
+        "direct_llm_success_count": 1,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 118169.856,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [
+          118169.856
+        ],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 1,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "repair_strategy": []
+        },
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "llm_duration_ms": 118169.856,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [
+        {
+          "scenario_id": "streetlight_failure_recurring",
+          "scenario_label": "가로등/보안등 고장 반복",
+          "provider": "local",
+          "model": "exaone3.5:7.8b",
+          "prompt_mode": "compact",
+          "direct_llm_success": true,
+          "fallback_used": false,
+          "fallback_reason": null,
+          "llm_draft_summary": {
+            "title": "가로등 반복 고장 민원 분석",
+            "summary": "중구에서 가로등 반복 고장 민원이 집중적으로 제기되고 있어 야간 보행 안전에 영향을 미칩니다.",
+            "problem_diagnosis": "가로등 고장이 특정 지역에서 반복적으로 발생하여 시민 안전에 위협이 되고 있습니다.",
+            "root_cause_hypotheses": [
+              {
+                "hypothesis": "조명 설비 노후화로 인한 고장 가능성",
+                "supporting_evidence_ids": [
+                  "eval-streetlight_failure_recurring-001",
+                  "eval-streetlight_failure_recurring-002"
+                ]
+              }
+            ],
+            "recommended_actions": [
+              {
+                "action": "가로등 설비 점검 및 보수 계획 수립",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "eval-streetlight_failure_recurring-001",
+                  "eval-streetlight_failure_recurring-002"
+                ]
+              }
+            ],
+            "uncertainty": [
+              "고장 원인의 정확한 파악 필요"
+            ]
+          },
+          "repair_diff": {
+            "invalid_evidence_ids": [],
+            "removed_actions": 0,
+            "repaired_actions": 0,
+            "retry_used": false,
+            "retry_success": false,
+            "retry_failure_reason": null
+          },
+          "final_insight_summary": {
+            "insight_id": "public-insight-7fb5f3552e80",
+            "type": "RECURRING_COMPLAINT_PATTERN",
+            "priority": "LOW",
+            "confidence": 0.8458,
+            "grounding_score": 1.0,
+            "avg_actionability_score": 1.0,
+            "title": "가로등 반복 고장 민원 분석",
+            "summary": "중구에서 가로등 반복 고장 민원이 집중적으로 제기되고 있어 야간 보행 안전에 영향을 미칩니다.",
+            "problem_diagnosis": "가로등 고장이 특정 지역에서 반복적으로 발생하여 시민 안전에 위협이 되고 있습니다.",
+            "recommended_actions": [
+              {
+                "action": "가로등 설비 점검 및 보수 계획 수립",
+                "action_type": "FIELD_INSPECTION",
+                "supporting_evidence_ids": [
+                  "eval-streetlight_failure_recurring-001",
+                  "eval-streetlight_failure_recurring-002"
+                ]
+              }
+            ],
+            "evidence_ids": [
+              "eval-streetlight_failure_recurring-001",
+              "eval-streetlight_failure_recurring-002",
+              "eval-streetlight_failure_recurring-003",
+              "eval-streetlight_failure_recurring-004",
+              "eval-streetlight_failure_recurring-005"
+            ]
+          },
+          "evidence_preview": [
+            {
+              "evidence_id": "eval-streetlight_failure_recurring-001",
+              "masked_text": "공원 입구 가로등이 며칠째 꺼져 있어 밤길이 위험합니다. 공원 입구 가로등이 며칠째 꺼져 있어 밤길이 위험합니다."
+            },
+            {
+              "evidence_id": "eval-streetlight_failure_recurring-002",
+              "masked_text": "보안등 고장으로 골목이 어둡고 안전이 걱정됩니다. 보안등 고장으로 골목이 어둡고 안전이 걱정됩니다."
+            },
+            {
+              "evidence_id": "eval-streetlight_failure_recurring-003",
+              "masked_text": "같은 위치 가로등이 반복적으로 고장 납니다. 같은 위치 가로등이 반복적으로 고장 납니다."
+            },
+            {
+              "evidence_id": "eval-streetlight_failure_recurring-004",
+              "masked_text": "가로등 수리를 요청했지만 다시 꺼졌습니다. 가로등 수리를 요청했지만 다시 꺼졌습니다."
+            },
+            {
+              "evidence_id": "eval-streetlight_failure_recurring-005",
+              "masked_text": "야간 보행 안전을 위해 조명 점검이 필요합니다. 야간 보행 안전을 위해 조명 점검이 필요합니다."
+            }
+          ],
+          "objective_review": {
+            "strengths": [
+              "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+              "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+            ],
+            "weaknesses": [
+              "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+            ],
+            "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+            "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+            "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+          }
+        }
+      ],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+          "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+          "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [
+          "REQUIRED_ACTION_TYPE_MISSING"
+        ],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "low_count_negative",
+      "label": "낮은 건수라 alert가 뜨면 안 되는 상황",
+      "scenario_type": "negative_low_count",
+      "source_policy": "synthetic_negative_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 2,
+      "event_count": 2,
+      "run_id": "ci-run-bd6af9d2696e",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": false,
+        "alert_count": 0,
+        "severe_alert_count": 0,
+        "expected_topic_hit": false,
+        "avg_alert_confidence": 0.0,
+        "avg_surge_ratio": 0.0,
+        "avg_recent_count": 0.0
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 0,
+        "matched_expected_insight_count": 0,
+        "expected_type_required": false,
+        "expected_type_hit": false,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 0.0,
+        "evidence_pack_presence_rate": 0.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 0.0,
+        "avg_confidence": 0.0,
+        "avg_actionability_score": 0.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": []
+      },
+      "generated_alerts": [],
+      "generated_insights": [],
+      "representative_evidence_ids": [],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 0,
+        "insight_count": 0,
+        "direct_llm_success_count": 0,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 0.0,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 0,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": null,
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": false,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": null,
+      "action_retry_report": null,
+      "llm_duration_ms": 0.0,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "negative scenario에서 PublicAgencyInsight를 생성하지 않아 과잉 조치를 억제했습니다.",
+          "생성된 추천 조치가 없어 evidence 없는 조치도 노출되지 않았습니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    },
+    {
+      "scenario_id": "dispersed_keyword_negative",
+      "label": "같은 키워드지만 지역·시간이 분산된 non-hotspot",
+      "scenario_type": "negative_dispersed",
+      "source_policy": "synthetic_negative_control",
+      "real_event_count": 0,
+      "synthetic_event_count": 5,
+      "event_count": 5,
+      "run_id": "ci-run-b481cb7d6825",
+      "passed": true,
+      "issue_detection_passed": true,
+      "insight_passed": true,
+      "quality_gate_passed": true,
+      "failures": [],
+      "warnings": [],
+      "issue_detection": {
+        "passed": true,
+        "expected_alert": false,
+        "alert_count": 0,
+        "severe_alert_count": 0,
+        "expected_topic_hit": false,
+        "avg_alert_confidence": 0.0,
+        "avg_surge_ratio": 0.0,
+        "avg_recent_count": 0.0
+      },
+      "public_agency_insight": {
+        "passed": true,
+        "insight_count": 0,
+        "matched_expected_insight_count": 0,
+        "expected_type_required": false,
+        "expected_type_hit": false,
+        "required_aspect_hit": true,
+        "required_action_type_hit": true,
+        "action_evidence_coverage_rate": 0.0,
+        "evidence_pack_presence_rate": 0.0,
+        "quality_gate_passed": true,
+        "grounding_pass": true,
+        "avg_grounding_score": 0.0,
+        "avg_confidence": 0.0,
+        "avg_actionability_score": 0.0,
+        "fallback": false,
+        "forbidden_ai_ops_terms": false,
+        "pii_leak": false,
+        "human_review_requirement_pass": true,
+        "representative_evidence_ids": []
+      },
+      "generated_alerts": [],
+      "generated_insights": [],
+      "representative_evidence_ids": [],
+      "llm_metrics": {
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "timeout_seconds": 240.0,
+        "num_predict": 1024,
+        "candidate_count": 0,
+        "insight_count": 0,
+        "direct_llm_success_count": 0,
+        "llm_failure_count": 0,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 0.0,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 0,
+        "action_repair_success_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "action_repair_report": null,
+        "action_retry_report": null,
+        "failure_reasons": {},
+        "raw_response_debug_enabled": false
+      },
+      "direct_llm_success": false,
+      "fallback_used": false,
+      "fallback_reason": {},
+      "invalid_evidence_ids": [],
+      "action_repair_report": null,
+      "action_retry_report": null,
+      "llm_duration_ms": 0.0,
+      "retry_duration_ms": 0.0,
+      "insight_samples": [],
+      "dashboard_snapshot": null,
+      "objective_assessment": {
+        "strengths": [
+          "negative scenario에서 PublicAgencyInsight를 생성하지 않아 과잉 조치를 억제했습니다.",
+          "생성된 추천 조치가 없어 evidence 없는 조치도 노출되지 않았습니다."
+        ],
+        "weaknesses": [
+          "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+        ],
+        "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+        "failure_codes": [],
+        "warning_codes": []
+      }
+    }
+  ],
+  "overall_assessment": {
+    "scope_note": "local provider 결과가 없으면 fake provider 기반 구조 평가이며, 실제 LLM 성능 단정은 아닙니다.",
+    "provider_basis": "local",
+    "strengths": [
+      "실제 run_analysis 경로에서 IssueAlert, PublicAgencyInsight, EvidencePack을 함께 평가했습니다.",
+      "추천 조치의 evidence id 연결, PII, 금지 AI 운영 용어를 scenario별로 검사했습니다.",
+      "positive/negative scenario를 함께 두어 recall과 false positive 위험을 분리했습니다."
+    ],
+    "weaknesses": [
+      "현재 평가 세트에서는 치명적 품질 실패가 두드러지지 않았습니다."
+    ],
+    "improvement_priorities": [
+      "실제 운영 로그와 local LLM 결과를 누적해 scenario 난이도를 단계적으로 높이는 것이 좋습니다."
+    ],
+    "fe_demo_fit": "IssueAlert와 PublicAgencyInsight가 모두 생성되고 PII/금지 용어 검사에 통과하면 FE 데모에는 적합합니다. 단, fake provider 기반 수치는 운영 LLM 품질을 보증하지 않습니다."
+  },
+  "local_llm_manual_command": "civil\\Scripts\\python.exe scripts\\evaluate_complaint_intelligence_scenarios.py --provider local --model exaone3.5:7.8b --base-url http://localhost:11434 --prompt-mode compact --output reports\\complaint_intelligence_eval_report_local.json"
+}

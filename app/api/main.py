@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 
 from app.api.error_utils import error_response, make_request_id
+from app.complaint_intelligence import get_complaint_intelligence_scheduler
 from app.core.config import settings
 from app.core.logging import api_logger
 from app.api.routers import (
@@ -26,7 +27,14 @@ async def lifespan(app: FastAPI):
     api_logger.info("API 서버 시작")
     api_logger.info(f"Ollama: {settings.OLLAMA_BASE_URL}")
     api_logger.info(f"ChromaDB: {settings.CHROMA_DB_PATH}")
-    yield
+    scheduler = get_complaint_intelligence_scheduler()
+    scheduler_started = scheduler.start()
+    if scheduler_started:
+        api_logger.info("Complaint Intelligence scheduler started")
+    try:
+        yield
+    finally:
+        scheduler.stop()
     # 종료
     api_logger.info("API 서버 종료")
 
@@ -133,6 +141,12 @@ async def root():
             "complaint_public_insights": "/complaint-intelligence/public-insights",
             "complaint_dashboard": "/complaint-intelligence/dashboard",
             "complaint_run_analysis": "/complaint-intelligence/run-analysis",
+            "complaint_analysis_runs": "/complaint-intelligence/analysis-runs",
+            "complaint_scheduler_status": "/complaint-intelligence/scheduler/status",
+            "complaint_scheduler_run_once": "/complaint-intelligence/scheduler/run-once",
+            "complaint_collector_status": "/complaint-intelligence/collector/status",
+            "complaint_collector_poll_once": "/complaint-intelligence/collector/poll-once",
+            "complaint_llm_observability": "/complaint-intelligence/public-insights/llm-observability",
             "complaint_dashboard_run_analysis": "/complaint-intelligence/dashboard/run-analysis",
             "complaint_public_insight_run_analysis": "/complaint-intelligence/public-insights/run-analysis",
             "duplicate_groups_run_analysis": "/complaint-intelligence/duplicate-groups/run-analysis",
