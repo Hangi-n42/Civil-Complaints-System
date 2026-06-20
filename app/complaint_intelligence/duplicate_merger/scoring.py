@@ -58,6 +58,18 @@ _DETAIL_LOCATION_MARKERS = (
     "동",
 )
 _GENERIC_LOCATION_DETAILS = {"공사장", "도로", "보도", "하천", "배수로", "놀이터", "상가", "건물", "시설", "길", "로", "동"}
+_ADDITIONAL_DETAIL_LOCATION_MARKERS = ("마을", "단지", "구역", "구간")
+_NON_LOCATION_ENTITY_TERMS = {
+    "가로등",
+    "보안등",
+    "배수로",
+    "포트홀",
+    "무단투기",
+    "공사소음",
+    "복지급여",
+    "현장민원",
+    "도로파손",
+}
 
 
 @dataclass(frozen=True)
@@ -269,11 +281,12 @@ def _looks_like_detail_location(value: str, normalized: str) -> bool:
     text = str(value or "")
     if not text.strip():
         return False
-    if normalized in _GENERIC_LOCATION_DETAILS:
+    if normalized in _GENERIC_LOCATION_DETAILS or normalized in _NON_LOCATION_ENTITY_TERMS:
         return False
     if _is_broad_region(normalized):
         return False
-    return bool(any(marker in text for marker in _DETAIL_LOCATION_MARKERS))
+    markers = _DETAIL_LOCATION_MARKERS + _ADDITIONAL_DETAIL_LOCATION_MARKERS
+    return bool(any(marker in text for marker in markers))
 
 
 def _is_broad_region(value: str | None) -> bool:
