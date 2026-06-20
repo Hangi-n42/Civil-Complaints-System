@@ -17,7 +17,10 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
-from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
+from app.retrieval.analyzers.request_segment_analysis import (
+    build_request_segment_analysis,
+    enrich_request_segment_trace,
+)
 from app.retrieval.analyzers.topic_analyzer import detect as detect_topic
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
@@ -144,20 +147,8 @@ def _build_routing_payload(query: str) -> dict:
     }
     merge_policy = "segment_aware_dedupe" if len(request_segments) > 1 else "single_query"
 
-    return {
-        "strategy_id": routing_decision.strategy_id,
-        "route_key": routing_decision.route_key,
-        "retrieval_policy": routing_decision.retrieval_policy,
-        "request_segments": request_segments,
-        "merge_policy": merge_policy,
-        "routing_hint": {
-            "strategy_id": routing_decision.strategy_id,
-            "route_key": routing_decision.route_key,
-            "top_k": routing_decision.applied_params.top_k,
-            "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
-            "chunk_policy": routing_decision.applied_params.chunk_policy,
-        },
-        "routing_trace": {
+    routing_trace = enrich_request_segment_trace(
+        {
             "topic_type": analyzer_output["topic_type"],
             "complexity_level": analyzer_output["complexity_level"],
             "complexity_score": analyzer_output["complexity_score"],
@@ -171,6 +162,23 @@ def _build_routing_payload(query: str) -> dict:
             "merge_policy": merge_policy,
             "retrieval_policy": routing_decision.retrieval_policy,
         },
+        analyzer_output,
+    )
+
+    return {
+        "strategy_id": routing_decision.strategy_id,
+        "route_key": routing_decision.route_key,
+        "retrieval_policy": routing_decision.retrieval_policy,
+        "request_segments": request_segments,
+        "merge_policy": merge_policy,
+        "routing_hint": {
+            "strategy_id": routing_decision.strategy_id,
+            "route_key": routing_decision.route_key,
+            "top_k": routing_decision.applied_params.top_k,
+            "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
+            "chunk_policy": routing_decision.applied_params.chunk_policy,
+        },
+        "routing_trace": routing_trace,
         "analyzer_output": analyzer_output,
         "analyzer_latency_ms": analyzer_latency_ms,
         "router_latency_ms": router_latency_ms,

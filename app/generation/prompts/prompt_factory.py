@@ -8,7 +8,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.core.exceptions import NoEvidenceError
 from app.core.logging import pipeline_logger
 from app.core.config import settings
-from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
+from app.retrieval.analyzers.request_segment_analysis import (
+    build_request_segment_analysis,
+    enrich_request_segment_trace,
+)
 from app.retrieval.analyzers.topic_analyzer import analyze as analyze_topic
 from app.retrieval.router.adaptive_router import route
 from app.retrieval.service import RetrievalService, get_retrieval_service
@@ -831,6 +834,7 @@ class PromptFactory:
                 complexity_trace = analysis.get("complexity_trace")
                 if isinstance(complexity_trace, dict):
                     derived_trace.setdefault("complexity_trace", complexity_trace)
+                derived_trace = enrich_request_segment_trace(derived_trace, analysis)
             except Exception:
                 derived_trace.setdefault(
                     "complexity_level",
@@ -848,7 +852,7 @@ class PromptFactory:
             except Exception:
                 derived_trace["retrieval_policy"] = cls._infer_retrieval_policy_from_record(record, fallback="general")
 
-        return query, derived_trace
+        return query, enrich_request_segment_trace(derived_trace)
 
     @classmethod
     def build(

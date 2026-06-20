@@ -112,6 +112,28 @@ def test_runtime_selector_shadow_uses_hybrid(monkeypatch):
     assert called == {"rule": 0, "hybrid": 1}
 
 
+def test_enrich_request_segment_trace_promotes_low_confidence_signals():
+    trace = {
+        "complexity_level": "medium",
+        "request_segments": ["rule"],
+        "complexity_trace": {
+            "intent_count": 1,
+            "fallback_segment_used": True,
+            "segment_limit_applied": False,
+            "llm_fallback_confidence": 0.72,
+        },
+    }
+
+    enriched = analysis_selector.enrich_request_segment_trace(trace)
+
+    assert enriched["intent_count"] == 1
+    assert enriched["fallback_used"] is True
+    assert enriched["truncated"] is False
+    assert enriched["request_segments_low_confidence"] is True
+    assert enriched["llm_fallback_confidence"] == 0.72
+    assert enriched["complexity_trace"]["request_segments_low_confidence"] is True
+
+
 def test_retrieval_routing_payload_uses_runtime_selector(monkeypatch):
     from app.api.routers import retrieval
 
