@@ -607,6 +607,40 @@ def test_request_segments_keep_generic_title_when_question_is_too_short():
     assert output["is_multi"] is True
 
 
+def test_request_segments_drop_compound_title_summary_when_question_is_specific():
+    title = "코로나 확진시 출석인정 부탁드립니다."
+    question = "코로나 확진으로 인한 불출석에 대해서는 출석을 인정하여 주실 것을 부탁드립니다."
+
+    output = build_analyzer_output(
+        f"{title}\n{question}",
+        "health",
+        title=title,
+        question=question,
+    )
+
+    assert output["request_segments"] == [question]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+    assert output["complexity_trace"]["title_duplicate_dropped_count"] == 1
+
+
+def test_request_segments_keep_title_when_question_lacks_title_object():
+    title = "서울대공원내 유인원관 유리 청소해주세요"
+    question = "정기적인 청소를 요청합니다."
+
+    output = build_analyzer_output(
+        f"{title}\n{question}",
+        "environment",
+        title=title,
+        question=question,
+    )
+
+    assert output["request_segments"] == [title, question]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+    assert output["complexity_trace"]["title_duplicate_dropped_count"] == 0
+
+
 def test_request_segments_drop_low_value_closing_segments():
     text = "이 부분 꼭 해결해 주세요. 정말 부탁드립니다."
 
@@ -633,6 +667,487 @@ def test_request_segments_do_not_split_context_fragment_before_comma():
     output = build_analyzer_output(text, "environment", question=text)
 
     assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_low_value_meta_request_segments():
+    text = (
+        "질의 요지. "
+        "사업계획승인 대상 주택 건설사업도 지하안전평가 협의시기 특례가 적용되는지 궁금합니다. "
+        "확인 답변 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [
+        "사업계획승인 대상 주택 건설사업도 지하안전평가 협의시기 특례가 적용되는지 궁금합니다."
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_objected_installation_request():
+    text = "신호위반 단속 카메라 설치 부탁드립니다!"
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_reference_context_only_sentence():
+    text = (
+        "우리 시 공원주차장을 유료로 운영해 주세요. "
+        "참고로 하남시의 공원주차장은 유료로 잘 운영되고 있습니다."
+    )
+
+    output = build_analyzer_output(text, "parking", question=text)
+
+    assert output["request_segments"] == ["우리 시 공원주차장을 유료로 운영해 주세요."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_objected_problem_action_request():
+    text = "도로 침하 문제에 분명한 조치가 필요합니다."
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_merge_compound_repeated_request():
+    text = (
+        "코로나 확진시 출석인정 부탁드립니다. "
+        "코로나 확진으로 인한 불출석에 대해서는 출석을 인정하여 주실 것을 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "health", question=text)
+
+    assert output["request_segments"] == [
+        "코로나 확진으로 인한 불출석에 대해서는 출석을 인정하여 주실 것을 부탁드립니다."
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_do_not_merge_distinct_dialogue_questions():
+    text = "고객: 신고 접수 방법을 알려주세요. 상담원: 처리 기간도 알려주세요."
+
+    output = build_analyzer_output(text, "general", question=text)
+
+    assert output["request_segments"] == [
+        "신고 접수 방법을 알려주세요.",
+        "처리 기간도 알려주세요.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_strip_meta_request_prefix_and_orphan_parenthesis():
+    text = "질의 요지: 경찰에 신고하면 되나요?) 행정에 신고하면 되나요?)"
+
+    output = build_analyzer_output(text, "general", question=text)
+
+    assert output["request_segments"] == [
+        "경찰에 신고하면 되나요?",
+        "행정에 신고하면 되나요?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_inquiry_intro_and_polite_closing_noise():
+    text = (
+        "궁금한 것이 있어서 질의드립니다. "
+        "포락지 증명은 어떤 방법으로 받을 수 있나요? "
+        "친절한 답변 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "general", question=text)
+
+    assert output["request_segments"] == ["포락지 증명은 어떤 방법으로 받을 수 있나요?"]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_objectless_action_closing_only():
+    text = "무단방치 차량 처리요청 합니다. 조속 확인해서 조치 부탁드립니다."
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == ["무단방치 차량 처리요청 합니다."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_action_suffix_title_summary():
+    title = "방역요청"
+    question = "해충 방역을 요청하고 싶습니다."
+
+    output = build_analyzer_output(
+        f"{title}\n{question}",
+        "health",
+        title=title,
+        question=question,
+    )
+
+    assert output["request_segments"] == [question]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_objected_action_closing_request():
+    text = "버스정류장에 노선별 대기판 설치 부탁드립니다."
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_anaphoric_action_only_closing():
+    text = "광역버스 배차 간격 단축을 요청합니다. 해결 부탁드립니다. 그렇게 해주십시오."
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == ["광역버스 배차 간격 단축을 요청합니다."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_objected_resolution_request():
+    text = "노상주차장 장기 방치 차량 해결 부탁드립니다."
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == [text]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_phone_dialogue_meta_and_generic_followup():
+    text = (
+        "뭐 좀 문의하려 그러는데요. "
+        "브런치 콘서트 연간 회원 신청은 어떻게 해야 되나요? "
+        "어떻게 하는 건가요?"
+    )
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == [
+        "브런치 콘서트 연간 회원 신청은 어떻게 해야 되나요?"
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_admin_future_statement_in_phone_dialogue():
+    text = "업체 이름과 연락처를 알려주시면 확인해 보겠습니다. 처리 기간은 언제인가요?"
+
+    output = build_analyzer_output(text, "general", question=text)
+
+    assert output["request_segments"] == ["처리 기간은 언제인가요?"]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_legal_basis_context_but_keep_question():
+    text = (
+        "관련법 제74조에 동일한 소유자에게 속하는 일단의 토지의 잔여지에 대하여 "
+        "매수청구가 가능하다고 되어 있어서요. "
+        "현재 토지소유자가 잔여지 매수 청구를 할 수 있는지 궁금합니다."
+    )
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [
+        "현재 토지소유자가 잔여지 매수 청구를 할 수 있는지 궁금합니다."
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_drop_answer_request_closing_in_legal_question():
+    text = (
+        "녹색건축인증 대상에서 제외가 가능한지 여부가 궁금합니다. "
+        "에 대해 답변 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == ["녹색건축인증 대상에서 제외가 가능한지 여부가 궁금합니다."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_specific_short_phone_question():
+    text = "1인 4매까지 가능한가요? 주차는 어디로 들어가야 돼요?"
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == [
+        "1인 4매까지 가능한가요?",
+        "주차는 어디로 들어가야 돼요?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_weak_phone_confirmations_after_specific_question():
+    text = (
+        "단체 관람 신청은 인터넷으로 하면 되는 건가요? "
+        "아 가능해요? "
+        "이리 전화해서 금방 그 방법을 물어보면 된다는 말이죠?"
+    )
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == [
+        "단체 관람 신청은 인터넷으로 하면 되는 건가요?"
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_concrete_phone_questions_with_confirmation_style():
+    text = "1인 4매까지 가능한가요? 주차는 어디로 들어가야 돼요?"
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == [
+        "1인 4매까지 가능한가요?",
+        "주차는 어디로 들어가야 돼요?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_list_intro_and_strip_section_prefix():
+    text = (
+        "그래서 다음과 같이 건의합니다. "
+        "요청 내용가산세 감면 검토 요청드립니다. "
+        "납부기한 연장도 요청드립니다."
+    )
+
+    output = build_analyzer_output(text, "tax", question=text)
+
+    assert output["request_segments"] == [
+        "가산세 감면 검토 요청드립니다.",
+        "납부기한 연장도 요청드립니다.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_phone_admin_questions_and_intro():
+    text = (
+        "아 문의 좀 드릴게요. "
+        "혹시 성함이 어떻게 되시나요? "
+        "단체 관람 신청은 인터넷으로 하면 되는 건가요?"
+    )
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == [
+        "단체 관람 신청은 인터넷으로 하면 되는 건가요?"
+    ]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_split_inline_numbered_support_content_questions():
+    question = "1. 국내전시회 지원 내용은 뭔가요? 2. 해외전시회 지원 내용은 뭔가요?"
+
+    output = build_analyzer_output(question, "industry", question=question)
+
+    assert output["request_segments"] == [
+        "국내전시회 지원 내용은 뭔가요?",
+        "해외전시회 지원 내용은 뭔가요?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_split_inline_numbered_nominal_legal_questions():
+    question = (
+        "1. 개별 설비의 전기 정격용량이 100kW 미만인 설비를 기간을 두어서 설치할 때도 "
+        "유해위험방지계획서를 제출해야 하는지 "
+        "2. A와 B는 제출하여야 하는지? "
+        "3. B사업장이 제출 대상인지?"
+    )
+
+    output = build_analyzer_output(question, "labor", question=question)
+
+    assert output["request_segments"] == [
+        "개별 설비의 전기 정격용량이 100kW 미만인 설비를 기간을 두어서 설치할 때도 유해위험방지계획서를 제출해야 하는지",
+        "A와 B는 제출하여야 하는지?",
+        "B사업장이 제출 대상인지?",
+    ]
+    assert output["intent_count"] == 3
+    assert output["is_multi"] is True
+
+
+def test_request_segments_strip_answer_request_heading_and_keep_items():
+    question = (
+        "*답변요청 사항 "
+        "1. 공적으로 부부였다는 것을 확인할 수 있는 서류가 무엇이 있는지 알려주시기 바랍니다. "
+        "2. 공적확인 서류로 보증인을 대신할 수 있는지 답변주시기 바랍니다."
+    )
+
+    output = build_analyzer_output(question, "welfare", question=question)
+
+    assert output["request_segments"] == [
+        "공적으로 부부였다는 것을 확인할 수 있는 서류가 무엇이 있는지 알려주시기 바랍니다.",
+        "공적확인 서류로 보증인을 대신할 수 있는지 답변주시기 바랍니다.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_split_numbered_vehicle_subsidy_nominal_items():
+    question = (
+        "1. 전기자동차 구매보조금 소진여부 및 추가 접수 여부(대기접수가능여부) "
+        "2. 지방비 소진된 경우 국비 보조금 별도 신청 가능 여부 "
+        "3. 내연전환지원금 대상 차량 요건 및 신청관련 내용"
+    )
+
+    output = build_analyzer_output(question, "environment", question=question)
+
+    assert output["request_segments"] == [
+        "전기자동차 구매보조금 소진여부",
+        "추가 접수 여부(대기접수가능여부)",
+        "지방비 소진된 경우 국비 보조금 별도 신청 가능 여부",
+        "내연전환지원금 대상 차량 요건",
+        "신청관련 내용",
+    ]
+    assert output["intent_count"] == 5
+    assert output["is_multi"] is True
+
+
+def test_request_segments_keep_direct_question_punctuation_items():
+    question = (
+        "1. 부당 해고인가요? "
+        "2. 계약서 작성 시 연장 근로에 동의하지 않으면 해고의 사유가 될 수가 있나요? "
+        "3. 근로자는 합의할 권리가 없는 것인가요?"
+    )
+
+    output = build_analyzer_output(question, "labor", question=question)
+
+    assert output["request_segments"] == [
+        "부당 해고인가요?",
+        "계약서 작성 시 연장 근로에 동의하지 않으면 해고의 사유가 될 수가 있나요?",
+        "근로자는 합의할 권리가 없는 것인가요?",
+    ]
+    assert output["intent_count"] == 3
+    assert output["is_multi"] is True
+
+
+def test_request_segments_keep_numbered_correctness_여부_item():
+    question = (
+        "1. 530kgf 이상의 파단 강도를 가진 제품을 선정하는 것이 맞는지 여부. "
+        "2. 연결부의 시험 하중이 낮은 이유는?"
+    )
+
+    output = build_analyzer_output(question, "labor", question=question)
+
+    assert output["request_segments"] == [
+        "530kgf 이상의 파단 강도를 가진 제품을 선정하는 것이 맞는지 여부.",
+        "연결부의 시험 하중이 낮은 이유는?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_keep_specific_contact_information_request():
+    text = "담당자 연락처를 알려주세요. 신청 가능 기간도 알려주세요."
+
+    output = build_analyzer_output(text, "general", question=text)
+
+    assert output["request_segments"] == [
+        "담당자 연락처를 알려주세요.",
+        "신청 가능 기간도 알려주세요.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_anaphoric_confirmation_only_segments():
+    text = (
+        "ACC 투어 대기 신청이 가능한지 알려주세요. "
+        "어쨌든 투어 방법은 그 방법밖에 없네요. "
+        "아니 일단 해주십시오."
+    )
+
+    output = build_analyzer_output(text, "culture", question=text)
+
+    assert output["request_segments"] == ["ACC 투어 대기 신청이 가능한지 알려주세요."]
+    assert output["intent_count"] == 1
+    assert output["is_multi"] is False
+
+
+def test_request_segments_keep_specific_plan_disclosure_request():
+    text = "교회 주변 주정차 단속 의지가 있는지요? 의지가 있다면 어떤 계획인지 밝혀주시기 바랍니다."
+
+    output = build_analyzer_output(text, "traffic", question=text)
+
+    assert output["request_segments"] == [
+        "교회 주변 주정차 단속 의지가 있는지요?",
+        "의지가 있다면 어떤 계획인지 밝혀주시기 바랍니다.",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_numbered_answer_request_closing():
+    text = (
+        "대수선의 면적은 어떻게 산정하는지 궁금합니다. "
+        "품질시험계획 대상 공사에 해당하는지 여부가 궁금합니다. "
+        "품질시험계획을 수립해야 하는 것인지요? "
+        "바쁘시겠지만, 1번부터 3번까지 질의에 대하여 모두 답변 부탁드립니다."
+    )
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [
+        "대수선의 면적은 어떻게 산정하는지 궁금합니다.",
+        "품질시험계획 대상 공사에 해당하는지 여부가 궁금합니다.",
+        "품질시험계획을 수립해야 하는 것인지요?",
+    ]
+    assert output["intent_count"] == 3
+    assert output["is_multi"] is True
+
+
+def test_request_segments_strip_decorative_question_prefixes():
+    text = "☞ 대수선의 면적은 어떻게 산정하는지 궁금합니다. ♣계약 만료일은 언제입니까?"
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [
+        "대수선의 면적은 어떻게 산정하는지 궁금합니다.",
+        "계약 만료일은 언제입니까?",
+    ]
+    assert output["intent_count"] == 2
+    assert output["is_multi"] is True
+
+
+def test_request_segments_drop_query_summary_and_answer_notice():
+    text = (
+        "질의 요약. "
+        "신규 제정되는 도면의 관리기관명을 어떻게 기재해야 하나요? "
+        "귀하의 민원 내용은 관련 질의로 이해하고 검토한 결과를 안내해 드립니다."
+    )
+
+    output = build_analyzer_output(text, "industry", question=text)
+
+    assert output["request_segments"] == [
+        "신규 제정되는 도면의 관리기관명을 어떻게 기재해야 하나요?"
+    ]
     assert output["intent_count"] == 1
     assert output["is_multi"] is False
 

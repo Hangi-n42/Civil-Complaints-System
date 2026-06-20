@@ -71,6 +71,15 @@ def test_parse_consulting_content_accepts_marker_variants_and_x000d():
     assert parsed["consultant_answer"] == "담당 부서에서 검토 예정입니다."
 
 
+def test_parse_consulting_content_accepts_parenthesized_qa_markers():
+    content = "질문) 건축물 용도변경 절차가 궁금합니다.\n답변) 담당 부서 검토 후 안내합니다."
+
+    parsed = parse_consulting_content(content)
+
+    assert parsed["client_question"] == "건축물 용도변경 절차가 궁금합니다."
+    assert parsed["consultant_answer"] == "담당 부서 검토 후 안내합니다."
+
+
 def test_parse_consulting_content_dialogue_customer_only_question():
     content = (
         "상담원: 안녕하십니까. 무엇을 도와드릴까요?\n"
@@ -84,6 +93,27 @@ def test_parse_consulting_content_dialogue_customer_only_question():
     assert parsed["title"] == "브런치 콘서트 단체 예매가 가능한가요?"
     assert parsed["client_question"] == "브런치 콘서트 단체 예매가 가능한가요?\n예매 오픈일은 언제인가요?"
     assert parsed["consultant_answer"] == "안녕하십니까. 무엇을 도와드릴까요?\n단체 사전 예매는 어렵습니다."
+
+
+def test_parse_consulting_content_accepts_parenthesized_speaker_markers():
+    content = "고객) 공원 조명 고장을 신고합니다.\n상담원) 현장 확인 후 조치하겠습니다."
+
+    parsed = parse_consulting_content(content)
+
+    assert parsed["client_question"] == "공원 조명 고장을 신고합니다."
+    assert parsed["consultant_answer"] == "현장 확인 후 조치하겠습니다."
+
+
+def test_parse_consulting_content_preserves_unlabeled_long_dialogue_like_text():
+    content = (
+        "안녕하세요. 전화로 안내받은 내용이 맞는지 다시 확인하고 싶습니다. "
+        "담당자가 조치하겠다고 한 것 같지만 정확한 처리 일정과 신청 방법을 알려주세요."
+    )
+
+    parsed = parse_consulting_content(content)
+
+    assert parsed["client_question"] == content
+    assert parsed["consultant_answer"] == ""
 
 
 def test_civil_text_parses_raw_content_without_answer():
@@ -161,6 +191,50 @@ def test_process_raw_record_unwraps_policy_qna_result_data():
     assert processed["client_question"] == "공개등급 기준이 궁금합니다.\n확인 부탁드립니다."
     assert processed["consultant_answer"] == "안녕하십니까?\n검토 결과를 안내드립니다."
     assert processed["parsing_success"] is True
+
+
+def test_process_raw_record_splits_embedded_policy_answer_marker_from_question():
+    raw = {
+        "resultData": {
+            "faqNo": 6901152,
+            "ancName": "강원도",
+            "deptName": "강원도 복지정책과",
+            "regDate": "20251223",
+            "qnaTitl": "진폐의증환자 수당 신청은 어떻게 하나요?",
+            "qstnCntnCl": (
+                "진폐의증환자 수당 신청은 어떻게하나요?\n\n"
+                "[답변] 거주지 읍면동 행정복지센터에 방문하여 신청하면 됩니다."
+            ),
+            "ansCntnCl": "거주지 읍면동 행정복지센터에 방문하여 신청하면 됩니다.",
+        },
+    }
+
+    processed = process_raw_record(raw)
+
+    assert processed["client_question"] == "진폐의증환자 수당 신청은 어떻게하나요?"
+    assert "[답변]" not in processed["client_question"]
+    assert processed["consultant_answer"] == "거주지 읍면동 행정복지센터에 방문하여 신청하면 됩니다."
+
+
+def test_process_raw_record_preserves_quoted_answer_text_without_bracket_marker():
+    raw = {
+        "resultData": {
+            "faqNo": 6895333,
+            "ancName": "환경부",
+            "deptName": "환경부 생활폐기물과",
+            "qnaTitl": "생활폐기물 임시보관장소 질의",
+            "qstnCntnCl": (
+                "환경부 생활폐기물과 답변 내용입니다.\n"
+                "답변 : 기존 회신 내용을 근거로 다시 질의합니다."
+            ),
+            "ansCntnCl": "",
+        },
+    }
+
+    processed = process_raw_record(raw)
+
+    assert "답변 : 기존 회신 내용" in processed["client_question"]
+    assert processed["consultant_answer"] == ""
 
 
 def test_to_structuring_record_accepts_policy_qna_wrapper_directly():

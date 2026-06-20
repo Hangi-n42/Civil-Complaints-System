@@ -37,6 +37,10 @@ _ENTITY_TOKENS = (
 )
 
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?。！？])\s+|[\r\n]+")
+_INLINE_ENUMERATED_BOUNDARY_RE = re.compile(
+    r"(?<![A-Za-z0-9가-힣])(?P<num>[1-9][0-9]?)[\.),]\s+"
+    r"(?=[^.!?。！？\r\n]{2,160}(?:\?|가능\s*여부|여부|인지|대상|방법|절차|요건|기준|근거|내용|신청|문의|질의|요청))"
+)
 _SEMANTIC_SPLIT_PATTERNS = (
     re.compile(r"\s*(?:그리고|또한|아울러|동시에)\s*"),
     re.compile(r"\s*,\s*"),
@@ -47,7 +51,7 @@ _SEMANTIC_SPLIT_PATTERNS = (
 )
 _ADMIN_ACTION_RE = re.compile(
     r"(?:접수|전달|배정|검토|확인|조치|처리|안내|답변).{0,16}"
-    r"(?:했습니다|하겠습니다|드립니다|드렸습니다|예정입니다|예정|완료|되었습니다)"
+    r"(?:했습니다|하겠습니다|해\s*보겠습니다|드립니다|드렸습니다|예정입니다|예정|완료|되었습니다)"
 )
 _REQUEST_INTENT_PATTERNS = (
     re.compile(
@@ -132,13 +136,23 @@ _SHARED_REQUEST_PREDICATE_RE = re.compile(
 _SHARED_REQUEST_SPLIT_RE = re.compile(r"\s*(?:그리고|및|과|와)\s*")
 _COMPACT_REQUEST_LIST_SPLIT_RE = re.compile(r"\s*,\s*")
 _ENUMERATED_ITEM_RE = re.compile(
-    r"(?:^|\s)(?:[1-9][.),]|[①②③④⑤⑥⑦⑧⑨⑩]|(?:질의|문의|질문)\s*[1-9][.),]?)\s*"
+    r"(?:^|\s)(?:[1-9][0-9]?[.),]|[①②③④⑤⑥⑦⑧⑨⑩]|[가-하][.),]|[-•∙]|(?:질의|문의|질문)\s*[1-9][0-9]?[.),]?)\s*"
 )
 _ENUMERATED_PREFIX_RE = re.compile(
-    r"^(?:[1-9][.),]|[①②③④⑤⑥⑦⑧⑨⑩]|(?:질의|문의|질문)\s*[1-9][.),]?)\s*"
+    r"^(?:[1-9][0-9]?[.),]|[①②③④⑤⑥⑦⑧⑨⑩]|[가-하][.),]|[-•∙]|(?:질의|문의|질문)\s*[1-9][0-9]?[.),]?)\s*"
 )
 _BARE_ENUMERATED_MARKER_RE = re.compile(r"^(?:[1-9][.),]|[①②③④⑤⑥⑦⑧⑨⑩])$")
 _TITLE_Q_PREFIX_RE = re.compile(r"^(?:제목\s*[:：]\s*)?.{0,90}?\bQ\s*[:：]\s*")
+_META_REQUEST_PREFIX_RE = re.compile(r"^(?:질의|문의|질문)\s*요지\s*[:：]\s*")
+_REQUEST_LIST_HEADING_PREFIX_RE = re.compile(
+    r"^(?:[*#■□▶▷☞\-]+\s*)?"
+    r"(?:답변\s*요청\s*사항|요청\s*사항|요청\s*내용|제안\s*내용|의문\s*및\s*요청\s*사항|"
+    r"문의\s*사항|질의\s*사항|질문\s*사항|확인\s*사항)"
+    r"\s*[:：]?\s*"
+)
+_DECORATIVE_REQUEST_PREFIX_RE = re.compile(
+    r"^(?:[※◆◇■□▶▷☞♣☆★]+\s*|(?:문|질의|문의|질문)\s*[.)]\s*)+"
+)
 _TITLE_GREETING_PREFIX_RE = re.compile(
     r"^.{0,90}?(?:안녕하십니까|안녕하세요|수고가 많으십니다)[.!?。！？]?\s*"
 )
@@ -155,7 +169,7 @@ _ANSWER_FORM_ONLY_RE = re.compile(
     r"답변은.{0,40}(?:지양|삼가).{0,25}(?:바랍니다|주시))"
 )
 _FACTUAL_CONTEXT_RE = re.compile(r"(?:알고 있습니다|문의하니|문의하였|확인하였습니다|상황입니다|예정입니다)")
-_PAST_FACT_ONLY_RE = re.compile(r"(?:신고|등록|신청|접수)(?:하였|했|되어 있|되었습니다|했습니다)")
+_PAST_FACT_ONLY_RE = re.compile(r"(?:신고|등록|신청|접수)(?:을|를)?\s*(?:하였|했|되어 있|되었습니다|했습니다)")
 _REQUEST_END_RE = re.compile(
     r"(?:요청드립니다|요청합니다|문의드립니다|질의합니다|신고합니다|건의합니다|"
     r"부탁드립니다|바랍니다|해\s*주세요|해\s*주십시오|궁금합니다|알려\s*주세요)[.!?。！？]?$"
@@ -172,6 +186,7 @@ _GENERIC_ACTION_ONLY_RE = re.compile(
 _REDACTION_ONLY_RE = re.compile(r"^[▲△○□◇\s]+(?:요청|문의|질의|신고|건의|부탁|바랍니다|드립니다).*$")
 _DIRECTION_PAIR_RE = re.compile(r"(?:남쪽|북쪽|동쪽|서쪽|좌측|우측)\s*,\s*(?:남쪽|북쪽|동쪽|서쪽|좌측|우측)")
 _QUESTION_LIKE_SEGMENT_RE = re.compile(r"(?:\?|궁금|문의|질의|가능한지|여부|무엇|어떤|어떻게|왜|이유)")
+_LEGAL_QUESTION_END_RE = re.compile(r"(?:것|건|사항)?인지요[?？.]?$")
 _BACKGROUND_GUARD_TOKENS = (
     "때문",
     "위험",
@@ -200,6 +215,19 @@ _KOREAN_NOMINAL_QUESTION_RE = re.compile(
     r"^[^.!。！]{2,90}(?:대상|마을|구간|방법|서류|절차|요건|금액|기간|기준|근거|범위|내용|서비스|사업|계획)"
     r"(?:은|는|이|가|인가요|인가|인지요)?[?？]$"
 )
+_NOMINAL_REQUEST_INTENT_RE = re.compile(
+    r"(?:"
+    r".{2,160}(?:맞는지|타당한지|적정한지)\s*여부[.!?。！？]*$"
+    r"|"
+    r"(?:가능\s*여부|접수\s*여부|추가\s*접수|소진\s*여부|지원\s*내용|신청\s*관련\s*내용|대상\s*차량\s*요건|"
+    r"제출\s*대상|적용\s*여부|제외\s*가능|포함\s*여부|인정\s*여부|처분\s*대상|분담\s*주체|책임\s*주체)"
+    r"|(?:대상|방법|서류|절차|요건|금액|기간|기준|근거|범위|내용|서비스|사업|계획|주체|사유)"
+    r"(?:은|는|이|가)?\s*(?:무엇인가요|뭔가요|어떻게\s*되나요|어떻게\s*되는지|인지요|인가요|인가|인지|\?)"
+    r"|(?:제출|신청|접수|등록|허가|승인|인정|적용|제외|포함|보호|부담|가능|조정|변경)"
+    r".{0,36}(?:해야\s*하는지|하여야\s*하는지|할\s*수\s*있는지|가능한지|되는지|인지|맞는지\s*여부|여부)"
+    r")"
+)
+_DIRECT_QUESTION_PUNCT_RE = re.compile(r"[?？][.!?。！？]*$")
 _INCOMPLETE_ENUMERATED_REQUEST_HEAD_RE = re.compile(
     r"^(?:[1-9][.),]|[①②③④⑤⑥⑦⑧⑨⑩])\s*[^.!?。！]{2,90}"
     r"(?:대상|마을|구간|방법|서류|절차|요건|금액|기간|기준|근거|범위|내용|서비스|사업|계획|지원|제작|등록|신고|허가)$"
@@ -216,12 +244,12 @@ _BROAD_INTRO_REQUEST_RE = re.compile(
 )
 _POLITE_CLOSING_ONLY_RE = re.compile(
     r"^(?:그럼\s*)?(?:바쁘시더라도\s*)?(?:이상\s*(?:세|두|몇)?\s*가지\s*)?"
-    r"(?:빠른\s*)?(?:정확한\s*)?(?:적극적(?:인)?\s*)?"
+    r"(?:빠른\s*)?(?:정확한\s*)?(?:친절한\s*)?(?:간곡히\s*)?(?:적극적(?:인)?\s*)?"
     r"(?:(?:답변|회신|도움(?:\s*말씀)?|처리|검토|조치|행정|답변과\s*조치|궁금점(?:을)?\s*해소)\s*)?"
     r"\s*(?:부탁(?:드리겠습니다|드립니다|드릴게요|합니다)?|바랍니다|주세요|주십시오|드릴게요)[.!?。！？]*$"
 )
 _ANSWER_NOTICE_ONLY_RE = re.compile(
-    r"^(?:문의하신|질의하신|요청하신).{0,40}(?:확인|검토|안내).{0,16}(?:드립니다|드리겠습니다)[.!?。！？]*$"
+    r"^(?:문의하신|질의하신|요청하신|귀하의\s*민원\s*내용은).{0,80}(?:확인|검토|안내).{0,24}(?:드립니다|드리겠습니다)[.!?。！？]*$"
 )
 _GENERIC_CURIOSITY_ONLY_RE = re.compile(r"^(?:궁금합니다|궁금합니다만|궁금합니다\.)[.!?。！？]*$")
 _GENERIC_INQUIRY_INTRO_RE = re.compile(
@@ -238,6 +266,87 @@ _ATTACHMENT_REFERENCE_RE = re.compile(
 )
 _LOW_VALUE_REFERENCE_SEGMENT_RE = re.compile(
     r"^.{0,24}(?:참고하시길|참고해\s*주시기|참고)\s*바랍니다[.!?。！？]*$"
+)
+_LOW_VALUE_META_REQUEST_RE = re.compile(
+    r"^(?:질의\s*(?:요지|요약)|답변\s*요청\s*사항|요청\s*사항|요청\s*내용|제안\s*내용|"
+    r"의문\s*및\s*요청\s*사항|문의\s*사항|질의\s*사항|질문\s*사항|확인\s*사항|"
+    r"한\s*가지\s*요청드립니다|다음\s*사항에\s*대해\s*문의드립니다|"
+    r"확인\s*답변\s*부탁드립니다|내용\s*확인\s*부탁드립니다|"
+    r"확인하시고\s*답변해주시기\s*바랍니다|정확히\s*인지하시기\s*바랍니다|"
+    r"조속한\s*처리를\s*부탁드립니다|시의\s*빠른\s*조치를\s*바랍니다)[.!?。！？)]*$"
+)
+_LOW_VALUE_INQUIRY_INTRO_RE = re.compile(
+    r"^(?:아\s*)?(?:예,\s*)?(?:선생님\s*)?(?:(?:궁금한\s*것이\s*있어서)\s*(?:문의|질의)(?:드립니다|합니다)?|"
+    r"문의\s*좀\s*드릴게요|문의드릴\s*게\s*있는데요|"
+    r"뭐\s*좀\s*문의(?:하려고|하려)\s*그러는데요|"
+    r"여기서\s*궁금한\s*사항이\s*있습니다|"
+    r"이와\s*관련하여\s*아래와\s*같이\s*질의\s*드리오니\s*답변\s*요청\s*드립니다|"
+    r".{0,80}(?:내용|사항).{0,20}문의\s*드리고자\s*하니\s*답변\s*부탁\s*드립니다)"
+    r"[.!?。！？]*$"
+)
+_LOW_VALUE_REFERENCE_ACTION_RE = re.compile(
+    r"^(?:아래의\s*내용\s*)?참고하시어.{0,24}(?:시정|조치).{0,16}(?:해\s*주세요|바랍니다)[.!?。！？]*$"
+)
+_LOW_VALUE_ACTION_CLOSING_RE = re.compile(
+    r"^.{0,24}(?:확인|검토|조치|처리|반영|해결).{0,24}(?:부탁(?:드립니다|합니다)?|바랍니다|해\s*보시기\s*바랍니다)[.!?。！？]*$"
+)
+_ANAPHORIC_ACTION_ONLY_RE = re.compile(
+    r"^(?:아니\s*)?(?:일단(?:은)?\s*)?(?:[^.!?。！？]{0,24}도\s*)?"
+    r"(?:그렇게\s*해\s*주(?:십시오|세요)|해\s*주시면\s*안\s*되는지요|해\s*주십시오)[?？.!。！？]*$"
+)
+_ANAPHORIC_QUESTION_ONLY_RE = re.compile(
+    r"^(?:(?:그럼|그러면|그거는|그것도|이거는|이걸)\s*)?"
+    r"(?:어떻게\s*(?:하는|해야)\s*(?:건가요|되나요|돼요|됩니까|하나요)|"
+    r"어떻게\s*해야\s*되는\s*거죠|"
+    r"이게\s*뭔지|뭔지|뭘까요)[?？.!。！？]*$"
+)
+_ANAPHORIC_CONFIRMATION_ONLY_RE = re.compile(
+    r"^(?:아\s*)?(?:근데\s*)?(?:어쨌든\s*)?(?:그\s*)?(?:부분|방법|내용|투어|신청|확인).{0,24}"
+    r"(?:방법밖에\s*없네요|맞는\s*거죠|되는\s*거죠|확인(?:할)?\s*방법(?:밖에)?\s*없(?:네요|나요))[?？.!。！？]*$"
+)
+_PHONE_ADMIN_QUESTION_ONLY_RE = re.compile(
+    r"^(?:아\s*)?(?:혹시\s*)?(?:성함|이름|연락처|전화번호).{0,20}(?:어떻게\s*되시나요|알려\s*주실\s*수\s*있나요)[?？.!。！？]*$"
+    r"|^(?:아\s*)?(?:어\s*)?(?:어떤\s*걸\s*원할\s*시예요|무슨\s*일로\s*전화\s*주셨나요)[?？.!。！？]*$"
+)
+_PHONE_FILLER_ONLY_RE = re.compile(
+    r"^(?:아|네|예|어|음|잠시만요|여보세요|알겠습니다|감사합니다|맞습니다|그렇습니다)"
+    r"[\s,\.!?。！？]*$"
+)
+_PHONE_WEAK_CONFIRMATION_RE = re.compile(
+    r"(?:맞죠|맞나요|되는\s*거죠|된다는\s*말이죠|그\s*말이죠|가능해요|가능한\s*거예요|"
+    r"방법밖에\s*없네요|알겠습니다)[?？.!。！？]*$"
+)
+_PHONE_CONCRETE_QUESTION_TOKENS = {
+    "주차",
+    "신청",
+    "예약",
+    "예매",
+    "관람",
+    "좌석",
+    "공연",
+    "투어",
+    "서류",
+    "증빙",
+    "할인",
+    "입구",
+    "시간",
+}
+_LEGAL_BASIS_CONTEXT_ONLY_RE = re.compile(
+    r"^.{0,40}(?:관련법|법\s*제|시행령|시행규칙|조례|고시).{0,160}"
+    r"(?:되어\s*있어서요|되어\s*있습니다|규정되어\s*있|나와\s*있|명시되어\s*있)[.!。！]*$"
+)
+_ANSWER_REQUEST_CLOSING_RE = re.compile(
+    r"^(?:이에\s*)?(?:에\s*)?(?:대해|관해|관련하여)?\s*답변\s*부탁(?:드립니다|합니다)[.!?。！？]*$"
+    r"|^.{0,24}(?:1번부터\s*3번까지|각\s*\d+\s*가지|모두).{0,24}답변\s*부탁(?:드립니다|합니다)[.!?。！？.]*$"
+)
+_LIST_INTRO_ONLY_RE = re.compile(
+    r"^(?:그래서\s*)?(?:다음과\s*같이|아래와\s*같이).{0,16}(?:건의|요청|문의)(?:합니다|드립니다)[.!?。！？]*$"
+)
+_REFERENCE_CONTEXT_ONLY_RE = re.compile(
+    r"^참고로\s+.{0,120}(?:알고\s*있습니다|되어\s*있습니다|운영되고\s*있|좋더군요|좋았습니다)[.!?。！？]*$"
+)
+_BROAD_PROBLEM_ACTION_ONLY_RE = re.compile(
+    r"^.{0,40}(?:문제|상황).{0,24}(?:분명한\s*)?(?:조치|대응|개선).{0,16}필요합니다[.!?。！？]*$"
 )
 _LIST_CONTEXT_FRAGMENT_RE = re.compile(r"(?:후|이후|관련)$")
 _GENERIC_TITLE_CONTENT_TERMS = {
@@ -283,6 +392,15 @@ _GENERIC_CLOSING_CONTENT_TERMS = {
     "해소",
     "바쁘시더라",
     "바쁘시더라도",
+    "조속",
+    "조속히",
+    "신속히",
+    "확인해서",
+    "해결",
+    "친절한",
+    "친절",
+    "간곡히",
+    "간곡",
 }
 _SIGNATURE_STOPWORDS = {
     "안녕하세요",
@@ -701,18 +819,63 @@ def _is_title_segment_covered_by_question(title_segment: str, question_segments:
         if not question_content:
             continue
         common = title_content & question_content
+        covered_count = _covered_content_term_count(title_content, question_content)
         question_specific_content = question_content - _GENERIC_TITLE_CONTENT_TERMS
         if _GENERIC_INQUIRY_HEADING_RE.match(title_segment) and (
             common or any(len(term) >= 4 for term in question_specific_content)
+        ):
+            return True
+        if (
+            len(_normalize_segment(question_segment)) > len(_normalize_segment(title_segment)) + 12
+            and covered_count >= max(2, len(title_content) - 1)
         ):
             return True
         if len(common) >= 2:
             return True
         if any(len(term) >= 5 for term in common):
             return True
-        if common and len(title_content) <= 2:
+        if (common or covered_count) and len(title_content) <= 2:
             return True
     return False
+
+
+def _covered_content_term_count(title_content: set[str], question_content: set[str]) -> int:
+    covered = set(title_content & question_content)
+    remaining_title = title_content - covered
+    for title_term in remaining_title:
+        if len(title_term) < 3:
+            continue
+        if title_term.endswith("시") and title_term[:-1] in question_content:
+            covered.add(title_term)
+            continue
+        action_suffix = next(
+            (
+                action
+                for action in _ACTION_SIGNATURE_TOKENS
+                if len(action) >= 2 and title_term.endswith(action)
+            ),
+            "",
+        )
+        if action_suffix and title_term[: -len(action_suffix)] in question_content:
+            covered.add(title_term)
+            continue
+        if any(
+            len(question_term) >= 3
+            and (title_term in question_term or question_term in title_term)
+            for question_term in question_content
+        ):
+            covered.add(title_term)
+            continue
+        if any(
+            len(left) >= 2
+            and len(right) >= 2
+            and title_term in f"{left}{right}"
+            for left in question_content
+            for right in question_content
+            if left != right
+        ):
+            covered.add(title_term)
+    return len(covered)
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -721,6 +884,8 @@ def _split_sentences(text: str) -> list[str]:
 
 
 def _split_sentences_with_source(text: str) -> tuple[list[str], str]:
+    text = _normalize_orphan_question_parentheses(text)
+    text = _protect_inline_enumerated_boundaries(text)
     if _should_use_kss_sentence_splitter():
         kss_sentences = _split_sentences_with_kss(text)
         if kss_sentences:
@@ -732,6 +897,14 @@ def _split_sentences_with_source(text: str) -> tuple[list[str], str]:
         if part.strip()
     ]
     return _merge_orphan_numbered_markers(regex_sentences), "regex"
+
+
+def _protect_inline_enumerated_boundaries(text: str) -> str:
+    """문장분리기가 1./2. 번호를 마침표로 오해하지 않도록 목록 경계를 먼저 세운다."""
+    protected = str(text or "")
+    if not protected:
+        return protected
+    return _INLINE_ENUMERATED_BOUNDARY_RE.sub(lambda match: f"\n{match.group('num')}. ", protected)
 
 
 def _merge_orphan_numbered_markers(sentences: list[str]) -> list[str]:
@@ -942,9 +1115,15 @@ def _has_request_intent(segment: str) -> bool:
         return False
     if _KOREAN_REQUEST_INTENT_RE.search(cleaned):
         return True
+    if _LEGAL_QUESTION_END_RE.search(cleaned):
+        return True
     if _KOREAN_NOMINAL_QUESTION_RE.search(cleaned):
         return True
+    if _NOMINAL_REQUEST_INTENT_RE.search(cleaned):
+        return True
     if _OBJECTED_POLITE_REQUEST_RE.search(cleaned):
+        return True
+    if _DIRECT_QUESTION_PUNCT_RE.search(cleaned) and len(_content_terms(cleaned)) >= 2:
         return True
 
     return any(pattern.search(cleaned) for pattern in _REQUEST_INTENT_PATTERNS)
@@ -976,8 +1155,12 @@ def _strip_non_request_prefix(segment: str) -> str:
         return ""
 
     cleaned = _TITLE_Q_PREFIX_RE.sub("", cleaned).strip()
+    cleaned = _META_REQUEST_PREFIX_RE.sub("", cleaned).strip()
+    cleaned = _REQUEST_LIST_HEADING_PREFIX_RE.sub("", cleaned).strip()
+    cleaned = re.sub(r"^(?:요청\s*내용|질의\s*내용|문의\s*내용|맺음말)\s*[:：]?\s*", "", cleaned).strip()
     cleaned = _DIALOGUE_SPEAKER_PREFIX_RE.sub("", cleaned).strip()
     cleaned = _ENUMERATED_PREFIX_RE.sub("", cleaned).strip()
+    cleaned = _DECORATIVE_REQUEST_PREFIX_RE.sub("", cleaned).strip()
     cleaned = re.sub(r"^(?:그리고|또한|아울러)\s+", "", cleaned).strip()
 
     without_greeting = _TITLE_GREETING_PREFIX_RE.sub("", cleaned).strip()
@@ -1005,6 +1188,38 @@ def _is_low_value_request_segment(segment: str) -> bool:
     if _ATTACHMENT_REFERENCE_RE.match(cleaned):
         return True
     if _LOW_VALUE_REFERENCE_SEGMENT_RE.match(cleaned):
+        return True
+    if _LOW_VALUE_META_REQUEST_RE.match(cleaned):
+        return True
+    if _LOW_VALUE_INQUIRY_INTRO_RE.match(cleaned):
+        return True
+    if _LOW_VALUE_REFERENCE_ACTION_RE.match(cleaned):
+        return True
+    if (
+        _LOW_VALUE_ACTION_CLOSING_RE.match(cleaned)
+        and not (_content_terms(cleaned) - _GENERIC_CLOSING_CONTENT_TERMS)
+    ):
+        return True
+    if _ANAPHORIC_ACTION_ONLY_RE.match(cleaned):
+        return True
+    if _ANAPHORIC_CONFIRMATION_ONLY_RE.match(cleaned):
+        return True
+    if _PHONE_ADMIN_QUESTION_ONLY_RE.match(cleaned):
+        return True
+    if _is_phone_dialogue_weak_confirmation(cleaned):
+        return True
+    if _LEGAL_BASIS_CONTEXT_ONLY_RE.match(cleaned):
+        return True
+    if _ANSWER_REQUEST_CLOSING_RE.match(cleaned):
+        return True
+    if _LIST_INTRO_ONLY_RE.match(cleaned):
+        return True
+    if _REFERENCE_CONTEXT_ONLY_RE.match(cleaned):
+        return True
+    if (
+        _BROAD_PROBLEM_ACTION_ONLY_RE.match(cleaned)
+        and not any(token in cleaned for token in _REQUEST_OBJECT_TOKENS)
+    ):
         return True
     if _LOW_INFORMATION_REQUEST_RE.match(cleaned):
         return True
@@ -1035,6 +1250,29 @@ def _is_generic_polite_closing_segment(segment: str) -> bool:
         return False
     content = _content_terms(cleaned) - _GENERIC_CLOSING_CONTENT_TERMS
     return not content
+
+
+def _is_phone_dialogue_weak_confirmation(segment: str) -> bool:
+    cleaned = _normalize_segment(segment)
+    if not cleaned or len(cleaned) > 80:
+        return False
+    if _PHONE_FILLER_ONLY_RE.match(cleaned):
+        return True
+    if not _PHONE_WEAK_CONFIRMATION_RE.search(cleaned):
+        return False
+    if any(token in cleaned for token in _PHONE_CONCRETE_QUESTION_TOKENS):
+        return False
+    content = _content_terms(cleaned) - {
+        "가능",
+        "방법",
+        "전화",
+        "전화해서",
+        "말",
+        "거죠",
+        "맞죠",
+        "맞나요",
+    }
+    return len(content) <= 1 or cleaned.startswith(("아", "네", "예", "그러면", "그럼", "이리", "그거", "이거"))
 
 
 def _has_concrete_request_content(segment: str) -> bool:
@@ -1123,6 +1361,7 @@ def _drop_summary_request_segments(segments: list[str]) -> list[str]:
         for index, segment in enumerate(segments)
         if not _is_summary_request_segment(segment, segments, index)
         and not _is_generic_inquiry_intro_segment(segment, segments, index)
+        and not _is_generic_followup_question_segment(segment, segments, index)
     ]
 
 
@@ -1193,6 +1432,16 @@ def _is_generic_inquiry_intro_segment(segment: str, segments: list[str], index: 
     return False
 
 
+def _is_generic_followup_question_segment(segment: str, segments: list[str], index: int) -> bool:
+    cleaned = _normalize_segment(segment)
+    if not _ANAPHORIC_QUESTION_ONLY_RE.match(cleaned):
+        return False
+    if not any(other_index != index and _content_terms(other) for other_index, other in enumerate(segments)):
+        return False
+    content = _content_terms(cleaned) - _GENERIC_QUESTION_CONTENT_TERMS - {"건가요", "건지", "거죠"}
+    return not content
+
+
 def _is_repeated_request_segment(left: str, right: str) -> bool:
     left_actions = _action_terms(left)
     right_actions = _action_terms(right)
@@ -1210,6 +1459,14 @@ def _is_repeated_request_segment(left: str, right: str) -> bool:
         return True
 
     similarity = len(common_content) / max(1, len(union))
+    shorter_content_size = min(len(left_content), len(right_content))
+    if shorter_content_size >= 2:
+        covered_similarity = max(
+            _covered_content_term_count(left_content, right_content),
+            _covered_content_term_count(right_content, left_content),
+        ) / shorter_content_size
+        if covered_similarity >= 0.75:
+            return True
     return similarity >= 0.45
 
 
@@ -1249,7 +1506,15 @@ def _content_terms(segment: str) -> set[str]:
 
 
 def _normalize_segment(segment: str) -> str:
-    return " ".join(str(segment or "").split())
+    normalized = " ".join(str(segment or "").split())
+    return _normalize_orphan_question_parentheses(normalized)
+
+
+def _normalize_orphan_question_parentheses(text: str) -> str:
+    normalized = str(text or "")
+    normalized = re.sub(r"\(([^()\r\n]*[?？])(?=\s|$)", r"\1", normalized)
+    normalized = re.sub(r"([?？])\)+(?=\s|$)", r"\1", normalized)
+    return normalized
 
 
 def _segment_key(segment: str) -> str:

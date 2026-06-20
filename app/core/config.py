@@ -169,6 +169,21 @@ class Settings:
     CI_SCORE_WEIGHT_SPATIAL: float = float(os.getenv("CI_SCORE_WEIGHT_SPATIAL", "0.15"))
     CI_SCORE_WEIGHT_RISK: float = float(os.getenv("CI_SCORE_WEIGHT_RISK", "0.10"))
 
+    # request_segments LLM hybrid fallback. 기본 off로 기존 규칙 기반 라우팅을 유지한다.
+    # mode: off(무동작), shadow(LLM 후보 검증만 trace 기록), assist(검증 통과 시 segment 교체).
+    REQUEST_SEGMENT_LLM_MODE: str = os.getenv("REQUEST_SEGMENT_LLM_MODE", "off").lower()
+    REQUEST_SEGMENT_LLM_PROVIDER: str = os.getenv("REQUEST_SEGMENT_LLM_PROVIDER", "none").lower()
+    REQUEST_SEGMENT_LLM_MODEL: str = os.getenv("REQUEST_SEGMENT_LLM_MODEL", STRUCTURING_MODEL)
+    REQUEST_SEGMENT_LLM_BASE_URL: str = os.getenv("REQUEST_SEGMENT_LLM_BASE_URL", OLLAMA_BASE_URL)
+    REQUEST_SEGMENT_LLM_TIMEOUT: float = float(os.getenv("REQUEST_SEGMENT_LLM_TIMEOUT", "30.0"))
+    REQUEST_SEGMENT_LLM_MIN_CONFIDENCE: float = float(os.getenv("REQUEST_SEGMENT_LLM_MIN_CONFIDENCE", "0.65"))
+    REQUEST_SEGMENT_LLM_PROMPT_STYLE: str = os.getenv("REQUEST_SEGMENT_LLM_PROMPT_STYLE", "text").lower()
+    # assist 정책은 기본 none으로 둔다. v2_strict는 내부 제한 실험에서만 사용한다.
+    REQUEST_SEGMENT_LLM_ASSIST_POLICY: str = os.getenv("REQUEST_SEGMENT_LLM_ASSIST_POLICY", "none").lower()
+    REQUEST_SEGMENT_LLM_SOURCE_BLOCK_LIMIT: int = int(os.getenv("REQUEST_SEGMENT_LLM_SOURCE_BLOCK_LIMIT", "30"))
+    REQUEST_SEGMENT_LLM_NUM_PREDICT: int = int(os.getenv("REQUEST_SEGMENT_LLM_NUM_PREDICT", "512"))
+    REQUEST_SEGMENT_LLM_BLOCK_NUM_PREDICT: int = int(os.getenv("REQUEST_SEGMENT_LLM_BLOCK_NUM_PREDICT", "256"))
+
     # Civil Complaint LLM-Rubric vNext: QA 초안 생성 직후 운영 응답에 평가 리포트를 붙인다.
     ENABLE_CIVIL_LLM_RUBRIC: bool = os.getenv("ENABLE_CIVIL_LLM_RUBRIC", "true").lower() == "true"
     CIVIL_LLM_RUBRIC_USE_LLM_JUDGE: bool = os.getenv("CIVIL_LLM_RUBRIC_USE_LLM_JUDGE", "true").lower() == "true"
