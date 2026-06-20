@@ -24,6 +24,7 @@ def _structured_case():
             "entity_texts": [{"text": "가설건축물"}],
             "legal_refs": [{"name": "건축법", "law_id": "001823"}],
             "key_terms": ["가설건축물", "이행강제금"],
+            "request_segments": ["처리 기준 안내", "이행강제금 산정 기준 안내"],
             "responsible_unit": [{"name": "건축과", "source": "be1_structured"}],
             "urgency": {"level": "높음"},
         },
@@ -36,6 +37,7 @@ def test_ui_case_adapter_preserves_be1_generation_signals():
 
     assert structured["legal_refs"] == [{"name": "건축법", "law_id": "001823"}]
     assert structured["key_terms"] == ["가설건축물", "이행강제금"]
+    assert case["request_segments"] == ["처리 기준 안내", "이행강제금 산정 기준 안내"]
     assert structured["responsible_unit"] == [{"name": "건축과", "source": "be1_structured"}]
     assert structured["urgency"] == {"level": "높음"}
     assert case["civil_category"]["primary"] == "도시·건축·주택"

@@ -29,6 +29,7 @@ import {
   buildDraftTextareaValue,
   computeSegmentViewMode,
   pairSegmentsWithActions,
+  selectDraftRequestSegments,
   type DraftStage,
   type SegmentViewMode,
   type SupplementarySegment,
@@ -65,6 +66,8 @@ type WorkbenchCase = AssignedCase & {
   text?: string;
   summary?: string;
   description?: string;
+  request_segments?: string[];
+  requestSegments?: string[];
   structured?: WorkbenchStructuredFields;
 };
 
@@ -111,7 +114,7 @@ function WorkbenchContent() {
   const [searchStage, setSearchStage] = useState<SearchStage>("empty");
   const [searchBundle, setSearchBundle] = useState<SearchResponseData | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [, setRoutingTrace] = useState<RoutingTrace | null>(null);
+  const [routingTrace, setRoutingTrace] = useState<RoutingTrace | null>(null);
   const [routingHint, setRoutingHint] = useState<RoutingHint | null>(null);
   const [, setStrategyId] = useState<string | null>(null);
   const [, setRouteKey] = useState<string | null>(null);
@@ -351,6 +354,7 @@ function WorkbenchContent() {
           complaintId: selectedCase.case_id,
           query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
           routingHint: effectiveRoutingHint,
+          routingTrace: bundle?.routingTrace || routingTrace || undefined,
           useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
           searchResults: bundle?.results || bundle?.searchResults || [],
           caseContext,
@@ -383,7 +387,7 @@ function WorkbenchContent() {
 
   const responseSegments = draftResponse?.structuredOutput?.requestSegments || [];
   const fallbackSegments = buildFallbackSegments(selectedCase);
-  const requestSegments = responseSegments.length > 0 ? responseSegments : fallbackSegments;
+  const requestSegments = selectDraftRequestSegments({ responseSegments, fallbackSegments });
   const segmentViewMode = computeSegmentViewMode({ draftStage, segmentCount: requestSegments.length });
   const supplementarySegments = pairSegmentsWithActions(requestSegments, draftResponse?.structuredOutput?.actionItems || []);
   const draftSummary = draftResponse?.structuredOutput?.summary || "";
@@ -666,6 +670,7 @@ function buildCaseContext(caseItem: WorkbenchCase): WorkbenchCaseContext {
     region: caseItem.region,
     summary: getCaseSummaryText(caseItem),
     priority: caseItem.priority,
+    requestSegments: getCaseRequestSegments(caseItem),
   };
 }
 
@@ -811,13 +816,15 @@ function buildDefaultRoutingInfoFromCase(caseItem: WorkbenchCase): { routingTrac
   const displayCategory = getCaseCategoryLabel(caseItem);
   const topic: TopicType = mapCategoryToTopicType(category);
   const complexityLevel: "low" | "medium" | "high" = "medium";
+  const requestSegments = getCaseRequestSegments(caseItem);
 
   const routingTrace: RoutingTrace = {
     topicType: topic,
     complexityLevel,
     complexityScore: 0.58,
+    requestSegments,
     complexityTrace: {
-      intent_count: 1,
+      intent_count: Math.max(1, requestSegments.length),
       constraint_count: 1,
       entity_diversity: 1,
       policy_reference_count: 0,
@@ -867,11 +874,22 @@ function buildDefaultQuery(caseItem: WorkbenchCase) {
 }
 
 function buildFallbackSegments(caseItem: WorkbenchCase): string[] {
+  const explicitSegments = getCaseRequestSegments(caseItem);
+  if (explicitSegments.length > 0) {
+    return explicitSegments;
+  }
   const request = caseItem?.structured?.request?.text;
   if (typeof request === "string" && request.trim().length > 0) {
     return [request.trim()];
   }
   return [];
+}
+
+function getCaseRequestSegments(caseItem: WorkbenchCase): string[] {
+  const rawSegments = caseItem.request_segments || caseItem.requestSegments || [];
+  return rawSegments
+    .map((segment) => String(segment || "").split(/\s+/).join(" "))
+    .filter(Boolean);
 }
 
 function DraftSupplementaryPanel({

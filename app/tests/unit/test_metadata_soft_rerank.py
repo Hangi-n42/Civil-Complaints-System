@@ -40,7 +40,7 @@ def test_search_query_signals_are_normalized():
 
 
 def test_default_collection_uses_clean_collection_name():
-    assert settings.DEFAULT_CHROMA_COLLECTION == "civil_cases_v1"
+    assert settings.DEFAULT_CHROMA_COLLECTION == "civil_cases_v3"
     assert SearchRequest(query="가로등 점검").collection_name == settings.DEFAULT_CHROMA_COLLECTION
     assert RetrievalService().default_collection_name == settings.DEFAULT_CHROMA_COLLECTION
 
