@@ -1,0 +1,67 @@
+{
+  "total_reviewed": 100,
+  "judgment_counts": {
+    "pass": 57,
+    "partial": 21,
+    "fail": 12,
+    "unsure": 10
+  },
+  "pass_rate": 0.57,
+  "pass_partial_rate": 0.78,
+  "assist_limited_reviewed": 21,
+  "assist_limited_judgment_counts": {
+    "pass": 13,
+    "partial": 8
+  },
+  "assist_limited_pass_rate": 0.6190476190476191,
+  "assist_limited_allow_count": 12,
+  "recommendation_counts": {
+    "allow": 12,
+    "review_required": 23,
+    "shadow_only": 53,
+    "reject": 12
+  },
+  "assist_limited_recommendation_counts": {
+    "allow": 12,
+    "review_required": 9
+  },
+  "error_counts": {
+    "none": 57,
+    "under_split": 7,
+    "dialogue_confusion": 12,
+    "over_split": 7,
+    "too_abstract": 1,
+    "evidence_insufficient": 3,
+    "unsupported_segment": 1,
+    "weak_actionability": 10,
+    "legal_context_ambiguous": 2
+  },
+  "risk_tag_counts": {
+    "long_legal_or_policy": {
+      "fail": 1
+    },
+    "none": {
+      "pass": 43,
+      "partial": 9,
+      "unsure": 9,
+      "fail": 2
+    },
+    "numbered_or_heading_list": {
+      "pass": 13,
+      "partial": 8,
+      "fail": 5,
+      "unsure": 1
+    },
+    "phone_dialogue": {
+      "pass": 2
+    },
+    "segment_limit_case": {
+      "partial": 1,
+      "fail": 4
+    },
+    "weak_request_signal": {
+      "partial": 3,
+      "fail": 2
+    }
+  }
+}

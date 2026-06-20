@@ -17,7 +17,7 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
-from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
 from app.retrieval.analyzers.topic_analyzer import detect as detect_topic
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
@@ -123,7 +123,7 @@ def _log_routing_decision(
 def _build_routing_payload(query: str) -> dict:
     topic_type = detect_topic(query)
     analyzer_started = perf_counter()
-    analyzer_output = build_analyzer_output(text=query, topic_type=topic_type)
+    analyzer_output = build_request_segment_analysis(text=query, topic_type=topic_type)
     analyzer_latency_ms = int((perf_counter() - analyzer_started) * 1000)
 
     router_started = perf_counter()

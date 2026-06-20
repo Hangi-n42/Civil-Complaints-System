@@ -19,16 +19,19 @@ from typing import Any, Dict, List, Tuple
 
 
 _MARKER_RE = re.compile(
-    r"(?m)^[ \t\"'“”‘’「『]*"
+    r"(?m)^[ \t\"'“”‘’「『]*(?:\[\s*)?"
     r"(?P<label>제목|Q|질문|문의|A|답변)"
-    r"[ \t]*[:：.]"
+    r"[ \t]*(?:[:：.]|\)|\])"
     r"[ \t]*"
 )
 _SPEAKER_RE = re.compile(
-    r"(?m)^[ \t\"'“”‘’「『]*"
+    r"(?m)^[ \t\"'“”‘’「『]*(?:\[\s*)?"
     r"(?P<label>고객|민원인|내담자|문의자|질문자|사용자|상담원|상담사|상담자|담당자|직원|공무원)"
-    r"[ \t]*[:：]"
+    r"[ \t]*(?:[:：]|\)|\])"
     r"[ \t]*"
+)
+_EMBEDDED_ANSWER_MARKER_RE = re.compile(
+    r"(?m)^[ \t\"'“”‘’「『]*\[\s*(?:A|답변)\s*\][ \t]*"
 )
 _QUESTION_LABELS = {"Q", "질문", "문의"}
 _ANSWER_LABELS = {"A", "답변"}
@@ -72,6 +75,17 @@ def _clean_policy_qna_text(text: Any) -> str:
     return _normalize_text(unescaped)
 
 
+def _split_embedded_answer_block(question: str) -> Tuple[str, str]:
+    """질문 필드 내부의 강한 [답변] 블록만 민원 질문과 답변으로 분리한다."""
+    match = _EMBEDDED_ANSWER_MARKER_RE.search(question or "")
+    if not match:
+        return _normalize_text(question), ""
+
+    client_question = _normalize_text(question[:match.start()])
+    answer = _normalize_text(question[match.end():])
+    return client_question, answer
+
+
 def _policy_qna_category(data: Dict[str, Any]) -> str:
     """정책 Q&A 원천에서 보수적으로 카테고리 역할을 할 부서명을 고른다."""
     subj_list = data.get("subjList")
@@ -96,6 +110,9 @@ def _unwrap_policy_qna_record(raw_record: Dict[str, Any]) -> Dict[str, Any]:
     title = _clean_policy_qna_text(data.get("qnaTitl"))
     question = _clean_policy_qna_text(data.get("qstnCntnCl"))
     answer = _clean_policy_qna_text(data.get("ansCntnCl"))
+    question, embedded_answer = _split_embedded_answer_block(question)
+    if embedded_answer and not answer:
+        answer = embedded_answer
     source_id = _clean_policy_qna_text(data.get("faqNo") or raw_record.get("source_id"))
     source = _clean_policy_qna_text(data.get("ancName") or data.get("deptName") or raw_record.get("source"))
 
@@ -146,6 +163,18 @@ def _parse_marker_content(content: str) -> Dict[str, str]:
     question_parts: List[str] = []
     answer_parts: List[str] = []
     active_part = ""
+    first_match = _MARKER_RE.search(content)
+    leading_text = _normalize_text(content[: first_match.start()]) if first_match else ""
+    if leading_text:
+        first_label = sections[0][0]
+        if first_label in _ANSWER_LABELS:
+            question_parts.append(leading_text)
+            active_part = "question"
+        elif first_label == "제목":
+            title_parts.append(leading_text)
+        else:
+            question_parts.append(leading_text)
+            active_part = "question"
 
     for label, body in sections:
         if label == "제목" and not active_part:
@@ -206,7 +235,8 @@ def parse_consulting_content(content: Any, source: str = "") -> Dict[str, str]:
 
     대부분 지역은 제목/Q/A 마커를 사용하고, 국립아시아문화전당은
     고객/상담원 화자 라벨을 사용한다. 파싱 결과는 민원인 질문과 상담사 답변을
-    별도 필드에 보존하고, 구조화/검색 입력은 정책상 두 본문을 함께 사용한다.
+    별도 필드에 보존한다. 구조화 본문은 `civil_text()`, 검색 본문은
+    `civil_text_with_answer()`에서 각각 조립한다.
     """
     cleaned = _clean_content(content)
     if not cleaned:

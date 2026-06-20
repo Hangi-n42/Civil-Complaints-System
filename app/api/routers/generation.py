@@ -40,7 +40,7 @@ from app.retrieval.router.adaptive_router import (
     build_strategy_id,
     parse_route_key,
 )
-from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
@@ -67,7 +67,7 @@ def _derive_request_segments(query: str) -> list[str]:
 
     # /search와 /qa fallback이 같은 의미 기반 요청 분해 규칙을 쓰도록 BE1 analyzer에 위임한다.
     try:
-        output = build_analyzer_output(cleaned, "general")
+        output = build_request_segment_analysis(cleaned, "general")
         segments = output.get("request_segments")
     except Exception:
         segments = None
@@ -124,7 +124,7 @@ def _validate_week6_qa_request(request: QARequest) -> str | None:
 def _build_trace_from_route_key(route_key: str, query: str) -> dict:
     topic_type, complexity_level = parse_route_key(route_key)
     try:
-        analyzer_output = build_analyzer_output(query, topic_type)
+        analyzer_output = build_request_segment_analysis(query, topic_type)
     except Exception:
         analyzer_output = {}
 

@@ -1,0 +1,372 @@
+{
+  "settings": {
+    "mode": "live",
+    "seed": 20260620,
+    "sample_size": 5,
+    "input_dir": "data\\raw_data",
+    "model": "exaone3.5:7.8b",
+    "base_url": "http://localhost:11434",
+    "timeout": 60.0,
+    "num_predict": 256,
+    "reuse_json": null
+  },
+  "summary": {
+    "seed": 20260620,
+    "mode": "live",
+    "total_fallback_candidates": 5,
+    "pre_gate_counts": {
+      "skip_shadow_only": 4,
+      "allow_call": 1
+    },
+    "pre_gate_allow_call": 1,
+    "pre_gate_skipped": 4,
+    "llm_called": 1,
+    "llm_call_rate": 0.2,
+    "validation_accepted": 1,
+    "validation_accepted_rate": 1.0,
+    "strict_gate_counts": {
+      "not_evaluated": 4,
+      "allow_assist": 1
+    },
+    "strict_allow_assist": 1,
+    "strict_allow_rate_total": 0.2,
+    "strict_allow_rate_called": 1.0,
+    "hallucination_suspected": 0,
+    "reject_reason_counts": {
+      "not_list_trigger_candidate": 4,
+      "null": 1
+    },
+    "risk_tag_counts": {
+      "numbered_or_heading_list": 1
+    },
+    "allow_segment_count_distribution": {
+      "1": 1
+    },
+    "latency": {
+      "avg": 23.377,
+      "p50": 23.377,
+      "p95": 23.377,
+      "max": 23.377
+    },
+    "representative_allow_ids": [
+      "301489"
+    ],
+    "representative_skip_ids": [
+      "6906561",
+      "6891720",
+      "6900488",
+      "6895744"
+    ],
+    "representative_reject_ids": []
+  },
+  "results": [
+    {
+      "source_id": "6906561",
+      "source_file": "6906561.json",
+      "title": "입학준비금 신청 기간",
+      "question": "입학준비금 집중신청기간(2월, 3월)에 신청하지 못했습니다. 언제 신청할 수 있을까요?",
+      "source_text": "입학준비금 신청 기간\n입학준비금 집중신청기간(2월, 3월)에 신청하지 못했습니다. 언제 신청할 수 있을까요?",
+      "fallback_reasons": [
+        "strong_candidate_single_segment"
+      ],
+      "rule_segments": [
+        "언제 신청할 수 있을까요?"
+      ],
+      "rule_trace": {
+        "topic_type": "서울특별시교육청 서울특별시성북강북교육지원청 행정지원국 학교통합지원과",
+        "text_length": 60,
+        "intent_count": 1,
+        "constraint_count": 0,
+        "entity_diversity": 0,
+        "policy_reference_count": 0,
+        "cross_sentence_dependency": false,
+        "weights": {
+          "length": 0.15,
+          "intent": 0.0,
+          "constraint": 0.0,
+          "entity": 0.0,
+          "policy": 0.0
+        },
+        "segment_count": 1,
+        "sentence_splitter": "regex",
+        "sentence_count": 3,
+        "segment_candidate_count": 3,
+        "dropped_background_count": 0,
+        "dropped_admin_action_count": 0,
+        "shared_predicate_split_count": 0,
+        "fallback_segment_used": false,
+        "segment_limit": 6,
+        "segment_limit_applied": false,
+        "title_question_boundary_used": true,
+        "title_segment_count": 0,
+        "question_segment_count": 1,
+        "title_duplicate_dropped_count": 0
+      },
+      "topic_type": "서울특별시교육청 서울특별시성북강북교육지원청 행정지원국 학교통합지원과",
+      "index": 1,
+      "llm_pre_gate": "skip_shadow_only",
+      "llm_pre_gate_reason": "not_list_trigger_candidate",
+      "llm_pre_gate_risk_tags": [],
+      "llm_called": false,
+      "latency_sec": null,
+      "raw_response": null,
+      "accepted": false,
+      "reject_reason": null,
+      "hallucination_suspected": false,
+      "llm_segments": [],
+      "llm_decision": null,
+      "llm_assist_gate": "not_evaluated",
+      "llm_assist_gate_reason": null,
+      "llm_assist_gate_risk_tags": [],
+      "llm_assist_gate_evidence_count": 0
+    },
+    {
+      "source_id": "301489",
+      "source_file": "국토교통부_1454.json",
+      "title": "방화댐퍼의 적용 질",
+      "question": "안녕하세요\n건축물의 피난, 방화구조 등의 기준에 관한 규칙 제14조 제2항 제3호 질의입니다.\n-개정 : 2019.08.06\n-시행 : 2021.08.07부터\n-건축허가 또는 대수선 허가를 신청 (건축허가 또는 대수선 허가를 신청하기 위해 법 제4조의 2제 1항에 따라 건축위원회에 심의를 신청하는 경우를 포함한다) 하거나 법 제14조에 따른 건축 신고를 하는 경우부터 적용.\n\n해당 건에 대하여 당 현장은 건축위원회 심의 : 2020. 12월 / 허가 21.7.21 접수, 취하 후 21.08.25 재접수입니다.\n\n이럴 경우에 14조 제2항 제3호에 해당하는 방화댐퍼로 적용하여야 하는지 질의드립니다.\n\n감사합니다.",
+      "source_text": "방화댐퍼의 적용 질\n안녕하세요\n건축물의 피난, 방화구조 등의 기준에 관한 규칙 제14조 제2항 제3호 질의입니다.\n-개정 : 2019.08.06\n-시행 : 2021.08.07부터\n-건축허가 또는 대수선 허가를 신청 (건축허가 또는 대수선 허가를 신청하기 위해 법 제4조의 2제 1항에 따라 건축위원회에 심의를 신청하는 경우를 포함한다) 하거나 법 제14조에 따른 건축 신고를 하는 경우부터 적용.\n\n해당 건에 대하여 당 현장은 건축위원회 심의 : 2020. 12월 / 허가 21.7.21 접수, 취하 후 21.08.25 재접수입니다.\n\n이럴 경우에 14조 제2항 제3호에 해당하는 방화댐퍼로 적용하여야 하는지 질의드립니다.\n\n감사합니다.",
+      "fallback_reasons": [
+        "strong_candidate_single_segment",
+        "numbered_under_split"
+      ],
+      "rule_segments": [
+        "건축물의 피난, 방화구조 등의 기준에 관한 규칙 제14조 제2항 제3호 질의입니다."
+      ],
+      "rule_trace": {
+        "topic_type": "건축안전과",
+        "text_length": 356,
+        "intent_count": 1,
+        "constraint_count": 0,
+        "entity_diversity": 0,
+        "policy_reference_count": 2,
+        "cross_sentence_dependency": false,
+        "weights": {
+          "length": 0.25,
+          "intent": 0.0,
+          "constraint": 0.0,
+          "entity": 0.0,
+          "policy": 0.2
+        },
+        "segment_count": 1,
+        "sentence_splitter": "regex",
+        "sentence_count": 10,
+        "segment_candidate_count": 10,
+        "dropped_background_count": 2,
+        "dropped_admin_action_count": 0,
+        "shared_predicate_split_count": 2,
+        "fallback_segment_used": false,
+        "segment_limit": 6,
+        "segment_limit_applied": false,
+        "title_question_boundary_used": true,
+        "title_segment_count": 0,
+        "question_segment_count": 1,
+        "title_duplicate_dropped_count": 0
+      },
+      "topic_type": "건축안전과",
+      "index": 2,
+      "llm_pre_gate": "allow_call",
+      "llm_pre_gate_reason": null,
+      "llm_pre_gate_risk_tags": [
+        "numbered_or_heading_list"
+      ],
+      "llm_called": true,
+      "latency_sec": 23.377,
+      "raw_response": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"방화댐퍼 적용 여부 질의\", \"evidence_ids\":[\"S8\"]}],\"confidence\":0.95}",
+      "accepted": true,
+      "reject_reason": null,
+      "hallucination_suspected": false,
+      "llm_segments": [
+        "방화댐퍼 적용 여부 질의"
+      ],
+      "llm_decision": "replace",
+      "llm_assist_gate": "allow_assist",
+      "llm_assist_gate_reason": null,
+      "llm_assist_gate_risk_tags": [
+        "numbered_or_heading_list"
+      ],
+      "llm_assist_gate_evidence_count": 1,
+      "source_block_count": 9
+    },
+    {
+      "source_id": "6891720",
+      "source_file": "6891720.json",
+      "title": "도로점용(굴착복구) 허가 신청 및 처리절차",
+      "question": "도로의 굴착복구공사가 필요할 경우 굴착복구 허가 신청은 어떻게 하나요?",
+      "source_text": "도로점용(굴착복구) 허가 신청 및 처리절차\n도로의 굴착복구공사가 필요할 경우 굴착복구 허가 신청은 어떻게 하나요?",
+      "fallback_reasons": [
+        "strong_candidate_single_segment"
+      ],
+      "rule_segments": [
+        "도로의 굴착복구공사가 필요할 경우 굴착복구 허가 신청은 어떻게 하나요?"
+      ],
+      "rule_trace": {
+        "topic_type": "서울특별시 금천구 교통건설국 도로과",
+        "text_length": 63,
+        "intent_count": 1,
+        "constraint_count": 1,
+        "entity_diversity": 1,
+        "policy_reference_count": 0,
+        "cross_sentence_dependency": false,
+        "weights": {
+          "length": 0.1575,
+          "intent": 0.0,
+          "constraint": 0.07,
+          "entity": 0.05,
+          "policy": 0.0
+        },
+        "segment_count": 1,
+        "sentence_splitter": "regex",
+        "sentence_count": 2,
+        "segment_candidate_count": 2,
+        "dropped_background_count": 0,
+        "dropped_admin_action_count": 0,
+        "shared_predicate_split_count": 0,
+        "fallback_segment_used": false,
+        "segment_limit": 6,
+        "segment_limit_applied": false,
+        "title_question_boundary_used": true,
+        "title_segment_count": 0,
+        "question_segment_count": 1,
+        "title_duplicate_dropped_count": 0
+      },
+      "topic_type": "서울특별시 금천구 교통건설국 도로과",
+      "index": 3,
+      "llm_pre_gate": "skip_shadow_only",
+      "llm_pre_gate_reason": "not_list_trigger_candidate",
+      "llm_pre_gate_risk_tags": [],
+      "llm_called": false,
+      "latency_sec": null,
+      "raw_response": null,
+      "accepted": false,
+      "reject_reason": null,
+      "hallucination_suspected": false,
+      "llm_segments": [],
+      "llm_decision": null,
+      "llm_assist_gate": "not_evaluated",
+      "llm_assist_gate_reason": null,
+      "llm_assist_gate_risk_tags": [],
+      "llm_assist_gate_evidence_count": 0
+    },
+    {
+      "source_id": "6900488",
+      "source_file": "6900488.json",
+      "title": "대전학생해양수련원 체험프로그램 신청 대상 및 방법",
+      "question": "대전학생해양수련원 체험프로그램 신청은 누가 어떻게 할 수 있나요?",
+      "source_text": "대전학생해양수련원 체험프로그램 신청 대상 및 방법\n대전학생해양수련원 체험프로그램 신청은 누가 어떻게 할 수 있나요?",
+      "fallback_reasons": [
+        "strong_candidate_single_segment"
+      ],
+      "rule_segments": [
+        "대전학생해양수련원 체험프로그램 신청은 누가 어떻게 할 수 있나요?"
+      ],
+      "rule_trace": {
+        "topic_type": "대전광역시교육청 대전학생해양수련원 지도부",
+        "text_length": 64,
+        "intent_count": 1,
+        "constraint_count": 0,
+        "entity_diversity": 0,
+        "policy_reference_count": 1,
+        "cross_sentence_dependency": false,
+        "weights": {
+          "length": 0.16,
+          "intent": 0.0,
+          "constraint": 0.0,
+          "entity": 0.0,
+          "policy": 0.1
+        },
+        "segment_count": 1,
+        "sentence_splitter": "regex",
+        "sentence_count": 2,
+        "segment_candidate_count": 2,
+        "dropped_background_count": 0,
+        "dropped_admin_action_count": 0,
+        "shared_predicate_split_count": 0,
+        "fallback_segment_used": false,
+        "segment_limit": 6,
+        "segment_limit_applied": false,
+        "title_question_boundary_used": true,
+        "title_segment_count": 0,
+        "question_segment_count": 1,
+        "title_duplicate_dropped_count": 0
+      },
+      "topic_type": "대전광역시교육청 대전학생해양수련원 지도부",
+      "index": 4,
+      "llm_pre_gate": "skip_shadow_only",
+      "llm_pre_gate_reason": "not_list_trigger_candidate",
+      "llm_pre_gate_risk_tags": [],
+      "llm_called": false,
+      "latency_sec": null,
+      "raw_response": null,
+      "accepted": false,
+      "reject_reason": null,
+      "hallucination_suspected": false,
+      "llm_segments": [],
+      "llm_decision": null,
+      "llm_assist_gate": "not_evaluated",
+      "llm_assist_gate_reason": null,
+      "llm_assist_gate_risk_tags": [],
+      "llm_assist_gate_evidence_count": 0
+    },
+    {
+      "source_id": "6895744",
+      "source_file": "6895744.json",
+      "title": "민원실 불편",
+      "question": "민원실에 정수기로 물을 마실때 냉수가 나오지 않습니다.\n더위가 심한데도 에어컨을 틀어주지 않아 매우 덥습니다.\n민원실 이용에 불편이 많아 시민을 하대한다는 기분이 듭니다.",
+      "source_text": "민원실 불편\n민원실에 정수기로 물을 마실때 냉수가 나오지 않습니다.\n더위가 심한데도 에어컨을 틀어주지 않아 매우 덥습니다.\n민원실 이용에 불편이 많아 시민을 하대한다는 기분이 듭니다.",
+      "fallback_reasons": [
+        "fallback_single_segment"
+      ],
+      "rule_segments": [
+        "민원실에 정수기로 물을 마실때 냉수가 나오지 않습니다. 더위가 심한데도 에어컨을 틀어주지 않아 매우 덥습니다. 민원실 이용에 불편이 많아 시민을 하대한다는 기분이 듭니다."
+      ],
+      "rule_trace": {
+        "topic_type": "경기도 여주시 총무안전국 민원토지과",
+        "text_length": 102,
+        "intent_count": 1,
+        "constraint_count": 0,
+        "entity_diversity": 0,
+        "policy_reference_count": 0,
+        "cross_sentence_dependency": false,
+        "weights": {
+          "length": 0.25,
+          "intent": 0.0,
+          "constraint": 0.0,
+          "entity": 0.0,
+          "policy": 0.0
+        },
+        "segment_count": 1,
+        "sentence_splitter": "regex",
+        "sentence_count": 4,
+        "segment_candidate_count": 4,
+        "dropped_background_count": 2,
+        "dropped_admin_action_count": 0,
+        "shared_predicate_split_count": 0,
+        "fallback_segment_used": true,
+        "segment_limit": 6,
+        "segment_limit_applied": false,
+        "title_question_boundary_used": true,
+        "title_segment_count": 0,
+        "question_segment_count": 0,
+        "title_duplicate_dropped_count": 0
+      },
+      "topic_type": "경기도 여주시 총무안전국 민원토지과",
+      "index": 5,
+      "llm_pre_gate": "skip_shadow_only",
+      "llm_pre_gate_reason": "not_list_trigger_candidate",
+      "llm_pre_gate_risk_tags": [],
+      "llm_called": false,
+      "latency_sec": null,
+      "raw_response": null,
+      "accepted": false,
+      "reject_reason": null,
+      "hallucination_suspected": false,
+      "llm_segments": [],
+      "llm_decision": null,
+      "llm_assist_gate": "not_evaluated",
+      "llm_assist_gate_reason": null,
+      "llm_assist_gate_risk_tags": [],
+      "llm_assist_gate_evidence_count": 0
+    }
+  ]
+}

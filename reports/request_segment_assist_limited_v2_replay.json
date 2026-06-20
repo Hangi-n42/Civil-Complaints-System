@@ -1,0 +1,633 @@
+{
+  "input_files": {
+    "human_reviewed_jsonl": "reports\\request_segment_llm_condition_b_shadow_100_human_reviewed.jsonl",
+    "human_review_counts": "reports/request_segment_llm_condition_b_shadow_100_human_review_counts.json",
+    "human_review_summary": "reports/request_segment_llm_condition_b_shadow_100_human_review_summary.md"
+  },
+  "total_rows": 100,
+  "human_review_summary": {
+    "judgment_counts": {
+      "pass": 57,
+      "partial": 21,
+      "fail": 12,
+      "unsure": 10
+    },
+    "pass_rate": 0.57,
+    "pass_partial_rate": 0.78,
+    "assist_limited_rows": 21,
+    "assist_limited_judgment_counts": {
+      "pass": 13,
+      "partial": 8
+    },
+    "assist_limited_pass_rate": 0.6190476190476191
+  },
+  "error_type_counts": {
+    "none": 57,
+    "under_split": 7,
+    "dialogue_confusion": 12,
+    "over_split": 7,
+    "too_abstract": 1,
+    "evidence_insufficient": 3,
+    "unsupported_segment": 1,
+    "weak_actionability": 10,
+    "legal_context_ambiguous": 2
+  },
+  "risk_tag_by_judgment": {
+    "long_legal_or_policy": {
+      "fail": 1
+    },
+    "none": {
+      "pass": 43,
+      "partial": 9,
+      "unsure": 9,
+      "fail": 2
+    },
+    "numbered_or_heading_list": {
+      "pass": 13,
+      "partial": 8,
+      "fail": 5,
+      "unsure": 1
+    },
+    "phone_dialogue": {
+      "pass": 2
+    },
+    "segment_limit_case": {
+      "partial": 1,
+      "fail": 4
+    },
+    "weak_request_signal": {
+      "partial": 3,
+      "fail": 2
+    }
+  },
+  "fallback_reason_by_judgment": {
+    "fallback_single_segment": {
+      "pass": 9,
+      "partial": 2,
+      "unsure": 8,
+      "fail": 2
+    },
+    "heading_list_under_split": {
+      "pass": 1
+    },
+    "numbered_under_split": {
+      "pass": 12,
+      "partial": 8,
+      "fail": 5,
+      "unsure": 1
+    },
+    "phone_dialogue_uncertain": {
+      "pass": 4,
+      "partial": 2,
+      "fail": 8
+    },
+    "possible_over_split": {
+      "partial": 1,
+      "fail": 1
+    },
+    "segment_too_long": {
+      "pass": 1,
+      "partial": 1,
+      "fail": 1,
+      "unsure": 1
+    },
+    "strong_candidate_single_segment": {
+      "pass": 39,
+      "partial": 7,
+      "unsure": 2
+    },
+    "weak_request_signal": {
+      "partial": 4,
+      "fail": 2
+    }
+  },
+  "policy_definitions": {
+    "strict": {
+      "base": [
+        "accepted == true",
+        "fallback_reasons contains numbered_under_split or heading_list_under_split",
+        "llm_segments count >= 1",
+        "exclude risk_tags: phone_dialogue, long_legal_or_policy, long_proposal, segment_limit_case, weak_request_signal",
+        "exclude fallback_reasons: weak_request_signal, possible_over_split, phone_dialogue_uncertain, segment_too_long",
+        "exclude phone-dialogue-like title/source text"
+      ],
+      "allow_conditions": [
+        "llm_segments count <= 3",
+        "if rule_segments count <= 4, llm_segments count must be >= rule_segments count",
+        "restored_evidence_texts count <= llm_segments count + 1",
+        "max segment length <= 70",
+        "no single LLM segment with multiple request cues joined as one sentence"
+      ]
+    },
+    "balanced": {
+      "base": [
+        "accepted == true",
+        "fallback_reasons contains numbered_under_split or heading_list_under_split",
+        "llm_segments count >= 1",
+        "exclude risk_tags: phone_dialogue, long_legal_or_policy, long_proposal, segment_limit_case, weak_request_signal",
+        "exclude fallback_reasons: weak_request_signal, possible_over_split, phone_dialogue_uncertain, segment_too_long",
+        "exclude phone-dialogue-like title/source text"
+      ],
+      "allow_conditions": [
+        "llm_segments count <= 3",
+        "if rule_segments count <= 3, llm_segments count must be >= rule_segments count",
+        "restored_evidence_texts count <= llm_segments count",
+        "max segment length <= 75",
+        "no single LLM segment with multiple request cues joined as one sentence"
+      ]
+    },
+    "recall": {
+      "base": [
+        "accepted == true",
+        "fallback_reasons contains numbered_under_split or heading_list_under_split",
+        "llm_segments count >= 1",
+        "exclude risk_tags: phone_dialogue, long_legal_or_policy, long_proposal, segment_limit_case, weak_request_signal",
+        "exclude fallback_reasons: weak_request_signal, possible_over_split, phone_dialogue_uncertain, segment_too_long",
+        "exclude phone-dialogue-like title/source text"
+      ],
+      "allow_conditions": [
+        "llm_segments count <= 4",
+        "if rule_segments count <= 3, llm_segments count may be at most 1 fewer than rule_segments count",
+        "restored_evidence_texts count <= llm_segments count + 1",
+        "max segment length <= 90"
+      ]
+    }
+  },
+  "policy_replay": {
+    "strict": {
+      "decision_counts": {
+        "allow_assist": 12,
+        "review_required": 9,
+        "shadow_only": 79
+      },
+      "decision_reason_counts": {
+        "review_required": {
+          "llm_under_rule_segments": 1,
+          "dialogue_like_text": 3,
+          "too_many_evidence_blocks": 2,
+          "excluded_fallback_reason": 1,
+          "multi_request_single_segment": 1,
+          "excluded_risk_tag": 1
+        },
+        "shadow_only": {
+          "not_list_trigger_candidate": 79
+        }
+      },
+      "allow_assist_ids": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "701068",
+        "800815"
+      ],
+      "review_required_ids": [
+        "001585",
+        "002047",
+        "002158",
+        "20036",
+        "300016",
+        "300927",
+        "600282",
+        "6907251",
+        "700210"
+      ],
+      "shadow_only_ids": [
+        "000019",
+        "000134",
+        "000247",
+        "000676",
+        "001261",
+        "001510",
+        "001726",
+        "001805",
+        "001904",
+        "002174",
+        "002315",
+        "100057",
+        "181316",
+        "261511",
+        "300106",
+        "300501",
+        "300759",
+        "301150",
+        "302094",
+        "500659",
+        "501065",
+        "501322",
+        "534930",
+        "600257",
+        "6886829",
+        "6887385",
+        "6888313",
+        "6888376",
+        "6888919",
+        "6889152",
+        "6889777",
+        "6889803",
+        "6890499",
+        "6890659",
+        "6891153",
+        "6891384",
+        "6891532",
+        "6891807",
+        "6891991",
+        "6892314",
+        "6892861",
+        "6893226",
+        "6893267",
+        "6893349",
+        "6893765",
+        "6894187",
+        "6894640",
+        "6894741",
+        "6895012",
+        "6895196",
+        "6895813",
+        "6895867",
+        "6895942",
+        "6895954",
+        "6896020",
+        "6896474",
+        "6896513",
+        "6897841",
+        "6898965",
+        "6899062",
+        "6899198",
+        "6899786",
+        "6901657",
+        "6902956",
+        "6903169",
+        "6903245",
+        "6904827",
+        "6905322",
+        "6906011",
+        "6906372",
+        "6906687",
+        "6907007",
+        "6907901",
+        "700139",
+        "700301",
+        "70103",
+        "800540",
+        "80062",
+        "80263"
+      ],
+      "reject_ids": [],
+      "allow_assist_judgments": {
+        "pass": 12
+      },
+      "allow_assist_total": 12,
+      "allow_assist_pass_rate": 1.0,
+      "allow_assist_fail_rate": 0.0,
+      "assist_limited_allow_total": 12,
+      "assist_limited_allow_judgments": {
+        "pass": 12
+      },
+      "assist_limited_allow_pass_rate": 1.0,
+      "overlap_with_human_allow": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "701068",
+        "800815"
+      ],
+      "new_allow_not_in_human_allow": [],
+      "human_allow_missed_by_policy": []
+    },
+    "balanced": {
+      "decision_counts": {
+        "allow_assist": 13,
+        "review_required": 8,
+        "shadow_only": 79
+      },
+      "decision_reason_counts": {
+        "review_required": {
+          "llm_under_rule_segments": 1,
+          "dialogue_like_text": 3,
+          "too_many_evidence_blocks": 1,
+          "excluded_fallback_reason": 1,
+          "multi_request_single_segment": 1,
+          "excluded_risk_tag": 1
+        },
+        "shadow_only": {
+          "not_list_trigger_candidate": 79
+        }
+      },
+      "allow_assist_ids": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "700210",
+        "701068",
+        "800815"
+      ],
+      "review_required_ids": [
+        "001585",
+        "002047",
+        "002158",
+        "20036",
+        "300016",
+        "300927",
+        "600282",
+        "6907251"
+      ],
+      "shadow_only_ids": [
+        "000019",
+        "000134",
+        "000247",
+        "000676",
+        "001261",
+        "001510",
+        "001726",
+        "001805",
+        "001904",
+        "002174",
+        "002315",
+        "100057",
+        "181316",
+        "261511",
+        "300106",
+        "300501",
+        "300759",
+        "301150",
+        "302094",
+        "500659",
+        "501065",
+        "501322",
+        "534930",
+        "600257",
+        "6886829",
+        "6887385",
+        "6888313",
+        "6888376",
+        "6888919",
+        "6889152",
+        "6889777",
+        "6889803",
+        "6890499",
+        "6890659",
+        "6891153",
+        "6891384",
+        "6891532",
+        "6891807",
+        "6891991",
+        "6892314",
+        "6892861",
+        "6893226",
+        "6893267",
+        "6893349",
+        "6893765",
+        "6894187",
+        "6894640",
+        "6894741",
+        "6895012",
+        "6895196",
+        "6895813",
+        "6895867",
+        "6895942",
+        "6895954",
+        "6896020",
+        "6896474",
+        "6896513",
+        "6897841",
+        "6898965",
+        "6899062",
+        "6899198",
+        "6899786",
+        "6901657",
+        "6902956",
+        "6903169",
+        "6903245",
+        "6904827",
+        "6905322",
+        "6906011",
+        "6906372",
+        "6906687",
+        "6907007",
+        "6907901",
+        "700139",
+        "700301",
+        "70103",
+        "800540",
+        "80062",
+        "80263"
+      ],
+      "reject_ids": [],
+      "allow_assist_judgments": {
+        "pass": 12,
+        "partial": 1
+      },
+      "allow_assist_total": 13,
+      "allow_assist_pass_rate": 0.9230769230769231,
+      "allow_assist_fail_rate": 0.0,
+      "assist_limited_allow_total": 13,
+      "assist_limited_allow_judgments": {
+        "pass": 12,
+        "partial": 1
+      },
+      "assist_limited_allow_pass_rate": 0.9230769230769231,
+      "overlap_with_human_allow": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "701068",
+        "800815"
+      ],
+      "new_allow_not_in_human_allow": [
+        "700210"
+      ],
+      "human_allow_missed_by_policy": []
+    },
+    "recall": {
+      "decision_counts": {
+        "allow_assist": 14,
+        "review_required": 7,
+        "shadow_only": 79
+      },
+      "decision_reason_counts": {
+        "review_required": {
+          "too_many_evidence_blocks": 2,
+          "dialogue_like_text": 3,
+          "excluded_fallback_reason": 1,
+          "excluded_risk_tag": 1
+        },
+        "shadow_only": {
+          "not_list_trigger_candidate": 79
+        }
+      },
+      "allow_assist_ids": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "6907251",
+        "700210",
+        "701068",
+        "800815"
+      ],
+      "review_required_ids": [
+        "001585",
+        "002047",
+        "002158",
+        "20036",
+        "300016",
+        "300927",
+        "600282"
+      ],
+      "shadow_only_ids": [
+        "000019",
+        "000134",
+        "000247",
+        "000676",
+        "001261",
+        "001510",
+        "001726",
+        "001805",
+        "001904",
+        "002174",
+        "002315",
+        "100057",
+        "181316",
+        "261511",
+        "300106",
+        "300501",
+        "300759",
+        "301150",
+        "302094",
+        "500659",
+        "501065",
+        "501322",
+        "534930",
+        "600257",
+        "6886829",
+        "6887385",
+        "6888313",
+        "6888376",
+        "6888919",
+        "6889152",
+        "6889777",
+        "6889803",
+        "6890499",
+        "6890659",
+        "6891153",
+        "6891384",
+        "6891532",
+        "6891807",
+        "6891991",
+        "6892314",
+        "6892861",
+        "6893226",
+        "6893267",
+        "6893349",
+        "6893765",
+        "6894187",
+        "6894640",
+        "6894741",
+        "6895012",
+        "6895196",
+        "6895813",
+        "6895867",
+        "6895942",
+        "6895954",
+        "6896020",
+        "6896474",
+        "6896513",
+        "6897841",
+        "6898965",
+        "6899062",
+        "6899198",
+        "6899786",
+        "6901657",
+        "6902956",
+        "6903169",
+        "6903245",
+        "6904827",
+        "6905322",
+        "6906011",
+        "6906372",
+        "6906687",
+        "6907007",
+        "6907901",
+        "700139",
+        "700301",
+        "70103",
+        "800540",
+        "80062",
+        "80263"
+      ],
+      "reject_ids": [],
+      "allow_assist_judgments": {
+        "pass": 12,
+        "partial": 2
+      },
+      "allow_assist_total": 14,
+      "allow_assist_pass_rate": 0.8571428571428571,
+      "allow_assist_fail_rate": 0.0,
+      "assist_limited_allow_total": 14,
+      "assist_limited_allow_judgments": {
+        "pass": 12,
+        "partial": 2
+      },
+      "assist_limited_allow_pass_rate": 0.8571428571428571,
+      "overlap_with_human_allow": [
+        "300138",
+        "300309",
+        "300912",
+        "301057",
+        "301301",
+        "301527",
+        "501472",
+        "6899347",
+        "6905873",
+        "6907050",
+        "701068",
+        "800815"
+      ],
+      "new_allow_not_in_human_allow": [
+        "6907251",
+        "700210"
+      ],
+      "human_allow_missed_by_policy": []
+    }
+  },
+  "final_recommendation": {
+    "recommended_policy": "strict",
+    "gate": "assist_limited_v2_ready_for_internal_experiment",
+    "operating_default": "shadow",
+    "do_not_enable_default_assist_or_full": true
+  }
+}
