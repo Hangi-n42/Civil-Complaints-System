@@ -21,6 +21,7 @@ from app.complaint_intelligence.duplicate_merger.schemas import (
 
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9가-힣]+")
+_REDACTION_PLACEHOLDER_RE = re.compile(r"\[REDACTED:[^\]]*\]")
 _UNKNOWN = {"", "미상", "unknown", "UNKNOWN", "N/A", "None", "지역미상"}
 
 
@@ -125,19 +126,21 @@ def analysis_text(event: ComplaintIntelligenceEvent) -> str:
     for field in ("observation", "result", "request", "context"):
         element = getattr(event.structured_elements, field, None)
         if element and element.text:
-            parts.append(element.text)
-    parts.extend(getattr(event, "request_segments", []) or [])
-    parts.extend(getattr(event, "entity_texts", []) or [])
+            _append_scoring_part(parts, element.text)
+    for item in getattr(event, "request_segments", []) or []:
+        _append_scoring_part(parts, item)
+    for item in getattr(event, "entity_texts", []) or []:
+        _append_scoring_part(parts, item)
     if event.civil_category:
-        parts.append(event.civil_category)
+        _append_scoring_part(parts, event.civil_category)
     if event.final_department:
-        parts.append(event.final_department)
+        _append_scoring_part(parts, event.final_department)
     elif event.predicted_department:
-        parts.append(event.predicted_department)
+        _append_scoring_part(parts, event.predicted_department)
     if event.region:
         parts.append(event.region)
     if event.masked_text:
-        parts.append(event.masked_text)
+        _append_scoring_part(parts, event.masked_text)
     return " ".join(str(part).strip() for part in parts if str(part or "").strip())
 
 
@@ -283,6 +286,8 @@ def _request_segment_similarity(left: ComplaintIntelligenceEvent, right: Complai
 
 
 def _jaccard_tokens(left: str, right: str) -> float:
+    left = _strip_redaction_placeholders(left)
+    right = _strip_redaction_placeholders(right)
     left_tokens = {token for token in _TOKEN_RE.findall(str(left or "").lower()) if len(token) >= 2}
     right_tokens = {token for token in _TOKEN_RE.findall(str(right or "").lower()) if len(token) >= 2}
     if not left_tokens or not right_tokens:
@@ -292,10 +297,20 @@ def _jaccard_tokens(left: str, right: str) -> float:
 
 def _normalize_tokens(values: Iterable[str | None]) -> list[str]:
     return _dedupe(
-        re.sub(r"\s+", "", str(value or "")).strip()
+        re.sub(r"\s+", "", _strip_redaction_placeholders(value)).strip()
         for value in values
         if str(value or "").strip()
     )
+
+
+def _append_scoring_part(parts: list[str], value: str | None) -> None:
+    cleaned = _strip_redaction_placeholders(value).strip()
+    if cleaned:
+        parts.append(cleaned)
+
+
+def _strip_redaction_placeholders(value: str | None) -> str:
+    return _REDACTION_PLACEHOLDER_RE.sub(" ", str(value or ""))
 
 
 def _dedupe(values: Iterable[str | None]) -> list[str]:
