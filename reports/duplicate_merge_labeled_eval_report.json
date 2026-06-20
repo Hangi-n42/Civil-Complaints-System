@@ -1,0 +1,2568 @@
+{
+  "metrics": {
+    "total_pairs": 100,
+    "category_counts": {
+      "PII risk": 25,
+      "same event different request": 25,
+      "same keyword different event": 25,
+      "true duplicate": 25
+    },
+    "candidate_confusion": {
+      "tp": 75,
+      "fp": 0,
+      "tn": 25,
+      "fn": 0
+    },
+    "precision": 1.0,
+    "recall": 1.0,
+    "false_positive_rate": 0.0,
+    "blocker_recall": 1.0,
+    "risk_flag_hit_rate": 1.0,
+    "pii_leak_rate": 0.0,
+    "pii_payloads_evaluated": 25,
+    "elapsed_ms": 205.77,
+    "average_ms_per_pair": 2.0577,
+    "estimated_score_calls": 200,
+    "problem_result_count": 0,
+    "risk_flag_counts": {
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK": 15,
+      "PII_RISK": 40,
+      "REQUEST_TYPE_MISMATCH": 25,
+      "SAFETY_AND_INCONVENIENCE_MIXED": 5
+    },
+    "category_summary": {
+      "PII risk": {
+        "tp": 25
+      },
+      "same event different request": {
+        "tp": 25
+      },
+      "same keyword different event": {
+        "tn": 25
+      },
+      "true duplicate": {
+        "tp": 25
+      }
+    }
+  },
+  "diagnostics": {
+    "problem_examples": []
+  },
+  "results": [
+    {
+      "pair_id": "TD-001",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-001-a": "facility_improvement",
+        "td-001-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-001-a": "facility_improvement",
+        "td-001-b": "facility_improvement"
+      },
+      "score": 0.9607,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-002",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-002-a": "facility_improvement",
+        "td-002-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-002-a": "facility_improvement",
+        "td-002-b": "facility_improvement"
+      },
+      "score": 0.9607,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-003",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-003-a": "facility_improvement",
+        "td-003-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-003-a": "facility_improvement",
+        "td-003-b": "facility_improvement"
+      },
+      "score": 0.9607,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-004",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-004-a": "facility_improvement",
+        "td-004-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-004-a": "facility_improvement",
+        "td-004-b": "facility_improvement"
+      },
+      "score": 0.9607,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-005",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-005-a": "facility_improvement",
+        "td-005-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-005-a": "facility_improvement",
+        "td-005-b": "facility_improvement"
+      },
+      "score": 0.9607,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-006",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-006-a": "safety_action",
+        "td-006-b": "safety_action"
+      },
+      "predicted_request_types": {
+        "td-006-a": "safety_action",
+        "td-006-b": "safety_action"
+      },
+      "score": 0.948,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-007",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-007-a": "safety_action",
+        "td-007-b": "safety_action"
+      },
+      "predicted_request_types": {
+        "td-007-a": "safety_action",
+        "td-007-b": "safety_action"
+      },
+      "score": 0.948,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-008",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-008-a": "safety_action",
+        "td-008-b": "safety_action"
+      },
+      "predicted_request_types": {
+        "td-008-a": "safety_action",
+        "td-008-b": "safety_action"
+      },
+      "score": 0.948,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-009",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-009-a": "safety_action",
+        "td-009-b": "safety_action"
+      },
+      "predicted_request_types": {
+        "td-009-a": "safety_action",
+        "td-009-b": "safety_action"
+      },
+      "score": 0.948,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-010",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-010-a": "safety_action",
+        "td-010-b": "safety_action"
+      },
+      "predicted_request_types": {
+        "td-010-a": "safety_action",
+        "td-010-b": "safety_action"
+      },
+      "score": 0.948,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-011",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-011-a": "enforcement",
+        "td-011-b": "enforcement"
+      },
+      "predicted_request_types": {
+        "td-011-a": "enforcement",
+        "td-011-b": "enforcement"
+      },
+      "score": 0.9484,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-012",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-012-a": "enforcement",
+        "td-012-b": "enforcement"
+      },
+      "predicted_request_types": {
+        "td-012-a": "enforcement",
+        "td-012-b": "enforcement"
+      },
+      "score": 0.9484,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-013",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-013-a": "enforcement",
+        "td-013-b": "enforcement"
+      },
+      "predicted_request_types": {
+        "td-013-a": "enforcement",
+        "td-013-b": "enforcement"
+      },
+      "score": 0.9484,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-014",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-014-a": "enforcement",
+        "td-014-b": "enforcement"
+      },
+      "predicted_request_types": {
+        "td-014-a": "enforcement",
+        "td-014-b": "enforcement"
+      },
+      "score": 0.9484,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-015",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-015-a": "enforcement",
+        "td-015-b": "enforcement"
+      },
+      "predicted_request_types": {
+        "td-015-a": "enforcement",
+        "td-015-b": "enforcement"
+      },
+      "score": 0.9484,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-016",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-016-a": "facility_improvement",
+        "td-016-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-016-a": "facility_improvement",
+        "td-016-b": "facility_improvement"
+      },
+      "score": 0.9482,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-017",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-017-a": "facility_improvement",
+        "td-017-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-017-a": "facility_improvement",
+        "td-017-b": "facility_improvement"
+      },
+      "score": 0.9482,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-018",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-018-a": "facility_improvement",
+        "td-018-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-018-a": "facility_improvement",
+        "td-018-b": "facility_improvement"
+      },
+      "score": 0.9482,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-019",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-019-a": "facility_improvement",
+        "td-019-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-019-a": "facility_improvement",
+        "td-019-b": "facility_improvement"
+      },
+      "score": 0.9482,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-020",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-020-a": "facility_improvement",
+        "td-020-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-020-a": "facility_improvement",
+        "td-020-b": "facility_improvement"
+      },
+      "score": 0.9482,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-021",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-021-a": "facility_improvement",
+        "td-021-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-021-a": "facility_improvement",
+        "td-021-b": "facility_improvement"
+      },
+      "score": 0.9481,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-022",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-022-a": "facility_improvement",
+        "td-022-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-022-a": "facility_improvement",
+        "td-022-b": "facility_improvement"
+      },
+      "score": 0.9481,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-023",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-023-a": "facility_improvement",
+        "td-023-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-023-a": "facility_improvement",
+        "td-023-b": "facility_improvement"
+      },
+      "score": 0.9481,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-024",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-024-a": "facility_improvement",
+        "td-024-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-024-a": "facility_improvement",
+        "td-024-b": "facility_improvement"
+      },
+      "score": 0.9481,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "TD-025",
+      "category": "true duplicate",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "td-025-a": "facility_improvement",
+        "td-025-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "td-025-a": "facility_improvement",
+        "td-025-b": "facility_improvement"
+      },
+      "score": 0.9481,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-001",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-001-a": "facility_improvement",
+        "sk-001-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-001-a": "facility_improvement",
+        "sk-001-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-002",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-002-a": "facility_improvement",
+        "sk-002-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-002-a": "facility_improvement",
+        "sk-002-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-003",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-003-a": "facility_improvement",
+        "sk-003-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-003-a": "facility_improvement",
+        "sk-003-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-004",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-004-a": "facility_improvement",
+        "sk-004-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-004-a": "facility_improvement",
+        "sk-004-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-005",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-005-a": "facility_improvement",
+        "sk-005-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-005-a": "facility_improvement",
+        "sk-005-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-006",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-006-a": "facility_improvement",
+        "sk-006-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-006-a": "facility_improvement",
+        "sk-006-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-007",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-007-a": "facility_improvement",
+        "sk-007-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-007-a": "facility_improvement",
+        "sk-007-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-008",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-008-a": "facility_improvement",
+        "sk-008-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-008-a": "facility_improvement",
+        "sk-008-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-009",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-009-a": "facility_improvement",
+        "sk-009-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-009-a": "facility_improvement",
+        "sk-009-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-010",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-010-a": "facility_improvement",
+        "sk-010-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-010-a": "facility_improvement",
+        "sk-010-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-011",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-011-a": "facility_improvement",
+        "sk-011-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-011-a": "facility_improvement",
+        "sk-011-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-012",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-012-a": "facility_improvement",
+        "sk-012-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-012-a": "facility_improvement",
+        "sk-012-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-013",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-013-a": "facility_improvement",
+        "sk-013-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-013-a": "facility_improvement",
+        "sk-013-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-014",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-014-a": "facility_improvement",
+        "sk-014-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-014-a": "facility_improvement",
+        "sk-014-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-015",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-015-a": "facility_improvement",
+        "sk-015-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-015-a": "facility_improvement",
+        "sk-015-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-016",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "ambiguous",
+      "expected_request_types": {
+        "sk-016-a": "facility_improvement",
+        "sk-016-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-016-a": "facility_improvement",
+        "sk-016-b": "facility_improvement"
+      },
+      "score": 0.87,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-017",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "ambiguous",
+      "expected_request_types": {
+        "sk-017-a": "facility_improvement",
+        "sk-017-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-017-a": "facility_improvement",
+        "sk-017-b": "facility_improvement"
+      },
+      "score": 0.87,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-018",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "ambiguous",
+      "expected_request_types": {
+        "sk-018-a": "facility_improvement",
+        "sk-018-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-018-a": "facility_improvement",
+        "sk-018-b": "facility_improvement"
+      },
+      "score": 0.87,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-019",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "ambiguous",
+      "expected_request_types": {
+        "sk-019-a": "facility_improvement",
+        "sk-019-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-019-a": "facility_improvement",
+        "sk-019-b": "facility_improvement"
+      },
+      "score": 0.87,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-020",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "ambiguous",
+      "expected_request_types": {
+        "sk-020-a": "facility_improvement",
+        "sk-020-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-020-a": "facility_improvement",
+        "sk-020-b": "facility_improvement"
+      },
+      "score": 0.87,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-021",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-021-a": "facility_improvement",
+        "sk-021-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-021-a": "facility_improvement",
+        "sk-021-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-022",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-022-a": "facility_improvement",
+        "sk-022-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-022-a": "facility_improvement",
+        "sk-022-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-023",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-023-a": "facility_improvement",
+        "sk-023-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-023-a": "facility_improvement",
+        "sk-023-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-024",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-024-a": "facility_improvement",
+        "sk-024-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-024-a": "facility_improvement",
+        "sk-024-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SK-025",
+      "category": "same keyword different event",
+      "expected_candidate": false,
+      "predicted_candidate": false,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LOCATION_MISMATCH"
+      ],
+      "predicted_risk_flags": [],
+      "expected_location_state": "conflict",
+      "predicted_location_state": "conflict",
+      "expected_request_types": {
+        "sk-025-a": "facility_improvement",
+        "sk-025-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "sk-025-a": "facility_improvement",
+        "sk-025-b": "facility_improvement"
+      },
+      "score": 0.6984,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-001",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-001-a": "enforcement",
+        "sr-001-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-001-a": "enforcement",
+        "sr-001-b": "compensation"
+      },
+      "score": 0.8114,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-002",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-002-a": "enforcement",
+        "sr-002-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-002-a": "enforcement",
+        "sr-002-b": "compensation"
+      },
+      "score": 0.8114,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-003",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-003-a": "enforcement",
+        "sr-003-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-003-a": "enforcement",
+        "sr-003-b": "compensation"
+      },
+      "score": 0.8114,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-004",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-004-a": "enforcement",
+        "sr-004-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-004-a": "enforcement",
+        "sr-004-b": "compensation"
+      },
+      "score": 0.8114,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-005",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-005-a": "enforcement",
+        "sr-005-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-005-a": "enforcement",
+        "sr-005-b": "compensation"
+      },
+      "score": 0.8114,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-006",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK",
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-006-a": "safety_action",
+        "sr-006-b": "inquiry"
+      },
+      "predicted_request_types": {
+        "sr-006-a": "safety_action",
+        "sr-006-b": "inquiry"
+      },
+      "score": 0.7744,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-007",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK",
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-007-a": "safety_action",
+        "sr-007-b": "inquiry"
+      },
+      "predicted_request_types": {
+        "sr-007-a": "safety_action",
+        "sr-007-b": "inquiry"
+      },
+      "score": 0.7744,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-008",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK",
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-008-a": "safety_action",
+        "sr-008-b": "inquiry"
+      },
+      "predicted_request_types": {
+        "sr-008-a": "safety_action",
+        "sr-008-b": "inquiry"
+      },
+      "score": 0.7744,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-009",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK",
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-009-a": "safety_action",
+        "sr-009-b": "inquiry"
+      },
+      "predicted_request_types": {
+        "sr-009-a": "safety_action",
+        "sr-009-b": "inquiry"
+      },
+      "score": 0.7744,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-010",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK",
+        "REQUEST_TYPE_MISMATCH",
+        "SAFETY_AND_INCONVENIENCE_MIXED"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-010-a": "safety_action",
+        "sr-010-b": "inquiry"
+      },
+      "predicted_request_types": {
+        "sr-010-a": "safety_action",
+        "sr-010-b": "inquiry"
+      },
+      "score": 0.7744,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-011",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-011-a": "facility_improvement",
+        "sr-011-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-011-a": "facility_improvement",
+        "sr-011-b": "compensation"
+      },
+      "score": 0.7422,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-012",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-012-a": "facility_improvement",
+        "sr-012-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-012-a": "facility_improvement",
+        "sr-012-b": "compensation"
+      },
+      "score": 0.7422,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-013",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-013-a": "facility_improvement",
+        "sr-013-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-013-a": "facility_improvement",
+        "sr-013-b": "compensation"
+      },
+      "score": 0.7422,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-014",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-014-a": "facility_improvement",
+        "sr-014-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-014-a": "facility_improvement",
+        "sr-014-b": "compensation"
+      },
+      "score": 0.7422,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-015",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-015-a": "facility_improvement",
+        "sr-015-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-015-a": "facility_improvement",
+        "sr-015-b": "compensation"
+      },
+      "score": 0.7422,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-016",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-016-a": "enforcement",
+        "sr-016-b": "guidance"
+      },
+      "predicted_request_types": {
+        "sr-016-a": "enforcement",
+        "sr-016-b": "guidance"
+      },
+      "score": 0.7366,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-017",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-017-a": "enforcement",
+        "sr-017-b": "guidance"
+      },
+      "predicted_request_types": {
+        "sr-017-a": "enforcement",
+        "sr-017-b": "guidance"
+      },
+      "score": 0.7366,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-018",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-018-a": "enforcement",
+        "sr-018-b": "guidance"
+      },
+      "predicted_request_types": {
+        "sr-018-a": "enforcement",
+        "sr-018-b": "guidance"
+      },
+      "score": 0.7366,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-019",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-019-a": "enforcement",
+        "sr-019-b": "guidance"
+      },
+      "predicted_request_types": {
+        "sr-019-a": "enforcement",
+        "sr-019-b": "guidance"
+      },
+      "score": 0.7366,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-020",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-020-a": "enforcement",
+        "sr-020-b": "guidance"
+      },
+      "predicted_request_types": {
+        "sr-020-a": "enforcement",
+        "sr-020-b": "guidance"
+      },
+      "score": 0.7366,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-021",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-021-a": "facility_improvement",
+        "sr-021-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-021-a": "facility_improvement",
+        "sr-021-b": "compensation"
+      },
+      "score": 0.6182,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-022",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-022-a": "facility_improvement",
+        "sr-022-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-022-a": "facility_improvement",
+        "sr-022-b": "compensation"
+      },
+      "score": 0.6182,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-023",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-023-a": "facility_improvement",
+        "sr-023-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-023-a": "facility_improvement",
+        "sr-023-b": "compensation"
+      },
+      "score": 0.6182,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-024",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-024-a": "facility_improvement",
+        "sr-024-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-024-a": "facility_improvement",
+        "sr-024-b": "compensation"
+      },
+      "score": 0.6182,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "SR-025",
+      "category": "same event different request",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": false,
+      "predicted_confirm_allowed": false,
+      "expected_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "predicted_risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "sr-025-a": "facility_improvement",
+        "sr-025-b": "compensation"
+      },
+      "predicted_request_types": {
+        "sr-025-a": "facility_improvement",
+        "sr-025-b": "compensation"
+      },
+      "score": 0.6182,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-001",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-001-a": "facility_improvement",
+        "pii-001-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-001-a": "facility_improvement",
+        "pii-001-b": "facility_improvement"
+      },
+      "score": 0.9925,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-002",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-002-a": "facility_improvement",
+        "pii-002-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-002-a": "facility_improvement",
+        "pii-002-b": "facility_improvement"
+      },
+      "score": 0.9925,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-003",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-003-a": "facility_improvement",
+        "pii-003-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-003-a": "facility_improvement",
+        "pii-003-b": "facility_improvement"
+      },
+      "score": 0.9925,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-004",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-004-a": "facility_improvement",
+        "pii-004-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-004-a": "facility_improvement",
+        "pii-004-b": "facility_improvement"
+      },
+      "score": 0.9925,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-005",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-005-a": "facility_improvement",
+        "pii-005-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-005-a": "facility_improvement",
+        "pii-005-b": "facility_improvement"
+      },
+      "score": 0.9925,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-006",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-006-a": "facility_improvement",
+        "pii-006-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-006-a": "facility_improvement",
+        "pii-006-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-007",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-007-a": "facility_improvement",
+        "pii-007-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-007-a": "facility_improvement",
+        "pii-007-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-008",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-008-a": "facility_improvement",
+        "pii-008-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-008-a": "facility_improvement",
+        "pii-008-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-009",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-009-a": "facility_improvement",
+        "pii-009-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-009-a": "facility_improvement",
+        "pii-009-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-010",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-010-a": "facility_improvement",
+        "pii-010-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-010-a": "facility_improvement",
+        "pii-010-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-011",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-011-a": "facility_improvement",
+        "pii-011-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-011-a": "facility_improvement",
+        "pii-011-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-012",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-012-a": "facility_improvement",
+        "pii-012-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-012-a": "facility_improvement",
+        "pii-012-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-013",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-013-a": "facility_improvement",
+        "pii-013-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-013-a": "facility_improvement",
+        "pii-013-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-014",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-014-a": "facility_improvement",
+        "pii-014-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-014-a": "facility_improvement",
+        "pii-014-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-015",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-015-a": "facility_improvement",
+        "pii-015-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-015-a": "facility_improvement",
+        "pii-015-b": "facility_improvement"
+      },
+      "score": 0.9922,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-016",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-016-a": "facility_improvement",
+        "pii-016-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-016-a": "facility_improvement",
+        "pii-016-b": "facility_improvement"
+      },
+      "score": 0.9931,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-017",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-017-a": "facility_improvement",
+        "pii-017-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-017-a": "facility_improvement",
+        "pii-017-b": "facility_improvement"
+      },
+      "score": 0.9931,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-018",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-018-a": "facility_improvement",
+        "pii-018-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-018-a": "facility_improvement",
+        "pii-018-b": "facility_improvement"
+      },
+      "score": 0.9931,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-019",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-019-a": "facility_improvement",
+        "pii-019-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-019-a": "facility_improvement",
+        "pii-019-b": "facility_improvement"
+      },
+      "score": 0.9931,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-020",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-020-a": "facility_improvement",
+        "pii-020-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-020-a": "facility_improvement",
+        "pii-020-b": "facility_improvement"
+      },
+      "score": 0.9931,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-021",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-021-a": "facility_improvement",
+        "pii-021-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-021-a": "facility_improvement",
+        "pii-021-b": "facility_improvement"
+      },
+      "score": 0.9926,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-022",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-022-a": "facility_improvement",
+        "pii-022-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-022-a": "facility_improvement",
+        "pii-022-b": "facility_improvement"
+      },
+      "score": 0.9926,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-023",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-023-a": "facility_improvement",
+        "pii-023-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-023-a": "facility_improvement",
+        "pii-023-b": "facility_improvement"
+      },
+      "score": 0.9926,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-024",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-024-a": "facility_improvement",
+        "pii-024-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-024-a": "facility_improvement",
+        "pii-024-b": "facility_improvement"
+      },
+      "score": 0.9926,
+      "pii_leaked": false
+    },
+    {
+      "pair_id": "PII-025",
+      "category": "PII risk",
+      "expected_candidate": true,
+      "predicted_candidate": true,
+      "expected_confirm_allowed": true,
+      "predicted_confirm_allowed": true,
+      "expected_risk_flags": [
+        "PII_RISK"
+      ],
+      "predicted_risk_flags": [
+        "PII_RISK"
+      ],
+      "expected_location_state": "exact",
+      "predicted_location_state": "exact",
+      "expected_request_types": {
+        "pii-025-a": "facility_improvement",
+        "pii-025-b": "facility_improvement"
+      },
+      "predicted_request_types": {
+        "pii-025-a": "facility_improvement",
+        "pii-025-b": "facility_improvement"
+      },
+      "score": 0.9926,
+      "pii_leaked": false
+    }
+  ]
+}

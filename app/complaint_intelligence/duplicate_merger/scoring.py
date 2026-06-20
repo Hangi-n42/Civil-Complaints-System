@@ -23,6 +23,41 @@ from app.complaint_intelligence.duplicate_merger.schemas import (
 _TOKEN_RE = re.compile(r"[A-Za-z0-9가-힣]+")
 _REDACTION_PLACEHOLDER_RE = re.compile(r"\[REDACTED:[^\]]*\]")
 _UNKNOWN = {"", "미상", "unknown", "UNKNOWN", "N/A", "None", "지역미상"}
+_BROAD_REGION_SUFFIXES = ("특별자치도", "특별자치시", "광역시", "특별시", "자치구", "시", "군", "구", "도")
+_DETAIL_LOCATION_MARKERS = (
+    "아파트",
+    "공원",
+    "초등학교",
+    "중학교",
+    "고등학교",
+    "대학교",
+    "교차로",
+    "사거리",
+    "삼거리",
+    "구청",
+    "시청",
+    "군청",
+    "정류장",
+    "터미널",
+    "역",
+    "시장",
+    "센터",
+    "주민센터",
+    "도서관",
+    "병원",
+    "상가",
+    "빌딩",
+    "공사장",
+    "놀이터",
+    "도로",
+    "보도",
+    "하천",
+    "배수로",
+    "로",
+    "길",
+    "동",
+)
+_GENERIC_LOCATION_DETAILS = {"공사장", "도로", "보도", "하천", "배수로", "놀이터", "상가", "건물", "시설", "길", "로", "동"}
 
 
 @dataclass(frozen=True)
@@ -150,39 +185,43 @@ def classify_location_state(
 ) -> DuplicateLocationState:
     """지역/장소 신호를 exact, nearby, ambiguous, missing, conflict로 분류한다."""
 
-    left_locations = _location_tokens(left)
-    right_locations = _location_tokens(right)
-    if not left_locations and not right_locations:
+    left_region, left_details = _location_signals(left)
+    right_region, right_details = _location_signals(right)
+    if not any((left_region, left_details, right_region, right_details)):
         return "missing"
-    if not left_locations or not right_locations:
+    if not (left_region or left_details) or not (right_region or right_details):
         return "ambiguous"
-    if set(left_locations) & set(right_locations):
-        return "exact"
-    for left_item in left_locations:
-        for right_item in right_locations:
-            if left_item.startswith(right_item) or right_item.startswith(left_item):
-                return "nearby"
-            if len(left_item) >= 2 and len(right_item) >= 2 and left_item[:2] == right_item[:2]:
-                return "nearby"
+
+    if left_details and right_details:
+        if set(left_details) & set(right_details):
+            return "exact"
+        if any(_is_conservative_nearby(left_item, right_item) for left_item in left_details for right_item in right_details):
+            return "nearby"
+        return "conflict"
+
+    if left_region and right_region and left_region == right_region:
+        return "ambiguous" if _is_broad_region(left_region) else "exact"
+    if left_region and right_region and left_region != right_region:
+        return "conflict"
     return "conflict"
 
 
 def classify_request_type(event: ComplaintIntelligenceEvent) -> DuplicateRequestType:
     """구조화 request와 요약 텍스트에서 최소 요청 유형을 분류한다."""
 
-    text = analysis_text(event)
-    if any(keyword in text for keyword in ("보상", "배상", "손해", "피해보상", "환불")):
+    text = _request_intent_text(event)
+    if any(keyword in text for keyword in ("보상", "배상", "손해", "피해보상", "환불", "수리비", "치료비", "금전", "변상")):
         return "compensation"
-    if any(keyword in text for keyword in ("단속", "과태료", "불법주정차", "처벌", "계도")):
-        return "enforcement"
-    if any(keyword in text for keyword in ("위험", "안전", "사고", "긴급", "침하", "싱크홀", "점검")):
-        return "safety_action"
-    if any(keyword in text for keyword in ("개선", "보수", "정비", "설치", "교체", "시설", "수리")):
-        return "facility_improvement"
-    if any(keyword in text for keyword in ("안내", "공지", "홍보", "방법", "절차")):
-        return "guidance"
-    if any(keyword in text for keyword in ("문의", "궁금", "확인", "가능", "어떻게")):
+    if any(keyword in text for keyword in ("문의", "궁금", "확인", "가능", "어떻게", "언제", "여부", "조회")):
         return "inquiry"
+    if any(keyword in text for keyword in ("안내", "공지", "홍보", "방법", "절차", "알림", "공고", "신청 방법", "처리 절차")):
+        return "guidance"
+    if any(keyword in text for keyword in ("단속", "과태료", "불법주정차", "처벌", "계도", "시정명령", "행정조치", "현장단속", "불법 적치", "불법주차")):
+        return "enforcement"
+    if any(keyword in text for keyword in ("위험", "안전", "사고", "긴급", "침하", "싱크홀", "점검", "붕괴", "균열", "낙상", "파손 위험")):
+        return "safety_action"
+    if any(keyword in text for keyword in ("개선", "보수", "정비", "설치", "교체", "시설", "수리", "확충", "신설", "보강", "복구", "배수로", "가로등")):
+        return "facility_improvement"
     return "other"
 
 
@@ -206,28 +245,53 @@ def structural_evidence_count(event: ComplaintIntelligenceEvent) -> int:
 
 
 def _location_tokens(event: ComplaintIntelligenceEvent) -> list[str]:
+    region, details = _location_signals(event)
     tokens = []
-    region = _normalize_location(event.region)
     if region:
         tokens.append(region)
-    for value in getattr(event, "entity_texts", []) or []:
-        normalized = _normalize_location(value)
-        if normalized and _looks_like_location(str(value)):
-            tokens.append(normalized)
+    tokens.extend(details)
     return _dedupe(tokens)
 
 
-def _looks_like_location(value: str) -> bool:
+def _location_signals(event: ComplaintIntelligenceEvent) -> tuple[str | None, list[str]]:
+    region = _normalize_location(event.region)
+    details = []
+    for value in getattr(event, "entity_texts", []) or []:
+        normalized = _normalize_location(value)
+        if not normalized or normalized == region:
+            continue
+        if _looks_like_detail_location(str(value), normalized):
+            details.append(normalized)
+    return region, _dedupe(details)
+
+
+def _looks_like_detail_location(value: str, normalized: str) -> bool:
     text = str(value or "")
     if not text.strip():
         return False
-    return bool(
-        any(marker in text for marker in ("동", "로", "길", "아파트", "공원", "초등학교", "교차로", "역", "구", "군", "시"))
-    )
+    if normalized in _GENERIC_LOCATION_DETAILS:
+        return False
+    if _is_broad_region(normalized):
+        return False
+    return bool(any(marker in text for marker in _DETAIL_LOCATION_MARKERS))
+
+
+def _is_broad_region(value: str | None) -> bool:
+    text = str(value or "")
+    if len(text) <= 3 and text.endswith(("시", "군", "구", "도")):
+        return True
+    return text.endswith(_BROAD_REGION_SUFFIXES) and not any(marker in text for marker in ("아파트", "공원", "학교", "센터", "시장", "역"))
+
+
+def _is_conservative_nearby(left: str, right: str) -> bool:
+    shorter, longer = sorted((left, right), key=len)
+    if len(shorter) < 4 or _is_broad_region(shorter):
+        return False
+    return longer.startswith(shorter)
 
 
 def _normalize_location(value: str | None) -> str | None:
-    cleaned = re.sub(r"\s+", "", str(value or ""))
+    cleaned = re.sub(r"\s+", "", _strip_redaction_placeholders(value))
     cleaned = re.sub(r"[^A-Za-z0-9가-힣]", "", cleaned)
     if cleaned in _UNKNOWN:
         return None
@@ -283,6 +347,17 @@ def _request_segment_similarity(left: ComplaintIntelligenceEvent, right: Complai
     if not left_segments or not right_segments:
         return _jaccard_tokens(analysis_text(left), analysis_text(right))
     return max(_jaccard_tokens(a, b) for a in left_segments for b in right_segments)
+
+
+def _request_intent_text(event: ComplaintIntelligenceEvent) -> str:
+    parts = []
+    request = getattr(event.structured_elements, "request", None)
+    if request and request.text:
+        parts.append(request.text)
+    parts.extend(getattr(event, "request_segments", []) or [])
+    if parts:
+        return " ".join(_strip_redaction_placeholders(part).strip() for part in parts if str(part or "").strip())
+    return analysis_text(event)
 
 
 def _jaccard_tokens(left: str, right: str) -> float:
