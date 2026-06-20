@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from app.complaint_intelligence.public_insights.action_catalog import allowed_actions_for
+from app.complaint_intelligence.public_insights.action_rubric import preferred_action_types_for_pack
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
 from app.complaint_intelligence.public_insights.grounding_verifier import VerifiedInsightDraft
 from app.complaint_intelligence.schemas import RecommendedAction, RootCauseHypothesis
@@ -37,7 +38,7 @@ class PublicInsightFallbackGenerator:
                 RecommendedAction(
                     action=action_text,
                     horizon="SHORT_TERM",
-                    action_type=_action_type_for(pack.type_hint),
+                    action_type=_action_type_for(pack),
                     responsible_unit_hint=(pack.department_summary or {}).get("dominant_department") if pack.department_summary else None,
                     why=f"{top_aspect} 관련 근거 민원이 반복되었습니다.",
                     supporting_evidence_ids=selected_ids,
@@ -54,7 +55,11 @@ class PublicInsightFallbackGenerator:
         )
 
 
-def _action_type_for(insight_type: str | None) -> str:
+def _action_type_for(pack: PublicInsightEvidencePack) -> str:
+    preferred = preferred_action_types_for_pack(pack)
+    if preferred:
+        return preferred[0]
+    insight_type = pack.type_hint
     if insight_type in {"SAFETY_RISK_SIGNAL", "HOTSPOT_RESPONSE_REQUIRED"}:
         return "FIELD_INSPECTION"
     if insight_type == "FACILITY_MAINTENANCE_PRIORITY":

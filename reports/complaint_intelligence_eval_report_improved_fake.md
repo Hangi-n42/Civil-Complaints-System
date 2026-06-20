@@ -31,7 +31,7 @@
 | LLM | fallback_due_to_empty_actions_count | 0 |
 | LLM | invalid_evidence_id_count | 0 |
 | LLM | invalid_action_type_count | 0 |
-| LLM | repaired_action_type_count | 11 |
+| LLM | repaired_action_type_count | 21 |
 | LLM | repaired_action_text_count | 0 |
 | LLM | removed_action_due_to_action_type_count | 0 |
 | LLM | action_repair_success_count | 0 |
@@ -40,7 +40,7 @@
 | LLM | action_retry_success_count | 0 |
 | LLM | json_parse_failure_count | 0 |
 | LLM | schema_validation_failure_count | 0 |
-| LLM | avg_llm_duration_ms | 4.4 |
+| LLM | avg_llm_duration_ms | 3.9 |
 | LLM | avg_retry_duration_ms | 0.0 |
 
 ## 목표 기준

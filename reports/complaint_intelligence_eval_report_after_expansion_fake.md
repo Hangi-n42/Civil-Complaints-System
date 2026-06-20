@@ -40,7 +40,7 @@
 | LLM | action_retry_success_count | 0 |
 | LLM | json_parse_failure_count | 0 |
 | LLM | schema_validation_failure_count | 0 |
-| LLM | avg_llm_duration_ms | 4.4 |
+| LLM | avg_llm_duration_ms | 4.0 |
 | LLM | avg_retry_duration_ms | 0.0 |
 
 ## 목표 기준
