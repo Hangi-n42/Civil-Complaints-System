@@ -61,6 +61,26 @@ def test_topic_based_rubric_returns_expected_candidates() -> None:
     assert "STAFFING_OR_WORKLOAD_REVIEW" in delay
 
 
+def test_situation_expansion_topics_return_expected_action_types() -> None:
+    cases = [
+        ("SAFETY_RISK_SIGNAL", "침수/배수 불량 위험", {"FIELD_INSPECTION", "MAINTENANCE", "SAFETY_NOTICE"}),
+        ("ENFORCEMENT_PRIORITY", "무단투기 반복", {"ENFORCEMENT", "MAINTENANCE", "PUBLIC_GUIDANCE"}),
+        ("FACILITY_MAINTENANCE_PRIORITY", "공원 시설 파손", {"FIELD_INSPECTION", "MAINTENANCE"}),
+        ("SERVICE_DESIGN_IMPROVEMENT", "버스 노선/배차 불편", {"SERVICE_DESIGN", "PUBLIC_GUIDANCE"}),
+        ("SAFETY_RISK_SIGNAL", "CCTV/방범 안전 요청", {"FIELD_INSPECTION", "SAFETY_NOTICE", "POLICY_REVIEW"}),
+        ("ENFORCEMENT_PRIORITY", "금연구역 흡연 단속 필요", {"ENFORCEMENT", "PUBLIC_GUIDANCE"}),
+        ("ENFORCEMENT_PRIORITY", "불법 현수막 정비", {"ENFORCEMENT", "FIELD_INSPECTION"}),
+        ("ENFORCEMENT_PRIORITY", "반려동물 배설물/목줄 민원", {"ENFORCEMENT", "PUBLIC_GUIDANCE"}),
+        ("PUBLIC_GUIDANCE_NEEDED", "인허가 기준 안내 혼선", {"PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"}),
+        ("ACCESSIBILITY_OR_USABILITY_ISSUE", "접근성/사용성 반복 불편", {"SERVICE_DESIGN", "PUBLIC_GUIDANCE"}),
+        ("SAFETY_RISK_SIGNAL", "어린이보호구역 통학 안전", {"ENFORCEMENT", "FIELD_INSPECTION", "SAFETY_NOTICE"}),
+    ]
+
+    for insight_type, topic, expected in cases:
+        allowed = set(allowed_action_types_for_pack(_pack(insight_type, topic)))
+        assert expected.issubset(allowed)
+
+
 def test_low_risk_public_guidance_is_not_forced_to_human_review() -> None:
     pack = _pack("PUBLIC_GUIDANCE_NEEDED", "대형폐기물 배출 안내")
 
@@ -71,6 +91,14 @@ def test_policy_like_guidance_topic_requires_human_review() -> None:
     pack = _pack("PUBLIC_GUIDANCE_NEEDED", "복지 지원 기준/신청 절차")
 
     assert requires_human_review_for_pack(pack) is True
+
+
+def test_accessibility_topic_requires_human_review_without_forcing_all_guidance() -> None:
+    accessibility_guidance = _pack("PUBLIC_GUIDANCE_NEEDED", "접근성/사용성 반복 불편")
+    general_guidance = _pack("PUBLIC_GUIDANCE_NEEDED", "대형폐기물 배출 안내")
+
+    assert requires_human_review_for_pack(accessibility_guidance) is True
+    assert requires_human_review_for_pack(general_guidance) is False
 
 
 def test_quality_gate_rejects_action_type_outside_rubric() -> None:
