@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import app.retrieval.analyzers.request_segment_hybrid as hybrid
+from app.retrieval.analyzers import request_segment_analysis as analysis_selector
 from app.retrieval.analyzers.request_segment_hybrid import (
     FallbackDecision,
     assess_segment_actionability,
@@ -66,6 +68,134 @@ def _accepted_validation(segment_texts=None):
         confidence=0.9,
         decision="replace",
     )
+
+
+def test_runtime_selector_off_uses_rule_only(monkeypatch):
+    called = {"rule": 0, "hybrid": 0}
+
+    def fake_rule(**kwargs):
+        called["rule"] += 1
+        return {"request_segments": ["rule"], "complexity_trace": {}}
+
+    def fake_hybrid(**kwargs):
+        called["hybrid"] += 1
+        return {"request_segments": ["hybrid"], "complexity_trace": {}}
+
+    monkeypatch.setattr(analysis_selector.settings, "REQUEST_SEGMENT_LLM_MODE", "off")
+    monkeypatch.setattr(analysis_selector, "build_analyzer_output", fake_rule)
+    monkeypatch.setattr(hybrid, "build_analyzer_output_hybrid", fake_hybrid)
+
+    output = analysis_selector.build_request_segment_analysis("text", "general")
+
+    assert output["request_segments"] == ["rule"]
+    assert called == {"rule": 1, "hybrid": 0}
+
+
+def test_runtime_selector_shadow_uses_hybrid(monkeypatch):
+    called = {"rule": 0, "hybrid": 0}
+
+    def fake_rule(**kwargs):
+        called["rule"] += 1
+        return {"request_segments": ["rule"], "complexity_trace": {}}
+
+    def fake_hybrid(**kwargs):
+        called["hybrid"] += 1
+        return {"request_segments": ["hybrid"], "complexity_trace": {"request_segments_source": "rule"}}
+
+    monkeypatch.setattr(analysis_selector.settings, "REQUEST_SEGMENT_LLM_MODE", "shadow")
+    monkeypatch.setattr(analysis_selector, "build_analyzer_output", fake_rule)
+    monkeypatch.setattr(hybrid, "build_analyzer_output_hybrid", fake_hybrid)
+
+    output = analysis_selector.build_request_segment_analysis("text", "general")
+
+    assert output["request_segments"] == ["hybrid"]
+    assert called == {"rule": 0, "hybrid": 1}
+
+
+def test_retrieval_routing_payload_uses_runtime_selector(monkeypatch):
+    from app.api.routers import retrieval
+
+    called = {"analysis": 0}
+
+    def fake_analysis(**kwargs):
+        called["analysis"] += 1
+        return {
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "complexity_score": 0.5,
+            "request_segments": ["hybrid segment"],
+            "complexity_trace": {"request_segments_source": "rule"},
+        }
+
+    monkeypatch.setattr(retrieval, "detect_topic", lambda query: "general")
+    monkeypatch.setattr(retrieval, "build_request_segment_analysis", fake_analysis)
+    monkeypatch.setattr(
+        retrieval,
+        "route_adaptive",
+        lambda **kwargs: SimpleNamespace(
+            strategy_id="general_medium",
+            route_key="general/medium",
+            retrieval_policy="hybrid",
+            route_reason="test",
+            applied_params=SimpleNamespace(top_k=5, snippet_max_chars=500, chunk_policy="default"),
+        ),
+    )
+
+    payload = retrieval._build_routing_payload("query")
+
+    assert called["analysis"] == 1
+    assert payload["request_segments"] == ["hybrid segment"]
+    assert payload["routing_trace"]["complexity_trace"]["request_segments_source"] == "rule"
+
+
+def test_generation_helpers_use_runtime_selector(monkeypatch):
+    from app.api.routers import generation
+
+    called = {"analysis": 0}
+
+    def fake_analysis(*args, **kwargs):
+        called["analysis"] += 1
+        return {
+            "complexity_score": 0.7,
+            "request_segments": ["hybrid segment"],
+            "complexity_trace": {"request_segments_source": "rule"},
+        }
+
+    monkeypatch.setattr(generation, "build_request_segment_analysis", fake_analysis)
+
+    assert generation._derive_request_segments("query") == ["hybrid segment"]
+    trace = generation._build_trace_from_route_key("general/medium", "query")
+
+    assert called["analysis"] == 2
+    assert trace["request_segments"] == ["hybrid segment"]
+    assert trace["complexity_trace"]["request_segments_source"] == "rule"
+
+
+def test_prompt_factory_uses_runtime_selector_with_title_question(monkeypatch):
+    import app.generation.prompts.prompt_factory as prompt_module
+
+    captured = {}
+
+    def fake_analysis(text, topic_type="general", *, title=None, question=None):
+        captured.update({"text": text, "topic_type": topic_type, "title": title, "question": question})
+        return {
+            "complexity_level": "medium",
+            "complexity_score": 0.6,
+            "request_segments": ["hybrid segment"],
+            "complexity_trace": {"request_segments_source": "rule", "title_question_boundary_used": True},
+        }
+
+    monkeypatch.setattr(prompt_module, "build_request_segment_analysis", fake_analysis)
+
+    query, trace = prompt_module.PromptFactory._derive_query_and_trace(
+        record={"title": "제목", "client_question": "본문"},
+        query="제목\n본문",
+        routing_trace={"topic_type": "general", "retrieval_policy": "hybrid"},
+    )
+
+    assert query == "제목\n본문"
+    assert captured == {"text": "제목\n본문", "topic_type": "general", "title": "제목", "question": "본문"}
+    assert trace["request_segments"] == ["hybrid segment"]
 
 
 def test_hybrid_off_returns_rule_output_without_llm_call():
@@ -697,6 +827,131 @@ def test_validate_block_llm_segments_accepts_existing_evidence_ids():
     assert result.decision == "replace"
 
 
+def test_validate_llm_segments_requires_confidence_for_replacement():
+    raw = json.dumps(
+        {
+            "request_segments": [
+                {
+                    "text": "도로 보수 일정을 알려주세요.",
+                    "evidence": "도로 보수 일정을 알려주세요.",
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_llm_segments(raw, source_text="도로 보수 일정을 알려주세요.")
+
+    assert result.accepted is False
+    assert result.reject_reason == "missing_confidence"
+
+
+def test_validate_llm_segments_rejects_invalid_confidence():
+    raw = json.dumps(
+        {
+            "request_segments": [
+                {
+                    "text": "도로 보수 일정을 알려주세요.",
+                    "evidence": "도로 보수 일정을 알려주세요.",
+                }
+            ],
+            "confidence": "높음",
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_llm_segments(raw, source_text="도로 보수 일정을 알려주세요.")
+
+    assert result.accepted is False
+    assert result.reject_reason == "invalid_confidence"
+
+
+def test_validate_block_llm_segments_requires_confidence_for_replace():
+    blocks = build_source_blocks("도로 보수 일정을 알려주세요.", max_blocks=3)
+    raw = json.dumps(
+        {
+            "decision": "replace",
+            "segments": [{"text": "도로 보수 일정을 알려주세요.", "evidence_ids": ["S1"]}],
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
+
+    assert result.accepted is False
+    assert result.reject_reason == "missing_confidence"
+    assert result.decision == "replace"
+
+
+def test_validate_block_llm_segments_rejects_invalid_confidence():
+    blocks = build_source_blocks("도로 보수 일정을 알려주세요.", max_blocks=3)
+    raw = json.dumps(
+        {
+            "decision": "replace",
+            "segments": [{"text": "도로 보수 일정을 알려주세요.", "evidence_ids": ["S1"]}],
+            "confidence": "높음",
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
+
+    assert result.accepted is False
+    assert result.reject_reason == "invalid_confidence"
+
+
+def test_validate_block_llm_segments_rejects_unsupported_evidence_text():
+    blocks = build_source_blocks("도로 보수 일정을 알려주세요.", max_blocks=3)
+    raw = json.dumps(
+        {
+            "decision": "replace",
+            "segments": [{"text": "주차장 증설을 요청합니다.", "evidence_ids": ["S1"]}],
+            "confidence": 0.9,
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
+
+    assert result.accepted is False
+    assert result.reject_reason == "segment_not_supported_by_evidence:0"
+    assert result.hallucination_suspected is True
+
+
+def test_validate_block_llm_segments_rejects_generic_overlap_only():
+    blocks = build_source_blocks("도로 보수 가능 여부를 문의합니다.", max_blocks=3)
+    raw = json.dumps(
+        {
+            "decision": "replace",
+            "segments": [{"text": "처리 가능 여부를 문의합니다.", "evidence_ids": ["S1"]}],
+            "confidence": 0.9,
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
+
+    assert result.accepted is False
+    assert result.reject_reason == "segment_not_supported_by_evidence:0"
+
+
+def test_validate_block_llm_segments_accepts_supported_paraphrase():
+    blocks = build_source_blocks("국방규격화 진행 절차와 방법을 알려주세요.", max_blocks=3)
+    raw = json.dumps(
+        {
+            "decision": "replace",
+            "segments": [{"text": "국방규격화 진행 절차 문의", "evidence_ids": ["S1"]}],
+            "confidence": 0.9,
+        },
+        ensure_ascii=False,
+    )
+
+    result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
+
+    assert result.accepted is True
+    assert result.segments == ["국방규격화 진행 절차 문의"]
+
+
 def test_validate_block_llm_segments_rejects_unknown_evidence_id():
     blocks = build_source_blocks("도로 보수 일정을 알려주세요.", max_blocks=3)
     raw = json.dumps(
@@ -717,7 +972,7 @@ def test_validate_block_llm_segments_rejects_unknown_evidence_id():
 
 def test_validate_block_llm_segments_rejects_schema_error():
     blocks = build_source_blocks("도로 보수 일정을 알려주세요.", max_blocks=3)
-    raw = json.dumps({"decision": "replace", "segments": [{"text": "도로 보수 일정을 알려주세요."}]})
+    raw = json.dumps({"decision": "replace", "segments": [{"text": "도로 보수 일정을 알려주세요."}], "confidence": 0.9})
 
     result = validate_block_llm_segments(raw, source_blocks=blocks, rule_output={"request_segments": []})
 

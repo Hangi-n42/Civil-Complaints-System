@@ -1161,3 +1161,24 @@ def test_generation_fallback_uses_complexity_analyzer_segments():
         "도로 보수 요청합니다.",
         "불법주정차 단속 요청합니다.",
     ]
+
+def test_sentence_splitter_merges_two_digit_orphan_numbered_markers():
+    sentences, _source = _split_sentences_with_source("10. 도로 보수 일정을 알려주세요. 11. 임시 안전 조치를 요청합니다.")
+
+    assert sentences == [
+        "10. 도로 보수 일정을 알려주세요.",
+        "11. 임시 안전 조치를 요청합니다.",
+    ]
+
+
+def test_request_segments_preserve_two_digit_numbered_order():
+    text = "10. 도로 보수 일정을 알려주세요. 11. 임시 안전 조치를 요청합니다."
+
+    output = build_analyzer_output(text, "construction", question=text)
+
+    assert output["request_segments"] == [
+        "도로 보수 일정을 알려주세요.",
+        "임시 안전 조치를 요청합니다.",
+    ]
+    assert output["intent_count"] == len(output["request_segments"])
+    assert output["is_multi"] == (len(output["request_segments"]) >= 2)

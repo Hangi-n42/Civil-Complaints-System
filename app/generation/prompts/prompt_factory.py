@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.core.exceptions import NoEvidenceError
 from app.core.logging import pipeline_logger
 from app.core.config import settings
-from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
 from app.retrieval.analyzers.topic_analyzer import analyze as analyze_topic
 from app.retrieval.router.adaptive_router import route
 from app.retrieval.service import RetrievalService, get_retrieval_service
@@ -815,7 +815,7 @@ class PromptFactory:
         if not complexity_level or "complexity_score" not in derived_trace or "request_segments" not in derived_trace:
             try:
                 title, question = cls._extract_title_question_boundary(record)
-                analysis = build_analyzer_output(
+                analysis = build_request_segment_analysis(
                     query,
                     topic_type=topic_type or "general",
                     title=title or None,

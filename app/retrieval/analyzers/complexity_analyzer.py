@@ -14,6 +14,7 @@ COMPLEXITY_LEVEL_HIGH_THRESHOLD = 0.75
 MAX_REQUEST_SEGMENTS = 6
 _KSS_SPLITTER_UNSET = object()
 _KSS_SENTENCE_SPLITTER: Callable[..., object] | None | object = _KSS_SPLITTER_UNSET
+_NUMERIC_BARE_ENUMERATED_MARKER_RE = re.compile(r"^[1-9][0-9]?[.),]$")
 
 _CONSTRAINT_TOKENS = (
     "기한",
@@ -913,7 +914,7 @@ def _merge_orphan_numbered_markers(sentences: list[str]) -> list[str]:
     while index < len(sentences):
         current = _normalize_segment(sentences[index])
         if (
-            _BARE_ENUMERATED_MARKER_RE.match(current)
+            (_BARE_ENUMERATED_MARKER_RE.match(current) or _NUMERIC_BARE_ENUMERATED_MARKER_RE.match(current))
             and index + 1 < len(sentences)
         ):
             next_sentence = _normalize_segment(sentences[index + 1])

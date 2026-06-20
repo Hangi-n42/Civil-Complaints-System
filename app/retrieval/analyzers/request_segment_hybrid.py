@@ -29,6 +29,33 @@ MIN_SEGMENTS = 1
 MAX_LLM_SEGMENT_CHARS = 240
 MAX_LLM_EVIDENCE_CHARS = 320
 MAX_SOURCE_BLOCK_CHARS = 320
+_SUPPORT_TOKEN_RE = re.compile(r"[가-힣A-Za-z0-9]{2,}")
+_SUPPORT_STOPWORDS = {
+    "요청",
+    "문의",
+    "문의합니다",
+    "질의",
+    "확인",
+    "가능",
+    "여부",
+    "방법",
+    "절차",
+    "일정",
+    "관련",
+    "대한",
+    "대해",
+    "알려",
+    "알려주세요",
+    "해주세요",
+    "해주시기",
+    "바랍니다",
+    "합니다",
+    "주세요",
+    "검토",
+    "처리",
+    "조치",
+    "개선",
+}
 ASSIST_TRIGGER_ALLOWLIST = {"numbered_under_split", "heading_list_under_split"}
 STRICT_ASSIST_EXCLUDED_REASONS = {
     "weak_request_signal",
@@ -429,8 +456,13 @@ def validate_llm_segments(raw_response: str, *, source_text: str) -> LLMValidati
     if not isinstance(parsed, dict):
         return LLMValidationResult(False, [], "invalid_json", hallucination_suspected=True)
 
-    confidence = _safe_float(parsed.get("confidence"))
-    if confidence is not None and confidence < settings.REQUEST_SEGMENT_LLM_MIN_CONFIDENCE:
+    raw_confidence = parsed.get("confidence")
+    confidence = _safe_float(raw_confidence)
+    if raw_confidence is None:
+        return LLMValidationResult(False, [], "missing_confidence")
+    if confidence is None:
+        return LLMValidationResult(False, [], "invalid_confidence")
+    if confidence < settings.REQUEST_SEGMENT_LLM_MIN_CONFIDENCE:
         return LLMValidationResult(False, [], "low_confidence", confidence=confidence)
 
     raw_segments = parsed.get("request_segments")
@@ -491,8 +523,13 @@ def validate_block_llm_segments(
     if decision != "replace":
         return LLMValidationResult(False, [], "invalid_decision", decision=decision)
 
-    confidence = _safe_float(parsed.get("confidence"))
-    if confidence is not None and confidence < settings.REQUEST_SEGMENT_LLM_MIN_CONFIDENCE:
+    raw_confidence = parsed.get("confidence")
+    confidence = _safe_float(raw_confidence)
+    if raw_confidence is None:
+        return LLMValidationResult(False, [], "missing_confidence", decision=decision)
+    if confidence is None:
+        return LLMValidationResult(False, [], "invalid_confidence", decision=decision)
+    if confidence < settings.REQUEST_SEGMENT_LLM_MIN_CONFIDENCE:
         return LLMValidationResult(False, [], "low_confidence", confidence=confidence, decision=decision)
 
     raw_segments = parsed.get("segments")
@@ -538,6 +575,15 @@ def validate_block_llm_segments(
             return LLMValidationResult(False, [], f"low_value_or_admin_segment:{index}", confidence=confidence, decision=decision)
         if not _REQUEST_CUE_RE.search(text) and not _REQUEST_CUE_RE.search(evidence_text):
             return LLMValidationResult(False, [], f"weak_request_signal:{index}", confidence=confidence, decision=decision)
+        if not _segment_supported_by_evidence(text, evidence_text):
+            return LLMValidationResult(
+                False,
+                [],
+                f"segment_not_supported_by_evidence:{index}",
+                hallucination_suspected=True,
+                confidence=confidence,
+                decision=decision,
+            )
         key = _compact(text)
         if key in seen:
             continue
@@ -909,6 +955,45 @@ def _normalize_text(value: Any) -> str:
 
 def _compact(value: Any) -> str:
     return re.sub(r"\s+", "", str(value or "")).strip()
+
+
+def _segment_supported_by_evidence(segment: str, evidence_text: str) -> bool:
+    segment_tokens = _support_tokens(segment)
+    if not segment_tokens:
+        return False
+
+    evidence_compact = _compact(evidence_text).lower()
+    evidence_tokens = _support_tokens(evidence_text)
+    evidence_token_set = set(evidence_tokens)
+
+    numeric_tokens = [token for token in segment_tokens if any(char.isdigit() for char in token)]
+    if any(token not in evidence_compact for token in numeric_tokens):
+        return False
+
+    supported = 0
+    for token in segment_tokens:
+        if (
+            token in evidence_compact
+            or token in evidence_token_set
+            or any(token in evidence_token or evidence_token in token for evidence_token in evidence_tokens if len(evidence_token) >= 3)
+        ):
+            supported += 1
+
+    required = 1 if len(segment_tokens) <= 2 else 2
+    return supported >= required and supported / max(len(segment_tokens), 1) >= 0.4
+
+
+def _support_tokens(value: str) -> list[str]:
+    tokens: list[str] = []
+    for raw_token in _SUPPORT_TOKEN_RE.findall(str(value or "").lower()):
+        token = raw_token.strip()
+        if len(token) < 2 or token in _SUPPORT_STOPWORDS:
+            continue
+        if token.endswith(("은", "는", "이", "가", "을", "를", "의", "에", "로", "과", "와", "도")) and len(token) > 2:
+            token = token[:-1]
+        if token and token not in _SUPPORT_STOPWORDS:
+            tokens.append(token)
+    return list(dict.fromkeys(tokens))
 
 
 def _dedupe_near_duplicate_texts(values: list[str]) -> list[str]:

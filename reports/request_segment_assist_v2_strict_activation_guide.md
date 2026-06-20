@@ -150,3 +150,22 @@ REQUEST_SEGMENT_LLM_MODE=off
 - partial 33건의 주요 원인은 저분할/과분할 가능성이므로 운영 중 샘플 검수가 계속 필요하다.
 - EXAONE 호출 latency는 여전히 높아 동기 사용자 요청 경로에서는 부담이 될 수 있다.
 - controlled rollout 중에도 기본값은 `off` 또는 `shadow`로 유지하고, 운영 환경변수로만 제한 활성화한다.
+
+## 13. PR #441 리뷰 대응 보강 사항
+
+Codex 리뷰에서 지적된 P2 이슈 4건을 반영했다.
+
+- 운영 runtime 경로는 이제 `build_request_segment_analysis()` selector를 통해 진입한다.
+  - `REQUEST_SEGMENT_LLM_MODE=off`이면 기존 `build_analyzer_output()` rule-only 결과를 반환한다.
+  - `REQUEST_SEGMENT_LLM_MODE=shadow` 또는 `assist`이면 `request_segment_hybrid.py`의 `build_analyzer_output_hybrid()`를 호출한다.
+  - 적용 호출부: retrieval routing payload, generation trace fallback, generation request segment fallback, prompt factory trace 보강 경로.
+- 두 자리 번호 marker 회귀를 막기 위해 `10.`, `11.` 같은 orphan marker도 다음 문장과 병합하도록 보강했다.
+- LLM replacement 응답은 `confidence`가 필수다.
+  - `replace` 응답에서 confidence 누락은 `missing_confidence`로 reject한다.
+  - 숫자가 아닌 confidence는 `invalid_confidence`로 reject한다.
+  - `keep_rule`/`abstain`은 rule 유지 결정이므로 교체로 accepted되지 않는다.
+- block/evidence_ids 응답은 evidence_id 존재 여부뿐 아니라 segment text가 cited evidence block에 의해 뒷받침되는지 확인한다.
+  - 핵심 객체/숫자/행정 객체 토큰 overlap이 부족하면 `segment_not_supported_by_evidence:{index}`로 reject한다.
+  - `요청`, `문의`, `가능`, `방법` 같은 일반어만 겹치는 경우는 support로 보지 않는다.
+
+주의: `shadow`/`assist + v2_strict`를 활성화하면 API route의 현재 sync 흐름에서 EXAONE 호출 latency가 요청 지연으로 반영될 수 있다. 기본값은 계속 `off`이며, 운영 가동 시에는 P95 latency와 fallback-to-rule 비율을 반드시 같이 확인한다.
