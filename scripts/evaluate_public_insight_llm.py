@@ -49,6 +49,7 @@ def main() -> None:
     parser.add_argument("--num-gpu", type=int, default=-1)
     parser.add_argument("--num-ctx", type=int, default=4096)
     parser.add_argument("--num-predict", type=int, default=1536)
+    parser.add_argument("--prompt-mode", choices=["default", "compact"], default="default")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--keep-alive", default="10m")
     parser.set_defaults(stream=True)
@@ -72,6 +73,7 @@ def main() -> None:
         public_insight_llm_temperature=args.temperature,
         public_insight_llm_num_ctx=args.num_ctx,
         public_insight_llm_num_predict=args.num_predict,
+        public_insight_llm_prompt_mode=args.prompt_mode,
         public_insight_llm_num_gpu=args.num_gpu,
         public_insight_llm_keep_alive=args.keep_alive,
         public_insight_llm_stream=args.stream,
@@ -179,6 +181,7 @@ def _summary(
             "temperature": args.temperature,
             "num_ctx": args.num_ctx,
             "num_predict": args.num_predict,
+            "prompt_mode": args.prompt_mode,
             "num_gpu": args.num_gpu,
             "keep_alive": args.keep_alive,
             "stream": args.stream,

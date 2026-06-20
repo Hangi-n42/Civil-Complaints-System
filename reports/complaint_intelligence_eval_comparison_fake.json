@@ -1,0 +1,88 @@
+{
+  "baseline_report": "reports\\complaint_intelligence_eval_report_baseline_fake.json",
+  "after_report": "reports\\complaint_intelligence_eval_report_after_fake.json",
+  "provider": "fake",
+  "baseline": {
+    "issue_detection": {
+      "scenario_count": 13,
+      "positive_scenario_count": 11,
+      "negative_scenario_count": 2,
+      "alert_recall": 0.6364,
+      "alert_precision_on_negative": 1.0,
+      "expected_alert_hit_rate": 0.4545,
+      "expected_topic_hit_rate": 0.4545,
+      "false_positive_count": 0,
+      "false_negative_count": 4,
+      "avg_alert_confidence": 0.5038,
+      "avg_surge_ratio": 2.6923,
+      "avg_recent_count": 2.6923
+    },
+    "public_agency_insight": {
+      "insight_presence_rate": 0.9231,
+      "expected_type_hit_rate": 0.9091,
+      "required_aspect_hit_rate": 1.0,
+      "required_action_type_hit_rate": 1.0,
+      "action_evidence_coverage_rate": 0.9231,
+      "evidence_pack_presence_rate": 0.9231,
+      "grounding_pass_rate": 1.0,
+      "avg_grounding_score": 0.9231,
+      "avg_confidence": 0.7859,
+      "avg_actionability_score": 0.9231,
+      "fallback_rate": 0.0,
+      "forbidden_ai_ops_term_rate": 0.0,
+      "pii_leak_rate": 0.0,
+      "human_review_requirement_pass_rate": 1.0
+    }
+  },
+  "after": {
+    "issue_detection": {
+      "scenario_count": 13,
+      "positive_scenario_count": 11,
+      "negative_scenario_count": 2,
+      "alert_recall": 1.0,
+      "alert_precision_on_negative": 1.0,
+      "expected_alert_hit_rate": 1.0,
+      "expected_topic_hit_rate": 1.0,
+      "false_positive_count": 0,
+      "false_negative_count": 0,
+      "avg_alert_confidence": 0.7477,
+      "avg_surge_ratio": 4.4679,
+      "avg_recent_count": 4.4679
+    },
+    "public_agency_insight": {
+      "insight_presence_rate": 0.8462,
+      "expected_type_hit_rate": 1.0,
+      "required_aspect_hit_rate": 1.0,
+      "required_action_type_hit_rate": 1.0,
+      "action_evidence_coverage_rate": 0.8462,
+      "evidence_pack_presence_rate": 0.8462,
+      "grounding_pass_rate": 1.0,
+      "avg_grounding_score": 0.8462,
+      "avg_confidence": 0.7157,
+      "avg_actionability_score": 0.8462,
+      "fallback_rate": 0.0,
+      "forbidden_ai_ops_term_rate": 0.0,
+      "pii_leak_rate": 0.0,
+      "human_review_requirement_pass_rate": 1.0
+    }
+  },
+  "deltas": {
+    "alert_recall_delta": 0.3636,
+    "topic_hit_rate_delta": 0.5455,
+    "false_positive_delta": 0,
+    "false_negative_delta": -4,
+    "expected_type_hit_rate_delta": 0.0909,
+    "avg_actionability_score_delta": -0.0769,
+    "pii_leak_rate_delta": 0.0,
+    "forbidden_ai_ops_term_rate_delta": 0.0
+  },
+  "assessment": {
+    "strengths": [
+      "IssueAlert recall이 baseline보다 개선되었습니다.",
+      "IssueAlert topic hit rate가 baseline보다 개선되었습니다.",
+      "negative scenario의 false positive count를 유지했습니다.",
+      "false negative count가 감소했습니다."
+    ],
+    "regressions": []
+  }
+}

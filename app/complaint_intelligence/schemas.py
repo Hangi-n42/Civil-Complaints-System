@@ -299,6 +299,15 @@ class IssueAlert(BaseModel):
     id: str
     status: Literal["ACTIVE", "UPDATED", "RESOLVED"] = "ACTIVE"
     severity: Literal["WATCH", "WARNING", "CRITICAL"]
+    trigger_type: Optional[
+        Literal[
+            "SURGE_HOTSPOT",
+            "OPERATIONAL_BACKLOG",
+            "REOPEN_REPEAT",
+            "SERVICE_ACCESSIBILITY_PATTERN",
+            "SERVICE_UX_PATTERN",
+        ]
+    ] = None
     title: str
     summary: str
     topic: str

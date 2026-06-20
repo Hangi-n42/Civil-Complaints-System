@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -9,7 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.api.error_utils import error_response, make_request_id, now_iso
-from app.complaint_intelligence import get_complaint_intelligence_service
+from app.complaint_intelligence import get_complaint_intelligence_scheduler, get_complaint_intelligence_service
 from app.complaint_intelligence.duplicate_merger.service import DuplicateGroupNotFound, DuplicateMergeConflict
 from app.complaint_intelligence.duplicate_merger.schemas import (
     DraftReplyPayload,
@@ -17,6 +18,8 @@ from app.complaint_intelligence.duplicate_merger.schemas import (
     DuplicateMergeStatus,
 )
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
+from app.complaint_intelligence.public_insights.llm_observability import build_llm_observability_report
+from app.complaint_intelligence.repository import DashboardState
 from app.complaint_intelligence.schemas import (
     ComplaintIntelligenceEvent,
     IssueAlert,
@@ -34,11 +37,19 @@ class RunAnalysisRequest(BaseModel):
 
     request_id: Optional[str] = None
     events: list[ComplaintIntelligenceEvent] = Field(default_factory=list)
+    mode: Optional[str] = None
+    source_name: Optional[str] = None
+    as_of: Optional[datetime] = None
 
 
 class RunAnalysisData(BaseModel):
     """민원 지능화 분석 실행 응답 데이터."""
 
+    run_id: Optional[str] = None
+    mode: Optional[str] = None
+    source_name: Optional[str] = None
+    as_of: Optional[str] = None
+    latest_event_at: Optional[str] = None
     event_count: int
     alert_count: int
     public_insight_count: int
@@ -53,6 +64,122 @@ class RunAnalysisResponse(BaseModel):
     request_id: str
     timestamp: str
     data: RunAnalysisData
+
+
+class AnalysisRunItem(BaseModel):
+    """분석 실행 이력 조회 항목."""
+
+    run_id: str
+    mode: str
+    status: str
+    source_name: Optional[str] = None
+    event_count: int
+    started_at: str
+    completed_at: Optional[str] = None
+    as_of: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AnalysisRunsData(BaseModel):
+    """분석 실행 이력 조회 응답 데이터."""
+
+    count: int
+    analysis_runs: list[AnalysisRunItem]
+
+
+class AnalysisRunsResponse(BaseModel):
+    """분석 실행 이력 조회 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: AnalysisRunsData
+
+
+class SchedulerStatusData(BaseModel):
+    """스케줄러 상태 조회 응답 데이터."""
+
+    scheduler: dict[str, Any]
+
+
+class SchedulerStatusResponse(BaseModel):
+    """스케줄러 상태 조회 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: SchedulerStatusData
+
+
+class SchedulerRunOnceData(BaseModel):
+    """스케줄러 1회 실행 응답 데이터."""
+
+    ran: bool
+    reason: Optional[str] = None
+    run_id: Optional[str] = None
+    event_count: int
+    alert_count: int
+    public_insight_count: int
+    as_of: Optional[str] = None
+
+
+class SchedulerRunOnceResponse(BaseModel):
+    """스케줄러 1회 실행 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: SchedulerRunOnceData
+
+
+class CollectorStatusData(BaseModel):
+    """collector 상태 조회 응답 데이터."""
+
+    collector: dict[str, Any]
+
+
+class CollectorStatusResponse(BaseModel):
+    """collector 상태 조회 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: CollectorStatusData
+
+
+class CollectorPollOnceData(BaseModel):
+    """collector 1회 수집 응답 데이터."""
+
+    source_name: str
+    mode: str
+    event_count: int
+    watermark: Optional[str] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CollectorPollOnceResponse(BaseModel):
+    """collector 1회 수집 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: CollectorPollOnceData
+
+
+class LLMObservabilityData(BaseModel):
+    """LLM 운영 관측 리포트 응답 데이터."""
+
+    runs_analyzed: int
+    report: dict[str, Any]
+
+
+class LLMObservabilityResponse(BaseModel):
+    """LLM 운영 관측 리포트 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: LLMObservabilityData
 
 
 class IssueAlertsData(BaseModel):
@@ -90,7 +217,11 @@ class PublicInsightsResponse(BaseModel):
 class DashboardSummary(BaseModel):
     """FE 대시보드 상단 지표."""
 
+    as_of: Optional[str] = None
+    latest_event_at: Optional[str] = None
+    event_count: int = 0
     alert_count: int
+    active_alert_count: int = 0
     critical_alert_count: int
     public_insight_count: int
     high_priority_insight_count: int
@@ -241,7 +372,12 @@ async def run_analysis(request: RunAnalysisRequest) -> RunAnalysisResponse:
 
     request_id = request.request_id or make_request_id()
     service = get_complaint_intelligence_service()
-    result = service.run_analysis(request.events)
+    result = service.run_analysis(
+        request.events,
+        mode=request.mode,
+        source_name=request.source_name,
+        as_of=request.as_of,
+    )
     api_logger.info(
         "Complaint Intelligence analysis completed: request_id=%s events=%s alerts=%s public_insights=%s",
         request_id,
@@ -253,6 +389,11 @@ async def run_analysis(request: RunAnalysisRequest) -> RunAnalysisResponse:
         request_id=request_id,
         timestamp=now_iso(),
         data=RunAnalysisData(
+            run_id=result.run_id,
+            mode=result.mode,
+            source_name=result.source_name,
+            as_of=result.as_of.isoformat(),
+            latest_event_at=result.latest_event_at.isoformat() if result.latest_event_at else None,
             event_count=len(request.events),
             alert_count=len(result.alerts),
             public_insight_count=len(result.public_insights),
@@ -269,13 +410,105 @@ async def run_public_insight_analysis(request: RunAnalysisRequest) -> RunAnalysi
     return await run_analysis(request)
 
 
+@router.get("/analysis-runs", response_model=AnalysisRunsResponse)
+async def list_analysis_runs(limit: int = Query(default=20, ge=1, le=100)) -> AnalysisRunsResponse:
+    """최근 분석 실행 이력과 LLM 비식별 관측 메타데이터를 조회한다."""
+
+    runs = get_complaint_intelligence_service().list_analysis_runs(limit=limit)
+    return AnalysisRunsResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=AnalysisRunsData(
+            count=len(runs),
+            analysis_runs=[_analysis_run_item(run) for run in runs],
+        ),
+    )
+
+
+@router.get("/scheduler/status", response_model=SchedulerStatusResponse)
+async def get_scheduler_status() -> SchedulerStatusResponse:
+    """Complaint Intelligence 자동 관제 스케줄러 상태를 조회한다."""
+
+    scheduler = get_complaint_intelligence_scheduler()
+    return SchedulerStatusResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=SchedulerStatusData(scheduler=scheduler.status()),
+    )
+
+
+@router.post("/scheduler/run-once", response_model=SchedulerRunOnceResponse)
+async def run_scheduler_once() -> SchedulerRunOnceResponse:
+    """저장소의 최신 이벤트 배치를 기준으로 스케줄러 분석을 1회 실행한다."""
+
+    result = get_complaint_intelligence_scheduler().run_once()
+    return SchedulerRunOnceResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=SchedulerRunOnceData(
+            ran=result.ran,
+            reason=result.reason,
+            run_id=result.run_id,
+            event_count=result.event_count,
+            alert_count=result.alert_count,
+            public_insight_count=result.public_insight_count,
+            as_of=result.as_of.isoformat() if result.as_of else None,
+        ),
+    )
+
+
+@router.get("/collector/status", response_model=CollectorStatusResponse)
+async def get_collector_status() -> CollectorStatusResponse:
+    """collector 상태와 watermark를 조회한다."""
+
+    scheduler_status = get_complaint_intelligence_scheduler().status()
+    collector_state = {
+        "collector": scheduler_status.get("collector"),
+        "collector_source_name": scheduler_status.get("collector_source_name"),
+        "collector_limit": scheduler_status.get("collector_limit"),
+        "last_poll_watermark": scheduler_status.get("last_poll_watermark"),
+        "last_watermark": scheduler_status.get("last_watermark"),
+        "last_poll_result": scheduler_status.get("last_poll_result"),
+        "checkpoint": scheduler_status.get("checkpoint"),
+        "poll_checkpoint": scheduler_status.get("poll_checkpoint"),
+    }
+    return CollectorStatusResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=CollectorStatusData(collector=collector_state),
+    )
+
+
+@router.post("/collector/poll-once", response_model=CollectorPollOnceResponse)
+async def poll_collector_once() -> CollectorPollOnceResponse:
+    """collector에서 이벤트를 1회 수집해 저장만 하고 분석은 실행하지 않는다."""
+
+    result = get_complaint_intelligence_scheduler().poll_once()
+    return CollectorPollOnceResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=CollectorPollOnceData(
+            source_name=result.source_name,
+            mode=result.mode,
+            event_count=result.event_count,
+            watermark=result.watermark.isoformat() if result.watermark else None,
+            metadata=dict(result.metadata or {}),
+        ),
+    )
+
+
 @router.post("/dashboard/run-analysis", response_model=DashboardResponse)
 async def run_dashboard_analysis(request: RunAnalysisRequest) -> DashboardResponse:
     """분석 실행 후 FE 대시보드 카드 응답을 바로 반환한다."""
 
     request_id = request.request_id or make_request_id()
     service = get_complaint_intelligence_service()
-    result = service.run_analysis(request.events)
+    result = service.run_analysis(
+        request.events,
+        mode=request.mode,
+        source_name=request.source_name,
+        as_of=request.as_of,
+    )
     api_logger.info(
         "Complaint Intelligence dashboard analysis completed: request_id=%s events=%s alerts=%s public_insights=%s",
         request_id,
@@ -286,7 +519,7 @@ async def run_dashboard_analysis(request: RunAnalysisRequest) -> DashboardRespon
     return DashboardResponse(
         request_id=request_id,
         timestamp=now_iso(),
-        data=_dashboard_data(result.alerts, result.public_insights),
+        data=_dashboard_data(result.alerts, result.public_insights, state=service.get_dashboard_state()),
     )
 
 
@@ -303,7 +536,7 @@ async def get_dashboard(
     return DashboardResponse(
         request_id=make_request_id(),
         timestamp=now_iso(),
-        data=_dashboard_data(alerts, insights),
+        data=_dashboard_data(alerts, insights, state=service.get_dashboard_state()),
     )
 
 
@@ -313,7 +546,12 @@ async def run_duplicate_group_analysis(request: RunAnalysisRequest) -> Duplicate
 
     request_id = request.request_id or make_request_id()
     service = get_complaint_intelligence_service()
-    groups = service.run_duplicate_analysis(request.events)
+    groups = service.run_duplicate_analysis(
+        request.events,
+        mode=request.mode,
+        source_name=request.source_name,
+        as_of=request.as_of,
+    )
     api_logger.info(
         "Duplicate merge analysis completed: request_id=%s events=%s groups=%s",
         request_id,
@@ -455,6 +693,30 @@ async def list_public_insights(
     )
 
 
+@router.get("/public-insights/llm-observability", response_model=LLMObservabilityResponse)
+async def get_public_insight_llm_observability(
+    limit: int = Query(default=100, ge=1, le=1000),
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+) -> LLMObservabilityResponse:
+    """PublicAgencyInsight LLM 경로의 장기 운영 관측 리포트를 반환한다."""
+
+    runs = get_complaint_intelligence_service().list_analysis_runs(limit=limit)
+    filtered_runs = [
+        run for run in runs
+        if _matches_llm_filter(run.metadata.get("llm_metrics"), provider=provider, model=model)
+    ]
+    report = build_llm_observability_report(filtered_runs)
+    return LLMObservabilityResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=LLMObservabilityData(
+            runs_analyzed=len(filtered_runs),
+            report=report,
+        ),
+    )
+
+
 @router.get("/public-insights/{insight_id}", response_model=PublicAgencyInsight)
 async def get_public_insight(insight_id: str) -> PublicAgencyInsight:
     """저장된 공공기관 행정 인사이트를 ID로 조회한다."""
@@ -475,18 +737,54 @@ async def get_public_insight_evidence_pack(insight_id: str) -> PublicInsightEvid
     return pack
 
 
+def _analysis_run_item(run: Any) -> AnalysisRunItem:
+    """AnalysisRunRecord를 API 응답 모델로 변환한다."""
+
+    return AnalysisRunItem(
+        run_id=run.run_id,
+        mode=run.mode,
+        status=run.status,
+        source_name=run.source_name,
+        event_count=run.event_count,
+        started_at=run.started_at.isoformat(),
+        completed_at=run.completed_at.isoformat() if run.completed_at else None,
+        as_of=run.as_of.isoformat(),
+        metadata=dict(run.metadata),
+    )
+
+
+def _matches_llm_filter(metrics: Any, *, provider: str | None, model: str | None) -> bool:
+    if not isinstance(metrics, dict):
+        return provider is None and model is None
+    if provider and str(metrics.get("llm_provider") or "") != provider:
+        return False
+    if model and str(metrics.get("llm_model") or "") != model:
+        return False
+    return True
+
+
 def _dashboard_data(
     alerts: list[IssueAlert],
     insights: list[PublicAgencyInsight],
+    *,
+    state: DashboardState | None = None,
 ) -> DashboardData:
     """raw 분석 결과를 FE 카드형 read model로 변환한다."""
 
     return DashboardData(
         summary=DashboardSummary(
+            as_of=state.as_of.isoformat() if state and state.as_of else None,
+            latest_event_at=state.latest_event_at.isoformat() if state and state.latest_event_at else None,
+            event_count=state.event_count if state else 0,
             alert_count=len(alerts),
+            active_alert_count=state.active_alert_count if state else sum(1 for alert in alerts if alert.status in {"ACTIVE", "UPDATED"}),
             critical_alert_count=sum(1 for alert in alerts if alert.severity == "CRITICAL"),
             public_insight_count=len(insights),
-            high_priority_insight_count=sum(1 for insight in insights if insight.priority in {"HIGH", "CRITICAL"}),
+            high_priority_insight_count=(
+                state.high_priority_insight_count
+                if state
+                else sum(1 for insight in insights if insight.priority in {"HIGH", "CRITICAL"})
+            ),
             human_review_required_count=sum(1 for insight in insights if insight.requires_human_review),
             linked_alert_count=sum(1 for insight in insights if insight.linked_alert_ids),
         ),

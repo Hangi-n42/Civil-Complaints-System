@@ -6,7 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.main import app
-from app.complaint_intelligence import get_complaint_intelligence_service
+from app.complaint_intelligence import set_complaint_intelligence_service
+from app.complaint_intelligence.repository import InMemoryComplaintIntelligenceRepository
+from app.complaint_intelligence.service import ComplaintIntelligenceService
 
 
 BASE_TIME = datetime(2026, 6, 19, 9, 0, tzinfo=timezone.utc)
@@ -14,10 +16,11 @@ BASE_TIME = datetime(2026, 6, 19, 9, 0, tzinfo=timezone.utc)
 
 @pytest.fixture(autouse=True)
 def reset_duplicate_groups():
-    service = get_complaint_intelligence_service()
-    service.duplicate_merge_service.clear()
+    service = ComplaintIntelligenceService(repository=InMemoryComplaintIntelligenceRepository())
+    set_complaint_intelligence_service(service)
     yield
-    service.duplicate_merge_service.clear()
+    service.clear()
+    set_complaint_intelligence_service(None)
 
 
 def _event(
@@ -195,7 +198,8 @@ def test_rejected_and_split_groups_cannot_build_draft_reply() -> None:
     rejected_draft = client.post(f"/complaint-intelligence/duplicate-groups/{rejected_id}/draft-reply")
     assert rejected_draft.status_code == 409
 
-    get_complaint_intelligence_service().duplicate_merge_service.clear()
+    service = ComplaintIntelligenceService(repository=InMemoryComplaintIntelligenceRepository())
+    set_complaint_intelligence_service(service)
     split_data = _run_analysis(client, [_event("split-1"), _event("split-2", minutes_ago=5)])
     split_id = split_data["duplicate_groups"][0]["merge_id"]
     split_response = client.post(f"/complaint-intelligence/duplicate-groups/{split_id}/split")

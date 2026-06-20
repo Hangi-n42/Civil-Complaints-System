@@ -13,6 +13,7 @@ from app.complaint_intelligence.config import (
 )
 from app.complaint_intelligence.pii import mask_pii
 from app.complaint_intelligence.public_insights.action_catalog import allowed_actions_for
+from app.complaint_intelligence.public_insights.action_rubric import action_type_rubric_for_pack
 from app.complaint_intelligence.public_insights.candidate_generator import PublicInsightCandidate
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent, IssueAlert, PublicInsightType
 
@@ -38,6 +39,9 @@ class PublicInsightEvidencePack(BaseModel):
     linked_alert_ids: list[str] = Field(default_factory=list)
     similar_past_patterns: list[dict[str, Any]] = Field(default_factory=list)
     allowed_action_catalog: list[str] = Field(default_factory=list)
+    valid_evidence_ids: list[str] = Field(default_factory=list)
+    allowed_action_types: list[str] = Field(default_factory=list)
+    preferred_action_types: list[str] = Field(default_factory=list)
 
 
 class EvidencePackBuilder:
@@ -156,6 +160,151 @@ class EvidencePackBuilder:
                 row["status"] = element.status
             elements[field] = row
         return elements
+
+
+def evidence_pack_for_llm(
+    pack: PublicInsightEvidencePack,
+    *,
+    compact: bool = False,
+    max_representative_complaints: int = 5,
+    max_text_chars: int = 220,
+) -> dict[str, Any]:
+    """LLM 전달용 EvidencePack dict를 만든다.
+
+    compact 모드는 로컬 LLM의 JSON 안정성을 위해 원본 EvidencePack의 긴 텍스트를 줄이되,
+    deterministic metric과 evidence_id는 유지한다.
+    """
+
+    if not compact:
+        rubric = action_type_rubric_for_pack(pack)
+        payload = pack.model_dump(mode="json")
+        payload["valid_evidence_ids"] = valid_evidence_ids_for_pack(pack)
+        payload["allowed_action_types"] = rubric["allowed_action_types"]
+        payload["preferred_action_types"] = rubric["preferred_action_types"]
+        payload["action_type_rubric_requires_human_review"] = rubric["requires_human_review"]
+        return payload
+
+    rubric = action_type_rubric_for_pack(pack)
+    representatives: list[dict[str, Any]] = []
+    for item in pack.representative_complaints[:max_representative_complaints]:
+        row: dict[str, Any] = {
+            "complaint_id": item.get("complaint_id"),
+            "masked_text": _short_masked(item.get("masked_text"), max_text_chars),
+            "region": item.get("region"),
+            "status": item.get("status"),
+        }
+        structured = item.get("structured_elements")
+        if isinstance(structured, dict):
+            compact_structured: dict[str, str] = {}
+            for field in ("observation", "request", "context"):
+                element = structured.get(field)
+                if isinstance(element, dict) and element.get("text"):
+                    compact_structured[field] = _short_masked(element.get("text"), 120)
+            if compact_structured:
+                row["structured_elements"] = compact_structured
+        representatives.append(row)
+
+    return {
+        "candidate_id": pack.candidate_id,
+        "type_hint": pack.type_hint,
+        "topic_label": _short_masked(pack.topic_label, 80),
+        "region_summary": pack.region_summary,
+        "department_summary": pack.department_summary,
+        "window_start": pack.window_start.isoformat(),
+        "window_end": pack.window_end.isoformat(),
+        "complaint_count": pack.complaint_count,
+        "baseline_count": pack.baseline_count,
+        "trend_metrics": _compact_metrics(pack.trend_metrics),
+        "operational_metrics": _compact_metrics(pack.operational_metrics),
+        "representative_complaints": representatives,
+        "extracted_aspects": _compact_aspects(pack.extracted_aspects),
+        "citizen_requests": _compact_requests(pack.citizen_requests),
+        "linked_alert_ids": pack.linked_alert_ids,
+        "allowed_action_catalog": pack.allowed_action_catalog[:8],
+        "valid_evidence_ids": valid_evidence_ids_for_pack(pack, max_ids=20),
+        "allowed_action_types": rubric["allowed_action_types"][:6],
+        "preferred_action_types": rubric["preferred_action_types"][:3],
+        "action_type_rubric_requires_human_review": rubric["requires_human_review"],
+    }
+
+
+def valid_evidence_ids_for_pack(pack: PublicInsightEvidencePack, max_ids: int | None = None) -> list[str]:
+    """EvidencePack 내부에서 LLM이 참조할 수 있는 근거 ID를 결정적으로 계산한다."""
+
+    ids: list[str] = []
+
+    def add(value: Any) -> None:
+        text = str(value or "").strip()
+        if text and text not in ids:
+            ids.append(text)
+
+    for item in pack.representative_complaints:
+        add(item.get("complaint_id"))
+        source_ids = item.get("source_complaint_ids")
+        if isinstance(source_ids, list):
+            for source_id in source_ids:
+                add(source_id)
+    for item in pack.extracted_aspects:
+        for evidence_id in list(item.get("evidence_ids") or []):
+            add(evidence_id)
+    for item in pack.citizen_requests:
+        for evidence_id in list(item.get("evidence_ids") or []):
+            add(evidence_id)
+    for evidence_id in pack.valid_evidence_ids:
+        add(evidence_id)
+    return ids[:max_ids] if max_ids is not None else ids
+
+
+def _short_masked(value: Any, limit: int) -> str:
+    text = mask_pii(str(value or "")).text
+    return text[:limit]
+
+
+def _compact_metrics(metrics: dict[str, float | int | str]) -> dict[str, float | int | str]:
+    allowed_keys = {
+        "complaint_count",
+        "surge_ratio",
+        "recent_count",
+        "baseline_count",
+        "open_count",
+        "reopened_count",
+        "reopen_rate",
+        "avg_handling_time_minutes",
+        "avg_age_minutes",
+        "structured_context_time_pattern_count",
+        "structured_context_repeat_pattern_count",
+        "structured_result_impact_count",
+    }
+    return {key: value for key, value in metrics.items() if key in allowed_keys}
+
+
+def _compact_aspects(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in items[:3]:
+        rows.append(
+            {
+                "aspect": item.get("aspect"),
+                "count": item.get("count"),
+                "sentiment": item.get("sentiment", "negative"),
+                "evidence_ids": list(item.get("evidence_ids") or [])[:2],
+                "representative_phrases": [_short_masked(phrase, 60) for phrase in list(item.get("representative_phrases") or [])[:1]],
+            }
+        )
+    return rows
+
+
+def _compact_requests(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in items[:3]:
+        rows.append(
+            {
+                "request": _short_masked(item.get("request"), 80),
+                "count": item.get("count"),
+                "evidence_ids": list(item.get("evidence_ids") or [])[:2],
+                "request_type": item.get("request_type"),
+            }
+        )
+    return rows
 
 
 def _region_summary(events: list[ComplaintIntelligenceEvent], region_key: str | None) -> dict[str, Any] | None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from app.complaint_intelligence.config import ComplaintIntelligenceConfig
 from app.complaint_intelligence.embedding import EmbeddingProvider
@@ -49,3 +50,8 @@ class PublicAgencyInsightEngine:
         """생성된 인사이트의 EvidencePack을 반환한다."""
 
         return self.service.get_evidence_pack(insight_id)
+
+    def get_last_generation_metrics(self) -> dict[str, Any]:
+        """최근 PublicAgencyInsight 생성 경로의 비식별 관측 메타데이터를 반환한다."""
+
+        return self.service.get_last_generation_metrics()
