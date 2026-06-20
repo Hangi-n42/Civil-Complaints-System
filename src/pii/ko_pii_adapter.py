@@ -6,7 +6,10 @@ from typing import Any
 
 FORBIDDEN_MODES = {"PERMISSIVE", "AUDIT"}
 FORBIDDEN_STRATEGIES = {"partial", "fpe", "tokenize"}
-SAFE_MODE = "PARANOID"
+# PARANOID는 한국어 법령·행정 텍스트를 과탐(예: "도로법"→[성명])해 검색 신호를 파괴한다.
+# STRICT는 진짜 PII(사람 이름·전화번호 등)는 그대로 가리면서 법령명·일반명사는 보존한다.
+# (BALANCED는 일부 전화번호를 놓쳐 부적합, PERMISSIVE/AUDIT는 과소마스킹으로 금지.)
+SAFE_MODE = "STRICT"
 SAFE_STRATEGY = "redact"
 
 
@@ -55,7 +58,7 @@ class KoPiiAdapter:
             import ko_pii
 
             self._engine = ko_pii.Anonymizer(
-                mode=ko_pii.ProcessingMode.PARANOID,
+                mode=ko_pii.ProcessingMode[SAFE_MODE],
                 strategy=SAFE_STRATEGY,
             )
         return self._engine
