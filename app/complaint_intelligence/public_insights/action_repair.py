@@ -36,26 +36,26 @@ class ActionRepairReport(BaseModel):
 
 
 ACTION_EVIDENCE_HINTS: dict[str, tuple[str, ...]] = {
-    "FIELD_INSPECTION": ("현장 안전", "시설 파손", "현장 점검", "침수 위험", "방범 취약", "통학 안전"),
-    "SAFETY_NOTICE": ("현장 안전", "시민 안내", "정보 제공", "야간 안전 불안", "통학 안전"),
-    "MAINTENANCE": ("시설 파손", "시설 보수", "배수 불량", "조명 고장", "쓰레기 적치", "시설 막힘/역류"),
-    "ENFORCEMENT": ("단속 공백", "단속 강화", "무단투기", "흡연 반복", "불법 광고물", "목줄 미착용", "교통 위험"),
-    "PUBLIC_GUIDANCE": ("안내 부족", "정보 제공", "소통 부족", "공사 시간 안내", "노선 안내 부족", "제출 서류"),
-    "SERVICE_DESIGN": ("접근성/사용성", "서비스 개선", "신청 절차", "버스 노선/배차 불편", "취약계층 이용 불편"),
-    "PROCESS_IMPROVEMENT": ("처리 지연", "처리 속도 개선", "소통 부족", "재민원/반복 민원", "처리 결과 불만"),
+    "FIELD_INSPECTION": ("현장 안전", "시설 파손", "현장 점검"),
+    "SAFETY_NOTICE": ("현장 안전", "시민 안내", "정보 제공"),
+    "MAINTENANCE": ("시설 파손", "시설 보수"),
+    "ENFORCEMENT": ("단속 공백", "단속 강화"),
+    "PUBLIC_GUIDANCE": ("안내 부족", "정보 제공", "소통 부족"),
+    "SERVICE_DESIGN": ("접근성/사용성", "서비스 개선", "신청 절차"),
+    "PROCESS_IMPROVEMENT": ("처리 지연", "처리 속도 개선", "소통 부족"),
     "POLICY_REVIEW": ("지원 기준", "기준 완화", "지원 확대", "신청 절차"),
     "STAFFING_OR_WORKLOAD_REVIEW": ("처리 지연", "처리 속도 개선"),
-    "CITIZEN_COMMUNICATION": ("소통 부족", "소통 강화", "정보 제공", "처리 완료 후 재문의", "담당 부서 안내 부족"),
+    "CITIZEN_COMMUNICATION": ("소통 부족", "소통 강화", "정보 제공"),
 }
 
 ACTION_TYPE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "FIELD_INSPECTION": ("현장", "점검", "확인", "조사", "순찰"),
     "SAFETY_NOTICE": ("안전", "위험", "주의", "공지", "안내"),
-    "MAINTENANCE": ("보수", "정비", "수리", "교체", "고장", "시설", "배수", "청소"),
-    "ENFORCEMENT": ("단속", "불법", "주정차", "순찰", "위반", "흡연", "현수막", "목줄"),
+    "MAINTENANCE": ("보수", "정비", "수리", "교체", "고장", "시설"),
+    "ENFORCEMENT": ("단속", "불법", "주정차", "순찰", "위반"),
     "PUBLIC_GUIDANCE": ("안내", "FAQ", "고지", "체크리스트", "상담", "설명"),
-    "SERVICE_DESIGN": ("앱", "예약", "대여", "결제", "화면", "UX", "절차 단순화", "노선", "배차"),
-    "PROCESS_IMPROVEMENT": ("처리", "프로세스", "절차", "재발", "원인", "계획", "개선", "재민원"),
+    "SERVICE_DESIGN": ("앱", "예약", "대여", "결제", "화면", "UX", "절차 단순화"),
+    "PROCESS_IMPROVEMENT": ("처리", "프로세스", "절차", "재발", "원인", "계획", "개선"),
     "POLICY_REVIEW": ("제도", "정책", "기준", "완화", "지원", "검토"),
     "STAFFING_OR_WORKLOAD_REVIEW": ("부서", "인력", "업무", "병목", "미처리", "누적"),
     "CITIZEN_COMMUNICATION": ("소통", "연락", "진행", "상태", "예정일", "알림"),

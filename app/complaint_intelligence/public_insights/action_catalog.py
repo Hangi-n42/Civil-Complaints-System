@@ -16,7 +16,6 @@ ACTION_CATALOG: dict[PublicInsightType, list[str]] = {
         "위험 구역 임시 안전 조치",
         "시민 안전 안내",
         "관련 부서 즉시 공유",
-        "침수·통학·방범 취약 구간 우선 확인",
     ],
     "RECURRING_COMPLAINT_PATTERN": [
         "반복 민원 원인 항목 정리",
@@ -27,7 +26,6 @@ ACTION_CATALOG: dict[PublicInsightType, list[str]] = {
         "지역별 서비스 제공 현황 점검",
         "반복 지역 현장 확인",
         "지역 안내 또는 자원 배분 검토",
-        "노선·정류장·방범 취약 구간 수요 검토",
     ],
     "DEPARTMENT_WORKLOAD_BOTTLENECK": [
         "부서별 미처리 건 점검",
@@ -43,32 +41,27 @@ ACTION_CATALOG: dict[PublicInsightType, list[str]] = {
         "재민원 원인 점검",
         "처리 완료 안내 개선",
         "현장 조치 실효성 확인",
-        "반복 접수 건 처리 결과 재검토",
     ],
     "SEASONAL_OR_TIME_PATTERN": [
         "민원 집중 시간대 점검 강화",
         "운영 시간 또는 단속 시간 조정",
         "행사/계절성 안내 사전 공지",
-        "야간·새벽 집중 민원 현장 확인",
     ],
     "PUBLIC_GUIDANCE_NEEDED": [
         "FAQ/안내 페이지 보강",
         "신청 절차 체크리스트 추가",
         "현장 안내문/고지문 개선",
         "상담 스크립트 보강",
-        "인허가·배출·노선 기준 안내 정비",
     ],
     "FACILITY_MAINTENANCE_PRIORITY": [
         "시설 상태 현장 확인",
         "보수 우선순위 상향",
         "반복 위치 유지보수 계획 반영",
-        "배수·조명·공원 시설 정비 필요성 확인",
     ],
     "ENFORCEMENT_PRIORITY": [
         "민원 집중 시간대 단속 강화",
         "단속 안내 현수막/표지 검토",
         "반복 위치 순찰 동선 반영",
-        "무단투기·흡연·불법 광고물 반복 위치 점검",
     ],
     "POLICY_IMPROVEMENT_OPPORTUNITY": [
         "반복 개선 요구 항목 정리",
@@ -81,13 +74,11 @@ ACTION_CATALOG: dict[PublicInsightType, list[str]] = {
         "앱/웹 UX 문구 개선",
         "오류 발생 단계 확인",
         "사용자 안내 흐름 재설계",
-        "노선·배차·예약 이용 흐름 개선 검토",
     ],
     "ACCESSIBILITY_OR_USABILITY_ISSUE": [
         "취약계층 이용 단계 점검",
         "쉬운 안내 문구와 대체 신청 경로 검토",
         "접근성 테스트와 상담 지원 보강",
-        "외국어·고령자 친화 안내 보강",
     ],
     "CITIZEN_COMMUNICATION_GAP": [
         "처리 기준과 진행 상태 안내 강화",

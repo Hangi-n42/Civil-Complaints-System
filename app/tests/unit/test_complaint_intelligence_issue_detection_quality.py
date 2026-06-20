@@ -102,65 +102,6 @@ def test_issue_alert_topic_labels_are_concrete_for_guidance_odor_and_bike() -> N
     assert any(alert.topic == "공공자전거 예약/대여 불편" for alert in bike_alerts)
 
 
-def test_issue_alert_topic_labels_cover_expanded_situations() -> None:
-    engine = IssueDetectionEngine(config=_config())
-    cases = [
-        (
-            "drain",
-            "침수/배수 불량 위험",
-            [
-                "맨홀 배수 불량으로 빗물받이가 막혀 침수 위험이 있습니다.",
-                "우수관 배수와 하수도 역류 점검이 필요합니다.",
-                "집중호우 전에 배수로와 맨홀을 정비해 주세요.",
-                "저지대 골목 침수와 역류가 반복됩니다.",
-                "빗물받이 막힘으로 도로 물고임이 심합니다.",
-            ],
-        ),
-        (
-            "banner",
-            "불법 현수막 정비",
-            [
-                "불법 현수막 정비가 필요하고 횡단보도 시야를 가립니다.",
-                "불법 현수막 정비가 필요하며 도로 시야가 방해됩니다.",
-                "불법 현수막 정비와 단속을 요청합니다.",
-                "불법 현수막 정비 대상이 같은 위치에 반복 설치됩니다.",
-                "불법 현수막 정비가 필요해 도시 미관이 나빠집니다.",
-            ],
-        ),
-        (
-            "permit",
-            "인허가 기준 안내 혼선",
-            [
-                "인허가 기준 안내 혼선으로 제출 서류가 헷갈립니다.",
-                "인허가 기준 안내 혼선 때문에 자격과 면허 기준을 모르겠습니다.",
-                "인허가 기준 안내 혼선이 있어 담당 부서 안내가 필요합니다.",
-                "인허가 기준 안내 혼선으로 설명이 서로 다릅니다.",
-                "인허가 기준 안내 혼선 때문에 필요서류 안내를 보강해 주세요.",
-            ],
-        ),
-        (
-            "school",
-            "어린이보호구역 통학 안전",
-            [
-                "어린이보호구역 통학 안전을 위해 등교 시간 단속이 필요합니다.",
-                "어린이보호구역 통학 안전이 걱정되고 교통 위험이 반복됩니다.",
-                "어린이보호구역 통학 안전 현장 점검과 단속이 필요합니다.",
-                "어린이보호구역 통학 안전 표지와 안내를 보강해 주세요.",
-                "어린이보호구역 통학 안전을 해치는 차량 혼잡이 있습니다.",
-            ],
-        ),
-    ]
-
-    for case_id, expected_topic, texts in cases:
-        alerts = engine.detect(
-            [
-                _event(f"{case_id}-{idx}", text, region="중구", minutes_ago=idx + 1)
-                for idx, text in enumerate(texts)
-            ]
-        )
-        assert any(alert.topic == expected_topic for alert in alerts)
-
-
 def test_operational_backlog_reopen_and_accessibility_rules_create_alerts() -> None:
     engine = IssueDetectionEngine(config=_config())
 
@@ -204,7 +145,7 @@ def test_operational_backlog_reopen_and_accessibility_rules_create_alerts() -> N
 
     assert any(alert.trigger_type == "OPERATIONAL_BACKLOG" for alert in backlog_alerts)
     assert any(alert.trigger_type == "REOPEN_REPEAT" for alert in repeat_alerts)
-    assert any(alert.topic == "접근성/사용성 반복 불편" for alert in accessibility_alerts)
+    assert any(alert.trigger_type == "SERVICE_ACCESSIBILITY_PATTERN" for alert in accessibility_alerts)
 
 
 def test_negative_low_count_and_dispersed_events_do_not_create_severe_alerts_or_high_priority_insights() -> None:

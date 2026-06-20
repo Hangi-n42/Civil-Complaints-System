@@ -108,19 +108,9 @@ TOPIC_ACTION_TYPE_RUBRIC: tuple[tuple[tuple[str, ...], list[ActionType]], ...] =
     (("공공자전거", "예약", "대여", "앱"), ["SERVICE_DESIGN", "PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"]),
     (("처리 지연", "미처리", "부서"), ["PROCESS_IMPROVEMENT", "STAFFING_OR_WORKLOAD_REVIEW", "CITIZEN_COMMUNICATION"]),
     (("재민원", "반복 민원"), ["PROCESS_IMPROVEMENT", "CITIZEN_COMMUNICATION", "FIELD_INSPECTION"]),
-    (("가로등", "보안등", "조명"), ["FIELD_INSPECTION", "MAINTENANCE", "SAFETY_NOTICE"]),
+    (("가로등", "보안등", "조명"), ["PROCESS_IMPROVEMENT", "FIELD_INSPECTION", "MAINTENANCE"]),
     (("공사 소음", "소음", "진동"), ["ENFORCEMENT", "PROCESS_IMPROVEMENT", "FIELD_INSPECTION", "PUBLIC_GUIDANCE"]),
-    (("접근성", "사용성", "고령자", "장애인"), ["SERVICE_DESIGN", "PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"]),
-    (("침수", "배수", "맨홀", "우수관"), ["FIELD_INSPECTION", "MAINTENANCE", "SAFETY_NOTICE"]),
-    (("무단투기", "쓰레기 적치", "생활폐기물"), ["ENFORCEMENT", "MAINTENANCE", "PUBLIC_GUIDANCE"]),
-    (("공원 시설", "놀이터", "산책로", "벤치"), ["FIELD_INSPECTION", "MAINTENANCE", "CITIZEN_COMMUNICATION"]),
-    (("버스", "정류장", "노선", "배차"), ["SERVICE_DESIGN", "PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"]),
-    (("CCTV", "방범", "사각지대", "야간 안전"), ["FIELD_INSPECTION", "SAFETY_NOTICE", "POLICY_REVIEW"]),
-    (("금연구역", "흡연", "담배", "담배꽁초"), ["ENFORCEMENT", "PUBLIC_GUIDANCE", "MAINTENANCE"]),
-    (("현수막", "광고물", "불법 광고물"), ["ENFORCEMENT", "FIELD_INSPECTION", "MAINTENANCE"]),
-    (("반려동물", "배설물", "목줄", "유기동물"), ["ENFORCEMENT", "PUBLIC_GUIDANCE", "FIELD_INSPECTION"]),
-    (("인허가", "자격", "면허", "제출 서류"), ["PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION", "PROCESS_IMPROVEMENT"]),
-    (("어린이보호구역", "통학", "등하교"), ["ENFORCEMENT", "FIELD_INSPECTION", "SAFETY_NOTICE"]),
+    (("접근성", "사용성", "고령자", "장애인"), ["SERVICE_DESIGN", "PROCESS_IMPROVEMENT", "PUBLIC_GUIDANCE"]),
 )
 
 
@@ -132,7 +122,6 @@ HUMAN_REVIEW_REQUIRED_TYPES: set[str] = {
     "PROCESS_DELAY_RISK",
     "REOPEN_OR_REPEAT_RISK",
     "ENFORCEMENT_PRIORITY",
-    "ACCESSIBILITY_OR_USABILITY_ISSUE",
 }
 
 HUMAN_REVIEW_TOPIC_KEYWORDS: tuple[str, ...] = (
@@ -145,19 +134,6 @@ HUMAN_REVIEW_TOPIC_KEYWORDS: tuple[str, ...] = (
     "안전",
     "위험",
     "단속",
-    "침수",
-    "방범",
-    "CCTV",
-    "금연구역",
-    "현수막",
-    "반려동물",
-    "어린이보호구역",
-    "통학 안전",
-    "접근성",
-    "고령자",
-    "장애인",
-    "외국인",
-    "취약계층",
 )
 
 

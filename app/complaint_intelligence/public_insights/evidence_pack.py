@@ -159,7 +159,6 @@ class EvidencePackBuilder:
             if element.status:
                 row["status"] = element.status
             elements[field] = row
-        _append_operational_structured_signals(elements, event)
         return elements
 
 
@@ -259,91 +258,6 @@ def valid_evidence_ids_for_pack(pack: PublicInsightEvidencePack, max_ids: int | 
 def _short_masked(value: Any, limit: int) -> str:
     text = mask_pii(str(value or "")).text
     return text[:limit]
-
-
-def _append_operational_structured_signals(
-    elements: dict[str, dict[str, Any]],
-    event: ComplaintIntelligenceEvent,
-) -> None:
-    """운영 메타데이터를 aspect/request 추출용 마스킹 문장으로 보강한다."""
-
-    analysis_text = " ".join(
-        [
-            str(event.masked_text or ""),
-            str(event.reviewer_feedback or ""),
-            str(event.feedback or ""),
-            str(event.status or ""),
-        ]
-    )
-    if _is_repeat_or_reopen_signal(event, analysis_text):
-        _append_structured_text(
-            elements,
-            "context",
-            "재민원/반복 접수 신호가 있으며 처리 완료 후 재문의가 확인됩니다.",
-        )
-        _append_structured_text(
-            elements,
-            "result",
-            "처리 결과 불만과 재발 우려가 반복되어 현장 조치 실효성 확인이 필요합니다.",
-        )
-        _append_structured_text(
-            elements,
-            "request",
-            "재발 원인 점검, 처리 완료 안내 개선, 현장 조치 검증과 소통 강화를 요청합니다.",
-        )
-
-    if _is_construction_noise_time_signal(event, analysis_text):
-        _append_structured_text(
-            elements,
-            "context",
-            "야간·새벽·퇴근 이후 시간대에 공사 소음/진동 민원이 집중됩니다.",
-        )
-        _append_structured_text(
-            elements,
-            "result",
-            "특정 시간대 소음/진동으로 생활 불편과 단속 공백 인식이 반복됩니다.",
-        )
-        _append_structured_text(
-            elements,
-            "request",
-            "야간 소음 현장 점검, 단속 강화, 공사 시간 안내를 요청합니다.",
-        )
-
-
-def _append_structured_text(
-    elements: dict[str, dict[str, Any]],
-    field: str,
-    text: str,
-) -> None:
-    row = elements.setdefault(field, {"text": "", "confidence": 0.7})
-    current = str(row.get("text") or "").strip()
-    combined = f"{current} {text}".strip() if current else text
-    row["text"] = mask_pii(combined).text
-    row.setdefault("confidence", 0.72)
-    if not current:
-        row["operational_signal_only"] = True
-
-
-def _is_repeat_or_reopen_signal(event: ComplaintIntelligenceEvent, text: str) -> bool:
-    repeat_keywords = ("재민원", "반복", "재문의", "재접수", "재발", "여러 번", "처리 완료", "완료 안내", "불만")
-    status = str(event.status or "").lower()
-    feedback_score = float(event.user_feedback_score) if event.user_feedback_score is not None else None
-    return (
-        event.reopened
-        or status in {"reopened", "재접수", "재민원"}
-        or (feedback_score is not None and feedback_score <= 2.0)
-        or any(keyword in text for keyword in repeat_keywords)
-    )
-
-
-def _is_construction_noise_time_signal(event: ComplaintIntelligenceEvent, text: str) -> bool:
-    noise_keywords = ("공사", "소음", "진동", "공사장", "작업 소음", "차량 소음")
-    time_keywords = ("야간", "새벽", "밤", "주말", "퇴근", "이른 아침", "시간대")
-    hour = event.received_at.hour
-    is_night_or_edge = hour >= 18 or hour <= 7
-    return any(keyword in text for keyword in noise_keywords) and (
-        is_night_or_edge or any(keyword in text for keyword in time_keywords)
-    )
 
 
 def _compact_metrics(metrics: dict[str, float | int | str]) -> dict[str, float | int | str]:

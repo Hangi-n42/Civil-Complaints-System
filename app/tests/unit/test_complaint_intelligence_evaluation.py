@@ -30,29 +30,9 @@ def test_evaluation_scenario_json_loads() -> None:
 def test_evaluation_scenario_set_has_minimum_positive_and_negative_cases() -> None:
     scenarios = _scenario_payload()["scenarios"]
 
-    assert len(scenarios) >= 25
+    assert len(scenarios) >= 10
     assert any(scenario["expected_alert"] is True for scenario in scenarios)
     assert any(scenario["expected_alert"] is False for scenario in scenarios)
-
-
-def test_situation_expansion_scenarios_are_present() -> None:
-    scenario_ids = {scenario["scenario_id"] for scenario in _scenario_payload()["scenarios"]}
-    expected_ids = {
-        "flood_drainage_risk",
-        "illegal_dumping_recurring",
-        "park_playground_facility_safety",
-        "security_light_dark_walkway",
-        "bus_route_headway_discomfort",
-        "cctv_security_request",
-        "smoking_enforcement_recurring",
-        "illegal_banner_cleanup",
-        "pet_waste_leash_complaints",
-        "licensing_docs_guidance_confusion",
-        "accessibility_vulnerable_groups",
-        "school_zone_commute_safety",
-    }
-
-    assert expected_ids.issubset(scenario_ids)
 
 
 def test_evaluation_events_validate_as_complaint_intelligence_events() -> None:
@@ -203,42 +183,6 @@ def test_llm_evaluation_summary_contains_action_type_and_speed_metrics() -> None
     assert "human_review_postprocess_count" in llm_eval
     assert "speed_metrics" in llm_eval
     assert "avg_llm_duration_ms" in llm_eval["speed_metrics"]
-
-
-def test_repeat_and_construction_failure_scenarios_pass_after_catalog_expansion() -> None:
-    scenarios = {
-        scenario["scenario_id"]: scenario
-        for scenario in _evaluation_report()["scenarios"]
-    }
-
-    assert scenarios["repeat_reopen_growth"]["passed"] is True
-    assert scenarios["construction_noise_time_pattern"]["passed"] is True
-
-
-def test_new_situation_scenarios_pass_at_least_ten_of_twelve_with_fake_provider() -> None:
-    new_ids = {
-        "flood_drainage_risk",
-        "illegal_dumping_recurring",
-        "park_playground_facility_safety",
-        "security_light_dark_walkway",
-        "bus_route_headway_discomfort",
-        "cctv_security_request",
-        "smoking_enforcement_recurring",
-        "illegal_banner_cleanup",
-        "pet_waste_leash_complaints",
-        "licensing_docs_guidance_confusion",
-        "accessibility_vulnerable_groups",
-        "school_zone_commute_safety",
-    }
-    scenarios = {
-        scenario["scenario_id"]: scenario
-        for scenario in _evaluation_report()["scenarios"]
-        if scenario["scenario_id"] in new_ids
-    }
-    passed_count = sum(1 for scenario in scenarios.values() if scenario["passed"])
-
-    assert set(scenarios) == new_ids
-    assert passed_count >= 10
 
 
 @lru_cache(maxsize=1)
