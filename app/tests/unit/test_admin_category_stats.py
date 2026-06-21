@@ -1,7 +1,9 @@
 """admin 카테고리 통계 집계(순수 함수) 단위 테스트."""
 
 from app.api.routers.admin import (
+    _build_index_from_metadatas,
     _count_values,
+    _is_policy_qna_meta,
     _split_pipe,
     aggregate_categories,
     aggregate_overview,
@@ -65,6 +67,38 @@ def test_count_values_scalar_and_list():
     ]
     assert dict(_count_values(rows, lambda d: d["r"])) == {"서울": 2, "경기": 1}
     assert dict(_count_values(rows, lambda d: d["i"])) == {"a": 2, "b": 1}
+
+
+def test_policy_qna_metadata_is_excluded_from_admin_index():
+    metadatas = [
+        {
+            "case_id": "CASE-000001",
+            "created_at": "2024-01-02T00:00:00+09:00",
+            "category": "도로",
+            "region": "서울",
+            "issue_types": "단속/점검|시설 개선/보수",
+        },
+        {
+            "case_id": "CASE-POLICY-6888142",
+            "content_type": "policy_qna",
+            "created_at": "2025-06-20T00:00:00+09:00",
+        },
+        {
+            "case_id": "CASE-POLICY-6892494",
+            "document_type": "policy_qna",
+            "created_at": "2025-07-16T00:00:00+09:00",
+        },
+    ]
+
+    assert _is_policy_qna_meta(metadatas[1])
+    assert _is_policy_qna_meta(metadatas[2])
+
+    index = _build_index_from_metadatas(metadatas)
+
+    assert len(index) == 1
+    assert index[0]["year"] == "2024"
+    assert index[0]["region"] == "서울"
+    assert index[0]["issues"] == ["단속/점검", "시설 개선/보수"]
 
 
 def _ov_idx():
