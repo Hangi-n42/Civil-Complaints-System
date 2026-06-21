@@ -3,7 +3,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
 import { fetchDuplicateGroupsApi, fetchUiCasesApi, type AssignedCase, type DuplicateMergeRecord } from "@/lib/api";
@@ -20,7 +19,8 @@ export default function QueuePage() {
   const [sortBy, setSortBy] = useState("우선순위");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
-  const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+  const [caseList, setCaseList] = useState<AssignedCase[]>([]);
+  const [casesLoading, setCasesLoading] = useState(true);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateMergeRecord[]>([]);
 
   useEffect(() => {
@@ -28,16 +28,17 @@ export default function QueuePage() {
 
     fetchUiCasesApi()
       .then((response) => {
-        if (!isMounted || response.error) {
+        if (!isMounted) {
           return;
         }
 
-        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
-          setCaseList(response.data.cases);
-        }
+        // fetchUiCasesApi는 백엔드 오류·빈 응답이면 목업으로 폴백하므로 결과를 그대로 사용한다.
+        setCaseList(response.data.cases);
       })
-      .catch(() => {
-        // keep fallback mock data
+      .finally(() => {
+        if (isMounted) {
+          setCasesLoading(false);
+        }
       });
 
     return () => {
@@ -259,7 +260,7 @@ export default function QueuePage() {
         {/* 민원 목록 테이블 */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/50">
-            <h3 className="text-sm font-bold text-slate-800">민원 목록 ({filteredCases.length}건)</h3>
+            <h3 className="text-sm font-bold text-slate-800">{casesLoading ? "민원 목록" : `민원 목록 (${filteredCases.length}건)`}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-200">
@@ -275,7 +276,20 @@ export default function QueuePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCases.map((c) => {
+                {casesLoading &&
+                  [0, 1, 2, 3, 4].map((i) => (
+                    <tr key={`skeleton-${i}`} className="animate-pulse">
+                      <td className="px-5 py-3"><div className="h-4 w-3/4 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-14 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-8 rounded bg-slate-200" /></td>
+                      <td className="px-5 py-3"><div className="h-5 w-14 rounded bg-slate-200" /></td>
+                    </tr>
+                  ))}
+                {!casesLoading &&
+                  filteredCases.map((c) => {
                   const duplicateBadge = duplicateBadgeForCase(c.case_id, duplicateGroups);
                   return (
                     <tr
@@ -316,7 +330,7 @@ export default function QueuePage() {
                     </tr>
                   );
                 })}
-                {filteredCases.length === 0 && (
+                {!casesLoading && filteredCases.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
                       조건에 맞는 민원이 없습니다. 필터를 조정해보세요.
