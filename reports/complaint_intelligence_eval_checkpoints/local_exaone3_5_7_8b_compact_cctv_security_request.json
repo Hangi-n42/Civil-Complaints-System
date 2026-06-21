@@ -1,0 +1,342 @@
+{
+  "metadata": {
+    "provider": "local",
+    "model": "exaone3.5:7.8b",
+    "prompt_mode": "compact",
+    "scenario_id": "cctv_security_request",
+    "written_at": "2026-06-21T03:56:46.350719+00:00"
+  },
+  "result": {
+    "scenario_id": "cctv_security_request",
+    "label": "CCTV/방범 안전 설치 요청",
+    "scenario_type": "positive_alert",
+    "source_policy": "synthetic_evaluation_control",
+    "real_event_count": 0,
+    "synthetic_event_count": 5,
+    "event_count": 5,
+    "run_id": "ci-run-f2d4b7e8119a",
+    "passed": true,
+    "issue_detection_passed": true,
+    "insight_passed": true,
+    "quality_gate_passed": true,
+    "failures": [],
+    "warnings": [],
+    "issue_detection": {
+      "passed": true,
+      "expected_alert": true,
+      "alert_count": 4,
+      "severe_alert_count": 4,
+      "expected_topic_hit": true,
+      "avg_alert_confidence": 0.8678,
+      "avg_surge_ratio": 5.0,
+      "avg_recent_count": 5.0
+    },
+    "public_agency_insight": {
+      "passed": true,
+      "insight_count": 1,
+      "matched_expected_insight_count": 1,
+      "expected_type_required": true,
+      "expected_type_hit": true,
+      "required_aspect_hit": true,
+      "required_action_type_hit": true,
+      "allowed_action_type_hit_rate": 1.0,
+      "action_evidence_coverage_rate": 1.0,
+      "evidence_pack_presence_rate": 1.0,
+      "quality_gate_passed": true,
+      "grounding_pass": true,
+      "avg_grounding_score": 1.0,
+      "avg_confidence": 0.8458,
+      "avg_actionability_score": 1.0,
+      "fallback": false,
+      "forbidden_ai_ops_terms": false,
+      "pii_leak": false,
+      "human_review_requirement_pass": true,
+      "action_type_rubric_pass": true,
+      "representative_evidence_ids": [
+        "eval-cctv_security_request-001",
+        "eval-cctv_security_request-002",
+        "eval-cctv_security_request-003",
+        "eval-cctv_security_request-004",
+        "eval-cctv_security_request-005"
+      ]
+    },
+    "generated_alerts": [
+      {
+        "id": "issue-77e7142afb27",
+        "severity": "CRITICAL",
+        "topic": "CCTV/방범 안전 요청",
+        "region": "구로구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.991
+      },
+      {
+        "id": "issue-f2d589bed2e8",
+        "severity": "WARNING",
+        "topic": "재민원/반복 민원 증가",
+        "region": "구로구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.84
+      },
+      {
+        "id": "issue-bf4d9915780f",
+        "severity": "WARNING",
+        "topic": "공사 소음 시간대 집중",
+        "region": "구로구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.82
+      },
+      {
+        "id": "issue-3f349db6463c",
+        "severity": "WARNING",
+        "topic": "가로등/보안등 고장",
+        "region": "구로구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.82
+      }
+    ],
+    "generated_insights": [
+      {
+        "insight_id": "public-insight-a8f7696de249",
+        "type": "SAFETY_RISK_SIGNAL",
+        "priority": "HIGH",
+        "topic": "CCTV/방범 안전 요청",
+        "affected_count": 5,
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "requires_human_review": true,
+        "action_types": [
+          "FIELD_INSPECTION"
+        ],
+        "aspects": [
+          "조명 고장",
+          "야간 보행 불안",
+          "방범 취약",
+          "야간 안전 불안",
+          "시설 설치 요청",
+          "사각지대"
+        ]
+      }
+    ],
+    "representative_evidence_ids": [
+      "eval-cctv_security_request-001",
+      "eval-cctv_security_request-002",
+      "eval-cctv_security_request-003",
+      "eval-cctv_security_request-004",
+      "eval-cctv_security_request-005"
+    ],
+    "llm_metrics": {
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "timeout_seconds": 600.0,
+      "num_predict": 1024,
+      "candidate_count": 1,
+      "insight_count": 1,
+      "direct_llm_success_count": 1,
+      "llm_failure_count": 0,
+      "fallback_count": 0,
+      "fallback_due_to_empty_actions_count": 0,
+      "discarded_count": 0,
+      "avg_llm_duration_ms": 130172.045,
+      "avg_retry_duration_ms": 0.0,
+      "llm_durations_ms": [
+        130172.045
+      ],
+      "retry_durations_ms": [],
+      "json_parse_failure_count": 0,
+      "schema_validation_failure_count": 0,
+      "grounding_failure_count": 0,
+      "quality_gate_failure_count": 0,
+      "invalid_evidence_id_count": 0,
+      "invalid_evidence_ids": [],
+      "action_repair_attempt_count": 1,
+      "action_repair_success_count": 0,
+      "invalid_action_type_count": 0,
+      "invalid_action_types": [],
+      "repaired_action_type_count": 0,
+      "repaired_action_text_count": 0,
+      "removed_action_due_to_action_type_count": 0,
+      "action_retry_attempt_count": 0,
+      "action_retry_success_count": 0,
+      "empty_actions_after_repair_count": 0,
+      "human_review_postprocess_count": 1,
+      "action_type_rubric_pass_count": 1,
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "invalid_action_type_count": 0,
+        "repaired_action_type_count": 0,
+        "repaired_action_text_count": 0,
+        "removed_action_due_to_action_type_count": 0,
+        "invalid_action_types": [],
+        "action_type_repairs": [],
+        "repair_strategy": []
+      },
+      "action_retry_report": null,
+      "failure_reasons": {},
+      "raw_response_debug_enabled": false
+    },
+    "direct_llm_success": true,
+    "fallback_used": false,
+    "fallback_reason": {},
+    "invalid_evidence_ids": [],
+    "action_repair_report": {
+      "repaired_action_count": 0,
+      "removed_action_count": 0,
+      "invalid_evidence_ids": [],
+      "empty_action_count": 0,
+      "invalid_action_type_count": 0,
+      "repaired_action_type_count": 0,
+      "repaired_action_text_count": 0,
+      "removed_action_due_to_action_type_count": 0,
+      "invalid_action_types": [],
+      "action_type_repairs": [],
+      "repair_strategy": []
+    },
+    "action_retry_report": null,
+    "llm_duration_ms": 130172.045,
+    "retry_duration_ms": 0.0,
+    "insight_samples": [
+      {
+        "scenario_id": "cctv_security_request",
+        "scenario_label": "CCTV/방범 안전 설치 요청",
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "direct_llm_success": true,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "llm_draft_summary": {
+          "title": "야간 안전 민원 증가",
+          "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
+          "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "조명 시설 부족으로 인한 야간 보행 불안 증가",
+              "supporting_evidence_ids": [
+                "eval-cctv_security_request-001",
+                "eval-cctv_security_request-002"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "긴급 조명 점검",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "eval-cctv_security_request-001",
+                "eval-cctv_security_request-002"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "조명 문제 외 다른 요인 존재 가능성"
+          ]
+        },
+        "repair_diff": {
+          "invalid_evidence_ids": [],
+          "invalid_action_types": [],
+          "removed_actions": 0,
+          "repaired_actions": 0,
+          "repaired_action_types": 0,
+          "repaired_action_texts": 0,
+          "retry_used": false,
+          "retry_success": false,
+          "retry_failure_reason": null
+        },
+        "final_insight_summary": {
+          "insight_id": "public-insight-a8f7696de249",
+          "type": "SAFETY_RISK_SIGNAL",
+          "priority": "HIGH",
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "avg_actionability_score": 1.0,
+          "title": "야간 안전 민원 증가",
+          "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
+          "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+          "recommended_actions": [
+            {
+              "action": "긴급 조명 점검",
+              "original_action_type": "FIELD_INSPECTION",
+              "final_action_type": "FIELD_INSPECTION",
+              "action_type_repaired": false,
+              "allowed_action_types": [
+                "FIELD_INSPECTION",
+                "SAFETY_NOTICE",
+                "POLICY_REVIEW",
+                "MAINTENANCE"
+              ],
+              "actionability_score": 1.0,
+              "supporting_evidence_ids": [
+                "eval-cctv_security_request-001",
+                "eval-cctv_security_request-002"
+              ]
+            }
+          ],
+          "evidence_ids": [
+            "eval-cctv_security_request-001",
+            "eval-cctv_security_request-002",
+            "eval-cctv_security_request-003",
+            "eval-cctv_security_request-004",
+            "eval-cctv_security_request-005"
+          ]
+        },
+        "evidence_preview": [
+          {
+            "evidence_id": "eval-cctv_security_request-001",
+            "masked_text": "골목이 밤에 너무 어두워 CCTV 설치와 방범 순찰이 필요합니다. 골목이 밤에 너무 어두워 CCTV 설치와 방범 순찰이 필요합니다."
+          },
+          {
+            "evidence_id": "eval-cctv_security_request-002",
+            "masked_text": "사각지대가 있어 야간 안전이 불안하니 현장 확인 바랍니다. 사각지대가 있어 야간 안전이 불안하니 현장 확인 바랍니다."
+          },
+          {
+            "evidence_id": "eval-cctv_security_request-003",
+            "masked_text": "방범 취약 구간인데 안내와 순찰이 부족합니다. 방범 취약 구간인데 안내와 순찰이 부족합니다."
+          },
+          {
+            "evidence_id": "eval-cctv_security_request-004",
+            "masked_text": "CCTV 설치 검토와 조명 보강을 요청합니다. CCTV 설치 검토와 조명 보강을 요청합니다."
+          },
+          {
+            "evidence_id": "eval-cctv_security_request-005",
+            "masked_text": "늦은 시간 보행자가 불안해하는 구간을 점검해 주세요. 늦은 시간 보행자가 불안해하는 구간을 점검해 주세요."
+          }
+        ],
+        "objective_review": {
+          "strengths": [
+            "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+            "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+          ],
+          "weaknesses": [
+            "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+          ],
+          "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+          "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+          "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+        }
+      }
+    ],
+    "dashboard_snapshot": null,
+    "objective_assessment": {
+      "strengths": [
+        "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+        "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+        "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+      ],
+      "weaknesses": [
+        "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+      ],
+      "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+      "failure_codes": [],
+      "warning_codes": []
+    },
+    "duration_seconds": 130.192
+  }
+}

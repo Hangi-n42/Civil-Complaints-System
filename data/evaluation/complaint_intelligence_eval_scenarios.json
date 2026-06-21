@@ -2342,6 +2342,7 @@
         "생활환경 불편"
       ],
       "required_action_types": [
+        "FIELD_INSPECTION",
         "PROCESS_IMPROVEMENT"
       ],
       "requires_human_review": false

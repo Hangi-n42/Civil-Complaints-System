@@ -1,0 +1,347 @@
+{
+  "metadata": {
+    "provider": "local",
+    "model": "exaone3.5:7.8b",
+    "prompt_mode": "compact",
+    "scenario_id": "pet_waste_leash_complaints",
+    "written_at": "2026-06-21T04:05:24.178512+00:00"
+  },
+  "result": {
+    "scenario_id": "pet_waste_leash_complaints",
+    "label": "반려동물 배설물/목줄/유기동물 민원",
+    "scenario_type": "positive_alert",
+    "source_policy": "synthetic_evaluation_control",
+    "real_event_count": 0,
+    "synthetic_event_count": 5,
+    "event_count": 5,
+    "run_id": "ci-run-171b908ede54",
+    "passed": true,
+    "issue_detection_passed": true,
+    "insight_passed": true,
+    "quality_gate_passed": true,
+    "failures": [],
+    "warnings": [],
+    "issue_detection": {
+      "passed": true,
+      "expected_alert": true,
+      "alert_count": 4,
+      "severe_alert_count": 4,
+      "expected_topic_hit": true,
+      "avg_alert_confidence": 0.8426,
+      "avg_surge_ratio": 5.0,
+      "avg_recent_count": 5.0
+    },
+    "public_agency_insight": {
+      "passed": true,
+      "insight_count": 1,
+      "matched_expected_insight_count": 1,
+      "expected_type_required": true,
+      "expected_type_hit": true,
+      "required_aspect_hit": true,
+      "required_action_type_hit": true,
+      "allowed_action_type_hit_rate": 1.0,
+      "action_evidence_coverage_rate": 1.0,
+      "evidence_pack_presence_rate": 1.0,
+      "quality_gate_passed": true,
+      "grounding_pass": true,
+      "avg_grounding_score": 1.0,
+      "avg_confidence": 0.8458,
+      "avg_actionability_score": 1.0,
+      "fallback": false,
+      "forbidden_ai_ops_terms": false,
+      "pii_leak": false,
+      "human_review_requirement_pass": true,
+      "action_type_rubric_pass": true,
+      "representative_evidence_ids": [
+        "eval-pet_waste_leash_complaints-001",
+        "eval-pet_waste_leash_complaints-002",
+        "eval-pet_waste_leash_complaints-003",
+        "eval-pet_waste_leash_complaints-004",
+        "eval-pet_waste_leash_complaints-005"
+      ]
+    },
+    "generated_alerts": [
+      {
+        "id": "issue-cce6963b2c71",
+        "severity": "CRITICAL",
+        "topic": "반려동물 배설물/목줄 민원",
+        "region": "노원구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.8904
+      },
+      {
+        "id": "issue-24fa7ba530fe",
+        "severity": "WARNING",
+        "topic": "재민원/반복 민원 증가",
+        "region": "노원구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.84
+      },
+      {
+        "id": "issue-8063a8409bd8",
+        "severity": "WARNING",
+        "topic": "공원 시설 파손",
+        "region": "노원구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.82
+      },
+      {
+        "id": "issue-eec0182747bb",
+        "severity": "WARNING",
+        "topic": "CCTV/방범 안전 요청",
+        "region": "노원구",
+        "recent_count": 5,
+        "surge_ratio": 5.0,
+        "confidence": 0.82
+      }
+    ],
+    "generated_insights": [
+      {
+        "insight_id": "public-insight-a543db255f2d",
+        "type": "REGIONAL_SERVICE_GAP",
+        "priority": "LOW",
+        "topic": "반려동물 배설물/목줄 민원",
+        "affected_count": 5,
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "requires_human_review": true,
+        "action_types": [
+          "ENFORCEMENT"
+        ],
+        "aspects": [
+          "반려동물 관리 부족",
+          "위생 문제",
+          "안전 우려",
+          "반려동물 관리",
+          "배설물 방치",
+          "목줄 미착용"
+        ]
+      }
+    ],
+    "representative_evidence_ids": [
+      "eval-pet_waste_leash_complaints-001",
+      "eval-pet_waste_leash_complaints-002",
+      "eval-pet_waste_leash_complaints-003",
+      "eval-pet_waste_leash_complaints-004",
+      "eval-pet_waste_leash_complaints-005"
+    ],
+    "llm_metrics": {
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "timeout_seconds": 600.0,
+      "num_predict": 1024,
+      "candidate_count": 1,
+      "insight_count": 1,
+      "direct_llm_success_count": 1,
+      "llm_failure_count": 0,
+      "fallback_count": 0,
+      "fallback_due_to_empty_actions_count": 0,
+      "discarded_count": 0,
+      "avg_llm_duration_ms": 187400.889,
+      "avg_retry_duration_ms": 0.0,
+      "llm_durations_ms": [
+        187400.889
+      ],
+      "retry_durations_ms": [],
+      "json_parse_failure_count": 0,
+      "schema_validation_failure_count": 0,
+      "grounding_failure_count": 0,
+      "quality_gate_failure_count": 0,
+      "invalid_evidence_id_count": 0,
+      "invalid_evidence_ids": [],
+      "action_repair_attempt_count": 1,
+      "action_repair_success_count": 0,
+      "invalid_action_type_count": 0,
+      "invalid_action_types": [],
+      "repaired_action_type_count": 0,
+      "repaired_action_text_count": 1,
+      "removed_action_due_to_action_type_count": 0,
+      "action_retry_attempt_count": 0,
+      "action_retry_success_count": 0,
+      "empty_actions_after_repair_count": 0,
+      "human_review_postprocess_count": 1,
+      "action_type_rubric_pass_count": 1,
+      "action_repair_report": {
+        "repaired_action_count": 0,
+        "removed_action_count": 0,
+        "invalid_evidence_ids": [],
+        "empty_action_count": 0,
+        "invalid_action_type_count": 0,
+        "repaired_action_type_count": 0,
+        "repaired_action_text_count": 1,
+        "removed_action_due_to_action_type_count": 0,
+        "invalid_action_types": [],
+        "action_type_repairs": [],
+        "repair_strategy": [
+          "expanded_short_action_text_from_rubric"
+        ]
+      },
+      "action_retry_report": null,
+      "failure_reasons": {},
+      "raw_response_debug_enabled": false
+    },
+    "direct_llm_success": true,
+    "fallback_used": false,
+    "fallback_reason": {},
+    "invalid_evidence_ids": [],
+    "action_repair_report": {
+      "repaired_action_count": 0,
+      "removed_action_count": 0,
+      "invalid_evidence_ids": [],
+      "empty_action_count": 0,
+      "invalid_action_type_count": 0,
+      "repaired_action_type_count": 0,
+      "repaired_action_text_count": 1,
+      "removed_action_due_to_action_type_count": 0,
+      "invalid_action_types": [],
+      "action_type_repairs": [],
+      "repair_strategy": [
+        "expanded_short_action_text_from_rubric"
+      ]
+    },
+    "action_retry_report": null,
+    "llm_duration_ms": 187400.889,
+    "retry_duration_ms": 0.0,
+    "insight_samples": [
+      {
+        "scenario_id": "pet_waste_leash_complaints",
+        "scenario_label": "반려동물 배설물/목줄/유기동물 민원",
+        "provider": "local",
+        "model": "exaone3.5:7.8b",
+        "prompt_mode": "compact",
+        "direct_llm_success": true,
+        "fallback_used": false,
+        "fallback_reason": null,
+        "llm_draft_summary": {
+          "title": "노원구 반려동물 관리 민원 강화",
+          "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
+          "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "현재의 단속 및 안내 시스템이 미흡하여 민원이 지속되고 있다.",
+              "supporting_evidence_ids": [
+                "eval-pet_waste_leash_complaints-001",
+                "eval-pet_waste_leash_complaints-002"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "단속 강화 실시",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "eval-pet_waste_leash_complaints-001",
+                "eval-pet_waste_leash_complaints-002"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "단속 효과의 지속성",
+            "시민 인식 변화"
+          ]
+        },
+        "repair_diff": {
+          "invalid_evidence_ids": [],
+          "invalid_action_types": [],
+          "removed_actions": 0,
+          "repaired_actions": 0,
+          "repaired_action_types": 0,
+          "repaired_action_texts": 1,
+          "retry_used": false,
+          "retry_success": false,
+          "retry_failure_reason": null
+        },
+        "final_insight_summary": {
+          "insight_id": "public-insight-a543db255f2d",
+          "type": "REGIONAL_SERVICE_GAP",
+          "priority": "LOW",
+          "confidence": 0.8458,
+          "grounding_score": 1.0,
+          "avg_actionability_score": 1.0,
+          "title": "노원구 반려동물 관리 민원 강화",
+          "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
+          "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+          "recommended_actions": [
+            {
+              "action": "반려동물 배설물/목줄 민원 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+              "original_action_type": "ENFORCEMENT",
+              "final_action_type": "ENFORCEMENT",
+              "action_type_repaired": false,
+              "allowed_action_types": [
+                "ENFORCEMENT",
+                "PUBLIC_GUIDANCE",
+                "FIELD_INSPECTION",
+                "PROCESS_IMPROVEMENT"
+              ],
+              "actionability_score": 1.0,
+              "supporting_evidence_ids": [
+                "eval-pet_waste_leash_complaints-001",
+                "eval-pet_waste_leash_complaints-002"
+              ]
+            }
+          ],
+          "evidence_ids": [
+            "eval-pet_waste_leash_complaints-001",
+            "eval-pet_waste_leash_complaints-002",
+            "eval-pet_waste_leash_complaints-003",
+            "eval-pet_waste_leash_complaints-004",
+            "eval-pet_waste_leash_complaints-005"
+          ]
+        },
+        "evidence_preview": [
+          {
+            "evidence_id": "eval-pet_waste_leash_complaints-001",
+            "masked_text": "공원 산책로에 반려동물 배설물이 방치되어 위생이 걱정됩니다. 공원 산책로에 반려동물 배설물이 방치되어 위생이 걱정됩니다."
+          },
+          {
+            "evidence_id": "eval-pet_waste_leash_complaints-002",
+            "masked_text": "목줄 미착용 개 때문에 아이들이 무서워합니다. 목줄 미착용 개 때문에 아이들이 무서워합니다."
+          },
+          {
+            "evidence_id": "eval-pet_waste_leash_complaints-003",
+            "masked_text": "반려동물 배설물 안내문과 단속이 부족합니다. 반려동물 배설물 안내문과 단속이 부족합니다."
+          },
+          {
+            "evidence_id": "eval-pet_waste_leash_complaints-004",
+            "masked_text": "같은 시간대 목줄 없이 산책하는 사례가 반복됩니다. 같은 시간대 목줄 없이 산책하는 사례가 반복됩니다."
+          },
+          {
+            "evidence_id": "eval-pet_waste_leash_complaints-005",
+            "masked_text": "유기동물 신고와 현장 순찰을 요청합니다. 유기동물 신고와 현장 순찰을 요청합니다."
+          }
+        ],
+        "objective_review": {
+          "strengths": [
+            "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+            "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+          ],
+          "weaknesses": [
+            "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+          ],
+          "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+          "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+          "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+        }
+      }
+    ],
+    "dashboard_snapshot": null,
+    "objective_assessment": {
+      "strengths": [
+        "유사 민원 묶음에서 IssueAlert를 생성해 관제 화면에 올릴 신호를 만들었습니다.",
+        "기대 행정 인사이트 type 중 하나를 생성했습니다.",
+        "추천 조치가 근거 민원 ID와 연결되어 추적 가능합니다."
+      ],
+      "weaknesses": [
+        "자동 평가 기준에서 주요 약점은 확인되지 않았습니다."
+      ],
+      "risk": "실제 운영에서는 위치 정규화와 접수 채널 편차를 추가 검증해야 합니다.",
+      "failure_codes": [],
+      "warning_codes": []
+    },
+    "duration_seconds": 187.423
+  }
+}

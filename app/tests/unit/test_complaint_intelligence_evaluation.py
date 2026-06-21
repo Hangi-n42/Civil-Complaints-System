@@ -203,6 +203,48 @@ def test_llm_evaluation_summary_contains_action_type_and_speed_metrics() -> None
     assert "human_review_postprocess_count" in llm_eval
     assert "speed_metrics" in llm_eval
     assert "avg_llm_duration_ms" in llm_eval["speed_metrics"]
+    assert "slowest_scenarios" in llm_eval
+    assert "timeout_scenarios" in llm_eval
+    assert "fallback_scenarios" in llm_eval
+
+
+def test_checkpoint_resume_accumulates_scenario_results(tmp_path: Path) -> None:
+    first = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        checkpoint_dir=tmp_path,
+        resume=True,
+        chunk_size=1,
+    )
+    second = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        checkpoint_dir=tmp_path,
+        resume=True,
+        chunk_size=1,
+    )
+
+    assert first["scenario_count_requested"] >= 25
+    assert first["scenario_count_evaluated"] == 1
+    assert first["limited_reason"]
+    assert first["checkpoint"]["processed_this_run"] == 1
+    assert second["scenario_count_evaluated"] == 2
+    assert second["checkpoint"]["completed_from_checkpoint"] == 1
+    assert second["checkpoint"]["processed_this_run"] == 1
+    assert len(list(tmp_path.glob("*.json"))) == 2
+
+
+def test_scenario_ids_filter_runs_requested_subset() -> None:
+    report = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        scenario_ids=["sinkhole_hotspot", "low_count_negative"],
+    )
+    scenario_ids = {scenario["scenario_id"] for scenario in report["scenarios"]}
+
+    assert report["scenario_count_requested"] == 2
+    assert report["scenario_count_evaluated"] == 2
+    assert scenario_ids == {"sinkhole_hotspot", "low_count_negative"}
 
 
 def test_repeat_and_construction_failure_scenarios_pass_after_catalog_expansion() -> None:

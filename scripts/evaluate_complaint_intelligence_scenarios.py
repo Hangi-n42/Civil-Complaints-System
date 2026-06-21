@@ -67,6 +67,10 @@ def main() -> int:
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--scenario-limit", type=int, default=None)
     parser.add_argument("--scenario-id", default=None)
+    parser.add_argument("--scenario-ids", default=None)
+    parser.add_argument("--checkpoint-dir", default=None)
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--chunk-size", type=int, default=None)
     parser.add_argument("--llm-timeout-seconds", type=float, default=None)
     parser.add_argument("--llm-num-predict", type=int, default=None)
     parser.add_argument("--timeout-seconds", type=float, default=None)
@@ -80,6 +84,7 @@ def main() -> int:
     parser.add_argument("--save-dashboard-snapshots", action="store_true")
     parser.add_argument("--write-default-scenarios", action="store_true")
     parser.add_argument("--baseline-report", default=None)
+    parser.add_argument("--no-print-report", action="store_true")
     args = parser.parse_args()
 
     scenario_file = Path(args.scenario_file)
@@ -97,6 +102,7 @@ def main() -> int:
         base_url=args.base_url,
         scenario_limit=args.scenario_limit,
         scenario_id=args.scenario_id,
+        scenario_ids=_split_csv(args.scenario_ids),
         include_negative=args.include_negative,
         demo_thresholds=args.demo_thresholds,
         save_dashboard_snapshots=args.save_dashboard_snapshots,
@@ -106,6 +112,9 @@ def main() -> int:
         debug_raw_response=args.debug_raw_response,
         raw_response_dir=args.raw_response_dir,
         max_candidates_per_scenario=max_candidates_per_scenario,
+        checkpoint_dir=Path(args.checkpoint_dir) if args.checkpoint_dir else None,
+        resume=args.resume,
+        chunk_size=args.chunk_size,
     )
     output = Path(args.output)
     if args.baseline_report:
@@ -134,7 +143,8 @@ def main() -> int:
                 Path("reports/complaint_intelligence_local_llm_action_rubric_samples.md"),
                 report,
             )
-    print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
+    if not args.no_print_report:
+        print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
     return 0
 
 
@@ -146,6 +156,7 @@ def evaluate_scenario_file(
     base_url: str | None = None,
     scenario_limit: int | None = None,
     scenario_id: str | None = None,
+    scenario_ids: list[str] | None = None,
     include_negative: bool = True,
     demo_thresholds: bool = False,
     save_dashboard_snapshots: bool = False,
@@ -155,24 +166,59 @@ def evaluate_scenario_file(
     debug_raw_response: bool = False,
     raw_response_dir: str | None = None,
     max_candidates_per_scenario: int | None = None,
+    checkpoint_dir: Path | None = None,
+    resume: bool = False,
+    chunk_size: int | None = None,
 ) -> dict[str, Any]:
     """시나리오 파일을 읽어 IssueAlert와 PublicAgencyInsight 품질을 평가한다."""
 
     started_at = perf_counter()
     scenario_payload = load_scenarios(scenario_file)
     scenarios = list(scenario_payload.get("scenarios") or [])
-    requested_count = len(scenarios)
+    selected_ids = set(scenario_ids or [])
+    if scenario_id:
+        selected_ids.add(scenario_id)
+    if selected_ids:
+        scenarios = [item for item in scenarios if item.get("scenario_id") in selected_ids]
     if scenario_id:
         scenarios = [item for item in scenarios if item.get("scenario_id") == scenario_id]
     if not include_negative:
         scenarios = [item for item in scenarios if item.get("expected_alert") is not False]
     if scenario_limit is not None:
         scenarios = scenarios[: max(0, scenario_limit)]
+    requested_count = len(scenarios)
 
     results: list[dict[str, Any]] = []
-    for scenario in scenarios:
-        results.append(
-            evaluate_one_scenario(
+    completed_from_checkpoint = 0
+    processed_this_run = 0
+    pending_scenario_ids: list[str] = []
+    checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir else None
+    if checkpoint_dir:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    for index, scenario in enumerate(scenarios, start=1):
+        scenario_key = str(scenario.get("scenario_id"))
+        checkpoint_path = _checkpoint_path(
+            checkpoint_dir=checkpoint_dir,
+            provider=provider,
+            model=model,
+            prompt_mode=prompt_mode,
+            scenario_id=scenario_key,
+        )
+        loaded = _load_checkpoint_result(checkpoint_path, provider=provider, model=model, prompt_mode=prompt_mode) if resume else None
+        if loaded is not None:
+            print(f"[eval] resume {index}/{requested_count} {scenario_key}", file=sys.stderr)
+            results.append(loaded)
+            completed_from_checkpoint += 1
+            continue
+        if chunk_size is not None and processed_this_run >= max(0, chunk_size):
+            pending_scenario_ids.append(scenario_key)
+            continue
+
+        print(f"[eval] start {index}/{requested_count} {scenario_key}", file=sys.stderr)
+        scenario_started_at = perf_counter()
+        try:
+            result = evaluate_one_scenario(
                 scenario,
                 as_of=_parse_datetime(scenario_payload.get("as_of")) or DEFAULT_AS_OF,
                 provider=provider,
@@ -187,11 +233,46 @@ def evaluate_scenario_file(
                 max_candidates_per_scenario=max_candidates_per_scenario,
                 save_dashboard_snapshot=save_dashboard_snapshots,
             )
+        except Exception as exc:  # pragma: no cover - long-running local evaluation guard.
+            result = evaluation_error_result(
+                scenario,
+                provider=provider,
+                model=model,
+                prompt_mode=prompt_mode,
+                error=exc,
+                duration_seconds=perf_counter() - scenario_started_at,
+            )
+            print(f"[eval] error {scenario_key}: {type(exc).__name__}: {exc}", file=sys.stderr)
+        else:
+            result["duration_seconds"] = round(perf_counter() - scenario_started_at, 3)
+        results.append(result)
+        processed_this_run += 1
+        _write_checkpoint_result(
+            checkpoint_path,
+            result,
+            provider=provider,
+            model=model,
+            prompt_mode=prompt_mode,
+        )
+        print(
+            f"[eval] done {scenario_key} pass={result.get('passed')} "
+            f"fallback={result.get('fallback_used')} duration={result.get('duration_seconds')}s",
+            file=sys.stderr,
         )
 
-    summary = build_summary(results)
-    llm_summary = build_llm_evaluation_summary(results)
+    ordered_results = _order_results(results, scenarios)
+    summary = build_summary(ordered_results)
+    llm_summary = build_llm_evaluation_summary(ordered_results)
     targets = build_target_results(summary, llm_summary)
+    limited_reason = _limited_reason(
+        requested_count=requested_count,
+        evaluated_count=len(ordered_results),
+        scenario_limit=scenario_limit,
+        scenario_id=scenario_id,
+        scenario_ids=scenario_ids,
+        chunk_size=chunk_size,
+        pending_scenario_ids=pending_scenario_ids,
+    )
     return {
         "evaluation_name": "complaint_intelligence_issue_and_public_insight_quality",
         "scenario_file": str(scenario_file),
@@ -201,21 +282,25 @@ def evaluate_scenario_file(
         "demo_thresholds": demo_thresholds,
         "max_candidates_per_scenario": max_candidates_per_scenario,
         "scenario_count_requested": requested_count,
-        "scenario_count_evaluated": len(results),
-        "limited_reason": _limited_reason(
-            requested_count=requested_count,
-            evaluated_count=len(results),
-            scenario_limit=scenario_limit,
-            scenario_id=scenario_id,
-        ),
-        "scenario_count": len(results),
+        "scenario_count_evaluated": len(ordered_results),
+        "limited_reason": limited_reason,
+        "scenario_count": len(ordered_results),
         "total_duration_seconds": round(perf_counter() - started_at, 3),
+        "checkpoint": {
+            "enabled": checkpoint_dir is not None,
+            "resume": resume,
+            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else None,
+            "completed_from_checkpoint": completed_from_checkpoint,
+            "processed_this_run": processed_this_run,
+            "pending_scenario_ids": pending_scenario_ids,
+            "chunk_size": chunk_size,
+        },
         "targets": targets["targets"],
         "target_results": targets["target_results"],
         "summary": summary,
         "llm_evaluation": llm_summary,
-        "scenarios": results,
-        "overall_assessment": build_overall_assessment(summary, results, provider),
+        "scenarios": ordered_results,
+        "overall_assessment": build_overall_assessment(summary, ordered_results, provider),
         "local_llm_manual_command": (
             "civil\\Scripts\\python.exe scripts\\evaluate_complaint_intelligence_scenarios.py "
             "--provider local --model exaone3.5:7.8b --base-url http://localhost:11434 --prompt-mode compact "
@@ -329,6 +414,141 @@ def evaluate_one_scenario(
             failures=failures,
             warnings=warnings,
         ),
+    }
+
+
+def evaluation_error_result(
+    scenario: dict[str, Any],
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+    error: Exception,
+    duration_seconds: float,
+) -> dict[str, Any]:
+    """장시간 Local LLM 평가 중 단일 scenario 실패를 전체 중단으로 번지지 않게 기록한다."""
+
+    scenario_id = str(scenario.get("scenario_id"))
+    error_code = "LOCAL_LLM_TIMEOUT" if "timeout" in f"{type(error).__name__} {error}".lower() else "EVALUATION_ERROR"
+    safe_message = mask_pii(str(error))[:500]
+    failure = _failure(
+        error_code,
+        "scenario 평가 중 예외가 발생했습니다.",
+        {"error_type": type(error).__name__, "message": safe_message},
+    )
+    expected_alert = bool(scenario.get("expected_alert"))
+    insight_result = {
+        "passed": False,
+        "insight_count": 0,
+        "matched_expected_insight_count": 0,
+        "expected_type_required": bool(scenario.get("expected_insight_types")),
+        "expected_type_hit": False,
+        "required_aspect_hit": False,
+        "required_action_type_hit": False,
+        "allowed_action_type_hit_rate": 0.0,
+        "action_evidence_coverage_rate": 0.0,
+        "evidence_pack_presence_rate": 0.0,
+        "quality_gate_passed": False,
+        "grounding_pass": False,
+        "avg_grounding_score": 0.0,
+        "avg_confidence": 0.0,
+        "avg_actionability_score": 0.0,
+        "fallback": False,
+        "forbidden_ai_ops_terms": False,
+        "pii_leak": False,
+        "human_review_requirement_pass": False,
+        "action_type_rubric_pass": False,
+        "representative_evidence_ids": [],
+    }
+    issue_result = {
+        "passed": not expected_alert,
+        "expected_alert": expected_alert,
+        "alert_count": 0,
+        "severe_alert_count": 0,
+        "expected_topic_hit": False,
+        "avg_alert_confidence": 0.0,
+        "avg_surge_ratio": 0.0,
+        "avg_recent_count": 0.0,
+    }
+    compact_metrics = {
+        "provider": provider,
+        "model": model,
+        "prompt_mode": prompt_mode,
+        "timeout_seconds": None,
+        "num_predict": None,
+        "candidate_count": 0,
+        "insight_count": 0,
+        "direct_llm_success_count": 0,
+        "llm_failure_count": 1,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 0.0,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 0,
+        "action_repair_success_count": 0,
+        "invalid_action_type_count": 0,
+        "invalid_action_types": [],
+        "repaired_action_type_count": 0,
+        "repaired_action_text_count": 0,
+        "removed_action_due_to_action_type_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "human_review_postprocess_count": 0,
+        "action_type_rubric_pass_count": 0,
+        "action_repair_report": None,
+        "action_retry_report": None,
+        "failure_reasons": {error_code: 1},
+        "raw_response_debug_enabled": False,
+    }
+    return {
+        "scenario_id": scenario_id,
+        "label": scenario.get("label"),
+        "scenario_type": scenario.get("scenario_type"),
+        "source_policy": scenario.get("source_policy"),
+        "real_event_count": scenario.get("real_event_count", 0),
+        "synthetic_event_count": scenario.get("synthetic_event_count", 0),
+        "event_count": len(scenario.get("events", [])),
+        "run_id": None,
+        "passed": False,
+        "issue_detection_passed": issue_result["passed"],
+        "insight_passed": False,
+        "quality_gate_passed": False,
+        "failures": [failure],
+        "warnings": [],
+        "issue_detection": issue_result,
+        "public_agency_insight": insight_result,
+        "generated_alerts": [],
+        "generated_insights": [],
+        "representative_evidence_ids": [],
+        "llm_metrics": compact_metrics,
+        "direct_llm_success": False,
+        "fallback_used": False,
+        "fallback_reason": compact_metrics["failure_reasons"],
+        "invalid_evidence_ids": [],
+        "action_repair_report": None,
+        "action_retry_report": None,
+        "llm_duration_ms": 0.0,
+        "retry_duration_ms": 0.0,
+        "duration_seconds": round(duration_seconds, 3),
+        "insight_samples": [],
+        "dashboard_snapshot": None,
+        "objective_assessment": {
+            "strengths": [],
+            "weaknesses": ["scenario 평가 중 예외가 발생해 결과가 생성되지 않았습니다."],
+            "risk": "해당 scenario는 checkpoint에 실패 결과로 기록되며 후속 원인 분석이 필요합니다.",
+            "failure_codes": [error_code],
+            "warning_codes": [],
+        },
     }
 
 
@@ -649,6 +869,24 @@ def build_llm_evaluation_summary(results: list[dict[str, Any]]) -> dict[str, Any
     providers = sorted({str(item.get("provider")) for item in metrics if item.get("provider")})
     models = sorted({str(item.get("model")) for item in metrics if item.get("model")})
     prompt_modes = sorted({str(item.get("prompt_mode")) for item in metrics if item.get("prompt_mode")})
+    slowest = sorted(
+        (
+            {
+                "scenario_id": item.get("scenario_id"),
+                "duration_seconds": item.get("duration_seconds", 0.0),
+                "llm_duration_ms": item.get("llm_duration_ms", 0.0),
+            }
+            for item in results
+        ),
+        key=lambda item: float(item.get("llm_duration_ms") or 0.0),
+        reverse=True,
+    )[:5]
+    fallback_scenarios = [str(item.get("scenario_id")) for item in results if item.get("fallback_used")]
+    timeout_scenarios = [
+        str(item.get("scenario_id"))
+        for item in results
+        if _result_has_timeout_signal(item)
+    ]
     return {
         "providers": providers,
         "models": models,
@@ -682,11 +920,16 @@ def build_llm_evaluation_summary(results: list[dict[str, Any]]) -> dict[str, Any
         "avg_llm_duration_ms": round(sum(durations) / len(durations), 3) if durations else 0.0,
         "avg_retry_duration_ms": round(sum(retry_durations) / len(retry_durations), 3) if retry_durations else 0.0,
         "p95_llm_duration_ms": _percentile(durations, 0.95),
+        "total_duration_seconds": round(_avg(item.get("duration_seconds", 0.0) for item in results) * len(results), 3),
+        "slowest_scenarios": slowest,
+        "timeout_scenarios": timeout_scenarios,
+        "fallback_scenarios": fallback_scenarios,
         "raw_response_debug_enabled": any(bool(item.get("raw_response_debug_enabled")) for item in metrics),
         "speed_metrics": {
             "avg_llm_duration_ms": round(sum(durations) / len(durations), 3) if durations else 0.0,
             "p95_llm_duration_ms": _percentile(durations, 0.95),
             "avg_retry_duration_ms": round(sum(retry_durations) / len(retry_durations), 3) if retry_durations else 0.0,
+            "total_duration_seconds": round(_avg(item.get("duration_seconds", 0.0) for item in results) * len(results), 3),
         },
     }
 
@@ -1884,6 +2127,89 @@ def load_scenarios(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _split_csv(value: str | None) -> list[str] | None:
+    if not value:
+        return None
+    items = [item.strip() for item in value.split(",") if item.strip()]
+    return items or None
+
+
+def _checkpoint_path(
+    *,
+    checkpoint_dir: Path | None,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+    scenario_id: str,
+) -> Path | None:
+    if checkpoint_dir is None:
+        return None
+    key = "_".join(
+        _safe_filename(part)
+        for part in [provider, model or "none", prompt_mode or "default", scenario_id]
+    )
+    return checkpoint_dir / f"{key}.json"
+
+
+def _load_checkpoint_result(
+    path: Path | None,
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+) -> dict[str, Any] | None:
+    if path is None or not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    metadata = payload.get("metadata") or {}
+    if metadata.get("provider") != provider:
+        return None
+    if metadata.get("model") != model:
+        return None
+    if metadata.get("prompt_mode") != prompt_mode:
+        return None
+    result = payload.get("result")
+    return result if isinstance(result, dict) else None
+
+
+def _write_checkpoint_result(
+    path: Path | None,
+    result: dict[str, Any],
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+) -> None:
+    if path is None:
+        return
+    payload = {
+        "metadata": {
+            "provider": provider,
+            "model": model,
+            "prompt_mode": prompt_mode,
+            "scenario_id": result.get("scenario_id"),
+            "written_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "result": result,
+    }
+    write_json(path, payload)
+
+
+def _order_results(results: list[dict[str, Any]], scenarios: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    order = {str(scenario.get("scenario_id")): index for index, scenario in enumerate(scenarios)}
+    return sorted(results, key=lambda item: order.get(str(item.get("scenario_id")), len(order)))
+
+
+def _safe_filename(value: str) -> str:
+    safe = []
+    for char in value:
+        if char.isalnum() or char in {"-", "_"}:
+            safe.append(char)
+        else:
+            safe.append("_")
+    return "".join(safe).strip("_") or "empty"
+
+
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
@@ -1898,8 +2224,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "# Complaint Intelligence 평가 보고서",
         "",
         f"- Provider: `{report['provider']}`",
+        f"- Scenario requested/evaluated: `{report.get('scenario_count_requested')}` / `{report.get('scenario_count_evaluated')}`",
         f"- Scenario count: `{report['scenario_count']}`",
         f"- Overall pass rate: `{summary['overall_pass_rate']:.3f}`",
+        f"- Limited reason: `{report.get('limited_reason') or '-'}`",
+        f"- Checkpoint resume: `{(report.get('checkpoint') or {}).get('resume', False)}`",
+        f"- Checkpoint dir: `{(report.get('checkpoint') or {}).get('checkpoint_dir') or '-'}`",
         "",
         "## 전체 지표",
         "",
@@ -1939,6 +2269,14 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"| LLM | schema_validation_failure_count | {llm_eval.get('schema_validation_failure_count', 0)} |",
         f"| LLM | avg_llm_duration_ms | {float(llm_eval.get('avg_llm_duration_ms', 0.0)):.1f} |",
         f"| LLM | avg_retry_duration_ms | {float(llm_eval.get('avg_retry_duration_ms', 0.0)):.1f} |",
+        f"| LLM | p95_llm_duration_ms | {float(llm_eval.get('p95_llm_duration_ms', 0.0)):.1f} |",
+        f"| LLM | total_duration_seconds | {float(llm_eval.get('total_duration_seconds', 0.0)):.1f} |",
+        "",
+        "## Local LLM 안정성 추적",
+        "",
+        f"- Slowest scenarios: `{', '.join(str(item.get('scenario_id', '-')) for item in llm_eval.get('slowest_scenarios', [])) or '-'}`",
+        f"- Timeout scenarios: `{', '.join(str(item) for item in llm_eval.get('timeout_scenarios', [])) or '-'}`",
+        f"- Fallback scenarios: `{', '.join(str(item) for item in llm_eval.get('fallback_scenarios', [])) or '-'}`",
         "",
         "## 목표 기준",
         "",
@@ -2120,15 +2458,32 @@ def _limited_reason(
     evaluated_count: int,
     scenario_limit: int | None,
     scenario_id: str | None,
+    scenario_ids: list[str] | None = None,
+    chunk_size: int | None = None,
+    pending_scenario_ids: list[str] | None = None,
 ) -> str | None:
     if evaluated_count >= requested_count:
         return None
     reasons: list[str] = []
     if scenario_id:
         reasons.append("scenario_id")
+    if scenario_ids:
+        reasons.append("scenario_ids")
     if scenario_limit is not None:
         reasons.append("scenario_limit")
+    if chunk_size is not None:
+        reasons.append("chunk_size")
+    if pending_scenario_ids:
+        reasons.append("checkpoint_resume_incomplete")
     return "+".join(reasons) if reasons else "filtered"
+
+
+def _result_has_timeout_signal(result: dict[str, Any]) -> bool:
+    failure_codes = [str(item.get("code", "")) for item in result.get("failures", [])]
+    reason_keys = list((result.get("fallback_reason") or {}).keys())
+    metric_reasons = list(((result.get("llm_metrics") or {}).get("failure_reasons") or {}).keys())
+    haystack = " ".join(failure_codes + reason_keys + metric_reasons).upper()
+    return "TIMEOUT" in haystack
 
 
 def _avg(values: Any) -> float:

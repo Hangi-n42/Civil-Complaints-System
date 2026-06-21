@@ -10,7 +10,7 @@
   "scenario_count_evaluated": 25,
   "limited_reason": null,
   "scenario_count": 25,
-  "total_duration_seconds": 2.393,
+  "total_duration_seconds": 2.353,
   "checkpoint": {
     "enabled": false,
     "resume": false,
@@ -103,45 +103,45 @@
     "empty_actions_after_repair_count": 0,
     "human_review_postprocess_count": 167,
     "action_type_rubric_pass_count": 221,
-    "avg_llm_duration_ms": 4.108,
+    "avg_llm_duration_ms": 4.057,
     "avg_retry_duration_ms": 0.0,
-    "p95_llm_duration_ms": 5.339,
-    "total_duration_seconds": 2.388,
+    "p95_llm_duration_ms": 5.077,
+    "total_duration_seconds": 2.35,
     "slowest_scenarios": [
       {
         "scenario_id": "public_bike_app_ux",
-        "duration_seconds": 0.1,
-        "llm_duration_ms": 5.27
-      },
-      {
-        "scenario_id": "bus_route_headway_discomfort",
-        "duration_seconds": 0.067,
-        "llm_duration_ms": 4.921
+        "duration_seconds": 0.099,
+        "llm_duration_ms": 5.293
       },
       {
         "scenario_id": "sinkhole_hotspot",
-        "duration_seconds": 0.115,
-        "llm_duration_ms": 4.711
+        "duration_seconds": 0.112,
+        "llm_duration_ms": 4.615
       },
       {
-        "scenario_id": "illegal_dumping_recurring",
-        "duration_seconds": 0.119,
-        "llm_duration_ms": 4.439
+        "scenario_id": "flood_drainage_risk",
+        "duration_seconds": 0.132,
+        "llm_duration_ms": 4.369
       },
       {
-        "scenario_id": "licensing_docs_guidance_confusion",
-        "duration_seconds": 0.079,
-        "llm_duration_ms": 4.375
+        "scenario_id": "streetlight_failure_recurring",
+        "duration_seconds": 0.112,
+        "llm_duration_ms": 4.234
+      },
+      {
+        "scenario_id": "construction_noise_time_pattern",
+        "duration_seconds": 0.125,
+        "llm_duration_ms": 4.158
       }
     ],
     "timeout_scenarios": [],
     "fallback_scenarios": [],
     "raw_response_debug_enabled": false,
     "speed_metrics": {
-      "avg_llm_duration_ms": 4.108,
-      "p95_llm_duration_ms": 5.339,
+      "avg_llm_duration_ms": 4.057,
+      "p95_llm_duration_ms": 5.077,
       "avg_retry_duration_ms": 0.0,
-      "total_duration_seconds": 2.388
+      "total_duration_seconds": 2.35
     }
   },
   "scenarios": [
@@ -153,7 +153,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-587dbbe77af5",
+      "run_id": "ci-run-27360dfcf7c9",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -427,19 +427,19 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.711,
+        "avg_llm_duration_ms": 4.615,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          12.553,
-          3.979,
-          3.65,
-          4.241,
-          3.886,
-          3.946,
-          3.683,
-          3.869,
-          3.737,
-          3.563
+          9.938,
+          3.984,
+          3.822,
+          3.856,
+          5.514,
+          3.81,
+          4.074,
+          3.785,
+          3.761,
+          3.606
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -495,7 +495,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.711,
+      "llm_duration_ms": 4.615,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -757,7 +757,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.115
+      "duration_seconds": 0.112
     },
     {
       "scenario_id": "illegal_parking_enforcement",
@@ -767,7 +767,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-9c02b5a52b60",
+      "run_id": "ci-run-bd790b74fd3b",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -1139,22 +1139,22 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.924,
+        "avg_llm_duration_ms": 3.879,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.35,
-          3.602,
-          3.699,
-          3.625,
-          3.589,
-          3.984,
-          3.845,
-          3.891,
-          3.78,
-          3.697,
-          4.823,
-          4.031,
-          4.092
+          3.658,
+          3.756,
+          3.745,
+          3.644,
+          3.858,
+          4.397,
+          4.233,
+          4.073,
+          3.896,
+          3.68,
+          3.711,
+          3.866,
+          3.906
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -1210,7 +1210,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.924,
+      "llm_duration_ms": 3.879,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -1475,7 +1475,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.131
+      "duration_seconds": 0.133
     },
     {
       "scenario_id": "bulky_waste_guidance",
@@ -1485,7 +1485,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-fd20747c1acc",
+      "run_id": "ci-run-92e78da006fd",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -1793,20 +1793,20 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.73,
+        "avg_llm_duration_ms": 4.033,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.513,
-          3.441,
-          3.541,
-          3.584,
-          3.506,
-          3.47,
-          3.584,
-          3.484,
-          4.575,
-          3.516,
-          4.821
+          3.947,
+          4.26,
+          3.853,
+          5.046,
+          4.195,
+          3.552,
+          3.564,
+          3.855,
+          3.772,
+          4.096,
+          4.221
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -1862,7 +1862,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.73,
+      "llm_duration_ms": 4.033,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -2129,7 +2129,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.099
+      "duration_seconds": 0.105
     },
     {
       "scenario_id": "welfare_support_process",
@@ -2139,7 +2139,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-1438fa15385d",
+      "run_id": "ci-run-dddff2a0d19a",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -2463,20 +2463,20 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.26,
+        "avg_llm_duration_ms": 3.843,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.866,
-          5.249,
-          3.671,
-          5.879,
-          4.041,
-          3.79,
-          4.202,
-          3.717,
-          4.008,
-          3.626,
-          4.807
+          3.864,
+          3.792,
+          4.557,
+          3.605,
+          3.751,
+          3.427,
+          3.65,
+          3.464,
+          4.246,
+          3.678,
+          4.239
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -2532,7 +2532,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.26,
+      "llm_duration_ms": 3.843,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -2798,7 +2798,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.118
+      "duration_seconds": 0.109
     },
     {
       "scenario_id": "odor_night_hotspot",
@@ -2808,7 +2808,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-e8c0bea25aa4",
+      "run_id": "ci-run-64a7a3e61053",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -3049,17 +3049,17 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.653,
+        "avg_llm_duration_ms": 3.822,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.478,
-          3.63,
-          3.611,
-          3.571,
-          3.451,
-          3.733,
-          3.625,
-          4.126
+          3.81,
+          3.873,
+          3.637,
+          4.023,
+          3.796,
+          3.675,
+          3.615,
+          4.149
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -3115,7 +3115,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.653,
+      "llm_duration_ms": 3.822,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -3382,7 +3382,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.086
+      "duration_seconds": 0.087
     },
     {
       "scenario_id": "public_bike_app_ux",
@@ -3392,7 +3392,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-3126bb89b787",
+      "run_id": "ci-run-ad38e20e9cac",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -3646,17 +3646,17 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 5.27,
+        "avg_llm_duration_ms": 5.293,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          14.916,
-          3.751,
-          4.016,
-          3.682,
-          4.147,
-          3.703,
-          4.221,
-          3.72
+          15.198,
+          3.787,
+          4.486,
+          3.683,
+          3.817,
+          3.714,
+          4.177,
+          3.483
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -3712,7 +3712,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 5.27,
+      "llm_duration_ms": 5.293,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -3973,7 +3973,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.1
+      "duration_seconds": 0.099
     },
     {
       "scenario_id": "department_delay_backlog",
@@ -3983,7 +3983,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-ba243041faf9",
+      "run_id": "ci-run-edb04e35db98",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -4200,16 +4200,16 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.748,
+        "avg_llm_duration_ms": 3.626,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.743,
-          3.96,
-          3.626,
-          3.789,
-          3.748,
-          3.666,
-          3.701
+          3.59,
+          3.534,
+          3.53,
+          3.423,
+          3.544,
+          4.027,
+          3.731
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -4265,7 +4265,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.748,
+      "llm_duration_ms": 3.626,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -4526,7 +4526,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.078
+      "duration_seconds": 0.075
     },
     {
       "scenario_id": "repeat_reopen_growth",
@@ -4536,7 +4536,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-57e2b8eba54f",
+      "run_id": "ci-run-260a838b250f",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -4713,14 +4713,14 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.832,
+        "avg_llm_duration_ms": 3.97,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.196,
-          4.042,
-          3.438,
-          3.625,
-          3.859
+          4.718,
+          3.719,
+          3.896,
+          3.862,
+          3.656
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -4776,7 +4776,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.832,
+      "llm_duration_ms": 3.97,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -5038,7 +5038,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.056
+      "duration_seconds": 0.057
     },
     {
       "scenario_id": "construction_noise_time_pattern",
@@ -5048,7 +5048,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-41b1c6f5cdd9",
+      "run_id": "ci-run-425e09d8ac13",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -5362,20 +5362,20 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.232,
+        "avg_llm_duration_ms": 4.158,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.896,
-          4.059,
-          4.131,
-          3.67,
-          5.339,
-          3.845,
-          4.41,
-          3.912,
-          4.563,
-          4.506,
-          4.226
+          3.835,
+          3.734,
+          3.964,
+          3.656,
+          5.82,
+          3.865,
+          4.905,
+          4.829,
+          3.577,
+          3.901,
+          3.654
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -5431,7 +5431,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.232,
+      "llm_duration_ms": 4.158,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -5697,7 +5697,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.126
+      "duration_seconds": 0.125
     },
     {
       "scenario_id": "accessibility_usage_barrier",
@@ -5707,7 +5707,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-81bbd73c59f8",
+      "run_id": "ci-run-5fa52ecd3a10",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -5937,16 +5937,16 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.734,
+        "avg_llm_duration_ms": 3.849,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.073,
-          3.619,
-          3.748,
-          3.685,
-          3.657,
-          3.801,
-          3.556
+          3.859,
+          3.979,
+          3.639,
+          4.11,
+          3.743,
+          4.189,
+          3.427
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -6002,7 +6002,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.734,
+      "llm_duration_ms": 3.849,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -6262,7 +6262,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.074
+      "duration_seconds": 0.073
     },
     {
       "scenario_id": "streetlight_failure_recurring",
@@ -6272,7 +6272,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-ab7cbbd9656e",
+      "run_id": "ci-run-12969b99b372",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -6589,20 +6589,20 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.988,
+        "avg_llm_duration_ms": 4.234,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.733,
-          4.559,
-          3.601,
-          3.883,
-          3.449,
-          4.352,
-          3.814,
-          4.426,
-          4.045,
-          4.126,
-          3.884
+          3.708,
+          3.888,
+          3.633,
+          3.85,
+          4.632,
+          4.089,
+          6.99,
+          3.57,
+          3.773,
+          4.604,
+          3.839
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -6672,7 +6672,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.988,
+      "llm_duration_ms": 4.234,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -6936,7 +6936,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.107
+      "duration_seconds": 0.112
     },
     {
       "scenario_id": "flood_drainage_risk",
@@ -6946,7 +6946,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-1fed2921d684",
+      "run_id": "ci-run-90fd9c5f2364",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -7257,21 +7257,21 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.068,
+        "avg_llm_duration_ms": 4.369,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.644,
+          3.885,
+          5.077,
+          3.763,
           4.223,
-          3.819,
-          4.004,
-          3.652,
-          4.219,
-          4.062,
-          5.249,
-          4.138,
-          4.002,
-          3.998,
-          3.808
+          3.849,
+          6.811,
+          4.9,
+          3.987,
+          4.382,
+          3.874,
+          4.048,
+          3.63
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -7327,7 +7327,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.068,
+      "llm_duration_ms": 4.369,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -7590,7 +7590,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.13
+      "duration_seconds": 0.132
     },
     {
       "scenario_id": "illegal_dumping_recurring",
@@ -7600,7 +7600,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-52008e2dcfd2",
+      "run_id": "ci-run-50c36f8355bd",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -7913,20 +7913,20 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.439,
+        "avg_llm_duration_ms": 4.157,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.057,
-          5.714,
-          4.994,
-          3.96,
-          4.705,
-          3.658,
-          4.431,
-          3.989,
-          4.28,
-          3.659,
-          5.379
+          3.593,
+          4.677,
+          4.944,
+          3.867,
+          3.947,
+          4.025,
+          3.673,
+          3.818,
+          4.288,
+          3.742,
+          5.151
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -7982,7 +7982,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.439,
+      "llm_duration_ms": 4.157,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -8247,7 +8247,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.119
+      "duration_seconds": 0.114
     },
     {
       "scenario_id": "park_playground_facility_safety",
@@ -8257,7 +8257,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-4337069dbd68",
+      "run_id": "ci-run-1cf1917732b9",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -8539,19 +8539,19 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.171,
+        "avg_llm_duration_ms": 4.021,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.348,
-          3.732,
-          4.105,
-          3.84,
-          4.821,
-          3.911,
-          4.738,
-          3.816,
-          4.696,
-          3.703
+          3.896,
+          3.707,
+          3.749,
+          3.767,
+          3.715,
+          3.747,
+          3.739,
+          4.581,
+          3.71,
+          5.601
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -8607,7 +8607,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.171,
+      "llm_duration_ms": 4.021,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -8870,7 +8870,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.1
+      "duration_seconds": 0.099
     },
     {
       "scenario_id": "security_light_dark_walkway",
@@ -8880,7 +8880,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-9c82df972db5",
+      "run_id": "ci-run-145a2945ad7d",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -9217,21 +9217,21 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.043,
+        "avg_llm_duration_ms": 3.936,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
+          4.235,
+          3.764,
+          4.555,
+          3.725,
+          3.571,
           3.593,
-          3.596,
-          3.783,
-          4.702,
-          3.762,
-          4.592,
-          3.945,
-          4.095,
-          3.779,
-          4.309,
-          4.272,
-          4.087
+          3.55,
+          3.692,
+          3.597,
+          4.086,
+          4.914,
+          3.946
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -9287,7 +9287,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.043,
+      "llm_duration_ms": 3.936,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -9551,7 +9551,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.144
+      "duration_seconds": 0.136
     },
     {
       "scenario_id": "bus_route_headway_discomfort",
@@ -9561,7 +9561,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-a9354d85302a",
+      "run_id": "ci-run-da5dd3d38df7",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -9762,15 +9762,15 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.921,
+        "avg_llm_duration_ms": 3.909,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          5.471,
-          4.321,
-          3.826,
-          5.75,
-          4.18,
-          5.976
+          3.873,
+          3.958,
+          3.971,
+          3.89,
+          3.863,
+          3.9
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -9826,7 +9826,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.921,
+      "llm_duration_ms": 3.909,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -10086,7 +10086,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.067
+      "duration_seconds": 0.059
     },
     {
       "scenario_id": "cctv_security_request",
@@ -10096,7 +10096,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-b9ff1a847ce9",
+      "run_id": "ci-run-954140f77270",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -10429,22 +10429,22 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.874,
+        "avg_llm_duration_ms": 3.802,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.639,
-          3.929,
-          3.836,
-          3.553,
-          3.53,
-          3.728,
-          4.345,
-          3.77,
-          3.867,
-          4.055,
-          3.913,
-          4.667,
-          3.532
+          3.678,
+          3.735,
+          3.889,
+          3.861,
+          3.763,
+          3.608,
+          5.105,
+          3.703,
+          3.717,
+          3.607,
+          3.673,
+          3.544,
+          3.542
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -10500,7 +10500,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.874,
+      "llm_duration_ms": 3.802,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -10764,7 +10764,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.139
+      "duration_seconds": 0.137
     },
     {
       "scenario_id": "smoking_enforcement_recurring",
@@ -10774,7 +10774,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-017be40585e7",
+      "run_id": "ci-run-421982d951d9",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -11067,19 +11067,19 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.123,
+        "avg_llm_duration_ms": 3.824,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.739,
-          5.805,
-          4.069,
-          3.905,
-          4.06,
-          3.77,
-          3.812,
-          3.717,
-          4.145,
-          4.207
+          3.871,
+          3.804,
+          4.055,
+          3.827,
+          3.833,
+          3.708,
+          3.881,
+          3.577,
+          3.779,
+          3.906
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -11135,7 +11135,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.123,
+      "llm_duration_ms": 3.824,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -11400,7 +11400,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.107
+      "duration_seconds": 0.103
     },
     {
       "scenario_id": "illegal_banner_cleanup",
@@ -11410,7 +11410,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-1c609e9e9aef",
+      "run_id": "ci-run-cefa8f817beb",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -11593,14 +11593,14 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.701,
+        "avg_llm_duration_ms": 3.909,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.858,
-          3.677,
-          3.827,
-          3.617,
-          3.527
+          3.8,
+          3.945,
+          3.847,
+          4.281,
+          3.674
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -11656,7 +11656,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.701,
+      "llm_duration_ms": 3.909,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -11918,7 +11918,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.06
+      "duration_seconds": 0.059
     },
     {
       "scenario_id": "pet_waste_leash_complaints",
@@ -11928,7 +11928,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-c7e9cdc7ae34",
+      "run_id": "ci-run-95e7e48c52cc",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -12268,21 +12268,21 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.173,
+        "avg_llm_duration_ms": 4.129,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          4.078,
-          3.813,
-          3.757,
-          4.071,
-          3.913,
-          3.776,
-          4.65,
-          3.861,
-          3.898,
-          4.539,
-          3.949,
-          5.772
+          3.897,
+          3.818,
+          3.95,
+          3.894,
+          3.739,
+          4.775,
+          3.896,
+          3.994,
+          3.76,
+          4.533,
+          5.383,
+          3.909
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -12338,7 +12338,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.173,
+      "llm_duration_ms": 4.129,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -12601,7 +12601,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.129
+      "duration_seconds": 0.127
     },
     {
       "scenario_id": "licensing_docs_guidance_confusion",
@@ -12611,7 +12611,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-237b23179aab",
+      "run_id": "ci-run-78cda24fbbd6",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -12815,15 +12815,15 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 4.375,
+        "avg_llm_duration_ms": 3.942,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          5.589,
-          3.883,
-          3.979,
-          3.92,
-          3.936,
-          4.945
+          3.87,
+          3.697,
+          3.879,
+          4.276,
+          4.393,
+          3.536
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -12879,7 +12879,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 4.375,
+      "llm_duration_ms": 3.942,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -13140,7 +13140,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.079
+      "duration_seconds": 0.074
     },
     {
       "scenario_id": "accessibility_vulnerable_groups",
@@ -13150,7 +13150,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-bacb6c5c0de6",
+      "run_id": "ci-run-a0d7804cd870",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -13465,21 +13465,21 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.906,
+        "avg_llm_duration_ms": 3.875,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.985,
-          3.788,
-          4.06,
-          3.704,
-          3.947,
-          4.03,
-          4.348,
-          3.546,
-          3.744,
-          3.717,
-          4.52,
-          3.479
+          4.218,
+          3.541,
+          3.529,
+          3.594,
+          3.738,
+          3.647,
+          3.669,
+          3.556,
+          3.596,
+          4.42,
+          4.408,
+          4.58
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -13535,7 +13535,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.906,
+      "llm_duration_ms": 3.875,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -13798,7 +13798,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.12
+      "duration_seconds": 0.115
     },
     {
       "scenario_id": "school_zone_commute_safety",
@@ -13808,7 +13808,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-cb62a440943f",
+      "run_id": "ci-run-510cda50d456",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -14078,19 +14078,19 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 3.777,
+        "avg_llm_duration_ms": 4.004,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          3.699,
+          5.079,
+          3.724,
+          4.0,
+          3.828,
           3.909,
-          3.766,
-          3.993,
-          3.801,
-          3.94,
-          3.608,
-          3.575,
-          3.67,
-          3.814
+          3.759,
+          4.298,
+          3.647,
+          3.887,
+          3.905
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -14146,7 +14146,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 3.777,
+      "llm_duration_ms": 4.004,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -14407,7 +14407,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.098
+      "duration_seconds": 0.102
     },
     {
       "scenario_id": "low_count_negative",
@@ -14417,7 +14417,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 2,
       "event_count": 2,
-      "run_id": "ci-run-fd1dde5426a9",
+      "run_id": "ci-run-6e5943197118",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -14532,7 +14532,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-489857034f97",
+      "run_id": "ci-run-d7e602a3badf",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -14637,7 +14637,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 0.003
+      "duration_seconds": 0.004
     }
   ],
   "overall_assessment": {

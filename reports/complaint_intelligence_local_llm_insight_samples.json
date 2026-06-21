@@ -4,9 +4,843 @@
   "prompt_mode": [
     "compact"
   ],
-  "scenario_count": 5,
-  "sample_count": 5,
+  "scenario_count": 25,
+  "sample_count": 23,
   "samples": [
+    {
+      "scenario_id": "sinkhole_hotspot",
+      "scenario_label": "도로 침하/싱크홀 급증",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "도로 싱크홀 위험 대응",
+        "summary": "중구 지역에서 최근 싱크홀 관련 민원이 급증하여 현장 안전과 이용 안전에 대한 우려가 제기됨.",
+        "problem_diagnosis": "도로 포트홀 및 침하 발생으로 인한 안전 위험 증가",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "도로 기반 시설의 노후화로 인한 침하 발생 가능성",
+            "supporting_evidence_ids": [
+              "demo-sinkhole_hotspot-001",
+              "demo-sinkhole_hotspot-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "긴급 현장 점검",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "demo-sinkhole_hotspot-001",
+              "demo-sinkhole_hotspot-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "원인 분석 필요",
+          "장기적인 보수 계획 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-56deead250d7",
+        "type": "SAFETY_RISK_SIGNAL",
+        "priority": "HIGH",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "도로 싱크홀 위험 대응",
+        "summary": "중구 지역에서 최근 싱크홀 관련 민원이 급증하여 현장 안전과 이용 안전에 대한 우려가 제기됨.",
+        "problem_diagnosis": "도로 포트홀 및 침하 발생으로 인한 안전 위험 증가",
+        "recommended_actions": [
+          {
+            "action": "긴급 현장 점검",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "FIELD_INSPECTION",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "FIELD_INSPECTION",
+              "SAFETY_NOTICE",
+              "MAINTENANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "demo-sinkhole_hotspot-001",
+              "demo-sinkhole_hotspot-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "demo-sinkhole_hotspot-001",
+          "demo-sinkhole_hotspot-002",
+          "demo-sinkhole_hotspot-003",
+          "demo-sinkhole_hotspot-004",
+          "demo-sinkhole_hotspot-005",
+          "demo-sinkhole_hotspot-006"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "demo-sinkhole_hotspot-001",
+          "masked_text": "도로 포트홀 및 침하 발생시 대처방법 도로 포트홀 및 침하 발생시 대처방법"
+        },
+        {
+          "evidence_id": "demo-sinkhole_hotspot-002",
+          "masked_text": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지? 도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?"
+        },
+        {
+          "evidence_id": "demo-sinkhole_hotspot-003",
+          "masked_text": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요? 도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?"
+        },
+        {
+          "evidence_id": "demo-sinkhole_hotspot-004",
+          "masked_text": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요? (경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?"
+        },
+        {
+          "evidence_id": "demo-sinkhole_hotspot-005",
+          "masked_text": "도로위에 물이 누수현상 및 땅꺼짐 도로위에 물이 누수현상 및 땅꺼짐"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "illegal_parking_enforcement",
+      "scenario_label": "불법주정차 특정 시간대 반복",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "초등학교 앞 불법주정차 단속 강화 필요",
+        "summary": "초등학교 주변에서 출퇴근 및 등하교 시간대 불법주정차 민원이 급증하여 안전 및 불편 문제 제기.",
+        "problem_diagnosis": "출퇴근 시간대 단속 공백 및 현장 안내 부족으로 인한 민원 증가",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "단속 인력 부족으로 인한 시간대별 단속 공백 발생",
+            "supporting_evidence_ids": [
+              "demo-illegal_parking_enforcement-001",
+              "demo-illegal_parking_enforcement-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "단속 강화",
+            "action_type": "ENFORCEMENT",
+            "supporting_evidence_ids": [
+              "demo-illegal_parking_enforcement-001",
+              "demo-illegal_parking_enforcement-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "단속 인력 배치의 효율성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-b5a5c91af943",
+        "type": "HOTSPOT_RESPONSE_REQUIRED",
+        "priority": "MEDIUM",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "초등학교 앞 불법주정차 단속 강화 필요",
+        "summary": "초등학교 주변에서 출퇴근 및 등하교 시간대 불법주정차 민원이 급증하여 안전 및 불편 문제 제기.",
+        "problem_diagnosis": "출퇴근 시간대 단속 공백 및 현장 안내 부족으로 인한 민원 증가",
+        "recommended_actions": [
+          {
+            "action": "초등학교 앞 불법주정차 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+            "original_action_type": "ENFORCEMENT",
+            "final_action_type": "ENFORCEMENT",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "ENFORCEMENT",
+              "PUBLIC_GUIDANCE",
+              "FIELD_INSPECTION",
+              "SAFETY_NOTICE",
+              "MAINTENANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "demo-illegal_parking_enforcement-001",
+              "demo-illegal_parking_enforcement-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "demo-illegal_parking_enforcement-001",
+          "demo-illegal_parking_enforcement-002",
+          "demo-illegal_parking_enforcement-003",
+          "demo-illegal_parking_enforcement-004",
+          "demo-illegal_parking_enforcement-005",
+          "demo-illegal_parking_enforcement-006"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "demo-illegal_parking_enforcement-001",
+          "masked_text": "불법주정차 단속 및 거주자우선주차 지역 확대 요청 불법주정차 단속 및 거주자우선주차 지역 확대 요청"
+        },
+        {
+          "evidence_id": "demo-illegal_parking_enforcement-002",
+          "masked_text": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요 고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요"
+        },
+        {
+          "evidence_id": "demo-illegal_parking_enforcement-003",
+          "masked_text": "불법주차한 차량으로 인한 불편 및 위험 불법주차한 차량으로 인한 불편 및 위험"
+        },
+        {
+          "evidence_id": "demo-illegal_parking_enforcement-004",
+          "masked_text": "불법주정차 차량 신고 방법을 알고 싶습니다. 불법주정차 차량 신고 방법을 알고 싶습니다."
+        },
+        {
+          "evidence_id": "demo-illegal_parking_enforcement-005",
+          "masked_text": "불법주정차위반 단속 의견제출 방법 문의 불법주정차위반 단속 의견제출 방법 문의"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "bulky_waste_guidance",
+      "scenario_label": "대형폐기물 배출 방법 문의 반복",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "대형폐기물 배출 안내 강화 필요",
+        "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 배출 기준에 대한 안내 부족이 확인됨.",
+        "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 기준에 대한 명확한 안내 부족으로 불편을 겪고 있음.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 제공되는 안내 자료가 충분하지 않거나 이해하기 어려움.",
+            "supporting_evidence_ids": [
+              "demo-bulky_waste_guidance-001",
+              "demo-bulky_waste_guidance-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "대형폐기물 배출 안내 페이지 보강",
+            "action_type": "PUBLIC_GUIDANCE",
+            "supporting_evidence_ids": [
+              "demo-bulky_waste_guidance-001",
+              "demo-bulky_waste_guidance-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "시민 반응 예측 불확실성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-3b47aae2328c",
+        "type": "PUBLIC_GUIDANCE_NEEDED",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "대형폐기물 배출 안내 강화 필요",
+        "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 배출 기준에 대한 안내 부족이 확인됨.",
+        "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 기준에 대한 명확한 안내 부족으로 불편을 겪고 있음.",
+        "recommended_actions": [
+          {
+            "action": "대형폐기물 배출 안내 페이지 보강",
+            "original_action_type": "PUBLIC_GUIDANCE",
+            "final_action_type": "PUBLIC_GUIDANCE",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "SERVICE_DESIGN"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "demo-bulky_waste_guidance-001",
+              "demo-bulky_waste_guidance-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "demo-bulky_waste_guidance-001",
+          "demo-bulky_waste_guidance-002",
+          "demo-bulky_waste_guidance-003",
+          "demo-bulky_waste_guidance-004",
+          "demo-bulky_waste_guidance-005",
+          "demo-bulky_waste_guidance-006"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "demo-bulky_waste_guidance-001",
+          "masked_text": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법 진북면 대형폐기물 수거 일정 및 스티커 발부 방법"
+        },
+        {
+          "evidence_id": "demo-bulky_waste_guidance-002",
+          "masked_text": "강동구 대형폐기물 배출 신고방법이 궁금합니다. 강동구 대형폐기물 배출 신고방법이 궁금합니다."
+        },
+        {
+          "evidence_id": "demo-bulky_waste_guidance-003",
+          "masked_text": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내 대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내"
+        },
+        {
+          "evidence_id": "demo-bulky_waste_guidance-004",
+          "masked_text": "대형폐기물 수거신청(서울특별시 강동구 암사동) 대형폐기물 수거신청(서울특별시 강동구 암사동)"
+        },
+        {
+          "evidence_id": "demo-bulky_waste_guidance-005",
+          "masked_text": "대형폐기물 배출신고에 대하여 절차가 궁금해요 대형폐기물 배출신고에 대하여 절차가 궁금해요"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "welfare_support_process",
+      "scenario_label": "복지 지원 기준/신청 절차 불편 반복",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "복지 지원 안내 개선 필요",
+        "summary": "중구 지역에서 복지 지원 신청 절차와 기준에 대한 이해 어려움이 반복적으로 제기되고 있습니다.",
+        "problem_diagnosis": "신청 절차와 지원 기준에 대한 명확한 안내 부족으로 인한 시민 혼란",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 제공되는 정보가 복잡하고 이해하기 어려워 시민들이 필요한 정보를 쉽게 찾지 못함",
+            "supporting_evidence_ids": [
+              "demo-welfare_support_process-001",
+              "demo-welfare_support_process-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "FAQ/안내 페이지 보강",
+            "action_type": "PUBLIC_GUIDANCE",
+            "supporting_evidence_ids": [
+              "demo-welfare_support_process-001",
+              "demo-welfare_support_process-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "시민 반응 예측 어려움"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-56015bff0adc",
+        "type": "PUBLIC_GUIDANCE_NEEDED",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "복지 지원 안내 개선 필요",
+        "summary": "중구 지역에서 복지 지원 신청 절차와 기준에 대한 이해 어려움이 반복적으로 제기되고 있습니다.",
+        "problem_diagnosis": "신청 절차와 지원 기준에 대한 명확한 안내 부족으로 인한 시민 혼란",
+        "recommended_actions": [
+          {
+            "action": "FAQ/안내 페이지 보강",
+            "original_action_type": "PUBLIC_GUIDANCE",
+            "final_action_type": "PUBLIC_GUIDANCE",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "SERVICE_DESIGN"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "demo-welfare_support_process-001",
+              "demo-welfare_support_process-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "demo-welfare_support_process-001",
+          "demo-welfare_support_process-002",
+          "demo-welfare_support_process-003",
+          "demo-welfare_support_process-004",
+          "demo-welfare_support_process-005",
+          "demo-welfare_support_process-006"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "demo-welfare_support_process-001",
+          "masked_text": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차 학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차"
+        },
+        {
+          "evidence_id": "demo-welfare_support_process-002",
+          "masked_text": "긴급복지지원은 어떤 대상이 신청할수 있나요? 긴급복지지원은 어떤 대상이 신청할수 있나요?"
+        },
+        {
+          "evidence_id": "demo-welfare_support_process-003",
+          "masked_text": "긴급복지 지원 대상 및 기준 문의 긴급복지 지원 대상 및 기준 문의"
+        },
+        {
+          "evidence_id": "demo-welfare_support_process-004",
+          "masked_text": "주택관리사 자격증 신청절차 및 구비서류 주택관리사 자격증 신청절차 및 구비서류"
+        },
+        {
+          "evidence_id": "demo-welfare_support_process-005",
+          "masked_text": "2026년 기초연금 대상 및 지원 기준, 신청방법 2026년 기초연금 대상 및 지원 기준, 신청방법"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "odor_night_hotspot",
+      "scenario_label": "악취/냄새/하수 민원 야간 집중",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "야간 하수 악취 민원 대응",
+        "summary": "야간 시간대에 남구에서 하수 악취 관련 민원이 집중적으로 발생하고 있습니다.",
+        "problem_diagnosis": "야간 시간대에 생활환경 불편과 배수 불량이 주요 원인으로 추정됩니다.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "하수 시스템의 야간 유지보수 부족",
+            "supporting_evidence_ids": [
+              "demo-odor_night_hotspot-006"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "야간 유지보수 점검 프로세스 개선",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "demo-odor_night_hotspot-006"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "야간 시간대 유지보수 효과 검증 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 1,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-c6c62969488c",
+        "type": "HOTSPOT_RESPONSE_REQUIRED",
+        "priority": "MEDIUM",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "야간 하수 악취 민원 대응",
+        "summary": "야간 시간대에 남구에서 하수 악취 관련 민원이 집중적으로 발생하고 있습니다.",
+        "problem_diagnosis": "야간 시간대에 생활환경 불편과 배수 불량이 주요 원인으로 추정됩니다.",
+        "recommended_actions": [
+          {
+            "action": "야간 유지보수 점검 프로세스 개선",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "PROCESS_IMPROVEMENT",
+            "action_type_repaired": true,
+            "allowed_action_types": [
+              "PROCESS_IMPROVEMENT",
+              "FIELD_INSPECTION",
+              "MAINTENANCE",
+              "PUBLIC_GUIDANCE",
+              "SAFETY_NOTICE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "demo-odor_night_hotspot-006"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "demo-odor_night_hotspot-001",
+          "demo-odor_night_hotspot-002",
+          "demo-odor_night_hotspot-003",
+          "demo-odor_night_hotspot-004",
+          "demo-odor_night_hotspot-005",
+          "demo-odor_night_hotspot-006"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "demo-odor_night_hotspot-001",
+          "masked_text": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다. ▲▲▲공장 하수구 냄새 때문에 너무 불편합니다."
+        },
+        {
+          "evidence_id": "demo-odor_night_hotspot-002",
+          "masked_text": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요? 길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?"
+        },
+        {
+          "evidence_id": "demo-odor_night_hotspot-003",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 폐쇄 개인하수처리시설(정화조, 오수처리시설) 폐쇄"
+        },
+        {
+          "evidence_id": "demo-odor_night_hotspot-004",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치 개인하수처리시설(정화조, 오수처리시설) 설치"
+        },
+        {
+          "evidence_id": "demo-odor_night_hotspot-005",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고 개인하수처리시설(정화조, 오수처리시설) 설치/변경신고"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "public_bike_app_ux",
+      "scenario_label": "공공자전거/앱 예약·대여 UX 불편",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "공공자전거 앱 사용성 개선 필요",
+        "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원이 증가하고 있습니다.",
+        "problem_diagnosis": "반복적인 앱 사용 불편과 오류로 인한 시민 불만 증가",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 앱 인터페이스의 사용자 친화성 부족으로 인한 불편함",
+            "supporting_evidence_ids": [
+              "eval-public_bike_app_ux-001",
+              "eval-public_bike_app-ux-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "앱 인터페이스 개선",
+            "action_type": "SERVICE_DESIGN",
+            "supporting_evidence_ids": [
+              "eval-public_bike_app_ux-001",
+              "eval-public_bike_app_ux-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "현재 데이터 기반으로 완전한 원인 파악 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-1b9dc3286402",
+        "type": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "공공자전거 앱 사용성 개선 필요",
+        "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원이 증가하고 있습니다.",
+        "problem_diagnosis": "반복적인 앱 사용 불편과 오류로 인한 시민 불만 증가",
+        "recommended_actions": [
+          {
+            "action": "접근성/사용성 반복 불편 이용 절차의 오류·복잡 단계를 확인하고 안내 문구를 보강합니다.",
+            "original_action_type": "SERVICE_DESIGN",
+            "final_action_type": "SERVICE_DESIGN",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "SERVICE_DESIGN",
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "PROCESS_IMPROVEMENT"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-public_bike_app_ux-001",
+              "eval-public_bike_app_ux-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-public_bike_app_ux-001",
+          "eval-public_bike_app_ux-002",
+          "eval-public_bike_app_ux-003",
+          "eval-public_bike_app_ux-004",
+          "eval-public_bike_app_ux-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-public_bike_app_ux-001",
+          "masked_text": "공공자전거 앱 예약 절차가 불편하고 대여 단계가 너무 복잡합니다. 공공자전거 앱 예약 절차가 불편하고 대여 단계가 너무 복잡합니다."
+        },
+        {
+          "evidence_id": "eval-public_bike_app_ux-002",
+          "masked_text": "대여 신청 중 결제 오류가 반복되어 자전거를 빌리지 못했습니다. 대여 신청 중 결제 오류가 반복되어 자전거를 빌리지 못했습니다."
+        },
+        {
+          "evidence_id": "eval-public_bike_app_ux-003",
+          "masked_text": "앱 로그인 후 예약 기준을 이해하기 어려워 현장에서 계속 문의합니다. 앱 로그인 후 예약 기준을 이해하기 어려워 현장에서 계속 문의합니다."
+        },
+        {
+          "evidence_id": "eval-public_bike_app_ux-004",
+          "masked_text": "공공자전거 대여 화면 안내가 부족해서 결제와 예약을 다시 해야 합니다. 공공자전거 대여 화면 안내가 부족해서 결제와 예약을 다시 해야 합니다."
+        },
+        {
+          "evidence_id": "eval-public_bike_app_ux-005",
+          "masked_text": "예약 취소와 재대여 절차가 복잡해 이용이 중단됩니다. 예약 취소와 재대여 절차가 복잡해 이용이 중단됩니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "department_delay_backlog",
+      "scenario_label": "부서 처리 지연/미처리 누적",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "도로관리과 처리 지연 개선",
+        "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만 증가.",
+        "problem_diagnosis": "도로 보수 및 유지보수 민원의 처리 지연과 소통 부족으로 인한 시민 불편 증가.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "인력 부족으로 인한 업무 과부하",
+            "supporting_evidence_ids": [
+              "eval-department_delay_backlog-001",
+              "eval-department_delay_backlog-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "업무 프로세스 재검토",
+            "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+            "supporting_evidence_ids": [
+              "eval-department_delay_backlog-001",
+              "eval-department_delay_backlog-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "현재 인력 현황 분석 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 1,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-dd55ec6f57c9",
+        "type": "PROCESS_DELAY_RISK",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "도로관리과 처리 지연 개선",
+        "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만 증가.",
+        "problem_diagnosis": "도로 보수 및 유지보수 민원의 처리 지연과 소통 부족으로 인한 시민 불편 증가.",
+        "recommended_actions": [
+          {
+            "action": "도로관리과 처리 지연/미처리 누적 처리 흐름을 점검하고 반복 민원 원인별 개선 과제를 정리합니다.",
+            "original_action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+            "final_action_type": "PROCESS_IMPROVEMENT",
+            "action_type_repaired": true,
+            "allowed_action_types": [
+              "PROCESS_IMPROVEMENT",
+              "STAFFING_OR_WORKLOAD_REVIEW",
+              "CITIZEN_COMMUNICATION"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-department_delay_backlog-001",
+              "eval-department_delay_backlog-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-department_delay_backlog-001",
+          "eval-department_delay_backlog-002",
+          "eval-department_delay_backlog-003",
+          "eval-department_delay_backlog-004",
+          "eval-department_delay_backlog-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-department_delay_backlog-001",
+          "masked_text": "도로 보수 요청이 접수된 지 오래됐는데 처리되지 않았습니다. 도로 보수 요청이 접수된 지 오래됐는데 처리되지 않았습니다."
+        },
+        {
+          "evidence_id": "eval-department_delay_backlog-002",
+          "masked_text": "같은 부서 담당 민원이 계속 pending 상태로 남아 있습니다. 같은 부서 담당 민원이 계속 pending 상태로 남아 있습니다."
+        },
+        {
+          "evidence_id": "eval-department_delay_backlog-003",
+          "masked_text": "처리 기간 안내 없이 미처리 상태가 길어져 불편합니다. 처리 기간 안내 없이 미처리 상태가 길어져 불편합니다."
+        },
+        {
+          "evidence_id": "eval-department_delay_backlog-004",
+          "masked_text": "보수 요청 답변이 없어 진행 상황을 확인하고 싶습니다. 보수 요청 답변이 없어 진행 상황을 확인하고 싶습니다."
+        },
+        {
+          "evidence_id": "eval-department_delay_backlog-005",
+          "masked_text": "담당 부서에서 아직 조치 일정을 알려주지 않았습니다. 담당 부서에서 아직 조치 일정을 알려주지 않았습니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
     {
       "scenario_id": "repeat_reopen_growth",
       "scenario_label": "재민원/반복 민원 증가",
@@ -18,11 +852,11 @@
       "fallback_reason": null,
       "llm_draft_summary": {
         "title": "반복 민원 처리 개선 필요",
-        "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원이 증가하고 있으며, 처리 후에도 동일 문제 재발로 인한 시민 불만이 높습니다.",
-        "problem_diagnosis": "동일 위치 및 주제의 민원이 반복 접수되고 처리 후에도 문제 해결이 미흡하여 재민원 발생률이 높습니다.",
+        "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원 증가로 시민 불만 고조.",
+        "problem_diagnosis": "처리 완료 후에도 동일 민원 재발로 인한 불만 증가.",
         "root_cause_hypotheses": [
           {
-            "hypothesis": "처리 과정의 미흡한 기록 및 추적 시스템으로 인한 재발 원인 파악 어려움",
+            "hypothesis": "처리 과정의 미흡한 검증 및 현장 조치 실효성 부족",
             "supporting_evidence_ids": [
               "eval-repeat_reopen_growth-001",
               "eval-repeat_reopen_growth-002"
@@ -31,7 +865,7 @@
         ],
         "recommended_actions": [
           {
-            "action": "처리 과정 개선",
+            "action": "처리 과정 검증 강화",
             "action_type": "PROCESS_IMPROVEMENT",
             "supporting_evidence_ids": [
               "eval-repeat_reopen_growth-001",
@@ -40,7 +874,7 @@
           }
         ],
         "uncertainty": [
-          "처리 과정 개선 효과의 즉시 확인 어려움"
+          "처리 과정 개선 효과의 불확실성"
         ]
       },
       "repair_diff": {
@@ -62,8 +896,8 @@
         "grounding_score": 1.0,
         "avg_actionability_score": 1.0,
         "title": "반복 민원 처리 개선 필요",
-        "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원이 증가하고 있으며, 처리 후에도 동일 문제 재발로 인한 시민 불만이 높습니다.",
-        "problem_diagnosis": "동일 위치 및 주제의 민원이 반복 접수되고 처리 후에도 문제 해결이 미흡하여 재민원 발생률이 높습니다.",
+        "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원 증가로 시민 불만 고조.",
+        "problem_diagnosis": "처리 완료 후에도 동일 민원 재발로 인한 불만 증가.",
         "recommended_actions": [
           {
             "action": "재민원/반복 민원 증가 처리 흐름을 점검하고 반복 민원 원인별 개선 과제를 정리합니다.",
@@ -135,12 +969,12 @@
       "fallback_used": false,
       "fallback_reason": null,
       "llm_draft_summary": {
-        "title": "야간 공사 소음 단속 강화 필요",
-        "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 발생하고 있습니다.",
-        "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 반복적으로 제기되어 단속 체계의 공백이 의심됩니다.",
+        "title": "야간 공사 소음 민원 집중 대응",
+        "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 제기되고 있습니다.",
+        "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 지속적으로 발생하여 시민 불편이 증가하고 있습니다.",
         "root_cause_hypotheses": [
           {
-            "hypothesis": "야간 공사 소음 단속 기준 불명확 또는 미흡",
+            "hypothesis": "현재 단속 체계의 시간적 공백으로 인한 소음 관리 미흡",
             "supporting_evidence_ids": [
               "eval-construction_noise_time_pattern-001",
               "eval-construction_noise_time_pattern-002"
@@ -149,16 +983,17 @@
         ],
         "recommended_actions": [
           {
-            "action": "야간 공사 소음 단속 지침 검토 및 강화",
+            "action": "야간 단속 강화",
             "action_type": "ENFORCEMENT",
             "supporting_evidence_ids": [
-              "eval-construction_noise_time_pattern-001",
-              "eval-construction_noise_time_pattern-002"
+              "eval-construction_noise_time_pattern-005",
+              "eval-construction_noise_time_pattern-004"
             ]
           }
         ],
         "uncertainty": [
-          "단속 지침의 효과성 검증 필요"
+          "단속 인력의 효율성",
+          "소음 기준 준수 여부"
         ]
       },
       "repair_diff": {
@@ -167,7 +1002,7 @@
         "removed_actions": 0,
         "repaired_actions": 0,
         "repaired_action_types": 0,
-        "repaired_action_texts": 0,
+        "repaired_action_texts": 1,
         "retry_used": false,
         "retry_success": false,
         "retry_failure_reason": null
@@ -179,12 +1014,12 @@
         "confidence": 0.8458,
         "grounding_score": 1.0,
         "avg_actionability_score": 1.0,
-        "title": "야간 공사 소음 단속 강화 필요",
-        "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 발생하고 있습니다.",
-        "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 반복적으로 제기되어 단속 체계의 공백이 의심됩니다.",
+        "title": "야간 공사 소음 민원 집중 대응",
+        "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 제기되고 있습니다.",
+        "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 지속적으로 발생하여 시민 불편이 증가하고 있습니다.",
         "recommended_actions": [
           {
-            "action": "야간 공사 소음 단속 지침 검토 및 강화",
+            "action": "공사 소음 시간대 집중 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
             "original_action_type": "ENFORCEMENT",
             "final_action_type": "ENFORCEMENT",
             "action_type_repaired": false,
@@ -197,8 +1032,8 @@
             ],
             "actionability_score": 1.0,
             "supporting_evidence_ids": [
-              "eval-construction_noise_time_pattern-001",
-              "eval-construction_noise_time_pattern-002"
+              "eval-construction_noise_time_pattern-005",
+              "eval-construction_noise_time_pattern-004"
             ]
           }
         ],
@@ -246,6 +1081,245 @@
       }
     },
     {
+      "scenario_id": "accessibility_usage_barrier",
+      "scenario_label": "접근성/고령자·장애인 이용 어려움",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "공공자전거 예약 불편 개선",
+        "summary": "중구 지역에서 고령자와 장애인의 공공자전거 예약 과정에서 접근성 문제로 인한 민원 증가.",
+        "problem_diagnosis": "신청 절차와 안내 부족으로 디지털 취약계층의 이용 불편 지속.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 앱 및 웹사이트 디자인이 고령자와 장애인에게 충분히 접근성이 낮음.",
+            "supporting_evidence_ids": [
+              "eval-accessibility_usage_barrier-001",
+              "eval-accessibility_usage_barrier-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "앱/웹 UX 문구 개선",
+            "action_type": "SERVICE_DESIGN",
+            "supporting_evidence_ids": [
+              "eval-accessibility_usage_barrier-001",
+              "eval-accessibility_usage_barrier-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "UX 개선 효과의 지속성",
+          "추가적인 사용자 피드백 필요성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-a34bfbc4ecf9",
+        "type": "SERVICE_DESIGN_IMPROVEMENT",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "공공자전거 예약 불편 개선",
+        "summary": "중구 지역에서 고령자와 장애인의 공공자전거 예약 과정에서 접근성 문제로 인한 민원 증가.",
+        "problem_diagnosis": "신청 절차와 안내 부족으로 디지털 취약계층의 이용 불편 지속.",
+        "recommended_actions": [
+          {
+            "action": "공공자전거 예약/대여 불편 이용 절차의 오류·복잡 단계를 확인하고 안내 문구를 보강합니다.",
+            "original_action_type": "SERVICE_DESIGN",
+            "final_action_type": "SERVICE_DESIGN",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "SERVICE_DESIGN",
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "PROCESS_IMPROVEMENT"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-accessibility_usage_barrier-001",
+              "eval-accessibility_usage_barrier-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-accessibility_usage_barrier-001",
+          "eval-accessibility_usage_barrier-002",
+          "eval-accessibility_usage_barrier-004",
+          "eval-accessibility_usage_barrier-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-accessibility_usage_barrier-001",
+          "masked_text": "고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다. 고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다."
+        },
+        {
+          "evidence_id": "eval-accessibility_usage_barrier-002",
+          "masked_text": "장애인 이용자가 예약 화면에서 필요한 버튼을 찾기 어렵습니다. 장애인 이용자가 예약 화면에서 필요한 버튼을 찾기 어렵습니다."
+        },
+        {
+          "evidence_id": "eval-accessibility_usage_barrier-004",
+          "masked_text": "디지털 취약계층이 로그인과 본인 확인 단계에서 계속 막힙니다. 디지털 취약계층이 로그인과 본인 확인 단계에서 계속 막힙니다."
+        },
+        {
+          "evidence_id": "eval-accessibility_usage_barrier-005",
+          "masked_text": "앱 화면 접근성이 낮아 상담창구 문의가 반복됩니다. 앱 화면 접근성이 낮아 상담창구 문의가 반복됩니다."
+        },
+        {
+          "evidence_id": "eval-accessibility_usage_barrier-001",
+          "masked_text": "고령자가 복지 신청 앱을 쓰기 어렵고 글씨와 단계 안내가 부족합니다. 접근성 부족으로 신청 중단과 반복 문의가 발생합니다. 고령자와 장애인을 위한 쉬운 안내와 대체 신청 경로를 요청합니다. 디지털 취약계층 관련 이용"
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "streetlight_failure_recurring",
+      "scenario_label": "가로등/보안등 고장 반복",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "가로등 반복 고장 대응",
+        "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 문제 발생.",
+        "problem_diagnosis": "가로등 고장이 특정 지역에서 지속적으로 발생하여 시민 안전에 위협을 주고 있음.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "정기 점검 미흡으로 인한 고장 발생",
+            "supporting_evidence_ids": [
+              "eval-streetlight_failure_recurring-001",
+              "eval-streetlight_failure_recurring-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "현장 점검 실시",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "eval-streetlight_failure_recurring-001",
+              "eval-streetlight_failure_recurring-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "고장 원인의 정확한 파악 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-7fb5f3552e80",
+        "type": "RECURRING_COMPLAINT_PATTERN",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "가로등 반복 고장 대응",
+        "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 문제 발생.",
+        "problem_diagnosis": "가로등 고장이 특정 지역에서 지속적으로 발생하여 시민 안전에 위협을 주고 있음.",
+        "recommended_actions": [
+          {
+            "action": "현장 점검 실시",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "FIELD_INSPECTION",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "FIELD_INSPECTION",
+              "MAINTENANCE",
+              "SAFETY_NOTICE",
+              "PROCESS_IMPROVEMENT",
+              "PUBLIC_GUIDANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-streetlight_failure_recurring-001",
+              "eval-streetlight_failure_recurring-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-streetlight_failure_recurring-001",
+          "eval-streetlight_failure_recurring-002",
+          "eval-streetlight_failure_recurring-003",
+          "eval-streetlight_failure_recurring-004",
+          "eval-streetlight_failure_recurring-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-streetlight_failure_recurring-001",
+          "masked_text": "공원 입구 가로등이 며칠째 꺼져 있어 밤길이 위험합니다. 공원 입구 가로등이 며칠째 꺼져 있어 밤길이 위험합니다."
+        },
+        {
+          "evidence_id": "eval-streetlight_failure_recurring-002",
+          "masked_text": "보안등 고장으로 골목이 어둡고 안전이 걱정됩니다. 보안등 고장으로 골목이 어둡고 안전이 걱정됩니다."
+        },
+        {
+          "evidence_id": "eval-streetlight_failure_recurring-003",
+          "masked_text": "같은 위치 가로등이 반복적으로 고장 납니다. 같은 위치 가로등이 반복적으로 고장 납니다."
+        },
+        {
+          "evidence_id": "eval-streetlight_failure_recurring-004",
+          "masked_text": "가로등 수리를 요청했지만 다시 꺼졌습니다. 가로등 수리를 요청했지만 다시 꺼졌습니다."
+        },
+        {
+          "evidence_id": "eval-streetlight_failure_recurring-005",
+          "masked_text": "야간 보행 안전을 위해 조명 점검이 필요합니다. 야간 보행 안전을 위해 조명 점검이 필요합니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
       "scenario_id": "flood_drainage_risk",
       "scenario_label": "침수/배수 불량 위험",
       "provider": "local",
@@ -256,11 +1330,11 @@
       "fallback_reason": null,
       "llm_draft_summary": {
         "title": "배수 시스템 안전 점검 필요",
-        "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 집중적으로 제기되고 있어 안전 점검이 필요합니다.",
+        "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 급증하여 현장 안전 위험이 확인됨.",
         "problem_diagnosis": "우천 시 맨홀 주변 역류와 배수 불량으로 인한 침수 위험 증가",
         "root_cause_hypotheses": [
           {
-            "hypothesis": "배수 시스템의 구조적 결함으로 인한 역류 현상 발생",
+            "hypothesis": "배수 시스템 노후화 및 유지보수 부족으로 인한 역류 현상 발생 가능성",
             "supporting_evidence_ids": [
               "eval-flood_drainage_risk-001",
               "eval-flood_drainage_risk-002"
@@ -278,7 +1352,7 @@
           }
         ],
         "uncertainty": [
-          "민원 원인의 정확한 분석 필요"
+          "시스템 노후화 정도에 대한 정확한 평가 필요"
         ]
       },
       "repair_diff": {
@@ -300,7 +1374,7 @@
         "grounding_score": 1.0,
         "avg_actionability_score": 1.0,
         "title": "배수 시스템 안전 점검 필요",
-        "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 집중적으로 제기되고 있어 안전 점검이 필요합니다.",
+        "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 급증하여 현장 안전 위험이 확인됨.",
         "problem_diagnosis": "우천 시 맨홀 주변 역류와 배수 불량으로 인한 침수 위험 증가",
         "recommended_actions": [
           {
@@ -374,11 +1448,11 @@
       "fallback_reason": null,
       "llm_draft_summary": {
         "title": "무단투기 반복 민원 대응",
-        "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있으며, 특히 야간에 집중되어 있어 악취와 환경 불편이 보고됨.",
-        "problem_diagnosis": "무단투기와 관련된 안내 부족 및 현장 조치의 실효성 부족이 주요 원인으로 추정됨.",
+        "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어, 안내 부족과 현장 조치 실효성에 대한 우려가 제기됨.",
+        "problem_diagnosis": "무단투기와 쓰레기 적치 관련 민원이 지속적으로 발생하며, 특히 안내 부족과 단속 강화 요청이 높음.",
         "root_cause_hypotheses": [
           {
-            "hypothesis": "현재의 안내 표지판 및 정보가 부족하여 시민들의 인식 개선에 한계가 있음.",
+            "hypothesis": "현재의 안내 시스템이 충분하지 않아 시민들의 인식 개선에 한계가 있음.",
             "supporting_evidence_ids": [
               "eval-illegal_dumping_recurring-001",
               "eval-illegal_dumping_recurring-002"
@@ -396,7 +1470,7 @@
           }
         ],
         "uncertainty": [
-          "시민 참여 수준에 따른 효과 차이 가능성"
+          "단기적 효과 측정 필요"
         ]
       },
       "repair_diff": {
@@ -420,13 +1494,13 @@
         "grounding_score": 1.0,
         "avg_actionability_score": 1.0,
         "title": "무단투기 반복 민원 대응",
-        "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있으며, 특히 야간에 집중되어 있어 악취와 환경 불편이 보고됨.",
-        "problem_diagnosis": "무단투기와 관련된 안내 부족 및 현장 조치의 실효성 부족이 주요 원인으로 추정됨.",
+        "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어, 안내 부족과 현장 조치 실효성에 대한 우려가 제기됨.",
+        "problem_diagnosis": "무단투기와 쓰레기 적치 관련 민원이 지속적으로 발생하며, 특히 안내 부족과 단속 강화 요청이 높음.",
         "recommended_actions": [
           {
-            "action": "무단투기 반복 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+            "action": "무단투기 반복 FAQ와 신청 절차 안내를 보강하고 문의 응대 기준을 정리합니다.",
             "original_action_type": "FIELD_INSPECTION",
-            "final_action_type": "ENFORCEMENT",
+            "final_action_type": "PUBLIC_GUIDANCE",
             "action_type_repaired": true,
             "allowed_action_types": [
               "ENFORCEMENT",
@@ -486,6 +1560,962 @@
       }
     },
     {
+      "scenario_id": "park_playground_facility_safety",
+      "scenario_label": "공원/놀이터 시설 파손 및 이용 안전",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "공원 시설 파손 안전 점검 필요",
+        "summary": "서초구 공원 시설에서 파손 신고가 집중적으로 발생하여 이용자 안전 위협이 확인됨.",
+        "problem_diagnosis": "공원 내 놀이터 및 시설물의 파손으로 인한 안전 위험 증가",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "정기적인 시설 점검 미흡으로 인한 파손 발견 지연",
+            "supporting_evidence_ids": [
+              "eval-park_playground_facility_safety-001",
+              "eval-park_playground_facility_safety-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "긴급 현장 점검",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "eval-park_playground_facility_safety-001",
+              "eval-park_playground_facility_safety-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "점검 결과에 따른 추가 조치 필요성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-49e81dff10e7",
+        "type": "SAFETY_RISK_SIGNAL",
+        "priority": "MEDIUM",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "공원 시설 파손 안전 점검 필요",
+        "summary": "서초구 공원 시설에서 파손 신고가 집중적으로 발생하여 이용자 안전 위협이 확인됨.",
+        "problem_diagnosis": "공원 내 놀이터 및 시설물의 파손으로 인한 안전 위험 증가",
+        "recommended_actions": [
+          {
+            "action": "긴급 현장 점검",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "FIELD_INSPECTION",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "FIELD_INSPECTION",
+              "MAINTENANCE",
+              "CITIZEN_COMMUNICATION",
+              "SAFETY_NOTICE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-park_playground_facility_safety-001",
+              "eval-park_playground_facility_safety-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-park_playground_facility_safety-001",
+          "eval-park_playground_facility_safety-002",
+          "eval-park_playground_facility_safety-003",
+          "eval-park_playground_facility_safety-004",
+          "eval-park_playground_facility_safety-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-park_playground_facility_safety-001",
+          "masked_text": "놀이터 미끄럼틀이 파손되어 아이들이 다칠 위험이 있습니다. 놀이터 미끄럼틀이 파손되어 아이들이 다칠 위험이 있습니다."
+        },
+        {
+          "evidence_id": "eval-park_playground_facility_safety-002",
+          "masked_text": "공원 벤치가 깨져 있고 보수 일정 안내가 없습니다. 공원 벤치가 깨져 있고 보수 일정 안내가 없습니다."
+        },
+        {
+          "evidence_id": "eval-park_playground_facility_safety-003",
+          "masked_text": "산책로 바닥이 들떠 야간 이용 시 넘어질까 불안합니다. 산책로 바닥이 들떠 야간 이용 시 넘어질까 불안합니다."
+        },
+        {
+          "evidence_id": "eval-park_playground_facility_safety-004",
+          "masked_text": "공원 시설 고장이 반복되는데 임시 안전 조치가 필요합니다. 공원 시설 고장이 반복되는데 임시 안전 조치가 필요합니다."
+        },
+        {
+          "evidence_id": "eval-park_playground_facility_safety-005",
+          "masked_text": "놀이터 시설 점검과 보수 일정을 알려 주세요. 놀이터 시설 점검과 보수 일정을 알려 주세요."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "security_light_dark_walkway",
+      "scenario_label": "가로등/보안등 고장 반복 확장",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "야간 보행 안전 개선",
+        "summary": "도봉구에서 가로등 및 보안등 고장으로 인한 야간 보행 안전 문제 발생.",
+        "problem_diagnosis": "반복적인 가로등/보안등 고장으로 인한 야간 보행 안전 위협 및 시민 불편 증가.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "정기 점검 및 유지보수 부족으로 인한 고장 발생.",
+            "supporting_evidence_ids": [
+              "eval-security_light_dark_walkway-001",
+              "eval-security_light_dark_walkway-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "즉시 현장 점검",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "eval-security_light_dark_walkway-001",
+              "eval-security_light_dark_walkway-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "고장 원인의 정확한 파악 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-dc53fd27dc32",
+        "type": "HOTSPOT_RESPONSE_REQUIRED",
+        "priority": "MEDIUM",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "야간 보행 안전 개선",
+        "summary": "도봉구에서 가로등 및 보안등 고장으로 인한 야간 보행 안전 문제 발생.",
+        "problem_diagnosis": "반복적인 가로등/보안등 고장으로 인한 야간 보행 안전 위협 및 시민 불편 증가.",
+        "recommended_actions": [
+          {
+            "action": "즉시 현장 점검",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "FIELD_INSPECTION",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "FIELD_INSPECTION",
+              "MAINTENANCE",
+              "SAFETY_NOTICE",
+              "PUBLIC_GUIDANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-security_light_dark_walkway-001",
+              "eval-security_light_dark_walkway-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-security_light_dark_walkway-001",
+          "eval-security_light_dark_walkway-002",
+          "eval-security_light_dark_walkway-003",
+          "eval-security_light_dark_walkway-004",
+          "eval-security_light_dark_walkway-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-security_light_dark_walkway-001",
+          "masked_text": "골목 보안등이 계속 꺼져 밤길 보행이 불안합니다. 골목 보안등이 계속 꺼져 밤길 보행이 불안합니다."
+        },
+        {
+          "evidence_id": "eval-security_light_dark_walkway-002",
+          "masked_text": "가로등 고장이 반복되어 야간에 시야 확보가 어렵습니다. 가로등 고장이 반복되어 야간에 시야 확보가 어렵습니다."
+        },
+        {
+          "evidence_id": "eval-security_light_dark_walkway-003",
+          "masked_text": "어두운 보행 구간에 임시 조명이나 안전 안내가 필요합니다. 어두운 보행 구간에 임시 조명이나 안전 안내가 필요합니다."
+        },
+        {
+          "evidence_id": "eval-security_light_dark_walkway-004",
+          "masked_text": "같은 위치 조명 고장 신고를 여러 번 했습니다. 같은 위치 조명 고장 신고를 여러 번 했습니다."
+        },
+        {
+          "evidence_id": "eval-security_light_dark_walkway-005",
+          "masked_text": "야간 보행 안전을 위해 보안등 교체와 현장 점검을 요청합니다. 야간 보행 안전을 위해 보안등 교체와 현장 점검을 요청합니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "bus_route_headway_discomfort",
+      "scenario_label": "버스 정류장/노선·배차 불편",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "버스 노선 불편 개선",
+        "summary": "강서구 교통행정과에서 버스 배차 간격, 정류장 접근성, 노선 안내 부족으로 인한 민원 증가.",
+        "problem_diagnosis": "반복적인 버스 이용 불편 민원으로 인한 시민 불편 확인.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 버스 노선 및 배차 시스템이 시민 요구에 부합하지 않음.",
+            "supporting_evidence_ids": [
+              "eval-bus_route_headway_discomfort-001",
+              "eval-bus_route_headway_discomfort-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "버스 노선 및 배차 시스템 개선 검토",
+            "action_type": "SERVICE_DESIGN",
+            "supporting_evidence_ids": [
+              "eval-bus_route_headway_discomfort-001",
+              "eval-bus_route_headway_discomfort-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "시스템 변경 후 효과 검증 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-f963a91d0fac",
+        "type": "SERVICE_DESIGN_IMPROVEMENT",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "버스 노선 불편 개선",
+        "summary": "강서구 교통행정과에서 버스 배차 간격, 정류장 접근성, 노선 안내 부족으로 인한 민원 증가.",
+        "problem_diagnosis": "반복적인 버스 이용 불편 민원으로 인한 시민 불편 확인.",
+        "recommended_actions": [
+          {
+            "action": "버스 노선 및 배차 시스템 개선 검토",
+            "original_action_type": "SERVICE_DESIGN",
+            "final_action_type": "SERVICE_DESIGN",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "SERVICE_DESIGN",
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "PROCESS_IMPROVEMENT"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-bus_route_headway_discomfort-001",
+              "eval-bus_route_headway_discomfort-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-bus_route_headway_discomfort-001",
+          "eval-bus_route_headway_discomfort-002",
+          "eval-bus_route_headway_discomfort-003",
+          "eval-bus_route_headway_discomfort-004",
+          "eval-bus_route_headway_discomfort-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-bus_route_headway_discomfort-001",
+          "masked_text": "버스 배차 간격이 길어 출근 시간마다 정류장에서 오래 기다립니다. 버스 배차 간격이 길어 출근 시간마다 정류장에서 오래 기다립니다."
+        },
+        {
+          "evidence_id": "eval-bus_route_headway_discomfort-002",
+          "masked_text": "정류장 위치가 멀고 노선 안내가 부족해 환승이 어렵습니다. 정류장 위치가 멀고 노선 안내가 부족해 환승이 어렵습니다."
+        },
+        {
+          "evidence_id": "eval-bus_route_headway_discomfort-003",
+          "masked_text": "버스 도착 안내가 맞지 않아 이용 불편이 반복됩니다. 버스 도착 안내가 맞지 않아 이용 불편이 반복됩니다."
+        },
+        {
+          "evidence_id": "eval-bus_route_headway_discomfort-004",
+          "masked_text": "이 지역 노선 조정 검토와 배차 안내 개선이 필요합니다. 이 지역 노선 조정 검토와 배차 안내 개선이 필요합니다."
+        },
+        {
+          "evidence_id": "eval-bus_route_headway_discomfort-005",
+          "masked_text": "정류장 접근성이 낮아 대중교통 이용이 어렵습니다. 정류장 접근성이 낮아 대중교통 이용이 어렵습니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "cctv_security_request",
+      "scenario_label": "CCTV/방범 안전 설치 요청",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "야간 안전 민원 증가",
+        "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
+        "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "조명 시설 부족으로 인한 야간 보행 불안 증가",
+            "supporting_evidence_ids": [
+              "eval-cctv_security_request-001",
+              "eval-cctv_security_request-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "긴급 조명 점검",
+            "action_type": "FIELD_INSPECTION",
+            "supporting_evidence_ids": [
+              "eval-cctv_security_request-001",
+              "eval-cctv_security_request-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "조명 문제 외 다른 요인 존재 가능성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-a8f7696de249",
+        "type": "SAFETY_RISK_SIGNAL",
+        "priority": "HIGH",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "야간 안전 민원 증가",
+        "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
+        "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+        "recommended_actions": [
+          {
+            "action": "긴급 조명 점검",
+            "original_action_type": "FIELD_INSPECTION",
+            "final_action_type": "FIELD_INSPECTION",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "FIELD_INSPECTION",
+              "SAFETY_NOTICE",
+              "POLICY_REVIEW",
+              "MAINTENANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-cctv_security_request-001",
+              "eval-cctv_security_request-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-cctv_security_request-001",
+          "eval-cctv_security_request-002",
+          "eval-cctv_security_request-003",
+          "eval-cctv_security_request-004",
+          "eval-cctv_security_request-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-cctv_security_request-001",
+          "masked_text": "골목이 밤에 너무 어두워 CCTV 설치와 방범 순찰이 필요합니다. 골목이 밤에 너무 어두워 CCTV 설치와 방범 순찰이 필요합니다."
+        },
+        {
+          "evidence_id": "eval-cctv_security_request-002",
+          "masked_text": "사각지대가 있어 야간 안전이 불안하니 현장 확인 바랍니다. 사각지대가 있어 야간 안전이 불안하니 현장 확인 바랍니다."
+        },
+        {
+          "evidence_id": "eval-cctv_security_request-003",
+          "masked_text": "방범 취약 구간인데 안내와 순찰이 부족합니다. 방범 취약 구간인데 안내와 순찰이 부족합니다."
+        },
+        {
+          "evidence_id": "eval-cctv_security_request-004",
+          "masked_text": "CCTV 설치 검토와 조명 보강을 요청합니다. CCTV 설치 검토와 조명 보강을 요청합니다."
+        },
+        {
+          "evidence_id": "eval-cctv_security_request-005",
+          "masked_text": "늦은 시간 보행자가 불안해하는 구간을 점검해 주세요. 늦은 시간 보행자가 불안해하는 구간을 점검해 주세요."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "smoking_enforcement_recurring",
+      "scenario_label": "흡연/금연구역 단속 반복",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "금연구역 흡연 단속 및 안내 강화 필요",
+        "summary": "종로구 금연구역에서 흡연과 담배꽁초 문제로 인한 민원이 지속적으로 제기되고 있습니다.",
+        "problem_diagnosis": "금연구역 내 흡연 단속 부족과 안내 표지판 부족으로 인한 시민 불편이 반복적으로 발생하고 있습니다.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 안내 표지판 및 단속 활동이 부족하여 시민들의 불만이 지속되고 있습니다.",
+            "supporting_evidence_ids": [
+              "eval-smoking_enforcement_recurring-001",
+              "eval-smoking_enforcement_recurring-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "금연 안내 표지판 보강",
+            "action_type": "PUBLIC_GUIDANCE",
+            "supporting_evidence_ids": [
+              "eval-smoking_enforcement_recurring-001",
+              "eval-smoking_enforcement_recurring-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "단기적 효과 측정 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-3e4d3b6de113",
+        "type": "PUBLIC_GUIDANCE_NEEDED",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "금연구역 흡연 단속 및 안내 강화 필요",
+        "summary": "종로구 금연구역에서 흡연과 담배꽁초 문제로 인한 민원이 지속적으로 제기되고 있습니다.",
+        "problem_diagnosis": "금연구역 내 흡연 단속 부족과 안내 표지판 부족으로 인한 시민 불편이 반복적으로 발생하고 있습니다.",
+        "recommended_actions": [
+          {
+            "action": "금연 안내 표지판 보강",
+            "original_action_type": "PUBLIC_GUIDANCE",
+            "final_action_type": "PUBLIC_GUIDANCE",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "ENFORCEMENT",
+              "PUBLIC_GUIDANCE",
+              "FIELD_INSPECTION",
+              "CITIZEN_COMMUNICATION",
+              "SERVICE_DESIGN"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-smoking_enforcement_recurring-001",
+              "eval-smoking_enforcement_recurring-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-smoking_enforcement_recurring-001",
+          "eval-smoking_enforcement_recurring-002",
+          "eval-smoking_enforcement_recurring-003",
+          "eval-smoking_enforcement_recurring-004",
+          "eval-smoking_enforcement_recurring-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-smoking_enforcement_recurring-001",
+          "masked_text": "금연구역에서 흡연이 반복되어 간접흡연 피해가 큽니다. 금연구역에서 흡연이 반복되어 간접흡연 피해가 큽니다."
+        },
+        {
+          "evidence_id": "eval-smoking_enforcement_recurring-002",
+          "masked_text": "담배꽁초가 계속 쌓여 청소와 단속이 필요합니다. 담배꽁초가 계속 쌓여 청소와 단속이 필요합니다."
+        },
+        {
+          "evidence_id": "eval-smoking_enforcement_recurring-003",
+          "masked_text": "금연 안내 표지가 부족해 같은 장소에서 흡연이 계속됩니다. 금연 안내 표지가 부족해 같은 장소에서 흡연이 계속됩니다."
+        },
+        {
+          "evidence_id": "eval-smoking_enforcement_recurring-004",
+          "masked_text": "점심시간마다 흡연 단속을 강화해 주세요. 점심시간마다 흡연 단속을 강화해 주세요."
+        },
+        {
+          "evidence_id": "eval-smoking_enforcement_recurring-005",
+          "masked_text": "간접흡연 민원이 반복되니 안내문과 현장 점검이 필요합니다. 간접흡연 민원이 반복되니 안내문과 현장 점검이 필요합니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "illegal_banner_cleanup",
+      "scenario_label": "불법 광고물/현수막 정비",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "불법 현수막 보행 안전 및 미관 개선",
+        "summary": "송파구에서 불법 현수막으로 인한 보행 안전 위협과 도시 미관 저해 민원이 집중적으로 제기됨.",
+        "problem_diagnosis": "보행로 주변 불법 현수막으로 인한 안전 위협과 도시 미관 저해가 반복적으로 발생하고 있음.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "단속 인력 부족으로 인한 반복적 불법 현수막 설치",
+            "supporting_evidence_ids": [
+              "eval-illegal_banner_cleanup-001",
+              "eval-illegal_banner_cleanup-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "단속 강화 실시",
+            "action_type": "ENFORCEMENT",
+            "supporting_evidence_ids": [
+              "eval-illegal_banner_cleanup-001",
+              "eval-illegal_banner_cleanup-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "단속 효과 지속성",
+          "민원 재발 가능성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-8e0079effebc",
+        "type": "FACILITY_MAINTENANCE_PRIORITY",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "불법 현수막 보행 안전 및 미관 개선",
+        "summary": "송파구에서 불법 현수막으로 인한 보행 안전 위협과 도시 미관 저해 민원이 집중적으로 제기됨.",
+        "problem_diagnosis": "보행로 주변 불법 현수막으로 인한 안전 위협과 도시 미관 저해가 반복적으로 발생하고 있음.",
+        "recommended_actions": [
+          {
+            "action": "불법 현수막 정비 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+            "original_action_type": "ENFORCEMENT",
+            "final_action_type": "ENFORCEMENT",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "ENFORCEMENT",
+              "FIELD_INSPECTION",
+              "MAINTENANCE",
+              "PROCESS_IMPROVEMENT",
+              "SAFETY_NOTICE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-illegal_banner_cleanup-001",
+              "eval-illegal_banner_cleanup-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-illegal_banner_cleanup-001",
+          "eval-illegal_banner_cleanup-002",
+          "eval-illegal_banner_cleanup-003",
+          "eval-illegal_banner_cleanup-004",
+          "eval-illegal_banner_cleanup-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-illegal_banner_cleanup-001",
+          "masked_text": "불법 현수막이 횡단보도 시야를 가려 보행이 위험합니다. 불법 현수막이 횡단보도 시야를 가려 보행이 위험합니다."
+        },
+        {
+          "evidence_id": "eval-illegal_banner_cleanup-002",
+          "masked_text": "같은 사거리 광고물이 반복 설치되어 도시 미관을 해칩니다. 같은 사거리 광고물이 반복 설치되어 도시 미관을 해칩니다."
+        },
+        {
+          "evidence_id": "eval-illegal_banner_cleanup-003",
+          "masked_text": "보행로에 불법 광고물이 많아 현장 정비가 필요합니다. 보행로에 불법 광고물이 많아 현장 정비가 필요합니다."
+        },
+        {
+          "evidence_id": "eval-illegal_banner_cleanup-004",
+          "masked_text": "현수막 단속과 반복 위치 관리를 요청합니다. 현수막 단속과 반복 위치 관리를 요청합니다."
+        },
+        {
+          "evidence_id": "eval-illegal_banner_cleanup-005",
+          "masked_text": "도로 시야를 방해하는 광고물을 정비해 주세요. 도로 시야를 방해하는 광고물을 정비해 주세요."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "pet_waste_leash_complaints",
+      "scenario_label": "반려동물 배설물/목줄/유기동물 민원",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "노원구 반려동물 관리 민원 강화",
+        "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
+        "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재의 단속 및 안내 시스템이 미흡하여 민원이 지속되고 있다.",
+            "supporting_evidence_ids": [
+              "eval-pet_waste_leash_complaints-001",
+              "eval-pet_waste_leash_complaints-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "단속 강화 실시",
+            "action_type": "ENFORCEMENT",
+            "supporting_evidence_ids": [
+              "eval-pet_waste_leash_complaints-001",
+              "eval-pet_waste_leash_complaints-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "단속 효과의 지속성",
+          "시민 인식 변화"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-a543db255f2d",
+        "type": "REGIONAL_SERVICE_GAP",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "노원구 반려동물 관리 민원 강화",
+        "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
+        "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+        "recommended_actions": [
+          {
+            "action": "반려동물 배설물/목줄 민원 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+            "original_action_type": "ENFORCEMENT",
+            "final_action_type": "ENFORCEMENT",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "ENFORCEMENT",
+              "PUBLIC_GUIDANCE",
+              "FIELD_INSPECTION",
+              "PROCESS_IMPROVEMENT"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-pet_waste_leash_complaints-001",
+              "eval-pet_waste_leash_complaints-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-pet_waste_leash_complaints-001",
+          "eval-pet_waste_leash_complaints-002",
+          "eval-pet_waste_leash_complaints-003",
+          "eval-pet_waste_leash_complaints-004",
+          "eval-pet_waste_leash_complaints-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-pet_waste_leash_complaints-001",
+          "masked_text": "공원 산책로에 반려동물 배설물이 방치되어 위생이 걱정됩니다. 공원 산책로에 반려동물 배설물이 방치되어 위생이 걱정됩니다."
+        },
+        {
+          "evidence_id": "eval-pet_waste_leash_complaints-002",
+          "masked_text": "목줄 미착용 개 때문에 아이들이 무서워합니다. 목줄 미착용 개 때문에 아이들이 무서워합니다."
+        },
+        {
+          "evidence_id": "eval-pet_waste_leash_complaints-003",
+          "masked_text": "반려동물 배설물 안내문과 단속이 부족합니다. 반려동물 배설물 안내문과 단속이 부족합니다."
+        },
+        {
+          "evidence_id": "eval-pet_waste_leash_complaints-004",
+          "masked_text": "같은 시간대 목줄 없이 산책하는 사례가 반복됩니다. 같은 시간대 목줄 없이 산책하는 사례가 반복됩니다."
+        },
+        {
+          "evidence_id": "eval-pet_waste_leash_complaints-005",
+          "masked_text": "유기동물 신고와 현장 순찰을 요청합니다. 유기동물 신고와 현장 순찰을 요청합니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "licensing_docs_guidance_confusion",
+      "scenario_label": "인허가/자격·서류 기준 안내 혼선",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "인허가 기준 안내 명확화 필요",
+        "summary": "중랑구 민원여권과에서 인허가 기준과 제출 서류 안내 혼선으로 인한 민원 증가.",
+        "problem_diagnosis": "신청자들이 인허가 기준과 필요 서류에 대한 명확한 안내 부족으로 혼란을 겪고 있음.",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 제공되는 안내 자료가 불명확하거나 부족하여 민원인의 이해를 저해함.",
+            "supporting_evidence_ids": [
+              "eval-licensing_docs_guidance_confusion-001",
+              "eval-licensing_docs_guidance_confusion-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "FAQ/안내 페이지 보강",
+            "action_type": "PUBLIC_GUIDANCE",
+            "supporting_evidence_ids": [
+              "eval-licensing_docs_guidance_confusion-001",
+              "eval-licensing_docs_guidance_confusion-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "현재 안내 자료의 효과성 검증 필요"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 0,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-7bf9bd014d95",
+        "type": "PUBLIC_GUIDANCE_NEEDED",
+        "priority": "LOW",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "인허가 기준 안내 명확화 필요",
+        "summary": "중랑구 민원여권과에서 인허가 기준과 제출 서류 안내 혼선으로 인한 민원 증가.",
+        "problem_diagnosis": "신청자들이 인허가 기준과 필요 서류에 대한 명확한 안내 부족으로 혼란을 겪고 있음.",
+        "recommended_actions": [
+          {
+            "action": "FAQ/안내 페이지 보강",
+            "original_action_type": "PUBLIC_GUIDANCE",
+            "final_action_type": "PUBLIC_GUIDANCE",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "PUBLIC_GUIDANCE",
+              "CITIZEN_COMMUNICATION",
+              "PROCESS_IMPROVEMENT",
+              "SERVICE_DESIGN"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-licensing_docs_guidance_confusion-001",
+              "eval-licensing_docs_guidance_confusion-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-licensing_docs_guidance_confusion-001",
+          "eval-licensing_docs_guidance_confusion-002",
+          "eval-licensing_docs_guidance_confusion-003",
+          "eval-licensing_docs_guidance_confusion-004",
+          "eval-licensing_docs_guidance_confusion-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-licensing_docs_guidance_confusion-001",
+          "masked_text": "인허가 신청 기준과 제출 서류가 헷갈려 상담이 필요합니다. 인허가 신청 기준과 제출 서류가 헷갈려 상담이 필요합니다."
+        },
+        {
+          "evidence_id": "eval-licensing_docs_guidance_confusion-002",
+          "masked_text": "자격 요건 안내가 어려워 어느 부서에 문의해야 할지 모르겠습니다. 자격 요건 안내가 어려워 어느 부서에 문의해야 할지 모르겠습니다."
+        },
+        {
+          "evidence_id": "eval-licensing_docs_guidance_confusion-003",
+          "masked_text": "면허 기준과 필요서류 체크리스트를 제공해 주세요. 면허 기준과 필요서류 체크리스트를 제공해 주세요."
+        },
+        {
+          "evidence_id": "eval-licensing_docs_guidance_confusion-004",
+          "masked_text": "담당 부서 안내가 부족해 신청 절차를 반복해서 문의합니다. 담당 부서 안내가 부족해 신청 절차를 반복해서 문의합니다."
+        },
+        {
+          "evidence_id": "eval-licensing_docs_guidance_confusion-005",
+          "masked_text": "인허가 기준 설명이 서로 달라 시민이 혼란스럽습니다. 인허가 기준 설명이 서로 달라 시민이 혼란스럽습니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
       "scenario_id": "accessibility_vulnerable_groups",
       "scenario_label": "장애인·고령자·외국인 접근성/이용 어려움",
       "provider": "local",
@@ -496,11 +2526,11 @@
       "fallback_reason": null,
       "llm_draft_summary": {
         "title": "접근성 개선을 위한 온라인 서비스 안내 강화",
-        "summary": "고령자, 장애인, 외국인 등 취약계층의 온라인 신청 및 현장 이용 불편 지속",
-        "problem_diagnosis": "신청 절차와 안내 부족으로 인한 사용자 경험 저하",
+        "summary": "은평구 고령자 및 장애인의 온라인 민원 신청 절차 이해 어려움으로 인한 민원 증가.",
+        "problem_diagnosis": "고령자와 장애인을 위한 온라인 서비스 접근성 및 안내 부족으로 인한 불편 반복.",
         "root_cause_hypotheses": [
           {
-            "hypothesis": "현재 제공되는 안내 자료가 다양한 사용자 그룹의 요구를 충분히 충족하지 못함",
+            "hypothesis": "현재 제공되는 안내 자료가 다양한 사용자 그룹의 요구를 충족하지 못함.",
             "supporting_evidence_ids": [
               "eval-accessibility_vulnerable_groups-001",
               "eval-accessibility_vulnerable_groups-002"
@@ -509,7 +2539,7 @@
         ],
         "recommended_actions": [
           {
-            "action": "온라인 안내 체크리스트 추가",
+            "action": "고령자 및 장애인 친화적 안내 페이지 보강",
             "action_type": "PUBLIC_GUIDANCE",
             "supporting_evidence_ids": [
               "eval-accessibility_vulnerable_groups-001",
@@ -518,7 +2548,7 @@
           }
         ],
         "uncertainty": [
-          "사용자 반응 예측 어려움"
+          "초기 안내 효과 모니터링 필요"
         ]
       },
       "repair_diff": {
@@ -540,11 +2570,11 @@
         "grounding_score": 1.0,
         "avg_actionability_score": 1.0,
         "title": "접근성 개선을 위한 온라인 서비스 안내 강화",
-        "summary": "고령자, 장애인, 외국인 등 취약계층의 온라인 신청 및 현장 이용 불편 지속",
-        "problem_diagnosis": "신청 절차와 안내 부족으로 인한 사용자 경험 저하",
+        "summary": "은평구 고령자 및 장애인의 온라인 민원 신청 절차 이해 어려움으로 인한 민원 증가.",
+        "problem_diagnosis": "고령자와 장애인을 위한 온라인 서비스 접근성 및 안내 부족으로 인한 불편 반복.",
         "recommended_actions": [
           {
-            "action": "온라인 안내 체크리스트 추가",
+            "action": "고령자 및 장애인 친화적 안내 페이지 보강",
             "original_action_type": "PUBLIC_GUIDANCE",
             "final_action_type": "PUBLIC_GUIDANCE",
             "action_type_repaired": false,
@@ -588,6 +2618,126 @@
         {
           "evidence_id": "eval-accessibility_vulnerable_groups-005",
           "masked_text": "취약계층을 위한 쉬운 안내와 대체 신청 경로가 필요합니다. 취약계층을 위한 쉬운 안내와 대체 신청 경로가 필요합니다."
+        }
+      ],
+      "objective_review": {
+        "strengths": [
+          "최종 인사이트가 QualityGate와 GroundingVerifier 경로를 통과했습니다.",
+          "추천 조치가 evidence id와 연결되어 추적 가능합니다."
+        ],
+        "weaknesses": [
+          "자동 리뷰 기준에서는 큰 약점이 확인되지 않았습니다."
+        ],
+        "actionability_judgment": "recommended_actions가 있고 action_type/evidence id를 포함합니다.",
+        "grounding_judgment": "근거 ID는 EvidencePack valid_evidence_ids 기준으로 검증되었습니다.",
+        "public_official_readiness": "데모 노출은 가능하지만 실제 운영 전 담당자 검토가 필요합니다."
+      }
+    },
+    {
+      "scenario_id": "school_zone_commute_safety",
+      "scenario_label": "어린이보호구역/통학 안전",
+      "provider": "local",
+      "model": "exaone3.5:7.8b",
+      "prompt_mode": "compact",
+      "direct_llm_success": true,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "llm_draft_summary": {
+        "title": "어린이보호구역 통학 안전 강화 필요",
+        "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원 증가.",
+        "problem_diagnosis": "등하교 시간대 단속 부족과 안전 안내 부족으로 인한 통학 안전 위협",
+        "root_cause_hypotheses": [
+          {
+            "hypothesis": "현재 단속 인력 및 시스템 부족으로 인해 통학 안전 위험 지속",
+            "supporting_evidence_ids": [
+              "eval-school_zone_commute_safety-001",
+              "eval-school_zone_commute_safety-002"
+            ]
+          }
+        ],
+        "recommended_actions": [
+          {
+            "action": "등하교 시간대 단속 강화",
+            "action_type": "ENFORCEMENT",
+            "supporting_evidence_ids": [
+              "eval-school_zone_commute_safety-001",
+              "eval-school_zone_commute_safety-002"
+            ]
+          }
+        ],
+        "uncertainty": [
+          "단속 효과 지속성",
+          "인력 배치 효율성"
+        ]
+      },
+      "repair_diff": {
+        "invalid_evidence_ids": [],
+        "invalid_action_types": [],
+        "removed_actions": 0,
+        "repaired_actions": 0,
+        "repaired_action_types": 0,
+        "repaired_action_texts": 1,
+        "retry_used": false,
+        "retry_success": false,
+        "retry_failure_reason": null
+      },
+      "final_insight_summary": {
+        "insight_id": "public-insight-6e89077b8360",
+        "type": "SAFETY_RISK_SIGNAL",
+        "priority": "HIGH",
+        "confidence": 0.8458,
+        "grounding_score": 1.0,
+        "avg_actionability_score": 1.0,
+        "title": "어린이보호구역 통학 안전 강화 필요",
+        "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원 증가.",
+        "problem_diagnosis": "등하교 시간대 단속 부족과 안전 안내 부족으로 인한 통학 안전 위협",
+        "recommended_actions": [
+          {
+            "action": "어린이보호구역 통학 안전 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+            "original_action_type": "ENFORCEMENT",
+            "final_action_type": "ENFORCEMENT",
+            "action_type_repaired": false,
+            "allowed_action_types": [
+              "ENFORCEMENT",
+              "FIELD_INSPECTION",
+              "SAFETY_NOTICE",
+              "MAINTENANCE"
+            ],
+            "actionability_score": 1.0,
+            "supporting_evidence_ids": [
+              "eval-school_zone_commute_safety-001",
+              "eval-school_zone_commute_safety-002"
+            ]
+          }
+        ],
+        "evidence_ids": [
+          "eval-school_zone_commute_safety-001",
+          "eval-school_zone_commute_safety-002",
+          "eval-school_zone_commute_safety-003",
+          "eval-school_zone_commute_safety-004",
+          "eval-school_zone_commute_safety-005"
+        ]
+      },
+      "evidence_preview": [
+        {
+          "evidence_id": "eval-school_zone_commute_safety-001",
+          "masked_text": "어린이보호구역에 등교 시간 불법주정차가 많아 통학 안전이 걱정됩니다. 어린이보호구역에 등교 시간 불법주정차가 많아 통학 안전이 걱정됩니다."
+        },
+        {
+          "evidence_id": "eval-school_zone_commute_safety-002",
+          "masked_text": "학교 앞 차량 속도가 빠르고 교통 위험이 반복됩니다. 학교 앞 차량 속도가 빠르고 교통 위험이 반복됩니다."
+        },
+        {
+          "evidence_id": "eval-school_zone_commute_safety-003",
+          "masked_text": "하교 시간대 단속과 안전 안내 표지를 보강해 주세요. 하교 시간대 단속과 안전 안내 표지를 보강해 주세요."
+        },
+        {
+          "evidence_id": "eval-school_zone_commute_safety-004",
+          "masked_text": "통학로 주변 현장 점검과 교통지도 요청합니다. 통학로 주변 현장 점검과 교통지도 요청합니다."
+        },
+        {
+          "evidence_id": "eval-school_zone_commute_safety-005",
+          "masked_text": "등하교 시간마다 차량 혼잡으로 아이들이 위험합니다. 등하교 시간마다 차량 혼잡으로 아이들이 위험합니다."
         }
       ],
       "objective_review": {

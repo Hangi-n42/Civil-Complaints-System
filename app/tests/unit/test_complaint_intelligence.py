@@ -416,6 +416,47 @@ def test_grounding_verifier_removes_unsupported_claims_and_lowers_score() -> Non
     assert "3억" not in verified.summary
 
 
+def test_grounding_verifier_preserves_evidence_pack_aspects_when_llm_omits_them() -> None:
+    events = [
+        _event(f"light-{index}", "가로등 고장으로 야간 보행이 불안하고 현장 점검이 필요합니다.", region="중구")
+        for index in range(4)
+    ]
+    candidate = PublicInsightCandidateGenerator(config=_config()).generate(events, [], BASE_TIME)[0]
+    pack = AspectExtractor().enrich(EvidencePackBuilder(config=_config()).build(candidate, events, []))
+    assert len(pack.extracted_aspects) >= 2
+
+    draft = PublicAgencyInsightDraft(
+        title="중구 가로등 고장 점검 필요",
+        summary="중구에서 가로등 고장 관련 민원이 반복됩니다.",
+        problem_diagnosis="조명 고장 관련 불편이 반복됩니다.",
+        root_cause_hypotheses=[],
+        extracted_aspects=pack.extracted_aspects[:1],
+        citizen_requests=pack.citizen_requests[:1],
+        recommended_actions=[
+            RecommendedAction(
+                action="가로등 고장 지점을 현장 점검합니다.",
+                horizon="SHORT_TERM",
+                action_type="FIELD_INSPECTION",
+                responsible_unit_hint="시설관리과",
+                why="가로등 고장 민원이 반복되었습니다.",
+                supporting_evidence_ids=[pack.representative_complaints[0]["complaint_id"]],
+                expected_impact="야간 보행 불안을 줄일 수 있습니다.",
+                risk_or_dependency=None,
+            )
+        ],
+        expected_impact="야간 보행 불안 감소가 기대됩니다.",
+        uncertainty=[],
+        requires_human_review=False,
+        explanation="EvidencePack의 반복 aspect를 근거로 작성했습니다.",
+    )
+
+    verified = GroundingVerifier().verify_and_repair(draft, pack)
+    verified_aspects = {item.aspect for item in verified.extracted_aspects}
+
+    assert pack.extracted_aspects[1]["aspect"] in verified_aspects
+    assert all(item.evidence_ids for item in verified.extracted_aspects)
+
+
 def test_pii_input_never_reaches_public_insight_text_fields() -> None:
     events = [
         _event(
