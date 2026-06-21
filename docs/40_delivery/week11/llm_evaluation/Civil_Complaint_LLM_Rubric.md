@@ -1,5 +1,34 @@
 # Civil Complaint LLM-Rubric 설계 및 구현 현황
 
+## 현재 구현 기준: LLM-Rubric과 ARES-lite의 역할 분리
+
+2026-06-21 기준 공식 품질 판단은 **Civil Complaint LLM-Rubric**이 담당하고,
+ARES-lite는 검색/근거/질의대응 문제가 어디서 발생했는지 설명하는 **원인 진단 레이어**로 사용한다.
+
+현재 구현상 두 평가기는 다음처럼 나뉜다.
+
+| 평가기 | 현재 표준 경로 | 역할 |
+| --- | --- | --- |
+| Civil Complaint LLM-Rubric | Q0~Q7 LLM judge + safety/manual/rule features | 최종 답변 품질 점수, Prometheus-style 재생성 trigger, safety cap |
+| ARES-lite | LLM 통합 judge 1회 호출 | context relevance, answer faithfulness, answer relevance 원인 진단 |
+| ARES-lite rule fallback | 명시적 fallback 또는 LLM 장애 시 | 공식 점수가 아니라 smoke test/장애 대응용 deterministic 보조 결과 |
+
+따라서 새 벤치마크에서는 이전 rule 기반 ARES-lite를 품질 판단 기준으로 쓰지 않는다.
+`scripts/evaluate_ares_lite_civil_replies.py`의 기본값은 `--judge-mode integrated`이며,
+이는 ARES 세 축을 하나의 LLM judge prompt에서 동시에 평가한다.
+
+LLM-Rubric과 ARES-lite를 함께 볼 때 해석 기준은 아래와 같다.
+
+| 관측 조합 | 해석 |
+| --- | --- |
+| LLM-Rubric Q0 낮음 + ARES faithfulness 낮음 | 근거 없는 처리 결론, 일정, 권한 약속 가능성 |
+| LLM-Rubric Q0 낮음 + ARES context relevance 낮음 | 생성보다 검색/라우팅 실패 가능성 |
+| LLM-Rubric Q7 낮음 + ARES relevance 정상 | 내용은 맞지만 길이/구조/효율성 문제 가능성 |
+| ARES relevance 낮음 + Q0 중간 이상 | 고정 문체가 점수를 보정했지만 실제 민원 세그먼트 누락 가능성 |
+
+Prometheus-style 재생성 수용 여부는 Q0 개선만 보지 않고, citation support,
+segment coverage, unsupported commitment 같은 품질 신호가 악화되지 않는지도 함께 확인한다.
+
 이 문서는 민원 답변 생성 후 즉시 실행되는 신규 LLM-Rubric의 현재 설계와 코드 구현 상태를 정리한다.
 
 기존 방식은 벤치마크 산출물을 별도로 평가하는 흐름에 가까웠다. 현재 설계는 실제 서비스의 `/api/v1/qa` 응답 생성 파이프라인 안에서 답변 초안을 평가하고, 낮은 점수가 나온 항목이 있으면 Prometheus-style feedback을 이용해 1회 재생성까지 시도하는 구조다.

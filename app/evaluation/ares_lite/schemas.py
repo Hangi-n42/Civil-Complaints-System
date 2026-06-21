@@ -153,6 +153,7 @@ class AresLiteCase:
 
         raw_contexts = (
             item.get("retrieved_contexts")
+            or item.get("retrieved_context")
             or item.get("contexts")
             or item.get("references")
             or item.get("search_results")
@@ -165,7 +166,13 @@ class AresLiteCase:
             if isinstance(context, dict)
         ]
 
-        raw_citations = item.get("citations") or item.get("response_citations") or []
+        raw_citations = (
+            item.get("citations")
+            or item.get("citations_repaired")
+            or item.get("citations_strict")
+            or item.get("response_citations")
+            or []
+        )
         citations = [
             AresLiteCitation.from_mapping(citation, index=citation_index)
             for citation_index, citation in enumerate(raw_citations)
@@ -192,7 +199,11 @@ class AresLiteCase:
             citations=citations,
             request_segments=request_segments,
             routing_trace=dict(routing_trace),
-            metadata={key: value for key, value in item.items() if key not in {"retrieved_contexts", "contexts"}},
+            metadata={
+                key: value
+                for key, value in item.items()
+                if key not in {"retrieved_contexts", "retrieved_context", "contexts"}
+            },
         )
 
     def to_dict(self) -> dict[str, Any]:

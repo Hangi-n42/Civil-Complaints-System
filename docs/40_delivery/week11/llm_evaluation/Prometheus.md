@@ -5,9 +5,9 @@
 이 문서는 Prometheus 논문의 평가 방식을 현재 프로젝트의 LLM-Rubric에
 어떻게 적용할지 정리한다.
 
-현재 프로젝트의 LLM-Rubric은 Q0~Q8 다차원 기준, 0.0~10.0 점수,
-`generated_body` 평가 범위, 실제 `consultant_answer` 기준 참조 정렬,
-semantic risk cap을 사용하는 deterministic proxy다.
+현재 프로젝트의 Civil LLM-Rubric은 Q0~Q7 다차원 기준, 1~4 선택지 확률 분포,
+0.0~10.0 환산 점수, `generated_body` 평가 범위, 검색 context/citation,
+`manual_completeness_features`, `safety_layer`를 사용하는 운영 평가 체계다.
 
 Prometheus는 이 구조를 대체하는 용도가 아니라, 기존 LLM-Rubric을
 **세분화된 피드백 평가자**로 강화하는 근거로 사용한다.
@@ -23,23 +23,23 @@ Prometheus는 현재 프로젝트에 잘 맞는다. 이유는 다음과 같다.
 
 | Prometheus 핵심 | 현재 프로젝트 자산 | 적용 방식 |
 | --- | --- | --- |
-| customized score rubric | Q0~Q8 루브릭 | 각 Q 항목에 0~10점 기준과 피드백 기준을 명시 |
+| customized score rubric | Q0~Q7 루브릭 | 각 Q 항목에 1~4 선택지 기준과 피드백 기준을 명시 |
 | reference material | `consultant_answer`, 검색 context, citation snippet | reference-aware 평가 입력으로 사용 |
 | language feedback | 현재 reason 목록 | 자연어 피드백, 약점, 수정 제안으로 확장 |
-| evaluator LLM | 현재 deterministic proxy 이후 단계 | 선택적 LLM judge로 항목별 피드백 생성 |
+| evaluator LLM | 현재 Civil LLM-Rubric judge 이후 단계 | 낮은 점수 항목에 대한 항목별 피드백 생성 |
 
 단, Prometheus 전체 모델 학습을 지금 구현하는 것은 범위가 크다.
 MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, 공식
-점수는 기존 deterministic LLM-Rubric을 유지한다.
+점수는 기존 Civil LLM-Rubric Q0~Q7 결과와 safety layer를 유지한다.
 
 ## 3. 적용 원칙
 
-1. **기존 Q0~Q8을 유지한다.**
+1. **기존 Q0~Q7을 유지한다.**
    - 평가 항목을 Prometheus 기준으로 갈아엎지 않는다.
-   - Q0 가중 평균과 fatal cap 구조를 유지한다.
+   - Q0, manual completeness feature, safety cap 구조를 유지한다.
 
 2. **Prometheus-style judge는 보조 피드백 계층이다.**
-   - 공식 점수는 deterministic proxy가 산출한다.
+   - 공식 점수는 Civil LLM-Rubric이 산출한다.
    - LLM judge 점수는 사람 검증 전까지 advisory score로 둔다.
 
 3. **reference-aware 평가를 강화한다.**
@@ -62,7 +62,7 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
 
 | 구분 | 역할 |
 | --- | --- |
-| Deterministic LLM-Rubric | 공식 Q0~Q8 점수, cap 적용, 재현 가능한 지표 |
+| Civil LLM-Rubric | 공식 Q0~Q7 점수, manual completeness feature, safety cap 적용 |
 | Prometheus-style feedback | 항목별 자연어 평가 사유, 누락 이슈, 수정 제안 |
 | ARES-lite | RAG 검색 관련성, 답변 근거 충실성, 답변 관련성 별도 진단 |
 | Human validation | 향후 judge 점수와 피드백 품질 검증 |
@@ -70,11 +70,11 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
 초기 구현에서는 Prometheus-style feedback을 Q0 계산에 직접 넣지 않는다.
 사람 평가 데이터로 상관관계가 확인된 뒤에만 calibration feature로 편입한다.
 
-## 5. Q0~Q8 적용 방식
+## 5. Q0~Q7 적용 방식
 
 | ID | 현재 평가 항목 | Prometheus-style 강화 방향 |
 | --- | --- | --- |
-| Q0 | 종합 만족도 | Q1~Q8 결과와 cap 사유를 요약한 최종 피드백 생성 |
+| Q0 | 종합 만족도 | Q1~Q7 결과, manual completeness, cap 사유를 요약한 최종 피드백 생성 |
 | Q1 | 생성 본문 품질 | 공공기관 문체, 내부 라벨, 이스케이프, 디버그 노출에 대한 자연어 피드백 |
 | Q2 | 근거 충분성 | 핵심 주장별 근거 있음/부족/없음 설명 |
 | Q3 | 인용 포함 | citation이 존재하는지뿐 아니라 답변에서 의미 있게 쓰였는지 설명 |
@@ -82,19 +82,18 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
 | Q5 | 최적 출처성 | 선택한 근거가 적절한지, 더 나은 근거가 누락됐는지 설명 |
 | Q6 | 중복 없음 | 반복, 템플릿 남용, 구조 문자열 노출을 구체적으로 지적 |
 | Q7 | 길이·밀도 | 짧음/장황함이 아니라 정보 밀도와 실질 본문 길이를 평가 |
-| Q8 | 업무 완결성 | 민원 요지, 판단, 조치, 제약, 후속 안내, 복합 이슈 누락을 설명 |
+| manual_completeness_features | 업무 완결성 보조 진단 | 민원 요지, 판단, 절차, 제약, 후속 안내, 복합 이슈 누락을 별도 feature로 설명 |
 
 ## 6. 항목별 루브릭 예시
 
-### Q8 업무 완결성
+### manual_completeness_features 업무 완결성 보조 진단
 
 | 점수 | 기준 |
 | ---: | --- |
-| 9~10 | 민원 요지, 담당 주체, 처리 가능성, 조치 절차, 제약 사항, 추가 안내가 모두 구체적임 |
-| 7~8 | 핵심 요지와 조치 방향은 충분하나 일부 절차나 제약 설명이 약함 |
-| 5~6 | 기본 답변은 가능하지만 담당 부서, 처리 기준, 조치 절차 중 일부가 빠짐 |
-| 3~4 | 일반 안내는 있으나 민원별 핵심 요구에 대한 직접 대응이 부족함 |
-| 0~2 | 답변이 없거나 민원 내용과 거의 무관함 |
+| 4 | 민원 요지, 판단, 절차, 제약, 후속 안내가 모두 확인됨 |
+| 3 | 핵심 요지와 조치 방향은 있으나 일부 절차나 제약 설명이 약함 |
+| 2 | 기본 답변은 가능하지만 처리 기준, 조치 절차, 후속 안내 중 일부가 빠짐 |
+| 1 | 답변이 없거나 민원별 핵심 요구에 대한 직접 대응이 부족함 |
 
 ### Q2 근거 충분성
 
@@ -111,8 +110,8 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
 ```json
 {
   "case_id": "CASE-001",
-  "metric_id": "Q8",
-  "metric_name": "업무 완결성",
+  "metric_id": "manual_completeness_features",
+  "metric_name": "업무 완결성 보조 진단",
   "instruction": "민원 원문에 대한 공공기관 회신 답변을 평가하라.",
   "query": "도로가 파손되어 차량 통행이 위험하고 주변 불법 주차도 위험합니다.",
   "generated_body": "모델이 생성한 3번 검토 의견 본문",
@@ -126,12 +125,17 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
       "quote": "..."
     }
   ],
-  "deterministic_score": 6.0,
-  "deterministic_reasons": [
-    "reference_alignment_score=6.0",
-    "semantic_risks=none"
+  "manual_completeness_features": {
+    "complaint_issue_identified": true,
+    "judgment_or_answer_present": true,
+    "procedure_guidance_present": false,
+    "limitation_or_constraint_explained": false,
+    "followup_guidance_present": true
+  },
+  "diagnostics": [
+    "incomplete_procedure_guidance"
   ],
-  "score_rubric": "Q8 0~10점 판단 기준"
+  "score_rubric": "manual completeness 1~4 판단 기준"
 }
 ```
 
@@ -143,9 +147,9 @@ MVP에서는 Prometheus-style prompt와 JSON 출력 스키마만 적용하고, �
 {
   "case_id": "CASE-001",
   "rubric": {
-    "Q8": {
-      "score": 6.0,
-      "label": "업무 완결성",
+    "manual_completeness_features": {
+      "score": 2,
+      "label": "업무 완결성 보조 진단",
       "reasons": [
         "summary=True",
         "constraint=False"
@@ -194,9 +198,10 @@ Q0에는 항목별 피드백을 종합한 `final_feedback`을 추가한다.
 ## 9. 목표 파이프라인
 
 ```text
-[1] 기존 LLM-Rubric 실행
+[1] 기존 Civil LLM-Rubric 실행
     - generated_body 추출
-    - Q1~Q8 deterministic score
+    - Q0~Q7 LLM judge 또는 rule fallback score
+    - manual_completeness_features 추출
     - Q0 cap 적용
 
         +
@@ -251,10 +256,10 @@ scripts/
 
 | 기존 초안 표현 | 수정 방향 |
 | --- | --- |
-| Prometheus로 Q1~Q8 독립 judge를 만든다 | 공식 점수는 deterministic 유지, judge는 feedback/advisory로 시작 |
+| Prometheus로 업무 완결성까지 독립 Q judge로 만든다 | Q0~Q7 저점 항목과 manual completeness feature에 대한 feedback/advisory로 시작 |
 | `rubric_scores.jsonl` 구조를 완전히 새 scores 구조로 변경 | 기존 `rubric[QID]` 구조 안에 `prometheus_feedback` 추가 |
 | Prometheus식 점수를 바로 Q0에 반영 | 사람 평가 검증 전까지 Q0에는 미반영 |
-| LLM judge가 citation 정확성을 직접 판정 | Q3/Q4의 deterministic citation 지표를 우선하고, LLM은 설명 보조 |
+| LLM judge가 citation 정확성을 직접 판정 | Q3/Q4의 citation validation 지표를 우선하고, LLM은 설명 보조 |
 | 자유 형식 피드백 생성 | 고정 JSON schema와 낮은 temperature 사용 |
 
 ## 12. 평가와 수용 기준
@@ -265,14 +270,14 @@ scripts/
 | --- | ---: |
 | feedback JSON 파싱 성공률 | 0.98 이상 |
 | Q0 cap 사유 설명 포함률 | 0.95 이상 |
-| Q8 저점 케이스의 누락 이슈 설명 precision | 0.75 이상 |
+| manual completeness 누락 이슈 설명 precision | 0.75 이상 |
 | unsupported claim 지적 precision | 0.75 이상 |
 | 담당자 수정에 바로 쓸 수 있는 revision hint 비율 | 0.80 이상 |
 
 ### 12.2 비교 대상
 
-- 기존 deterministic LLM-Rubric only
-- deterministic LLM-Rubric + Prometheus-style feedback
+- 기존 Civil LLM-Rubric only
+- Civil LLM-Rubric + Prometheus-style feedback
 - Direct LLM judge 단독
 
 비교 기준은 공식 점수 정확도보다 피드백 유용성을 우선한다.
@@ -283,7 +288,7 @@ scripts/
 | --- | --- |
 | LLM judge가 점수를 흔들 수 있음 | advisory score로만 두고 공식 Q0에는 미반영 |
 | 피드백이 장황해짐 | JSON 필드별 길이 제한과 bullet 수 제한 |
-| citation을 잘못 해석함 | deterministic citation 지표를 우선하고 LLM은 설명만 담당 |
+| citation을 잘못 해석함 | citation validation 지표를 우선하고 LLM은 설명만 담당 |
 | 비용과 지연 증가 | 오프라인 평가에서 시작, 운영 UI에는 필요 시만 실행 |
 | reference answer를 정답처럼 과신 | reference는 기준 자료일 뿐 완전 정답이 아님을 prompt에 명시 |
 
@@ -295,9 +300,9 @@ customized score rubric과 reference material을 바탕으로 긴 생성 답변�
 세밀하게 평가하고, 점수뿐 아니라 자연어 피드백을 생성하는 evaluator LLM
 구조를 제안한다.
 
-본 시스템에서는 이를 민원 회신 평가에 맞게 적용하여 Q1~Q8별 세부 점수
+본 시스템에서는 이를 민원 회신 평가에 맞게 적용하여 Q0~Q7별 세부 점수
 기준을 명시하고, `consultant_answer`, 검색 context, citation snippet을
-reference material로 활용한다. 기존 deterministic proxy의 공식 점수와
+reference material로 활용한다. 기존 Civil LLM-Rubric의 공식 점수와
 치명적 오류 상한 규칙은 유지하되, Prometheus-style feedback을 추가하여
 항목별 평가 사유, 근거 부족 문장, 누락된 민원 이슈, 수정 제안을 구조화된
 JSON으로 출력한다.

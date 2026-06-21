@@ -47,6 +47,19 @@ PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
+def _configure_utf8_stdio() -> None:
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+_configure_utf8_stdio()
+
 from app.generation.parsing.json_utils import (
     build_qa_response_schema,
     extract_json_string,
@@ -62,6 +75,10 @@ from app.evaluation.civil_llm_rubric import (
 from app.evaluation.prometheus_feedback import (
     get_prometheus_feedback_engine,
     select_low_score_items,
+)
+from app.generation.grounding_quality import (
+    build_generation_quality_signals,
+    sanitize_unsupported_commitments,
 )
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.service import GenerationService
@@ -512,7 +529,7 @@ def _build_prompt_context_from_case(
         return prompt, context, trace
 
     top_k = int(case.get("top_k") or 3)
-    collection_name = str(case.get("collection_name") or "civil_cases_v1")
+    collection_name = str(case.get("collection_name") or settings.DEFAULT_CHROMA_COLLECTION)
     filters = case.get("filters") if isinstance(case.get("filters"), dict) else None
     threshold = float(case.get("threshold") or 0.0)
 
@@ -667,6 +684,14 @@ def _run_civil_llm_rubric_for_benchmark(
         "qa_error_count": len(validation.get("errors", [])),
         "qa_warning_count": len(validation.get("warnings", [])),
     }
+    for key in (
+        "unsupported_commitment_count",
+        "citation_semantic_support_rate",
+        "segment_coverage_rate",
+        "hallucination_flag",
+    ):
+        if key in generation_metadata:
+            quality_signals[key] = generation_metadata[key]
 
     async def _evaluate() -> Dict[str, Any]:
         return await get_civil_llm_rubric_evaluator().evaluate(
@@ -755,6 +780,106 @@ def _build_direct_rubric_feedback(low_items: List[Dict[str, Any]]) -> Dict[str, 
         ),
         "risk_flags": [str(item.get("qid") or "") for item in low_items if item.get("qid")],
     }
+
+
+def _quality_signal_low_items(quality_signals: Dict[str, Any]) -> List[Dict[str, Any]]:
+    low_items: List[Dict[str, Any]] = []
+    if int(quality_signals.get("unsupported_commitment_count", 0) or 0) > 0:
+        low_items.append(
+            {
+                "qid": "GQ1",
+                "name": "unsupported administrative commitment",
+                "score_0_10": 0.0,
+            }
+        )
+    if float(quality_signals.get("citation_semantic_support_rate", 0.0) or 0.0) < 0.08:
+        low_items.append(
+            {
+                "qid": "GQ2",
+                "name": "weak semantic citation support",
+                "score_0_10": round(
+                    float(quality_signals.get("citation_semantic_support_rate", 0.0) or 0.0)
+                    * 10,
+                    4,
+                ),
+            }
+        )
+    if float(quality_signals.get("segment_coverage_rate", 1.0) or 0.0) < 1.0:
+        low_items.append(
+            {
+                "qid": "GQ3",
+                "name": "missing request segment coverage",
+                "score_0_10": round(
+                    float(quality_signals.get("segment_coverage_rate", 0.0) or 0.0) * 10,
+                    4,
+                ),
+            }
+        )
+    return low_items
+
+
+def _revision_quality_is_not_worse(
+    current: Dict[str, Any],
+    candidate: Dict[str, Any],
+    *,
+    tolerance: float = 0.02,
+) -> Tuple[bool, List[str]]:
+    reasons: List[str] = []
+
+    current_unsupported = int(current.get("unsupported_commitment_count", 0) or 0)
+    candidate_unsupported = int(candidate.get("unsupported_commitment_count", 0) or 0)
+    if candidate_unsupported > current_unsupported:
+        reasons.append(
+            f"unsupported_commitment_count_worse:{current_unsupported}->{candidate_unsupported}"
+        )
+
+    current_citation = float(current.get("citation_semantic_support_rate", 0.0) or 0.0)
+    candidate_citation = float(candidate.get("citation_semantic_support_rate", 0.0) or 0.0)
+    if candidate_citation + tolerance < current_citation:
+        reasons.append(
+            f"citation_semantic_support_worse:{current_citation:.4f}->{candidate_citation:.4f}"
+        )
+
+    current_segment = float(current.get("segment_coverage_rate", 1.0) or 0.0)
+    candidate_segment = float(candidate.get("segment_coverage_rate", 1.0) or 0.0)
+    if candidate_segment + tolerance < current_segment:
+        reasons.append(f"segment_coverage_worse:{current_segment:.4f}->{candidate_segment:.4f}")
+
+    return not reasons, reasons
+
+
+def _should_accept_prometheus_revision(
+    *,
+    revision_answer: str,
+    revision_validation: Dict[str, Any],
+    old_q0: float,
+    new_q0: float,
+    current_quality_signals: Dict[str, Any],
+    candidate_quality_signals: Dict[str, Any],
+    current_low_score_count: int,
+    candidate_low_score_count: int,
+) -> Tuple[bool, List[str]]:
+    reasons: List[str] = []
+    if not str(revision_answer or "").strip():
+        reasons.append("empty_revision_answer")
+    if not bool(revision_validation.get("is_valid", False)):
+        reasons.append("revision_validation_failed")
+    if float(new_q0) + 0.01 < float(old_q0):
+        reasons.append(f"q0_worse:{old_q0:.4f}->{new_q0:.4f}")
+
+    quality_ok, quality_reasons = _revision_quality_is_not_worse(
+        current_quality_signals,
+        candidate_quality_signals,
+    )
+    if not quality_ok:
+        reasons.extend(quality_reasons)
+
+    if int(candidate_low_score_count) > int(current_low_score_count) and float(new_q0) <= float(old_q0):
+        reasons.append(
+            f"low_score_count_worse:{current_low_score_count}->{candidate_low_score_count}"
+        )
+
+    return not reasons, reasons
 
 
 def _to_qa_search_results(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1313,6 +1438,18 @@ def run(
                         complaint=complaint_text,
                         context=eval_context,
                     )
+                    repaired_answer = sanitize_unsupported_commitments(repaired_answer)
+                    request_segments_for_quality = [
+                        str(item).strip()
+                        for item in routing_trace.get("request_segments", [])
+                        if str(item).strip()
+                    ] if isinstance(routing_trace.get("request_segments"), list) else []
+                    generation_quality_signals = build_generation_quality_signals(
+                        answer=repaired_answer,
+                        citations=repaired_citations,
+                        contexts=eval_context,
+                        request_segments=request_segments_for_quality,
+                    )
                     validation = build_validation_result(
                         answer=repaired_answer,
                         citations=repaired_citations,
@@ -1328,6 +1465,7 @@ def run(
                         "parse_retry_count": 1 if retry_reason else 0,
                         "legal_grounding_status": legal_grounding.get("status", "not_requested"),
                         "legal_grounding_error": legal_grounding.get("error", ""),
+                        **generation_quality_signals,
                     }
                     repaired_cite_rate = _citation_match_rate(repaired_citations, eval_context)
                     civil_llm_rubric_initial = _run_civil_llm_rubric_for_benchmark(
@@ -1345,7 +1483,10 @@ def run(
                         citation_match_rate=repaired_cite_rate,
                     )
                     civil_llm_rubric = civil_llm_rubric_initial
-                    civil_llm_rubric_low_items = _civil_llm_rubric_low_items(civil_llm_rubric)
+                    civil_llm_rubric_low_items = (
+                        _civil_llm_rubric_low_items(civil_llm_rubric)
+                        + _quality_signal_low_items(generation_quality_signals)
+                    )
                     prometheus_revision = {
                         "triggered": bool(civil_llm_rubric_low_items),
                         "applied": False,
@@ -1429,6 +1570,15 @@ def run(
                                 complaint=complaint_text,
                                 context=eval_context,
                             )
+                            revision_repaired_answer = sanitize_unsupported_commitments(
+                                revision_repaired_answer
+                            )
+                            revision_generation_quality_signals = build_generation_quality_signals(
+                                answer=revision_repaired_answer,
+                                citations=revision_repaired_citations,
+                                contexts=eval_context,
+                                request_segments=request_segments_for_quality,
+                            )
                             revision_validation = build_validation_result(
                                 answer=revision_repaired_answer,
                                 citations=revision_repaired_citations,
@@ -1458,15 +1608,27 @@ def run(
                                         "parse_retry_count"
                                     ]
                                     + 1,
+                                    **revision_generation_quality_signals,
                                 },
                                 citation_match_rate=revision_repaired_cite_rate,
                             )
                             old_q0 = _civil_llm_rubric_q0_score(civil_llm_rubric) or 0.0
                             new_q0 = _civil_llm_rubric_q0_score(revision_rubric) or 0.0
-                            if revision_repaired_answer and (
-                                bool(revision_validation.get("is_valid", False))
-                                or new_q0 >= old_q0
-                            ):
+                            revision_low_score_items = (
+                                _civil_llm_rubric_low_items(revision_rubric)
+                                + _quality_signal_low_items(revision_generation_quality_signals)
+                            )
+                            accept_revision, reject_reasons = _should_accept_prometheus_revision(
+                                revision_answer=revision_repaired_answer,
+                                revision_validation=revision_validation,
+                                old_q0=old_q0,
+                                new_q0=new_q0,
+                                current_quality_signals=generation_quality_signals,
+                                candidate_quality_signals=revision_generation_quality_signals,
+                                current_low_score_count=len(civil_llm_rubric_low_items),
+                                candidate_low_score_count=len(revision_low_score_items),
+                            )
+                            if accept_revision:
                                 parsed_final = parsed_revision
                                 raw_response = raw_revision
                                 latency += latency_revision
@@ -1484,11 +1646,10 @@ def run(
                                 repaired_citations = revision_repaired_citations
                                 repaired_answer = revision_repaired_answer
                                 repaired_cite_rate = revision_repaired_cite_rate
+                                generation_quality_signals = revision_generation_quality_signals
                                 validation = revision_validation
                                 civil_llm_rubric = revision_rubric
-                                civil_llm_rubric_low_items = _civil_llm_rubric_low_items(
-                                    civil_llm_rubric
-                                )
+                                civil_llm_rubric_low_items = revision_low_score_items
                                 retry_reason = (
                                     f"{retry_reason}+CIVIL_LLM_RUBRIC_LOW_SCORE"
                                     if retry_reason
@@ -1511,9 +1672,13 @@ def run(
                                 prometheus_revision = {
                                     **feedback,
                                     "applied": False,
-                                    "error": "revision_rejected_by_validation_or_empty_answer",
+                                    "error": "revision_rejected_by_quality_gate",
+                                    "reject_reasons": reject_reasons,
                                     "initial_q0": old_q0,
                                     "candidate_q0": new_q0,
+                                    "initial_low_score_count": len(civil_llm_rubric_low_items),
+                                    "candidate_low_score_count": len(revision_low_score_items),
+                                    "candidate_quality_signals": revision_generation_quality_signals,
                                 }
                         except Exception as revision_exc:  # noqa: BLE001
                             prometheus_revision = {
@@ -1563,6 +1728,36 @@ def run(
                             "citation_match_rate_repaired": round(repaired_cite_rate, 4),
                             # Backward compatibility: 기본 필드는 repaired 기준
                             "citation_match_rate": round(repaired_cite_rate, 4),
+                            "citation_semantic_support_rate": round(
+                                float(
+                                    generation_quality_signals.get(
+                                        "citation_semantic_support_rate", 0.0
+                                    )
+                                    or 0.0
+                                ),
+                                4,
+                            ),
+                            "segment_coverage_rate": round(
+                                float(
+                                    generation_quality_signals.get(
+                                        "segment_coverage_rate", 0.0
+                                    )
+                                    or 0.0
+                                ),
+                                4,
+                            ),
+                            "unsupported_commitment_count": int(
+                                generation_quality_signals.get(
+                                    "unsupported_commitment_count", 0
+                                )
+                                or 0
+                            ),
+                            "unsupported_commitments": generation_quality_signals.get(
+                                "unsupported_commitments", []
+                            ),
+                            "semantic_context_rerank": routing_trace.get(
+                                "semantic_context_rerank", {}
+                            ),
                             "confidence_num": round(normalize_confidence(parsed_final.get("confidence")), 4),
                             "qa_is_valid": bool(validation.get("is_valid", False)),
                             "qa_error_count": len(validation.get("errors", [])),

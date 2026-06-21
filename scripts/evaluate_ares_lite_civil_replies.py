@@ -1,4 +1,4 @@
-"""Run ARES-lite evaluation over civil complaint QA outputs.
+"""Run LLM-based ARES-lite evaluation over civil complaint QA outputs.
 
 Examples:
     python scripts/evaluate_ares_lite_civil_replies.py \
@@ -10,6 +10,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -20,9 +21,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.evaluation.ares_lite import AresLiteCase, AresLiteEvaluator, build_ares_lite_report
 from app.evaluation.ares_lite.report_builder import merge_ares_lite_summary_into_rubric_report
+from app.generation.service import get_generation_service
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="ARES-lite 민원 RAG 평가")
     parser.add_argument("--input", required=True, help="평가할 JSON 또는 JSONL 파일")
     parser.add_argument("--output", required=True, help="요약 리포트 JSON 출력 경로")
@@ -31,6 +33,25 @@ def main() -> None:
     parser.add_argument("--rubric-report", help="ARES-lite summary를 병합할 기존 LLM-Rubric report JSON")
     parser.add_argument("--merged-rubric-output", help="ARES-lite summary가 추가된 rubric report 출력 경로")
     parser.add_argument("--max-cases", type=int, default=0, help="앞에서부터 N건만 평가")
+    parser.add_argument("--start-index", type=int, default=0, help="0-based row offset for resumed evaluation")
+    parser.add_argument("--temperature", type=float, default=0.0, help="ARES-lite LLM judge temperature")
+    parser.add_argument("--max-contexts", type=int, default=5, help="Context relevance LLM judge에 넣을 최대 context 수")
+    parser.add_argument(
+        "--judge-mode",
+        choices=["integrated", "separate"],
+        default="integrated",
+        help="LLM judge mode. integrated is the default one-call ARES diagnostic path.",
+    )
+    parser.add_argument(
+        "--use-rule-fallback",
+        action="store_true",
+        help="LLM을 호출하지 않고 규칙 기반 fallback 평가만 실행",
+    )
+    parser.add_argument(
+        "--no-rule-fallback-on-llm-error",
+        action="store_true",
+        help="LLM judge 실패 시 rule fallback으로 내려가지 않고 실패 처리",
+    )
     parser.add_argument("--print-summary", action="store_true", help="평가 요약을 stdout에 출력")
     args = parser.parse_args()
 
@@ -46,15 +67,31 @@ def main() -> None:
     case_map = _load_case_map(_resolve(args.cases)) if args.cases else {}
 
     rows = _load_rows(input_path)
+    if args.start_index > 0:
+        rows = rows[args.start_index :]
     if args.max_cases > 0:
         rows = rows[: args.max_cases]
 
-    evaluator = AresLiteEvaluator()
+    evaluator = AresLiteEvaluator(
+        temperature=args.temperature,
+        max_contexts=args.max_contexts,
+        allow_rule_fallback=not args.no_rule_fallback_on_llm_error,
+        judge_mode=args.judge_mode,
+    )
+    generation_service = None if args.use_rule_fallback else get_generation_service()
     results = []
     for index, row in enumerate(rows):
         merged = _merge_case_context(row, case_map)
         case = AresLiteCase.from_mapping(merged, index=index)
-        results.append(evaluator.evaluate(case))
+        if args.use_rule_fallback:
+            results.append(evaluator.evaluate(case))
+        else:
+            results.append(
+                await evaluator.evaluate_async(
+                    case,
+                    llm_call=generation_service.call_ollama,
+                )
+            )
 
     report = build_ares_lite_report(results)
     _write_json(output_path, report)
@@ -168,7 +205,14 @@ def _merge_case_context(row: dict[str, Any], case_map: dict[str, dict[str, Any]]
 
 
 def _has_contexts(item: dict[str, Any]) -> bool:
-    for key in ("retrieved_contexts", "contexts", "references", "search_results", "retrieval_context"):
+    for key in (
+        "retrieved_contexts",
+        "retrieved_context",
+        "contexts",
+        "references",
+        "search_results",
+        "retrieval_context",
+    ):
         if isinstance(item.get(key), list) and item[key]:
             return True
     return False
@@ -189,4 +233,4 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

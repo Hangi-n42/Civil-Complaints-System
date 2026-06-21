@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.core.exceptions import NoEvidenceError
 from app.core.logging import pipeline_logger
 from app.core.config import settings
+from app.generation.grounding_quality import rerank_contexts_by_semantic_match
+from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
 from app.retrieval.analyzers.request_segment_analysis import (
     build_request_segment_analysis,
     enrich_request_segment_trace,
@@ -770,6 +772,16 @@ class PromptFactory:
             normalized = dict(item)
             normalized.setdefault("relevance_score", score)
             context.append(normalized)
+
+        context, semantic_trace = rerank_contexts_by_semantic_match(
+            context,
+            query=query,
+            request_segments=list(derived_trace.get("request_segments") or []),
+            query_signals=query_signals,
+            min_score=0.0,
+            keep_min=1,
+        )
+        derived_trace["semantic_context_rerank"] = semantic_trace
 
         if not context:
             cls._raise_no_evidence(

@@ -1,5 +1,50 @@
 # ARES-lite 기반 RAG 평가 고도화 적용 검토
 
+## 현재 구현 기준: LLM 통합 judge 우선
+
+2026-06-21 기준 ARES-lite의 표준 평가는 **LLM 기반 통합 judge**이다. 즉,
+`context_relevance`, `answer_faithfulness`, `answer_relevance`를 각각 별도 LLM 호출로
+평가하지 않고, 하나의 judge prompt에서 세 축을 동시에 평가한다.
+
+이 방식을 기본값으로 선택한 이유는 다음과 같다.
+
+- 평가 비용과 시간을 줄인다. 기존 분리 judge는 case당 LLM 호출이 3회였지만, 통합 judge는 1회다.
+- 같은 근거, 같은 답변, 같은 민원 세그먼트를 한 번에 보므로 세 지표 사이의 판정 불일치를 줄일 수 있다.
+- 결과 JSON 구조는 기존과 동일하게 `context_relevance`, `answer_faithfulness`, `answer_relevance`로 유지하므로 기존 리포트와 후속 분석 스크립트가 그대로 동작한다.
+
+현재 동작 모드는 아래처럼 정리한다.
+
+| 모드 | 사용 위치 | 의미 |
+| --- | --- | --- |
+| `ares_lite_llm_integrated_judge` | 기본 평가 경로 | LLM 1회 호출로 context relevance, faithfulness, answer relevance를 함께 평가 |
+| `ares_lite_llm_judge` | 디버그/비교용 | `--judge-mode separate` 사용 시 세 축을 각각 별도 LLM 호출로 평가 |
+| `ares_lite_rule_fallback` | 비상/스모크용 | `--use-rule-fallback` 또는 LLM judge 실패 시에만 사용하는 deterministic fallback |
+
+따라서 공식 벤치마크 보고서에서는 rule 기반 ARES-lite를 품질 점수로 사용하지 않는다.
+rule fallback은 LLM 평가 장애 시 결과 파일을 남기기 위한 안전장치이자 로컬 smoke test 용도다.
+
+실행 예시는 다음과 같다.
+
+```bash
+python scripts/evaluate_ares_lite_civil_replies.py \
+  --input logs/evaluation/week11/example/parsed_answers.jsonl \
+  --output logs/evaluation/week11/example/ares_lite_report.json \
+  --scores-output logs/evaluation/week11/example/ares_lite_scores.jsonl \
+  --judge-mode integrated
+```
+
+분리 judge와 rule fallback은 필요할 때만 아래처럼 사용한다.
+
+```bash
+# 세 축을 별도 LLM 호출로 비교 검증
+python scripts/evaluate_ares_lite_civil_replies.py ... --judge-mode separate
+
+# LLM 없이 deterministic smoke test
+python scripts/evaluate_ares_lite_civil_replies.py ... --use-rule-fallback
+```
+
+이 문서의 이후 내용에서 “LLM judge 중심”이라고 표현한 부분은 위의 통합 judge를 의미한다.
+
 ## 1. 문서 목적
 
 이 문서는 ARES 논문의 평가 관점을 현재 AI-Civil-Affairs-Systems에
@@ -33,8 +78,9 @@ ARES는 생성 답변 하나만 평가하는 루브릭이라기보다, RAG 파�
 
 - 원 논문의 synthetic data 생성, judge fine-tuning, PPI 신뢰구간 계산은
   현재 졸업 프로젝트 범위에서는 무겁다.
-- 현재 단계에서는 ARES의 세 평가 축을 규칙 기반 지표와 선택적 LLM judge로
-  구현하는 것이 현실적이다.
+- 현재 단계에서는 ARES의 세 평가 축을 **LLM judge 중심**으로 구현하고,
+  citation/segment 기반 deterministic 신호는 실패 시 fallback 및 보조 진단으로만
+  사용하는 것이 현실적이다.
 - 사람 검토 데이터가 쌓이면 이후 ARES 원 논문 방식처럼 validation set과
   confidence interval 기반 평가로 확장할 수 있다.
 
@@ -61,10 +107,10 @@ ARES는 생성 답변 하나만 평가하는 루브릭이라기보다, RAG 파�
     -> Analyzer / Router
     -> RetrievalService.search()
     -> GenerationService.generate_qa()
-    -> ARES-lite Evaluator
-       - Context Relevance
-       - Answer Faithfulness
-       - Answer Relevance
+    -> ARES-lite Evaluator (LLM judge 중심)
+       - Context Relevance LLM Judge
+       - Answer Faithfulness LLM Judge
+       - Answer Relevance LLM Judge
     -> LLM-Rubric Evaluator
     -> Evaluation Report / Workbench
 ```

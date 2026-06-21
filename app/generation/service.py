@@ -24,6 +24,11 @@ from app.generation.parsing.json_utils import (
     normalize_confidence,
     parse_qa_json_response,
 )
+from app.generation.citation.legal_citation import ground_legal_citations
+from app.generation.grounding_quality import (
+    build_generation_quality_signals,
+    sanitize_unsupported_commitments,
+)
 
 
 class GenerationService:
@@ -834,7 +839,6 @@ class GenerationService:
             result.setdefault("legal_citation_warnings", [])
             if grounding_status.get("status") in {"disabled", "not_requested"}:
                 return result
-            from app.generation.citation.legal_citation import ground_legal_citations
             g = ground_legal_citations(result.get("answer", ""), articles or [])
             result["answer"] = g["answer"]
             result["legal_citations"] = g["valid"]
@@ -972,10 +976,36 @@ class GenerationService:
                 legal_articles,
                 legal_grounding,
             )
+            result["answer"] = sanitize_unsupported_commitments(
+                str(result.get("answer") or "")
+            )
+            request_segments = []
+            if isinstance(routing_trace, dict) and isinstance(
+                routing_trace.get("request_segments"),
+                list,
+            ):
+                request_segments = [
+                    str(item).strip()
+                    for item in routing_trace.get("request_segments", [])
+                    if str(item).strip()
+                ]
+            quality_signals = build_generation_quality_signals(
+                answer=str(result.get("answer") or ""),
+                citations=result.get("citations") if isinstance(result.get("citations"), list) else [],
+                contexts=context,
+                request_segments=request_segments,
+            )
+            result["quality_signals"] = {
+                "citation_coverage": quality_signals["citation_semantic_support_rate"],
+                "hallucination_flag": quality_signals["hallucination_flag"],
+                "segment_coverage": quality_signals["segment_coverage_rate"],
+                **quality_signals,
+            }
             result["generation_metadata"].update(
                 {
                     "legal_grounding_status": legal_grounding["status"],
                     "legal_grounding_error": legal_grounding["error"],
+                    **quality_signals,
                 }
             )
             self.logger.info("QA 응답 생성 완료")
