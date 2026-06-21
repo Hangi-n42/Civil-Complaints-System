@@ -1,5 +1,6 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
 import type { ResponsibleUnit } from "./responsibleUnit";
+import { normalizeSegmentAnswers, type SegmentAnswerCard } from "./draft";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -122,6 +123,8 @@ export type QaResponseData = {
     summary?: string;
     actionItems?: string[];
     requestSegments?: string[];
+    // 이슈 #451: 요청별 답변·근거(BE3 segment_answers). 구버전 응답엔 없어 폴백으로 평면 answer를 쓴다.
+    segmentAnswers?: SegmentAnswerCard[];
   };
 };
 
@@ -209,6 +212,7 @@ type BackendQaData = {
     summary?: string;
     action_items?: string[];
     request_segments?: string[];
+    segment_answers?: unknown;
   };
 };
 
@@ -845,6 +849,7 @@ function mapQaData(payload: BackendQaData, params: {
       summary: payload.structured_output?.summary || params.caseContext?.summary || params.query,
       actionItems: payload.structured_output?.action_items || [],
       requestSegments: requestSegments.length > 0 ? requestSegments : [params.caseContext?.summary || params.query].filter(Boolean),
+      segmentAnswers: normalizeSegmentAnswers(payload.structured_output?.segment_answers),
     },
   };
 }

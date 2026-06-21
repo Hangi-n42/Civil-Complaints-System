@@ -65,6 +65,63 @@ export function pairSegmentsWithActions(requestSegments: string[], actionItems: 
   }));
 }
 
+// 이슈 #451: BE3(이슈 #450)가 structured_output.segment_answers로 요청별 답변·근거를 내려준다.
+// 백엔드 계약(app/api/routers/generation.py _normalize_segment_answers):
+//   { segment_index:int, request_segment:str, answer:str, case_ids:str[], evidence_status:"grounded"|"no_evidence" }
+// FE는 표시 위주 — 이 순수 함수가 백엔드 배열을 카드로 정규화하고, 비면 빈 배열로 평면 answer 폴백을 유도한다.
+export type SegmentAnswerCard = {
+  index: number;
+  requestSegment: string;
+  answer: string;
+  caseIds: string[];
+  hasEvidence: boolean;
+};
+
+/** structured_output.segment_answers(구버전 응답엔 없음)를 화면 카드로 정규화한다. 배열이 아니거나 비면 []. */
+export function normalizeSegmentAnswers(raw: unknown): SegmentAnswerCard[] {
+  if (!Array.isArray(raw)) return [];
+  const cards: SegmentAnswerCard[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const obj = item as Record<string, unknown>;
+    const index = Number(obj.segment_index);
+    if (!Number.isInteger(index) || index < 0) continue;
+    const answer = String(obj.answer ?? "").trim();
+    if (!answer) continue;
+    const caseIds = Array.isArray(obj.case_ids)
+      ? obj.case_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
+      : [];
+    cards.push({
+      index,
+      requestSegment: String(obj.request_segment ?? "").trim(),
+      answer,
+      // 백엔드는 case_ids가 있을 때만 grounded로 표기하지만, 둘 중 하나만 충족해도 근거 있음으로 본다.
+      hasEvidence: obj.evidence_status === "grounded" || caseIds.length > 0,
+      caseIds,
+    });
+  }
+  return cards;
+}
+
+// 이슈 #451 (선택): 오래된 검색 결과로 초안을 만드는 것을 막기 위한 쿼리 일치 검사.
+// 서버가 query_hash를 주지 않으므로 FE가 쿼리 문자열을 정규화·해시해 비교한다(빈 쿼리는 "" → 비교 제외).
+export function hashQuery(query: string): string {
+  const normalized = String(query || "").trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    hash = (hash * 31 + normalized.charCodeAt(i)) | 0;
+  }
+  return `${normalized.length}:${hash}`;
+}
+
+/** 초안 생성에 쓰인 쿼리와 현재 화면 검색 결과의 쿼리가 다르면 stale(낡음)로 본다. 한쪽이라도 비면 판단 보류. */
+export function isDraftStale(params: { draftQueryHash: string | null; searchQueryHash: string | null }): boolean {
+  const { draftQueryHash, searchQueryHash } = params;
+  if (!draftQueryHash || !searchQueryHash) return false;
+  return draftQueryHash !== searchQueryHash;
+}
+
 function normalizeSegments(segments?: string[]): string[] {
   return (segments || [])
     .map((segment) => String(segment || "").split(/\s+/).join(" "))

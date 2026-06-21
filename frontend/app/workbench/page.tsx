@@ -30,9 +30,12 @@ import {
   computeSegmentViewMode,
   pairSegmentsWithActions,
   selectDraftRequestSegments,
+  hashQuery,
+  isDraftStale,
   type DraftStage,
   type SegmentViewMode,
   type SupplementarySegment,
+  type SegmentAnswerCard,
 } from "@/lib/draft";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
@@ -123,6 +126,8 @@ function WorkbenchContent() {
   const [draftError, setDraftError] = useState<string | null>(null);
   const [draftEditorValue, setDraftEditorValue] = useState("");
   const [draftProgressStep, setDraftProgressStep] = useState(0);
+  // 이슈 #451: 초안을 만든 쿼리의 해시. 이후 다른 쿼리로 재검색하면 화면 초안이 stale임을 표시한다.
+  const [draftQueryHash, setDraftQueryHash] = useState<string | null>(null);
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [isRawCollapsed, setIsRawCollapsed] = useState(true);
 
@@ -209,6 +214,7 @@ function WorkbenchContent() {
     setRouteKey(null);
     setDraftStage("idle");
     setDraftResponse(null);
+    setDraftQueryHash(null);
     setDraftError(null);
     setExpandedDocId(null);
     setIsRawCollapsed(true);
@@ -349,10 +355,12 @@ function WorkbenchContent() {
         return;
       }
 
+      // 초안을 만든 쿼리를 stale 검사용으로 기억해 둔다(아래 성공 분기에서 해시 저장).
+      const generationQuery = bundle?.query || searchQuery || buildDefaultQuery(selectedCase);
       const response = await streamQaApi(
         {
           complaintId: selectedCase.case_id,
-          query: bundle?.query || searchQuery || buildDefaultQuery(selectedCase),
+          query: generationQuery,
           routingHint: effectiveRoutingHint,
           routingTrace: bundle?.routingTrace || routingTrace || undefined,
           useSearchResults: Boolean(bundle?.results?.length || bundle?.searchResults?.length),
@@ -371,6 +379,7 @@ function WorkbenchContent() {
 
       setDraftStage("success");
       setDraftResponse(response.data);
+      setDraftQueryHash(hashQuery(generationQuery));
       // Save draft snapshot for before/after comparison
       saveDraftSnapshot(response.data);
     } catch (error: unknown) {
@@ -391,6 +400,12 @@ function WorkbenchContent() {
   const segmentViewMode = computeSegmentViewMode({ draftStage, segmentCount: requestSegments.length });
   const supplementarySegments = pairSegmentsWithActions(requestSegments, draftResponse?.structuredOutput?.actionItems || []);
   const draftSummary = draftResponse?.structuredOutput?.summary || "";
+  // 이슈 #451: 요청별 답변·근거. 비면([]) 패널은 기존 세그먼트/조치 표시로 폴백한다.
+  const segmentAnswers = draftResponse?.structuredOutput?.segmentAnswers ?? [];
+  // 화면에 떠 있는 검색 결과의 쿼리와 초안을 만든 쿼리가 어긋나면 stale 경고를 띄운다.
+  const draftIsStale =
+    draftStage === "success" &&
+    isDraftStale({ draftQueryHash, searchQueryHash: searchBundle ? hashQuery(searchBundle.query) : null });
 
   // 공식 회신문 편집값은 answer만 사용한다(이슈 #388). 보조 메타데이터는 DraftSupplementaryPanel에서만 표시한다.
   const draftTextareaValue = buildDraftTextareaValue({ draftStage, answer: draftResponse?.answer });
@@ -545,7 +560,13 @@ function WorkbenchContent() {
                   )}
                   {draftError && <div className="mt-2 text-xs text-red-600">{draftError}</div>}
                   {draftStage === "success" && (segmentViewMode === "single" || segmentViewMode === "multi") && (
-                    <DraftSupplementaryPanel mode={segmentViewMode} summary={draftSummary} segments={supplementarySegments} />
+                    <DraftSupplementaryPanel
+                      mode={segmentViewMode}
+                      summary={draftSummary}
+                      segments={supplementarySegments}
+                      segmentAnswers={segmentAnswers}
+                      stale={draftIsStale}
+                    />
                   )}
                 </div>
               </div>
@@ -892,21 +913,33 @@ function getCaseRequestSegments(caseItem: WorkbenchCase): string[] {
     .filter(Boolean);
 }
 
+// 이슈 #451: segmentAnswers가 있으면 요청별 답변·근거를 보여주고(근거 없는 요청은 "선례 없음" 배지),
+// 없으면(구버전 응답) 기존 세그먼트/조치 표시로 폴백한다. stale면 상단에 경고 배지를 띄운다.
 function DraftSupplementaryPanel({
   mode,
   summary,
   segments,
+  segmentAnswers,
+  stale,
 }: {
   mode: SegmentViewMode;
   summary: string;
   segments: SupplementarySegment[];
+  segmentAnswers: SegmentAnswerCard[];
+  stale: boolean;
 }) {
+  const count = segmentAnswers.length > 0 ? segmentAnswers.length : segments.length;
   return (
     <div className="mt-2 border border-slate-200 bg-slate-50/70 p-2.5 text-xs">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 font-bold text-slate-600">
-          {mode === "multi" ? `복합 요청 · ${segments.length}건` : "단일 요청"}
+          {mode === "multi" ? `복합 요청 · ${count}건` : "단일 요청"}
         </span>
+        {stale && (
+          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
+            ⚠ 검색 결과가 갱신됨 · 초안 재생성 권장
+          </span>
+        )}
         <span className="text-[11px] text-slate-400">분석 보조 정보 · 공식 회신문에는 포함되지 않습니다</span>
       </div>
       {summary && (
@@ -915,20 +948,49 @@ function DraftSupplementaryPanel({
           <div className="leading-5 text-slate-600">{summary}</div>
         </div>
       )}
-      {segments.length > 0 && (
+      {segmentAnswers.length > 0 ? (
         <div>
-          <div className="mb-1 font-semibold text-slate-700">요청 세그먼트 / 조치</div>
-          <ul className="space-y-1">
-            {segments.map((seg) => (
-              <li key={seg.index} className="rounded border border-slate-200 bg-white px-2 py-1.5">
-                <div className="text-slate-700">
-                  <span className="font-semibold text-slate-500">{seg.index + 1}.</span> {seg.text}
+          <div className="mb-1 font-semibold text-slate-700">요청별 답변 · 근거</div>
+          <ul className="space-y-1.5">
+            {segmentAnswers.map((card) => (
+              <li key={card.index} className="rounded border border-slate-200 bg-white px-2 py-1.5">
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-slate-500">{card.index + 1}.</span>
+                  <span className="flex-1 font-medium text-slate-700">{card.requestSegment || `요청 ${card.index + 1}`}</span>
+                  {card.hasEvidence ? (
+                    <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      근거 {card.caseIds.length}건
+                    </span>
+                  ) : (
+                    <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                      선례 없음
+                    </span>
+                  )}
                 </div>
-                {seg.action && <div className="mt-0.5 text-[11px] text-slate-500">· 조치: {seg.action}</div>}
+                <div className="mt-1 leading-5 text-slate-600">{card.answer}</div>
+                {card.caseIds.length > 0 && (
+                  <div className="mt-1 text-[11px] text-slate-400">근거 사례: {card.caseIds.join(", ")}</div>
+                )}
               </li>
             ))}
           </ul>
         </div>
+      ) : (
+        segments.length > 0 && (
+          <div>
+            <div className="mb-1 font-semibold text-slate-700">요청 세그먼트 / 조치</div>
+            <ul className="space-y-1">
+              {segments.map((seg) => (
+                <li key={seg.index} className="rounded border border-slate-200 bg-white px-2 py-1.5">
+                  <div className="text-slate-700">
+                    <span className="font-semibold text-slate-500">{seg.index + 1}.</span> {seg.text}
+                  </div>
+                  {seg.action && <div className="mt-0.5 text-[11px] text-slate-500">· 조치: {seg.action}</div>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       )}
     </div>
   );
