@@ -30,6 +30,13 @@ export function duplicateStatusTone(status: DuplicateMergeRecord["status"]): str
   }
 }
 
+export function duplicateReviewPriorityLabel(group: DuplicateMergeRecord): string {
+  if (group.risk_flags.some((flag) => flag.severity === "blocker")) return "검토 우선도 주의";
+  if (group.confidence >= 0.78) return "검토 우선도 높음";
+  if (group.confidence >= 0.55) return "검토 우선도 보통";
+  return "검토 우선도 낮음";
+}
+
 export function duplicateGroupTitle(group: DuplicateMergeRecord): string {
   const ids = group.member_complaint_ids.join(" ");
   if (ids.includes("dm-hotspot-noise")) return "한빛아파트 북문 공사 소음 반복 민원";

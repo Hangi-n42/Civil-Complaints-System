@@ -4,6 +4,7 @@ import {
   canGenerateDuplicateReplyDraft,
   duplicateBadgeForCase,
   duplicateGroupTitle,
+  duplicateReviewPriorityLabel,
   duplicateStatusLabel,
   evidenceLabel,
   replyDraftFallbackNotice,
@@ -89,6 +90,26 @@ describe("duplicate merge display helpers", () => {
     expect(location).toBe("장소와 시설 신호가 일치합니다.");
     expect(`${semantic} ${location}`).not.toContain("PII-safe");
     expect(`${semantic} ${location}`).not.toContain("exact");
+  });
+
+  it("confidence는 화면에서 검토 우선도 등급으로 표시한다", () => {
+    const labels = [
+      duplicateReviewPriorityLabel(group({ confidence: 0.9 })),
+      duplicateReviewPriorityLabel(group({ confidence: 0.6 })),
+      duplicateReviewPriorityLabel(group({ confidence: 0.4 })),
+      duplicateReviewPriorityLabel(
+        group({
+          confidence: 0.9,
+          risk_flags: [{ code: "LEGAL_RIGHTS_OR_DEADLINE_RISK", severity: "blocker", message: "", affected_case_ids: [], evidence: [] }],
+        }),
+      ),
+    ];
+
+    expect(labels).toEqual(["검토 우선도 높음", "검토 우선도 보통", "검토 우선도 낮음", "검토 우선도 주의"]);
+    expect(labels.join(" ")).not.toContain("%");
+    expect(labels.join(" ")).not.toContain("신뢰도");
+    expect(labels.join(" ")).not.toContain("정확도");
+    expect(labels.join(" ")).not.toContain("병합 가능성");
   });
 
   it("메인 민원 목록 배지는 confirmed를 우선 표시한다", () => {
