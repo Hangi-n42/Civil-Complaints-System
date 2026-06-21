@@ -78,3 +78,29 @@ Codex silver를 **사람 신호로** 검증: 각 (쿼리,후보) pair에서 **�
 - 형태소 BM25 − dense = −0.046 [−0.080, −0.013] 유의(BM25 단독은 dense보다 약하나, hybrid 결합 시 동률 → **"BM25 결합 손해" 철회**).
 - **최종 결론**: 초기 dense 우세는 토큰화 아티팩트, 형태소 적용 후 **hybrid=dense 확정**. 스크립트 `scripts/{build_morph_rejudge_input,eval_morph_final}.py`.
 - 남는 한계: LLM-silver(사람 anchor 없음)·query 100 대표성·top-11~50 미채점(nDCG@10엔 미영향). **운영 전환은 사람 spot-check/A-B 후.**
+
+## 지표 타당성 검토 (construct validity, 독립 AI 4차 검증 수용)
+**질문: nDCG@10 / rel("재사용 안전")이 진짜 "답변 초안 생성 도움"을 재는가?**
+
+BE3(답변 생성) 실제 사용(`app/generation/`): grounding **top-5**(프롬프트 2~3개), 사례의 **snippet(120~200자)만**, 역할은 "참고"(복사 금지).
+
+**갭1 — top-k 정렬**(`scripts/eval_topk_validity.py`): 실제 범위(top-5/3)로 재계산:
+
+| | nDCG@5 | nDCG@3 | Success@3 | MRR@5 |
+|---|---|---|---|---|
+| dense | 0.835 | 0.866 | 1.00 | 0.985 |
+| 형태소 hybrid | 0.836 | 0.876 | 1.00 | 0.990 |
+
+형태소 hybrid−dense Δ@5/@3 모두 무의(동률 유지). **Success@3=1.0·MRR≈0.99·hit@5≈3.6 = 천장 효과**(시스템 변별 거의 없음).
+
+**천장 정체**(`scripts/diag_self_retrieval.py`): query↔top-1 유사도 평균 0.825(>0.95 **0%**, >0.90 **5%**), top-1 관련율 **97%**. → **near-dup/self-retrieval 아님**(평가가 복붙으로 부풀려진 게 아님). **검색이 실제로 잘 찾는 게 맞음.**
+
+**갭2 — 평가 단위(미해결, 최대 validity gap)**: 평가 rel은 **문서 전체(2000자)** 기준인데 답변엔 **snippet(120~200자)만** 들어감. 문서가 rel2여도 snippet에 핵심 근거 없으면 BE3엔 무용 → 천장이 문서 기준의 관대함 탓일 수도.
+
+**결론**:
+- 검색 ranking은 천장(실제 실력) → **검색 nDCG를 더 올릴 여지 적음**. nDCG는 의사결정 지표에서 내려놓고 보조로.
+- 진짜 개선 여지 = (a) **query 대표성**(운영 사용자 질문은 더 어려움; 현 query는 정제된 민원 원문) (b) **snippet utility** (c) **BE3 답변 생성**.
+- 답변 도움 지표 권장: rel2@3, evidence sufficiency(top-5 snippet으로 근거 충분?), 법령/기관/숫자 일치, false-friend(비슷하나 결론 다른 위험).
+- **최대 함정**: "검색 rel 포화 = RAG 품질 포화" 착각. BE3는 snippet이 좌우.
+
+**다음(ROI)**: ① 사람 spot-check(50 query×top-5 snippet → 충분/부족/위험) ② snippet 기준 소규모 재평가 ③ near-dup 제거·운영형 query 추가 ④ 형태소 운영 튜닝 ⑤ end-to-end.
