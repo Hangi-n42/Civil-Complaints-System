@@ -128,9 +128,11 @@ export type QaResponseData = {
   };
 };
 
+type ApiError = { message: string; code?: string };
+
 type ApiResponse<T> = {
   data: T;
-  error: { message: string } | null;
+  error: ApiError | null;
 };
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
@@ -140,7 +142,7 @@ const DRAFT_STORAGE_KEY = "workbench-last-draft";
 type BackendEnvelope<T> = {
   success?: boolean;
   data?: T;
-  error?: { message?: string };
+  error?: { message?: string; code?: string };
   detail?: string;
 };
 
@@ -456,6 +458,25 @@ export type DuplicateDraftReplyPayload = {
   prohibited_content_rules: string[];
 };
 
+// confirmed 그룹의 실제 대표 답변 초안(BE2 검색 + BE3 생성 결과). 자동 발송이 아니라 담당자 검토용이다.
+export type DuplicateReplyDraft = {
+  merge_id: string;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  requires_human_review: boolean;
+  answer: string;
+  citations: Array<Record<string, unknown>>;
+  limitations: string[];
+  structured_output: Record<string, unknown>;
+  generation_metadata: Record<string, unknown>;
+  safety_warnings: string[];
+  query: string;
+  routing_hint: Record<string, unknown>;
+  routing_trace: Record<string, unknown>;
+  search_results: Array<Record<string, unknown>>;
+  draft_reply_payload: DuplicateDraftReplyPayload;
+};
+
 const EMPTY_DUPLICATE_GROUPS: DuplicateGroupsData = {
   count: 0,
   duplicate_groups: [],
@@ -577,6 +598,21 @@ export async function fetchDuplicateDraftReplyApi(
   try {
     const payload = await fetchBackend<{ draft_reply_payload: DuplicateDraftReplyPayload }>(
       `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/draft-reply`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+// confirmed 그룹에서만 실제 대표 답변 초안을 생성한다. candidate/split/rejected는 409(DUPLICATE_GROUP_NOT_CONFIRMED).
+export async function fetchDuplicateReplyDraftApi(
+  mergeId: string,
+): Promise<ApiResponse<{ reply_draft: DuplicateReplyDraft } | null>> {
+  try {
+    const payload = await fetchBackend<{ reply_draft: DuplicateReplyDraft }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/reply-draft`,
       { method: "POST" },
     );
     return { data: payload, error: null };
@@ -794,7 +830,9 @@ async function fetchBackend<T>(path: string, init: RequestInit = {}): Promise<T>
   const envelope = (await response.json().catch(() => ({}))) as BackendEnvelope<T>;
 
   if (!response.ok || envelope.success === false) {
-    throw new Error(envelope.error?.message || envelope.detail || `API 요청 실패 (${response.status})`);
+    const failure = new Error(envelope.error?.message || envelope.detail || `API 요청 실패 (${response.status})`);
+    if (envelope.error?.code) (failure as { code?: string }).code = envelope.error.code;
+    throw failure;
   }
   if (!envelope.data) {
     throw new Error("API 응답에 data 필드가 없습니다.");
@@ -1115,10 +1153,12 @@ function normalizeComplexityLevel(value?: string): "low" | "medium" | "high" | n
   return null;
 }
 
-function toApiError(error: unknown) {
-  return {
-    message: error instanceof Error ? error.message : "API 요청 중 오류가 발생했습니다.",
-  };
+function toApiError(error: unknown): ApiError {
+  if (error instanceof Error) {
+    const code = (error as { code?: unknown }).code;
+    return { message: error.message, code: typeof code === "string" ? code : undefined };
+  }
+  return { message: "API 요청 중 오류가 발생했습니다." };
 }
 
 function mapCategoryToTopic(category = ""): TopicType {

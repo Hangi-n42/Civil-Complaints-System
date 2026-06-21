@@ -112,6 +112,43 @@ export function canCreateDraftReply(group: DuplicateMergeRecord): boolean {
   return group.status === "confirmed" && group.allowed_actions.includes("draft_reply");
 }
 
+// /reply-draft(실제 대표 답변 초안 생성)는 /draft-reply(payload 조회)와 같은 confirmed-only 조건이지만,
+// 혼동을 피하려고 별도 helper로 둔다(핸드오프 §6).
+export function canGenerateDuplicateReplyDraft(group: DuplicateMergeRecord): boolean {
+  return group.status === "confirmed" && group.allowed_actions.includes("draft_reply");
+}
+
+// 답변 초안 사후 점검 결과(safety_warnings) 코드를 담당자용 문구로 바꾼다(핸드오프 §11).
+export function safetyWarningLabel(code: string): string {
+  const labels: Record<string, string> = {
+    PII_PHONE: "초안 내 전화번호 의심 표현 확인 필요",
+    PII_EMAIL: "초안 내 이메일 의심 표현 확인 필요",
+    PII_DETAILED_ADDRESS: "초안 내 상세주소 의심 표현 확인 필요",
+    AUTO_SEND_PROMISE: "자동 발송으로 오해될 표현 확인 필요",
+    AUTO_MERGE_PROMISE: "자동 병합·일괄 처리로 오해될 표현 확인 필요",
+    COMPENSATION_PROMISE: "보상 확정 표현 확인 필요",
+    DEADLINE_CHANGE_PROMISE: "처리기한 확정 표현 확인 필요",
+    NO_SEARCH_CONTEXT: "검색 근거 부족",
+    RETRIEVAL_ERROR: "검색 실패로 안전 초안 사용",
+    RISK_FLAGS_PRESENT: "병합 주의 사유가 있는 그룹",
+  };
+  return labels[code] ?? code;
+}
+
+// 안전 fallback 초안이면 상단에 보여줄 안내 문구를 반환한다(핸드오프 §5/§E). 정상 생성이면 null.
+export function replyDraftFallbackNotice(metadata: Record<string, unknown>): string | null {
+  if (!metadata || metadata.fallback_used !== true) return null;
+  const reason = String(metadata.fallback_reason ?? "");
+  const retrievalWarning = String(metadata.retrieval_warning ?? "");
+  if (reason.includes("RETRIEVAL_ERROR") || retrievalWarning.includes("RETRIEVAL_ERROR")) {
+    return "검색 실패로 담당자 검토용 안전 초안이 생성되었습니다.";
+  }
+  if (reason.includes("NO_SEARCH_CONTEXT")) {
+    return "검색 근거가 부족해 안전 초안이 생성되었습니다.";
+  }
+  return "담당자 검토용 안전 초안이 생성되었습니다.";
+}
+
 export function duplicateQueueContextLabel(group: DuplicateMergeRecord): {
   label: string;
   className: string;

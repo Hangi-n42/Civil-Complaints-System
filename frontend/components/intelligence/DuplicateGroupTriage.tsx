@@ -3,13 +3,16 @@
 import { useMemo, useState } from "react";
 import {
   fetchDuplicateDraftReplyApi,
+  fetchDuplicateReplyDraftApi,
   transitionDuplicateGroupApi,
   type DuplicateDraftReplyPayload,
   type DuplicateMergeRecord,
   type DuplicateMergeStatus,
+  type DuplicateReplyDraft,
 } from "@/lib/api";
 import {
   canCreateDraftReply,
+  canGenerateDuplicateReplyDraft,
   duplicateGroupTitle,
   duplicateQueueContextLabel,
   duplicateStatusLabel,
@@ -19,6 +22,7 @@ import {
   riskFlagLabel,
   riskFlagTone,
 } from "./duplicateMerge";
+import { DuplicateReplyDraftPanel } from "./DuplicateReplyDraftPanel";
 
 const STATUS_FILTERS: Array<{ value: "all" | DuplicateMergeStatus; label: string }> = [
   { value: "all", label: "전체" },
@@ -29,7 +33,7 @@ const STATUS_FILTERS: Array<{ value: "all" | DuplicateMergeStatus; label: string
 ];
 
 type ActionMessage = {
-  type: "success" | "error";
+  type: "success" | "error" | "info";
   text: string;
 };
 
@@ -51,6 +55,7 @@ export function DuplicateGroupTriage({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<ActionMessage | null>(null);
   const [draftPayload, setDraftPayload] = useState<DuplicateDraftReplyPayload | null>(null);
+  const [replyDraft, setReplyDraft] = useState<DuplicateReplyDraft | null>(null);
 
   const filteredGroups = useMemo(() => {
     return groups
@@ -89,6 +94,23 @@ export function DuplicateGroupTriage({
       return;
     }
     setDraftPayload(response.data.draft_reply_payload);
+  }
+
+  async function openReplyDraft(group: DuplicateMergeRecord) {
+    setBusyId(group.merge_id);
+    setMessage(null);
+    setReplyDraft(null);
+    const response = await fetchDuplicateReplyDraftApi(group.merge_id);
+    setBusyId(null);
+    if (response.error || !response.data) {
+      if (response.error?.code === "DUPLICATE_GROUP_NOT_CONFIRMED") {
+        setMessage({ type: "info", text: "담당자 확정 후에만 대표 답변 초안을 생성할 수 있습니다." });
+      } else {
+        setMessage({ type: "error", text: response.error?.message ?? "대표 답변 초안을 생성하지 못했습니다." });
+      }
+      return;
+    }
+    setReplyDraft(response.data.reply_draft);
   }
 
   return (
@@ -147,7 +169,9 @@ export function DuplicateGroupTriage({
           className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
             message.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-red-200 bg-red-50 text-red-700"
+              : message.type === "info"
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : "border-red-200 bg-red-50 text-red-700"
           }`}
         >
           {message.text}
@@ -179,6 +203,10 @@ export function DuplicateGroupTriage({
         </div>
       )}
 
+      {replyDraft && (
+        <DuplicateReplyDraftPanel replyDraft={replyDraft} onClose={() => setReplyDraft(null)} />
+      )}
+
       {loading ? (
         <div className="space-y-2">
           <div className="h-3 w-11/12 animate-pulse rounded bg-slate-200" />
@@ -198,6 +226,7 @@ export function DuplicateGroupTriage({
               busy={busyId === group.merge_id}
               onTransition={runTransition}
               onDraft={openDraftPayload}
+              onReplyDraft={openReplyDraft}
             />
           ))}
         </div>
@@ -211,16 +240,19 @@ function DuplicateGroupCard({
   busy,
   onTransition,
   onDraft,
+  onReplyDraft,
 }: {
   group: DuplicateMergeRecord;
   busy: boolean;
   onTransition: (group: DuplicateMergeRecord, action: "confirm" | "split" | "reject") => void;
   onDraft: (group: DuplicateMergeRecord) => void;
+  onReplyDraft: (group: DuplicateMergeRecord) => void;
 }) {
   const confirmAllowed = group.allowed_actions.includes("confirm");
   const splitAllowed = group.allowed_actions.includes("split");
   const rejectAllowed = group.allowed_actions.includes("reject");
   const draftAllowed = canCreateDraftReply(group);
+  const replyDraftAllowed = canGenerateDuplicateReplyDraft(group);
   const queueContext = duplicateQueueContextLabel(group);
 
   return (
@@ -283,6 +315,15 @@ function DuplicateGroupCard({
             className={buttonClass(draftAllowed)}
           >
             {draftAllowed ? "초안 자료 보기" : "확정 후 생성 가능"}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !replyDraftAllowed}
+            onClick={() => onReplyDraft(group)}
+            title={replyDraftAllowed ? "확정된 그룹의 대표 답변 초안을 생성합니다." : "담당자 확정 후 생성 가능"}
+            className={buttonClass(replyDraftAllowed)}
+          >
+            {busy ? "생성 중…" : "대표 답변 초안 생성"}
           </button>
         </div>
       </div>
