@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { mockAssignedCases } from "@/lib/mockData";
 import AppSidebar from "@/components/AppSidebar";
 import {
   type RoutingHint,
@@ -114,8 +113,9 @@ function WorkbenchContent() {
   const searchParams = useSearchParams();
   const urlCaseId = searchParams.get("case_id");
 
-  const [caseList, setCaseList] = useState<WorkbenchCase[]>(mockAssignedCases as WorkbenchCase[]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || mockAssignedCases[0]?.case_id || "");
+  const [caseList, setCaseList] = useState<WorkbenchCase[]>([]);
+  const [casesLoading, setCasesLoading] = useState(true);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(urlCaseId || "");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [searchStage, setSearchStage] = useState<SearchStage>("empty");
@@ -140,16 +140,17 @@ function WorkbenchContent() {
 
     fetchUiCasesApi()
       .then((response) => {
-        if (!isMounted || response.error) {
+        if (!isMounted) {
           return;
         }
 
-        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
-          setCaseList(response.data.cases);
-        }
+        // fetchUiCasesApi는 백엔드 오류·빈 응답이면 목업으로 폴백하므로 결과를 그대로 사용한다.
+        setCaseList(response.data.cases);
       })
-      .catch(() => {
-        // keep the fallback mock list
+      .finally(() => {
+        if (isMounted) {
+          setCasesLoading(false);
+        }
       });
 
     return () => {
@@ -158,7 +159,8 @@ function WorkbenchContent() {
   }, []);
 
   const selectedCase = useMemo<WorkbenchCase>(() => {
-    return (caseList.find((item) => item.case_id === selectedCaseId) || caseList[0]) as WorkbenchCase;
+    // 로딩 중(caseList 비어있음)에도 selectedCase가 undefined가 되지 않도록 빈 케이스로 폴백한다.
+    return (caseList.find((item) => item.case_id === selectedCaseId) || caseList[0] || { case_id: "" }) as WorkbenchCase;
   }, [selectedCaseId, caseList]);
 
   const selectedIndex = useMemo(() => {
@@ -452,7 +454,21 @@ function WorkbenchContent() {
               </div>
 
               <div style={{ gridAutoRows: "2.5rem", gap: "0.75rem" }}>
-                {caseList.map((item) => {
+                {casesLoading
+                  ? [0, 1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={`skeleton-${i}`}
+                        className="grid w-full animate-pulse items-center border-b border-slate-200 px-2 py-1.5"
+                        style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gap: "0.75rem" }}
+                      >
+                        <div className="h-3 w-4/5 rounded bg-slate-200" />
+                        <div className="h-3 w-3/5 rounded bg-slate-200" />
+                        <div className="h-3 w-3/5 rounded bg-slate-200" />
+                        <div className="h-4 w-10 rounded bg-slate-200" />
+                        <div className="h-4 w-10 rounded bg-slate-200" />
+                      </div>
+                    ))
+                  : caseList.map((item) => {
                   const status = caseStatuses[item.case_id] || item.status || "미처리";
                   const selected = item.case_id === selectedCase.case_id;
                   return (
