@@ -1,5 +1,13 @@
 # Complaint Intelligence FE 핸드오프
 
+## 2026-06-21 운영 품질 갱신
+
+- FE는 Local LLM 생성을 동기적으로 기다리지 않고 저장된 관제 read-model을 조회합니다.
+- 기본 진입점은 `GET /complaint-intelligence/dashboard`입니다.
+- EvidencePack은 PII-safe 근거 확인용이며, 일반 사용자 화면에는 masked preview와 evidence count만 표시합니다.
+- PublicAgencyInsight 카드는 `recommended_actions`, `requires_human_review`, `confidence`, `grounding_score`를 함께 보여주는 것을 권장합니다.
+- Local LLM `exaone3.5:7.8b`는 품질 검증 경로를 통과했지만 평균 응답 시간이 길어 scheduler 기반 비동기 갱신이 적합합니다.
+
 ## 목적
 
 민원 인텔리전스 탭은 실제 분석 파이프라인을 통과한 read-model을 표시합니다. FE는 mock 응답을 만들지 않고 `GET /complaint-intelligence/dashboard`만 우선 연결하면 이슈 알림과 행정 인사이트 카드를 함께 표시할 수 있습니다.

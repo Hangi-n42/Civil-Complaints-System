@@ -8,7 +8,11 @@ from datetime import datetime, timezone
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from app.complaint_intelligence.duplicate_merger.merge_verifier import MergeVerifier, has_blocker
 from app.complaint_intelligence.duplicate_merger.representative_selector import RepresentativeSelector
-from app.complaint_intelligence.duplicate_merger.scoring import DuplicateScoreResult, score_duplicate_pair
+from app.complaint_intelligence.duplicate_merger.scoring import (
+    DuplicateScoreResult,
+    classify_location_state,
+    score_duplicate_pair,
+)
 from app.complaint_intelligence.duplicate_merger.schemas import (
     DuplicateAction,
     DuplicateEvidence,
@@ -46,10 +50,13 @@ class DuplicateCandidateGenerator:
             for right in sorted_events[index + 1:]:
                 if _time_delta_hours(left.received_at, right.received_at) > self.max_pair_window_hours:
                     continue
+                location_state = classify_location_state(left, right)
+                if location_state == "conflict":
+                    continue
+                if location_state == "ambiguous" and (left.pii_detected or right.pii_detected):
+                    continue
                 result = score_duplicate_pair(left, right)
                 if result.score < self.min_candidate_score:
-                    continue
-                if result.location_state == "conflict":
                     continue
                 if result.location_state == "ambiguous" and (left.pii_detected or right.pii_detected):
                     continue

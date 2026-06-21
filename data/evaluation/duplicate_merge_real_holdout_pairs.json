@@ -1,0 +1,3562 @@
+[
+  {
+    "pair_id": "rh-td-001",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-00-0",
+    "right_event_id": "rh-td-00-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-002",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-00-0",
+    "right_event_id": "rh-td-00-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-003",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-00-0",
+    "right_event_id": "rh-td-00-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-004",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-00-0",
+    "right_event_id": "rh-td-00-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-005",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-01-0",
+    "right_event_id": "rh-td-01-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-006",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-01-0",
+    "right_event_id": "rh-td-01-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-007",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-01-0",
+    "right_event_id": "rh-td-01-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-008",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-01-0",
+    "right_event_id": "rh-td-01-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-009",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-02-0",
+    "right_event_id": "rh-td-02-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-010",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-02-0",
+    "right_event_id": "rh-td-02-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-011",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-02-0",
+    "right_event_id": "rh-td-02-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-012",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-02-0",
+    "right_event_id": "rh-td-02-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-013",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-03-0",
+    "right_event_id": "rh-td-03-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-014",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-03-0",
+    "right_event_id": "rh-td-03-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-015",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-03-0",
+    "right_event_id": "rh-td-03-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-016",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-03-0",
+    "right_event_id": "rh-td-03-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-017",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-04-0",
+    "right_event_id": "rh-td-04-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-018",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-04-0",
+    "right_event_id": "rh-td-04-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-019",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-04-0",
+    "right_event_id": "rh-td-04-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-020",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-04-0",
+    "right_event_id": "rh-td-04-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-021",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-05-0",
+    "right_event_id": "rh-td-05-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-022",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-05-0",
+    "right_event_id": "rh-td-05-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-023",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-05-0",
+    "right_event_id": "rh-td-05-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-024",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-05-0",
+    "right_event_id": "rh-td-05-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-025",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-06-0",
+    "right_event_id": "rh-td-06-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-026",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-06-0",
+    "right_event_id": "rh-td-06-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-027",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-06-0",
+    "right_event_id": "rh-td-06-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-028",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-06-0",
+    "right_event_id": "rh-td-06-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-029",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-07-0",
+    "right_event_id": "rh-td-07-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-030",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-07-0",
+    "right_event_id": "rh-td-07-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-031",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-07-0",
+    "right_event_id": "rh-td-07-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-032",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-07-0",
+    "right_event_id": "rh-td-07-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "enforcement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-033",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-08-0",
+    "right_event_id": "rh-td-08-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-034",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-08-0",
+    "right_event_id": "rh-td-08-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-035",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-08-0",
+    "right_event_id": "rh-td-08-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-036",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-08-0",
+    "right_event_id": "rh-td-08-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-037",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-09-0",
+    "right_event_id": "rh-td-09-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-038",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-09-0",
+    "right_event_id": "rh-td-09-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-039",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-09-0",
+    "right_event_id": "rh-td-09-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-td-040",
+    "category": "true_duplicate",
+    "left_event_id": "rh-td-09-0",
+    "right_event_id": "rh-td-09-4",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 장소와 동일 요청 유형으로 하나의 처리 단위가 적절합니다."
+  },
+  {
+    "pair_id": "rh-skde-001",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-00-0",
+    "right_event_id": "rh-skde-00-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-002",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-00-0",
+    "right_event_id": "rh-skde-00-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-003",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-01-0",
+    "right_event_id": "rh-skde-01-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-004",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-01-0",
+    "right_event_id": "rh-skde-01-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-005",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-02-0",
+    "right_event_id": "rh-skde-02-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-006",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-02-0",
+    "right_event_id": "rh-skde-02-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-007",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-03-0",
+    "right_event_id": "rh-skde-03-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-008",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-03-0",
+    "right_event_id": "rh-skde-03-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-009",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-04-0",
+    "right_event_id": "rh-skde-04-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-010",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-04-0",
+    "right_event_id": "rh-skde-04-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-011",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-05-0",
+    "right_event_id": "rh-skde-05-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-012",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-05-0",
+    "right_event_id": "rh-skde-05-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-013",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-06-0",
+    "right_event_id": "rh-skde-06-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-014",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-06-0",
+    "right_event_id": "rh-skde-06-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-015",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-07-0",
+    "right_event_id": "rh-skde-07-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-016",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-07-0",
+    "right_event_id": "rh-skde-07-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-017",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-08-0",
+    "right_event_id": "rh-skde-08-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-018",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-08-0",
+    "right_event_id": "rh-skde-08-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-019",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-09-0",
+    "right_event_id": "rh-skde-09-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-020",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-09-0",
+    "right_event_id": "rh-skde-09-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-021",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-10-0",
+    "right_event_id": "rh-skde-10-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-022",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-10-0",
+    "right_event_id": "rh-skde-10-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-023",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-11-0",
+    "right_event_id": "rh-skde-11-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-024",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-11-0",
+    "right_event_id": "rh-skde-11-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-025",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-12-0",
+    "right_event_id": "rh-skde-12-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-026",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-12-0",
+    "right_event_id": "rh-skde-12-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-027",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-13-0",
+    "right_event_id": "rh-skde-13-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-028",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-13-0",
+    "right_event_id": "rh-skde-13-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-029",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-14-0",
+    "right_event_id": "rh-skde-14-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-030",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-14-0",
+    "right_event_id": "rh-skde-14-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-031",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-15-0",
+    "right_event_id": "rh-skde-15-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-032",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-15-0",
+    "right_event_id": "rh-skde-15-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-033",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-16-0",
+    "right_event_id": "rh-skde-16-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-034",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-16-0",
+    "right_event_id": "rh-skde-16-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-035",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-17-0",
+    "right_event_id": "rh-skde-17-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-036",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-17-0",
+    "right_event_id": "rh-skde-17-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-037",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-18-0",
+    "right_event_id": "rh-skde-18-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-038",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-18-0",
+    "right_event_id": "rh-skde-18-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-039",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-19-0",
+    "right_event_id": "rh-skde-19-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-skde-040",
+    "category": "same_keyword_different_event",
+    "left_event_id": "rh-skde-19-0",
+    "right_event_id": "rh-skde-19-2",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "키워드는 같지만 세부 장소가 달라 별도 사건으로 봐야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-001",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-00-a",
+    "right_event_id": "rh-sedr-00-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-002",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-00-b",
+    "right_event_id": "rh-sedr-00-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-003",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-01-a",
+    "right_event_id": "rh-sedr-01-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-004",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-01-b",
+    "right_event_id": "rh-sedr-01-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-005",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-02-a",
+    "right_event_id": "rh-sedr-02-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-006",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-02-b",
+    "right_event_id": "rh-sedr-02-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-007",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-03-a",
+    "right_event_id": "rh-sedr-03-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-008",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-03-b",
+    "right_event_id": "rh-sedr-03-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-009",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-04-a",
+    "right_event_id": "rh-sedr-04-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-010",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-04-b",
+    "right_event_id": "rh-sedr-04-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-011",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-05-a",
+    "right_event_id": "rh-sedr-05-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-012",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-05-b",
+    "right_event_id": "rh-sedr-05-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-013",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-06-a",
+    "right_event_id": "rh-sedr-06-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-014",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-06-b",
+    "right_event_id": "rh-sedr-06-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-015",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-07-a",
+    "right_event_id": "rh-sedr-07-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-016",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-07-b",
+    "right_event_id": "rh-sedr-07-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-017",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-08-a",
+    "right_event_id": "rh-sedr-08-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-018",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-08-b",
+    "right_event_id": "rh-sedr-08-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-019",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-09-a",
+    "right_event_id": "rh-sedr-09-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-020",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-09-b",
+    "right_event_id": "rh-sedr-09-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-021",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-10-a",
+    "right_event_id": "rh-sedr-10-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-022",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-10-b",
+    "right_event_id": "rh-sedr-10-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-023",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-11-a",
+    "right_event_id": "rh-sedr-11-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-024",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-11-b",
+    "right_event_id": "rh-sedr-11-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-025",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-12-a",
+    "right_event_id": "rh-sedr-12-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-026",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-12-b",
+    "right_event_id": "rh-sedr-12-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-027",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-13-a",
+    "right_event_id": "rh-sedr-13-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-028",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-13-b",
+    "right_event_id": "rh-sedr-13-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-029",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-14-a",
+    "right_event_id": "rh-sedr-14-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-030",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-14-b",
+    "right_event_id": "rh-sedr-14-c",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-031",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-15-a",
+    "right_event_id": "rh-sedr-15-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-032",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-16-a",
+    "right_event_id": "rh-sedr-16-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-033",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-17-a",
+    "right_event_id": "rh-sedr-17-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-034",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-18-a",
+    "right_event_id": "rh-sedr-18-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-sedr-035",
+    "category": "same_event_different_request",
+    "left_event_id": "rh-sedr-19-a",
+    "right_event_id": "rh-sedr-19-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "enforcement",
+      "compensation"
+    ],
+    "label_confidence": "high",
+    "review_notes": "동일 사건 가능성은 높지만 보상 판단이 섞여 확정 병합은 차단되어야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-001",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-00-0",
+    "right_event_id": "rh-pii-00-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-002",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-01-0",
+    "right_event_id": "rh-pii-01-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-003",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-02-0",
+    "right_event_id": "rh-pii-02-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-004",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-03-0",
+    "right_event_id": "rh-pii-03-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-005",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-04-0",
+    "right_event_id": "rh-pii-04-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-006",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-05-0",
+    "right_event_id": "rh-pii-05-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-007",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-06-0",
+    "right_event_id": "rh-pii-06-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-008",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-07-0",
+    "right_event_id": "rh-pii-07-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-009",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-08-0",
+    "right_event_id": "rh-pii-08-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-010",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-09-0",
+    "right_event_id": "rh-pii-09-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-011",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-10-0",
+    "right_event_id": "rh-pii-10-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-012",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-11-0",
+    "right_event_id": "rh-pii-11-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-013",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-12-0",
+    "right_event_id": "rh-pii-12-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-014",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-13-0",
+    "right_event_id": "rh-pii-13-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-015",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-14-0",
+    "right_event_id": "rh-pii-14-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-016",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-15-0",
+    "right_event_id": "rh-pii-15-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-017",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-16-0",
+    "right_event_id": "rh-pii-16-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-018",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-17-0",
+    "right_event_id": "rh-pii-17-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-019",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-18-0",
+    "right_event_id": "rh-pii-18-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-020",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-19-0",
+    "right_event_id": "rh-pii-19-1",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "high",
+    "review_notes": "세부 주소가 마스킹되어 같은 장소인지 확인할 수 없으므로 과잉 병합을 피해야 합니다."
+  },
+  {
+    "pair_id": "rh-pii-021",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-00-0",
+    "right_event_id": "rh-pii-05-0",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "medium",
+    "review_notes": "마스킹 때문에 세부 위치가 사라진 서로 다른 상담 가능성이 큽니다."
+  },
+  {
+    "pair_id": "rh-pii-022",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-01-0",
+    "right_event_id": "rh-pii-06-0",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "medium",
+    "review_notes": "마스킹 때문에 세부 위치가 사라진 서로 다른 상담 가능성이 큽니다."
+  },
+  {
+    "pair_id": "rh-pii-023",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-02-0",
+    "right_event_id": "rh-pii-07-0",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "medium",
+    "review_notes": "마스킹 때문에 세부 위치가 사라진 서로 다른 상담 가능성이 큽니다."
+  },
+  {
+    "pair_id": "rh-pii-024",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-03-0",
+    "right_event_id": "rh-pii-08-0",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "medium",
+    "review_notes": "마스킹 때문에 세부 위치가 사라진 서로 다른 상담 가능성이 큽니다."
+  },
+  {
+    "pair_id": "rh-pii-025",
+    "category": "pii_masked_location_risk",
+    "left_event_id": "rh-pii-04-0",
+    "right_event_id": "rh-pii-09-0",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "PII_RISK",
+      "LOCATION_AMBIGUOUS"
+    ],
+    "expected_location_state": "ambiguous",
+    "expected_request_types": [
+      "guidance",
+      "guidance"
+    ],
+    "label_confidence": "medium",
+    "review_notes": "마스킹 때문에 세부 위치가 사라진 서로 다른 상담 가능성이 큽니다."
+  },
+  {
+    "pair_id": "rh-trans-001",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-00-a",
+    "right_event_id": "rh-trans-00-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-002",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-00-a",
+    "right_event_id": "rh-trans-00-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-003",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-01-a",
+    "right_event_id": "rh-trans-01-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-004",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-01-a",
+    "right_event_id": "rh-trans-01-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-005",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-02-a",
+    "right_event_id": "rh-trans-02-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-006",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-02-a",
+    "right_event_id": "rh-trans-02-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-007",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-03-a",
+    "right_event_id": "rh-trans-03-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-008",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-03-a",
+    "right_event_id": "rh-trans-03-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-009",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-04-a",
+    "right_event_id": "rh-trans-04-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-010",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-04-a",
+    "right_event_id": "rh-trans-04-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-011",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-05-a",
+    "right_event_id": "rh-trans-05-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-012",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-05-a",
+    "right_event_id": "rh-trans-05-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-013",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-06-a",
+    "right_event_id": "rh-trans-06-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-014",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-06-a",
+    "right_event_id": "rh-trans-06-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-015",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-07-a",
+    "right_event_id": "rh-trans-07-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-016",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-07-a",
+    "right_event_id": "rh-trans-07-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-017",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-08-a",
+    "right_event_id": "rh-trans-08-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-018",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-08-a",
+    "right_event_id": "rh-trans-08-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-trans-019",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-09-a",
+    "right_event_id": "rh-trans-09-c",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH",
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": [
+      "facility_improvement",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "A-B와 B-C 일부 키워드는 이어지지만 A-C는 장소와 부서가 직접 충돌합니다."
+  },
+  {
+    "pair_id": "rh-trans-020",
+    "category": "transitive_overmerge_risk",
+    "left_event_id": "rh-trans-09-a",
+    "right_event_id": "rh-trans-09-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "facility_improvement"
+    ],
+    "label_confidence": "high",
+    "review_notes": "연결고리 pair 자체는 같은 장소지만 안전조치와 시설정비 요청 차이는 표시되어야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-001",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-00-0",
+    "right_event_id": "rh-dept-00-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "부서 표기가 alias 관계라 같은 담당 단위로 볼 수 있습니다."
+  },
+  {
+    "pair_id": "rh-dept-002",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-00-0",
+    "right_event_id": "rh-dept-00-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "같은 장소라도 담당 부서가 명확히 충돌합니다."
+  },
+  {
+    "pair_id": "rh-dept-003",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-00-1",
+    "right_event_id": "rh-dept-00-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "alias가 아닌 부서 충돌은 확정 병합을 막아야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-004",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-00-2",
+    "right_event_id": "rh-dept-00-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "서로 다른 업무 부서의 동일 키워드 민원입니다."
+  },
+  {
+    "pair_id": "rh-dept-005",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-01-0",
+    "right_event_id": "rh-dept-01-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "부서 표기가 alias 관계라 같은 담당 단위로 볼 수 있습니다."
+  },
+  {
+    "pair_id": "rh-dept-006",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-01-0",
+    "right_event_id": "rh-dept-01-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "같은 장소라도 담당 부서가 명확히 충돌합니다."
+  },
+  {
+    "pair_id": "rh-dept-007",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-01-1",
+    "right_event_id": "rh-dept-01-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "alias가 아닌 부서 충돌은 확정 병합을 막아야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-008",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-01-2",
+    "right_event_id": "rh-dept-01-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "서로 다른 업무 부서의 동일 키워드 민원입니다."
+  },
+  {
+    "pair_id": "rh-dept-009",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-02-0",
+    "right_event_id": "rh-dept-02-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "부서 표기가 alias 관계라 같은 담당 단위로 볼 수 있습니다."
+  },
+  {
+    "pair_id": "rh-dept-010",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-02-0",
+    "right_event_id": "rh-dept-02-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "같은 장소라도 담당 부서가 명확히 충돌합니다."
+  },
+  {
+    "pair_id": "rh-dept-011",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-02-1",
+    "right_event_id": "rh-dept-02-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "alias가 아닌 부서 충돌은 확정 병합을 막아야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-012",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-02-2",
+    "right_event_id": "rh-dept-02-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "서로 다른 업무 부서의 동일 키워드 민원입니다."
+  },
+  {
+    "pair_id": "rh-dept-013",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-03-0",
+    "right_event_id": "rh-dept-03-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "부서 표기가 alias 관계라 같은 담당 단위로 볼 수 있습니다."
+  },
+  {
+    "pair_id": "rh-dept-014",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-03-0",
+    "right_event_id": "rh-dept-03-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "같은 장소라도 담당 부서가 명확히 충돌합니다."
+  },
+  {
+    "pair_id": "rh-dept-015",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-03-1",
+    "right_event_id": "rh-dept-03-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "alias가 아닌 부서 충돌은 확정 병합을 막아야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-016",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-03-2",
+    "right_event_id": "rh-dept-03-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "서로 다른 업무 부서의 동일 키워드 민원입니다."
+  },
+  {
+    "pair_id": "rh-dept-017",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-04-0",
+    "right_event_id": "rh-dept-04-1",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "부서 표기가 alias 관계라 같은 담당 단위로 볼 수 있습니다."
+  },
+  {
+    "pair_id": "rh-dept-018",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-04-0",
+    "right_event_id": "rh-dept-04-2",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "같은 장소라도 담당 부서가 명확히 충돌합니다."
+  },
+  {
+    "pair_id": "rh-dept-019",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-04-1",
+    "right_event_id": "rh-dept-04-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "alias가 아닌 부서 충돌은 확정 병합을 막아야 합니다."
+  },
+  {
+    "pair_id": "rh-dept-020",
+    "category": "department_alias_or_conflict",
+    "left_event_id": "rh-dept-04-2",
+    "right_event_id": "rh-dept-04-3",
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "DEPARTMENT_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "other",
+      "other"
+    ],
+    "label_confidence": "high",
+    "review_notes": "서로 다른 업무 부서의 동일 키워드 민원입니다."
+  },
+  {
+    "pair_id": "rh-time-001",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-00-a",
+    "right_event_id": "rh-time-00-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "71시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-002",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-01-a",
+    "right_event_id": "rh-time-01-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "73시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-003",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-02-a",
+    "right_event_id": "rh-time-02-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "167시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-004",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-03-a",
+    "right_event_id": "rh-time-03-b",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "169시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-005",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-04-a",
+    "right_event_id": "rh-time-04-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "71시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-006",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-05-a",
+    "right_event_id": "rh-time-05-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "73시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-007",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-06-a",
+    "right_event_id": "rh-time-06-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "167시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-008",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-07-a",
+    "right_event_id": "rh-time-07-b",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "169시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-009",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-08-a",
+    "right_event_id": "rh-time-08-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "71시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-010",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-09-a",
+    "right_event_id": "rh-time-09-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "73시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-011",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-10-a",
+    "right_event_id": "rh-time-10-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "167시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-012",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-11-a",
+    "right_event_id": "rh-time-11-b",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "169시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-013",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-12-a",
+    "right_event_id": "rh-time-12-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "71시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-014",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-13-a",
+    "right_event_id": "rh-time-13-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "73시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-015",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-14-a",
+    "right_event_id": "rh-time-14-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "167시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-016",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-15-a",
+    "right_event_id": "rh-time-15-b",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "169시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-017",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-16-a",
+    "right_event_id": "rh-time-16-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "71시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-018",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-17-a",
+    "right_event_id": "rh-time-17-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "73시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-019",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-18-a",
+    "right_event_id": "rh-time-18-b",
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "TIME_WINDOW_TOO_WIDE"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "167시간 경계 사례입니다."
+  },
+  {
+    "pair_id": "rh-time-020",
+    "category": "time_window_boundary",
+    "left_event_id": "rh-time-19-a",
+    "right_event_id": "rh-time-19-b",
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": [
+      "safety_action",
+      "safety_action"
+    ],
+    "label_confidence": "high",
+    "review_notes": "169시간 경계 사례입니다."
+  }
+]

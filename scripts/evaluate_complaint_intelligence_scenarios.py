@@ -67,6 +67,10 @@ def main() -> int:
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--scenario-limit", type=int, default=None)
     parser.add_argument("--scenario-id", default=None)
+    parser.add_argument("--scenario-ids", default=None)
+    parser.add_argument("--checkpoint-dir", default=None)
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--chunk-size", type=int, default=None)
     parser.add_argument("--llm-timeout-seconds", type=float, default=None)
     parser.add_argument("--llm-num-predict", type=int, default=None)
     parser.add_argument("--timeout-seconds", type=float, default=None)
@@ -80,6 +84,7 @@ def main() -> int:
     parser.add_argument("--save-dashboard-snapshots", action="store_true")
     parser.add_argument("--write-default-scenarios", action="store_true")
     parser.add_argument("--baseline-report", default=None)
+    parser.add_argument("--no-print-report", action="store_true")
     args = parser.parse_args()
 
     scenario_file = Path(args.scenario_file)
@@ -97,6 +102,7 @@ def main() -> int:
         base_url=args.base_url,
         scenario_limit=args.scenario_limit,
         scenario_id=args.scenario_id,
+        scenario_ids=_split_csv(args.scenario_ids),
         include_negative=args.include_negative,
         demo_thresholds=args.demo_thresholds,
         save_dashboard_snapshots=args.save_dashboard_snapshots,
@@ -106,6 +112,9 @@ def main() -> int:
         debug_raw_response=args.debug_raw_response,
         raw_response_dir=args.raw_response_dir,
         max_candidates_per_scenario=max_candidates_per_scenario,
+        checkpoint_dir=Path(args.checkpoint_dir) if args.checkpoint_dir else None,
+        resume=args.resume,
+        chunk_size=args.chunk_size,
     )
     output = Path(args.output)
     if args.baseline_report:
@@ -134,7 +143,8 @@ def main() -> int:
                 Path("reports/complaint_intelligence_local_llm_action_rubric_samples.md"),
                 report,
             )
-    print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
+    if not args.no_print_report:
+        print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
     return 0
 
 
@@ -146,6 +156,7 @@ def evaluate_scenario_file(
     base_url: str | None = None,
     scenario_limit: int | None = None,
     scenario_id: str | None = None,
+    scenario_ids: list[str] | None = None,
     include_negative: bool = True,
     demo_thresholds: bool = False,
     save_dashboard_snapshots: bool = False,
@@ -155,24 +166,59 @@ def evaluate_scenario_file(
     debug_raw_response: bool = False,
     raw_response_dir: str | None = None,
     max_candidates_per_scenario: int | None = None,
+    checkpoint_dir: Path | None = None,
+    resume: bool = False,
+    chunk_size: int | None = None,
 ) -> dict[str, Any]:
     """시나리오 파일을 읽어 IssueAlert와 PublicAgencyInsight 품질을 평가한다."""
 
     started_at = perf_counter()
     scenario_payload = load_scenarios(scenario_file)
     scenarios = list(scenario_payload.get("scenarios") or [])
-    requested_count = len(scenarios)
+    selected_ids = set(scenario_ids or [])
+    if scenario_id:
+        selected_ids.add(scenario_id)
+    if selected_ids:
+        scenarios = [item for item in scenarios if item.get("scenario_id") in selected_ids]
     if scenario_id:
         scenarios = [item for item in scenarios if item.get("scenario_id") == scenario_id]
     if not include_negative:
         scenarios = [item for item in scenarios if item.get("expected_alert") is not False]
     if scenario_limit is not None:
         scenarios = scenarios[: max(0, scenario_limit)]
+    requested_count = len(scenarios)
 
     results: list[dict[str, Any]] = []
-    for scenario in scenarios:
-        results.append(
-            evaluate_one_scenario(
+    completed_from_checkpoint = 0
+    processed_this_run = 0
+    pending_scenario_ids: list[str] = []
+    checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir else None
+    if checkpoint_dir:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    for index, scenario in enumerate(scenarios, start=1):
+        scenario_key = str(scenario.get("scenario_id"))
+        checkpoint_path = _checkpoint_path(
+            checkpoint_dir=checkpoint_dir,
+            provider=provider,
+            model=model,
+            prompt_mode=prompt_mode,
+            scenario_id=scenario_key,
+        )
+        loaded = _load_checkpoint_result(checkpoint_path, provider=provider, model=model, prompt_mode=prompt_mode) if resume else None
+        if loaded is not None:
+            print(f"[eval] resume {index}/{requested_count} {scenario_key}", file=sys.stderr)
+            results.append(loaded)
+            completed_from_checkpoint += 1
+            continue
+        if chunk_size is not None and processed_this_run >= max(0, chunk_size):
+            pending_scenario_ids.append(scenario_key)
+            continue
+
+        print(f"[eval] start {index}/{requested_count} {scenario_key}", file=sys.stderr)
+        scenario_started_at = perf_counter()
+        try:
+            result = evaluate_one_scenario(
                 scenario,
                 as_of=_parse_datetime(scenario_payload.get("as_of")) or DEFAULT_AS_OF,
                 provider=provider,
@@ -187,11 +233,46 @@ def evaluate_scenario_file(
                 max_candidates_per_scenario=max_candidates_per_scenario,
                 save_dashboard_snapshot=save_dashboard_snapshots,
             )
+        except Exception as exc:  # pragma: no cover - long-running local evaluation guard.
+            result = evaluation_error_result(
+                scenario,
+                provider=provider,
+                model=model,
+                prompt_mode=prompt_mode,
+                error=exc,
+                duration_seconds=perf_counter() - scenario_started_at,
+            )
+            print(f"[eval] error {scenario_key}: {type(exc).__name__}: {exc}", file=sys.stderr)
+        else:
+            result["duration_seconds"] = round(perf_counter() - scenario_started_at, 3)
+        results.append(result)
+        processed_this_run += 1
+        _write_checkpoint_result(
+            checkpoint_path,
+            result,
+            provider=provider,
+            model=model,
+            prompt_mode=prompt_mode,
+        )
+        print(
+            f"[eval] done {scenario_key} pass={result.get('passed')} "
+            f"fallback={result.get('fallback_used')} duration={result.get('duration_seconds')}s",
+            file=sys.stderr,
         )
 
-    summary = build_summary(results)
-    llm_summary = build_llm_evaluation_summary(results)
+    ordered_results = _order_results(results, scenarios)
+    summary = build_summary(ordered_results)
+    llm_summary = build_llm_evaluation_summary(ordered_results)
     targets = build_target_results(summary, llm_summary)
+    limited_reason = _limited_reason(
+        requested_count=requested_count,
+        evaluated_count=len(ordered_results),
+        scenario_limit=scenario_limit,
+        scenario_id=scenario_id,
+        scenario_ids=scenario_ids,
+        chunk_size=chunk_size,
+        pending_scenario_ids=pending_scenario_ids,
+    )
     return {
         "evaluation_name": "complaint_intelligence_issue_and_public_insight_quality",
         "scenario_file": str(scenario_file),
@@ -201,21 +282,25 @@ def evaluate_scenario_file(
         "demo_thresholds": demo_thresholds,
         "max_candidates_per_scenario": max_candidates_per_scenario,
         "scenario_count_requested": requested_count,
-        "scenario_count_evaluated": len(results),
-        "limited_reason": _limited_reason(
-            requested_count=requested_count,
-            evaluated_count=len(results),
-            scenario_limit=scenario_limit,
-            scenario_id=scenario_id,
-        ),
-        "scenario_count": len(results),
+        "scenario_count_evaluated": len(ordered_results),
+        "limited_reason": limited_reason,
+        "scenario_count": len(ordered_results),
         "total_duration_seconds": round(perf_counter() - started_at, 3),
+        "checkpoint": {
+            "enabled": checkpoint_dir is not None,
+            "resume": resume,
+            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir else None,
+            "completed_from_checkpoint": completed_from_checkpoint,
+            "processed_this_run": processed_this_run,
+            "pending_scenario_ids": pending_scenario_ids,
+            "chunk_size": chunk_size,
+        },
         "targets": targets["targets"],
         "target_results": targets["target_results"],
         "summary": summary,
         "llm_evaluation": llm_summary,
-        "scenarios": results,
-        "overall_assessment": build_overall_assessment(summary, results, provider),
+        "scenarios": ordered_results,
+        "overall_assessment": build_overall_assessment(summary, ordered_results, provider),
         "local_llm_manual_command": (
             "civil\\Scripts\\python.exe scripts\\evaluate_complaint_intelligence_scenarios.py "
             "--provider local --model exaone3.5:7.8b --base-url http://localhost:11434 --prompt-mode compact "
@@ -329,6 +414,141 @@ def evaluate_one_scenario(
             failures=failures,
             warnings=warnings,
         ),
+    }
+
+
+def evaluation_error_result(
+    scenario: dict[str, Any],
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+    error: Exception,
+    duration_seconds: float,
+) -> dict[str, Any]:
+    """장시간 Local LLM 평가 중 단일 scenario 실패를 전체 중단으로 번지지 않게 기록한다."""
+
+    scenario_id = str(scenario.get("scenario_id"))
+    error_code = "LOCAL_LLM_TIMEOUT" if "timeout" in f"{type(error).__name__} {error}".lower() else "EVALUATION_ERROR"
+    safe_message = mask_pii(str(error))[:500]
+    failure = _failure(
+        error_code,
+        "scenario 평가 중 예외가 발생했습니다.",
+        {"error_type": type(error).__name__, "message": safe_message},
+    )
+    expected_alert = bool(scenario.get("expected_alert"))
+    insight_result = {
+        "passed": False,
+        "insight_count": 0,
+        "matched_expected_insight_count": 0,
+        "expected_type_required": bool(scenario.get("expected_insight_types")),
+        "expected_type_hit": False,
+        "required_aspect_hit": False,
+        "required_action_type_hit": False,
+        "allowed_action_type_hit_rate": 0.0,
+        "action_evidence_coverage_rate": 0.0,
+        "evidence_pack_presence_rate": 0.0,
+        "quality_gate_passed": False,
+        "grounding_pass": False,
+        "avg_grounding_score": 0.0,
+        "avg_confidence": 0.0,
+        "avg_actionability_score": 0.0,
+        "fallback": False,
+        "forbidden_ai_ops_terms": False,
+        "pii_leak": False,
+        "human_review_requirement_pass": False,
+        "action_type_rubric_pass": False,
+        "representative_evidence_ids": [],
+    }
+    issue_result = {
+        "passed": not expected_alert,
+        "expected_alert": expected_alert,
+        "alert_count": 0,
+        "severe_alert_count": 0,
+        "expected_topic_hit": False,
+        "avg_alert_confidence": 0.0,
+        "avg_surge_ratio": 0.0,
+        "avg_recent_count": 0.0,
+    }
+    compact_metrics = {
+        "provider": provider,
+        "model": model,
+        "prompt_mode": prompt_mode,
+        "timeout_seconds": None,
+        "num_predict": None,
+        "candidate_count": 0,
+        "insight_count": 0,
+        "direct_llm_success_count": 0,
+        "llm_failure_count": 1,
+        "fallback_count": 0,
+        "fallback_due_to_empty_actions_count": 0,
+        "discarded_count": 0,
+        "avg_llm_duration_ms": 0.0,
+        "avg_retry_duration_ms": 0.0,
+        "llm_durations_ms": [],
+        "retry_durations_ms": [],
+        "json_parse_failure_count": 0,
+        "schema_validation_failure_count": 0,
+        "grounding_failure_count": 0,
+        "quality_gate_failure_count": 0,
+        "invalid_evidence_id_count": 0,
+        "invalid_evidence_ids": [],
+        "action_repair_attempt_count": 0,
+        "action_repair_success_count": 0,
+        "invalid_action_type_count": 0,
+        "invalid_action_types": [],
+        "repaired_action_type_count": 0,
+        "repaired_action_text_count": 0,
+        "removed_action_due_to_action_type_count": 0,
+        "action_retry_attempt_count": 0,
+        "action_retry_success_count": 0,
+        "empty_actions_after_repair_count": 0,
+        "human_review_postprocess_count": 0,
+        "action_type_rubric_pass_count": 0,
+        "action_repair_report": None,
+        "action_retry_report": None,
+        "failure_reasons": {error_code: 1},
+        "raw_response_debug_enabled": False,
+    }
+    return {
+        "scenario_id": scenario_id,
+        "label": scenario.get("label"),
+        "scenario_type": scenario.get("scenario_type"),
+        "source_policy": scenario.get("source_policy"),
+        "real_event_count": scenario.get("real_event_count", 0),
+        "synthetic_event_count": scenario.get("synthetic_event_count", 0),
+        "event_count": len(scenario.get("events", [])),
+        "run_id": None,
+        "passed": False,
+        "issue_detection_passed": issue_result["passed"],
+        "insight_passed": False,
+        "quality_gate_passed": False,
+        "failures": [failure],
+        "warnings": [],
+        "issue_detection": issue_result,
+        "public_agency_insight": insight_result,
+        "generated_alerts": [],
+        "generated_insights": [],
+        "representative_evidence_ids": [],
+        "llm_metrics": compact_metrics,
+        "direct_llm_success": False,
+        "fallback_used": False,
+        "fallback_reason": compact_metrics["failure_reasons"],
+        "invalid_evidence_ids": [],
+        "action_repair_report": None,
+        "action_retry_report": None,
+        "llm_duration_ms": 0.0,
+        "retry_duration_ms": 0.0,
+        "duration_seconds": round(duration_seconds, 3),
+        "insight_samples": [],
+        "dashboard_snapshot": None,
+        "objective_assessment": {
+            "strengths": [],
+            "weaknesses": ["scenario 평가 중 예외가 발생해 결과가 생성되지 않았습니다."],
+            "risk": "해당 scenario는 checkpoint에 실패 결과로 기록되며 후속 원인 분석이 필요합니다.",
+            "failure_codes": [error_code],
+            "warning_codes": [],
+        },
     }
 
 
@@ -649,6 +869,24 @@ def build_llm_evaluation_summary(results: list[dict[str, Any]]) -> dict[str, Any
     providers = sorted({str(item.get("provider")) for item in metrics if item.get("provider")})
     models = sorted({str(item.get("model")) for item in metrics if item.get("model")})
     prompt_modes = sorted({str(item.get("prompt_mode")) for item in metrics if item.get("prompt_mode")})
+    slowest = sorted(
+        (
+            {
+                "scenario_id": item.get("scenario_id"),
+                "duration_seconds": item.get("duration_seconds", 0.0),
+                "llm_duration_ms": item.get("llm_duration_ms", 0.0),
+            }
+            for item in results
+        ),
+        key=lambda item: float(item.get("llm_duration_ms") or 0.0),
+        reverse=True,
+    )[:5]
+    fallback_scenarios = [str(item.get("scenario_id")) for item in results if item.get("fallback_used")]
+    timeout_scenarios = [
+        str(item.get("scenario_id"))
+        for item in results
+        if _result_has_timeout_signal(item)
+    ]
     return {
         "providers": providers,
         "models": models,
@@ -682,11 +920,16 @@ def build_llm_evaluation_summary(results: list[dict[str, Any]]) -> dict[str, Any
         "avg_llm_duration_ms": round(sum(durations) / len(durations), 3) if durations else 0.0,
         "avg_retry_duration_ms": round(sum(retry_durations) / len(retry_durations), 3) if retry_durations else 0.0,
         "p95_llm_duration_ms": _percentile(durations, 0.95),
+        "total_duration_seconds": round(_avg(item.get("duration_seconds", 0.0) for item in results) * len(results), 3),
+        "slowest_scenarios": slowest,
+        "timeout_scenarios": timeout_scenarios,
+        "fallback_scenarios": fallback_scenarios,
         "raw_response_debug_enabled": any(bool(item.get("raw_response_debug_enabled")) for item in metrics),
         "speed_metrics": {
             "avg_llm_duration_ms": round(sum(durations) / len(durations), 3) if durations else 0.0,
             "p95_llm_duration_ms": _percentile(durations, 0.95),
             "avg_retry_duration_ms": round(sum(retry_durations) / len(retry_durations), 3) if retry_durations else 0.0,
+            "total_duration_seconds": round(_avg(item.get("duration_seconds", 0.0) for item in results) * len(results), 3),
         },
     }
 
@@ -1333,8 +1576,8 @@ def build_synthetic_scenarios(as_of: datetime) -> list[dict[str, Any]]:
             True,
             ["재민원", "반복"],
             ["REOPEN_OR_REPEAT_RISK"],
-            ["생활환경 불편", "소통 부족"],
-            ["PROCESS_IMPROVEMENT"],
+            ["재민원/반복 민원", "처리 결과 불만", "소통 부족"],
+            ["PROCESS_IMPROVEMENT", "CITIZEN_COMMUNICATION"],
             False,
             [
                 "악취 민원을 처리했다고 했지만 같은 냄새가 다시 납니다.",
@@ -1361,8 +1604,8 @@ def build_synthetic_scenarios(as_of: datetime) -> list[dict[str, Any]]:
             True,
             ["소음", "공사"],
             ["SEASONAL_OR_TIME_PATTERN", "ENFORCEMENT_PRIORITY", "RECURRING_COMPLAINT_PATTERN"],
-            ["생활환경 불편", "단속 공백"],
-            ["ENFORCEMENT", "PROCESS_IMPROVEMENT"],
+            ["소음/진동", "시간대 집중", "단속 공백"],
+            ["ENFORCEMENT", "FIELD_INSPECTION"],
             False,
             [
                 "새벽 공사 소음과 진동 때문에 잠을 잘 수 없습니다.",
@@ -1413,7 +1656,7 @@ def build_synthetic_scenarios(as_of: datetime) -> list[dict[str, Any]]:
             ["가로등", "보안등"],
             ["FACILITY_MAINTENANCE_PRIORITY", "RECURRING_COMPLAINT_PATTERN"],
             ["시설 파손", "현장 안전"],
-            ["PROCESS_IMPROVEMENT"],
+            ["FIELD_INSPECTION", "MAINTENANCE"],
             False,
             [
                 "공원 입구 가로등이 며칠째 꺼져 있어 밤길이 위험합니다.",
@@ -1429,6 +1672,306 @@ def build_synthetic_scenarios(as_of: datetime) -> list[dict[str, Any]]:
             request="가로등 현장 점검과 반복 고장 원인 확인을 요청합니다.",
             result="조명 고장으로 야간 보행 안전 우려가 반복됩니다.",
             context="같은 골목과 공원 입구 주변에서 조명 고장 신고가 집중되었습니다.",
+        ),
+        scenario(
+            "flood_drainage_risk",
+            "침수/배수 불량 위험",
+            "positive_alert",
+            True,
+            ["침수", "배수"],
+            ["SAFETY_RISK_SIGNAL", "HOTSPOT_RESPONSE_REQUIRED", "FACILITY_MAINTENANCE_PRIORITY"],
+            ["침수 위험", "배수 불량", "현장 안전"],
+            ["FIELD_INSPECTION", "MAINTENANCE", "SAFETY_NOTICE"],
+            True,
+            [
+                "비가 오면 맨홀 주변 물이 역류해 보도 침수 위험이 큽니다.",
+                "우수관 배수 불량으로 빗물받이가 막혀 도로에 물이 고입니다.",
+                "하수도 역류 냄새와 침수 우려가 반복되어 사전 점검이 필요합니다.",
+                "집중호우 전에 배수로와 맨홀을 정비해 주세요.",
+                "저지대 골목 배수가 안 돼 차량과 보행자 안전이 걱정됩니다.",
+            ],
+            as_of,
+            "영등포구",
+            "치수과",
+            "침수/배수",
+            request="배수로 점검, 맨홀/하수도 정비, 우천 전 사전 조치를 요청합니다.",
+            result="배수 불량과 역류로 침수 위험과 현장 안전 우려가 반복됩니다.",
+            context="최근 관측 기준 같은 저지대 구간에서 우천 전 배수 민원이 집중되었습니다.",
+        ),
+        scenario(
+            "illegal_dumping_recurring",
+            "무단투기/쓰레기 적치 반복",
+            "positive_alert",
+            True,
+            ["무단투기", "쓰레기"],
+            ["ENFORCEMENT_PRIORITY", "FACILITY_MAINTENANCE_PRIORITY", "PUBLIC_GUIDANCE_NEEDED"],
+            ["무단투기", "쓰레기 적치", "안내 부족"],
+            ["ENFORCEMENT", "MAINTENANCE", "PUBLIC_GUIDANCE"],
+            True,
+            [
+                "골목 입구에 쓰레기 무단투기가 반복되어 악취가 납니다.",
+                "생활폐기물이 계속 적치되어 정기 청소와 단속이 필요합니다.",
+                "무단투기 금지 안내문이 부족하고 같은 위치에 쓰레기가 쌓입니다.",
+                "밤마다 폐기물을 몰래 버려 주변이 지저분합니다.",
+                "쓰레기 방치로 보행이 불편하니 청소와 단속을 강화해 주세요.",
+            ],
+            as_of,
+            "동작구",
+            "청소행정과",
+            "무단투기",
+            request="무단투기 단속 강화, 정기 청소 확대, 금지 안내 보강을 요청합니다.",
+            result="쓰레기 적치와 악취로 생활환경 불편이 반복됩니다.",
+            context="같은 골목 입구에서 야간 무단투기 민원이 최근 집중되었습니다.",
+        ),
+        scenario(
+            "park_playground_facility_safety",
+            "공원/놀이터 시설 파손 및 이용 안전",
+            "positive_alert",
+            True,
+            ["공원", "놀이터"],
+            ["FACILITY_MAINTENANCE_PRIORITY", "SAFETY_RISK_SIGNAL"],
+            ["시설 파손", "이용 안전", "유지보수 지연"],
+            ["FIELD_INSPECTION", "MAINTENANCE", "CITIZEN_COMMUNICATION"],
+            True,
+            [
+                "놀이터 미끄럼틀이 파손되어 아이들이 다칠 위험이 있습니다.",
+                "공원 벤치가 깨져 있고 보수 일정 안내가 없습니다.",
+                "산책로 바닥이 들떠 야간 이용 시 넘어질까 불안합니다.",
+                "공원 시설 고장이 반복되는데 임시 안전 조치가 필요합니다.",
+                "놀이터 시설 점검과 보수 일정을 알려 주세요.",
+            ],
+            as_of,
+            "서초구",
+            "공원녹지과",
+            "공원 시설",
+            request="시설 점검, 보수 일정 안내, 임시 안전 조치를 요청합니다.",
+            result="시설 파손과 유지보수 지연으로 이용 안전 우려가 반복됩니다.",
+            context="같은 공원과 놀이터 주변 시설 파손 신고가 최근 집중되었습니다.",
+        ),
+        scenario(
+            "security_light_dark_walkway",
+            "가로등/보안등 고장 반복 확장",
+            "positive_alert",
+            True,
+            ["가로등", "보안등"],
+            ["FACILITY_MAINTENANCE_PRIORITY", "SAFETY_RISK_SIGNAL", "HOTSPOT_RESPONSE_REQUIRED"],
+            ["조명 고장", "야간 보행 불안", "안전 위험"],
+            ["FIELD_INSPECTION", "MAINTENANCE", "SAFETY_NOTICE"],
+            True,
+            [
+                "골목 보안등이 계속 꺼져 밤길 보행이 불안합니다.",
+                "가로등 고장이 반복되어 야간에 시야 확보가 어렵습니다.",
+                "어두운 보행 구간에 임시 조명이나 안전 안내가 필요합니다.",
+                "같은 위치 조명 고장 신고를 여러 번 했습니다.",
+                "야간 보행 안전을 위해 보안등 교체와 현장 점검을 요청합니다.",
+            ],
+            as_of,
+            "도봉구",
+            "도로조명과",
+            "조명 안전",
+            request="조명 교체, 현장 점검, 임시 조명 또는 안전 안내를 요청합니다.",
+            result="조명 고장으로 야간 보행 불안과 안전 위험이 반복됩니다.",
+            context="같은 골목 보행 구간에서 가로등/보안등 고장 신고가 집중되었습니다.",
+        ),
+        scenario(
+            "bus_route_headway_discomfort",
+            "버스 정류장/노선·배차 불편",
+            "positive_alert",
+            True,
+            ["버스", "배차"],
+            ["REGIONAL_SERVICE_GAP", "SERVICE_DESIGN_IMPROVEMENT", "CITIZEN_COMMUNICATION_GAP"],
+            ["배차 간격", "정류장 접근성", "노선 안내 부족"],
+            ["SERVICE_DESIGN", "PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"],
+            True,
+            [
+                "버스 배차 간격이 길어 출근 시간마다 정류장에서 오래 기다립니다.",
+                "정류장 위치가 멀고 노선 안내가 부족해 환승이 어렵습니다.",
+                "버스 도착 안내가 맞지 않아 이용 불편이 반복됩니다.",
+                "이 지역 노선 조정 검토와 배차 안내 개선이 필요합니다.",
+                "정류장 접근성이 낮아 대중교통 이용이 어렵습니다.",
+            ],
+            as_of,
+            "강서구",
+            "교통행정과",
+            "대중교통",
+            request="노선 조정 검토, 배차 안내 개선, 정류장 시설 개선을 요청합니다.",
+            result="배차 간격과 노선 안내 부족으로 지역 서비스 격차가 의심됩니다.",
+            context="같은 생활권 정류장 주변에서 버스 이용 불편 민원이 반복되었습니다.",
+        ),
+        scenario(
+            "cctv_security_request",
+            "CCTV/방범 안전 설치 요청",
+            "positive_alert",
+            True,
+            ["CCTV", "방범"],
+            ["SAFETY_RISK_SIGNAL", "REGIONAL_SERVICE_GAP", "POLICY_IMPROVEMENT_OPPORTUNITY"],
+            ["방범 취약", "야간 안전 불안", "사각지대"],
+            ["FIELD_INSPECTION", "SAFETY_NOTICE", "POLICY_REVIEW"],
+            True,
+            [
+                "골목이 밤에 너무 어두워 CCTV 설치와 방범 순찰이 필요합니다.",
+                "사각지대가 있어 야간 안전이 불안하니 현장 확인 바랍니다.",
+                "방범 취약 구간인데 안내와 순찰이 부족합니다.",
+                "CCTV 설치 검토와 조명 보강을 요청합니다.",
+                "늦은 시간 보행자가 불안해하는 구간을 점검해 주세요.",
+            ],
+            as_of,
+            "구로구",
+            "안전관리과",
+            "방범 안전",
+            request="CCTV 설치 검토, 방범 순찰 강화, 조명/안내 개선을 요청합니다.",
+            result="야간 안전 불안과 방범 사각지대 우려가 반복됩니다.",
+            context="같은 골목과 사각지대 주변에서 방범 안전 민원이 집중되었습니다.",
+        ),
+        scenario(
+            "smoking_enforcement_recurring",
+            "흡연/금연구역 단속 반복",
+            "positive_alert",
+            True,
+            ["흡연", "금연구역"],
+            ["ENFORCEMENT_PRIORITY", "PUBLIC_GUIDANCE_NEEDED", "CITIZEN_COMMUNICATION_GAP"],
+            ["흡연 반복", "단속 공백", "안내 부족"],
+            ["ENFORCEMENT", "PUBLIC_GUIDANCE", "MAINTENANCE"],
+            True,
+            [
+                "금연구역에서 흡연이 반복되어 간접흡연 피해가 큽니다.",
+                "담배꽁초가 계속 쌓여 청소와 단속이 필요합니다.",
+                "금연 안내 표지가 부족해 같은 장소에서 흡연이 계속됩니다.",
+                "점심시간마다 흡연 단속을 강화해 주세요.",
+                "간접흡연 민원이 반복되니 안내문과 현장 점검이 필요합니다.",
+            ],
+            as_of,
+            "종로구",
+            "보건위생과",
+            "금연 단속",
+            request="금연구역 단속, 안내문/표지 보강, 담배꽁초 청소를 요청합니다.",
+            result="흡연 반복과 단속 공백 인식으로 생활환경 불편이 반복됩니다.",
+            context="같은 상가 앞 금연구역에서 점심·퇴근 시간대 민원이 집중되었습니다.",
+        ),
+        scenario(
+            "illegal_banner_cleanup",
+            "불법 광고물/현수막 정비",
+            "positive_alert",
+            True,
+            ["현수막", "광고물"],
+            ["ENFORCEMENT_PRIORITY", "FACILITY_MAINTENANCE_PRIORITY", "REGIONAL_SERVICE_GAP"],
+            ["불법 광고물", "보행/시야 방해", "반복 위치"],
+            ["ENFORCEMENT", "FIELD_INSPECTION", "MAINTENANCE"],
+            True,
+            [
+                "불법 현수막이 횡단보도 시야를 가려 보행이 위험합니다.",
+                "같은 사거리 광고물이 반복 설치되어 도시 미관을 해칩니다.",
+                "보행로에 불법 광고물이 많아 현장 정비가 필요합니다.",
+                "현수막 단속과 반복 위치 관리를 요청합니다.",
+                "도로 시야를 방해하는 광고물을 정비해 주세요.",
+            ],
+            as_of,
+            "송파구",
+            "도시경관과",
+            "불법 광고물",
+            request="현장 정비, 단속 강화, 반복 위치 관리를 요청합니다.",
+            result="불법 광고물과 현수막이 보행/시야 방해와 도시 미관 저해를 일으킵니다.",
+            context="같은 사거리와 보행로 주변에서 불법 광고물 신고가 집중되었습니다.",
+        ),
+        scenario(
+            "pet_waste_leash_complaints",
+            "반려동물 배설물/목줄/유기동물 민원",
+            "positive_alert",
+            True,
+            ["반려동물", "배설물"],
+            ["ENFORCEMENT_PRIORITY", "PUBLIC_GUIDANCE_NEEDED", "REGIONAL_SERVICE_GAP"],
+            ["반려동물 관리", "배설물 방치", "목줄 미착용"],
+            ["ENFORCEMENT", "PUBLIC_GUIDANCE", "FIELD_INSPECTION"],
+            True,
+            [
+                "공원 산책로에 반려동물 배설물이 방치되어 위생이 걱정됩니다.",
+                "목줄 미착용 개 때문에 아이들이 무서워합니다.",
+                "반려동물 배설물 안내문과 단속이 부족합니다.",
+                "같은 시간대 목줄 없이 산책하는 사례가 반복됩니다.",
+                "유기동물 신고와 현장 순찰을 요청합니다.",
+            ],
+            as_of,
+            "노원구",
+            "동물보호과",
+            "반려동물 관리",
+            request="단속, 안내문 보강, 현장 순찰을 요청합니다.",
+            result="반려동물 관리 미흡으로 생활 안전과 위생 불편이 반복됩니다.",
+            context="같은 공원 산책로 주변에서 배설물과 목줄 민원이 집중되었습니다.",
+        ),
+        scenario(
+            "licensing_docs_guidance_confusion",
+            "인허가/자격·서류 기준 안내 혼선",
+            "positive_alert",
+            True,
+            ["인허가", "서류"],
+            ["PUBLIC_GUIDANCE_NEEDED", "CITIZEN_COMMUNICATION_GAP", "POLICY_IMPROVEMENT_OPPORTUNITY"],
+            ["기준 이해 어려움", "신청 절차", "제출 서류"],
+            ["PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION", "PROCESS_IMPROVEMENT"],
+            True,
+            [
+                "인허가 신청 기준과 제출 서류가 헷갈려 상담이 필요합니다.",
+                "자격 요건 안내가 어려워 어느 부서에 문의해야 할지 모르겠습니다.",
+                "면허 기준과 필요서류 체크리스트를 제공해 주세요.",
+                "담당 부서 안내가 부족해 신청 절차를 반복해서 문의합니다.",
+                "인허가 기준 설명이 서로 달라 시민이 혼란스럽습니다.",
+            ],
+            as_of,
+            "중랑구",
+            "민원여권과",
+            "인허가 안내",
+            request="기준 안내 보강, 체크리스트 제공, 담당 부서 상담 경로 안내를 요청합니다.",
+            result="기준과 제출 서류 안내 혼선으로 반복 문의가 발생합니다.",
+            context="최근 관측 기준 인허가·자격·서류 관련 문의가 같은 창구에 집중되었습니다.",
+        ),
+        scenario(
+            "accessibility_vulnerable_groups",
+            "장애인·고령자·외국인 접근성/이용 어려움",
+            "positive_alert",
+            True,
+            ["접근성", "고령자"],
+            ["ACCESSIBILITY_OR_USABILITY_ISSUE", "SERVICE_DESIGN_IMPROVEMENT", "PUBLIC_GUIDANCE_NEEDED"],
+            ["접근성/사용성", "취약계층 이용 불편", "안내 부족"],
+            ["SERVICE_DESIGN", "PUBLIC_GUIDANCE", "CITIZEN_COMMUNICATION"],
+            True,
+            [
+                "고령자가 온라인 신청 절차를 이해하기 어려워 도움을 요청합니다.",
+                "장애인 이용자가 예약 화면에서 접근성 버튼을 찾기 어렵습니다.",
+                "외국어 안내가 부족해 외국인이 신청 방법을 이해하지 못합니다.",
+                "휠체어 이용자가 현장 안내 동선을 알기 어렵습니다.",
+                "취약계층을 위한 쉬운 안내와 대체 신청 경로가 필요합니다.",
+            ],
+            as_of,
+            "은평구",
+            "디지털민원지원팀",
+            "접근성",
+            request="쉬운 안내, 외국어/고령자 친화 안내, 신청 절차 단순화를 요청합니다.",
+            result="취약계층 이용 불편과 신청 중단 가능성이 반복됩니다.",
+            context="고령자·장애인·외국인 이용 어려움이 같은 기간 반복되었습니다.",
+        ),
+        scenario(
+            "school_zone_commute_safety",
+            "어린이보호구역/통학 안전",
+            "positive_alert",
+            True,
+            ["어린이보호구역", "통학"],
+            ["SAFETY_RISK_SIGNAL", "ENFORCEMENT_PRIORITY", "HOTSPOT_RESPONSE_REQUIRED"],
+            ["통학 안전", "등하교 시간 집중", "교통 위험"],
+            ["ENFORCEMENT", "FIELD_INSPECTION", "SAFETY_NOTICE"],
+            True,
+            [
+                "어린이보호구역에 등교 시간 불법주정차가 많아 통학 안전이 걱정됩니다.",
+                "학교 앞 차량 속도가 빠르고 교통 위험이 반복됩니다.",
+                "하교 시간대 단속과 안전 안내 표지를 보강해 주세요.",
+                "통학로 주변 현장 점검과 교통지도 요청합니다.",
+                "등하교 시간마다 차량 혼잡으로 아이들이 위험합니다.",
+            ],
+            as_of,
+            "양천구",
+            "교통지도과",
+            "통학 안전",
+            request="등하교 시간 단속, 안내 표지 보강, 현장 점검을 요청합니다.",
+            result="어린이보호구역 통학 안전과 교통 위험 우려가 반복됩니다.",
+            context="학교 앞 같은 구간에서 등하교 시간대 민원이 집중되었습니다.",
         ),
         scenario(
             "low_count_negative",
@@ -1584,6 +2127,89 @@ def load_scenarios(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _split_csv(value: str | None) -> list[str] | None:
+    if not value:
+        return None
+    items = [item.strip() for item in value.split(",") if item.strip()]
+    return items or None
+
+
+def _checkpoint_path(
+    *,
+    checkpoint_dir: Path | None,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+    scenario_id: str,
+) -> Path | None:
+    if checkpoint_dir is None:
+        return None
+    key = "_".join(
+        _safe_filename(part)
+        for part in [provider, model or "none", prompt_mode or "default", scenario_id]
+    )
+    return checkpoint_dir / f"{key}.json"
+
+
+def _load_checkpoint_result(
+    path: Path | None,
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+) -> dict[str, Any] | None:
+    if path is None or not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    metadata = payload.get("metadata") or {}
+    if metadata.get("provider") != provider:
+        return None
+    if metadata.get("model") != model:
+        return None
+    if metadata.get("prompt_mode") != prompt_mode:
+        return None
+    result = payload.get("result")
+    return result if isinstance(result, dict) else None
+
+
+def _write_checkpoint_result(
+    path: Path | None,
+    result: dict[str, Any],
+    *,
+    provider: str,
+    model: str | None,
+    prompt_mode: str | None,
+) -> None:
+    if path is None:
+        return
+    payload = {
+        "metadata": {
+            "provider": provider,
+            "model": model,
+            "prompt_mode": prompt_mode,
+            "scenario_id": result.get("scenario_id"),
+            "written_at": datetime.now(timezone.utc).isoformat(),
+        },
+        "result": result,
+    }
+    write_json(path, payload)
+
+
+def _order_results(results: list[dict[str, Any]], scenarios: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    order = {str(scenario.get("scenario_id")): index for index, scenario in enumerate(scenarios)}
+    return sorted(results, key=lambda item: order.get(str(item.get("scenario_id")), len(order)))
+
+
+def _safe_filename(value: str) -> str:
+    safe = []
+    for char in value:
+        if char.isalnum() or char in {"-", "_"}:
+            safe.append(char)
+        else:
+            safe.append("_")
+    return "".join(safe).strip("_") or "empty"
+
+
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
@@ -1598,8 +2224,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "# Complaint Intelligence 평가 보고서",
         "",
         f"- Provider: `{report['provider']}`",
+        f"- Scenario requested/evaluated: `{report.get('scenario_count_requested')}` / `{report.get('scenario_count_evaluated')}`",
         f"- Scenario count: `{report['scenario_count']}`",
         f"- Overall pass rate: `{summary['overall_pass_rate']:.3f}`",
+        f"- Limited reason: `{report.get('limited_reason') or '-'}`",
+        f"- Checkpoint resume: `{(report.get('checkpoint') or {}).get('resume', False)}`",
+        f"- Checkpoint dir: `{(report.get('checkpoint') or {}).get('checkpoint_dir') or '-'}`",
         "",
         "## 전체 지표",
         "",
@@ -1639,6 +2269,14 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"| LLM | schema_validation_failure_count | {llm_eval.get('schema_validation_failure_count', 0)} |",
         f"| LLM | avg_llm_duration_ms | {float(llm_eval.get('avg_llm_duration_ms', 0.0)):.1f} |",
         f"| LLM | avg_retry_duration_ms | {float(llm_eval.get('avg_retry_duration_ms', 0.0)):.1f} |",
+        f"| LLM | p95_llm_duration_ms | {float(llm_eval.get('p95_llm_duration_ms', 0.0)):.1f} |",
+        f"| LLM | total_duration_seconds | {float(llm_eval.get('total_duration_seconds', 0.0)):.1f} |",
+        "",
+        "## Local LLM 안정성 추적",
+        "",
+        f"- Slowest scenarios: `{', '.join(str(item.get('scenario_id', '-')) for item in llm_eval.get('slowest_scenarios', [])) or '-'}`",
+        f"- Timeout scenarios: `{', '.join(str(item) for item in llm_eval.get('timeout_scenarios', [])) or '-'}`",
+        f"- Fallback scenarios: `{', '.join(str(item) for item in llm_eval.get('fallback_scenarios', [])) or '-'}`",
         "",
         "## 목표 기준",
         "",
@@ -1820,15 +2458,32 @@ def _limited_reason(
     evaluated_count: int,
     scenario_limit: int | None,
     scenario_id: str | None,
+    scenario_ids: list[str] | None = None,
+    chunk_size: int | None = None,
+    pending_scenario_ids: list[str] | None = None,
 ) -> str | None:
     if evaluated_count >= requested_count:
         return None
     reasons: list[str] = []
     if scenario_id:
         reasons.append("scenario_id")
+    if scenario_ids:
+        reasons.append("scenario_ids")
     if scenario_limit is not None:
         reasons.append("scenario_limit")
+    if chunk_size is not None:
+        reasons.append("chunk_size")
+    if pending_scenario_ids:
+        reasons.append("checkpoint_resume_incomplete")
     return "+".join(reasons) if reasons else "filtered"
+
+
+def _result_has_timeout_signal(result: dict[str, Any]) -> bool:
+    failure_codes = [str(item.get("code", "")) for item in result.get("failures", [])]
+    reason_keys = list((result.get("fallback_reason") or {}).keys())
+    metric_reasons = list(((result.get("llm_metrics") or {}).get("failure_reasons") or {}).keys())
+    haystack = " ".join(failure_codes + reason_keys + metric_reasons).upper()
+    return "TIMEOUT" in haystack
 
 
 def _avg(values: Any) -> float:
