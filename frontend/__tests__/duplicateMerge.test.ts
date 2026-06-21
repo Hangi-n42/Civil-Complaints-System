@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   canCreateDraftReply,
+  canGenerateDuplicateReplyDraft,
   duplicateBadgeForCase,
   duplicateGroupTitle,
   duplicateStatusLabel,
   evidenceLabel,
+  replyDraftFallbackNotice,
   representativeReasonLabel,
   riskFlagLabel,
+  safetyWarningLabel,
 } from "../components/intelligence/duplicateMerge";
 import type { DuplicateMergeRecord } from "../lib/api";
 
@@ -95,5 +98,41 @@ describe("duplicate merge display helpers", () => {
     ]);
 
     expect(badge?.label).toBe("확정 그룹");
+  });
+});
+
+describe("대표 답변 초안(reply-draft) helpers", () => {
+  it("확정 상태와 draft_reply 허용이 모두 맞아야 초안 생성이 가능하다", () => {
+    expect(canGenerateDuplicateReplyDraft(group({ status: "candidate" }))).toBe(false);
+    expect(canGenerateDuplicateReplyDraft(group({ status: "confirmed", allowed_actions: ["split", "draft_reply"] }))).toBe(true);
+    expect(canGenerateDuplicateReplyDraft(group({ status: "confirmed", allowed_actions: ["split"] }))).toBe(false);
+  });
+
+  it("safety_warnings 코드를 담당자용 문구로 바꾸고, 모르는 코드는 그대로 둔다", () => {
+    expect(safetyWarningLabel("PII_PHONE")).toBe("초안 내 전화번호 의심 표현 확인 필요");
+    expect(safetyWarningLabel("AUTO_SEND_PROMISE")).toBe("자동 발송으로 오해될 표현 확인 필요");
+    expect(safetyWarningLabel("RISK_FLAGS_PRESENT")).toBe("병합 주의 사유가 있는 그룹");
+    expect(safetyWarningLabel("UNKNOWN_CODE")).toBe("UNKNOWN_CODE");
+  });
+
+  it("정상 생성이면 fallback 안내가 없다", () => {
+    expect(replyDraftFallbackNotice({})).toBeNull();
+    expect(replyDraftFallbackNotice({ fallback_used: false })).toBeNull();
+    expect(replyDraftFallbackNotice({ duplicate_group_reply: true, search_result_count: 3 })).toBeNull();
+  });
+
+  it("검색 근거 부족과 검색 실패를 서로 다른 안내로 구분한다", () => {
+    expect(replyDraftFallbackNotice({ fallback_used: true, fallback_reason: "NO_SEARCH_CONTEXT" })).toBe(
+      "검색 근거가 부족해 안전 초안이 생성되었습니다.",
+    );
+    expect(replyDraftFallbackNotice({ fallback_used: true, fallback_reason: "RETRIEVAL_ERROR" })).toBe(
+      "검색 실패로 담당자 검토용 안전 초안이 생성되었습니다.",
+    );
+    expect(replyDraftFallbackNotice({ fallback_used: true, retrieval_warning: "RETRIEVAL_ERROR" })).toBe(
+      "검색 실패로 담당자 검토용 안전 초안이 생성되었습니다.",
+    );
+    expect(replyDraftFallbackNotice({ fallback_used: true, fallback_reason: "GenerationError:TIMEOUT" })).toBe(
+      "담당자 검토용 안전 초안이 생성되었습니다.",
+    );
   });
 });
