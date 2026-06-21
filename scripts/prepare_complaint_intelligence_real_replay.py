@@ -70,17 +70,29 @@ def main() -> int:
             source_name=args.source_name,
             description=args.description,
         )
+        seed, should_write_seed, fallback = choose_seed_payload(seed, seed_path)
+        if fallback:
+            build_report["fallback_to_existing_seed"] = fallback
+            print(
+                "[predev] 입력 데이터에서 real_replay 이벤트를 만들지 못해 기존 seed를 유지합니다.",
+                file=sys.stderr,
+            )
         seed_path.parent.mkdir(parents=True, exist_ok=True)
         build_report_path.parent.mkdir(parents=True, exist_ok=True)
-        seed_path.write_text(json.dumps(seed, ensure_ascii=False, indent=2), encoding="utf-8")
+        if should_write_seed:
+            seed_path.write_text(json.dumps(seed, ensure_ascii=False, indent=2), encoding="utf-8")
         build_report_path.write_text(json.dumps(build_report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    reset_sqlite_db(db_path)
     seed_payload = load_seed(seed_path)
     events = seed_events(seed_payload)
+    if not events:
+        raise RuntimeError(
+            "real_replay seed 이벤트가 0건입니다. 기존 DB를 보존하기 위해 재생성을 중단합니다."
+        )
     if contains_unmasked_pii(seed_payload):
         raise RuntimeError("real_replay seed에 마스킹되지 않은 개인정보 패턴이 감지되었습니다.")
 
+    reset_sqlite_db(db_path)
     service = build_service(db_path)
     as_of = datetime.fromisoformat(str(seed_payload.get("as_of")))
     issue_result = service.run_analysis(
@@ -148,6 +160,52 @@ def reset_sqlite_db(db_path: Path) -> None:
         target = Path(str(db_path) + suffix)
         if target.exists():
             target.unlink()
+
+
+def choose_seed_payload(generated_seed: dict[str, Any], seed_path: Path) -> tuple[dict[str, Any], bool, dict[str, Any] | None]:
+    """새 seed가 비어 있으면 기존 정상 seed를 보존한다."""
+
+    generated_count = count_seed_events(generated_seed)
+    if generated_count > 0:
+        return generated_seed, True, None
+
+    existing_seed = load_existing_seed(seed_path)
+    existing_count = count_seed_events(existing_seed) if existing_seed else 0
+    if existing_seed and existing_count > 0:
+        return (
+            existing_seed,
+            False,
+            {
+                "reason": "generated_seed_empty",
+                "generated_event_count": generated_count,
+                "existing_event_count": existing_count,
+                "seed_path": str(seed_path),
+            },
+        )
+
+    raise RuntimeError(
+        "입력 데이터에서 real_replay 이벤트를 만들지 못했고 기존 seed도 비어 있습니다. "
+        "--input 또는 COMPLAINT_INTELLIGENCE_REAL_REPLAY_INPUT 경로를 확인하세요."
+    )
+
+
+def load_existing_seed(seed_path: Path) -> dict[str, Any] | None:
+    if not seed_path.exists():
+        return None
+    try:
+        return json.loads(seed_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+
+def count_seed_events(seed: dict[str, Any] | None) -> int:
+    if not seed:
+        return 0
+    return sum(
+        len(scenario.get("events") or [])
+        for scenario in seed.get("scenarios", [])
+        if isinstance(scenario, dict)
+    )
 
 
 def summarize(report: dict[str, Any]) -> dict[str, Any]:
