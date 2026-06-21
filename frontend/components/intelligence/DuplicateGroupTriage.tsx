@@ -15,6 +15,7 @@ import {
   canGenerateDuplicateReplyDraft,
   duplicateGroupTitle,
   duplicateQueueContextLabel,
+  duplicateReviewPriorityLabel,
   duplicateStatusLabel,
   duplicateStatusTone,
   evidenceLabel,
@@ -263,8 +264,11 @@ function DuplicateGroupCard({
             <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${duplicateStatusTone(group.status)}`}>
               {duplicateStatusLabel(group.status)}
             </span>
-            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-              신뢰도 {(group.confidence * 100).toFixed(0)}%
+            <span
+              className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600"
+              title="이 값은 중복 후보 검토 우선순위이며, 병합 가능성이나 법적 동일성을 보장하지 않습니다."
+            >
+              {duplicateReviewPriorityLabel(group)}
             </span>
             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
               {group.member_complaint_ids.length}건
