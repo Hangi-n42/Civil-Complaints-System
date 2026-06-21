@@ -45,68 +45,71 @@ export function IssueAlertCard({
   return (
     <article
       id={`issue-alert-${alert.id}`}
-      tabIndex={0}
-      onClick={() => onFocusAlert?.(alert.id)}
-      onFocus={() => onFocusAlert?.(alert.id)}
-      onMouseEnter={() => onFocusAlert?.(alert.id)}
-      className={`rounded-lg border bg-white p-4 shadow-sm outline-none transition ${
-        highlighted ? "border-blue-500 ring-2 ring-blue-200" : "border-slate-200 hover:border-slate-300"
+      className={`rounded-md border bg-white px-3 py-3 transition ${
+        highlighted ? "border-sky-500 ring-2 ring-sky-100" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/40"
       }`}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <SeverityBadge color={alert.color} label={alert.severity_label} />
-        {hasDuplicateGroups && (
-          <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
-            중복 후보 {duplicateGroupCount}그룹
-          </span>
-        )}
-      </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <SeverityBadge color={alert.color} label={alert.severity_label} />
+            {hasDuplicateGroups && (
+              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                중복 {duplicateGroupCount}
+              </span>
+            )}
+            <span className="text-[11px] font-bold text-slate-400">신뢰도 {(alert.confidence * 100).toFixed(0)}%</span>
+          </div>
 
-      <h3 className="text-sm font-extrabold leading-snug text-slate-900">{alert.title}</h3>
-      {alert.summary && <p className="mt-2 text-xs leading-relaxed text-slate-600">{formatIssueAlertSummary(alert)}</p>}
-
-      <div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
-        {formatIssueAlertTrend(alert)}
-      </div>
-
-      {alert.keywords.length > 0 && (
-        <div className="mt-3 text-xs text-slate-500">
-          주요 표현: <span className="font-semibold text-slate-700">{alert.keywords.slice(0, 5).join(", ")}</span>
+          <h3 className="line-clamp-1 text-sm font-extrabold leading-snug text-slate-950">{alert.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
+            {alert.region && <span>{alert.region}</span>}
+            <span>최근 {alert.recent_count}건</span>
+            <span>급증 {formatSurge(alert.surge_ratio)}</span>
+            <span>인사이트 {alert.linked_insight_ids.length}건</span>
+          </div>
         </div>
-      )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-        {alert.region && <span>지역 {alert.region}</span>}
-        <span>대표 민원 {alert.representative_complaint_ids.length}건</span>
-        <span>연결 인사이트 {alert.linked_insight_ids.length}건</span>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {alert.linked_insight_ids.length > 0 && onOpenInsight && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenInsight(alert.linked_insight_ids[0]);
-            }}
-            className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
-          >
-            인사이트 보기
-          </button>
-        )}
-        {hasDuplicateGroups && onOpenDuplicateGroups && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenDuplicateGroups(alert.id);
-            }}
-            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100"
-          >
-            중복 후보 보기
-          </button>
-        )}
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          {onFocusAlert && (
+            <button type="button" onClick={() => onFocusAlert(alert.id)} className={actionButtonClass("quiet")}>
+              지도
+            </button>
+          )}
+          {alert.linked_insight_ids.length > 0 && onOpenInsight && (
+            <button
+              type="button"
+              onClick={() => onOpenInsight(alert.linked_insight_ids[0])}
+              className={actionButtonClass(hasDuplicateGroups ? "secondary" : "primaryBlue")}
+            >
+              인사이트
+            </button>
+          )}
+          {hasDuplicateGroups && onOpenDuplicateGroups && (
+            <button type="button" onClick={() => onOpenDuplicateGroups(alert.id)} className={actionButtonClass("primary")}>
+              중복
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
+}
+
+function formatSurge(ratio: number): string {
+  if (!Number.isFinite(ratio) || ratio <= 0) return "-";
+  return `${ratio.toFixed(1)}배`;
+}
+
+function actionButtonClass(kind: "primary" | "primaryBlue" | "secondary" | "quiet"): string {
+  if (kind === "primary") {
+    return "rounded-md border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-extrabold text-amber-900 hover:bg-amber-200";
+  }
+  if (kind === "primaryBlue") {
+    return "rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-blue-700";
+  }
+  if (kind === "secondary") {
+    return "rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100";
+  }
+  return "rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50";
 }

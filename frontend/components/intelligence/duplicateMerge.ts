@@ -1,5 +1,22 @@
 import type { DuplicateEvidence, DuplicateMergeRecord, DuplicateRiskFlag } from "@/lib/api";
 
+export type DuplicateReviewTone = "ok" | "review" | "blocker";
+
+export type DuplicateReviewChecklistItem = {
+  label: string;
+  value: string;
+  detail: string;
+  tone: DuplicateReviewTone;
+};
+
+export type DuplicateCaseReviewRow = {
+  complaintId: string;
+  requestType: string;
+  role: "대표" | "구성";
+  attention: string;
+  tone: DuplicateReviewTone;
+};
+
 export function duplicateStatusLabel(status: DuplicateMergeRecord["status"]): string {
   switch (status) {
     case "candidate":
@@ -28,6 +45,39 @@ export function duplicateStatusTone(status: DuplicateMergeRecord["status"]): str
     default:
       return "border-slate-200 bg-slate-50 text-slate-600";
   }
+}
+
+export function duplicateCandidateGrade(group: DuplicateMergeRecord): {
+  label: string;
+  description: string;
+  className: string;
+} {
+  if (group.risk_flags.some((flag) => flag.severity === "blocker")) {
+    return {
+      label: "차단 위험",
+      description: "확정 전 차이점을 먼저 해소해야 합니다.",
+      className: "border-red-200 bg-red-50 text-red-700",
+    };
+  }
+  if (group.recommendation_level === "strong") {
+    return {
+      label: "강한 후보",
+      description: "공통점이 뚜렷하지만 담당자 확인은 필요합니다.",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+  if (group.recommendation_level === "weak") {
+    return {
+      label: "약한 후보",
+      description: "비슷한 점은 있으나 분리 가능성을 먼저 봐야 합니다.",
+      className: "border-slate-200 bg-slate-50 text-slate-600",
+    };
+  }
+  return {
+    label: "검토 후보",
+    description: "병합 가능성과 분리 필요성을 함께 확인하세요.",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+  };
 }
 
 export function duplicateReviewPriorityLabel(group: DuplicateMergeRecord): string {
@@ -113,6 +163,113 @@ export function riskFlagTone(flag: DuplicateRiskFlag): string {
   if (flag.severity === "blocker") return "border-red-200 bg-red-50 text-red-700";
   if (flag.severity === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+export function duplicateCommonPoints(group: DuplicateMergeRecord): string[] {
+  const points = uniqueStrings([
+    ...group.evidence.slice(0, 3).map(evidenceLabel),
+    group.linked_issue_alert_ids.length > 0 ? `같은 핫스팟 경보 ${group.linked_issue_alert_ids.length}건과 연결되어 있습니다.` : "",
+    group.linked_public_insight_ids.length > 0 ? `같은 행정 인사이트 ${group.linked_public_insight_ids.length}건과 연결되어 있습니다.` : "",
+    requestTypeValues(group).length === 1 ? `요청 유형이 모두 ${duplicateRequestTypeLabel(requestTypeValues(group)[0])} 계열입니다.` : "",
+  ]);
+  return points.length > 0 ? points : ["같은 사건으로 볼 수 있는 구조화 근거를 확인해야 합니다."];
+}
+
+export function duplicateDifferencePoints(group: DuplicateMergeRecord): string[] {
+  const requestTypes = requestTypeValues(group);
+  const points = uniqueStrings([
+    ...group.risk_flags.map((flag) => riskFlagLabel(flag)),
+    locationStateDifferenceLabel(group.location_state),
+    requestTypes.length > 1 ? `요청 유형이 ${requestTypes.map(duplicateRequestTypeLabel).join(", ")}로 섞여 있습니다.` : "",
+    group.blocked_actions.length > 0 ? `${group.blocked_actions.length}개 작업이 차단되어 있습니다.` : "",
+  ]);
+  return points.length > 0
+    ? points
+    : ["뚜렷한 차단 신호는 없지만 대표 답변으로 모든 요구를 다룰 수 있는지 확인하세요."];
+}
+
+export function duplicatePreMergeChecklist(group: DuplicateMergeRecord): DuplicateReviewChecklistItem[] {
+  const requestTypes = requestTypeValues(group);
+  const blockerCodes = new Set(group.risk_flags.filter((flag) => flag.severity === "blocker").map((flag) => flag.code));
+  const warningCodes = new Set(group.risk_flags.filter((flag) => flag.severity === "warning").map((flag) => flag.code));
+
+  return [
+    {
+      label: "장소·시설",
+      value: duplicateLocationStateLabel(group.location_state),
+      detail: locationChecklistDetail(group.location_state),
+      tone: locationChecklistTone(group.location_state),
+    },
+    {
+      label: "요청 유형",
+      value: requestTypes.length === 1 ? duplicateRequestTypeLabel(requestTypes[0]) : requestTypes.length > 1 ? "혼합" : "확인 필요",
+      detail:
+        requestTypes.length === 1
+          ? "같은 처리 방향으로 묶을 수 있는지 확인하세요."
+          : "단속, 보상, 안전, 안내가 섞이면 분리 처리해야 할 수 있습니다.",
+      tone:
+        blockerCodes.has("REQUEST_TYPE_MISMATCH") || blockerCodes.has("MULTI_INTENT_SEGMENTS")
+          ? "blocker"
+          : requestTypes.length === 1
+            ? "ok"
+            : "review",
+    },
+    {
+      label: "권리·기한",
+      value: blockerCodes.has("LEGAL_RIGHTS_OR_DEADLINE_RISK") ? "차단" : warningCodes.has("LEGAL_RIGHTS_OR_DEADLINE_RISK") ? "주의" : "신호 없음",
+      detail: "보상, 이의제기, 처리기한 변경 요구가 섞였는지 확인하세요.",
+      tone: riskToneForCode(group, "LEGAL_RIGHTS_OR_DEADLINE_RISK"),
+    },
+    {
+      label: "안전 위험",
+      value: hasRiskCode(group, "SAFETY_AND_INCONVENIENCE_MIXED") ? "혼합 주의" : "분리 신호 없음",
+      detail: "긴급 안전 신고와 단순 문의가 함께 있으면 답변을 분리하세요.",
+      tone: riskToneForCode(group, "SAFETY_AND_INCONVENIENCE_MIXED"),
+    },
+    {
+      label: "대표 답변",
+      value: group.risk_flags.some((flag) => flag.severity === "blocker") ? "생성 차단" : "검토 후 가능",
+      detail: "대표 민원 하나로 모든 민원의 요구가 누락 없이 답변되는지 확인하세요.",
+      tone: group.risk_flags.some((flag) => flag.severity === "blocker") ? "blocker" : "review",
+    },
+  ];
+}
+
+export function duplicateCaseReviewRows(group: DuplicateMergeRecord): DuplicateCaseReviewRow[] {
+  return group.member_complaint_ids.map((complaintId) => {
+    const riskCount = group.risk_flags.filter((flag) => flag.affected_case_ids.includes(complaintId)).length;
+    return {
+      complaintId,
+      requestType: duplicateRequestTypeLabel(group.request_types[complaintId] ?? "other"),
+      role: complaintId === group.representative_complaint_id ? "대표" : "구성",
+      attention: riskCount > 0 ? `주의 사유 ${riskCount}건` : "공통 답변 적용 여부 확인",
+      tone: riskCount > 0 ? "review" : "ok",
+    };
+  });
+}
+
+export function duplicateRequestTypeLabel(requestType: string): string {
+  const labels: Record<string, string> = {
+    enforcement: "단속·계도",
+    compensation: "보상·권리",
+    facility_improvement: "시설 개선",
+    safety_action: "안전 조치",
+    inquiry: "단순 문의",
+    guidance: "안내 요청",
+    other: "기타",
+  };
+  return labels[requestType] ?? "확인 필요";
+}
+
+export function duplicateLocationStateLabel(locationState: DuplicateMergeRecord["location_state"]): string {
+  const labels: Record<string, string> = {
+    exact: "일치",
+    nearby: "인접",
+    ambiguous: "불명확",
+    missing: "정보 부족",
+    conflict: "충돌",
+  };
+  return labels[locationState] ?? "확인 필요";
 }
 
 export function canCreateDraftReply(group: DuplicateMergeRecord): boolean {
@@ -218,6 +375,47 @@ function locationEvidenceLabel(message: string, value?: DuplicateEvidence["value
   if (signal.includes("ambiguous") || signal.includes("missing")) return "장소 정보가 충분하지 않아 확인이 필요합니다.";
   if (signal.includes("nearby")) return "장소가 가까운 것으로 보이나 세부 위치 확인이 필요합니다.";
   return "장소와 시설 신호가 일치합니다.";
+}
+
+function requestTypeValues(group: DuplicateMergeRecord): string[] {
+  return [...new Set(Object.values(group.request_types).filter(Boolean))].sort();
+}
+
+function locationStateDifferenceLabel(locationState: DuplicateMergeRecord["location_state"]): string {
+  if (locationState === "exact") return "";
+  if (locationState === "nearby") return "장소가 가까운 수준이라 세부 위치 확인이 필요합니다.";
+  if (locationState === "ambiguous") return "장소 근거가 불명확합니다.";
+  if (locationState === "missing") return "장소 정보가 부족합니다.";
+  if (locationState === "conflict") return "장소 신호가 서로 충돌합니다.";
+  return "";
+}
+
+function locationChecklistDetail(locationState: DuplicateMergeRecord["location_state"]): string {
+  if (locationState === "exact") return "같은 장소나 시설로 볼 근거가 있습니다.";
+  if (locationState === "nearby") return "인접 장소가 같은 현장인지 확인하세요.";
+  if (locationState === "ambiguous") return "민원별 상세 위치를 다시 확인하세요.";
+  if (locationState === "missing") return "장소 정보가 부족해 확정 전 보완이 필요합니다.";
+  return "장소가 충돌하므로 병합하면 안 될 수 있습니다.";
+}
+
+function locationChecklistTone(locationState: DuplicateMergeRecord["location_state"]): DuplicateReviewTone {
+  if (locationState === "exact") return "ok";
+  if (locationState === "conflict") return "blocker";
+  return "review";
+}
+
+function riskToneForCode(group: DuplicateMergeRecord, code: string): DuplicateReviewTone {
+  const flag = group.risk_flags.find((item) => item.code === code);
+  if (!flag) return "ok";
+  return flag.severity === "blocker" ? "blocker" : "review";
+}
+
+function hasRiskCode(group: DuplicateMergeRecord, code: string): boolean {
+  return group.risk_flags.some((flag) => flag.code === code);
+}
+
+function uniqueStrings(items: string[]): string[] {
+  return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
 }
 
 function sanitizeInternalTerms(message: string): string {
