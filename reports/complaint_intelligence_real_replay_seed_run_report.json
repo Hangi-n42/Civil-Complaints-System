@@ -1,39 +1,32 @@
 {
-  "seed": "data\\demo\\complaint_intelligence_demo_events.json",
-  "db_path": "data\\complaint_intelligence\\complaint_intelligence.db",
+  "seed": "C:\\Users\\studi\\.codex\\worktrees\\d3ab\\AI-Civil-Affairs-Systems\\data\\complaint_intelligence\\complaint_intelligence_real_replay_events.json",
+  "db_path": "C:\\Users\\studi\\.codex\\worktrees\\d3ab\\AI-Civil-Affairs-Systems\\data\\complaint_intelligence\\complaint_intelligence_real_replay.db",
+  "source_name": "complaint_intelligence_real_replay",
   "mode": "replay",
-  "source_name": "complaint_intelligence_demo",
   "as_of": "2026-06-20T09:00:00+09:00",
   "scenario_count": 5,
-  "event_count": 30,
-  "demo_thresholds": false,
-  "fe_check_endpoints": [
-    "GET /complaint-intelligence/dashboard",
-    "GET /complaint-intelligence/issue-alerts",
-    "GET /complaint-intelligence/public-insights"
-  ],
-  "run_id": "ci-run-667a85b93296",
-  "latest_event_at": "2026-06-19T23:50:00+00:00",
+  "event_count": 150,
+  "issue_run_id": "ci-run-47fd873ce338",
+  "duplicate_group_count": 0,
   "dashboard": {
     "passed": true,
     "summary": {
-      "as_of": "2026-06-20T00:00:00+00:00",
+      "as_of": "2026-06-19T23:50:00+00:00",
       "latest_event_at": "2026-06-19T23:50:00+00:00",
-      "event_count": 30,
-      "active_alert_count": 7,
+      "event_count": 150,
+      "active_alert_count": 8,
       "high_priority_insight_count": 1
     },
     "failures": []
   },
-  "issue_alert_count": 7,
-  "public_insight_count": 49,
-  "evidence_pack_count": 49,
+  "issue_alert_count": 8,
+  "public_insight_count": 69,
   "scenario_results": [
     {
       "scenario": "sinkhole_hotspot",
       "label": "도로 침하/싱크홀 급증",
       "passed": true,
-      "event_count": 6,
+      "event_count": 30,
       "matched_alert_count": 1,
       "matched_insight_count": 13,
       "matched_insight_types": [
@@ -53,10 +46,11 @@
       "scenario": "illegal_parking_enforcement",
       "label": "불법주정차 특정 시간대 반복",
       "passed": true,
-      "event_count": 6,
-      "matched_alert_count": 2,
-      "matched_insight_count": 16,
+      "event_count": 30,
+      "matched_alert_count": 4,
+      "matched_insight_count": 22,
       "matched_insight_types": [
+        "ACCESSIBILITY_OR_USABILITY_ISSUE",
         "DEPARTMENT_WORKLOAD_BOTTLENECK",
         "ENFORCEMENT_PRIORITY",
         "FACILITY_MAINTENANCE_PRIORITY",
@@ -67,7 +61,8 @@
         "REGIONAL_SERVICE_GAP",
         "REOPEN_OR_REPEAT_RISK",
         "SAFETY_RISK_SIGNAL",
-        "SEASONAL_OR_TIME_PATTERN"
+        "SEASONAL_OR_TIME_PATTERN",
+        "SERVICE_DESIGN_IMPROVEMENT"
       ],
       "failures": []
     },
@@ -75,18 +70,21 @@
       "scenario": "bulky_waste_guidance",
       "label": "대형폐기물 배출 방법 문의 반복",
       "passed": true,
-      "event_count": 6,
+      "event_count": 30,
       "matched_alert_count": 2,
-      "matched_insight_count": 11,
+      "matched_insight_count": 22,
       "matched_insight_types": [
         "DEPARTMENT_WORKLOAD_BOTTLENECK",
+        "ENFORCEMENT_PRIORITY",
+        "FACILITY_MAINTENANCE_PRIORITY",
         "HOTSPOT_RESPONSE_REQUIRED",
         "POLICY_IMPROVEMENT_OPPORTUNITY",
         "PUBLIC_GUIDANCE_NEEDED",
         "RECURRING_COMPLAINT_PATTERN",
         "REGIONAL_SERVICE_GAP",
         "REOPEN_OR_REPEAT_RISK",
-        "SEASONAL_OR_TIME_PATTERN"
+        "SEASONAL_OR_TIME_PATTERN",
+        "SERVICE_DESIGN_IMPROVEMENT"
       ],
       "failures": []
     },
@@ -94,11 +92,12 @@
       "scenario": "welfare_support_process",
       "label": "복지 지원 기준/신청 절차 불편 반복",
       "passed": true,
-      "event_count": 6,
+      "event_count": 30,
       "matched_alert_count": 3,
-      "matched_insight_count": 12,
+      "matched_insight_count": 17,
       "matched_insight_types": [
         "ACCESSIBILITY_OR_USABILITY_ISSUE",
+        "DEPARTMENT_WORKLOAD_BOTTLENECK",
         "HOTSPOT_RESPONSE_REQUIRED",
         "POLICY_IMPROVEMENT_OPPORTUNITY",
         "PUBLIC_GUIDANCE_NEEDED",
@@ -113,17 +112,21 @@
       "scenario": "odor_night_hotspot",
       "label": "악취/냄새/하수 민원 야간 집중",
       "passed": true,
-      "event_count": 6,
-      "matched_alert_count": 1,
-      "matched_insight_count": 8,
+      "event_count": 30,
+      "matched_alert_count": 2,
+      "matched_insight_count": 29,
       "matched_insight_types": [
+        "DEPARTMENT_WORKLOAD_BOTTLENECK",
+        "ENFORCEMENT_PRIORITY",
         "FACILITY_MAINTENANCE_PRIORITY",
         "HOTSPOT_RESPONSE_REQUIRED",
+        "POLICY_IMPROVEMENT_OPPORTUNITY",
         "PUBLIC_GUIDANCE_NEEDED",
         "RECURRING_COMPLAINT_PATTERN",
         "REGIONAL_SERVICE_GAP",
         "REOPEN_OR_REPEAT_RISK",
-        "SEASONAL_OR_TIME_PATTERN"
+        "SEASONAL_OR_TIME_PATTERN",
+        "SERVICE_DESIGN_IMPROVEMENT"
       ],
       "failures": []
     }
@@ -132,6 +135,5 @@
     "passed": true,
     "raw_pii_detected": false
   },
-  "http_verification": null,
   "passed": true
 }

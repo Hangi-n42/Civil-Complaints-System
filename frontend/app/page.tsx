@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
-import { fetchUiCasesApi, type AssignedCase } from "@/lib/api";
+import { fetchDuplicateGroupsApi, fetchUiCasesApi, type AssignedCase, type DuplicateMergeRecord } from "@/lib/api";
 import { CASE_STATUS_OPTIONS, readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
+import { duplicateBadgeForCase } from "@/components/intelligence/duplicateMerge";
 
 const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
 const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
@@ -22,6 +23,7 @@ export default function QueuePage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
   const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateMergeRecord[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,6 +40,25 @@ export default function QueuePage() {
       })
       .catch(() => {
         // keep fallback mock data
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchDuplicateGroupsApi()
+      .then((response) => {
+        if (!isMounted || response.error) {
+          return;
+        }
+        setDuplicateGroups(response.data.duplicate_groups);
+      })
+      .catch(() => {
+        // 중복 병합 보조 정보가 없어도 기존 민원 목록은 계속 표시한다.
       });
 
     return () => {
@@ -258,39 +279,55 @@ export default function QueuePage() {
                   <th className="px-4 py-3">접수일</th>
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3">우선순위</th>
+                  <th className="px-4 py-3">중복</th>
                   <th className="px-5 py-3">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCases.map((c) => (
-                  <tr
-                    key={c.case_id}
-                    onClick={() => router.push(`/workbench?case_id=${c.case_id}`)}
-                    className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
-                  >
-                    <td className="px-5 py-3">
-                      <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate max-w-75">
-                        {buildTitle(c)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-[11px] font-medium text-slate-400 truncate max-w-30">{c.case_id}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <PriorityBadge priority={c.priority} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={getEffectiveStatus(c)} />
-                    </td>
-                  </tr>
-                ))}
+                {filteredCases.map((c) => {
+                  const duplicateBadge = duplicateBadgeForCase(c.case_id, duplicateGroups);
+                  return (
+                    <tr
+                      key={c.case_id}
+                      onClick={() => router.push(`/workbench?case_id=${c.case_id}`)}
+                      className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate max-w-75">
+                          {buildTitle(c)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-[11px] font-medium text-slate-400 truncate max-w-30">{c.case_id}</div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <PriorityBadge priority={c.priority} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {duplicateBadge ? (
+                          <span
+                            title={duplicateBadge.title}
+                            className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold ${duplicateBadge.className}`}
+                          >
+                            {duplicateBadge.label}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-300">-</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={getEffectiveStatus(c)} />
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredCases.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
+                    <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
                       조건에 맞는 민원이 없습니다. 필터를 조정해보세요.
                     </td>
                   </tr>

@@ -147,6 +147,11 @@ def main() -> int:
     parser.add_argument("--output", default="data/demo/complaint_intelligence_demo_events.json")
     parser.add_argument("--report", default="reports/complaint_intelligence_demo_seed_build_report.json")
     parser.add_argument("--as-of", default="2026-06-20T09:00:00+09:00")
+    parser.add_argument("--source-name", default="complaint_intelligence_demo")
+    parser.add_argument(
+        "--description",
+        default="실제 공개 민원 데이터를 실시간 관제 데모용 replay timeline으로 재배치한 seed",
+    )
     parser.add_argument("--min-events-per-scenario", type=int, default=5)
     parser.add_argument("--max-events-per-scenario", type=int, default=6)
     parser.add_argument("--allow-synthetic-fill", default="false")
@@ -160,6 +165,8 @@ def main() -> int:
         min_events_per_scenario=args.min_events_per_scenario,
         max_events_per_scenario=args.max_events_per_scenario,
         allow_synthetic_fill=allow_synthetic_fill,
+        source_name=args.source_name,
+        description=args.description,
     )
     output_path = Path(args.output)
     report_path = Path(args.report)
@@ -178,6 +185,8 @@ def build_demo_seed(
     min_events_per_scenario: int,
     max_events_per_scenario: int,
     allow_synthetic_fill: bool,
+    source_name: str = "complaint_intelligence_demo",
+    description: str = "실제 공개 민원 데이터를 실시간 관제 데모용 replay timeline으로 재배치한 seed",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     records = list(iter_source_records(input_paths))
     scenarios: list[dict[str, Any]] = []
@@ -236,14 +245,16 @@ def build_demo_seed(
 
     seed = {
         "mode": "replay",
-        "source_name": "complaint_intelligence_demo",
+        "source_name": source_name,
         "as_of": as_of.isoformat(),
-        "description": "실제 공개 민원 데이터를 실시간 관제 데모용 replay timeline으로 재배치한 seed",
+        "description": description,
         "synthetic_fill_enabled": allow_synthetic_fill,
         "scenarios": scenarios,
     }
     report = {
         "as_of": as_of.isoformat(),
+        "source_name": source_name,
+        "description": description,
         "input_paths": [str(path) for path in input_paths],
         "source_record_count": len(records),
         "allow_synthetic_fill": allow_synthetic_fill,
