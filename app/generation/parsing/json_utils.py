@@ -12,6 +12,7 @@ def build_qa_response_schema(
     context: List[Dict[str, Any]],
     *,
     citations_max: int = 3,
+    request_segments: List[str] | None = None,
 ) -> Dict[str, Any]:
     """Build an Ollama constrained-decoding schema from retrieved evidence."""
     evidence = [item for item in context if isinstance(item, dict)]
@@ -27,6 +28,11 @@ def build_qa_response_schema(
     chunk_ids = [value for value in chunk_ids if value]
     case_ids = [value for value in case_ids if value]
     snippets = [value for value in snippets if value]
+    request_segments = [
+        str(item).strip()
+        for item in (request_segments or [])
+        if str(item).strip()
+    ][:4]
 
     def evidence_string_schema(values: List[str]) -> Dict[str, Any]:
         schema: Dict[str, Any] = {"type": "string", "minLength": 1}
@@ -82,7 +88,12 @@ def build_qa_response_schema(
             "structured_output": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["summary", "action_items", "request_segments"],
+                "required": [
+                    "summary",
+                    "action_items",
+                    "request_segments",
+                    "segment_answers",
+                ],
                 "properties": {
                     "summary": {"type": "string", "minLength": 1},
                     "action_items": {
@@ -93,8 +104,44 @@ def build_qa_response_schema(
                     },
                     "request_segments": {
                         "type": "array",
-                        "maxItems": 5,
+                        "maxItems": 4,
                         "items": {"type": "string"},
+                    },
+                    "segment_answers": {
+                        "type": "array",
+                        "minItems": len(request_segments) if request_segments else 0,
+                        "maxItems": 4,
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": [
+                                "segment_index",
+                                "request_segment",
+                                "answer",
+                                "case_ids",
+                                "evidence_status",
+                            ],
+                            "properties": {
+                                "segment_index": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 3,
+                                },
+                                "request_segment": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                },
+                                "answer": {"type": "string", "minLength": 1},
+                                "case_ids": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                                "evidence_status": {
+                                    "type": "string",
+                                    "enum": ["grounded", "no_evidence"],
+                                },
+                            },
+                        },
                     },
                 },
             },
@@ -263,13 +310,14 @@ def validate_qa_payload_schema(payload: Any) -> Dict[str, Any]:
 
     structured = payload.get("structured_output")
     structured_required = {"summary", "action_items", "request_segments"}
+    structured_allowed = structured_required | {"segment_answers"}
     if not isinstance(structured, dict):
         raise _schema_error(
             "structured_output은 객체여야 합니다.",
             field="structured_output",
         )
     structured_missing = sorted(structured_required - set(structured))
-    structured_unexpected = sorted(set(structured) - structured_required)
+    structured_unexpected = sorted(set(structured) - structured_allowed)
     if structured_missing or structured_unexpected:
         raise _schema_error(
             "structured_output 스키마가 올바르지 않습니다.",
@@ -301,6 +349,58 @@ def validate_qa_payload_schema(payload: Any) -> Dict[str, Any]:
             "structured_output.request_segments는 문자열 배열이어야 합니다.",
             field="structured_output.request_segments",
         )
+    raw_segment_answers = structured.get("segment_answers", [])
+    if raw_segment_answers is None:
+        raw_segment_answers = []
+    if not isinstance(raw_segment_answers, list):
+        raise _schema_error(
+            "structured_output.segment_answers는 배열이어야 합니다.",
+            field="structured_output.segment_answers",
+        )
+    segment_answers: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw_segment_answers):
+        if not isinstance(item, dict):
+            raise _schema_error(
+                f"structured_output.segment_answers[{index}]는 객체여야 합니다.",
+                field=f"structured_output.segment_answers[{index}]",
+            )
+        try:
+            segment_index = int(item.get("segment_index"))
+        except (TypeError, ValueError):
+            raise _schema_error(
+                f"structured_output.segment_answers[{index}].segment_index는 정수여야 합니다.",
+                field=f"structured_output.segment_answers[{index}].segment_index",
+            )
+        answer_text = str(item.get("answer") or "").strip()
+        request_segment = str(item.get("request_segment") or "").strip()
+        case_ids = item.get("case_ids")
+        evidence_status = str(item.get("evidence_status") or "").strip()
+        if not answer_text or not request_segment:
+            raise _schema_error(
+                f"structured_output.segment_answers[{index}] 문자열 필드는 비어 있을 수 없습니다.",
+                field=f"structured_output.segment_answers[{index}]",
+            )
+        if not isinstance(case_ids, list) or any(
+            not isinstance(case_id, str) for case_id in case_ids
+        ):
+            raise _schema_error(
+                f"structured_output.segment_answers[{index}].case_ids는 문자열 배열이어야 합니다.",
+                field=f"structured_output.segment_answers[{index}].case_ids",
+            )
+        if evidence_status not in {"grounded", "no_evidence"}:
+            raise _schema_error(
+                f"structured_output.segment_answers[{index}].evidence_status가 올바르지 않습니다.",
+                field=f"structured_output.segment_answers[{index}].evidence_status",
+            )
+        segment_answers.append(
+            {
+                "segment_index": segment_index,
+                "request_segment": request_segment,
+                "answer": answer_text,
+                "case_ids": [case_id.strip() for case_id in case_ids if case_id.strip()],
+                "evidence_status": evidence_status,
+            }
+        )
 
     return {
         "answer": answer,
@@ -310,6 +410,7 @@ def validate_qa_payload_schema(payload: Any) -> Dict[str, Any]:
             "summary": summary,
             "action_items": [item.strip() for item in action_items],
             "request_segments": [item.strip() for item in request_segments],
+            "segment_answers": segment_answers,
         },
         "confidence": 0.5,
     }

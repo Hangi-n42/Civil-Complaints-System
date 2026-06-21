@@ -891,6 +891,17 @@ class GenerationService:
                 query_signals=query_signals,
             )
             urgency_extra = self._build_urgency_context(query_signals)
+            request_segments = []
+            if isinstance(routing_trace, dict) and isinstance(
+                routing_trace.get("request_segments"),
+                list,
+            ):
+                request_segments = [
+                    str(item).strip()
+                    for item in routing_trace.get("request_segments", [])
+                    if str(item).strip()
+                ][:4]
+            citations_max = max(1, min(len(context), max(1, len(request_segments)) * 2))
 
             for attempt_index, step in enumerate(retry_steps, start=1):
                 try:
@@ -914,7 +925,8 @@ class GenerationService:
                         temperature=float(step["temperature"]),
                         response_schema=build_qa_response_schema(
                             context,
-                            citations_max=1,
+                            citations_max=citations_max,
+                            request_segments=request_segments,
                         ),
                     )
                     parsed = await self.parse_json_response(response_text)
@@ -979,16 +991,6 @@ class GenerationService:
             result["answer"] = sanitize_unsupported_commitments(
                 str(result.get("answer") or "")
             )
-            request_segments = []
-            if isinstance(routing_trace, dict) and isinstance(
-                routing_trace.get("request_segments"),
-                list,
-            ):
-                request_segments = [
-                    str(item).strip()
-                    for item in routing_trace.get("request_segments", [])
-                    if str(item).strip()
-                ]
             quality_signals = build_generation_quality_signals(
                 answer=str(result.get("answer") or ""),
                 citations=result.get("citations") if isinstance(result.get("citations"), list) else [],

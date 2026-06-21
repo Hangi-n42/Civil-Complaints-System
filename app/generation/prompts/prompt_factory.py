@@ -251,13 +251,13 @@ class PromptFactory:
             "- Do not create numbered top-level keys such as \"1\", \"2\", \"3\", and do not use top-level keys such as reply, response, action_items, request_segments, confidence, or routing_trace.\n"
             "- Required keys must never be omitted: answer, citations, limitations, structured_output.\n"
             "- limitations must be non-empty. structured_output.summary must be non-empty.\n"
-            "- structured_output.action_items must contain at least 2 items; structured_output.request_segments must be an array.\n"
+            "- structured_output.action_items must contain at least 2 items; structured_output.request_segments and structured_output.segment_answers must be arrays.\n"
         )
 
         citation_rules = (
             "[CITATION RULES]\n"
             "- citations must be selected only from the provided '검색 컨텍스트'. Do not invent external sources.\n"
-            f"- Output exactly {citations_max} citation using the single best supporting context chunk.\n"
+            f"- Output up to {citations_max} citations using only supporting context chunks.\n"
             "- Every citation must include chunk_id, case_id, snippet, and relevance_score.\n"
             "- Use chunk_id, case_id, score, and relevance_score only inside citations. Never expose these metadata strings inside answer.\n"
             "- Keep all source information in the citations array. The answer must not contain [[출처 n]], [출처 n], chunk_id, case_id, score, or CASE-...__chunk-... strings.\n"
@@ -339,6 +339,9 @@ class PromptFactory:
             segment_rules = (
                 "[REQUEST SEGMENT RULE]\n"
                 "- When request_segments are provided, answer each segment and map at least one action_item to each segment.\n"
+                "- structured_output.segment_answers must include one object per request segment with segment_index, request_segment, answer, case_ids, and evidence_status.\n"
+                "- Use only the case_ids listed for that segment in segment_evidence_map. Do not use one segment's evidence for another segment.\n"
+                "- If a segment has no evidence, write exactly '유사 선례 없음 — 담당부서 확인 필요' for that segment answer and do not invent a case_id.\n"
             )
 
         return base_json_rules + citation_rules + complaint_rules + compact_context_rules + mode_rules + segment_rules
@@ -921,7 +924,8 @@ class PromptFactory:
         snippet_max_chars = 120 if is_compact else 200
         citation_snippet_max_chars = 120 if is_compact else 200
         context_limit = 2 if is_compact else min(3, len(context))
-        citations_max = 1
+        segment_count = len(request_segments[:4]) if request_segments else 1
+        citations_max = max(1, min(len(context), segment_count * 2))
 
         context_lines: List[str] = []
         for idx, doc in enumerate(context[:context_limit], start=1):
@@ -935,6 +939,30 @@ class PromptFactory:
                     f"snippet={snippet[:snippet_max_chars]}"
                 )
             )
+
+        segment_evidence_map = (
+            routing_trace.get("segment_evidence_map")
+            if isinstance(routing_trace.get("segment_evidence_map"), dict)
+            else {}
+        )
+        segment_evidence_lines: List[str] = []
+        for segment_index, segment in enumerate(request_segments[:4]):
+            info = segment_evidence_map.get(segment_index) or segment_evidence_map.get(str(segment_index))
+            evidence = info.get("evidence") if isinstance(info, dict) else []
+            evidence = evidence if isinstance(evidence, list) else []
+            if evidence:
+                case_ids = ", ".join(
+                    str(item.get("case_id") or "")
+                    for item in evidence
+                    if isinstance(item, dict) and item.get("case_id")
+                )
+                segment_evidence_lines.append(
+                    f"- segment_index={segment_index} 요청={segment} 사용 가능 case_id={case_ids}"
+                )
+            else:
+                segment_evidence_lines.append(
+                    f"- segment_index={segment_index} 요청={segment} 근거 없음: 유사 선례 없음 — 담당부서 확인 필요"
+                )
 
         instruction_block = cls._build_instruction_block(
             prompt_mode=prompt_mode,
@@ -977,11 +1005,18 @@ class PromptFactory:
             "},"
             "\"structured_output\":{"
             "\"type\":\"object\",\"additionalProperties\":false,"
-            "\"required\":[\"summary\",\"action_items\",\"request_segments\"],"
+            "\"required\":[\"summary\",\"action_items\",\"request_segments\",\"segment_answers\"],"
             "\"properties\":{"
             "\"summary\":{\"type\":\"string\",\"minLength\":1},"
             "\"action_items\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\",\"minLength\":1}},"
-            "\"request_segments\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}"
+            "\"request_segments\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+            "\"segment_answers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,"
+            "\"required\":[\"segment_index\",\"request_segment\",\"answer\",\"case_ids\",\"evidence_status\"],"
+            "\"properties\":{\"segment_index\":{\"type\":\"integer\",\"minimum\":0},"
+            "\"request_segment\":{\"type\":\"string\",\"minLength\":1},"
+            "\"answer\":{\"type\":\"string\",\"minLength\":1},"
+            "\"case_ids\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+            "\"evidence_status\":{\"type\":\"string\",\"enum\":[\"grounded\",\"no_evidence\"]}}}}"
             "}"
             "}"
             "}"
@@ -1004,7 +1039,8 @@ class PromptFactory:
             "\"structured_output\":{"
             "\"summary\":\"핵심 요약\","
             "\"action_items\":[\"조치 1\",\"조치 2\"],"
-            "\"request_segments\":[\"세그먼트 1\"]"
+            "\"request_segments\":[\"세그먼트 1\"],"
+            "\"segment_answers\":[{\"segment_index\":0,\"request_segment\":\"세그먼트 1\",\"answer\":\"담당부서 확인 후 안내가 필요합니다.\",\"case_ids\":[\"CASE-1\"],\"evidence_status\":\"grounded\"}]"
             "}"
             "}\n"
         )
@@ -1027,6 +1063,13 @@ class PromptFactory:
             + "근거는 citations 배열에만 넣으세요.\n\n"
             + f"질문: {query}\n\n"
             + (f"민원 원문:\n{raw_complaint_text[:1800]}\n\n" if has_raw_complaint else "")
+            + (
+                "요청별 근거 맵(segment_evidence_map):\n"
+                + "\n".join(segment_evidence_lines)
+                + "\n\n"
+                if segment_evidence_lines
+                else ""
+            )
             + "검색 컨텍스트:\n"
             + "\n".join(context_lines)
         )

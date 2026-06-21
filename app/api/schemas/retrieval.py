@@ -264,6 +264,7 @@ class RoutingTrace(BaseModel):
     strategy_id: Optional[str] = None
     applied_filters: Dict[str, Any] = Field(default_factory=dict)
     segment_count: Optional[int] = None
+    segment_evidence_map: Dict[int, Dict[str, Any]] = Field(default_factory=dict)
     merge_policy: Optional[str] = None
     retrieval_policy: Optional[str] = None
     warnings: List[str] = Field(default_factory=list)

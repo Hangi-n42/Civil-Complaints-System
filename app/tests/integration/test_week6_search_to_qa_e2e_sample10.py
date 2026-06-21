@@ -206,6 +206,7 @@ def test_week6_search_to_qa_e2e_sample10(monkeypatch):
             "summary",
             "action_items",
             "request_segments",
+            "segment_answers",
         }
         assert isinstance(qa_data["answer"], str)
         assert isinstance(qa_data["citations"], list)

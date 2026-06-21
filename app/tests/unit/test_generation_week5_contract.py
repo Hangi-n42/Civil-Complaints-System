@@ -426,7 +426,12 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert isinstance(data["routing_trace"]["request_segments_low_confidence"], bool)
     assert isinstance(data["routing_trace"]["route_reason"], str)
     assert data["routing_trace"]["route_reason"]
-    assert set(data["structured_output"].keys()) == {"summary", "action_items", "request_segments"}
+    assert set(data["structured_output"].keys()) == {
+        "summary",
+        "action_items",
+        "request_segments",
+        "segment_answers",
+    }
     assert data["structured_output"]["summary"] == "안전 조치 및 보수 일정 안내"
     assert data["structured_output"]["request_segments"] == ["임대주택 보수 지연 관련 민원입니다."]
     assert data["structured_output"]["action_items"] == [
@@ -523,6 +528,81 @@ def test_qa_preserves_search_routing_trace_request_segments(monkeypatch):
     assert data["routing_trace"]["request_segments"] == canonical_segments
     assert data["structured_output"]["request_segments"] == canonical_segments
     assert generation_service.routing_trace["request_segments"] == canonical_segments
+
+
+def test_qa_rebuilds_segment_evidence_map_and_segment_answers(monkeypatch):
+    from app.api.routers import generation as generation_router
+
+    canonical_segments = ["도로 보수 일정 문의", "불법 주정차 단속 요청"]
+    generation_service = _TraceCapturingGenerationService()
+    retrieval_service = _TrackingRetrievalService(
+        [
+            {
+                "doc_id": "DOC-ROAD",
+                "chunk_id": "CASE-ROAD__chunk-0",
+                "case_id": "CASE-ROAD",
+                "snippet": "도로 보수 일정은 현장 확인 후 담당 부서에서 안내합니다.",
+                "score": 0.91,
+            },
+            {
+                "doc_id": "DOC-PARKING",
+                "chunk_id": "CASE-PARKING__chunk-0",
+                "case_id": "CASE-PARKING",
+                "snippet": "불법 주정차 단속 요청은 소관 부서 검토와 현장 확인이 필요합니다.",
+                "score": 0.88,
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        generation_router,
+        "get_generation_service",
+        lambda: generation_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_retrieval_service",
+        lambda: retrieval_service,
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/qa",
+        json={
+            "complaint_id": "CMP-2026-SEGMENT-EVIDENCE",
+            "query": "도로 보수 일정과 불법 주정차 단속을 알려주세요.",
+            "routing_hint": {
+                "strategy_id": "topic_traffic_high_v1",
+                "route_key": "traffic/high",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "expanded",
+            },
+            "routing_trace": _routing_trace(
+                request_segments=canonical_segments,
+                route_key="traffic/high",
+                strategy_id="topic_traffic_high_v1",
+            ),
+            "use_search_results": True,
+            "search_results": retrieval_service.results,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    evidence_map = data["routing_trace"]["segment_evidence_map"]
+    assert evidence_map["0"]["evidence"][0]["case_id"] == "CASE-ROAD"
+    assert evidence_map["1"]["evidence"][0]["case_id"] == "CASE-PARKING"
+    segment_answers = data["structured_output"]["segment_answers"]
+    assert [item["segment_index"] for item in segment_answers] == [0, 1]
+    assert segment_answers[0]["case_ids"] == ["CASE-ROAD"]
+    assert segment_answers[1]["case_ids"] == ["CASE-PARKING"]
+    assert generation_service.routing_trace["segment_evidence_map"][0]["status"] == "grounded"
 
 
 def test_qa_internal_search_enables_grounding_filter(monkeypatch):

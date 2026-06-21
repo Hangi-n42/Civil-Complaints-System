@@ -601,6 +601,11 @@ def normalize_structured_output(
         "summary": summary,
         "action_items": actions,
         "request_segments": canonical_segments,
+        "segment_answers": (
+            structured.get("segment_answers")
+            if isinstance(structured.get("segment_answers"), list)
+            else []
+        ),
     }
 
 
