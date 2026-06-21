@@ -88,9 +88,12 @@ export type RetrievedDoc = {
   case_id?: string;
   title: string;
   snippet: string;
+  answer?: string;
   score: number;
   similarity_score?: number;
   received_at?: string;
+  category?: string;
+  region?: string;
   summary?: {
     observation?: string;
     request?: string;
@@ -173,6 +176,7 @@ type BackendSearchResult = {
   chunk_id?: string;
   title?: string;
   snippet?: string;
+  answer?: string;
   score?: number;
   similarity_score?: number;
   summary?: {
@@ -189,6 +193,7 @@ type BackendSearchResult = {
     created_at?: string;
     category?: string;
     region?: string;
+    answer?: string;
   };
   answers_by_admin_unit?: Record<string, string>;
   department_answers?: Record<string, string>;
@@ -925,6 +930,7 @@ function toRetrievedDoc(item: BackendSearchResult, index: number): RetrievedDoc 
   };
   const title = item.title || summary.observation || item.snippet || `유사 민원 ${index + 1}`;
   const score = Number(item.score ?? item.similarity_score ?? 0);
+  const answer = String(item.answer || item.metadata?.answer || "").trim();
 
   return {
     docId,
@@ -933,9 +939,12 @@ function toRetrievedDoc(item: BackendSearchResult, index: number): RetrievedDoc 
     case_id: caseId,
     title,
     snippet: item.snippet || summary.request || summary.observation || "",
+    answer,
     score,
     similarity_score: Number(item.similarity_score ?? score),
     received_at: item.metadata?.created_at,
+    category: item.metadata?.category,
+    region: item.metadata?.region,
     summary,
     answers_by_admin_unit: item.answers_by_admin_unit || item.department_answers || {},
     department_answers: item.department_answers || item.answers_by_admin_unit || {},
@@ -1034,9 +1043,12 @@ function mockSearchData(params: {
       case_id: item.case_id,
       title: item.complaint,
       snippet: item.answer,
+      answer: item.answer,
       score: item.score,
       similarity_score: item.score,
       received_at: item.received_at,
+      category: item.category,
+      region: item.region,
       summary: {
         observation: item.complaint,
         request: item.answer,

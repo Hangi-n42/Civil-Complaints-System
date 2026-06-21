@@ -23,7 +23,8 @@ import {
   clearDraftSnapshot,
 } from "@/lib/api";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
-import { readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
+import { loadCaseStatusOverrides, persistCaseStatusSubset } from "@/lib/caseStatus";
+import { safeString } from "@/lib/safe-data";
 import { confidenceBand, firstEvidence, validResponsibleUnits, reviewAssignment, buildTransferMemo, type ResponsibleUnit } from "@/lib/responsibleUnit";
 import {
   buildDraftTextareaValue,
@@ -37,9 +38,6 @@ import {
   type SupplementarySegment,
   type SegmentAnswerCard,
 } from "@/lib/draft";
-
-const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 type SearchStage = "empty" | "loading" | "success" | "error";
 
@@ -101,7 +99,13 @@ type DepartmentTrack = {
 
 type AccordionDetail = {
   complaint: string;
+  request: string;
   answer: string;
+  hasAnswer: boolean;
+  caseId: string;
+  receivedAt: string;
+  category: string;
+  region: string;
   tracks: DepartmentTrack[];
 };
 
@@ -183,14 +187,7 @@ function WorkbenchContent() {
   }, [caseList, router, selectedCaseId, urlCaseId]);
 
   useEffect(() => {
-    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
-      maxBytes: MAX_STATUS_STORAGE_BYTES,
-      removeOnOversize: true,
-    });
-
-    if (parsed) {
-      setCaseStatuses(sanitizeCaseStatuses(parsed, caseList.map((item) => item.case_id)));
-    }
+    setCaseStatuses(loadCaseStatusOverrides(caseList.map((item) => item.case_id)));
   }, [caseList]);
 
   useEffect(() => {
@@ -254,14 +251,8 @@ function WorkbenchContent() {
   }, [selectedCaseId, selectedCase]);
 
   function persistStatuses(nextStatuses: Record<string, string>) {
-    const sanitized = sanitizeCaseStatuses(nextStatuses, caseList.map((item) => item.case_id));
+    const sanitized = persistCaseStatusSubset(nextStatuses, caseList.map((item) => item.case_id));
     setCaseStatuses(sanitized);
-    const serialized = JSON.stringify(sanitized);
-    if (serialized.length > MAX_STATUS_STORAGE_BYTES) {
-      window.localStorage.removeItem(CASE_STATUS_STORAGE_KEY);
-      return;
-    }
-    window.localStorage.setItem(CASE_STATUS_STORAGE_KEY, serialized);
   }
 
   function navigateToCase(caseId: string) {
@@ -388,11 +379,11 @@ function WorkbenchContent() {
     }
   }
 
-  const rawText = safeString(selectedCase?.raw_text || selectedCase?.text || selectedCase?.summary).trim();
-  const structuredSummary = getCaseSummaryText(selectedCase) || "선택된 민원의 핵심 요약이 표시됩니다.";
-  const summaryObservation = selectedCase.structured?.observation?.text || getCaseDisplayTitle(selectedCase, 80);
-  const summaryAnalysis = selectedCase.structured?.result?.text || selectedCase.structured?.context?.text || structuredSummary || "분석 정보 없음";
-  const summaryRequest = selectedCase.structured?.request?.text || selectedCase.summary || selectedCase.raw_text || "처리 요청 확인 필요";
+  const rawText = formatMaskedText(safeString(selectedCase?.raw_text || selectedCase?.text || selectedCase?.summary)).trim();
+  const structuredSummary = formatMaskedText(getCaseSummaryText(selectedCase)) || "선택된 민원의 핵심 요약이 표시됩니다.";
+  const summaryObservation = formatMaskedText(selectedCase.structured?.observation?.text || getCaseDisplayTitle(selectedCase, 80));
+  const summaryAnalysis = formatMaskedText(selectedCase.structured?.result?.text || selectedCase.structured?.context?.text || structuredSummary || "분석 정보 없음");
+  const summaryRequest = formatMaskedText(selectedCase.structured?.request?.text || selectedCase.summary || selectedCase.raw_text || "처리 요청 확인 필요");
 
   const responseSegments = draftResponse?.structuredOutput?.requestSegments || [];
   const fallbackSegments = buildFallbackSegments(selectedCase);
@@ -472,8 +463,8 @@ function WorkbenchContent() {
                       className={`grid w-full border-b border-slate-200 px-2 py-1.5 text-left text-[12px] transition items-center ${selected ? "bg-white" : "bg-slate-100 hover:bg-slate-200"}`}
                       style={{ gridTemplateColumns: "2.5fr 1fr 1fr 0.7fr 0.7fr", gap: "0.75rem" }}
                     >
-                      <div className="truncate font-semibold text-slate-800">{getCaseDisplayTitle(item, 30)}</div>
-                      <div className="text-slate-600">{item.received_at || "-"}</div>
+                      <div className="truncate font-semibold text-slate-800">{formatMaskedText(getCaseDisplayTitle(item, 30))}</div>
+                      <div className="text-slate-600">{formatReceivedDate(item.received_at)}</div>
                       <div className="truncate text-slate-600" title={getCaseCategoryLabel(item)}>{getCaseCategoryPrimary(item)}</div>
                       <div><PriorityBadge priority={item.priority || "보통"} /></div>
                       <div><StatusBadge status={status} /></div>
@@ -602,51 +593,98 @@ function WorkbenchContent() {
                       유사 민원 결과가 표시됩니다.
                     </div>
                   ) : (
-                    topDocs.map((doc, index) => (
-                      <div key={doc.docId} className="border-t border-slate-200">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedDocId((prev) => (prev === doc.docId ? null : doc.docId))}
-                          className={`w-full px-3 py-2 text-left ${expandedDocId === doc.docId ? "bg-slate-50" : "hover:bg-slate-50"}`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="text-[11px] font-bold text-slate-700">유사민원 {index + 1}</div>
-                              <div className="line-clamp-2 break-words text-[13px] font-semibold text-slate-900" title={doc.summary?.observation || doc.title}>{doc.summary?.observation || doc.title}</div>
-                              <div className="mt-0.5 line-clamp-1 break-words text-[11px] leading-4 text-slate-500" title={doc.snippet}>{doc.snippet}</div>
-                            </div>
-                            <div className="shrink-0 text-[11px] text-slate-400">
-                              {expandedDocId === doc.docId ? "▲" : "▼"}
-                            </div>
-                          </div>
-                        </button>
+                    topDocs.map((doc, index) => {
+                      const detail = getAccordionDetail(doc);
+                      const receivedDate = formatReceivedDate(detail.receivedAt);
+                      const answerText = detail.hasAnswer ? detail.answer : "저장된 과거 답변이 없습니다.";
 
-                        {expandedDocId === doc.docId && (
-                          <div className="grid gap-2 border-t border-slate-200 bg-[#f7f9fc] px-2 py-2 md:grid-cols-[1.1fr_0.9fr]">
-                            <div className="rounded border border-slate-300 bg-white p-2">
-                              <div className="mb-1 text-[11px] font-bold text-slate-600">유사민원</div>
-                              <div className="text-[12px] font-semibold text-slate-900">{getAccordionDetail(doc).complaint}</div>
-                              <div className="mt-2 text-[12px] leading-6 text-slate-600">{getAccordionDetail(doc).answer}</div>
-                            </div>
-                            <div className="rounded border border-slate-300 bg-white p-2">
-                              <div className="mb-1 text-[11px] font-bold text-slate-600">타부서 메모</div>
-                              <div className="space-y-1">
-                                {getAccordionDetail(doc).tracks.map((track: DepartmentTrack, memoIndex: number) => (
-                                  <div key={`${doc.docId}-memo-${memoIndex}`} className="rounded border border-slate-200 bg-slate-50 p-2">
-                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                                      <span>{track.admin_unit}</span>
-                                      <span className="text-slate-400">메모 {memoIndex + 1}</span>
-                                    </div>
-                                    <div className="mt-1 text-[11px] text-slate-700">{track.complaint}</div>
-                                    <div className="mt-1 text-[11px] leading-5 text-slate-500">{track.answer}</div>
+                      return (
+                        <div key={doc.docId} className="border-t border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedDocId((prev) => (prev === doc.docId ? null : doc.docId))}
+                            className={`w-full px-3 py-2 text-left ${expandedDocId === doc.docId ? "bg-slate-50" : "hover:bg-slate-50"}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-bold text-slate-700">유사민원 {index + 1}</div>
+                                <div className="line-clamp-2 break-words text-[13px] font-semibold text-slate-900" title={detail.complaint}>{detail.complaint}</div>
+                                {detail.request && (
+                                  <div className="mt-1 line-clamp-1 break-words text-[11px] leading-4 text-slate-500" title={detail.request}>
+                                    요청사항: {detail.request}
                                   </div>
-                                ))}
+                                )}
+                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-4 text-slate-500">
+                                  <span>접수일 {receivedDate}</span>
+                                  {detail.category !== "-" && <span>분야 {detail.category}</span>}
+                                  {detail.region !== "-" && <span>지역 {detail.region}</span>}
+                                  {!detail.hasAnswer && <span className="text-slate-400">답변 없음</span>}
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-[11px] text-slate-400">
+                                {expandedDocId === doc.docId ? "▲" : "▼"}
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))
+                          </button>
+
+                          {expandedDocId === doc.docId && (
+                            <div className="grid gap-3 border-t border-slate-200 bg-[#f7f9fc] px-3 py-3 md:grid-cols-[0.9fr_1.1fr]">
+                              <div className="rounded border border-slate-300 bg-white p-3">
+                                <div className="mb-2 text-[11px] font-bold text-slate-600">유사민원 정보</div>
+                                <div className="break-words text-[13px] font-bold leading-6 text-slate-900">{detail.complaint}</div>
+                                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] leading-5 text-slate-600">
+                                  <div>
+                                    <span className="font-bold text-slate-500">사건번호</span>
+                                    <div className="break-words text-slate-800">{detail.caseId}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-slate-500">접수일</span>
+                                    <div className="text-slate-800" title={detail.receivedAt}>{receivedDate}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-slate-500">분야</span>
+                                    <div className="break-words text-slate-800">{detail.category}</div>
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-slate-500">지역</span>
+                                    <div className="break-words text-slate-800">{detail.region}</div>
+                                  </div>
+                                </div>
+                                {detail.request && (
+                                  <div className="mt-3 border-t border-slate-200 pt-2">
+                                    <div className="text-[11px] font-bold text-slate-500">요청사항</div>
+                                    <div className="mt-1 whitespace-pre-line break-words text-[12px] leading-6 text-slate-700">{detail.request}</div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="rounded border border-blue-200 bg-white p-3">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                  <div className="text-[11px] font-bold text-blue-700">해당 유사민원 답변</div>
+                                  {detail.hasAnswer && <div className="text-[11px] font-semibold text-slate-400">저장됨</div>}
+                                </div>
+                                <div className={`min-h-28 whitespace-pre-line break-words text-[13px] leading-7 ${detail.hasAnswer ? "text-slate-900" : "text-slate-500"}`}>
+                                  {answerText}
+                                </div>
+                                {detail.tracks.length > 0 && (
+                                  <div className="mt-3 border-t border-slate-200 pt-2">
+                                    <div className="mb-1 text-[11px] font-bold text-slate-500">부서별 답변</div>
+                                    <div className="space-y-2">
+                                      {detail.tracks.map((track: DepartmentTrack, trackIndex: number) => (
+                                        <div key={`${doc.docId}-track-${trackIndex}`} className="border-l-2 border-slate-300 pl-2">
+                                          <div className="text-[11px] font-bold text-slate-700">{track.admin_unit}</div>
+                                          {track.complaint && <div className="mt-0.5 text-[11px] text-slate-600">{track.complaint}</div>}
+                                          <div className="mt-0.5 whitespace-pre-line text-[11px] leading-5 text-slate-500">{track.answer}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -756,48 +794,57 @@ function ResponsibleUnitCard({ units, assignee, caseTitle, observation, request 
 
   return (
     <div className="border border-slate-300 bg-white">
-      <div className="flex items-center justify-between border-b border-slate-300 bg-slate-50 px-3 py-2">
-        <div className="text-sm font-bold text-slate-900">담당부서 추천</div>
-        <span className="text-[11px] font-semibold text-slate-400">AI 추천 · 자동결정 아님</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-300 bg-slate-50 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="shrink-0 text-sm font-bold text-slate-900">담당부서 추천</div>
+          <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+            AI 추천
+          </span>
+        </div>
+        <span className="text-[11px] font-semibold text-slate-400">자동결정 아님 · 담당자 최종 확인</span>
       </div>
 
       {primary ? (
-        <div className="px-3 py-2.5">
-          {review.status !== "none" && (
-            <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
-              <span className="text-slate-500">현재 배정: <span className="font-semibold text-slate-700">{review.status === "unassigned" ? "미지정" : review.current}</span></span>
-              {review.status === "differ" && <span className="font-semibold text-amber-700">· 추천과 다름 — 이관·협조 검토</span>}
-              {review.status === "match" && <span className="font-semibold text-emerald-700">· 추천과 일치</span>}
+        <div className="px-3 py-2">
+          <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <div className="min-w-0">
+              {review.status !== "none" && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                  <span className="text-slate-500">현재 <span className="font-semibold text-slate-700">{review.status === "unassigned" ? "미지정" : review.current}</span></span>
+                  {review.status === "differ" && <span className="font-semibold text-amber-700">추천과 다름 · 이관/협조 검토</span>}
+                  {review.status === "match" && <span className="font-semibold text-emerald-700">추천과 일치</span>}
+                </div>
+              )}
+
+              <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-800">{primary.name}</span>
+                <ConfidenceBadge confidence={primary.confidence} />
+                {evidence && (
+                  <span className="min-w-0 max-w-full truncate text-[12px] text-slate-500 xl:max-w-[520px]" title={evidence}>
+                    근거: {evidence}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {alternates.length > 0 && (
+                  <>
+                    <span className="text-[11px] font-semibold text-slate-400">대안</span>
+                    {alternates.map((unit) => (
+                      <span key={unit.name} className="rounded border border-slate-300 px-2 py-0.5 text-[12px] leading-4 text-slate-600">{unit.name}</span>
+                    ))}
+                  </>
+                )}
+                <span className="text-[11px] text-slate-400">신뢰도는 상대 추정치</span>
+              </div>
             </div>
-          )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-sm font-bold text-blue-800">{primary.name}</span>
-            <ConfidenceBadge confidence={primary.confidence} />
-          </div>
-
-          {evidence && (
-            <div className="mt-2 truncate text-[12px] text-slate-500" title={evidence}>
-              근거: {evidence}
-            </div>
-          )}
-
-          {alternates.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
-              <span className="text-[11px] font-semibold text-slate-400">대안</span>
-              {alternates.map((unit) => (
-                <span key={unit.name} className="rounded border border-slate-300 px-2 py-0.5 text-[12px] text-slate-600">{unit.name}</span>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-2.5 flex items-center gap-2 border-t border-slate-100 pt-2.5">
             <button
               type="button"
               onClick={memoText == null ? openMemo : () => setMemoText(null)}
-              className="rounded border border-blue-300 bg-white px-2.5 py-1 text-[12px] font-semibold text-blue-700 hover:bg-blue-50"
+              className="w-fit rounded border border-blue-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-blue-700 hover:bg-blue-50 xl:justify-self-end"
             >
-              {memoText == null ? `${primary.name}로 이관 전달문 작성` : "전달문 닫기"}
+              {memoText == null ? "이관 전달문 작성" : "전달문 닫기"}
             </button>
           </div>
 
@@ -806,7 +853,7 @@ function ResponsibleUnitCard({ units, assignee, caseTitle, observation, request 
               <textarea
                 value={memoText}
                 onChange={(e) => { setMemoText(e.target.value); setCopied(false); }}
-                rows={10}
+                rows={7}
                 className="w-full resize-y rounded border border-slate-300 bg-slate-50 p-2 text-[12px] leading-5 text-slate-700 outline-none focus:border-blue-400"
               />
               <div className="mt-1 flex items-center gap-2">
@@ -823,7 +870,6 @@ function ResponsibleUnitCard({ units, assignee, caseTitle, observation, request 
             </div>
           )}
 
-          <div className="mt-2.5 text-[11px] leading-relaxed text-slate-400">신뢰도는 정답셋이 없는 상대 추정치입니다 · 담당자가 최종 확인하세요.</div>
         </div>
       ) : (
         <div className="px-3 py-3 text-[12px] text-slate-500">자동 추천 없음 — 유사 민원 검색 결과의 부서 태그를 참고하세요.</div>
@@ -1076,34 +1122,68 @@ function sanitizeTitle(value: string) {
   return value.split(" - ")[0].trim();
 }
 
-function getAccordionDetail(doc: RetrievedDoc): AccordionDetail {
-  const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
-  const complaint = doc.summary?.observation || doc.title;
-  const answer = doc.summary?.request ? `요청사항: ${doc.summary.request}` : doc.snippet || "유사 민원 상세가 없습니다.";
-  const tracks: DepartmentTrack[] = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
-    admin_unit: adminUnit,
-    complaint: complaint || doc.title,
-    answer: departmentAnswer || answer,
-    memoIndex,
-  }));
-
-  if (tracks.length > 0) {
-    return {
-      complaint: complaint || doc.title,
-      answer,
-      tracks,
-    };
+function formatReceivedDate(value?: string) {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "-") {
+    return "-";
   }
 
-  return {
+  const compactMatch = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (compactMatch) {
+    return `${compactMatch[1]}.${compactMatch[2]}.${compactMatch[3]}`;
+  }
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}.${isoMatch[2]}.${isoMatch[3]}`;
+  }
+
+  return raw;
+}
+
+const MASK_LABELS: Record<string, string> = {
+  ADDRESS: "주소 비공개",
+  ACCOUNT: "계좌번호 비공개",
+  CARD: "카드번호 비공개",
+  EMAIL: "이메일 비공개",
+  NAME: "성명 비공개",
+  PERSON: "성명 비공개",
+  PHONE: "전화번호 비공개",
+  RRN: "주민등록번호 비공개",
+};
+
+function formatMaskedText(value?: string) {
+  const text = String(value || "");
+  return text.replace(/\[REDACTED(?::([A-Z_]+))?\]/g, (_, rawLabel: string | undefined) => {
+    if (!rawLabel) {
+      return "개인정보 비공개";
+    }
+    return MASK_LABELS[rawLabel] || "개인정보 비공개";
+  });
+}
+
+function getAccordionDetail(doc: RetrievedDoc): AccordionDetail {
+  const answersByAdminUnit = doc.answers_by_admin_unit || doc.department_answers || {};
+  const complaint = formatMaskedText(doc.summary?.observation || doc.title);
+  const request = formatMaskedText(doc.summary?.request || doc.snippet || "");
+  const tracks: DepartmentTrack[] = Object.entries(answersByAdminUnit).map(([adminUnit, departmentAnswer], memoIndex) => ({
+    admin_unit: formatMaskedText(adminUnit),
     complaint: complaint || doc.title,
+    answer: formatMaskedText(departmentAnswer || ""),
+    memoIndex,
+  })).filter((track) => track.answer.trim().length > 0);
+  const firstDepartmentAnswer = tracks.find((track) => track.answer.trim().length > 0)?.answer || "";
+  const answer = formatMaskedText(String(doc.answer || firstDepartmentAnswer || "").trim());
+
+  return {
+    complaint: complaint || formatMaskedText(doc.title),
+    request,
     answer,
-    tracks: [
-      {
-        admin_unit: "과거 답변",
-        complaint: doc.title,
-        answer: "이 검색 결과에는 별도 과거 답변 또는 부서 메모가 저장되어 있지 않습니다.",
-      },
-    ],
+    hasAnswer: answer.length > 0,
+    caseId: doc.caseId || doc.case_id || doc.docId,
+    receivedAt: doc.received_at || "-",
+    category: formatMaskedText(doc.category || "-"),
+    region: formatMaskedText(doc.region || "-"),
+    tracks,
   };
 }

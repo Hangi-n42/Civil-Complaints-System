@@ -6,10 +6,11 @@ import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-le
 import type { IntelIssueAlertCard } from "@/lib/api";
 import { formatIssueAlertTrend } from "./IssueAlertCard";
 import {
-  averageMapCenter,
   hotspotCircleRadius,
   hotspotMarkerSize,
   hotspotSeverityTone,
+  KOREA_MAP_CENTER,
+  KOREA_MAP_ZOOM,
   resolveHotspotMapPoint,
   type HotspotMapPoint,
 } from "./hotspotMapUtils";
@@ -35,15 +36,12 @@ export function LeafletHotspotMap({
       .filter((item): item is { alert: IntelIssueAlertCard; point: HotspotMapPoint } => item.point !== null);
   }, [alerts]);
 
-  const selectedItem = plottedAlerts.find((item) => item.alert.id === focusedAlertId) ?? plottedAlerts[0] ?? null;
-  const center = selectedItem
-    ? [selectedItem.point.latitude, selectedItem.point.longitude] as [number, number]
-    : averageMapCenter(plottedAlerts.map((item) => item.point));
+  const selectedItem = plottedAlerts.find((item) => item.alert.id === focusedAlertId) ?? null;
 
   return (
     <MapContainer
-      center={center}
-      zoom={13}
+      center={KOREA_MAP_CENTER}
+      zoom={KOREA_MAP_ZOOM}
       scrollWheelZoom={false}
       className="h-full w-full"
       attributionControl
@@ -80,7 +78,6 @@ export function LeafletHotspotMap({
               }}
               eventHandlers={{
                 click: () => onFocusAlert?.(alert.id),
-                mouseover: () => onFocusAlert?.(alert.id),
               }}
             />
             <Marker
@@ -88,7 +85,6 @@ export function LeafletHotspotMap({
               icon={icon}
               eventHandlers={{
                 click: () => onFocusAlert?.(alert.id),
-                mouseover: () => onFocusAlert?.(alert.id),
               }}
             >
               <Popup>
@@ -125,8 +121,11 @@ function MapFocus({ point }: { point: HotspotMapPoint | null }) {
   const map = useMap();
   useEffect(() => {
     if (point) {
-      map.setView([point.latitude, point.longitude], Math.max(map.getZoom(), 13), { animate: true });
+      map.setView([point.latitude, point.longitude], Math.max(map.getZoom(), 12), { animate: true });
+      return;
     }
+    map.closePopup();
+    map.setView(KOREA_MAP_CENTER, KOREA_MAP_ZOOM, { animate: true });
   }, [map, point]);
   return null;
 }
