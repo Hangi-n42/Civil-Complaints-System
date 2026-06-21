@@ -1,3 +1,10 @@
+# Source-spec 안내
+
+> 문서 상태: source-spec
+> 최종 확인일: 2026-06-21
+> 현재 기준 FE-BE 계약은 `docs/10_contracts/frontend/current_fe_contract.md`와 `docs/10_contracts/frontend/intelligence_fe_contract.md`입니다.
+> 이 문서는 과거 UI 설계와 변경 배경을 보존하기 위한 원본 사양으로 유지합니다.
+
 # UI Workbench Spec (Next.js 3-Tier)
 
 문서 버전: v1.1  
