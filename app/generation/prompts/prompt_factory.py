@@ -763,7 +763,7 @@ class PromptFactory:
             retrieval_policy=str(derived_trace.get("retrieval_policy") or decision.retrieval_policy),
             snippet_max_chars=int(snippet_max_chars),
             query_signals=query_signals,
-            grounding_filter=True,
+            grounding_filter=False,
             grounding_pool=max(3, effective_top_k),
             exclude_case_id=exclude_case_id or None,
         )

@@ -605,7 +605,7 @@ def test_qa_rebuilds_segment_evidence_map_and_segment_answers(monkeypatch):
     assert generation_service.routing_trace["segment_evidence_map"][0]["status"] == "grounded"
 
 
-def test_qa_internal_search_enables_grounding_filter(monkeypatch):
+def test_qa_internal_search_disables_grounding_filter(monkeypatch):
     from app.api.routers import generation as generation_router
 
     retrieval_service = _TrackingRetrievalService(
@@ -654,7 +654,7 @@ def test_qa_internal_search_enables_grounding_filter(monkeypatch):
 
     assert response.status_code == 200
     assert retrieval_service.calls
-    assert retrieval_service.calls[0]["grounding_filter"] is True
+    assert retrieval_service.calls[0]["grounding_filter"] is False
     assert retrieval_service.calls[0]["top_k"] == 5
 
 
@@ -715,7 +715,7 @@ def test_qa_internal_search_passes_canonical_request_segments(monkeypatch):
     assert response.json()["data"]["routing_trace"]["request_segments"] == canonical_segments
 
 
-def test_qa_reused_search_results_are_filtered_before_generation(monkeypatch):
+def test_qa_reused_search_results_are_not_grounding_filtered_before_generation(monkeypatch):
     from app.api.routers import generation as generation_router
 
     retrieval_service = _TrackingRetrievalService(
@@ -775,15 +775,13 @@ def test_qa_reused_search_results_are_filtered_before_generation(monkeypatch):
 
     assert response.status_code == 200
     assert any(call.get("metadata_soft_rerank") for call in retrieval_service.calls)
-    grounding_call = next(
-        call
+    assert not any(
+        call.get("grounding_filter_applied_to_existing_results")
         for call in retrieval_service.calls
-        if call.get("grounding_filter_applied_to_existing_results")
     )
-    assert grounding_call["top_k"] == 5
 
 
-def test_qa_filtered_search_results_empty_use_no_evidence_fallback(monkeypatch):
+def test_qa_reused_search_results_do_not_empty_out_from_grounding_filter(monkeypatch):
     from app.api.routers import generation as generation_router
 
     retrieval_service = _TrackingRetrievalService([])
@@ -796,7 +794,12 @@ def test_qa_filtered_search_results_empty_use_no_evidence_fallback(monkeypatch):
     monkeypatch.setattr(
         generation_router,
         "get_generation_service",
-        lambda: _FailIfCalledGenerationService(),
+        lambda: _StubGenerationService(),
+    )
+    monkeypatch.setattr(
+        generation_router,
+        "get_citation_mapper",
+        lambda: _StubCitationMapper(),
     )
 
     client = TestClient(app)
@@ -828,12 +831,13 @@ def test_qa_filtered_search_results_empty_use_no_evidence_fallback(monkeypatch):
     assert response.status_code == 200
     data = response.json()["data"]
     assert data["answer"].strip()
-    assert data["citations"] == []
-    assert data["generation_metadata"]["fallback_used"] is True
-    assert data["generation_metadata"]["generation_mode"] == "no_evidence_fallback"
-    assert data["generation_metadata"]["grounding_evidence_count"] == 0
-    assert data["generation_metadata"]["citation_count"] == 0
-    assert "담당부서" in data["answer"]
+    assert data["citations"]
+    assert data["generation_metadata"]["fallback_used"] is False
+    assert data["generation_metadata"]["generation_mode"] == "default"
+    assert not any(
+        call.get("grounding_filter_applied_to_existing_results")
+        for call in retrieval_service.calls
+    )
 
 
 def test_qa_low_evidence_continues_generation_and_reports_counts(monkeypatch):
@@ -950,9 +954,9 @@ def test_qa_no_similar_case_fallback_returns_success_without_citations(monkeypat
     assert metadata["legal_grounding_status"] == "not_requested"
     assert metadata["legal_grounding_error"] == ""
     _assert_civil_llm_rubric_attached(data)
-    assert "유사 민원 근거가 충분하지 않아" in data["limitations"][0]
+    assert "참고할 만한 유사 민원 근거가 충분하지 않아" in data["limitations"][0]
     assert "충분히 유사한 사례는 확인되지 않았습니다" in data["answer"]
-    assert retrieval_service.calls[0]["grounding_filter"] is True
+    assert retrieval_service.calls[0]["grounding_filter"] is False
 
 
 def test_qa_marks_api_fallback_when_generation_answer_is_empty(monkeypatch):

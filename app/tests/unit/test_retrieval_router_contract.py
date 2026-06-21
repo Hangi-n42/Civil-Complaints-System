@@ -242,6 +242,7 @@ def test_search_passes_request_segments_for_complex_query(monkeypatch):
     assert body["data"]["routing_trace"]["merge_policy"] == "segment_aware_dedupe"
     assert body["data"]["routing_trace"]["route_reason"].startswith("segment_aware_search;")
     assert service.calls[0]["request_segments"] == ["도로 파손 보수 요청", "불법 주정차 단속 요청"]
+    assert service.calls[0]["grounding_filter"] is True
 
 
 def test_index_response_is_wrapped(monkeypatch):
