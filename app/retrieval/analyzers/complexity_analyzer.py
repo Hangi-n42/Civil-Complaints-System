@@ -517,12 +517,24 @@ def build_analyzer_output(
     complexity_trace = dict(analysis.complexity_trace)
     complexity_trace["intent_count"] = intent_count
     complexity_trace.update(segment_analysis.trace())
+    fallback_used = bool(segment_analysis.fallback_used)
+    truncated = bool(segment_analysis.truncated)
+    low_confidence = is_request_segments_low_confidence(
+        complexity_level=analysis.complexity_level,
+        fallback_used=fallback_used,
+    )
+    complexity_trace["fallback_used"] = fallback_used
+    complexity_trace["truncated"] = truncated
+    complexity_trace["request_segments_low_confidence"] = low_confidence
 
     return {
         "topic_type": analysis.complexity_trace.get("topic_type", _normalize_topic_type(topic_type)),
         "complexity_level": analysis.complexity_level,
         "complexity_score": analysis.complexity_score,
         "intent_count": intent_count,
+        "fallback_used": fallback_used,
+        "truncated": truncated,
+        "request_segments_low_confidence": low_confidence,
         "constraint_count": analysis.constraint_count,
         "entity_diversity": analysis.entity_diversity,
         "policy_reference_count": analysis.policy_reference_count,
@@ -598,6 +610,11 @@ class ComplexityAnalyzer:
 
 def analyze(text: str, topic_type: str) -> ComplexityAnalysis:
     return _DEFAULT_ANALYZER.analyze(text=text, topic_type=topic_type)
+
+
+def is_request_segments_low_confidence(*, complexity_level: str, fallback_used: bool) -> bool:
+    """BE2가 request_segments 분해 저신뢰 여부를 판정할 때 쓰는 공통 helper."""
+    return bool(fallback_used or str(complexity_level or "").strip().lower() == "low")
 
 
 def _count_tokens(text: str, tokens: tuple[str, ...]) -> int:

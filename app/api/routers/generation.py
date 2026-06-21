@@ -40,7 +40,10 @@ from app.retrieval.router.adaptive_router import (
     build_strategy_id,
     parse_route_key,
 )
-from app.retrieval.analyzers.request_segment_analysis import build_request_segment_analysis
+from app.retrieval.analyzers.request_segment_analysis import (
+    build_request_segment_analysis,
+    enrich_request_segment_trace,
+)
 from app.retrieval.service import get_retrieval_service
 
 router = APIRouter(prefix="/api/v1", tags=["generation"])
@@ -145,21 +148,24 @@ def _build_trace_from_route_key(route_key: str, query: str) -> dict:
     else:
         complexity_score = 0.55
 
-    return {
-        "topic_type": topic_type,
-        "complexity_level": complexity_level,
-        "complexity_score": float(analyzer_output.get("complexity_score") or complexity_score),
-        "request_segments": analyzer_output.get("request_segments") or _derive_request_segments(query),
-        "complexity_trace": analyzer_output.get("complexity_trace")
-        or {
-            "intent_count": 1,
-            "constraint_count": 0,
-            "entity_diversity": 1,
-            "policy_reference_count": 0,
-            "cross_sentence_dependency": False,
+    return enrich_request_segment_trace(
+        {
+            "topic_type": topic_type,
+            "complexity_level": complexity_level,
+            "complexity_score": float(analyzer_output.get("complexity_score") or complexity_score),
+            "request_segments": analyzer_output.get("request_segments") or _derive_request_segments(query),
+            "complexity_trace": analyzer_output.get("complexity_trace")
+            or {
+                "intent_count": 1,
+                "constraint_count": 0,
+                "entity_diversity": 1,
+                "policy_reference_count": 0,
+                "cross_sentence_dependency": False,
+            },
+            "route_reason": "search 단계 routing_hint 값을 그대로 계승했습니다.",
         },
-        "route_reason": "search 단계 routing_hint 값을 그대로 계승했습니다.",
-    }
+        analyzer_output,
+    )
 
 
 def _clean_request_segments(value: object) -> list[str]:
@@ -199,7 +205,7 @@ def _build_qa_routing_trace(
             trace["request_segments"] = request_segments
         trace["segment_count"] = len(request_segments) if request_segments else 1
         _add_trace_warning(trace, "routing_trace_missing_recomputed_from_routing_hint")
-        return trace
+        return enrich_request_segment_trace(trace)
 
     trace = request.routing_trace.model_dump()
     if not str(trace.get("route_key") or "").strip():
@@ -218,7 +224,7 @@ def _build_qa_routing_trace(
         trace["request_segments"] = request_segments
 
     trace["segment_count"] = len(request_segments) if request_segments else 1
-    return trace
+    return enrich_request_segment_trace(trace)
 
 
 def _log_error(

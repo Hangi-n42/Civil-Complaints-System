@@ -176,6 +176,12 @@ def test_prompt_factory_record_trace_passes_title_question_boundary():
     ]
 
 
+    assert trace["intent_count"] == len(trace["request_segments"])
+    assert isinstance(trace["fallback_used"], bool)
+    assert isinstance(trace["truncated"], bool)
+    assert isinstance(trace["request_segments_low_confidence"], bool)
+
+
 def test_prompt_factory_treats_raw_query_as_complaint_reply_input():
     raw_query = (
         "제목 : 제2 판교 버스 문제\n\n"

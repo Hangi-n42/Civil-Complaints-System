@@ -117,7 +117,13 @@ def test_search_response_is_wrapped(monkeypatch):
     assert isinstance(body["data"]["routing_trace"]["applied_filters"], dict)
     assert isinstance(body["data"]["routing_trace"]["request_segments"], list)
     assert len(body["data"]["routing_trace"]["request_segments"]) >= 1
+    assert isinstance(body["data"]["routing_trace"]["intent_count"], int)
+    assert isinstance(body["data"]["routing_trace"]["fallback_used"], bool)
+    assert isinstance(body["data"]["routing_trace"]["truncated"], bool)
+    assert isinstance(body["data"]["routing_trace"]["request_segments_low_confidence"], bool)
     assert "cross_sentence_dependency" in body["data"]["routing_trace"]["complexity_trace"]
+    assert body["data"]["routing_trace"]["complexity_trace"]["fallback_used"] == body["data"]["routing_trace"]["fallback_used"]
+    assert body["data"]["routing_trace"]["complexity_trace"]["truncated"] == body["data"]["routing_trace"]["truncated"]
     assert body["data"]["routing_trace"]["complexity_trace"]["title_question_boundary_used"] is False
     assert body["data"]["routing_trace"]["segment_count"] >= 1
     assert body["data"]["routing_trace"]["merge_policy"] == "single_query"

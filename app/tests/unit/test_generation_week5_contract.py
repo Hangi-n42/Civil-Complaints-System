@@ -420,6 +420,10 @@ def test_qa_week5_response_skeleton(monkeypatch):
     assert isinstance(data["routing_trace"], dict)
     assert data["routing_trace"]["complexity_level"] in {"low", "medium", "high"}
     assert 0.0 <= float(data["routing_trace"]["complexity_score"]) <= 1.0
+    assert isinstance(data["routing_trace"]["intent_count"], int)
+    assert isinstance(data["routing_trace"]["fallback_used"], bool)
+    assert isinstance(data["routing_trace"]["truncated"], bool)
+    assert isinstance(data["routing_trace"]["request_segments_low_confidence"], bool)
     assert isinstance(data["routing_trace"]["route_reason"], str)
     assert data["routing_trace"]["route_reason"]
     assert set(data["structured_output"].keys()) == {"summary", "action_items", "request_segments"}

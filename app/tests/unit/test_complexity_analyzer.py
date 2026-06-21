@@ -4,6 +4,7 @@ from app.retrieval.analyzers.complexity_analyzer import (
     COMPLEXITY_LEVEL_HIGH_THRESHOLD,
     COMPLEXITY_LEVEL_MEDIUM_THRESHOLD,
     build_analyzer_output,
+    is_request_segments_low_confidence,
     _split_sentences_with_source,
     analyze,
 )
@@ -84,6 +85,21 @@ def test_build_analyzer_output_aligns_with_routing_contract():
     assert isinstance(output["is_multi"], bool)
     assert output["intent_count"] == len(output["request_segments"])
     assert output["is_multi"] == (len(output["request_segments"]) >= 2)
+    assert isinstance(output["fallback_used"], bool)
+    assert isinstance(output["truncated"], bool)
+    assert output["request_segments_low_confidence"] == is_request_segments_low_confidence(
+        complexity_level=output["complexity_level"],
+        fallback_used=output["fallback_used"],
+    )
+    assert output["complexity_trace"]["fallback_used"] == output["fallback_used"]
+    assert output["complexity_trace"]["truncated"] == output["truncated"]
+    assert output["complexity_trace"]["request_segments_low_confidence"] == output["request_segments_low_confidence"]
+
+
+def test_request_segments_low_confidence_helper_uses_fallback_or_low_level():
+    assert is_request_segments_low_confidence(complexity_level="low", fallback_used=False) is True
+    assert is_request_segments_low_confidence(complexity_level="medium", fallback_used=True) is True
+    assert is_request_segments_low_confidence(complexity_level="high", fallback_used=False) is False
 
 
 def test_request_segments_keep_single_request_with_connectors():
