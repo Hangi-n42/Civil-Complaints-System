@@ -12,6 +12,10 @@ from app.complaint_intelligence import set_complaint_intelligence_service
 from app.complaint_intelligence.duplicate_merger.candidate_generator import DuplicateCandidateGenerator
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from scripts.build_complaint_intelligence_demo_seed import build_demo_seed
+from scripts.prepare_complaint_intelligence_real_replay import (
+    choose_seed_payload,
+    count_seed_events,
+)
 from scripts.seed_complaint_intelligence_demo import (
     build_service,
     load_seed,
@@ -156,6 +160,39 @@ def test_threshold_validation_fails_when_alerts_and_insights_are_empty() -> None
         "NO_ALERT_CREATED",
         "NO_PUBLIC_INSIGHT_CREATED",
     }
+
+
+def test_real_replay_prepare_keeps_existing_seed_when_new_build_is_empty(tmp_path) -> None:
+    seed_path = tmp_path / "real_replay.json"
+    existing_seed = {
+        "scenarios": [
+            {
+                "id": "existing",
+                "events": [{"id": "existing-1"}],
+            }
+        ]
+    }
+    generated_seed = {"scenarios": [{"id": "empty", "events": []}]}
+    seed_path.write_text(json.dumps(existing_seed), encoding="utf-8")
+
+    selected_seed, should_write_seed, fallback = choose_seed_payload(generated_seed, seed_path)
+
+    assert selected_seed == existing_seed
+    assert should_write_seed is False
+    assert fallback is not None
+    assert fallback["existing_event_count"] == 1
+    assert count_seed_events(selected_seed) == 1
+
+
+def test_real_replay_prepare_fails_before_db_reset_when_no_seed_data(tmp_path) -> None:
+    generated_seed = {"scenarios": [{"id": "empty", "events": []}]}
+
+    try:
+        choose_seed_payload(generated_seed, tmp_path / "missing.json")
+    except RuntimeError as exc:
+        assert "기존 seed도 비어" in str(exc)
+    else:
+        raise AssertionError("empty real_replay seed must fail instead of overwriting data")
 
 
 def test_seed_pipeline_masks_pii_in_reports_dashboard_and_evidence_pack(tmp_path) -> None:
