@@ -398,7 +398,8 @@ function formatComplaintName(caseId: string): string {
     "삼산동 생활 악취 원인 조사 요청",
     "삼산동 하수 악취 안내 요청",
   ]);
-  return `민원 ${caseId}`;
+  // 이슈 #466 FE 확인 포인트 P4: 미등록 ID는 기술 ID(demo-*) 노출을 막기 위해 중립 라벨로 마스킹한다.
+  return "민원 사례";
 }
 
 function variedTitle(caseId: string, titles: string[]): string {

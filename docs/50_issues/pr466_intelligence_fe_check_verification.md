@@ -8,7 +8,7 @@
 
 ## 요약
 
-PR #466 본문의 **FE 확인 포인트 5개 모두 PASS**. 빌드/테스트/lint 그린. 구조적으로 한 가지 낮은 위험의 개선 여지(아래 §개선 권고)만 남는다.
+PR #466 본문의 **FE 확인 포인트 5개 모두 PASS**. 빌드/테스트/lint 그린. 추가로 P4(중복 병합 ID 노출)를 데이터에 의존하지 않고 **구조적으로 보장**하도록 fallback 마스킹을 적용했다(아래 §개선 적용).
 
 | # | 확인 포인트 | 판정 | 핵심 근거 |
 |---|---|---|---|
@@ -52,8 +52,8 @@ PR #466 본문의 **FE 확인 포인트 5개 모두 PASS**. 빌드/테스트/lin
 
 > 빌드 주의: #466이 `leaflet`/`react-leaflet`를 새 의존성으로 추가했다. 기존 체크아웃에서 빌드 전 **`npm install` 필수**(미설치 시 `Module not found: 'leaflet'`로 build 실패 — 코드 결함 아님).
 
-## 개선 권고 (낮은 위험, 선택)
+## 개선 적용 (P4 하드 가드)
 
-- **P4 fallback raw-ID 누출 여지**: `DuplicateGroupTriage.tsx:401` `return \`민원 ${caseId}\`` — 카탈로그에 없는 ID(임의/미등록 `demo-*`)는 raw ID가 그대로 노출된다. 현행 큐레이션 데모셋은 전부 매핑되어 실제 누출은 없으나 구조적으로 보장되진 않는다. 하드 가드가 필요하면 fallback을 일반 라벨(예: `민원 사례`)로 마스킹 권고. (`duplicateGroupTitle` fallback은 ID를 echo하지 않아 안전)
+- **P4 fallback raw-ID 누출 여지 → 마스킹 적용**: `DuplicateGroupTriage.tsx:401`의 `formatComplaintName` fallback을 `민원 ${caseId}`(미등록 ID의 raw 노출) → `"민원 사례"`로 변경. 현행 데모셋은 전부 매핑되어 동작 변화는 없으나, 어떤 ID가 와도 기술 ID가 화면에 노출되지 않도록 **구조적으로 보장**한다. (`duplicateGroupTitle` fallback은 ID를 echo하지 않아 기존부터 안전 — 변경 없음)
 
-판정: PR #466의 FE 확인 포인트는 현재 코드 기준 **모두 충족**. 위 권고는 필수 아님.
+판정: PR #466의 FE 확인 포인트는 현재 코드 기준 **모두 충족**. P4는 위 마스킹으로 데이터 의존 없이 보장됨.
