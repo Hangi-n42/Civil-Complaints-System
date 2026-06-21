@@ -46,12 +46,12 @@
 | LLM | schema_validation_failure_count | 0 |
 | LLM | avg_llm_duration_ms | 4.1 |
 | LLM | avg_retry_duration_ms | 0.0 |
-| LLM | p95_llm_duration_ms | 5.1 |
+| LLM | p95_llm_duration_ms | 5.3 |
 | LLM | total_duration_seconds | 2.4 |
 
 ## Local LLM 안정성 추적
 
-- Slowest scenarios: `public_bike_app_ux, sinkhole_hotspot, flood_drainage_risk, streetlight_failure_recurring, construction_noise_time_pattern`
+- Slowest scenarios: `illegal_banner_cleanup, smoking_enforcement_recurring, public_bike_app_ux, welfare_support_process, flood_drainage_risk`
 - Timeout scenarios: `-`
 - Fallback scenarios: `-`
 

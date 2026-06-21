@@ -155,7 +155,7 @@ class PublicInsightLLMSynthesizer:
         return f"{rules}\nEVIDENCE_PACK_JSON:\n{json.dumps(evidence_pack_for_llm(pack), ensure_ascii=False, default=str)}"
 
     def _build_compact_prompt(self, pack: PublicInsightEvidencePack) -> str:
-        compact_pack = evidence_pack_for_llm(pack, compact=True, max_representative_complaints=3, max_text_chars=120)
+        compact_pack = evidence_pack_for_llm(pack, compact=True, max_representative_complaints=5, max_text_chars=220)
         rules = """
 너는 공공기관 민원 데이터 분석가다. 아래 EVIDENCE_PACK_JSON만 근거로 JSON 하나만 출력하라.
 
@@ -203,7 +203,7 @@ supporting_evidence_ids, expected_impact, risk_or_dependency
         )
 
     def _build_action_retry_prompt(self, draft: PublicAgencyInsightDraft, pack: PublicInsightEvidencePack) -> str:
-        compact_pack = evidence_pack_for_llm(pack, compact=True, max_representative_complaints=3, max_text_chars=120)
+        compact_pack = evidence_pack_for_llm(pack, compact=True, max_representative_complaints=4, max_text_chars=180)
         allowed_action_types = allowed_action_types_for_pack(pack)
         preferred_action_types = [item for item in preferred_action_types_for_pack(pack) if item in allowed_action_types]
         context = {
@@ -211,7 +211,7 @@ supporting_evidence_ids, expected_impact, risk_or_dependency
             "summary": draft.summary[:160],
             "problem_diagnosis": draft.problem_diagnosis[:180],
             "type_hint": pack.type_hint,
-            "allowed_action_catalog": pack.allowed_action_catalog[:6],
+            "allowed_action_catalog": pack.allowed_action_catalog[:8],
             "allowed_action_types": allowed_action_types,
             "preferred_action_types": preferred_action_types,
             "valid_evidence_ids": valid_evidence_ids_for_pack(pack, max_ids=20),

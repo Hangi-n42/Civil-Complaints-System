@@ -221,7 +221,7 @@ def evidence_pack_for_llm(
         "extracted_aspects": _compact_aspects(pack.extracted_aspects),
         "citizen_requests": _compact_requests(pack.citizen_requests),
         "linked_alert_ids": pack.linked_alert_ids,
-        "allowed_action_catalog": pack.allowed_action_catalog[:6],
+        "allowed_action_catalog": pack.allowed_action_catalog[:8],
         "valid_evidence_ids": valid_evidence_ids_for_pack(pack, max_ids=20),
         "allowed_action_types": rubric["allowed_action_types"][:6],
         "preferred_action_types": rubric["preferred_action_types"][:3],

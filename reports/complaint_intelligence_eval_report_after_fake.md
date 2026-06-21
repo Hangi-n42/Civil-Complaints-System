@@ -1,7 +1,7 @@
 # Complaint Intelligence 평가 보고서
 
 - Provider: `fake`
-- Scenario count: `25`
+- Scenario count: `13`
 - Overall pass rate: `1.000`
 
 ## 전체 지표
@@ -15,27 +15,27 @@
 | PublicAgencyInsight | expected_type_hit_rate | 1.000 |
 | PublicAgencyInsight | required_aspect_hit_rate | 1.000 |
 | PublicAgencyInsight | required_action_type_hit_rate | 1.000 |
-| PublicAgencyInsight | allowed_action_type_hit_rate | 0.920 |
+| PublicAgencyInsight | allowed_action_type_hit_rate | 0.846 |
 | PublicAgencyInsight | action_type_rubric_pass_rate | 1.000 |
-| PublicAgencyInsight | action_evidence_coverage_rate | 0.920 |
-| PublicAgencyInsight | avg_grounding_score | 0.920 |
-| PublicAgencyInsight | avg_confidence | 0.778 |
-| PublicAgencyInsight | avg_actionability_score | 0.920 |
+| PublicAgencyInsight | action_evidence_coverage_rate | 0.846 |
+| PublicAgencyInsight | avg_grounding_score | 0.846 |
+| PublicAgencyInsight | avg_confidence | 0.716 |
+| PublicAgencyInsight | avg_actionability_score | 0.846 |
 | PublicAgencyInsight | pii_leak_rate | 0.000 |
 | PublicAgencyInsight | forbidden_ai_ops_term_rate | 0.000 |
 | PublicAgencyInsight | human_review_requirement_pass_rate | 1.000 |
-| LLM | direct_llm_success_count | 221 |
+| LLM | direct_llm_success_count | 93 |
 | LLM | fallback_count | 0 |
 | LLM | fallback_rate | 0.000 |
 | LLM | direct_llm_success_rate | 1.000 |
 | LLM | fallback_due_to_empty_actions_count | 0 |
 | LLM | invalid_evidence_id_count | 0 |
 | LLM | invalid_action_type_count | 0 |
-| LLM | repaired_action_type_count | 11 |
+| LLM | repaired_action_type_count | 14 |
 | LLM | repaired_action_text_count | 0 |
 | LLM | removed_action_due_to_action_type_count | 0 |
 | LLM | action_repair_success_count | 0 |
-| LLM | human_review_postprocess_count | 167 |
+| LLM | human_review_postprocess_count | 51 |
 | LLM | action_retry_attempt_count | 0 |
 | LLM | action_retry_success_count | 0 |
 | LLM | json_parse_failure_count | 0 |
@@ -59,28 +59,16 @@
 | Scenario | Pass | Alert | Insight Type | 주요 실패 |
 | --- | --- | ---: | --- | --- |
 | 도로 침하/싱크홀 급증 | True | 1 | SAFETY_RISK_SIGNAL, SAFETY_RISK_SIGNAL, RECURRING_COMPLAINT_PATTERN | - |
-| 불법주정차 특정 시간대 반복 | True | 4 | SAFETY_RISK_SIGNAL, HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED | - |
-| 대형폐기물 배출 방법 문의 반복 | True | 4 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED | - |
-| 복지 지원 기준/신청 절차 불편 반복 | True | 4 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK | - |
-| 악취/냄새/하수 민원 야간 집중 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, RECURRING_COMPLAINT_PATTERN | - |
+| 불법주정차 특정 시간대 반복 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, SAFETY_RISK_SIGNAL, REOPEN_OR_REPEAT_RISK | - |
+| 대형폐기물 배출 방법 문의 반복 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK, RECURRING_COMPLAINT_PATTERN | - |
+| 복지 지원 기준/신청 절차 불편 반복 | True | 3 | HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK, ACCESSIBILITY_OR_USABILITY_ISSUE | - |
+| 악취/냄새/하수 민원 야간 집중 | True | 1 | HOTSPOT_RESPONSE_REQUIRED, RECURRING_COMPLAINT_PATTERN, REGIONAL_SERVICE_GAP | - |
 | 공공자전거/앱 예약·대여 UX 불편 | True | 3 | REOPEN_OR_REPEAT_RISK, ACCESSIBILITY_OR_USABILITY_ISSUE, PUBLIC_GUIDANCE_NEEDED | - |
 | 부서 처리 지연/미처리 누적 | True | 2 | PROCESS_DELAY_RISK, PUBLIC_GUIDANCE_NEEDED, POLICY_IMPROVEMENT_OPPORTUNITY | - |
 | 재민원/반복 민원 증가 | True | 1 | REOPEN_OR_REPEAT_RISK, PUBLIC_GUIDANCE_NEEDED, SERVICE_DESIGN_IMPROVEMENT | - |
-| 소음/공사 민원 특정 시간대 집중 | True | 3 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK | - |
-| 접근성/고령자·장애인 이용 어려움 | True | 3 | REOPEN_OR_REPEAT_RISK, PUBLIC_GUIDANCE_NEEDED, ACCESSIBILITY_OR_USABILITY_ISSUE | - |
-| 가로등/보안등 고장 반복 | True | 4 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED | - |
-| 침수/배수 불량 위험 | True | 3 | SAFETY_RISK_SIGNAL, SAFETY_RISK_SIGNAL, REOPEN_OR_REPEAT_RISK | - |
-| 무단투기/쓰레기 적치 반복 | True | 3 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK | - |
-| 공원/놀이터 시설 파손 및 이용 안전 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, SAFETY_RISK_SIGNAL, REOPEN_OR_REPEAT_RISK | - |
-| 가로등/보안등 고장 반복 확장 | True | 4 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED | - |
-| 버스 정류장/노선·배차 불편 | True | 2 | REOPEN_OR_REPEAT_RISK, PUBLIC_GUIDANCE_NEEDED, POLICY_IMPROVEMENT_OPPORTUNITY | - |
-| CCTV/방범 안전 설치 요청 | True | 4 | SAFETY_RISK_SIGNAL, SAFETY_RISK_SIGNAL, SAFETY_RISK_SIGNAL | - |
-| 흡연/금연구역 단속 반복 | True | 3 | HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK | - |
-| 불법 광고물/현수막 정비 | True | 2 | REOPEN_OR_REPEAT_RISK, FACILITY_MAINTENANCE_PRIORITY, ENFORCEMENT_PRIORITY | - |
-| 반려동물 배설물/목줄/유기동물 민원 | True | 4 | SAFETY_RISK_SIGNAL, HOTSPOT_RESPONSE_REQUIRED, HOTSPOT_RESPONSE_REQUIRED | - |
-| 인허가/자격·서류 기준 안내 혼선 | True | 2 | REOPEN_OR_REPEAT_RISK, PUBLIC_GUIDANCE_NEEDED, POLICY_IMPROVEMENT_OPPORTUNITY | - |
-| 장애인·고령자·외국인 접근성/이용 어려움 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK, RECURRING_COMPLAINT_PATTERN | - |
-| 어린이보호구역/통학 안전 | True | 2 | SAFETY_RISK_SIGNAL, REOPEN_OR_REPEAT_RISK, RECURRING_COMPLAINT_PATTERN | - |
+| 소음/공사 민원 특정 시간대 집중 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, REOPEN_OR_REPEAT_RISK, RECURRING_COMPLAINT_PATTERN | - |
+| 접근성/고령자·장애인 이용 어려움 | True | 4 | REOPEN_OR_REPEAT_RISK, ACCESSIBILITY_OR_USABILITY_ISSUE, PUBLIC_GUIDANCE_NEEDED | - |
+| 가로등/보안등 고장 반복 | True | 2 | HOTSPOT_RESPONSE_REQUIRED, SAFETY_RISK_SIGNAL, REOPEN_OR_REPEAT_RISK | - |
 | 낮은 건수라 alert가 뜨면 안 되는 상황 | True | 0 | - | - |
 | 같은 키워드지만 지역·시간이 분산된 non-hotspot | True | 0 | - | - |
 

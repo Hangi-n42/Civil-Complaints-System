@@ -10,15 +10,15 @@
   "scenario_count_evaluated": 25,
   "limited_reason": null,
   "scenario_count": 25,
-  "total_duration_seconds": 0.04,
+  "total_duration_seconds": 455.211,
   "checkpoint": {
     "enabled": true,
     "resume": true,
     "checkpoint_dir": "reports\\complaint_intelligence_eval_checkpoints",
-    "completed_from_checkpoint": 25,
-    "processed_this_run": 0,
+    "completed_from_checkpoint": 20,
+    "processed_this_run": 5,
     "pending_scenario_ids": [],
-    "chunk_size": null
+    "chunk_size": 5
   },
   "targets": {
     "fallback_rate": "<=0.25",
@@ -64,7 +64,7 @@
       "grounding_pass_rate": 1.0,
       "avg_grounding_score": 0.92,
       "avg_confidence": 0.7781,
-      "avg_actionability_score": 0.92,
+      "avg_actionability_score": 0.912,
       "fallback_rate": 0.0,
       "forbidden_ai_ops_term_rate": 0.0,
       "pii_leak_rate": 0.0,
@@ -98,52 +98,52 @@
     "action_repair_success_count": 0,
     "invalid_action_type_count": 1,
     "repaired_action_type_count": 3,
-    "repaired_action_text_count": 10,
+    "repaired_action_text_count": 7,
     "removed_action_due_to_action_type_count": 0,
     "action_retry_attempt_count": 0,
     "action_retry_success_count": 0,
     "empty_actions_after_repair_count": 0,
     "human_review_postprocess_count": 16,
     "action_type_rubric_pass_count": 23,
-    "avg_llm_duration_ms": 146977.912,
+    "avg_llm_duration_ms": 172596.998,
     "avg_retry_duration_ms": 0.0,
-    "p95_llm_duration_ms": 176541.897,
-    "total_duration_seconds": 3381.015,
+    "p95_llm_duration_ms": 208595.557,
+    "total_duration_seconds": 3970.78,
     "slowest_scenarios": [
       {
-        "scenario_id": "pet_waste_leash_complaints",
-        "duration_seconds": 187.423,
-        "llm_duration_ms": 187400.889
-      },
-      {
-        "scenario_id": "smoking_enforcement_recurring",
-        "duration_seconds": 176.562,
-        "llm_duration_ms": 176541.897
-      },
-      {
-        "scenario_id": "school_zone_commute_safety",
-        "duration_seconds": 170.666,
-        "llm_duration_ms": 170642.75
-      },
-      {
         "scenario_id": "construction_noise_time_pattern",
-        "duration_seconds": 163.748,
-        "llm_duration_ms": 163727.444
+        "duration_seconds": 211.952,
+        "llm_duration_ms": 211868.002
+      },
+      {
+        "scenario_id": "flood_drainage_risk",
+        "duration_seconds": 208.738,
+        "llm_duration_ms": 208595.557
+      },
+      {
+        "scenario_id": "sinkhole_hotspot",
+        "duration_seconds": 202.118,
+        "llm_duration_ms": 202030.716
       },
       {
         "scenario_id": "illegal_dumping_recurring",
-        "duration_seconds": 162.192,
-        "llm_duration_ms": 162170.085
+        "duration_seconds": 196.926,
+        "llm_duration_ms": 196864.555
+      },
+      {
+        "scenario_id": "repeat_reopen_growth",
+        "duration_seconds": 192.818,
+        "llm_duration_ms": 192772.559
       }
     ],
     "timeout_scenarios": [],
     "fallback_scenarios": [],
     "raw_response_debug_enabled": false,
     "speed_metrics": {
-      "avg_llm_duration_ms": 146977.912,
-      "p95_llm_duration_ms": 176541.897,
+      "avg_llm_duration_ms": 172596.998,
+      "p95_llm_duration_ms": 208595.557,
       "avg_retry_duration_ms": 0.0,
-      "total_duration_seconds": 3381.015
+      "total_duration_seconds": 3970.78
     }
   },
   "scenarios": [
@@ -155,7 +155,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-0c17c379b60b",
+      "run_id": "ci-run-a59fe91b500b",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -257,10 +257,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 159742.114,
+        "avg_llm_duration_ms": 202030.716,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          159742.114
+          202030.716
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -316,7 +316,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 159742.114,
+      "llm_duration_ms": 202030.716,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -329,12 +329,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "도로 싱크홀 위험 대응",
-            "summary": "중구 지역에서 최근 싱크홀 관련 민원이 급증하여 현장 안전과 이용 안전에 대한 우려가 제기됨.",
-            "problem_diagnosis": "도로 포트홀 및 침하 발생으로 인한 안전 위험 증가",
+            "title": "도로 침하 및 포트홀 안전 점검 필요",
+            "summary": "중구 지역에서 최근 3시간 동안 도로 침하 관련 민원이 급증하여 현장 안전과 시설 파손 우려 제기.",
+            "problem_diagnosis": "도로 침하 및 포트홀로 인한 시민 안전 위협 증가",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "도로 기반 시설의 노후화로 인한 침하 발생 가능성",
+                "hypothesis": "지반 불안정으로 인한 침하 발생 가능성",
                 "supporting_evidence_ids": [
                   "demo-sinkhole_hotspot-001",
                   "demo-sinkhole_hotspot-002"
@@ -352,8 +352,7 @@
               }
             ],
             "uncertainty": [
-              "원인 분석 필요",
-              "장기적인 보수 계획 필요"
+              "지반 상태 정확한 분석 필요"
             ]
           },
           "repair_diff": {
@@ -374,9 +373,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "도로 싱크홀 위험 대응",
-            "summary": "중구 지역에서 최근 싱크홀 관련 민원이 급증하여 현장 안전과 이용 안전에 대한 우려가 제기됨.",
-            "problem_diagnosis": "도로 포트홀 및 침하 발생으로 인한 안전 위험 증가",
+            "title": "도로 침하 및 포트홀 안전 점검 필요",
+            "summary": "중구 지역에서 최근 3시간 동안 도로 침하 관련 민원이 급증하여 현장 안전과 시설 파손 우려 제기.",
+            "problem_diagnosis": "도로 침하 및 포트홀로 인한 시민 안전 위협 증가",
             "recommended_actions": [
               {
                 "action": "긴급 현장 점검",
@@ -454,7 +453,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 159.761
+      "duration_seconds": 202.118
     },
     {
       "scenario_id": "illegal_parking_enforcement",
@@ -464,7 +463,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-e4794a7fd792",
+      "run_id": "ci-run-be0c76bf669b",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -593,10 +592,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 151454.951,
+        "avg_llm_duration_ms": 190834.631,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          151454.951
+          190834.631
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -656,7 +655,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 151454.951,
+      "llm_duration_ms": 190834.631,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -670,8 +669,8 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "초등학교 앞 불법주정차 단속 강화 필요",
-            "summary": "초등학교 주변에서 출퇴근 및 등하교 시간대 불법주정차 민원이 급증하여 안전 및 불편 문제 제기.",
-            "problem_diagnosis": "출퇴근 시간대 단속 공백 및 현장 안내 부족으로 인한 민원 증가",
+            "summary": "초등학교 주변에서 출퇴근 시간대 불법주정차로 인한 민원이 급증하고 있어 단속 강화 요구가 높음.",
+            "problem_diagnosis": "출퇴근 시간대 불법주정차 단속 공백으로 인한 시민 불편 및 안전 위협 증가",
             "root_cause_hypotheses": [
               {
                 "hypothesis": "단속 인력 부족으로 인한 시간대별 단속 공백 발생",
@@ -683,7 +682,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "단속 강화",
+                "action": "단속 강화 실시",
                 "action_type": "ENFORCEMENT",
                 "supporting_evidence_ids": [
                   "demo-illegal_parking_enforcement-001",
@@ -692,7 +691,7 @@
               }
             ],
             "uncertainty": [
-              "단속 인력 배치의 효율성"
+              "단속 인력 확보 가능성"
             ]
           },
           "repair_diff": {
@@ -714,8 +713,8 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "초등학교 앞 불법주정차 단속 강화 필요",
-            "summary": "초등학교 주변에서 출퇴근 및 등하교 시간대 불법주정차 민원이 급증하여 안전 및 불편 문제 제기.",
-            "problem_diagnosis": "출퇴근 시간대 단속 공백 및 현장 안내 부족으로 인한 민원 증가",
+            "summary": "초등학교 주변에서 출퇴근 시간대 불법주정차로 인한 민원이 급증하고 있어 단속 강화 요구가 높음.",
+            "problem_diagnosis": "출퇴근 시간대 불법주정차 단속 공백으로 인한 시민 불편 및 안전 위협 증가",
             "recommended_actions": [
               {
                 "action": "초등학교 앞 불법주정차 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
@@ -795,7 +794,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 151.474
+      "duration_seconds": 190.9
     },
     {
       "scenario_id": "bulky_waste_guidance",
@@ -805,7 +804,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-a2845a876739",
+      "run_id": "ci-run-e428ae704d17",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -931,10 +930,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 143595.46,
+        "avg_llm_duration_ms": 186128.028,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          143595.46
+          186128.028
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -990,7 +989,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 143595.46,
+      "llm_duration_ms": 186128.028,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -1004,11 +1003,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "대형폐기물 배출 안내 강화 필요",
-            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 배출 기준에 대한 안내 부족이 확인됨.",
-            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 기준에 대한 명확한 안내 부족으로 불편을 겪고 있음.",
+            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 기준 안내 부족이 문제점으로 지적됨.",
+            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 관련된 정보 부족으로 불편을 겪고 있으며, 명확한 안내 부재로 인해 신청 및 수거 기준 이해에 어려움을 겪고 있음.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 제공되는 안내 자료가 충분하지 않거나 이해하기 어려움.",
+                "hypothesis": "현재 제공되는 안내 자료가 충분하지 않아 시민들이 필요한 정보를 쉽게 찾지 못함.",
                 "supporting_evidence_ids": [
                   "demo-bulky_waste_guidance-001",
                   "demo-bulky_waste_guidance-002"
@@ -1026,7 +1025,7 @@
               }
             ],
             "uncertainty": [
-              "시민 반응 예측 불확실성"
+              "정보 제공의 효과성 검증 필요"
             ]
           },
           "repair_diff": {
@@ -1048,8 +1047,8 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "대형폐기물 배출 안내 강화 필요",
-            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 배출 기준에 대한 안내 부족이 확인됨.",
-            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 기준에 대한 명확한 안내 부족으로 불편을 겪고 있음.",
+            "summary": "동구 지역에서 대형폐기물 배출 관련 문의가 증가하여 신청 절차 및 기준 안내 부족이 문제점으로 지적됨.",
+            "problem_diagnosis": "시민들이 대형폐기물 배출 절차와 관련된 정보 부족으로 불편을 겪고 있으며, 명확한 안내 부재로 인해 신청 및 수거 기준 이해에 어려움을 겪고 있음.",
             "recommended_actions": [
               {
                 "action": "대형폐기물 배출 안내 페이지 보강",
@@ -1127,7 +1126,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 143.616
+      "duration_seconds": 186.176
     },
     {
       "scenario_id": "welfare_support_process",
@@ -1137,7 +1136,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-16d74825ee95",
+      "run_id": "ci-run-2cdc159ccea4",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -1265,10 +1264,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 148288.689,
+        "avg_llm_duration_ms": 156745.31,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          148288.689
+          156745.31
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -1324,7 +1323,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 148288.689,
+      "llm_duration_ms": 156745.31,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -1337,12 +1336,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "복지 지원 안내 개선 필요",
+            "title": "복지 지원 신청 안내 개선 필요",
             "summary": "중구 지역에서 복지 지원 신청 절차와 기준에 대한 이해 어려움이 반복적으로 제기되고 있습니다.",
-            "problem_diagnosis": "신청 절차와 지원 기준에 대한 명확한 안내 부족으로 인한 시민 혼란",
+            "problem_diagnosis": "신청자들이 지원 기준과 절차에 대한 명확한 안내 부족으로 인해 혼란을 겪고 있습니다.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 제공되는 정보가 복잡하고 이해하기 어려워 시민들이 필요한 정보를 쉽게 찾지 못함",
+                "hypothesis": "현재 제공되는 안내 자료가 충분하지 않거나 이해하기 어렵다.",
                 "supporting_evidence_ids": [
                   "demo-welfare_support_process-001",
                   "demo-welfare_support_process-002"
@@ -1360,7 +1359,7 @@
               }
             ],
             "uncertainty": [
-              "시민 반응 예측 어려움"
+              "현재 안내 자료의 효과성 평가 필요"
             ]
           },
           "repair_diff": {
@@ -1381,9 +1380,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "복지 지원 안내 개선 필요",
+            "title": "복지 지원 신청 안내 개선 필요",
             "summary": "중구 지역에서 복지 지원 신청 절차와 기준에 대한 이해 어려움이 반복적으로 제기되고 있습니다.",
-            "problem_diagnosis": "신청 절차와 지원 기준에 대한 명확한 안내 부족으로 인한 시민 혼란",
+            "problem_diagnosis": "신청자들이 지원 기준과 절차에 대한 명확한 안내 부족으로 인해 혼란을 겪고 있습니다.",
             "recommended_actions": [
               {
                 "action": "FAQ/안내 페이지 보강",
@@ -1461,7 +1460,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 148.315
+      "duration_seconds": 156.779
     },
     {
       "scenario_id": "odor_night_hotspot",
@@ -1471,7 +1470,7 @@
       "real_event_count": 6,
       "synthetic_event_count": 0,
       "event_count": 6,
-      "run_id": "ci-run-e3504dc7d931",
+      "run_id": "ci-run-5f990c716490",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -1503,7 +1502,7 @@
         "grounding_pass": true,
         "avg_grounding_score": 1.0,
         "avg_confidence": 0.8458,
-        "avg_actionability_score": 1.0,
+        "avg_actionability_score": 0.8,
         "fallback": false,
         "forbidden_ai_ops_terms": false,
         "pii_leak": false,
@@ -1580,10 +1579,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 125920.483,
+        "avg_llm_duration_ms": 160113.668,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          125920.483
+          160113.668
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -1596,7 +1595,7 @@
         "action_repair_success_count": 0,
         "invalid_action_type_count": 0,
         "invalid_action_types": [],
-        "repaired_action_type_count": 1,
+        "repaired_action_type_count": 0,
         "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "action_retry_attempt_count": 0,
@@ -1610,19 +1609,12 @@
           "invalid_evidence_ids": [],
           "empty_action_count": 0,
           "invalid_action_type_count": 0,
-          "repaired_action_type_count": 1,
+          "repaired_action_type_count": 0,
           "repaired_action_text_count": 0,
           "removed_action_due_to_action_type_count": 0,
           "invalid_action_types": [],
-          "action_type_repairs": [
-            {
-              "from": "FIELD_INSPECTION",
-              "to": "PROCESS_IMPROVEMENT"
-            }
-          ],
-          "repair_strategy": [
-            "repaired_allowed_action_type_by_preferred_keywords"
-          ]
+          "action_type_repairs": [],
+          "repair_strategy": []
         },
         "action_retry_report": null,
         "failure_reasons": {},
@@ -1638,22 +1630,15 @@
         "invalid_evidence_ids": [],
         "empty_action_count": 0,
         "invalid_action_type_count": 0,
-        "repaired_action_type_count": 1,
+        "repaired_action_type_count": 0,
         "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "invalid_action_types": [],
-        "action_type_repairs": [
-          {
-            "from": "FIELD_INSPECTION",
-            "to": "PROCESS_IMPROVEMENT"
-          }
-        ],
-        "repair_strategy": [
-          "repaired_allowed_action_type_by_preferred_keywords"
-        ]
+        "action_type_repairs": [],
+        "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 125920.483,
+      "llm_duration_ms": 160113.668,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -1666,28 +1651,31 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "야간 하수 악취 민원 대응",
-            "summary": "야간 시간대에 남구에서 하수 악취 관련 민원이 집중적으로 발생하고 있습니다.",
-            "problem_diagnosis": "야간 시간대에 생활환경 불편과 배수 불량이 주요 원인으로 추정됩니다.",
+            "title": "야간 악취 민원 대응 개선",
+            "summary": "야간 시간대 악취 민원이 집중적으로 발생하여 시민 불편이 증가하고 있습니다.",
+            "problem_diagnosis": "야간 시간대 악취 민원이 특정 지역과 시간대에 집중되어 있어 효율적인 대응 체계 부재가 의심됩니다.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "하수 시스템의 야간 유지보수 부족",
+                "hypothesis": "야간 악취 원인에 대한 통합적인 모니터링 시스템 부재",
                 "supporting_evidence_ids": [
-                  "demo-odor_night_hotspot-006"
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
                 ]
               }
             ],
             "recommended_actions": [
               {
-                "action": "야간 유지보수 점검 프로세스 개선",
-                "action_type": "FIELD_INSPECTION",
+                "action": "야간 악취 모니터링 시스템 구축",
+                "action_type": "PROCESS_IMPROVEMENT",
                 "supporting_evidence_ids": [
-                  "demo-odor_night_hotspot-006"
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
                 ]
               }
             ],
             "uncertainty": [
-              "야간 시간대 유지보수 효과 검증 필요"
+              "시스템 구축 효과의 불확실성",
+              "비용 및 시간 소요"
             ]
           },
           "repair_diff": {
@@ -1695,7 +1683,7 @@
             "invalid_action_types": [],
             "removed_actions": 0,
             "repaired_actions": 0,
-            "repaired_action_types": 1,
+            "repaired_action_types": 0,
             "repaired_action_texts": 0,
             "retry_used": false,
             "retry_success": false,
@@ -1707,16 +1695,16 @@
             "priority": "MEDIUM",
             "confidence": 0.8458,
             "grounding_score": 1.0,
-            "avg_actionability_score": 1.0,
-            "title": "야간 하수 악취 민원 대응",
-            "summary": "야간 시간대에 남구에서 하수 악취 관련 민원이 집중적으로 발생하고 있습니다.",
-            "problem_diagnosis": "야간 시간대에 생활환경 불편과 배수 불량이 주요 원인으로 추정됩니다.",
+            "avg_actionability_score": 0.8,
+            "title": "야간 악취 민원 대응 개선",
+            "summary": "야간 시간대 악취 민원이 집중적으로 발생하여 시민 불편이 증가하고 있습니다.",
+            "problem_diagnosis": "야간 시간대 악취 민원이 특정 지역과 시간대에 집중되어 있어 효율적인 대응 체계 부재가 의심됩니다.",
             "recommended_actions": [
               {
-                "action": "야간 유지보수 점검 프로세스 개선",
-                "original_action_type": "FIELD_INSPECTION",
+                "action": "야간 악취 모니터링 시스템 구축",
+                "original_action_type": "PROCESS_IMPROVEMENT",
                 "final_action_type": "PROCESS_IMPROVEMENT",
-                "action_type_repaired": true,
+                "action_type_repaired": false,
                 "allowed_action_types": [
                   "PROCESS_IMPROVEMENT",
                   "FIELD_INSPECTION",
@@ -1724,9 +1712,10 @@
                   "PUBLIC_GUIDANCE",
                   "SAFETY_NOTICE"
                 ],
-                "actionability_score": 1.0,
+                "actionability_score": 0.8,
                 "supporting_evidence_ids": [
-                  "demo-odor_night_hotspot-006"
+                  "demo-odor_night_hotspot-001",
+                  "demo-odor_night_hotspot-002"
                 ]
               }
             ],
@@ -1789,7 +1778,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 125.957
+      "duration_seconds": 160.144
     },
     {
       "scenario_id": "public_bike_app_ux",
@@ -1799,7 +1788,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-004c768038fd",
+      "run_id": "ci-run-d86ce369371d",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -1888,8 +1877,7 @@
             "SERVICE_DESIGN"
           ],
           "aspects": [
-            "사용성 문제",
-            "정보 부족",
+            "복잡한 절차",
             "안내 부족",
             "접근성/사용성",
             "신청/예약 절차 어려움"
@@ -1916,10 +1904,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 128048.072,
+        "avg_llm_duration_ms": 154101.521,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          128048.072
+          154101.521
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -1979,7 +1967,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 128048.072,
+      "llm_duration_ms": 154101.521,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -1994,13 +1982,13 @@
           "llm_draft_summary": {
             "title": "공공자전거 앱 사용성 개선 필요",
             "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원이 증가하고 있습니다.",
-            "problem_diagnosis": "반복적인 앱 사용 불편과 오류로 인한 시민 불만 증가",
+            "problem_diagnosis": "반복적인 앱 사용 불편과 복잡한 절차로 인한 시민 불만 증가",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 앱 인터페이스의 사용자 친화성 부족으로 인한 불편함",
+                "hypothesis": "현재 앱 인터페이스가 사용자 친화적이지 않아 복잡함을 느끼고 있습니다.",
                 "supporting_evidence_ids": [
                   "eval-public_bike_app_ux-001",
-                  "eval-public_bike_app-ux-002"
+                  "eval-public_bike_app_ux-002"
                 ]
               }
             ],
@@ -2015,7 +2003,8 @@
               }
             ],
             "uncertainty": [
-              "현재 데이터 기반으로 완전한 원인 파악 필요"
+              "사용자 피드백 반영 정도",
+              "개선 효과의 지속성"
             ]
           },
           "repair_diff": {
@@ -2038,7 +2027,7 @@
             "avg_actionability_score": 1.0,
             "title": "공공자전거 앱 사용성 개선 필요",
             "summary": "성동구에서 공공자전거 앱의 복잡한 예약 및 대여 절차로 인한 민원이 증가하고 있습니다.",
-            "problem_diagnosis": "반복적인 앱 사용 불편과 오류로 인한 시민 불만 증가",
+            "problem_diagnosis": "반복적인 앱 사용 불편과 복잡한 절차로 인한 시민 불만 증가",
             "recommended_actions": [
               {
                 "action": "접근성/사용성 반복 불편 이용 절차의 오류·복잡 단계를 확인하고 안내 문구를 보강합니다.",
@@ -2116,7 +2105,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 128.073
+      "duration_seconds": 154.131
     },
     {
       "scenario_id": "department_delay_backlog",
@@ -2126,7 +2115,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-524d6522b7a7",
+      "run_id": "ci-run-47ba95e71b93",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -2233,10 +2222,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 120802.696,
+        "avg_llm_duration_ms": 170274.885,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          120802.696
+          170274.885
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -2308,7 +2297,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 120802.696,
+      "llm_duration_ms": 170274.885,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -2322,8 +2311,8 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "도로관리과 처리 지연 개선",
-            "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만 증가.",
-            "problem_diagnosis": "도로 보수 및 유지보수 민원의 처리 지연과 소통 부족으로 인한 시민 불편 증가.",
+            "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만이 증가하고 있습니다.",
+            "problem_diagnosis": "처리 지연과 소통 부족으로 인한 민원 누적이 주요 문제입니다.",
             "root_cause_hypotheses": [
               {
                 "hypothesis": "인력 부족으로 인한 업무 과부하",
@@ -2344,7 +2333,7 @@
               }
             ],
             "uncertainty": [
-              "현재 인력 현황 분석 필요"
+              "현재 인력 상태 분석 필요"
             ]
           },
           "repair_diff": {
@@ -2366,8 +2355,8 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "도로관리과 처리 지연 개선",
-            "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만 증가.",
-            "problem_diagnosis": "도로 보수 및 유지보수 민원의 처리 지연과 소통 부족으로 인한 시민 불편 증가.",
+            "summary": "중구 도로관리과의 민원 처리 지연이 누적되어 시민 불만이 증가하고 있습니다.",
+            "problem_diagnosis": "처리 지연과 소통 부족으로 인한 민원 누적이 주요 문제입니다.",
             "recommended_actions": [
               {
                 "action": "도로관리과 처리 지연/미처리 누적 처리 흐름을 점검하고 반복 민원 원인별 개선 과제를 정리합니다.",
@@ -2444,7 +2433,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 120.822
+      "duration_seconds": 170.317
     },
     {
       "scenario_id": "repeat_reopen_growth",
@@ -2454,7 +2443,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-aebbd150759e",
+      "run_id": "ci-run-d1187554cf8a",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -2553,10 +2542,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 133303.535,
+        "avg_llm_duration_ms": 192772.559,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          133303.535
+          192772.559
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -2570,7 +2559,7 @@
         "invalid_action_type_count": 0,
         "invalid_action_types": [],
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "action_retry_attempt_count": 0,
         "action_retry_success_count": 0,
@@ -2584,13 +2573,11 @@
           "empty_action_count": 0,
           "invalid_action_type_count": 0,
           "repaired_action_type_count": 0,
-          "repaired_action_text_count": 1,
+          "repaired_action_text_count": 0,
           "removed_action_due_to_action_type_count": 0,
           "invalid_action_types": [],
           "action_type_repairs": [],
-          "repair_strategy": [
-            "expanded_short_action_text_from_rubric"
-          ]
+          "repair_strategy": []
         },
         "action_retry_report": null,
         "failure_reasons": {},
@@ -2607,16 +2594,14 @@
         "empty_action_count": 0,
         "invalid_action_type_count": 0,
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "invalid_action_types": [],
         "action_type_repairs": [],
-        "repair_strategy": [
-          "expanded_short_action_text_from_rubric"
-        ]
+        "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 133303.535,
+      "llm_duration_ms": 192772.559,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -2631,10 +2616,10 @@
           "llm_draft_summary": {
             "title": "반복 민원 처리 개선 필요",
             "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원 증가로 시민 불만 고조.",
-            "problem_diagnosis": "처리 완료 후에도 동일 민원 재발로 인한 불만 증가.",
+            "problem_diagnosis": "처리 완료 후에도 동일 문제 재발로 인한 민원 재접수 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "처리 과정의 미흡한 검증 및 현장 조치 실효성 부족",
+                "hypothesis": "처리 과정의 미흡한 검증으로 인한 재발 가능성",
                 "supporting_evidence_ids": [
                   "eval-repeat_reopen_growth-001",
                   "eval-repeat_reopen_growth-002"
@@ -2643,7 +2628,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "처리 과정 검증 강화",
+                "action": "처리 과정 검증 절차 개선",
                 "action_type": "PROCESS_IMPROVEMENT",
                 "supporting_evidence_ids": [
                   "eval-repeat_reopen_growth-001",
@@ -2661,7 +2646,7 @@
             "removed_actions": 0,
             "repaired_actions": 0,
             "repaired_action_types": 0,
-            "repaired_action_texts": 1,
+            "repaired_action_texts": 0,
             "retry_used": false,
             "retry_success": false,
             "retry_failure_reason": null
@@ -2675,10 +2660,10 @@
             "avg_actionability_score": 1.0,
             "title": "반복 민원 처리 개선 필요",
             "summary": "관악구에서 악취 및 하수 냄새 관련 반복 민원 증가로 시민 불만 고조.",
-            "problem_diagnosis": "처리 완료 후에도 동일 민원 재발로 인한 불만 증가.",
+            "problem_diagnosis": "처리 완료 후에도 동일 문제 재발로 인한 민원 재접수 증가.",
             "recommended_actions": [
               {
-                "action": "재민원/반복 민원 증가 처리 흐름을 점검하고 반복 민원 원인별 개선 과제를 정리합니다.",
+                "action": "처리 과정 검증 절차 개선",
                 "original_action_type": "PROCESS_IMPROVEMENT",
                 "final_action_type": "PROCESS_IMPROVEMENT",
                 "action_type_repaired": false,
@@ -2752,7 +2737,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 133.323
+      "duration_seconds": 192.818
     },
     {
       "scenario_id": "construction_noise_time_pattern",
@@ -2762,7 +2747,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-c408cbb39135",
+      "run_id": "ci-run-43cd4f2e1a1a",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -2878,10 +2863,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 163727.444,
+        "avg_llm_duration_ms": 211868.002,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          163727.444
+          211868.002
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -2895,7 +2880,7 @@
         "invalid_action_type_count": 0,
         "invalid_action_types": [],
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "action_retry_attempt_count": 0,
         "action_retry_success_count": 0,
@@ -2909,13 +2894,11 @@
           "empty_action_count": 0,
           "invalid_action_type_count": 0,
           "repaired_action_type_count": 0,
-          "repaired_action_text_count": 1,
+          "repaired_action_text_count": 0,
           "removed_action_due_to_action_type_count": 0,
           "invalid_action_types": [],
           "action_type_repairs": [],
-          "repair_strategy": [
-            "expanded_short_action_text_from_rubric"
-          ]
+          "repair_strategy": []
         },
         "action_retry_report": null,
         "failure_reasons": {},
@@ -2932,16 +2915,14 @@
         "empty_action_count": 0,
         "invalid_action_type_count": 0,
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "invalid_action_types": [],
         "action_type_repairs": [],
-        "repair_strategy": [
-          "expanded_short_action_text_from_rubric"
-        ]
+        "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 163727.444,
+      "llm_duration_ms": 211868.002,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -2954,12 +2935,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "야간 공사 소음 민원 집중 대응",
-            "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 제기되고 있습니다.",
-            "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 지속적으로 발생하여 시민 불편이 증가하고 있습니다.",
+            "title": "야간 공사 소음 단속 강화 필요",
+            "summary": "마포구에서 퇴근 후 야간 시간대 공사 소음 민원이 집중적으로 발생하고 있어 시민 불편이 보고됨.",
+            "problem_diagnosis": "야간 및 퇴근 이후 시간대 공사 소음 단속 공백으로 인한 생활환경 불편 증가",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 단속 체계의 시간적 공백으로 인한 소음 관리 미흡",
+                "hypothesis": "현행 단속 시간 범위가 야간 소음 민원을 충분히 커버하지 못함",
                 "supporting_evidence_ids": [
                   "eval-construction_noise_time_pattern-001",
                   "eval-construction_noise_time_pattern-002"
@@ -2968,17 +2949,16 @@
             ],
             "recommended_actions": [
               {
-                "action": "야간 단속 강화",
+                "action": "야간 단속 강화 정책 시행",
                 "action_type": "ENFORCEMENT",
                 "supporting_evidence_ids": [
-                  "eval-construction_noise_time_pattern-005",
-                  "eval-construction_noise_time_pattern-004"
+                  "eval-construction_noise_time_pattern-001",
+                  "eval-construction_noise_time_pattern-002"
                 ]
               }
             ],
             "uncertainty": [
-              "단속 인력의 효율성",
-              "소음 기준 준수 여부"
+              "단기적 효과 모니터링 필요"
             ]
           },
           "repair_diff": {
@@ -2987,7 +2967,7 @@
             "removed_actions": 0,
             "repaired_actions": 0,
             "repaired_action_types": 0,
-            "repaired_action_texts": 1,
+            "repaired_action_texts": 0,
             "retry_used": false,
             "retry_success": false,
             "retry_failure_reason": null
@@ -2999,12 +2979,12 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "야간 공사 소음 민원 집중 대응",
-            "summary": "마포구에서 퇴근 이후 야간 시간대 공사 소음 민원이 집중적으로 제기되고 있습니다.",
-            "problem_diagnosis": "야간 및 퇴근 이후 시간대에 공사 소음 관련 민원이 지속적으로 발생하여 시민 불편이 증가하고 있습니다.",
+            "title": "야간 공사 소음 단속 강화 필요",
+            "summary": "마포구에서 퇴근 후 야간 시간대 공사 소음 민원이 집중적으로 발생하고 있어 시민 불편이 보고됨.",
+            "problem_diagnosis": "야간 및 퇴근 이후 시간대 공사 소음 단속 공백으로 인한 생활환경 불편 증가",
             "recommended_actions": [
               {
-                "action": "공사 소음 시간대 집중 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+                "action": "야간 단속 강화 정책 시행",
                 "original_action_type": "ENFORCEMENT",
                 "final_action_type": "ENFORCEMENT",
                 "action_type_repaired": false,
@@ -3017,8 +2997,8 @@
                 ],
                 "actionability_score": 1.0,
                 "supporting_evidence_ids": [
-                  "eval-construction_noise_time_pattern-005",
-                  "eval-construction_noise_time_pattern-004"
+                  "eval-construction_noise_time_pattern-001",
+                  "eval-construction_noise_time_pattern-002"
                 ]
               }
             ],
@@ -3080,7 +3060,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 163.748
+      "duration_seconds": 211.952
     },
     {
       "scenario_id": "accessibility_usage_barrier",
@@ -3090,7 +3070,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-43bdf66ad731",
+      "run_id": "ci-run-626c80ffe7e1",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -3178,12 +3158,11 @@
             "SERVICE_DESIGN"
           ],
           "aspects": [
-            "신청 절차 복잡성",
-            "사용자 안내 부족",
             "신청 절차",
             "안내 부족",
             "정류장 접근성",
-            "접근성/사용성"
+            "접근성/사용성",
+            "신청/예약 절차 어려움"
           ]
         }
       ],
@@ -3206,10 +3185,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 127814.253,
+        "avg_llm_duration_ms": 179498.212,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          127814.253
+          179498.212
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -3269,7 +3248,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 127814.253,
+      "llm_duration_ms": 179498.212,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -3282,12 +3261,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "공공자전거 예약 불편 개선",
-            "summary": "중구 지역에서 고령자와 장애인의 공공자전거 예약 과정에서 접근성 문제로 인한 민원 증가.",
-            "problem_diagnosis": "신청 절차와 안내 부족으로 디지털 취약계층의 이용 불편 지속.",
+            "title": "공공자전거 앱 접근성 개선 필요",
+            "summary": "중구 지역에서 고령자와 장애인의 공공자전거 앱 사용 불편 지속",
+            "problem_diagnosis": "디지털 취약계층을 위한 앱 접근성 및 안내 부족으로 인한 민원 증가",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 앱 및 웹사이트 디자인이 고령자와 장애인에게 충분히 접근성이 낮음.",
+                "hypothesis": "현재 앱 디자인이 고령자와 장애인에게 충분히 접근성이 낮음",
                 "supporting_evidence_ids": [
                   "eval-accessibility_usage_barrier-001",
                   "eval-accessibility_usage_barrier-002"
@@ -3296,7 +3275,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "앱/웹 UX 문구 개선",
+                "action": "앱 UX 문구 개선",
                 "action_type": "SERVICE_DESIGN",
                 "supporting_evidence_ids": [
                   "eval-accessibility_usage_barrier-001",
@@ -3305,8 +3284,7 @@
               }
             ],
             "uncertainty": [
-              "UX 개선 효과의 지속성",
-              "추가적인 사용자 피드백 필요성"
+              "UX 개선 효과의 지속성 확인 필요"
             ]
           },
           "repair_diff": {
@@ -3327,9 +3305,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "공공자전거 예약 불편 개선",
-            "summary": "중구 지역에서 고령자와 장애인의 공공자전거 예약 과정에서 접근성 문제로 인한 민원 증가.",
-            "problem_diagnosis": "신청 절차와 안내 부족으로 디지털 취약계층의 이용 불편 지속.",
+            "title": "공공자전거 앱 접근성 개선 필요",
+            "summary": "중구 지역에서 고령자와 장애인의 공공자전거 앱 사용 불편 지속",
+            "problem_diagnosis": "디지털 취약계층을 위한 앱 접근성 및 안내 부족으로 인한 민원 증가",
             "recommended_actions": [
               {
                 "action": "공공자전거 예약/대여 불편 이용 절차의 오류·복잡 단계를 확인하고 안내 문구를 보강합니다.",
@@ -3406,7 +3384,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 127.835
+      "duration_seconds": 179.544
     },
     {
       "scenario_id": "streetlight_failure_recurring",
@@ -3416,7 +3394,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-9a870a4bcbb7",
+      "run_id": "ci-run-bb32445717ce",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -3541,10 +3519,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 126614.36,
+        "avg_llm_duration_ms": 182393.856,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          126614.36
+          182393.856
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -3600,7 +3578,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 126614.36,
+      "llm_duration_ms": 182393.856,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -3613,12 +3591,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "가로등 반복 고장 대응",
-            "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 문제 발생.",
-            "problem_diagnosis": "가로등 고장이 특정 지역에서 지속적으로 발생하여 시민 안전에 위협을 주고 있음.",
+            "title": "가로등 반복 고장 민원 대응",
+            "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 영향을 미칩니다.",
+            "problem_diagnosis": "동일 지역 내 가로등의 지속적인 고장으로 인한 시민 불편 및 안전 우려 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "정기 점검 미흡으로 인한 고장 발생",
+                "hypothesis": "정기 점검 미흡으로 인한 고장 원인 미해결",
                 "supporting_evidence_ids": [
                   "eval-streetlight_failure_recurring-001",
                   "eval-streetlight_failure_recurring-002"
@@ -3636,7 +3614,7 @@
               }
             ],
             "uncertainty": [
-              "고장 원인의 정확한 파악 필요"
+              "고장 원인의 명확한 규명 필요"
             ]
           },
           "repair_diff": {
@@ -3657,9 +3635,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "가로등 반복 고장 대응",
-            "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 문제 발생.",
-            "problem_diagnosis": "가로등 고장이 특정 지역에서 지속적으로 발생하여 시민 안전에 위협을 주고 있음.",
+            "title": "가로등 반복 고장 민원 대응",
+            "summary": "중구 지역에서 가로등 고장 민원이 반복적으로 접수되어 야간 보행 안전에 영향을 미칩니다.",
+            "problem_diagnosis": "동일 지역 내 가로등의 지속적인 고장으로 인한 시민 불편 및 안전 우려 증가.",
             "recommended_actions": [
               {
                 "action": "현장 점검 실시",
@@ -3738,7 +3716,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 126.641
+      "duration_seconds": 182.48
     },
     {
       "scenario_id": "flood_drainage_risk",
@@ -3748,7 +3726,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-b101851daa5c",
+      "run_id": "ci-run-959ea5fefa30",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -3866,10 +3844,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 152353.609,
+        "avg_llm_duration_ms": 208595.557,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          152353.609
+          208595.557
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -3925,7 +3903,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 152353.609,
+      "llm_duration_ms": 208595.557,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -3939,11 +3917,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "배수 시스템 안전 점검 필요",
-            "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 급증하여 현장 안전 위험이 확인됨.",
+            "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 집중적으로 제기되고 있어 안전 위험이 확인됨.",
             "problem_diagnosis": "우천 시 맨홀 주변 역류와 배수 불량으로 인한 침수 위험 증가",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "배수 시스템 노후화 및 유지보수 부족으로 인한 역류 현상 발생 가능성",
+                "hypothesis": "배수 시스템 노후화 및 정비 부족으로 인한 역류 현상 발생 가능성",
                 "supporting_evidence_ids": [
                   "eval-flood_drainage_risk-001",
                   "eval-flood_drainage_risk-002"
@@ -3983,7 +3961,7 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "배수 시스템 안전 점검 필요",
-            "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 급증하여 현장 안전 위험이 확인됨.",
+            "summary": "영등포구에서 침수 및 배수 불량 관련 민원이 집중적으로 제기되고 있어 안전 위험이 확인됨.",
             "problem_diagnosis": "우천 시 맨홀 주변 역류와 배수 불량으로 인한 침수 위험 증가",
             "recommended_actions": [
               {
@@ -4061,7 +4039,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 152.375
+      "duration_seconds": 208.738
     },
     {
       "scenario_id": "illegal_dumping_recurring",
@@ -4071,7 +4049,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-75bc40ce085f",
+      "run_id": "ci-run-0298556e82ab",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -4157,7 +4135,7 @@
           "grounding_score": 1.0,
           "requires_human_review": true,
           "action_types": [
-            "PUBLIC_GUIDANCE"
+            "ENFORCEMENT"
           ],
           "aspects": [
             "안내 부족",
@@ -4187,10 +4165,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 162170.085,
+        "avg_llm_duration_ms": 196864.555,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          162170.085
+          196864.555
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -4228,7 +4206,7 @@
           "action_type_repairs": [
             {
               "from": "FIELD_INSPECTION",
-              "to": "PUBLIC_GUIDANCE"
+              "to": "ENFORCEMENT"
             }
           ],
           "repair_strategy": [
@@ -4259,7 +4237,7 @@
         "action_type_repairs": [
           {
             "from": "FIELD_INSPECTION",
-            "to": "PUBLIC_GUIDANCE"
+            "to": "ENFORCEMENT"
           }
         ],
         "repair_strategy": [
@@ -4268,7 +4246,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 162170.085,
+      "llm_duration_ms": 196864.555,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -4282,11 +4260,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "무단투기 반복 민원 대응",
-            "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어, 안내 부족과 현장 조치 실효성에 대한 우려가 제기됨.",
-            "problem_diagnosis": "무단투기와 쓰레기 적치 관련 민원이 지속적으로 발생하며, 특히 안내 부족과 단속 강화 요청이 높음.",
+            "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어 시민 불편이 증가하고 있습니다.",
+            "problem_diagnosis": "무단투기와 관련된 안내 부족 및 현장 조치의 실효성 미흡이 주요 원인으로 보입니다.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재의 안내 시스템이 충분하지 않아 시민들의 인식 개선에 한계가 있음.",
+                "hypothesis": "현재의 안내 표지판 및 금지 안내가 부족하거나 효과적이지 않음.",
                 "supporting_evidence_ids": [
                   "eval-illegal_dumping_recurring-001",
                   "eval-illegal_dumping_recurring-002"
@@ -4304,7 +4282,8 @@
               }
             ],
             "uncertainty": [
-              "단기적 효과 측정 필요"
+              "시민 인식 변화 시간",
+              "안내물 효과성 검증"
             ]
           },
           "repair_diff": {
@@ -4328,13 +4307,13 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "무단투기 반복 민원 대응",
-            "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어, 안내 부족과 현장 조치 실효성에 대한 우려가 제기됨.",
-            "problem_diagnosis": "무단투기와 쓰레기 적치 관련 민원이 지속적으로 발생하며, 특히 안내 부족과 단속 강화 요청이 높음.",
+            "summary": "동작구에서 무단투기 민원이 반복적으로 제기되고 있어 시민 불편이 증가하고 있습니다.",
+            "problem_diagnosis": "무단투기와 관련된 안내 부족 및 현장 조치의 실효성 미흡이 주요 원인으로 보입니다.",
             "recommended_actions": [
               {
-                "action": "무단투기 반복 FAQ와 신청 절차 안내를 보강하고 문의 응대 기준을 정리합니다.",
+                "action": "무단투기 반복 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
                 "original_action_type": "FIELD_INSPECTION",
-                "final_action_type": "PUBLIC_GUIDANCE",
+                "final_action_type": "ENFORCEMENT",
                 "action_type_repaired": true,
                 "allowed_action_types": [
                   "ENFORCEMENT",
@@ -4408,7 +4387,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 162.192
+      "duration_seconds": 196.926
     },
     {
       "scenario_id": "park_playground_facility_safety",
@@ -4418,7 +4397,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-976898468d46",
+      "run_id": "ci-run-87f5f43159fd",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -4527,10 +4506,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 132778.75,
+        "avg_llm_duration_ms": 161467.823,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          132778.75
+          161467.823
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -4586,7 +4565,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 132778.75,
+      "llm_duration_ms": 161467.823,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -4600,8 +4579,8 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "공원 시설 파손 안전 점검 필요",
-            "summary": "서초구 공원 시설에서 파손 신고가 집중적으로 발생하여 이용자 안전 위협이 확인됨.",
-            "problem_diagnosis": "공원 내 놀이터 및 시설물의 파손으로 인한 안전 위험 증가",
+            "summary": "서초구 공원 시설 파손 신고가 집중되어 안전 위험이 제기됨.",
+            "problem_diagnosis": "공원 내 시설 파손으로 인한 이용 안전 위협 증가",
             "root_cause_hypotheses": [
               {
                 "hypothesis": "정기적인 시설 점검 미흡으로 인한 파손 발견 지연",
@@ -4644,8 +4623,8 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "공원 시설 파손 안전 점검 필요",
-            "summary": "서초구 공원 시설에서 파손 신고가 집중적으로 발생하여 이용자 안전 위협이 확인됨.",
-            "problem_diagnosis": "공원 내 놀이터 및 시설물의 파손으로 인한 안전 위험 증가",
+            "summary": "서초구 공원 시설 파손 신고가 집중되어 안전 위험이 제기됨.",
+            "problem_diagnosis": "공원 내 시설 파손으로 인한 이용 안전 위협 증가",
             "recommended_actions": [
               {
                 "action": "긴급 현장 점검",
@@ -4723,7 +4702,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 132.798
+      "duration_seconds": 161.496
     },
     {
       "scenario_id": "security_light_dark_walkway",
@@ -4733,7 +4712,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-191995ec9a18",
+      "run_id": "ci-run-9704f7cbf4dc",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -4859,10 +4838,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 140368.631,
+        "avg_llm_duration_ms": 171564.765,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          140368.631
+          171564.765
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -4918,7 +4897,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 140368.631,
+      "llm_duration_ms": 171564.765,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -4931,12 +4910,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "야간 보행 안전 개선",
-            "summary": "도봉구에서 가로등 및 보안등 고장으로 인한 야간 보행 안전 문제 발생.",
-            "problem_diagnosis": "반복적인 가로등/보안등 고장으로 인한 야간 보행 안전 위협 및 시민 불편 증가.",
+            "title": "야간 보행 안전 강화",
+            "summary": "도봉구에서 가로등/보안등 고장으로 인한 야간 보행 안전 문제 발생.",
+            "problem_diagnosis": "반복적인 조명 고장으로 인한 보행 안전 위협 및 시민 불만 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "정기 점검 및 유지보수 부족으로 인한 고장 발생.",
+                "hypothesis": "정기 점검 미흡으로 인한 고장 발생.",
                 "supporting_evidence_ids": [
                   "eval-security_light_dark_walkway-001",
                   "eval-security_light_dark_walkway-002"
@@ -4975,9 +4954,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "야간 보행 안전 개선",
-            "summary": "도봉구에서 가로등 및 보안등 고장으로 인한 야간 보행 안전 문제 발생.",
-            "problem_diagnosis": "반복적인 가로등/보안등 고장으로 인한 야간 보행 안전 위협 및 시민 불편 증가.",
+            "title": "야간 보행 안전 강화",
+            "summary": "도봉구에서 가로등/보안등 고장으로 인한 야간 보행 안전 문제 발생.",
+            "problem_diagnosis": "반복적인 조명 고장으로 인한 보행 안전 위협 및 시민 불만 증가.",
             "recommended_actions": [
               {
                 "action": "즉시 현장 점검",
@@ -5055,7 +5034,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 140.389
+      "duration_seconds": 171.594
     },
     {
       "scenario_id": "bus_route_headway_discomfort",
@@ -5065,7 +5044,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-695be506ac53",
+      "run_id": "ci-run-2c49cb947772",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -5172,10 +5151,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 148879.964,
+        "avg_llm_duration_ms": 168418.152,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          148879.964
+          168418.152
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -5188,7 +5167,7 @@
         "action_repair_success_count": 0,
         "invalid_action_type_count": 0,
         "invalid_action_types": [],
-        "repaired_action_type_count": 0,
+        "repaired_action_type_count": 1,
         "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "action_retry_attempt_count": 0,
@@ -5202,12 +5181,19 @@
           "invalid_evidence_ids": [],
           "empty_action_count": 0,
           "invalid_action_type_count": 0,
-          "repaired_action_type_count": 0,
+          "repaired_action_type_count": 1,
           "repaired_action_text_count": 0,
           "removed_action_due_to_action_type_count": 0,
           "invalid_action_types": [],
-          "action_type_repairs": [],
-          "repair_strategy": []
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "SERVICE_DESIGN"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
         },
         "action_retry_report": null,
         "failure_reasons": {},
@@ -5223,15 +5209,22 @@
         "invalid_evidence_ids": [],
         "empty_action_count": 0,
         "invalid_action_type_count": 0,
-        "repaired_action_type_count": 0,
+        "repaired_action_type_count": 1,
         "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "invalid_action_types": [],
-        "action_type_repairs": [],
-        "repair_strategy": []
+        "action_type_repairs": [
+          {
+            "from": "PUBLIC_GUIDANCE",
+            "to": "SERVICE_DESIGN"
+          }
+        ],
+        "repair_strategy": [
+          "repaired_allowed_action_type_by_preferred_keywords"
+        ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 148879.964,
+      "llm_duration_ms": 168418.152,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -5245,11 +5238,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "버스 노선 불편 개선",
-            "summary": "강서구 교통행정과에서 버스 배차 간격, 정류장 접근성, 노선 안내 부족으로 인한 민원 증가.",
-            "problem_diagnosis": "반복적인 버스 이용 불편 민원으로 인한 시민 불편 확인.",
+            "summary": "강서구 교통행정과에서 버스 배차 간격과 정류장 접근성 관련 민원이 집중적으로 제기되고 있습니다.",
+            "problem_diagnosis": "반복적인 버스 배차 간격 길음과 정류장 접근성 부족으로 인한 시민 불편이 확인됨.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 버스 노선 및 배차 시스템이 시민 요구에 부합하지 않음.",
+                "hypothesis": "현재 노선 설계 및 안내 시스템이 시민 요구에 부합하지 않음.",
                 "supporting_evidence_ids": [
                   "eval-bus_route_headway_discomfort-001",
                   "eval-bus_route_headway_discomfort-002"
@@ -5258,8 +5251,8 @@
             ],
             "recommended_actions": [
               {
-                "action": "버스 노선 및 배차 시스템 개선 검토",
-                "action_type": "SERVICE_DESIGN",
+                "action": "버스 노선 및 안내 시스템 개선 검토",
+                "action_type": "PUBLIC_GUIDANCE",
                 "supporting_evidence_ids": [
                   "eval-bus_route_headway_discomfort-001",
                   "eval-bus_route_headway_discomfort-002"
@@ -5267,7 +5260,8 @@
               }
             ],
             "uncertainty": [
-              "시스템 변경 후 효과 검증 필요"
+              "추가 데이터 수집 필요성",
+              "개선 효과 검증"
             ]
           },
           "repair_diff": {
@@ -5275,7 +5269,7 @@
             "invalid_action_types": [],
             "removed_actions": 0,
             "repaired_actions": 0,
-            "repaired_action_types": 0,
+            "repaired_action_types": 1,
             "repaired_action_texts": 0,
             "retry_used": false,
             "retry_success": false,
@@ -5289,14 +5283,14 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "버스 노선 불편 개선",
-            "summary": "강서구 교통행정과에서 버스 배차 간격, 정류장 접근성, 노선 안내 부족으로 인한 민원 증가.",
-            "problem_diagnosis": "반복적인 버스 이용 불편 민원으로 인한 시민 불편 확인.",
+            "summary": "강서구 교통행정과에서 버스 배차 간격과 정류장 접근성 관련 민원이 집중적으로 제기되고 있습니다.",
+            "problem_diagnosis": "반복적인 버스 배차 간격 길음과 정류장 접근성 부족으로 인한 시민 불편이 확인됨.",
             "recommended_actions": [
               {
-                "action": "버스 노선 및 배차 시스템 개선 검토",
-                "original_action_type": "SERVICE_DESIGN",
+                "action": "버스 노선 및 안내 시스템 개선 검토",
+                "original_action_type": "PUBLIC_GUIDANCE",
                 "final_action_type": "SERVICE_DESIGN",
-                "action_type_repaired": false,
+                "action_type_repaired": true,
                 "allowed_action_types": [
                   "SERVICE_DESIGN",
                   "PUBLIC_GUIDANCE",
@@ -5368,7 +5362,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 148.902
+      "duration_seconds": 168.441
     },
     {
       "scenario_id": "cctv_security_request",
@@ -5378,7 +5372,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-f2d4b7e8119a",
+      "run_id": "ci-run-af20b7065bb0",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -5505,10 +5499,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 130172.045,
+        "avg_llm_duration_ms": 154538.789,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          130172.045
+          154538.789
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -5564,7 +5558,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 130172.045,
+      "llm_duration_ms": 154538.789,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -5578,11 +5572,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "야간 안전 민원 증가",
-            "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
-            "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+            "summary": "구로구에서 야간 보행 불안 및 조명 문제 관련 CCTV 설치 및 방범 순찰 강화 민원이 증가.",
+            "problem_diagnosis": "야간 조명 부족과 방범 취약 구간으로 인한 시민 안전 우려 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "조명 시설 부족으로 인한 야간 보행 불안 증가",
+                "hypothesis": "조명 고장 및 사각지대가 야간 안전 위협 요인.",
                 "supporting_evidence_ids": [
                   "eval-cctv_security_request-001",
                   "eval-cctv_security_request-002"
@@ -5591,7 +5585,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "긴급 조명 점검",
+                "action": "긴급 현장 점검",
                 "action_type": "FIELD_INSPECTION",
                 "supporting_evidence_ids": [
                   "eval-cctv_security_request-001",
@@ -5600,7 +5594,7 @@
               }
             ],
             "uncertainty": [
-              "조명 문제 외 다른 요인 존재 가능성"
+              "조명 상태 정확한 평가 필요"
             ]
           },
           "repair_diff": {
@@ -5622,11 +5616,11 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "야간 안전 민원 증가",
-            "summary": "구로구에서 야간 보행 불안 및 방범 취약 관련 민원이 급증하여 안전 개선 요구 증가.",
-            "problem_diagnosis": "조명 부족과 방범 취약 구간으로 인한 시민 안전 불만 증가.",
+            "summary": "구로구에서 야간 보행 불안 및 조명 문제 관련 CCTV 설치 및 방범 순찰 강화 민원이 증가.",
+            "problem_diagnosis": "야간 조명 부족과 방범 취약 구간으로 인한 시민 안전 우려 증가.",
             "recommended_actions": [
               {
-                "action": "긴급 조명 점검",
+                "action": "긴급 현장 점검",
                 "original_action_type": "FIELD_INSPECTION",
                 "final_action_type": "FIELD_INSPECTION",
                 "action_type_repaired": false,
@@ -5701,7 +5695,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 130.192
+      "duration_seconds": 154.562
     },
     {
       "scenario_id": "smoking_enforcement_recurring",
@@ -5711,7 +5705,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-53c115bd83fc",
+      "run_id": "ci-run-9d5567baf901",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -5827,10 +5821,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 176541.897,
+        "avg_llm_duration_ms": 143622.615,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          176541.897
+          143622.615
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -5886,7 +5880,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 176541.897,
+      "llm_duration_ms": 143622.615,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -5900,11 +5894,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "금연구역 흡연 단속 및 안내 강화 필요",
-            "summary": "종로구 금연구역에서 흡연과 담배꽁초 문제로 인한 민원이 지속적으로 제기되고 있습니다.",
-            "problem_diagnosis": "금연구역 내 흡연 단속 부족과 안내 표지판 부족으로 인한 시민 불편이 반복적으로 발생하고 있습니다.",
+            "summary": "종로구 금연구역에서 흡연 단속 부족과 안내 부족으로 인한 민원 증가.",
+            "problem_diagnosis": "금연구역 내 흡연 단속 공백과 금연 안내 부족으로 인한 시민 불편 지속.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 안내 표지판 및 단속 활동이 부족하여 시민들의 불만이 지속되고 있습니다.",
+                "hypothesis": "금연 안내 표지판 부족으로 인한 시민 인식 부족",
                 "supporting_evidence_ids": [
                   "eval-smoking_enforcement_recurring-001",
                   "eval-smoking_enforcement_recurring-002"
@@ -5922,7 +5916,8 @@
               }
             ],
             "uncertainty": [
-              "단기적 효과 측정 필요"
+              "표지 설치 효과 지속성",
+              "시민 인식 변화 시간"
             ]
           },
           "repair_diff": {
@@ -5944,8 +5939,8 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "금연구역 흡연 단속 및 안내 강화 필요",
-            "summary": "종로구 금연구역에서 흡연과 담배꽁초 문제로 인한 민원이 지속적으로 제기되고 있습니다.",
-            "problem_diagnosis": "금연구역 내 흡연 단속 부족과 안내 표지판 부족으로 인한 시민 불편이 반복적으로 발생하고 있습니다.",
+            "summary": "종로구 금연구역에서 흡연 단속 부족과 안내 부족으로 인한 민원 증가.",
+            "problem_diagnosis": "금연구역 내 흡연 단속 공백과 금연 안내 부족으로 인한 시민 불편 지속.",
             "recommended_actions": [
               {
                 "action": "금연 안내 표지판 보강",
@@ -6024,7 +6019,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 176.562
+      "duration_seconds": 143.646
     },
     {
       "scenario_id": "illegal_banner_cleanup",
@@ -6034,7 +6029,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-7cccb570efab",
+      "run_id": "ci-run-2a26c7930e18",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -6141,10 +6136,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 153807.213,
+        "avg_llm_duration_ms": 160216.469,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          153807.213
+          160216.469
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -6204,7 +6199,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 153807.213,
+      "llm_duration_ms": 160216.469,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -6217,12 +6212,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "불법 현수막 보행 안전 및 미관 개선",
-            "summary": "송파구에서 불법 현수막으로 인한 보행 안전 위협과 도시 미관 저해 민원이 집중적으로 제기됨.",
-            "problem_diagnosis": "보행로 주변 불법 현수막으로 인한 안전 위협과 도시 미관 저해가 반복적으로 발생하고 있음.",
+            "title": "불법 현수막 단속 및 유지 관리 강화",
+            "summary": "송파구에서 불법 현수막 관련 민원이 집중적으로 제기되어 보행 안전과 도시 미관 저해 문제 발생.",
+            "problem_diagnosis": "보행로 시야 방해 및 도시 미관 저해로 인한 반복적 민원 발생",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "단속 인력 부족으로 인한 반복적 불법 현수막 설치",
+                "hypothesis": "단속 인력 부족으로 인한 불법 현수막 지속적 발생",
                 "supporting_evidence_ids": [
                   "eval-illegal_banner_cleanup-001",
                   "eval-illegal_banner_cleanup-002"
@@ -6241,7 +6236,7 @@
             ],
             "uncertainty": [
               "단속 효과 지속성",
-              "민원 재발 가능성"
+              "인력 부족 문제"
             ]
           },
           "repair_diff": {
@@ -6262,9 +6257,9 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "불법 현수막 보행 안전 및 미관 개선",
-            "summary": "송파구에서 불법 현수막으로 인한 보행 안전 위협과 도시 미관 저해 민원이 집중적으로 제기됨.",
-            "problem_diagnosis": "보행로 주변 불법 현수막으로 인한 안전 위협과 도시 미관 저해가 반복적으로 발생하고 있음.",
+            "title": "불법 현수막 단속 및 유지 관리 강화",
+            "summary": "송파구에서 불법 현수막 관련 민원이 집중적으로 제기되어 보행 안전과 도시 미관 저해 문제 발생.",
+            "problem_diagnosis": "보행로 시야 방해 및 도시 미관 저해로 인한 반복적 민원 발생",
             "recommended_actions": [
               {
                 "action": "불법 현수막 정비 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
@@ -6343,7 +6338,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 153.83
+      "duration_seconds": 160.241
     },
     {
       "scenario_id": "pet_waste_leash_complaints",
@@ -6353,7 +6348,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-171b908ede54",
+      "run_id": "ci-run-8d2b5e84fbb7",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -6451,12 +6446,10 @@
             "ENFORCEMENT"
           ],
           "aspects": [
-            "반려동물 관리 부족",
-            "위생 문제",
-            "안전 우려",
             "반려동물 관리",
             "배설물 방치",
-            "목줄 미착용"
+            "목줄 미착용",
+            "생활 안전/위생"
           ]
         }
       ],
@@ -6480,10 +6473,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 187400.889,
+        "avg_llm_duration_ms": 162602.595,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          187400.889
+          162602.595
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -6497,7 +6490,7 @@
         "invalid_action_type_count": 0,
         "invalid_action_types": [],
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "action_retry_attempt_count": 0,
         "action_retry_success_count": 0,
@@ -6511,13 +6504,11 @@
           "empty_action_count": 0,
           "invalid_action_type_count": 0,
           "repaired_action_type_count": 0,
-          "repaired_action_text_count": 1,
+          "repaired_action_text_count": 0,
           "removed_action_due_to_action_type_count": 0,
           "invalid_action_types": [],
           "action_type_repairs": [],
-          "repair_strategy": [
-            "expanded_short_action_text_from_rubric"
-          ]
+          "repair_strategy": []
         },
         "action_retry_report": null,
         "failure_reasons": {},
@@ -6534,16 +6525,14 @@
         "empty_action_count": 0,
         "invalid_action_type_count": 0,
         "repaired_action_type_count": 0,
-        "repaired_action_text_count": 1,
+        "repaired_action_text_count": 0,
         "removed_action_due_to_action_type_count": 0,
         "invalid_action_types": [],
         "action_type_repairs": [],
-        "repair_strategy": [
-          "expanded_short_action_text_from_rubric"
-        ]
+        "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 187400.889,
+      "llm_duration_ms": 162602.595,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -6557,11 +6546,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "노원구 반려동물 관리 민원 강화",
-            "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
-            "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+            "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중 발생 중.",
+            "problem_diagnosis": "반려동물 관리 부족으로 인한 위생 문제와 안전 위협 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재의 단속 및 안내 시스템이 미흡하여 민원이 지속되고 있다.",
+                "hypothesis": "현행 단속 및 안내 시스템 부족으로 인한 민원 지속.",
                 "supporting_evidence_ids": [
                   "eval-pet_waste_leash_complaints-001",
                   "eval-pet_waste_leash_complaints-002"
@@ -6570,7 +6559,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "단속 강화 실시",
+                "action": "단속 강화 및 안내 보강",
                 "action_type": "ENFORCEMENT",
                 "supporting_evidence_ids": [
                   "eval-pet_waste_leash_complaints-001",
@@ -6580,7 +6569,7 @@
             ],
             "uncertainty": [
               "단속 효과의 지속성",
-              "시민 인식 변화"
+              "자원 배분의 효율성"
             ]
           },
           "repair_diff": {
@@ -6589,7 +6578,7 @@
             "removed_actions": 0,
             "repaired_actions": 0,
             "repaired_action_types": 0,
-            "repaired_action_texts": 1,
+            "repaired_action_texts": 0,
             "retry_used": false,
             "retry_success": false,
             "retry_failure_reason": null
@@ -6602,11 +6591,11 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "노원구 반려동물 관리 민원 강화",
-            "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중적으로 발생하고 있습니다.",
-            "problem_diagnosis": "공원 내 반려동물 관리 부족으로 인한 위생 문제와 안전 우려가 시민들로부터 제기되고 있습니다.",
+            "summary": "노원구 공원 산책로에서 반려동물 배설물 및 목줄 관련 민원이 집중 발생 중.",
+            "problem_diagnosis": "반려동물 관리 부족으로 인한 위생 문제와 안전 위협 증가.",
             "recommended_actions": [
               {
-                "action": "반려동물 배설물/목줄 민원 집중 시간대 단속 동선을 조정하고 현장 안내를 병행합니다.",
+                "action": "단속 강화 및 안내 보강",
                 "original_action_type": "ENFORCEMENT",
                 "final_action_type": "ENFORCEMENT",
                 "action_type_repaired": false,
@@ -6681,7 +6670,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 187.423
+      "duration_seconds": 162.627
     },
     {
       "scenario_id": "licensing_docs_guidance_confusion",
@@ -6691,7 +6680,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-3c0c15e9d117",
+      "run_id": "ci-run-327e48394b17",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -6799,10 +6788,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 156973.874,
+        "avg_llm_duration_ms": 161790.13,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          156973.874
+          161790.13
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -6858,7 +6847,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 156973.874,
+      "llm_duration_ms": 161790.13,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -6873,10 +6862,10 @@
           "llm_draft_summary": {
             "title": "인허가 기준 안내 명확화 필요",
             "summary": "중랑구 민원여권과에서 인허가 기준과 제출 서류 안내 혼선으로 인한 민원 증가.",
-            "problem_diagnosis": "신청자들이 인허가 기준과 필요 서류에 대한 명확한 안내 부족으로 혼란을 겪고 있음.",
+            "problem_diagnosis": "신청 절차와 안내 부족으로 시민 혼란 발생, 반복 문의 증가.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 제공되는 안내 자료가 불명확하거나 부족하여 민원인의 이해를 저해함.",
+                "hypothesis": "현재 제공되는 안내 자료가 불명확하여 시민 이해 어려움.",
                 "supporting_evidence_ids": [
                   "eval-licensing_docs_guidance_confusion-001",
                   "eval-licensing_docs_guidance_confusion-002"
@@ -6917,7 +6906,7 @@
             "avg_actionability_score": 1.0,
             "title": "인허가 기준 안내 명확화 필요",
             "summary": "중랑구 민원여권과에서 인허가 기준과 제출 서류 안내 혼선으로 인한 민원 증가.",
-            "problem_diagnosis": "신청자들이 인허가 기준과 필요 서류에 대한 명확한 안내 부족으로 혼란을 겪고 있음.",
+            "problem_diagnosis": "신청 절차와 안내 부족으로 시민 혼란 발생, 반복 문의 증가.",
             "recommended_actions": [
               {
                 "action": "FAQ/안내 페이지 보강",
@@ -6995,7 +6984,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 156.994
+      "duration_seconds": 161.811
     },
     {
       "scenario_id": "accessibility_vulnerable_groups",
@@ -7005,7 +6994,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-0ed7d9ef6931",
+      "run_id": "ci-run-2e00aab3fb2b",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -7113,10 +7102,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 139090.205,
+        "avg_llm_duration_ms": 143077.515,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          139090.205
+          143077.515
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -7172,7 +7161,7 @@
         "repair_strategy": []
       },
       "action_retry_report": null,
-      "llm_duration_ms": 139090.205,
+      "llm_duration_ms": 143077.515,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -7185,12 +7174,12 @@
           "fallback_used": false,
           "fallback_reason": null,
           "llm_draft_summary": {
-            "title": "접근성 개선을 위한 온라인 서비스 안내 강화",
-            "summary": "은평구 고령자 및 장애인의 온라인 민원 신청 절차 이해 어려움으로 인한 민원 증가.",
-            "problem_diagnosis": "고령자와 장애인을 위한 온라인 서비스 접근성 및 안내 부족으로 인한 불편 반복.",
+            "title": "접근성 개선을 위한 안내 강화",
+            "summary": "은평구에서 고령자, 장애인, 외국인 등 취약계층의 온라인 및 현장 신청 절차 접근성 문제로 인한 민원이 반복적으로 발생.",
+            "problem_diagnosis": "취약계층의 신청 절차 이해 어려움과 안내 부족으로 인한 불편 지속.",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 제공되는 안내 자료가 다양한 사용자 그룹의 요구를 충족하지 못함.",
+                "hypothesis": "현재 제공되는 안내 자료가 다양한 사용자 그룹의 요구를 충분히 충족하지 못함.",
                 "supporting_evidence_ids": [
                   "eval-accessibility_vulnerable_groups-001",
                   "eval-accessibility_vulnerable_groups-002"
@@ -7199,7 +7188,7 @@
             ],
             "recommended_actions": [
               {
-                "action": "고령자 및 장애인 친화적 안내 페이지 보강",
+                "action": "온라인 안내 페이지 보강",
                 "action_type": "PUBLIC_GUIDANCE",
                 "supporting_evidence_ids": [
                   "eval-accessibility_vulnerable_groups-001",
@@ -7208,7 +7197,7 @@
               }
             ],
             "uncertainty": [
-              "초기 안내 효과 모니터링 필요"
+              "가이드라인 적용 효과의 일관성 확인 필요"
             ]
           },
           "repair_diff": {
@@ -7229,12 +7218,12 @@
             "confidence": 0.8458,
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
-            "title": "접근성 개선을 위한 온라인 서비스 안내 강화",
-            "summary": "은평구 고령자 및 장애인의 온라인 민원 신청 절차 이해 어려움으로 인한 민원 증가.",
-            "problem_diagnosis": "고령자와 장애인을 위한 온라인 서비스 접근성 및 안내 부족으로 인한 불편 반복.",
+            "title": "접근성 개선을 위한 안내 강화",
+            "summary": "은평구에서 고령자, 장애인, 외국인 등 취약계층의 온라인 및 현장 신청 절차 접근성 문제로 인한 민원이 반복적으로 발생.",
+            "problem_diagnosis": "취약계층의 신청 절차 이해 어려움과 안내 부족으로 인한 불편 지속.",
             "recommended_actions": [
               {
-                "action": "고령자 및 장애인 친화적 안내 페이지 보강",
+                "action": "온라인 안내 페이지 보강",
                 "original_action_type": "PUBLIC_GUIDANCE",
                 "final_action_type": "PUBLIC_GUIDANCE",
                 "action_type_repaired": false,
@@ -7308,7 +7297,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 139.118
+      "duration_seconds": 143.098
     },
     {
       "scenario_id": "school_zone_commute_safety",
@@ -7318,7 +7307,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-63621ceaf2b8",
+      "run_id": "ci-run-490a0c266722",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -7398,8 +7387,9 @@
             "ENFORCEMENT"
           ],
           "aspects": [
-            "현장 안전",
+            "현장 안전 위협",
             "단속 공백",
+            "현장 안전",
             "통학 안전",
             "등하교 시간 집중",
             "교통 위험"
@@ -7426,10 +7416,10 @@
         "fallback_count": 0,
         "fallback_due_to_empty_actions_count": 0,
         "discarded_count": 0,
-        "avg_llm_duration_ms": 170642.75,
+        "avg_llm_duration_ms": 150210.595,
         "avg_retry_duration_ms": 0.0,
         "llm_durations_ms": [
-          170642.75
+          150210.595
         ],
         "retry_durations_ms": [],
         "json_parse_failure_count": 0,
@@ -7489,7 +7479,7 @@
         ]
       },
       "action_retry_report": null,
-      "llm_duration_ms": 170642.75,
+      "llm_duration_ms": 150210.595,
       "retry_duration_ms": 0.0,
       "insight_samples": [
         {
@@ -7503,11 +7493,11 @@
           "fallback_reason": null,
           "llm_draft_summary": {
             "title": "어린이보호구역 통학 안전 강화 필요",
-            "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원 증가.",
+            "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원이 증가하고 있습니다.",
             "problem_diagnosis": "등하교 시간대 단속 부족과 안전 안내 부족으로 인한 통학 안전 위협",
             "root_cause_hypotheses": [
               {
-                "hypothesis": "현재 단속 인력 및 시스템 부족으로 인해 통학 안전 위험 지속",
+                "hypothesis": "현재 단속 인력과 시스템이 통학 시간대 어린이보호구역의 안전 위협에 충분히 대응하지 못하고 있다.",
                 "supporting_evidence_ids": [
                   "eval-school_zone_commute_safety-001",
                   "eval-school_zone_commute_safety-002"
@@ -7525,8 +7515,8 @@
               }
             ],
             "uncertainty": [
-              "단속 효과 지속성",
-              "인력 배치 효율성"
+              "단속 효과의 지속성",
+              "인력 및 장비 확보 가능성"
             ]
           },
           "repair_diff": {
@@ -7548,7 +7538,7 @@
             "grounding_score": 1.0,
             "avg_actionability_score": 1.0,
             "title": "어린이보호구역 통학 안전 강화 필요",
-            "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원 증가.",
+            "summary": "양천구 어린이보호구역에서 통학 시간대 불법 주정차와 과속으로 인한 안전 위험 민원이 증가하고 있습니다.",
             "problem_diagnosis": "등하교 시간대 단속 부족과 안전 안내 부족으로 인한 통학 안전 위협",
             "recommended_actions": [
               {
@@ -7627,7 +7617,7 @@
         "failure_codes": [],
         "warning_codes": []
       },
-      "duration_seconds": 170.666
+      "duration_seconds": 150.234
     },
     {
       "scenario_id": "low_count_negative",
@@ -7637,7 +7627,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 2,
       "event_count": 2,
-      "run_id": "ci-run-d2327d5b7bdf",
+      "run_id": "ci-run-d0b2bcb2dd41",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,
@@ -7752,7 +7742,7 @@
       "real_event_count": 0,
       "synthetic_event_count": 5,
       "event_count": 5,
-      "run_id": "ci-run-51ea5606b5c6",
+      "run_id": "ci-run-b8cfd13e6a5c",
       "passed": true,
       "issue_detection_passed": true,
       "insight_passed": true,

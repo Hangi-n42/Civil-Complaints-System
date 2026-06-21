@@ -24,7 +24,7 @@
 | PublicAgencyInsight | action_evidence_coverage_rate | 0.920 |
 | PublicAgencyInsight | avg_grounding_score | 0.920 |
 | PublicAgencyInsight | avg_confidence | 0.778 |
-| PublicAgencyInsight | avg_actionability_score | 0.920 |
+| PublicAgencyInsight | avg_actionability_score | 0.912 |
 | PublicAgencyInsight | pii_leak_rate | 0.000 |
 | PublicAgencyInsight | forbidden_ai_ops_term_rate | 0.000 |
 | PublicAgencyInsight | human_review_requirement_pass_rate | 1.000 |
@@ -36,7 +36,7 @@
 | LLM | invalid_evidence_id_count | 0 |
 | LLM | invalid_action_type_count | 1 |
 | LLM | repaired_action_type_count | 3 |
-| LLM | repaired_action_text_count | 10 |
+| LLM | repaired_action_text_count | 7 |
 | LLM | removed_action_due_to_action_type_count | 0 |
 | LLM | action_repair_success_count | 0 |
 | LLM | human_review_postprocess_count | 16 |
@@ -44,14 +44,14 @@
 | LLM | action_retry_success_count | 0 |
 | LLM | json_parse_failure_count | 0 |
 | LLM | schema_validation_failure_count | 0 |
-| LLM | avg_llm_duration_ms | 146977.9 |
+| LLM | avg_llm_duration_ms | 172597.0 |
 | LLM | avg_retry_duration_ms | 0.0 |
-| LLM | p95_llm_duration_ms | 176541.9 |
-| LLM | total_duration_seconds | 3381.0 |
+| LLM | p95_llm_duration_ms | 208595.6 |
+| LLM | total_duration_seconds | 3970.8 |
 
 ## Local LLM 안정성 추적
 
-- Slowest scenarios: `pet_waste_leash_complaints, smoking_enforcement_recurring, school_zone_commute_safety, construction_noise_time_pattern, illegal_dumping_recurring`
+- Slowest scenarios: `construction_noise_time_pattern, flood_drainage_risk, sinkhole_hotspot, illegal_dumping_recurring, repeat_reopen_growth`
 - Timeout scenarios: `-`
 - Fallback scenarios: `-`
 

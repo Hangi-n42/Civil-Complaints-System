@@ -1,0 +1,1030 @@
+{
+  "total_selected": 50,
+  "real_text_count": 50,
+  "synthetic_count": 0,
+  "source_files": [
+    "data\\processed\\processed_consulting_data.json"
+  ],
+  "category_distribution": {
+    "safety_facility": 10,
+    "enforcement_order": 10,
+    "guidance_process": 10,
+    "service_accessibility": 8,
+    "delay_repeat_communication": 7,
+    "mixed_negative": 5
+  },
+  "bucket_reports": [
+    {
+      "bucket": "safety_facility",
+      "label": "안전/시설",
+      "target_count": 10,
+      "selected_count": 10,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    },
+    {
+      "bucket": "enforcement_order",
+      "label": "단속/생활질서",
+      "target_count": 10,
+      "selected_count": 10,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    },
+    {
+      "bucket": "guidance_process",
+      "label": "안내/절차/서류",
+      "target_count": 10,
+      "selected_count": 10,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    },
+    {
+      "bucket": "service_accessibility",
+      "label": "서비스/앱/접근성",
+      "target_count": 8,
+      "selected_count": 8,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    },
+    {
+      "bucket": "delay_repeat_communication",
+      "label": "처리 지연/재민원/소통",
+      "target_count": 7,
+      "selected_count": 7,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    },
+    {
+      "bucket": "mixed_negative",
+      "label": "기타/혼합/negative",
+      "target_count": 5,
+      "selected_count": 5,
+      "source_files": [
+        "data\\processed\\processed_consulting_data.json"
+      ]
+    }
+  ],
+  "pii_masking_applied": true,
+  "sampling_notes": [
+    "body와 masked_text에는 mask_pii 결과만 저장했습니다.",
+    "지역/부서/received_at은 관제 replay 평가를 위해 bucket별로 보강했습니다.",
+    "holdout은 정답 label 기반 성능 평가가 아니라 robustness/품질 점검용입니다."
+  ],
+  "source_records": [
+    {
+      "holdout_id": "holdout-safety_facility-001",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001212",
+      "keyword_hits": [
+        "도로",
+        "하수",
+        "단속",
+        "무단투기",
+        "쓰레기",
+        "흡연",
+        "신청",
+        "문의",
+        "외국인",
+        "불편"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-002",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001282",
+      "keyword_hits": [
+        "도로",
+        "공원",
+        "쓰레기",
+        "흡연",
+        "신청",
+        "문의",
+        "허가",
+        "외국인",
+        "불편",
+        "처리"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-003",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001163",
+      "keyword_hits": [
+        "도로",
+        "주차",
+        "신청",
+        "방법",
+        "문의",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-004",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001178",
+      "keyword_hits": [
+        "공원",
+        "신청",
+        "안내",
+        "문의",
+        "허가",
+        "지원",
+        "대여",
+        "불편",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-005",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001262",
+      "keyword_hits": [
+        "공원",
+        "주차",
+        "소음",
+        "신청",
+        "방법",
+        "안내",
+        "문의",
+        "접근성",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-006",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001286",
+      "keyword_hits": [
+        "도로",
+        "공원",
+        "소음",
+        "기준",
+        "안내",
+        "문의",
+        "답변",
+        "연락",
+        "진행",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-007",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001399",
+      "keyword_hits": [
+        "도로",
+        "불법",
+        "단속",
+        "신청",
+        "안내",
+        "허가",
+        "지원",
+        "대여",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-008",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700723",
+      "keyword_hits": [
+        "도로",
+        "기준",
+        "자격",
+        "안내",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-009",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001118",
+      "keyword_hits": [
+        "공원",
+        "단속",
+        "쓰레기",
+        "현수막",
+        "신청",
+        "안내",
+        "문의",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-safety_facility-010",
+      "bucket": "safety_facility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001174",
+      "keyword_hits": [
+        "도로",
+        "공원",
+        "신청",
+        "절차",
+        "기준",
+        "안내",
+        "문의",
+        "허가",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-011",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001347",
+      "keyword_hits": [
+        "불법",
+        "신청",
+        "안내",
+        "허가",
+        "접근성",
+        "장애인",
+        "불편",
+        "답변",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-012",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001357",
+      "keyword_hits": [
+        "불법",
+        "주차",
+        "신청",
+        "안내",
+        "허가",
+        "지원",
+        "대여",
+        "장애인",
+        "불편",
+        "답변"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-013",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001264",
+      "keyword_hits": [
+        "공원",
+        "주차",
+        "신청",
+        "절차",
+        "문의",
+        "지원",
+        "처리",
+        "답변",
+        "연락",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-014",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001266",
+      "keyword_hits": [
+        "공원",
+        "소음",
+        "신청",
+        "안내",
+        "문의",
+        "불편",
+        "답변",
+        "불만",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-015",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001285",
+      "keyword_hits": [
+        "공원",
+        "주차",
+        "신청",
+        "기준",
+        "문의",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-016",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001296",
+      "keyword_hits": [
+        "단속",
+        "신청",
+        "문의",
+        "허가",
+        "대여",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-017",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001332",
+      "keyword_hits": [
+        "도로",
+        "주차",
+        "단속",
+        "신청",
+        "방법",
+        "문의",
+        "앱",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-018",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001346",
+      "keyword_hits": [
+        "도로",
+        "주차",
+        "방법",
+        "안내",
+        "허가",
+        "지원",
+        "장애인",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-019",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001349",
+      "keyword_hits": [
+        "주정차",
+        "단속",
+        "신청",
+        "안내",
+        "허가",
+        "지원",
+        "대여",
+        "불편",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-enforcement_order-020",
+      "bucket": "enforcement_order",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001391",
+      "keyword_hits": [
+        "불법",
+        "주정차",
+        "신청",
+        "안내",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-021",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700464",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "자격",
+        "안내",
+        "문의",
+        "지원",
+        "로그인",
+        "불편",
+        "처리",
+        "답변"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-022",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701058",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "기준",
+        "자격",
+        "안내",
+        "지원",
+        "장애인",
+        "처리",
+        "답변",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-023",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701089",
+      "keyword_hits": [
+        "신청",
+        "방법",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "지연",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-024",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701114",
+      "keyword_hits": [
+        "신청",
+        "방법",
+        "기준",
+        "자격",
+        "안내",
+        "문의",
+        "로그인",
+        "처리",
+        "연락",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-025",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701135",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "방법",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "로그인",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-026",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701170",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "자격",
+        "안내",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-027",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700406",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "자격",
+        "안내",
+        "지원",
+        "로그인",
+        "불편",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-028",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700438",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "방법",
+        "자격",
+        "안내",
+        "문의",
+        "지원",
+        "처리",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-029",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700450",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "방법",
+        "기준",
+        "자격",
+        "안내",
+        "문의",
+        "지원",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-guidance_process-030",
+      "bucket": "guidance_process",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700495",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "방법",
+        "자격",
+        "안내",
+        "문의",
+        "지원",
+        "처리",
+        "연락",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-031",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700710",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "방법",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "로그인",
+        "처리",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-032",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700795",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "방법",
+        "자격",
+        "안내",
+        "문의",
+        "앱",
+        "로그인",
+        "처리",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-033",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700940",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "자격",
+        "안내",
+        "문의",
+        "외국인",
+        "처리",
+        "연락",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-034",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001308",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "방법",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "장애인",
+        "답변",
+        "반복"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-035",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701065",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "자격",
+        "안내",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-036",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701126",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "대여",
+        "처리",
+        "진행",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-037",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700051",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "자격",
+        "안내",
+        "지원",
+        "로그인",
+        "지연",
+        "완료",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-service_accessibility-038",
+      "bucket": "service_accessibility",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001128",
+      "keyword_hits": [
+        "신청",
+        "방법",
+        "문의",
+        "지원",
+        "예약",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-039",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700817",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "방법",
+        "안내",
+        "문의",
+        "지원",
+        "처리",
+        "답변",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-040",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "701267",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "자격",
+        "안내",
+        "문의",
+        "처리",
+        "연락",
+        "완료",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-041",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700486",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "방법",
+        "기준",
+        "안내",
+        "문의",
+        "지원",
+        "처리",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-042",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700757",
+      "keyword_hits": [
+        "신청",
+        "서류",
+        "절차",
+        "방법",
+        "자격",
+        "안내",
+        "문의",
+        "처리",
+        "진행",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-043",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700860",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "안내",
+        "문의",
+        "지원",
+        "지연",
+        "처리",
+        "답변",
+        "진행",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-044",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "700930",
+      "keyword_hits": [
+        "신청",
+        "안내",
+        "문의",
+        "지원",
+        "처리",
+        "답변",
+        "연락",
+        "진행",
+        "완료",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-delay_repeat_communication-045",
+      "bucket": "delay_repeat_communication",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001136",
+      "keyword_hits": [
+        "신청",
+        "절차",
+        "문의",
+        "지원",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "진행",
+        "완료"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-mixed_negative-046",
+      "bucket": "mixed_negative",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001193",
+      "keyword_hits": [
+        "도로",
+        "가로등",
+        "공원",
+        "신청",
+        "안내",
+        "문의",
+        "처리",
+        "답변",
+        "연락",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-mixed_negative-047",
+      "bucket": "mixed_negative",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001196",
+      "keyword_hits": [
+        "도로",
+        "공원",
+        "놀이터",
+        "신청",
+        "안내",
+        "문의",
+        "불편",
+        "답변",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-mixed_negative-048",
+      "bucket": "mixed_negative",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001256",
+      "keyword_hits": [
+        "침수",
+        "하수",
+        "신청",
+        "방법",
+        "문의",
+        "지원",
+        "불편",
+        "답변",
+        "반복",
+        "연락"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-mixed_negative-049",
+      "bucket": "mixed_negative",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001257",
+      "keyword_hits": [
+        "도로",
+        "공원",
+        "신청",
+        "절차",
+        "불편",
+        "처리",
+        "답변",
+        "연락",
+        "진행",
+        "확인"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    },
+    {
+      "holdout_id": "holdout-mixed_negative-050",
+      "bucket": "mixed_negative",
+      "source_file": "data\\processed\\processed_consulting_data.json",
+      "source_id": "001294",
+      "keyword_hits": [
+        "공원",
+        "놀이터",
+        "신청",
+        "절차",
+        "방법",
+        "문의",
+        "지원",
+        "답변",
+        "연락",
+        "진행"
+      ],
+      "original_received_at": "[REDACTED:ACCOUNT]"
+    }
+  ]
+}
