@@ -20,6 +20,7 @@ def test_normalize_aihub_record_separates_structuring_text_and_search_text():
     assert normalized["text"] == "도로 파손\n도로에 포트홀이 있습니다."
     assert normalized["raw_text"] == normalized["text"]
     assert normalized["search_text"] == "도로 파손\n도로에 포트홀이 있습니다.\n담당 부서에 전달했습니다."
+    assert normalized["consultant_answer"] == "담당 부서에 전달했습니다."
 
 
 @pytest.mark.asyncio
@@ -31,6 +32,7 @@ async def test_process_masks_search_text_with_structuring_text():
                 "case_id": "CASE-PII-SEARCH",
                 "text": "연락처는 010-1111-2222 입니다.",
                 "search_text": "연락처는 010-1111-2222 입니다.\n담당자 이메일 test@example.com",
+                "consultant_answer": "담당자 이메일 test@example.com으로 안내했습니다.",
             }
         ]
     )
@@ -39,8 +41,10 @@ async def test_process_masks_search_text_with_structuring_text():
     assert "010-1111-2222" not in row["text"]
     assert "010-1111-2222" not in row["search_text"]
     assert "test@example.com" not in row["search_text"]
+    assert "test@example.com" not in row["consultant_answer"]
     assert "[전화번호]" in row["search_text"]
     assert "[이메일]" in row["search_text"]
+    assert "[이메일]" in row["consultant_answer"]
 
 
 @pytest.mark.asyncio

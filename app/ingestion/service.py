@@ -19,7 +19,11 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from app.core.logging import pipeline_logger
 from app.core.exceptions import IngestionError
-from app.structuring.preprocessing import civil_text_with_answer, to_structuring_record
+from app.structuring.preprocessing import (
+    civil_text_with_answer,
+    process_raw_record,
+    to_structuring_record,
+)
 
 # ── AI Hub 기관 유형 상수 ──────────────────────────────────────────────────
 _SOURCE_TYPE_CULTURAL = "cultural"   # 국립아시아문화전당 (고객/상담원 대화형)
@@ -449,6 +453,10 @@ class IngestionService:
         structuring_record = to_structuring_record(record)
         content = self._clean_aihub_markup(str(structuring_record.get("text") or "").strip())
         search_content = self._clean_aihub_markup(civil_text_with_answer(record).strip())
+        processed_record = process_raw_record(record)
+        consultant_answer = self._clean_aihub_markup(
+            str(processed_record.get("consultant_answer") or "").strip()
+        )
 
         def _to_int(v: Any) -> Optional[int]:
             try:
@@ -466,6 +474,7 @@ class IngestionService:
             "raw_text": content,
             "text": content,
             "search_text": search_content or content,
+            "consultant_answer": consultant_answer,
             "metadata": {
                 "source_type": source_type,
                 "source_file": str(source_file),
@@ -568,6 +577,8 @@ class IngestionService:
                 cleaned = {**doc, "text": await self.clean_text(doc.get("text", ""))}
                 if "search_text" in doc:
                     cleaned["search_text"] = await self.clean_text(doc.get("search_text", ""))
+                if "consultant_answer" in doc:
+                    cleaned["consultant_answer"] = await self.clean_text(doc.get("consultant_answer", ""))
                 return cleaned
 
             async def _mask_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -577,9 +588,16 @@ class IngestionService:
                     if "search_text" in doc
                     else None
                 )
+                answer_decision = (
+                    self._sanitize_pii(doc.get("consultant_answer", ""), pii_policy=pii_policy)
+                    if "consultant_answer" in doc
+                    else None
+                )
                 decisions = [text_decision]
                 if search_decision is not None:
                     decisions.append(search_decision)
+                if answer_decision is not None:
+                    decisions.append(answer_decision)
 
                 unsafe = [
                     decision
@@ -625,6 +643,8 @@ class IngestionService:
                     }
                     if "search_text" in doc:
                         masked["search_text"] = ""
+                    if "consultant_answer" in doc:
+                        masked["consultant_answer"] = ""
                     return masked
 
                 masked = {
@@ -638,6 +658,8 @@ class IngestionService:
                 }
                 if "search_text" in doc and search_decision is not None:
                     masked["search_text"] = search_decision.sanitized_text or ""
+                if "consultant_answer" in doc and answer_decision is not None:
+                    masked["consultant_answer"] = answer_decision.sanitized_text or ""
                 metadata = dict(masked.get("metadata") or {})
                 metadata.update(
                     {

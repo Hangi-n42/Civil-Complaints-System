@@ -161,6 +161,7 @@ def _build_append_record(
             "consulting_date": str(raw.get("consulting_date") or "").strip(),
         }
     )
+    consultant_answer = str(raw.get("consultant_answer") or normalized.get("consultant_answer") or "").strip()
 
     # consulting_date/consulting_content/consulting_category는 출력하지 않는다.
     # build_index.py가 normalize_aihub_record를 다시 호출하지 않게 하기 위한 안전장치다.
@@ -178,6 +179,7 @@ def _build_append_record(
         "raw_text": normalized.get("raw_text") or "",
         "text": normalized.get("text") or normalized.get("raw_text") or "",
         "search_text": normalized.get("search_text") or normalized.get("text") or "",
+        "consultant_answer": consultant_answer,
         "metadata": metadata,
     }
 

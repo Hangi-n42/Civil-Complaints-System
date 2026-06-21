@@ -61,10 +61,11 @@ def test_build_api_case_record_preserves_be1_search_signals():
     assert record["metadata"]["structured_by"] == "constrained"
 
 
-def test_build_api_case_record_uses_answer_included_search_text_for_index_text():
+def test_build_api_case_record_does_not_infer_answer_from_search_text_suffix():
     normalized = {
         "submitted_at": "2026-06-10T09:00:00+09:00",
         "region": "부산광역시",
+        "raw_text": "도로 파손 신고\n포트홀이 있습니다.",
         "search_text": "도로 파손 신고\n포트홀이 있습니다.\n담당 부서에 전달했습니다.",
     }
     structured = {
@@ -91,6 +92,37 @@ def test_build_api_case_record_uses_answer_included_search_text_for_index_text()
     }
     assert record["metadata"]["index_text_source"] == "search_text_with_answer"
     assert record["metadata"]["empty_structured_text_fallback"] is False
+    assert record["answer"] == ""
+    assert "answer" not in record["metadata"]
+
+
+def test_build_api_case_record_preserves_explicit_processed_answer():
+    normalized = {
+        "submitted_at": "2026-06-10T09:00:00+09:00",
+        "region": "부산광역시",
+        "raw_text": "도로 파손 신고\n포트홀이 있습니다.",
+        "search_text": "도로 파손 신고\n포트홀이 있습니다.\n담당 부서에 전달했습니다.",
+        "consultant_answer": "담당 부서에 전달했습니다.",
+    }
+    structured = {
+        "case_id": "CASE-SEARCH-TEXT-ANSWER-001",
+        "source": "aihub",
+        "created_at": "2026-06-10T09:00:00+09:00",
+        "category": "도로",
+        "region": "부산광역시",
+        "structured_by": "constrained",
+        "validation": {"is_valid": True, "errors": []},
+        "observation": {"text": "도로에 포트홀이 있습니다.", "confidence": 0.9},
+        "result": {"text": "차량 통행에 위험이 있습니다.", "confidence": 0.8},
+        "request": {"request": "보수를 요청합니다.", "confidence": 0.9},
+        "context": {"text": "", "confidence": 0.0},
+        "entities": [],
+    }
+
+    record = _build_api_case_record(normalized, structured)
+
+    assert record["answer"] == "담당 부서에 전달했습니다."
+    assert record["metadata"]["answer"] == "담당 부서에 전달했습니다."
 
 
 def test_build_api_case_record_preserves_policy_qna_identity():
@@ -99,6 +131,7 @@ def test_build_api_case_record_preserves_policy_qna_identity():
         "submitted_at": "2019-01-02T00:00:00+09:00",
         "region": "전국",
         "search_text": "제한차량 운행허가 신청 방법\n온라인 신청 방법을 안내합니다.",
+        "consultant_answer": "온라인 신청 방법을 안내합니다.",
         "metadata": {
             "content_type": "policy_qna",
             "document_type": "policy_qna",
@@ -132,6 +165,8 @@ def test_build_api_case_record_preserves_policy_qna_identity():
     assert record["metadata"]["document_type"] == "policy_qna"
     assert record["metadata"]["source_id"] == "175436"
     assert record["metadata"]["adapter"] == "prepare_processed_append_inputs"
+    assert record["answer"] == "온라인 신청 방법을 안내합니다."
+    assert record["metadata"]["answer"] == "온라인 신청 방법을 안내합니다."
 
 
 def test_build_api_case_record_falls_back_to_raw_text_when_structured_text_empty():

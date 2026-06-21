@@ -31,6 +31,7 @@ def test_build_append_record_preserves_processed_policy_qna_identity():
     assert record["submitted_at"] == "2019-01-02T00:00:00+09:00"
     assert "제한차량 운행허가 신청 방법" in record["search_text"]
     assert "온라인 신청 방법을 안내합니다." in record["search_text"]
+    assert record["consultant_answer"] == "온라인 신청 방법을 안내합니다."
     assert "consulting_date" not in record
     assert "consulting_content" not in record
     assert record["metadata"]["adapter"] == "prepare_processed_append_inputs"

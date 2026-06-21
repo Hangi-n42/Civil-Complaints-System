@@ -422,6 +422,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         chunk_id = str(item.get("chunk_id") or f"{case_id}__chunk-0") if case_id else str(item.get("chunk_id") or "")
         score = float(item.get("score", 0.0) or 0.0)
         answers_by_admin_unit = _normalize_department_answers(item)
+        answer = str(item.get("answer") or (item.get("metadata") or {}).get("answer") or "").strip()
         content = {
             "observation": observation,
             "result": str(raw_content.get("result") or ""),
@@ -466,6 +467,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                 "chunk_id": chunk_id,
                 "title": item.get("title"),
                 "snippet": snippet,
+                "answer": answer,
                 "summary": {
                     "observation": observation,
                     "request": request_text,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.retrieval.service import RetrievalService
+from app.retrieval.search.hybrid import HybridRetriever
 from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
 
 
@@ -84,6 +85,7 @@ def test_chroma_metadata_flattens_be1_search_signals_for_storage():
     assert metadata["civil_category_secondary"] == "도로시설물"
     assert metadata["civil_category_source"] == "responsible_unit"
     assert metadata["urgency_level"] == "보통"
+    assert metadata["answer"] == ""
 
 
 def test_chroma_metadata_preserves_policy_qna_identity():
@@ -102,6 +104,7 @@ def test_chroma_metadata_preserves_policy_qna_identity():
         "index_text_source": "search_text_with_answer",
         "structured_by": "policy_qna_repair",
         "is_valid": True,
+        "answer": "온라인 신청 방법을 안내합니다.",
     }
     normalized = service._normalize_record(record, index=0)
 
@@ -113,6 +116,7 @@ def test_chroma_metadata_preserves_policy_qna_identity():
     assert metadata["index_text_source"] == "search_text_with_answer"
     assert metadata["structured_by"] == "policy_qna_repair"
     assert metadata["is_valid"] is True
+    assert metadata["answer"] == "온라인 신청 방법을 안내합니다."
 
 
 def test_chroma_query_restores_search_signal_metadata_as_lists(monkeypatch):
@@ -152,6 +156,155 @@ def test_chroma_query_restores_search_signal_metadata_as_lists(monkeypatch):
     assert result_metadata["civil_category_secondary"] == "도로시설물"
     assert result_metadata["civil_category_source"] == "responsible_unit"
     assert result_metadata["urgency_level"] == "보통"
+    assert results[0]["answer"] == ""
+
+
+def test_chroma_query_does_not_infer_answer_from_document_body(monkeypatch):
+    store = ChromaVectorStore(
+        persist_directory="/tmp/retrieval-test-chroma",
+        embedding_model_name="stub-model",
+        embedding_device="cpu",
+    )
+    document = "브런치 콘서트 단체 관람 예매 문의\n오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.\n전화 예매 가능 여부와 단체 할인 문의"
+    metadata = {
+        "doc_id": "CASE-ANSWER-1",
+        "chunk_id": "CASE-ANSWER-1__chunk-0",
+        "case_id": "CASE-ANSWER-1",
+        "created_at": "2026-06-10T09:00:00+09:00",
+        "category": "문화",
+        "region": "서울",
+        "entity_labels": "",
+        "summary_observation": "브런치 콘서트 단체 관람 예매 문의",
+        "summary_request": "전화 예매 가능 여부와 단체 할인 문의",
+        "title": "브런치 콘서트 단체 관람 예매 문의",
+    }
+
+    class _FakeCollection:
+        def query(self, **kwargs):
+            return {
+                "ids": [["CASE-ANSWER-1::CASE-ANSWER-1__chunk-0"]],
+                "documents": [[document]],
+                "metadatas": [[metadata]],
+                "distances": [[0.1]],
+            }
+
+    monkeypatch.setattr(store, "embed_texts", lambda texts: [[1.0, 0.0]])
+    monkeypatch.setattr(store, "_get_collection", lambda collection_name: _FakeCollection())
+
+    results = store.query(collection_name="civil_cases_v1", query="브런치 콘서트 예매", top_k=1)
+
+    assert results[0]["answer"] == ""
+
+
+def test_chroma_query_preserves_answer_metadata(monkeypatch):
+    store = ChromaVectorStore(
+        persist_directory="/tmp/retrieval-test-chroma",
+        embedding_model_name="stub-model",
+        embedding_device="cpu",
+    )
+    document = "브런치 콘서트 단체 관람 예매 문의\n오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.\n전화 예매 가능 여부와 단체 할인 문의"
+    metadata = {
+        "doc_id": "CASE-ANSWER-1",
+        "chunk_id": "CASE-ANSWER-1__chunk-0",
+        "case_id": "CASE-ANSWER-1",
+        "created_at": "2026-06-10T09:00:00+09:00",
+        "category": "문화",
+        "region": "서울",
+        "entity_labels": "",
+        "summary_observation": "브런치 콘서트 단체 관람 예매 문의",
+        "summary_request": "전화 예매 가능 여부와 단체 할인 문의",
+        "title": "브런치 콘서트 단체 관람 예매 문의",
+        "answer": "오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.",
+    }
+
+    class _FakeCollection:
+        def query(self, **kwargs):
+            return {
+                "ids": [["CASE-ANSWER-1::CASE-ANSWER-1__chunk-0"]],
+                "documents": [[document]],
+                "metadatas": [[metadata]],
+                "distances": [[0.1]],
+            }
+
+    monkeypatch.setattr(store, "embed_texts", lambda texts: [[1.0, 0.0]])
+    monkeypatch.setattr(store, "_get_collection", lambda collection_name: _FakeCollection())
+
+    results = store.query(collection_name="civil_cases_v1", query="브런치 콘서트 예매", top_k=1)
+
+    assert results[0]["answer"] == "오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다."
+
+
+def test_hybrid_search_does_not_infer_answer_from_document_body():
+    document = "브런치 콘서트 단체 관람 예매 문의\n오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.\n전화 예매 가능 여부와 단체 할인 문의"
+    metadata = {
+        "doc_id": "CASE-ANSWER-1",
+        "chunk_id": "CASE-ANSWER-1__chunk-0",
+        "case_id": "CASE-ANSWER-1",
+        "summary_observation": "브런치 콘서트 단체 관람 예매 문의",
+        "summary_request": "전화 예매 가능 여부와 단체 할인 문의",
+        "title": "브런치 콘서트 단체 관람 예매 문의",
+    }
+
+    class _FakeCollection:
+        def get(self, **kwargs):
+            return {
+                "ids": ["CASE-ANSWER-1::CASE-ANSWER-1__chunk-0"],
+                "documents": [document],
+                "metadatas": [metadata],
+            }
+
+    class _FakeStore:
+        def _get_collection(self, collection_name):
+            return _FakeCollection()
+
+    retriever = HybridRetriever(_FakeStore())
+
+    results = retriever.search(
+        "civil_cases_v1",
+        "브런치 콘서트 예매",
+        top_k=1,
+        dense_results=[{"case_id": "CASE-ANSWER-1"}],
+    )
+
+    assert results[0]["answer"] == ""
+    assert results[0]["metadata"]["answer"] == results[0]["answer"]
+
+
+def test_hybrid_search_preserves_answer_metadata():
+    document = "브런치 콘서트 단체 관람 예매 문의\n오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.\n전화 예매 가능 여부와 단체 할인 문의"
+    metadata = {
+        "doc_id": "CASE-ANSWER-1",
+        "chunk_id": "CASE-ANSWER-1__chunk-0",
+        "case_id": "CASE-ANSWER-1",
+        "summary_observation": "브런치 콘서트 단체 관람 예매 문의",
+        "summary_request": "전화 예매 가능 여부와 단체 할인 문의",
+        "title": "브런치 콘서트 단체 관람 예매 문의",
+        "answer": "오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다.",
+    }
+
+    class _FakeCollection:
+        def get(self, **kwargs):
+            return {
+                "ids": ["CASE-ANSWER-1::CASE-ANSWER-1__chunk-0"],
+                "documents": [document],
+                "metadatas": [metadata],
+            }
+
+    class _FakeStore:
+        def _get_collection(self, collection_name):
+            return _FakeCollection()
+
+    retriever = HybridRetriever(_FakeStore())
+
+    results = retriever.search(
+        "civil_cases_v1",
+        "브런치 콘서트 예매",
+        top_k=1,
+        dense_results=[{"case_id": "CASE-ANSWER-1"}],
+    )
+
+    assert results[0]["answer"] == "오픈 전 단체 예매는 어렵고, 티켓 오픈 시간 이후 예매 가능합니다."
+    assert results[0]["metadata"]["answer"] == results[0]["answer"]
 
 
 def test_normalize_record_preserves_category_source_fallback_origin():

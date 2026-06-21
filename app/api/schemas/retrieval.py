@@ -320,6 +320,7 @@ class SearchResultItem(BaseModel):
     chunk_id: str
     snippet: str
     summary: SearchSummary
+    answer: str = ""
     answers_by_admin_unit: Dict[str, str] = Field(default_factory=dict)
 
     # Backward compatibility fields

@@ -225,6 +225,7 @@ class ChromaVectorStore:
             "civil_category_source": _first_metadata_value(record.get("civil_category_source")),
             "urgency_level": _first_metadata_value(record.get("urgency_level")),
             "title": str(record.get("title") or ""),
+            "answer": _normalize_text(record.get("answer") or metadata.get("answer")),
             "summary_observation": _normalize_text(summary.get("observation")),
             "summary_request": _normalize_text(summary.get("request")),
             "pipeline_version": str(metadata.get("pipeline_version") or "week2"),
@@ -371,6 +372,7 @@ class ChromaVectorStore:
                 "observation": str(metadata.get("summary_observation") or ""),
                 "request": str(metadata.get("summary_request") or ""),
             }
+            answer = str(metadata.get("answer") or "")
             title = str(metadata.get("title") or "")
             if not title:
                 title = build_case_title(
@@ -388,6 +390,7 @@ class ChromaVectorStore:
                     "chunk_id": chunk_id,
                     "case_id": case_id,
                     "title": title,
+                    "answer": answer,
                     "snippet": self._build_snippet(doc_text, max_length=snippet_max_chars),
                     "summary": summary,
                     "metadata": {
