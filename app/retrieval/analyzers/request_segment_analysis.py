@@ -49,40 +49,40 @@ def enrich_request_segment_trace(trace: dict[str, Any], analyzer_output: dict[st
 
     request_segments = enriched.get("request_segments") or analyzer.get("request_segments") or []
     fallback_used = _coerce_bool(
-        enriched.get("fallback_used"),
         analyzer.get("fallback_used"),
         complexity_trace.get("fallback_used"),
         complexity_trace.get("fallback_segment_used"),
+        enriched.get("fallback_used"),
         default=False,
     )
     truncated = _coerce_bool(
-        enriched.get("truncated"),
         analyzer.get("truncated"),
         complexity_trace.get("truncated"),
         complexity_trace.get("segment_limit_applied"),
+        enriched.get("truncated"),
         default=False,
     )
     intent_count = _coerce_int(
-        enriched.get("intent_count"),
         analyzer.get("intent_count"),
         complexity_trace.get("intent_count"),
         len(request_segments) if isinstance(request_segments, list) else None,
+        enriched.get("intent_count"),
         default=0,
     )
     complexity_level = str(
-        enriched.get("complexity_level")
-        or analyzer.get("complexity_level")
+        analyzer.get("complexity_level")
         or complexity_trace.get("complexity_level")
+        or enriched.get("complexity_level")
         or ""
     )
+    derived_low_confidence = is_request_segments_low_confidence(
+        complexity_level=complexity_level,
+        fallback_used=fallback_used,
+    )
     low_confidence = _coerce_bool(
-        enriched.get("request_segments_low_confidence"),
         analyzer.get("request_segments_low_confidence"),
         complexity_trace.get("request_segments_low_confidence"),
-        default=is_request_segments_low_confidence(
-            complexity_level=complexity_level,
-            fallback_used=fallback_used,
-        ),
+        default=derived_low_confidence,
     )
     llm_confidence = enriched.get("llm_fallback_confidence")
     if llm_confidence is None:
