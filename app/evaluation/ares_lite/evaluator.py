@@ -1,12 +1,24 @@
-"""Deterministic ARES-lite evaluator for civil complaint RAG outputs."""
+"""LLM-based ARES-lite evaluator for civil complaint RAG outputs."""
 
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import Awaitable, Callable
 from statistics import fmean
 from typing import Any
 
 from app.evaluation.ares_lite.schemas import AresLiteCase, AresLiteContext
+from app.evaluation.ares_lite.prompts import (
+    ares_lite_integrated_response_schema,
+    ares_lite_response_schema,
+    build_answer_faithfulness_prompt,
+    build_answer_relevance_prompt,
+    build_context_relevance_prompt,
+    build_integrated_ares_lite_prompt,
+)
+
+LLMCall = Callable[..., Awaitable[str]]
 
 RUBRIC_CONNECTIONS = {
     "context_relevance": ["q2.reference_adequacy", "retrieval_failure_diagnostic"],
@@ -96,12 +108,92 @@ SCHEDULE_RE = re.compile(r"\d{4}\s*년|\d{1,2}\s*월|\d{1,2}\s*일|다음\s*주|
 class AresLiteEvaluator:
     """Evaluate context relevance, answer faithfulness, and answer relevance."""
 
+    def __init__(
+        self,
+        *,
+        temperature: float = 0.0,
+        max_contexts: int = 5,
+        allow_rule_fallback: bool = True,
+        judge_mode: str = "integrated",
+    ) -> None:
+        self.temperature = temperature
+        self.max_contexts = max_contexts
+        self.allow_rule_fallback = allow_rule_fallback
+        normalized_mode = str(judge_mode or "integrated").strip().lower()
+        self.judge_mode = "separate" if normalized_mode == "separate" else "integrated"
+
+    async def evaluate_async(
+        self,
+        case: AresLiteCase | dict[str, Any],
+        *,
+        llm_call: LLMCall,
+    ) -> dict[str, Any]:
+        """Run the document-aligned LLM judge version of ARES-lite."""
+        normalized = case if isinstance(case, AresLiteCase) else AresLiteCase.from_mapping(case)
+        try:
+            if self.judge_mode == "separate":
+                context_result = await self.evaluate_context_relevance_async(normalized, llm_call=llm_call)
+                faithfulness_result = await self.evaluate_answer_faithfulness_async(normalized, llm_call=llm_call)
+                relevance_result = await self.evaluate_answer_relevance_async(normalized, llm_call=llm_call)
+                mode = "ares_lite_llm_judge"
+            else:
+                context_result, faithfulness_result, relevance_result = await self.evaluate_integrated_async(
+                    normalized,
+                    llm_call=llm_call,
+                )
+                mode = "ares_lite_llm_integrated_judge"
+            return self._build_result(
+                normalized,
+                context_result=context_result,
+                faithfulness_result=faithfulness_result,
+                relevance_result=relevance_result,
+                mode=mode,
+                llm_judge_used=True,
+                fallback_reason="",
+            )
+        except Exception as exc:  # noqa: BLE001
+            if not self.allow_rule_fallback:
+                raise
+            result = self.evaluate(normalized)
+            result["ares_lite"]["evaluation_scope"] = {
+                "mode": "ares_lite_rule_fallback",
+                "llm_judge_used": False,
+                "fallback_reason": f"{type(exc).__name__}: {exc}",
+                "note": "LLM judge 실패로 규칙 기반 fallback을 사용했습니다.",
+            }
+            return result
+
     def evaluate(self, case: AresLiteCase | dict[str, Any]) -> dict[str, Any]:
+        """Run deterministic fallback evaluation.
+
+        The primary implementation is ``evaluate_async(..., llm_call=...)``.
+        This method remains for offline failure handling and unit tests.
+        """
         normalized = case if isinstance(case, AresLiteCase) else AresLiteCase.from_mapping(case)
         context_result = self.evaluate_context_relevance(normalized)
         faithfulness_result = self.evaluate_answer_faithfulness(normalized)
         relevance_result = self.evaluate_answer_relevance(normalized)
+        return self._build_result(
+            normalized,
+            context_result=context_result,
+            faithfulness_result=faithfulness_result,
+            relevance_result=relevance_result,
+            mode="ares_lite_rule_fallback",
+            llm_judge_used=False,
+            fallback_reason="llm_call_not_provided",
+        )
 
+    def _build_result(
+        self,
+        normalized: AresLiteCase,
+        *,
+        context_result: dict[str, Any],
+        faithfulness_result: dict[str, Any],
+        relevance_result: dict[str, Any],
+        mode: str,
+        llm_judge_used: bool,
+        fallback_reason: str,
+    ) -> dict[str, Any]:
         overall = _round_score(
             0.30 * context_result["average_score"]
             + 0.40 * faithfulness_result["score"]
@@ -131,9 +223,13 @@ class AresLiteEvaluator:
                 "recommended_revision": recommended_revision,
                 "rubric_connections": RUBRIC_CONNECTIONS,
                 "evaluation_scope": {
-                    "mode": "ares_lite_rule",
-                    "llm_judge_used": False,
-                    "note": "초기 구현은 문서 기준 ARES-lite 오프라인 평가이며, 선택적 LLM judge는 후속 확장 지점입니다.",
+                    "mode": mode,
+                    "llm_judge_used": llm_judge_used,
+                    "fallback_reason": fallback_reason,
+                    "note": (
+                        "ARES-lite는 통합 LLM judge 평가를 기본으로 하며, "
+                        "rule은 실패 시 보조 fallback 또는 명시적 smoke test 용도로만 사용합니다."
+                    ),
                 },
                 "weights": {
                     "context_relevance": 0.30,
@@ -142,6 +238,255 @@ class AresLiteEvaluator:
                 },
             },
         }
+
+    async def evaluate_integrated_async(
+        self,
+        case: AresLiteCase,
+        *,
+        llm_call: LLMCall,
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        answer_body = extract_generated_body(case.generated_answer)
+        payload = await self._call_json(
+            llm_call,
+            build_integrated_ares_lite_prompt(
+                case,
+                answer_body,
+                max_contexts=self.max_contexts,
+            ),
+            schema=ares_lite_integrated_response_schema(),
+        )
+        return (
+            self._normalize_integrated_context_result(case, payload.get("context_relevance")),
+            self._normalize_integrated_faithfulness_result(payload.get("answer_faithfulness")),
+            self._normalize_integrated_relevance_result(case, payload.get("answer_relevance")),
+        )
+
+    def _normalize_integrated_context_result(
+        self,
+        case: AresLiteCase,
+        payload: Any,
+    ) -> dict[str, Any]:
+        data = payload if isinstance(payload, dict) else {}
+        context_by_id = {str(context.context_id): context for context in case.retrieved_contexts}
+        contexts: list[dict[str, Any]] = []
+        for item in data.get("contexts") or []:
+            if not isinstance(item, dict):
+                continue
+            context_id = str(item.get("context_id") or "").strip()
+            source_context = context_by_id.get(context_id)
+            score = _round_score(_as_float(item.get("score")))
+            contexts.append(
+                {
+                    "metric": "context_relevance",
+                    "context_id": context_id,
+                    "score": score,
+                    "label": str(item.get("label") or _label_context(score)),
+                    "rank": source_context.rank if source_context else None,
+                    "retrieval_score": source_context.score if source_context else None,
+                    "reason": str(item.get("reason") or "").strip(),
+                    "source": "llm_integrated_judge",
+                }
+            )
+        if contexts:
+            average_score = _round_score(
+                _as_float(data.get("average_score"), fmean(item["score"] for item in contexts))
+            )
+        else:
+            average_score = _round_score(_as_float(data.get("average_score")))
+        low_contexts = data.get("low_relevance_contexts") if isinstance(data.get("low_relevance_contexts"), list) else []
+        normalized_low_contexts = []
+        for item in low_contexts:
+            if not isinstance(item, dict):
+                continue
+            normalized_low_contexts.append(
+                {
+                    "context_id": str(item.get("context_id") or "").strip(),
+                    "score": _round_score(_as_float(item.get("score"))),
+                    "reason": str(item.get("reason") or "").strip(),
+                }
+            )
+        if not normalized_low_contexts:
+            normalized_low_contexts = [
+                {
+                    "context_id": item["context_id"],
+                    "score": item["score"],
+                    "reason": item["reason"],
+                }
+                for item in contexts
+                if item["score"] < 5.0
+            ]
+        return {
+            "metric": "context_relevance",
+            "average_score": average_score,
+            "label": str(data.get("label") or _label_context(average_score)),
+            "contexts": contexts,
+            "low_relevance_contexts": normalized_low_contexts,
+            "revision_hint": str(data.get("revision_hint") or "").strip(),
+            "source": "llm_integrated_judge",
+        }
+
+    def _normalize_integrated_faithfulness_result(self, payload: Any) -> dict[str, Any]:
+        data = payload if isinstance(payload, dict) else {}
+        score = _round_score(_as_float(data.get("score")))
+        unsupported_claims = _normalize_unsupported_claims(data.get("unsupported_claims"))
+        return {
+            "metric": "answer_faithfulness",
+            "score": score,
+            "label": str(data.get("label") or _label_faithfulness(score)),
+            "unsupported_claims": unsupported_claims,
+            "supported_claim_count": None,
+            "claim_count": None,
+            "revision_hint": str(data.get("revision_hint") or _faithfulness_hint(unsupported_claims)).strip(),
+            "source": "llm_integrated_judge",
+        }
+
+    def _normalize_integrated_relevance_result(
+        self,
+        case: AresLiteCase,
+        payload: Any,
+    ) -> dict[str, Any]:
+        data = payload if isinstance(payload, dict) else {}
+        score = _round_score(_as_float(data.get("score")))
+        missing_points = _as_string_list(data.get("missing_points"))
+        covered_segments = _as_string_list(data.get("covered_segments"))
+        if not covered_segments:
+            covered_segments = [segment for segment in _segments(case) if segment not in missing_points]
+        return {
+            "metric": "answer_relevance",
+            "score": score,
+            "label": str(data.get("label") or _label_relevance(score)),
+            "covered_segments": covered_segments,
+            "missing_segments": missing_points,
+            "missing_points": missing_points,
+            "query_token_coverage": None,
+            "revision_hint": str(data.get("revision_hint") or _relevance_hint(missing_points)).strip(),
+            "source": "llm_integrated_judge",
+        }
+
+    async def evaluate_context_relevance_async(
+        self,
+        case: AresLiteCase,
+        *,
+        llm_call: LLMCall,
+    ) -> dict[str, Any]:
+        contexts = case.retrieved_contexts[: self.max_contexts]
+        context_scores = []
+        for context in contexts:
+            prompt = build_context_relevance_prompt(case, context)
+            payload = await self._call_json(
+                llm_call,
+                prompt,
+                schema=ares_lite_response_schema("context_relevance"),
+            )
+            score = _round_score(_as_float(payload.get("score")))
+            context_scores.append(
+                {
+                    "metric": "context_relevance",
+                    "context_id": context.context_id,
+                    "score": score,
+                    "label": str(payload.get("label") or _label_context(score)),
+                    "rank": context.rank,
+                    "retrieval_score": context.score,
+                    "reason": str(payload.get("reason") or "").strip(),
+                    "source": "llm_judge",
+                }
+            )
+        average_score = _round_score(fmean(item["score"] for item in context_scores)) if context_scores else 0.0
+        return {
+            "metric": "context_relevance",
+            "average_score": average_score,
+            "label": _label_context(average_score),
+            "contexts": context_scores,
+            "low_relevance_contexts": [
+                {
+                    "context_id": item["context_id"],
+                    "score": item["score"],
+                    "reason": item["reason"],
+                }
+                for item in context_scores
+                if item["score"] < 5.0
+            ],
+            "source": "llm_judge",
+        }
+
+    async def evaluate_answer_faithfulness_async(
+        self,
+        case: AresLiteCase,
+        *,
+        llm_call: LLMCall,
+    ) -> dict[str, Any]:
+        answer_body = extract_generated_body(case.generated_answer)
+        prompt = build_answer_faithfulness_prompt(
+            case,
+            answer_body,
+            max_contexts=self.max_contexts,
+        )
+        payload = await self._call_json(
+            llm_call,
+            prompt,
+            schema=ares_lite_response_schema("answer_faithfulness"),
+        )
+        score = _round_score(_as_float(payload.get("score")))
+        unsupported_claims = _normalize_unsupported_claims(payload.get("unsupported_claims"))
+        return {
+            "metric": "answer_faithfulness",
+            "score": score,
+            "label": str(payload.get("label") or _label_faithfulness(score)),
+            "unsupported_claims": unsupported_claims,
+            "supported_claim_count": None,
+            "claim_count": None,
+            "revision_hint": str(payload.get("revision_hint") or _faithfulness_hint(unsupported_claims)).strip(),
+            "source": "llm_judge",
+        }
+
+    async def evaluate_answer_relevance_async(
+        self,
+        case: AresLiteCase,
+        *,
+        llm_call: LLMCall,
+    ) -> dict[str, Any]:
+        answer_body = extract_generated_body(case.generated_answer)
+        prompt = build_answer_relevance_prompt(case, answer_body)
+        payload = await self._call_json(
+            llm_call,
+            prompt,
+            schema=ares_lite_response_schema("answer_relevance"),
+        )
+        score = _round_score(_as_float(payload.get("score")))
+        missing_points = _as_string_list(payload.get("missing_points"))
+        segments = _segments(case)
+        covered_segments = [segment for segment in segments if segment not in missing_points]
+        return {
+            "metric": "answer_relevance",
+            "score": score,
+            "label": str(payload.get("label") or _label_relevance(score)),
+            "covered_segments": covered_segments,
+            "missing_segments": missing_points,
+            "missing_points": missing_points,
+            "query_token_coverage": None,
+            "revision_hint": str(payload.get("revision_hint") or _relevance_hint(missing_points)).strip(),
+            "source": "llm_judge",
+        }
+
+    async def _call_json(
+        self,
+        llm_call: LLMCall,
+        prompt: str,
+        *,
+        schema: dict[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            text = await llm_call(
+                prompt,
+                temperature=self.temperature,
+                response_schema=schema,
+            )
+        except TypeError:
+            text = await llm_call(prompt)
+        payload = _parse_json_object(text)
+        if not isinstance(payload, dict):
+            raise ValueError("ARES-lite LLM judge response must be a JSON object")
+        return payload
 
     def evaluate_context_relevance(self, case: AresLiteCase) -> dict[str, Any]:
         query_tokens = _tokens(case.query)
@@ -328,6 +673,50 @@ def _tokens(text: str) -> set[str]:
         if normalized and normalized not in STOP_TERMS and len(normalized) >= 2:
             tokens.add(normalized)
     return tokens
+
+
+def _parse_json_object(text: str) -> dict[str, Any]:
+    cleaned = str(text or "").strip()
+    try:
+        payload = json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+        if match is None:
+            raise
+        payload = json.loads(match.group(0))
+    if not isinstance(payload, dict):
+        raise ValueError("expected JSON object")
+    return payload
+
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_string_list(value: Any, *, limit: int = 20) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()][:limit]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def _normalize_unsupported_claims(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    claims: list[dict[str, str]] = []
+    for item in value:
+        if isinstance(item, dict):
+            sentence = str(item.get("sentence") or "").strip()
+            reason = str(item.get("reason") or "").strip()
+        else:
+            sentence = str(item or "").strip()
+            reason = ""
+        if sentence or reason:
+            claims.append({"sentence": sentence, "reason": reason})
+    return claims[:20]
 
 
 def _normalize_token(token: str) -> str:

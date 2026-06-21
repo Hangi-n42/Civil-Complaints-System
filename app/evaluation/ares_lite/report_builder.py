@@ -46,11 +46,12 @@ def build_ares_lite_report(results: list[dict[str, Any]]) -> dict[str, Any]:
         "case_count": len(scored),
         "rubric_connections": ARES_LITE_RUBRIC_CONNECTIONS,
         "scope": {
-            "mode": "offline_rule_based_ares_lite",
-            "llm_judge_used": False,
+            "mode": "offline_llm_judge_ares_lite",
+            "llm_judge_used": True,
             "notes": [
                 "ARES-lite는 LLM-Rubric을 대체하지 않고 RAG 원인 진단 신호로 사용합니다.",
                 "현재 LLM-Rubric은 Q0~Q7 구조이므로 Q0/manual_completeness/Q7 보조 신호로 연결합니다.",
+                "LLM judge 실패 또는 명시적 옵션 사용 시에만 rule fallback 결과가 섞일 수 있습니다.",
             ],
         },
         "summary": {

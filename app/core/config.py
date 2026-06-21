@@ -15,6 +15,14 @@ CONFIGS_DIR = PROJECT_ROOT / "configs"
 LOGS_DIR = PROJECT_ROOT / "logs"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
+except Exception:
+    # dotenv is optional. Runtime environment variables and code defaults still work.
+    pass
+
 
 class Settings:
     """애플리케이션 설정"""
@@ -197,4 +205,25 @@ class Settings:
     )
 
 
-settings = Settings()
+def _resolve_project_path(value: str) -> str:
+    path = Path(str(value))
+    if path.is_absolute():
+        return str(path)
+    return str((PROJECT_ROOT / path).resolve())
+
+
+def _normalize_settings_paths(value: Settings) -> Settings:
+    value.CHROMA_DB_PATH = _resolve_project_path(value.CHROMA_DB_PATH)
+    value.CHROMA_PERSIST_DIRECTORY = value.CHROMA_DB_PATH
+    value.RAW_DATA_PATH = _resolve_project_path(value.RAW_DATA_PATH)
+    value.INTERIM_DATA_PATH = _resolve_project_path(value.INTERIM_DATA_PATH)
+    value.PROCESSED_DATA_PATH = _resolve_project_path(value.PROCESSED_DATA_PATH)
+    value.SAMPLES_DATA_PATH = _resolve_project_path(value.SAMPLES_DATA_PATH)
+
+    raw_data_dir = DATA_DIR / "raw_data"
+    if not Path(value.RAW_DATA_PATH).exists() and raw_data_dir.exists():
+        value.RAW_DATA_PATH = str(raw_data_dir)
+    return value
+
+
+settings = _normalize_settings_paths(Settings())

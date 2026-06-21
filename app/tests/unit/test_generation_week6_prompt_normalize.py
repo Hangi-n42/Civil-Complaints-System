@@ -308,6 +308,9 @@ async def test_prompt_factory_autoretrieve_builds_prompt_and_context_with_dummy_
     assert trace.get("route_key")
     assert trace.get("strategy_id")
     assert trace.get("retrieval_policy")
+    assert trace["semantic_context_rerank"]["applied"] is True
+    assert trace["semantic_context_rerank"]["input_count"] == 2
+    assert "semantic_match_score" in context[0]
 
 
 @pytest.mark.asyncio
