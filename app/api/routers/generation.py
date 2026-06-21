@@ -61,6 +61,19 @@ NO_SIMILAR_CASE_LIMITATION = (
     "LLM 관련성 필터 적용 결과 참고할 만한 유사 민원 근거가 충분하지 않아 "
     "과거 사례 citation 없이 일반 민원 회신 원칙에 따라 작성했습니다."
 )
+SEGMENT_NO_EVIDENCE_MESSAGE = "유사 선례 없음 — 담당부서 확인 필요"
+_SEGMENT_STOPWORDS = {
+    "민원",
+    "요청",
+    "문의",
+    "확인",
+    "검토",
+    "안내",
+    "관련",
+    "사항",
+    "처리",
+    "필요",
+}
 
 
 def _derive_request_segments(query: str) -> list[str]:
@@ -171,11 +184,194 @@ def _build_trace_from_route_key(route_key: str, query: str) -> dict:
 def _clean_request_segments(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [
-        str(item or "").strip()
-        for item in value
-        if str(item or "").strip()
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _segment_terms(text: object) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[0-9A-Za-z가-힣]{2,}", str(text or "").casefold())
+        if token not in _SEGMENT_STOPWORDS and not token.isdigit()
+    }
+
+
+def _segment_evidence_item(item: dict) -> dict:
+    return {
+        "doc_id": str(item.get("doc_id") or "").strip(),
+        "chunk_id": str(item.get("chunk_id") or "").strip(),
+        "case_id": str(item.get("case_id") or "").strip(),
+        "snippet": str(item.get("snippet") or "").strip(),
+        "score": float(item.get("score", item.get("relevance_score", 0.0)) or 0.0),
+    }
+
+
+def _build_segment_evidence_map(
+    request_segments: list[str],
+    context: list[dict],
+    *,
+    max_segments: int = 4,
+    max_evidence_per_segment: int = 2,
+) -> dict[int, dict]:
+    """Rebuild segment -> evidence mapping inside /qa after retrieval grounding."""
+
+    cleaned_segments = [segment for segment in request_segments if str(segment).strip()][
+        :max_segments
     ]
+    evidence_map: dict[int, dict] = {}
+    if not cleaned_segments:
+        return evidence_map
+
+    scored_context: list[tuple[int, dict, set[str]]] = [
+        (
+            index,
+            item,
+            _segment_terms(
+                " ".join(
+                    str(part or "")
+                    for part in (
+                        item.get("snippet"),
+                        item.get("case_id"),
+                        item.get("doc_id"),
+                    )
+                )
+            ),
+        )
+        for index, item in enumerate(context)
+        if isinstance(item, dict)
+    ]
+
+    for segment_index, segment in enumerate(cleaned_segments):
+        terms = _segment_terms(segment)
+        matches: list[tuple[float, int, dict]] = []
+        if terms:
+            for original_index, item, item_terms in scored_context:
+                overlap = len(terms & item_terms)
+                if overlap <= 0:
+                    continue
+                base_score = float(item.get("score", item.get("relevance_score", 0.0)) or 0.0)
+                matches.append((overlap + base_score, original_index, item))
+
+        matches.sort(key=lambda row: (row[0], -row[1]), reverse=True)
+        evidence = [
+            _segment_evidence_item(item)
+            for _, _, item in matches[:max_evidence_per_segment]
+        ]
+        evidence_map[segment_index] = {
+            "segment_index": segment_index,
+            "request_segment": segment,
+            "status": "grounded" if evidence else "no_evidence",
+            "evidence": evidence,
+        }
+
+    return evidence_map
+
+
+async def _build_grounded_segment_evidence_map(
+    *,
+    retrieval_service,
+    request_segments: list[str],
+    context: list[dict],
+    max_segments: int = 4,
+    max_evidence_per_segment: int = 2,
+) -> dict[int, dict]:
+    evidence_map = _build_segment_evidence_map(
+        request_segments,
+        context,
+        max_segments=max_segments,
+        max_evidence_per_segment=max_evidence_per_segment,
+    )
+    apply_filter = getattr(retrieval_service, "_apply_grounding_filter", None)
+    if not callable(apply_filter):
+        return evidence_map
+
+    for segment_index, info in list(evidence_map.items()):
+        evidence = info.get("evidence") if isinstance(info, dict) else []
+        evidence = evidence if isinstance(evidence, list) else []
+        if not evidence:
+            continue
+
+        candidate_keys = {
+            (str(item.get("case_id") or ""), str(item.get("chunk_id") or ""))
+            for item in evidence
+            if isinstance(item, dict)
+        }
+        try:
+            filtered = await apply_filter(
+                str(info.get("request_segment") or ""),
+                evidence,
+                max_evidence_per_segment,
+            )
+        except Exception as exc:  # noqa: BLE001
+            api_logger.warning(
+                "segment_grounding_filter_failed segment_index=%s error=%s",
+                segment_index,
+                str(exc),
+            )
+            continue
+
+        filtered_evidence = [
+            _segment_evidence_item(item)
+            for item in filtered
+            if isinstance(item, dict)
+            and (
+                str(item.get("case_id") or ""),
+                str(item.get("chunk_id") or ""),
+            )
+            in candidate_keys
+        ][:max_evidence_per_segment]
+        evidence_map[segment_index]["evidence"] = filtered_evidence
+        evidence_map[segment_index]["status"] = (
+            "grounded" if filtered_evidence else "no_evidence"
+        )
+
+    return evidence_map
+
+
+def _normalize_segment_answers(
+    value: object,
+    *,
+    request_segments: list[str],
+    segment_evidence_map: dict[int, dict],
+) -> list[dict]:
+    raw_items = value if isinstance(value, list) else []
+    by_index: dict[int, dict] = {}
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            index = int(item.get("segment_index"))
+        except (TypeError, ValueError):
+            continue
+        by_index[index] = item
+
+    answers: list[dict] = []
+    for index, segment in enumerate(request_segments[:4]):
+        evidence_info = segment_evidence_map.get(index, {})
+        evidence = evidence_info.get("evidence") if isinstance(evidence_info, dict) else []
+        evidence = evidence if isinstance(evidence, list) else []
+        case_ids = [
+            str(item.get("case_id") or "").strip()
+            for item in evidence
+            if isinstance(item, dict) and str(item.get("case_id") or "").strip()
+        ]
+        raw = by_index.get(index, {})
+        answer = str(raw.get("answer") or "").strip()
+        status = str(evidence_info.get("status") or "no_evidence")
+        if not answer:
+            if status == "grounded":
+                answer = "해당 요청은 매칭된 유사 사례를 참고하되 담당부서의 사실관계 확인이 필요합니다."
+            else:
+                answer = SEGMENT_NO_EVIDENCE_MESSAGE
+        answers.append(
+            {
+                "segment_index": index,
+                "request_segment": segment,
+                "answer": answer,
+                "case_ids": case_ids,
+                "evidence_status": "grounded" if case_ids else "no_evidence",
+            }
+        )
+    return answers
 
 
 def _add_trace_warning(trace: dict, code: str) -> None:
@@ -704,6 +900,11 @@ async def _maybe_apply_prometheus_revision(
                 "summary": revised_structured.get("summary", ""),
                 "action_items": revised_structured.get("action_items", []),
                 "request_segments": revised_structured.get("request_segments", []),
+                "segment_answers": _normalize_segment_answers(
+                    revised_structured.get("segment_answers"),
+                    request_segments=routing_trace.get("request_segments") or [],
+                    segment_evidence_map=routing_trace.get("segment_evidence_map") or {},
+                ),
             },
             "answer": revised_answer,
             "citations": response_citations,
@@ -957,6 +1158,17 @@ async def _generate_qa(
         top_k=grounding_top_k,
         policy=context_policy,
     )
+    request_segments = _clean_request_segments(routing_trace.get("request_segments"))
+    if request_segments:
+        routing_trace["request_segments"] = request_segments
+        routing_trace["segment_count"] = len(request_segments)
+    segment_evidence_map = await _build_grounded_segment_evidence_map(
+        retrieval_service=retrieval_service,
+        request_segments=request_segments,
+        context=context,
+    )
+    if segment_evidence_map:
+        routing_trace["segment_evidence_map"] = segment_evidence_map
 
     grounded_result_count = len(raw_context)
     if not context:
@@ -989,6 +1201,16 @@ async def _generate_qa(
             strategy_id=strategy_id,
             routing_trace=routing_trace,
             retrieval_elapsed_ms=retrieval_elapsed_ms,
+        )
+        unified_payload["structured_output"]["segment_answers"] = (
+            _normalize_segment_answers(
+                [],
+                request_segments=request_segments,
+                segment_evidence_map=_build_segment_evidence_map(
+                    request_segments,
+                    [],
+                ),
+            )
         )
         await _attach_civil_llm_rubric(
             unified_payload=unified_payload,
@@ -1204,10 +1426,14 @@ async def _generate_qa(
             }
         )
 
-    request_segments = routing_trace.get("request_segments") or []
     generated_structured = normalize_structured_output(
         result.get("structured_output"),
         request_segments=request_segments,
+    )
+    segment_answers = _normalize_segment_answers(
+        generated_structured.get("segment_answers"),
+        request_segments=request_segments,
+        segment_evidence_map=segment_evidence_map,
     )
     legal_warnings = result.get("legal_citation_warnings", [])
     answer_warning_codes = [
@@ -1238,6 +1464,7 @@ async def _generate_qa(
                 "summary": generated_structured.get("summary", ""),
                 "action_items": generated_structured.get("action_items", []),
                 "request_segments": generated_structured.get("request_segments", []),
+                "segment_answers": segment_answers,
             },
             "answer": answer,
             "citations": response_citations,

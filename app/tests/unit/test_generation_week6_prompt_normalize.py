@@ -73,7 +73,7 @@ def test_prompt_factory_compact_mode_limits_context_and_strengthens_json_only():
     assert "[compact MODE]" in prompt
     assert "[COMPACT CONTEXT LIMIT]" in prompt
     assert "capped at 2 chunks" in prompt
-    assert "Output exactly 1 citation" in prompt
+    assert "Output up to" in prompt
     assert "chunk_id=CASE-1__chunk-0" in prompt
     assert "chunk_id=CASE-2__chunk-0" in prompt
     assert "chunk_id=CASE-3__chunk-0" not in prompt
@@ -242,7 +242,12 @@ def test_normalize_response_enforces_week6_shape():
     )
 
     assert isinstance(payload["routing_trace"], dict)
-    assert set(payload["structured_output"].keys()) == {"summary", "action_items", "request_segments"}
+    assert set(payload["structured_output"].keys()) == {
+        "summary",
+        "action_items",
+        "request_segments",
+        "segment_answers",
+    }
     assert isinstance(payload["citations"], list)
     assert isinstance(payload["limitations"], list)
     assert set(payload["latency_ms"].keys()) == {"analyzer", "router", "retrieval", "generation"}

@@ -62,6 +62,34 @@ def _normalize_legal_citations(value: Any) -> List[Dict[str, Any]]:
     return normalized
 
 
+def _normalize_segment_answers(value: Any) -> List[Dict[str, Any]]:
+    items = value if isinstance(value, list) else []
+    normalized: List[Dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            segment_index = int(item.get("segment_index"))
+        except (TypeError, ValueError):
+            continue
+        case_ids = item.get("case_ids") if isinstance(item.get("case_ids"), list) else []
+        normalized.append(
+            {
+                "segment_index": segment_index,
+                "request_segment": str(item.get("request_segment") or "").strip(),
+                "answer": str(item.get("answer") or "").strip(),
+                "case_ids": [
+                    str(case_id).strip()
+                    for case_id in case_ids
+                    if str(case_id).strip()
+                ],
+                "evidence_status": str(item.get("evidence_status") or "no_evidence").strip()
+                or "no_evidence",
+            }
+        )
+    return normalized
+
+
 def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
     data = dict(payload)
 
@@ -78,6 +106,9 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
         "summary": str(structured_output.get("summary") or ""),
         "action_items": _as_string_list(structured_output.get("action_items")),
         "request_segments": _as_string_list(structured_output.get("request_segments")),
+        "segment_answers": _normalize_segment_answers(
+            structured_output.get("segment_answers")
+        ),
     }
 
     data["answer"] = str(data.get("answer") or "")

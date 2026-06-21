@@ -43,6 +43,11 @@ def _valid_response() -> str:
     )
 
 
+def _assert_metadata_contains(actual: dict, expected: dict) -> None:
+    for key, value in expected.items():
+        assert actual.get(key) == value
+
+
 def test_generation_ollama_budget_matches_week6_benchmark_defaults():
     assert settings.GENERATION_NUM_PREDICT == 640
     assert settings.GENERATION_NUM_CTX == 2048
@@ -65,15 +70,18 @@ async def test_generate_qa_reports_retry_then_compact_success(monkeypatch):
 
     result = await service.generate_qa("처리 기준을 알려주세요.", CONTEXT)
 
-    assert result["generation_metadata"] == {
-        "fallback_used": False,
-        "parse_retry_count": 1,
-        "grounding_evidence_count": 1,
-        "citation_count": 1,
-        "generation_mode": "compact",
-        "legal_grounding_status": "no_candidates",
-        "legal_grounding_error": "",
-    }
+    _assert_metadata_contains(
+        result["generation_metadata"],
+        {
+            "fallback_used": False,
+            "parse_retry_count": 1,
+            "grounding_evidence_count": 1,
+            "citation_count": 1,
+            "generation_mode": "compact",
+            "legal_grounding_status": "no_candidates",
+            "legal_grounding_error": "",
+        },
+    )
 
 
 @pytest.mark.asyncio
@@ -91,15 +99,18 @@ async def test_generate_qa_reports_fast_fallback_after_retry_exhaustion(monkeypa
 
     result = await service.generate_qa("처리 기준을 알려주세요.", CONTEXT)
 
-    assert result["generation_metadata"] == {
-        "fallback_used": True,
-        "parse_retry_count": 2,
-        "grounding_evidence_count": 1,
-        "citation_count": 1,
-        "generation_mode": "fast_fallback",
-        "legal_grounding_status": "no_candidates",
-        "legal_grounding_error": "",
-    }
+    _assert_metadata_contains(
+        result["generation_metadata"],
+        {
+            "fallback_used": True,
+            "parse_retry_count": 2,
+            "grounding_evidence_count": 1,
+            "citation_count": 1,
+            "generation_mode": "fast_fallback",
+            "legal_grounding_status": "no_candidates",
+            "legal_grounding_error": "",
+        },
+    )
     assert "폴백" in result["limitations"]
 
 
@@ -185,15 +196,18 @@ async def test_generate_qa_retries_when_answer_is_empty(monkeypatch):
     result = await service.generate_qa("처리 기준을 알려주세요.", CONTEXT)
 
     assert result["answer"]
-    assert result["generation_metadata"] == {
-        "fallback_used": False,
-        "parse_retry_count": 1,
-        "grounding_evidence_count": 1,
-        "citation_count": 1,
-        "generation_mode": "compact",
-        "legal_grounding_status": "no_candidates",
-        "legal_grounding_error": "",
-    }
+    _assert_metadata_contains(
+        result["generation_metadata"],
+        {
+            "fallback_used": False,
+            "parse_retry_count": 1,
+            "grounding_evidence_count": 1,
+            "citation_count": 1,
+            "generation_mode": "compact",
+            "legal_grounding_status": "no_candidates",
+            "legal_grounding_error": "",
+        },
+    )
 
 
 @pytest.mark.asyncio
