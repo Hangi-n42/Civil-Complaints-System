@@ -76,6 +76,50 @@ class _CapturingRetrievalService(_StubRetrievalService):
         )
 
 
+class _GroundedRankingRetrievalService(_StubRetrievalService):
+    async def search(self, query, top_k=5, filters=None, collection_name=None, **kwargs):
+        return [
+            {
+                "rank": 1,
+                "doc_id": "DOC-REL1",
+                "score": 0.99,
+                "chunk_id": "CASE-REL1__chunk-0",
+                "case_id": "CASE-REL1",
+                "title": "부분 참고 사례",
+                "snippet": "부분 참고 사례",
+                "summary": {"observation": "부분", "request": "참고"},
+                "metadata": {
+                    "created_at": "2026-03-20T10:00:00+09:00",
+                    "category": "도로안전",
+                    "region": "서울",
+                    "entity_labels": ["FACILITY"],
+                    "grounding_relevance_score": 1.0,
+                    "grounding_filter_applied": True,
+                    "grounding_filter_mode": "batch",
+                },
+            },
+            {
+                "rank": 2,
+                "doc_id": "DOC-REL2",
+                "score": 0.50,
+                "chunk_id": "CASE-REL2__chunk-0",
+                "case_id": "CASE-REL2",
+                "title": "직접 근거 사례",
+                "snippet": "직접 근거 사례",
+                "summary": {"observation": "직접", "request": "근거"},
+                "metadata": {
+                    "created_at": "2026-03-20T10:00:00+09:00",
+                    "category": "도로안전",
+                    "region": "서울",
+                    "entity_labels": ["FACILITY"],
+                    "grounding_relevance_score": 2.0,
+                    "grounding_filter_applied": True,
+                    "grounding_filter_mode": "batch",
+                },
+            },
+        ]
+
+
 def test_search_response_is_wrapped(monkeypatch):
     from app.api.routers import retrieval as retrieval_router
 
@@ -160,6 +204,9 @@ def test_search_response_is_wrapped(monkeypatch):
         "complexity_level",
         "retrieval_policy",
         "matched_segments",
+        "grounding_relevance_score",
+        "grounding_filter_applied",
+        "grounding_filter_mode",
     }
     assert first["doc_id"] == "DOC-1"
     assert isinstance(first["score"], float)
@@ -168,6 +215,29 @@ def test_search_response_is_wrapped(monkeypatch):
     assert set(first["summary"].keys()) == {"observation", "request"}
     assert isinstance(first["answers_by_admin_unit"], dict)
     assert isinstance(first["department_answers"], dict)
+
+
+def test_search_response_orders_rel2_above_rel1_after_grounding(monkeypatch):
+    from app.api.routers import retrieval as retrieval_router
+
+    monkeypatch.setattr(
+        retrieval_router,
+        "get_retrieval_service",
+        lambda: _GroundedRankingRetrievalService(),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/search",
+        json={"request_id": "SRCH-2026-REL-RANK", "query": "도로 보수", "top_k": 5},
+    )
+
+    assert response.status_code == 200
+    results = response.json()["data"]["results"]
+    assert [item["case_id"] for item in results[:2]] == ["CASE-REL2", "CASE-REL1"]
+    assert results[0]["metadata"]["grounding_relevance_score"] == 2.0
+    assert results[1]["metadata"]["grounding_relevance_score"] == 1.0
+    assert results[0]["score"] < results[1]["score"]
 
 
 def test_search_passes_request_segments_for_complex_query(monkeypatch):
