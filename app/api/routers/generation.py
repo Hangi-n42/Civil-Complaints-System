@@ -485,7 +485,7 @@ def _compose_answer_from_payload(result: dict, citations: list[dict]) -> str:
     else:
         parts.append("\n2. 귀하의 민원 내용은 관련 불편사항 개선 요청에 관한 것으로 이해됩니다.")
 
-    parts.append("\n3. 귀하의 질의 사항에 대한 검토 의견은 다음과 같습니다.")
+    parts.append("\n3. 접수하신 사항에 대해서는 다음과 같이 검토하겠습니다.")
     parts.append(f"\n   가. 관계 부서에서 사실관계 및 현황을 확인하겠습니다.")
     parts.append(f"\n   나. 우선 조치/검토 사항: {action_phrase}.")
     parts.append("\n   다. 일정 기간 모니터링 및 협의를 통해 불편이 최소화되도록 지속 점검하겠습니다.")

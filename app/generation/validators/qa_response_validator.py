@@ -17,10 +17,10 @@ _CIVIL_REPLY_PREFIX_2 = (
     "2. 귀하의 민원 내용은 제기하신 불편 사항에 대한 검토 및 조치 요청으로 이해됩니다. "
     "접수된 민원 취지와 관련 근거를 함께 고려하여 처리 방향을 검토하는 사안입니다."
 )
-_CIVIL_REPLY_PREFIX_3 = "3. 검토 의견은 다음과 같습니다."
+_CIVIL_REPLY_PREFIX_3 = "3."
 _CIVIL_REPLY_CLOSING = (
     "4. 답변 내용에 대한 추가 설명이 필요한 경우 담당부서로 문의해 주시면 세부 검토 결과와 "
-    "후속 절차를 친절히 안내해 드리겠습니다. 감사합니다. 끝."
+    "후속 절차를 친절히 안내해 드리겠습니다. 감사합니다."
 )
 _QUALITY_STOPWORDS = {
     "귀하",
@@ -129,13 +129,17 @@ def _strip_standard_reply_shell(text: str) -> str:
     patterns = [
         re.escape(_CIVIL_REPLY_PREFIX_1),
         re.escape(_CIVIL_REPLY_PREFIX_2),
-        re.escape(_CIVIL_REPLY_PREFIX_3),
         re.escape(_CIVIL_REPLY_CLOSING),
+        r"3\.\s*검토\s*의견은\s*다음과\s*같습니다\.?",
+        r"검토\s*의견은\s*다음과\s*같습니다\.?",
+        re.escape(_CIVIL_REPLY_PREFIX_3),
         r"1\.\s*귀하께서\s*신청하신\s*민원에\s*대한\s*검토\s*결과를\s*다음과\s*같이\s*답변드립니다\.",
         r"2\.\s*귀하의\s*민원\s*내용은.*?처리\s*방향을\s*검토하는\s*사안입니다\.",
         r"3\.\s*검토\s*의견은\s*다음과\s*같습니다\.?",
         r"4\.\s*답변\s*내용에\s*대한\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.\s*끝\.?",
+        r"4\.\s*답변\s*내용에\s*대한\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.?",
         r"4\.\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.\s*끝\.?",
+        r"4\.\s*추가\s*설명이\s*필요한\s*경우.*?감사합니다\.?",
     ]
     for pattern in patterns:
         rendered = re.sub(pattern, "", rendered, flags=re.DOTALL)
