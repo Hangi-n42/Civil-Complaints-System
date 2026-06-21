@@ -51,7 +51,7 @@ class MergeVerifier:
                 )
 
             request_types = set(result.request_types.values())
-            if len(request_types) > 1 and "other" not in request_types:
+            if len(request_types) > 1:
                 flags.append(
                     DuplicateRiskFlag(
                         code="REQUEST_TYPE_MISMATCH",

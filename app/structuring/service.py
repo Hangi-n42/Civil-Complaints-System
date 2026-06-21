@@ -210,6 +210,23 @@ class StructuringService:
         region = str(raw.get("region") or metadata.get("region") or "unknown").strip() or "unknown"
         raw_text = str(raw.get("raw_text") or raw.get("text") or "").strip()
 
+        normalized_metadata = dict(metadata)
+        normalized_metadata.update(
+            {
+                "source_id": str(raw.get("source_id") or metadata.get("source_id") or ""),
+                "consulting_category": str(raw.get("consulting_category") or category),
+                "consulting_turns": self._safe_int(raw.get("consulting_turns") or metadata.get("consulting_turns")),
+                "consulting_length": self._safe_int(raw.get("consulting_length") or metadata.get("consulting_length")),
+                "client_gender": str(raw.get("client_gender") or metadata.get("client_gender") or ""),
+                "client_age": str(raw.get("client_age") or metadata.get("client_age") or ""),
+                "source_file": str(metadata.get("source_file") or ""),
+            }
+        )
+        for key in ("content_type", "document_type", "adapter", "input_schema", "case_id_prefix"):
+            value = raw.get(key) or metadata.get(key)
+            if value not in (None, ""):
+                normalized_metadata[key] = value
+
         return {
             "case_id": case_id,
             "source": source,
@@ -217,22 +234,15 @@ class StructuringService:
             "category": category,
             "region": region,
             "raw_text": raw_text,
-            "metadata": {
-                "source_id": str(raw.get("source_id") or ""),
-                "consulting_category": str(raw.get("consulting_category") or category),
-                "consulting_turns": self._safe_int(raw.get("consulting_turns")),
-                "consulting_length": self._safe_int(raw.get("consulting_length")),
-                "client_gender": str(raw.get("client_gender") or ""),
-                "client_age": str(raw.get("client_age") or ""),
-                "source_file": str(metadata.get("source_file") or ""),
-            },
+            "search_text": str(raw.get("search_text") or metadata.get("search_text") or "").strip(),
+            "metadata": normalized_metadata,
         }
 
     # ──────────────────────────────────────────────────────────────────
     # 엔티티 레이블 헬퍼
     # ──────────────────────────────────────────────────────────────────
 
-    async def _mask_structuring_text(self, text: str) -> str:
+    async def _mask_structuring_text(self, text: str, *, pii_policy: str | None = None) -> str:
         """구조화 진입점에서 원문 개인정보 마스킹을 강제한다."""
         if not text:
             return ""
@@ -241,7 +251,7 @@ class StructuringService:
 
         ingestion_service = get_ingestion_service()
         cleaned = ingestion_service._clean_aihub_markup(text)
-        return await ingestion_service.mask_pii(cleaned)
+        return await ingestion_service.mask_pii(cleaned, pii_policy=pii_policy)
 
     def _normalize_entity_label(self, label: str) -> str:
         normalized = label.upper()
@@ -278,6 +288,155 @@ class StructuringService:
     def _normalize_for_compare(self, value: str) -> str:
         normalized = unicodedata.normalize("NFC", value or "")
         return re.sub(r"\s+", " ", normalized).strip()
+
+    def _is_policy_qna_candidate(self, data: Dict[str, Any]) -> bool:
+        """정책 Q&A 문서인지 content/document metadata로 판별한다."""
+        metadata = data.get("metadata", {}) if isinstance(data.get("metadata"), dict) else {}
+        content_type = str(data.get("content_type") or metadata.get("content_type") or "").strip().lower()
+        document_type = str(data.get("document_type") or metadata.get("document_type") or "").strip().lower()
+        return "policy_qna" in {content_type, document_type}
+
+    def _should_repair_policy_qna(self, data: Dict[str, Any]) -> bool:
+        """정책 Q&A 구조화 실패/미검증 결과를 deterministic repair 대상으로 고른다."""
+        if not self._is_policy_qna_candidate(data):
+            return False
+        validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+        metadata = data.get("metadata", {}) if isinstance(data.get("metadata"), dict) else {}
+        force_repair = str(metadata.get("force_policy_qna_repair") or "").strip().lower()
+        return (
+            force_repair in {"1", "true", "yes"}
+            or data.get("structured_by") == "fallback"
+            or validation.get("is_valid") is False
+        )
+
+    def _empty_policy_qna_merged(self) -> Dict[str, Any]:
+        """정책 Q&A 강제 repair 입력에서 LLM 호출을 건너뛰기 위한 빈 병합 결과를 만든다."""
+        return {
+            "observation": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+            "result": {"text": "", "confidence": 0.0, "evidence_span": [0, 0], "status": "pending"},
+            "request": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+            "context": {"text": "", "confidence": 0.0, "evidence_span": [0, 0]},
+            "roles": {},
+            "structured_by": "fallback",
+            "extraction_meta": {
+                "llm_latency_ms": 0,
+                "llm_model": "skipped_for_policy_qna_repair",
+                "llm_non_null_count": 0,
+                "span_sources": {},
+            },
+        }
+
+    def _first_meaningful_paragraph(self, text: str, max_chars: int = 500) -> str:
+        """답변 본문에서 색인/요약에 쓸 첫 의미 단락을 고른다."""
+        normalized = str(text or "").strip()
+        if not normalized:
+            return ""
+        paragraphs = [
+            re.sub(r"\s+", " ", part).strip()
+            for part in re.split(r"\n\s*\n+", normalized)
+            if part.strip()
+        ]
+        paragraph = paragraphs[0] if paragraphs else re.sub(r"\s+", " ", normalized).strip()
+        if len(paragraph) <= max_chars:
+            return paragraph
+        return paragraph[:max_chars].rstrip()
+
+    def _find_span(self, raw_text: str, value: str) -> List[int]:
+        """원문에 실제 존재하는 repair 텍스트만 span으로 표시한다."""
+        text = str(raw_text or "")
+        target = str(value or "").strip()
+        if not text or not target:
+            return [0, 0]
+        index = text.find(target)
+        if index < 0:
+            return [0, 0]
+        return [index, index + len(target)]
+
+    def _split_policy_qna_search_text(self, raw_text: str, search_text: str) -> Dict[str, str]:
+        """정책 Q&A의 질문부(raw_text)와 답변부(search_text suffix)를 분리한다."""
+        raw = str(raw_text or "").strip()
+        search = str(search_text or "").strip()
+        raw_lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        search_lines = [line.strip() for line in search.splitlines() if line.strip()]
+
+        answer = ""
+        if search and raw and search.startswith(raw):
+            answer = search[len(raw):].strip()
+        elif search_lines and raw_lines:
+            prefix_len = 0
+            for raw_line, search_line in zip(raw_lines, search_lines):
+                if self._normalize_for_compare(raw_line) != self._normalize_for_compare(search_line):
+                    break
+                prefix_len += 1
+            if prefix_len > 0:
+                answer = "\n".join(search_lines[prefix_len:]).strip()
+
+        if len(raw_lines) >= 2:
+            observation = raw_lines[0]
+            request = raw_lines[-1]
+        elif raw_lines:
+            observation = raw_lines[0]
+            request = raw_lines[0]
+        else:
+            observation = ""
+            request = ""
+
+        return {
+            "observation": observation,
+            "request": request,
+            "answer": answer,
+        }
+
+    def _repair_policy_qna_candidate(
+        self,
+        candidate: Dict[str, Any],
+        *,
+        search_text: str,
+        repair_reasons: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """정책 Q&A는 원래 Q/A 구조를 사용해 최소 구조화 필드를 보강한다."""
+        raw_text = str(candidate.get("raw_text") or "").strip()
+        split = self._split_policy_qna_search_text(raw_text, search_text)
+        observation_text = split["observation"]
+        request_text = split["request"] or observation_text
+        result_text = self._first_meaningful_paragraph(split["answer"])
+
+        repaired = dict(candidate)
+        repaired["observation"] = {
+            "text": observation_text,
+            "confidence": 0.85 if observation_text else 0.0,
+            "evidence_span": self._find_span(raw_text, observation_text),
+        }
+        repaired["request"] = {
+            "text": request_text,
+            "request": request_text,
+            "confidence": 0.9 if request_text else 0.0,
+            "evidence_span": self._find_span(raw_text, request_text),
+        }
+        repaired["result"] = {
+            "text": result_text,
+            "confidence": 0.8 if result_text else 0.0,
+            "evidence_span": [0, 0],
+            "status": "present" if result_text else "pending",
+        }
+        context = candidate.get("context") if isinstance(candidate.get("context"), dict) else {}
+        repaired["context"] = {
+            "text": str(context.get("text") or "").strip(),
+            "confidence": float(context.get("confidence") or 0.0),
+            "evidence_span": context.get("evidence_span") or [0, 0],
+        }
+        extraction_meta = dict(candidate.get("extraction_meta") or {})
+        extraction_meta["policy_qna_repair"] = True
+        extraction_meta["repair_reasons"] = list(repair_reasons or [])
+        extraction_meta["llm_latency_ms"] = int(extraction_meta.get("llm_latency_ms") or 0)
+        extraction_meta["llm_non_null_count"] = sum(
+            1
+            for key in ("observation", "result", "request", "context")
+            if str(repaired.get(key, {}).get("text") or "").strip()
+        )
+        repaired["extraction_meta"] = extraction_meta
+        repaired["structured_by"] = "policy_qna_repair"
+        return repaired
 
     def _is_plausible_admin_unit(self, candidate: str) -> bool:
         value = (candidate or "").strip()
@@ -508,13 +667,18 @@ class StructuringService:
           "rule"   — Rule-based 추출. span 검증 엄격 (error).
                     "hybrid" — LLM + Rule 혼합. span 검증 완화.
                     "llm"    — LLM 단독. span 검증 완화.
-                    "fallback" — LLM 실패로 빈 필드. span 검증 완화.
+          "fallback" — LLM 실패로 빈 필드. span 검증 완화.
+          "policy_qna_repair" — 정책 Q&A 질문/답변 구조 기반 보정. span 검증 완화.
         """
         errors: List[str] = []
-        lax_span = extraction_method in ("hybrid", "llm", "fallback")
+        lax_span = extraction_method in ("hybrid", "llm", "fallback", "policy_qna_repair")
         span_sources: Dict[str, str] = (
             data.get("extraction_meta", {}).get("span_sources", {}) or {}
         )
+        metadata = data.get("metadata", {}) if isinstance(data.get("metadata"), dict) else {}
+        content_type = str(data.get("content_type") or metadata.get("content_type") or "").strip().lower()
+        document_type = str(data.get("document_type") or metadata.get("document_type") or "").strip().lower()
+        is_policy_qna = "policy_qna" in {content_type, document_type}
 
         try:
             self.logger.debug(
@@ -597,7 +761,17 @@ class StructuringService:
 
                 # 빈 텍스트 경고
                 if not str(field.get("text") or "").strip():
+                    if is_policy_qna and field_name in {"observation", "result", "request", "context"}:
+                        continue
                     errors.append(f"empty_field:{field_name}")
+
+            if is_policy_qna:
+                observation = data.get("observation") if isinstance(data.get("observation"), dict) else {}
+                request = data.get("request") if isinstance(data.get("request"), dict) else {}
+                observation_text = str(observation.get("text") or "").strip()
+                request_text = str(request.get("text") or "").strip()
+                if not (observation_text or request_text):
+                    errors.append("empty_policy_qna_core")
 
             # 엔티티 검증
             entity_result = self._sanitize_entities(data.get("entities", []))
@@ -606,7 +780,7 @@ class StructuringService:
 
             # structured_by 유효값 검증 (신규 필드)
             if "structured_by" in data:
-                allowed_methods = {"hybrid", "llm_only", "fallback", "rule", "constrained"}
+                allowed_methods = {"hybrid", "llm_only", "fallback", "rule", "constrained", "policy_qna_repair"}
                 if data["structured_by"] not in allowed_methods:
                     errors.append("invalid_structured_by_value")
 
@@ -697,8 +871,16 @@ class StructuringService:
         try:
             raw_record: Dict[str, Any] = {"text": record} if isinstance(record, str) else record
             normalized = self._normalize_required(raw_record)
-            text = await self._mask_structuring_text(normalized["raw_text"])
+            metadata = normalized.get("metadata") if isinstance(normalized.get("metadata"), dict) else {}
+            pii_policy = str(metadata.get("pii_policy") or "").strip() or None
+            text = await self._mask_structuring_text(normalized["raw_text"], pii_policy=pii_policy)
             normalized["raw_text"] = text
+            search_text = str(normalized.get("search_text") or "").strip()
+            if search_text:
+                normalized["search_text"] = await self._mask_structuring_text(
+                    search_text,
+                    pii_policy=pii_policy,
+                )
 
             self.logger.info(
                 "구조화 시작: case_id=%s, len=%d", normalized["case_id"], len(text)
@@ -710,8 +892,15 @@ class StructuringService:
             ner_latency_ms = int((time.monotonic() - ner_started) * 1000)
             ner_result = RuleBasedNERResult(entities=entities, extraction_latency_ms=ner_latency_ms)
 
-            # Stage 2/3: ① 제약 디코딩 경로(플래그) 또는 기존 자유 JSON 경로
-            if getattr(settings, "STRUCTURING_CONSTRAINED", False):
+            force_policy_qna_repair = (
+                self._is_policy_qna_candidate({"metadata": metadata})
+                and str(metadata.get("force_policy_qna_repair") or "").strip().lower() in {"1", "true", "yes"}
+            )
+
+            # Stage 2/3: repair 전용 입력은 LLM을 건너뛰고 Q/A 구조 기반 보정만 수행한다.
+            if force_policy_qna_repair:
+                merged = self._empty_policy_qna_merged()
+            elif getattr(settings, "STRUCTURING_CONSTRAINED", False):
                 structured, llm_latency_ms = await self._structured_extractor.extract(text)
                 verify_fn = None
                 if getattr(settings, "ENABLE_SELF_VERIFY", False):
@@ -778,6 +967,19 @@ class StructuringService:
                 candidate,
                 extraction_method=candidate.get("structured_by", "hybrid"),
             )
+            if self._should_repair_policy_qna(candidate):
+                repair_reasons = list(candidate["validation"].get("errors") or [])
+                candidate = self._repair_policy_qna_candidate(
+                    candidate,
+                    search_text=str(normalized.get("search_text") or ""),
+                    repair_reasons=repair_reasons,
+                )
+                candidate["confidence_score"] = await self.compute_confidence_score(candidate)
+                candidate["structured_at"] = datetime.now(self._kst).isoformat()
+                candidate["validation"] = await self.validate_schema(
+                    candidate,
+                    extraction_method=candidate.get("structured_by", "policy_qna_repair"),
+                )
 
             self.logger.info(
                 "구조화 완료: case_id=%s (신뢰도=%.2f, valid=%s, structured_by=%s)",

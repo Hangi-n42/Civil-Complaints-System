@@ -1,0 +1,1415 @@
+{
+  "summary": {
+    "seed": 20260625,
+    "target": 30,
+    "scanned": 81,
+    "candidate_count": 30,
+    "model": "exaone3.5:7.8b",
+    "mode": "shadow",
+    "condition_A": "text evidence prompt, source max 3500, num_predict 512",
+    "condition_B": "source block evidence_ids prompt, top 30 blocks, num_predict 256, long proposal over-split guard",
+    "A": {
+      "condition": "A",
+      "total": 30,
+      "accepted": 21,
+      "rejected": 9,
+      "accepted_rate": 0.7,
+      "schema_failure": 2,
+      "evidence_mismatch": 5,
+      "hallucination_suspected": 5,
+      "oversplit_suspected": 1,
+      "avg_segment_count_when_accepted": 1.476,
+      "reject_reasons": [
+        [
+          "accepted",
+          21
+        ],
+        [
+          "evidence_not_in_source:0",
+          3
+        ],
+        [
+          "invalid_segment_count",
+          2
+        ],
+        [
+          "evidence_not_in_source:1",
+          2
+        ],
+        [
+          "weak_request_signal:0",
+          2
+        ]
+      ],
+      "latency_sec": {
+        "avg": 17.65,
+        "p95": 42.15,
+        "min": 5.05,
+        "max": 46.65,
+        "total": 529.58
+      }
+    },
+    "B": {
+      "condition": "B",
+      "total": 30,
+      "accepted": 23,
+      "rejected": 7,
+      "accepted_rate": 0.7667,
+      "schema_failure": 0,
+      "evidence_mismatch": 0,
+      "hallucination_suspected": 0,
+      "oversplit_suspected": 0,
+      "avg_segment_count_when_accepted": 1.13,
+      "reject_reasons": [
+        [
+          "accepted",
+          23
+        ],
+        [
+          "keep_rule",
+          3
+        ],
+        [
+          "weak_request_signal:1",
+          1
+        ],
+        [
+          "long_legal_or_proposal_over_split",
+          1
+        ],
+        [
+          "phone_dialogue_over_split",
+          1
+        ],
+        [
+          "weak_request_signal:0",
+          1
+        ]
+      ],
+      "latency_sec": {
+        "avg": 12.28,
+        "p95": 29.09,
+        "min": 5.98,
+        "max": 34.73,
+        "total": 368.46
+      }
+    }
+  },
+  "results": {
+    "A": [
+      {
+        "index": 1,
+        "source_id": "6901926",
+        "title": "의료기기 수리업, 판매(임대)업 신고 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "의료기기 수리업 및 판매(임대)업 신고 문의에 대하여 아래와 같이 알려드리니 참고하시기 바랍니다."
+        ],
+        "accepted": false,
+        "reject_reason": "invalid_segment_count",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 17.44,
+        "raw_response_head": "{\"request_segments\":[]}"
+      },
+      {
+        "index": 2,
+        "source_id": "800193",
+        "title": "버스배차시간",
+        "fallback_reasons": [
+          "fallback_single_segment",
+          "segment_too_long"
+        ],
+        "rule_segments": [
+          "안녕하세요. 수정구 ▲▲▲에서 ▲▲▲▲으로 가는 버스는 ▲▲▲ 단 한 대입니다. 그 길이 도보로 되어 있는 것도 아니고 오로지 교통수단인데요. 배차 간격이 화가 날 정도로 심합니다. 특히 출근 시간에 7시대~8시대 비일비재하여, 버스 기다리는 시간에 글 남깁니다. 차가 어디서 밀리는지 모르겠지만, 앱을 통해 보면 밀리는 것보다는 그냥 차 두 대가 동시 출발 같습니다. 안 그래도 교통편이 불편한데 버스까지 배차 시간이 20분 이러면 버스를 타라는 건지, 이게 한 번 두 번도 아니고 한 차에 사람 완전히 쏠리고 그다음 차는 또 텅텅 비어 오는 거 여러 번 봤습니다. 출근 시간에 신호 한 개 차이로 배차 간격이던데요."
+        ],
+        "accepted": false,
+        "reject_reason": "evidence_not_in_source:0",
+        "hallucination_suspected": true,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 27.79,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"버스 배차 간격 조정 요청\", \"evidence\":\"배차 간격이 화가 날 정도로 심합니다. 특히 출근 시간에 7시대~8시대 비일비재합니다.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"버스 운행 효율성 개선 요청\", \"evidence\":\"차가 어디서 밀리는지 모르겠지만, 앱을 통해 보면 밀리는 것보다는 그냥 차 두 대가 동시 출발 같습니다. 안 그래도 교통편이 불편한데 버스까지 배차 시간이 20분입니다.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"버스 승객 과밀 및 빈차 문제 해결 요청\", \"evidence\":\"한 차에 사람 완전히 쏠리고 그다음 차는 또 텅텅 비어 오는 거 여러 번 봤습니다.\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 3,
+        "source_id": "300697",
+        "title": "공인중개사법 위반여부",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "날인은 대리하거나 위임하여서 할 수 있는지?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "계약서 작성 및 서명.날인은 대리하거나 위임하여서 할 수 있는지?"
+        ],
+        "elapsed_sec": 12.71,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"계약서 작성 및 서명.날인은 대리하거나 위임하여서 할 수 있는지?\",\"evidence\":\"계약서 작성이나 서명. 날인은 대리하거나 위임하여서 할 수 있는지?\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 4,
+        "source_id": "80131",
+        "title": "빙판길 제설 작업 요청",
+        "fallback_reasons": [
+          "weak_request_signal"
+        ],
+        "rule_segments": [
+          "빙판길 제설 작업 또는 염화칼슘 작업을 요청드립니다.",
+          "이쪽 일대도 제설 작업이 이루어질 수 있도록 검토해 주세요.",
+          "빙판길에 어르신들 다치지 않게 신경 좀 써주세요~~ 부탁드립니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "빙판길 제설 작업 요청",
+          "작은 제설 차량 사용 요청",
+          "어르신 안전 고려 요청"
+        ],
+        "elapsed_sec": 22.5,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"빙판길 제설 작업 요청\", \"evidence\":\"빙판길 제설 작업 또는 염화칼슘 작업을 요청드립니다.\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"작은 제설 차량 사용 요청\", \"evidence\":\"골목이다 보니 큰 제설 작업 차량은 무리가 있고 작은 차량만 진입이 가능할 것 같습니다.\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"어르신 안전 고려 요청\", \"evidence\":\"빙판길에 어르신들 다치지 않게 신경 좀 써주세요~~ 부탁드립니다.\", \"reason\":\"독립 처리 요청\"}\n]}"
+      },
+      {
+        "index": 5,
+        "source_id": "6903816",
+        "title": "태추단감 재배 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "태추 단감 재배에서 과피가 검게 변하는 현상을 해결하려면 어떻게 해야 하나요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": null,
+        "llm_segments": [
+          "과피가 검게 변하는 현상 해결 방법은 무엇인가요?"
+        ],
+        "elapsed_sec": 12.51,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"과피가 검게 변하는 현상 해결 방법은 무엇인가요?\",\"evidence\":\"과피가 검게 변하는 현상을 해결하려면 어떻게 해야 하나요?\",\"reason\":\"독립 질의\"}],\"is_multi\":false,\"confidence\":0.95}"
+      },
+      {
+        "index": 6,
+        "source_id": "6907361",
+        "title": "노원평생학습관 에버러닝 수강 신청 방법",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "노원평생학습관 평생학습교실 에버러닝 수강 신청 방법을 알고 싶습니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "에버러닝 수강 신청 방법을 알려주세요."
+        ],
+        "elapsed_sec": 8.96,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"에버러닝 수강 신청 방법을 알려주세요.\",\"evidence\":\"에버러닝 수강 신청 방법을 알고 싶습니다.\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 7,
+        "source_id": "6902511",
+        "title": "민간발주 입찰에서 입찰 참여자들의 입찰가격이 동일한 것이 형법 제315조(경매, 입찰의 방",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 것이 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 여부"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": null,
+        "llm_segments": [
+          "민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 행위가 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 확인 부탁드립니다."
+        ],
+        "elapsed_sec": 19.66,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 행위가 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 확인 부탁드립니다.\",\n     \"evidence\":\"발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 것이 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 여부\",\n     \"reason\":\"독립 처리 요청\"}\n],\n\"is_multi\":false,\n\"confidence\":0.95}"
+      },
+      {
+        "index": 8,
+        "source_id": "800343",
+        "title": "▲▲▲ 지하차도 옆 도로 아스팔트 불량",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "▲▲▲ 지하차도 미관공사를 하면서 지상 도로에 대해 올해 아스팔트 포장을 새로 한 것으로 알고 있습니다. 공사가 부실해서인지 올해 여름 열기에 녹아서 아스팔트가 울퉁불퉁하게 변하였습니다. (▲▲▲ 사거리 -> ▲▲공원 방향, ▲▲▲▲ 앞쪽 도로) 다른 도로도 같은 상황이라면 모르겠으나, 유독 해당 부위만 도로의 아스팔트가 파이고 울퉁불퉁하게 밀리는 것은 부실 공사인 것 같네요. 미관 및 안전을 위해서라도 도로에 대한 보완이 필요합니다."
+        ],
+        "accepted": false,
+        "reject_reason": "evidence_not_in_source:0",
+        "hallucination_suspected": true,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 21.05,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"아스팔트 보수 요청합니다.\", \"evidence\":\"아스팔트가 파이고 울퉁불퉁하게 변하였습니다.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"부실 공사 확인 요청\", \"evidence\":\"유독 해당 부위만 도로의 아스팔트가 파이고 울퉁불퉁하게 밀리는 것은 부실 공사인 것 같네요.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"보수 일정 알려주세요.\", \"evidence\":\"미관 및 안전을 위해서라도 도로에 대한 보완이 필요합니다.\", \"reason\":\"독립 질의\"}\n]\n}"
+      },
+      {
+        "index": 9,
+        "source_id": "300558",
+        "title": "단위수량 측정에 대한 고시에 대한 질문",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "주택법 현장에서 단위 수량 측정을 하지 않고 종전의 기준을 적용하고 위해서는 사업 승인권자(시청 또는 구·군청)에게 인정을 받아야 하는지 아니면 조합이나 개인 등과 같은 기관이 아닌 발주자에게 인정을 받아도 되는 것인지에 대하여 문의드립니다."
+        ],
+        "accepted": false,
+        "reject_reason": "evidence_not_in_source:1",
+        "hallucination_suspected": true,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 27.56,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"발주기관의 장이 필요하다고 인정할 경우, 종전 기준 적용을 위한 승인 주체는 누구인가요?\", \n     \"evidence\":\"\\\"발주기관의 장이 필요하다고 인정하는 경우\\\"에서 질문드립니다.\", \n     \"reason\":\"독립 질의\"},\n    {\"text\":\"사업 승인권자(시청 또는 구·군청)와 발주자 중 누구에게 인정을 받아야 종전 기준을 적용할 수 있나요?\", \n     \"evidence\":\"\\\"사업 승인권자(시청 또는 구·군청)에게 인정을 받아야 하는지 아니면 조합이나 개인 등과 같은 기관이 아닌 발주자에게 인정을 받아도 되는 것인지\\\"\", \n     \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 10,
+        "source_id": "6898133",
+        "title": "국민연금(공적연금) 소득과 다른 소득(근로, 사업 등)이 있는 경우 종합소득세 확정신고를",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "국민연금(공적연금) 소득과 다른 소득(근로, 사업 등)이 있는 경우 종합소득세 확정신고를 해야 하나요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "종합소득세 확정신고를 해야 하나요?"
+        ],
+        "elapsed_sec": 12.0,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"종합소득세 확정신고를 해야 하나요?\",\"evidence\":\"국민연금(공적연금) 소득과 다른 소득(근로, 사업 등)이 있는 경우 종합소득세 확정신고를 해야 하나요?\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 11,
+        "source_id": "6903274",
+        "title": "해외직구식품 반입차단 대상 여부",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "NMN은 직구로 되나요"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "NMN의 해외직구 허용 여부"
+        ],
+        "elapsed_sec": 7.77,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"NMN의 해외직구 허용 여부\",\"evidence\":\"NMN은 직구로 되나요\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 12,
+        "source_id": "80092",
+        "title": "2030 안양시 도시계획도 재개발 구역에 ▲▲▲▲ 추가에 대한 건의",
+        "fallback_reasons": [
+          "weak_request_signal"
+        ],
+        "rule_segments": [
+          "본격적으로 시작될 2030 안양시 도시계획에 대한 정비 시행에 앞서 2030 재개발 구역에 ▲▲▲▲을 아래와 같은 이유들로 추가 대상으로 적합한지 면밀한 검토를 해주시기를 건의하는 바입니다.",
+          "▲▲▲, ▲▲▲은 같은 안양시에 포함되는 구역인데 행정구역의 차이로 인해 한 마을로 여겨지던 구역이 노후도나 주차, 교통시설이 똑같이 열악함에도 일차선을 두고 개발에 차이가 생기는 것에 대해 검토 부탁드립니다.",
+          "공식적인 시측 입장인지는 밝혀진 바 없지만 만약 이러한 이유로 개발진행이 늦춰지는 것은 큰 모순이 있다는 것을 말하고 싶습니다.",
+          "또한, 2029년 이후 개통되는 경강선 ▲▲▲▲▲역과 가까운 ▲▲이기에 ▲▲▲▲▲역 인근이라는 관점에서도 개발의 완성도 측면에서 ▲▲구역까지 포함하는 것이 더 좋다라고 생각되며 이에 대한 고려 부탁드립니다."
+        ],
+        "accepted": false,
+        "reject_reason": "evidence_not_in_source:0",
+        "hallucination_suspected": true,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 46.65,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"2030 안양시 도시계획 재개발 구역에 ▲▲▲▲ 추가 검토 요청\", \"evidence\":\"2030 재개발 구역에 ▲▲▲▲을 추가 대상으로 적합한지 면밀한 검토를 해주시기를 건의합니다.\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"행정구역 차이로 인한 개발 차이 검토 요청\", \"evidence\":\"▲▲▲, ▲▲▲은 같은 안양시에 포함되는 구역인데 행정구역 차이로 인해 개발에 차이가 생기는 것에 대해 검토 부탁드립니다.\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"상가 밀집 지역 개발 진행 어려움 검토 요청\", \"evidence\":\"▲▲▲▲에 많은 상가들이 자리 잡고 있어 개발을 진행하기 어렵다는 의견에 대한 검토 요청\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"▲▲▲▲역 인근 개발 포함 고려 요청\", \"evidence\":\"2029년 이후 개통되는 경강선 ▲▲▲▲▲역 인근 개발의 완성도를 위해 ▲▲구역 포함 고려 요청\", \"reason\":\"독립 처리 요청\"}\n]}"
+      },
+      {
+        "index": 13,
+        "source_id": "6900587",
+        "title": "민원신청시 진정민원 처리기간에 대해서",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "민원신청시 진정민원 처리기간이 어떻게 되나요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": null,
+        "llm_segments": [
+          "진정민원 처리기간이 어떻게 되나요?"
+        ],
+        "elapsed_sec": 11.19,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"진정민원 처리기간이 어떻게 되나요?\",\"evidence\":\"민원신청시 진정민원 처리기간이 어떻게 되나요?\",\"reason\":\"독립 질의\"}],\"is_multi\":false,\"confidence\":1.0}"
+      },
+      {
+        "index": 14,
+        "source_id": "6895970",
+        "title": "학원 면적이 500㎡이상인 경우, 제2종근린생활시설(학원) 표시변경 가능 여부",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "동일 건물 내 학원 면적이 500㎡이상인 경우, ○○○호의 제1종근린생활시설에 대하여 제2종근린생활시설(학원) 표시변경 가능 여부"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": null,
+        "llm_segments": [
+          "학원 면적이 500㎡이상인 경우 제2종근린생활시설(학원) 표시변경 가능 여부"
+        ],
+        "elapsed_sec": 15.6,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"학원 면적이 500㎡이상인 경우 제2종근린생활시설(학원) 표시변경 가능 여부\", \"evidence\":\"학원 면적이 500㎡이상인 경우, 제2종근린생활시설(학원) 표시변경 가능 여부\", \"reason\":\"독립 질의\"}\n], \"is_multi\":false, \"confidence\":0.95}"
+      },
+      {
+        "index": 15,
+        "source_id": "6892737",
+        "title": "순회영사 시 여권 대리발급신청 관련 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "순회영사 여권발급신청시 본인이 상황상 여건이 안된다면 위임장을 갖춘 대리인(직계가족이나 배우자 혹은 제3자)이 신청 가능한가요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "위임장을 갖춘 대리인이 순회영사 시 여권을 대신 신청 가능한가요?"
+        ],
+        "elapsed_sec": 11.42,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"위임장을 갖춘 대리인이 순회영사 시 여권을 대신 신청 가능한가요?\",\"evidence\":\"위임장을 갖춘 대리인(직계가족이나 배우자 혹은 제3자)이 신청 가능한가요?\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 16,
+        "source_id": "000614",
+        "title": "펫위탁소이용문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "1인 가구로서 강아지를 혼자 키우는데 주민등록상 타지역 거주자로 펫위탁소 이용을 문의합니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "펫위탁소 이용 가능 여부 문의"
+        ],
+        "elapsed_sec": 8.64,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"펫위탁소 이용 가능 여부 문의\",\"evidence\":\"펫위탁소 이용을 문의합니다.\",\"reason\":\"독립 처리 요청\"}]}"
+      },
+      {
+        "index": 17,
+        "source_id": "001808",
+        "title": "여보세요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "이용하려면 어떻게 해야 되는지 한번 문의 한번 하려고 전화드렸거든요.",
+          "그러면은 그 주차는 어디에다 해야 됩니까?",
+          "저기 뭐야 오늘 같은 경우에는 바로 현장 접수하나요?",
+          "그러면 현장 저기 그 홈페이지에서 다 찼을 경우에는 현장 예매는 안 됩니까?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "이용 방법 문의",
+          "주차 위치 문의",
+          "현장 접수 가능 여부",
+          "현장 예매 가능 여부"
+        ],
+        "elapsed_sec": 23.45,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"이용 방법 문의\", \"evidence\":\"이용하려면 어떻게 해야 되는지 한번 문의 한번 하려고 전화드렸거든요.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"주차 위치 문의\", \"evidence\":\"그러면은 그 주차는 어디에다 해야 됩니까?\", \"reason\":\"독립 질의\"},\n    {\"text\":\"현장 접수 가능 여부\", \"evidence\":\"오늘 같은 경우에는 바로 현장 접수하나요?\", \"reason\":\"독립 질의\"},\n    {\"text\":\"현장 예매 가능 여부\", \"evidence\":\"홈페이지에서 다 찼을 경우에는 현장 예매는 안 됩니까?\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 18,
+        "source_id": "002268",
+        "title": "네, 안녕하세요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "취소하려고 조회하니깐 뭐 예매 내역이 안 떠 가지고 결제 내역은 있는데 혹시 뭐 어떻게 된가 싶어 가지고요.",
+          "아 전화로 취소되나요, 혹시?",
+          "그거 그냥 전체 취소를 부탁드립니다.",
+          "지금 불러드려야 되죠?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "공연 예매 전체 취소 요청",
+          "전화로 취소 가능 여부 확인 요청"
+        ],
+        "elapsed_sec": 16.87,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"공연 예매 전체 취소 요청\", \"evidence\":\"그거 그냥 전체 취소를 부탁드립니다.\", \"reason\":\"독립 처리 요청\"},\n    {\"text\":\"전화로 취소 가능 여부 확인 요청\", \"evidence\":\"아 전화로 취소되나요, 혹시?\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 19,
+        "source_id": "6898750",
+        "title": "법인사업장의 사업자등록 정정 건에 대한 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "해당 사안의 경우 정관 수정을 거쳐야 하는지, 정관 수정 없이 법인등기부등본 수정하여 사업자등록증에 광고업 업종 추가 가능한지 문의 드립니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "정관 수정 없이 광고업 업종을 사업자등록증에 추가 가능한지 문의합니다."
+        ],
+        "elapsed_sec": 12.87,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"정관 수정 없이 광고업 업종을 사업자등록증에 추가 가능한지 문의합니다.\", \"evidence\":\"정관 수정 없이 법인등기부등본 수정하여 사업자등록증에 광고업 업종 추가 가능한지 문의 드립니다.\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 20,
+        "source_id": "000177",
+        "title": "새일여성인턴제도 건",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "영등포여성새로일하기센터를 통한 취업 연계 후 2개월여 지난 시점에서 새일여성인턴제도 참여를 희망하였으나 불가능하다는 안내를 받아 불만입니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "새일여성인턴제도 참여 가능 여부 재확인 요청"
+        ],
+        "elapsed_sec": 10.75,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"새일여성인턴제도 참여 가능 여부 재확인 요청\",\"evidence\":\"새일여성인턴제도 참여를 희망하였으나 불가능하다는 안내를 받아 불만입니다.\",\"reason\":\"독립 처리 요청\"}]}"
+      },
+      {
+        "index": 21,
+        "source_id": "6893980",
+        "title": "무주곤충이야기체험관 이용 방법",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "무주곤충이야기체험관 이용 방법"
+        ],
+        "accepted": false,
+        "reject_reason": "invalid_segment_count",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 5.05,
+        "raw_response_head": "{\"request_segments\":[]}"
+      },
+      {
+        "index": 22,
+        "source_id": "6906800",
+        "title": "(교육)공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split",
+          "phone_dialogue_uncertain"
+        ],
+        "rule_segments": [
+          "공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?"
+        ],
+        "elapsed_sec": 13.6,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?\",\"evidence\":\"공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?\",\"reason\":\"독립 질의\"}]}"
+      },
+      {
+        "index": 23,
+        "source_id": "6899254",
+        "title": "국방규격 표준서의 서식 및 작성에 관한 지침에 관련하여, 부품번호 창생 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "국방규격 표준서의 서식 및 작성에 관한 지침을 참고 하였으나, 상기와 같은 사례의 경우 어떻게 적용해야 할 지 잘 몰라서 문의 드립니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "부품번호 A 시리즈물 (A, A-1) 생성 방법 문의",
+          "기존 품번 유지 (A) 및 하위 버전 추가 (A/A-1) 가능 여부",
+          "품번 변경 시 (A-1/A-2) 필요한 행정 절차 문의"
+        ],
+        "elapsed_sec": 28.81,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"부품번호 A 시리즈물 (A, A-1) 생성 방법 문의\", \"evidence\":\"시리즈 물로 A, A-1 이런 식의 부품번호 부여가 필요합니다.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"기존 품번 유지 (A) 및 하위 버전 추가 (A/A-1) 가능 여부\", \"evidence\":\"기존 품번은 변경없이 A라는 품번을 두고 A/A-1 로 사용하여야 할지\", \"reason\":\"독립 질의\"},\n    {\"text\":\"품번 변경 시 (A-1/A-2) 필요한 행정 절차 문의\", \"evidence\":\"기존 품번 또한 변경하여, A-1/A-2 로 두 품목 모두 생성 해야 할지\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 24,
+        "source_id": "301341",
+        "title": "방화벽체에 배관을 관통하려고 합니다. 허가 대상인가요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "허가 대상인가요?",
+          "제목과 같이 방화벽체에 설비배관을 관통하려고 하면 위 \"5항 방화벽 또는 방화구획을 위한 바닥 또는 벽을 증설 또는 해체하거나 수선 또는 변경하는 것\"으로 보아서 건축허가를 받아야 하나요?"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "방화벽체에 배관을 관통하는 것이 허가 대상인가요?"
+        ],
+        "elapsed_sec": 16.32,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"방화벽체에 배관을 관통하는 것이 허가 대상인가요?\", \"evidence\":\"방화벽체에 배관을 관통하려고 합니다. 허가 대상인가요?\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 25,
+        "source_id": "6888063",
+        "title": "해외 전자도서 이용 방법",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "해외 전자 도서 이용 방법"
+        ],
+        "accepted": false,
+        "reject_reason": "weak_request_signal:0",
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 9.97,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"해외 전자 도서 이용 방법\",\"evidence\":\"해외 전자도서 이용 방법\",\"reason\":\"독립 질의\"}],\"is_multi\":false,\"confidence\":1.0}"
+      },
+      {
+        "index": 26,
+        "source_id": "6896386",
+        "title": "원주교육문화관 이용 시간 및 휴관일 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "◦ 원주교육문화관 이용시간 및 휴관일이 궁금합니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": null,
+        "llm_segments": [
+          "원주교육문화관 이용시간 및 휴관일이 궁금합니다."
+        ],
+        "elapsed_sec": 10.39,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"원주교육문화관 이용시간 및 휴관일이 궁금합니다.\",\"evidence\":\"원주교육문화관 이용시간 및 휴관일이 궁금합니다.\",\"reason\":\"독립 질의\"}],\"is_multi\":false,\"confidence\":1.0}"
+      },
+      {
+        "index": 27,
+        "source_id": "6902705",
+        "title": "교육급여 바우처(교육활동비지원) 신청 절차",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "교육급여 바우처(교육활동지원비) 신청 절차가 궁금합니다."
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": null,
+        "llm_segments": [
+          "교육급여 바우처(교육활동지원비) 신청 절차를 알려주세요."
+        ],
+        "elapsed_sec": 11.44,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"교육급여 바우처(교육활동지원비) 신청 절차를 알려주세요.\",\"evidence\":\"교육급여 바우처(교육활동지원비) 신청 절차가 궁금합니다.\",\"reason\":\"독립 질의\"}],\"is_multi\":false,\"confidence\":1.0}"
+      },
+      {
+        "index": 28,
+        "source_id": "20036",
+        "title": "화성시 ▲▲ ▲▲▲▲▲ 건출물분양에관한법률위반",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "분양 시 설계도는 벽으로 구분되어 있었지만, 공사를 진행하면서 설계변경을 하였다면 수분양자 전원에게 변경 사항을 10일 전에 내용증명 우편으로 알리고 동의를 받은 후에 설계변경 신청을 해야 하는 절차를 받아야 합니다.",
+          "이는, \"건축물분양에 관한 법률 시행규칙 제8조 설계의 변경 제2항 3호인 \"공사감리자가 건축허가를 받을 당시의 재료와동등하거나 그 이상이라고 판단한 내장 재료 및 외장재료의 변경\"에 해당하는 설계변경으로, \"건축물 분양에 관한 법률 제7조 2항 및 제10조 2항 6호에 해당하므로, 행정처분을 내려주시기 강력히 요청합니다."
+        ],
+        "accepted": false,
+        "reject_reason": "evidence_not_in_source:1",
+        "hallucination_suspected": true,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 42.15,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"설계 변경 시 수분양자 전원에게 변경 사항을 10일 전에 내용증명 우편으로 알린 후 동의를 받은 절차 이행 여부 확인 요청\", \"evidence\":\"분양 시 설계도는 벽으로 구분되어 있었지만, 공사를 진행하면서 설계변경을 하였다면 수분양자 전원에게 변경 사항을 10일 전에 내용증명 우편으로 알리고 동의를 받은 후에 설계변경 신청을 해야 하는 절차를 받아야 합니다.\", \"reason\":\"독립 질의\"},\n    {\"text\":\"건축물 분양 법률 위반에 대한 행정처분 요청\", \"evidence\":\"이에 화성시에서는 설계 도면을 면밀히 검토하시고 제10조 2항 6호에 해당하는 처분 내려주시기를 간곡히 요청합니다. <건축물의 분양에 관한 법률 제10조(벌칙)> 2항 6호를 위반한 것입니다.\", \"reason\":\"독립 질의\"}\n]}"
+      },
+      {
+        "index": 29,
+        "source_id": "6886761",
+        "title": "교원이외 학교 구성원(조리종사 여사님 등)에 대한 학생에 의한 인권침해 문제",
+        "fallback_reasons": [
+          "fallback_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "교원이외 학교 구성원(조리종사 여사님, 학교안전도우미 어르신, 청소담당 여사님 등)에 대한 학생에 의한 인권침해 문제"
+        ],
+        "accepted": false,
+        "reject_reason": "weak_request_signal:0",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [],
+        "elapsed_sec": 11.75,
+        "raw_response_head": "{\"request_segments\":[{\"text\":\"학생에 의한 교원외 학교 구성원 인권침해 문제 신고\",\"evidence\":\"교원이외 학교 구성원(조리종사 여사님 등)에 대한 학생에 의한 인권침해 문제\",\"reason\":\"독립 처리 요청\"}]}"
+      },
+      {
+        "index": 30,
+        "source_id": "6899262",
+        "title": "국방규격화 진행 가능 여부 문의.",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "만약 가능할 경우, 관련 절차와 방법은 어떻게 되는지 문의.(예 : 방위사업청 기반전력사업지원부 표준자원관리팀에 협조공문을 발송하여 진행 등)"
+        ],
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": null,
+        "llm_segments": [
+          "규격서, 도면, 필요한 기술문서(BOM, QAR 등) 작성을 통한 국방규격화 별도 진행 가능 여부 문의.",
+          "국방규격화 진행 관련 절차와 방법 문의.",
+          "국방규격화 불가능 시 사유 및 대안 문의."
+        ],
+        "elapsed_sec": 32.71,
+        "raw_response_head": "{\"request_segments\":[\n    {\"text\":\"규격서, 도면, 필요한 기술문서(BOM, QAR 등) 작성을 통한 국방규격화 별도 진행 가능 여부 문의.\",\n     \"evidence\":\"연구개발주관업체가 아니라도 규격서, 도면, 필요한 기술문서(BOM, QAR 등)을 작성하여 국방규격화를 별도로 진행할 수 있는지 문의.\",\n     \"reason\":\"독립 질의\"},\n    {\"text\":\"국방규격화 진행 관련 절차와 방법 문의.\",\n     \"evidence\":\"관련 절차와 방법은 어떻게 되는지 문의.(예 : 방위사업청 기반전력사업지원부 표준자원관리팀에 협조공문을 발송하여 진행 등)\",\n     \"reason\":\"독립 질의\"},\n    {\"text\":\"국방규격화 불가능 시 사유 및 대안 문의.\",\n     \"evidence\":\"만약 국방규격화가 불가능 할 경우, 사유와 다른 방법이 있는지 문의.\",\n     \"reason\":\"독립 질의\"}\n]}"
+      }
+    ],
+    "B": [
+      {
+        "index": 1,
+        "source_id": "6901926",
+        "title": "의료기기 수리업, 판매(임대)업 신고 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "의료기기 수리업 및 판매(임대)업 신고 문의에 대하여 아래와 같이 알려드리니 참고하시기 바랍니다."
+        ],
+        "block_count": 2,
+        "accepted": false,
+        "reject_reason": "keep_rule",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": "keep_rule",
+        "llm_segments": [],
+        "elapsed_sec": 6.75,
+        "raw_response_head": "{\"decision\":\"keep_rule\",\"segments\":[], \"confidence\":1.0}"
+      },
+      {
+        "index": 2,
+        "source_id": "800193",
+        "title": "버스배차시간",
+        "fallback_reasons": [
+          "fallback_single_segment",
+          "segment_too_long"
+        ],
+        "rule_segments": [
+          "안녕하세요. 수정구 ▲▲▲에서 ▲▲▲▲으로 가는 버스는 ▲▲▲ 단 한 대입니다. 그 길이 도보로 되어 있는 것도 아니고 오로지 교통수단인데요. 배차 간격이 화가 날 정도로 심합니다. 특히 출근 시간에 7시대~8시대 비일비재하여, 버스 기다리는 시간에 글 남깁니다. 차가 어디서 밀리는지 모르겠지만, 앱을 통해 보면 밀리는 것보다는 그냥 차 두 대가 동시 출발 같습니다. 안 그래도 교통편이 불편한데 버스까지 배차 시간이 20분 이러면 버스를 타라는 건지, 이게 한 번 두 번도 아니고 한 차에 사람 완전히 쏠리고 그다음 차는 또 텅텅 비어 오는 거 여러 번 봤습니다. 출근 시간에 신호 한 개 차이로 배차 간격이던데요."
+        ],
+        "block_count": 9,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "버스 배차 간격 개선 요청"
+        ],
+        "elapsed_sec": 12.49,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"버스 배차 간격 개선 요청\",\"evidence_ids\":[\"S5\",\"S6\",\"S8\",\"S9\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 3,
+        "source_id": "300697",
+        "title": "공인중개사법 위반여부",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "날인은 대리하거나 위임하여서 할 수 있는지?"
+        ],
+        "block_count": 6,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "공인중개사법 위반 여부 확인"
+        ],
+        "elapsed_sec": 9.86,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"공인중개사법 위반 여부 확인\",\"evidence_ids\":[\"S1\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 4,
+        "source_id": "80131",
+        "title": "빙판길 제설 작업 요청",
+        "fallback_reasons": [
+          "weak_request_signal"
+        ],
+        "rule_segments": [
+          "빙판길 제설 작업 또는 염화칼슘 작업을 요청드립니다.",
+          "이쪽 일대도 제설 작업이 이루어질 수 있도록 검토해 주세요.",
+          "빙판길에 어르신들 다치지 않게 신경 좀 써주세요~~ 부탁드립니다."
+        ],
+        "block_count": 11,
+        "accepted": false,
+        "reject_reason": "weak_request_signal:1",
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [],
+        "elapsed_sec": 18.35,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[\n    {\"text\":\"빙판길 제설 작업 요청\", \"evidence_ids\":[\"S1\"]},\n    {\"text\":\"이쪽 일대도 제설 작업이 이루어질 수 있도록 검토해 주세요.\", \"evidence_ids\":[\"S9\"]},\n    {\"text\":\"빙판길에 어르신들 다치지 않게 신경 써주세요.\", \"evidence_ids\":[\"S11\"]}\n], \"confidence\":0.9}"
+      },
+      {
+        "index": 5,
+        "source_id": "6903816",
+        "title": "태추단감 재배 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "태추 단감 재배에서 과피가 검게 변하는 현상을 해결하려면 어떻게 해야 하나요?"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "태추 단감 재배에서 과피가 검게 변하는 현상 해결 방법을 알려주세요."
+        ],
+        "elapsed_sec": 9.71,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"태추 단감 재배에서 과피가 검게 변하는 현상 해결 방법을 알려주세요.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 6,
+        "source_id": "6907361",
+        "title": "노원평생학습관 에버러닝 수강 신청 방법",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "노원평생학습관 평생학습교실 에버러닝 수강 신청 방법을 알고 싶습니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": "replace",
+        "llm_segments": [
+          "노원평생학습관 평생학습교실 에버러닝 수강 신청 방법을 알고 싶습니다."
+        ],
+        "elapsed_sec": 9.66,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"노원평생학습관 평생학습교실 에버러닝 수강 신청 방법을 알고 싶습니다.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":1.0}"
+      },
+      {
+        "index": 7,
+        "source_id": "6902511",
+        "title": "민간발주 입찰에서 입찰 참여자들의 입찰가격이 동일한 것이 형법 제315조(경매, 입찰의 방",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 것이 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 여부"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": "replace",
+        "llm_segments": [
+          "민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 것이 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 여부"
+        ],
+        "elapsed_sec": 12.72,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"민간발주 입찰에서 발주기관이 특정업체와 유착하여 사전에 낙찰자를 정하는 것이 공정거래법 제40조 제1항 제8호의 입찰담합에 해당하는지 여부\",\"evidence_ids\":[\"S2\"]}],\"confidence\":1.0}"
+      },
+      {
+        "index": 8,
+        "source_id": "800343",
+        "title": "▲▲▲ 지하차도 옆 도로 아스팔트 불량",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "▲▲▲ 지하차도 미관공사를 하면서 지상 도로에 대해 올해 아스팔트 포장을 새로 한 것으로 알고 있습니다. 공사가 부실해서인지 올해 여름 열기에 녹아서 아스팔트가 울퉁불퉁하게 변하였습니다. (▲▲▲ 사거리 -> ▲▲공원 방향, ▲▲▲▲ 앞쪽 도로) 다른 도로도 같은 상황이라면 모르겠으나, 유독 해당 부위만 도로의 아스팔트가 파이고 울퉁불퉁하게 밀리는 것은 부실 공사인 것 같네요. 미관 및 안전을 위해서라도 도로에 대한 보완이 필요합니다."
+        ],
+        "block_count": 7,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.85,
+        "decision": "replace",
+        "llm_segments": [
+          "아스팔트 보수 요청"
+        ],
+        "elapsed_sec": 10.94,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"아스팔트 보수 요청\", \"evidence_ids\":[\"S3\", \"S6\"]}],\"confidence\":0.85}"
+      },
+      {
+        "index": 9,
+        "source_id": "300558",
+        "title": "단위수량 측정에 대한 고시에 대한 질문",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "주택법 현장에서 단위 수량 측정을 하지 않고 종전의 기준을 적용하고 위해서는 사업 승인권자(시청 또는 구·군청)에게 인정을 받아야 하는지 아니면 조합이나 개인 등과 같은 기관이 아닌 발주자에게 인정을 받아도 되는 것인지에 대하여 문의드립니다."
+        ],
+        "block_count": 5,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [
+          "단위 수량 측정을 종전 기준으로 적용하기 위한 인정 절차에 대해 문의드립니다."
+        ],
+        "elapsed_sec": 12.75,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"단위 수량 측정을 종전 기준으로 적용하기 위한 인정 절차에 대해 문의드립니다.\",\"evidence_ids\":[\"S5\"]}],\"confidence\":0.9}"
+      },
+      {
+        "index": 10,
+        "source_id": "6898133",
+        "title": "국민연금(공적연금) 소득과 다른 소득(근로, 사업 등)이 있는 경우 종합소득세 확정신고를",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "국민연금(공적연금) 소득과 다른 소득(근로, 사업 등)이 있는 경우 종합소득세 확정신고를 해야 하나요?"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "종합소득세 확정신고를 해야 하나요?"
+        ],
+        "elapsed_sec": 9.02,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"종합소득세 확정신고를 해야 하나요?\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 11,
+        "source_id": "6903274",
+        "title": "해외직구식품 반입차단 대상 여부",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "NMN은 직구로 되나요"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "해외직구식품 반입차단 대상 여부"
+        ],
+        "elapsed_sec": 8.46,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"해외직구식품 반입차단 대상 여부\",\"evidence_ids\":[\"S1\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 12,
+        "source_id": "80092",
+        "title": "2030 안양시 도시계획도 재개발 구역에 ▲▲▲▲ 추가에 대한 건의",
+        "fallback_reasons": [
+          "weak_request_signal"
+        ],
+        "rule_segments": [
+          "본격적으로 시작될 2030 안양시 도시계획에 대한 정비 시행에 앞서 2030 재개발 구역에 ▲▲▲▲을 아래와 같은 이유들로 추가 대상으로 적합한지 면밀한 검토를 해주시기를 건의하는 바입니다.",
+          "▲▲▲, ▲▲▲은 같은 안양시에 포함되는 구역인데 행정구역의 차이로 인해 한 마을로 여겨지던 구역이 노후도나 주차, 교통시설이 똑같이 열악함에도 일차선을 두고 개발에 차이가 생기는 것에 대해 검토 부탁드립니다.",
+          "공식적인 시측 입장인지는 밝혀진 바 없지만 만약 이러한 이유로 개발진행이 늦춰지는 것은 큰 모순이 있다는 것을 말하고 싶습니다.",
+          "또한, 2029년 이후 개통되는 경강선 ▲▲▲▲▲역과 가까운 ▲▲이기에 ▲▲▲▲▲역 인근이라는 관점에서도 개발의 완성도 측면에서 ▲▲구역까지 포함하는 것이 더 좋다라고 생각되며 이에 대한 고려 부탁드립니다."
+        ],
+        "block_count": 20,
+        "accepted": false,
+        "reject_reason": "long_legal_or_proposal_over_split",
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [],
+        "elapsed_sec": 34.73,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[\n    {\"text\":\"2030 안양시 도시계획 재개발 구역에 특정 지역 추가 검토 요청\", \"evidence_ids\":[\"S1\"]},\n    {\"text\":\"동일 지역 내 행정구역 차이로 인한 개발 불균형 검토 요청\", \"evidence_ids\":[\"S9\"]},\n    {\"text\":\"상가 밀집 지역 개발 어려움 고려한 재개발 구역 확대 검토 요청\", \"evidence_ids\":[\"S12\"]},\n    {\"text\":\"경강선 인근 개발 연계성 고려한 구역 포함 검토 요청\", \"evidence_ids\":[\"S17\"]}\n], \"confidence\":0.9}"
+      },
+      {
+        "index": 13,
+        "source_id": "6900587",
+        "title": "민원신청시 진정민원 처리기간에 대해서",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "민원신청시 진정민원 처리기간이 어떻게 되나요?"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": "replace",
+        "llm_segments": [
+          "민원신청시 진정민원 처리기간이 어떻게 되나요?"
+        ],
+        "elapsed_sec": 8.88,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"민원신청시 진정민원 처리기간이 어떻게 되나요?\",\"evidence_ids\":[\"S2\"]}],\"confidence\":1.0}"
+      },
+      {
+        "index": 14,
+        "source_id": "6895970",
+        "title": "학원 면적이 500㎡이상인 경우, 제2종근린생활시설(학원) 표시변경 가능 여부",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "동일 건물 내 학원 면적이 500㎡이상인 경우, ○○○호의 제1종근린생활시설에 대하여 제2종근린생활시설(학원) 표시변경 가능 여부"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [
+          "학원 면적이 500㎡이상인 경우 제2종근린생활시설(학원) 표시변경 가능 여부 확인"
+        ],
+        "elapsed_sec": 11.23,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"학원 면적이 500㎡이상인 경우 제2종근린생활시설(학원) 표시변경 가능 여부 확인\",\"evidence_ids\":[\"S1\"]}],\"confidence\":0.9}"
+      },
+      {
+        "index": 15,
+        "source_id": "6892737",
+        "title": "순회영사 시 여권 대리발급신청 관련 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "순회영사 여권발급신청시 본인이 상황상 여건이 안된다면 위임장을 갖춘 대리인(직계가족이나 배우자 혹은 제3자)이 신청 가능한가요?"
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "위임장을 갖춘 대리인(직계가족이나 배우자 혹은 제3자)이 순회영사 여권발급신청을 할 수 있는지 문의합니다."
+        ],
+        "elapsed_sec": 11.39,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"위임장을 갖춘 대리인(직계가족이나 배우자 혹은 제3자)이 순회영사 여권발급신청을 할 수 있는지 문의합니다.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 16,
+        "source_id": "000614",
+        "title": "펫위탁소이용문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "1인 가구로서 강아지를 혼자 키우는데 주민등록상 타지역 거주자로 펫위탁소 이용을 문의합니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "펫위탁소 이용 가능 여부 문의합니다."
+        ],
+        "elapsed_sec": 8.74,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"펫위탁소 이용 가능 여부 문의합니다.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 17,
+        "source_id": "001808",
+        "title": "여보세요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "이용하려면 어떻게 해야 되는지 한번 문의 한번 하려고 전화드렸거든요.",
+          "그러면은 그 주차는 어디에다 해야 됩니까?",
+          "저기 뭐야 오늘 같은 경우에는 바로 현장 접수하나요?",
+          "그러면 현장 저기 그 홈페이지에서 다 찼을 경우에는 현장 예매는 안 됩니까?"
+        ],
+        "block_count": 13,
+        "accepted": false,
+        "reject_reason": "phone_dialogue_over_split",
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [],
+        "elapsed_sec": 17.79,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[\n    {\"text\":\"이용 방법 문의\", \"evidence_ids\":[\"S3\"]},\n    {\"text\":\"주차 장소 문의\", \"evidence_ids\":[\"S9\"]},\n    {\"text\":\"현장 접수 가능 여부 문의\", \"evidence_ids\":[\"S11\"]},\n    {\"text\":\"현장 예매 가능 여부 문의\", \"evidence_ids\":[\"S12\"]}\n], \"confidence\":0.9}"
+      },
+      {
+        "index": 18,
+        "source_id": "002268",
+        "title": "네, 안녕하세요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "취소하려고 조회하니깐 뭐 예매 내역이 안 떠 가지고 결제 내역은 있는데 혹시 뭐 어떻게 된가 싶어 가지고요.",
+          "아 전화로 취소되나요, 혹시?",
+          "그거 그냥 전체 취소를 부탁드립니다.",
+          "지금 불러드려야 되죠?"
+        ],
+        "block_count": 18,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "전체 취소를 요청합니다."
+        ],
+        "elapsed_sec": 10.67,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"전체 취소를 요청합니다.\",\"evidence_ids\":[\"S11\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 19,
+        "source_id": "6898750",
+        "title": "법인사업장의 사업자등록 정정 건에 대한 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "해당 사안의 경우 정관 수정을 거쳐야 하는지, 정관 수정 없이 법인등기부등본 수정하여 사업자등록증에 광고업 업종 추가 가능한지 문의 드립니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "법인사업장의 광고업 업종 추가에 대한 정관 수정 필요 여부 문의"
+        ],
+        "elapsed_sec": 9.74,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"법인사업장의 광고업 업종 추가에 대한 정관 수정 필요 여부 문의\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 20,
+        "source_id": "000177",
+        "title": "새일여성인턴제도 건",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "영등포여성새로일하기센터를 통한 취업 연계 후 2개월여 지난 시점에서 새일여성인턴제도 참여를 희망하였으나 불가능하다는 안내를 받아 불만입니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "새일여성인턴제도 참여 가능 여부 확인 요청"
+        ],
+        "elapsed_sec": 9.26,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"새일여성인턴제도 참여 가능 여부 확인 요청\",\"evidence_ids\":[\"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 21,
+        "source_id": "6893980",
+        "title": "무주곤충이야기체험관 이용 방법",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "무주곤충이야기체험관 이용 방법"
+        ],
+        "block_count": 1,
+        "accepted": false,
+        "reject_reason": "keep_rule",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": "keep_rule",
+        "llm_segments": [],
+        "elapsed_sec": 6.22,
+        "raw_response_head": "{\"decision\":\"keep_rule\",\"segments\":[], \"confidence\":1.0}"
+      },
+      {
+        "index": 22,
+        "source_id": "6906800",
+        "title": "(교육)공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split",
+          "phone_dialogue_uncertain"
+        ],
+        "rule_segments": [
+          "공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?"
+        ],
+        "block_count": 13,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?"
+        ],
+        "elapsed_sec": 14.17,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"공무원인 경우 근무일에 연가를 사용하여 해외여행 갈 수 있나요?\",\"evidence_ids\":[\"S1\", \"S2\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 23,
+        "source_id": "6899254",
+        "title": "국방규격 표준서의 서식 및 작성에 관한 지침에 관련하여, 부품번호 창생 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "국방규격 표준서의 서식 및 작성에 관한 지침을 참고 하였으나, 상기와 같은 사례의 경우 어떻게 적용해야 할 지 잘 몰라서 문의 드립니다."
+        ],
+        "block_count": 12,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "부품번호 시리즈 생성 지침 문의"
+        ],
+        "elapsed_sec": 13.29,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"부품번호 시리즈 생성 지침 문의\",\"evidence_ids\":[\"S1\",\"S4\",\"S6\",\"S7\",\"S8\",\"S9\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 24,
+        "source_id": "301341",
+        "title": "방화벽체에 배관을 관통하려고 합니다. 허가 대상인가요?",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "허가 대상인가요?",
+          "제목과 같이 방화벽체에 설비배관을 관통하려고 하면 위 \"5항 방화벽 또는 방화구획을 위한 바닥 또는 벽을 증설 또는 해체하거나 수선 또는 변경하는 것\"으로 보아서 건축허가를 받아야 하나요?"
+        ],
+        "block_count": 13,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "방화벽체에 배관을 관통하는 것이 허가 대상인지 확인 부탁드립니다."
+        ],
+        "elapsed_sec": 9.64,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"방화벽체에 배관을 관통하는 것이 허가 대상인지 확인 부탁드립니다.\",\"evidence_ids\":[\"S1\",\"S13\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 25,
+        "source_id": "6888063",
+        "title": "해외 전자도서 이용 방법",
+        "fallback_reasons": [
+          "fallback_single_segment"
+        ],
+        "rule_segments": [
+          "해외 전자 도서 이용 방법"
+        ],
+        "block_count": 1,
+        "accepted": false,
+        "reject_reason": "keep_rule",
+        "hallucination_suspected": false,
+        "confidence": null,
+        "decision": "keep_rule",
+        "llm_segments": [],
+        "elapsed_sec": 5.98,
+        "raw_response_head": "{\"decision\":\"keep_rule\",\"segments\":[], \"confidence\":1.0}"
+      },
+      {
+        "index": 26,
+        "source_id": "6896386",
+        "title": "원주교육문화관 이용 시간 및 휴관일 문의",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "◦ 원주교육문화관 이용시간 및 휴관일이 궁금합니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": "replace",
+        "llm_segments": [
+          "원주교육문화관 이용시간 및 휴관일이 궁금합니다."
+        ],
+        "elapsed_sec": 8.95,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"원주교육문화관 이용시간 및 휴관일이 궁금합니다.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":1.0}"
+      },
+      {
+        "index": 27,
+        "source_id": "6902705",
+        "title": "교육급여 바우처(교육활동비지원) 신청 절차",
+        "fallback_reasons": [
+          "strong_candidate_single_segment"
+        ],
+        "rule_segments": [
+          "교육급여 바우처(교육활동지원비) 신청 절차가 궁금합니다."
+        ],
+        "block_count": 2,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 1.0,
+        "decision": "replace",
+        "llm_segments": [
+          "교육급여 바우처(교육활동지원비) 신청 절차가 궁금합니다."
+        ],
+        "elapsed_sec": 9.27,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"교육급여 바우처(교육활동지원비) 신청 절차가 궁금합니다.\",\"evidence_ids\":[\"S2\"]}],\"confidence\":1.0}"
+      },
+      {
+        "index": 28,
+        "source_id": "20036",
+        "title": "화성시 ▲▲ ▲▲▲▲▲ 건출물분양에관한법률위반",
+        "fallback_reasons": [
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "분양 시 설계도는 벽으로 구분되어 있었지만, 공사를 진행하면서 설계변경을 하였다면 수분양자 전원에게 변경 사항을 10일 전에 내용증명 우편으로 알리고 동의를 받은 후에 설계변경 신청을 해야 하는 절차를 받아야 합니다.",
+          "이는, \"건축물분양에 관한 법률 시행규칙 제8조 설계의 변경 제2항 3호인 \"공사감리자가 건축허가를 받을 당시의 재료와동등하거나 그 이상이라고 판단한 내장 재료 및 외장재료의 변경\"에 해당하는 설계변경으로, \"건축물 분양에 관한 법률 제7조 2항 및 제10조 2항 6호에 해당하므로, 행정처분을 내려주시기 강력히 요청합니다."
+        ],
+        "block_count": 19,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.9,
+        "decision": "replace",
+        "llm_segments": [
+          "상가 설계 변경 과정에서 수분양자 전원에게 변경 사항을 알리지 않은 것은 건축물 분양에 관한 법률 위반으로 판단됩니다. 행정처분을 요청합니다.",
+          "설계 변경 시 수분양자 동의 절차 미준수에 대한 조사와 처분 요청"
+        ],
+        "elapsed_sec": 29.09,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[\n    {\"text\":\"상가 설계 변경 과정에서 수분양자 전원에게 변경 사항을 알리지 않은 것은 건축물 분양에 관한 법률 위반으로 판단됩니다. 행정처분을 요청합니다.\", \"evidence_ids\":[\"S12\", \"S14\", \"S19\"]},\n    {\"text\":\"설계 변경 시 수분양자 동의 절차 미준수에 대한 조사와 처분 요청\", \"evidence_ids\":[\"S13\", \"S18\"]}\n], \"confidence\":0.9}"
+      },
+      {
+        "index": 29,
+        "source_id": "6886761",
+        "title": "교원이외 학교 구성원(조리종사 여사님 등)에 대한 학생에 의한 인권침해 문제",
+        "fallback_reasons": [
+          "fallback_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "교원이외 학교 구성원(조리종사 여사님, 학교안전도우미 어르신, 청소담당 여사님 등)에 대한 학생에 의한 인권침해 문제"
+        ],
+        "block_count": 2,
+        "accepted": false,
+        "reject_reason": "weak_request_signal:0",
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [],
+        "elapsed_sec": 10.23,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[{\"text\":\"교원이외 학교 구성원(조리종사 여사님 등)에 대한 학생 인권침해 문제 신고\",\"evidence_ids\":[\"S1\"]}],\"confidence\":0.95}"
+      },
+      {
+        "index": 30,
+        "source_id": "6899262",
+        "title": "국방규격화 진행 가능 여부 문의.",
+        "fallback_reasons": [
+          "strong_candidate_single_segment",
+          "numbered_under_split"
+        ],
+        "rule_segments": [
+          "만약 가능할 경우, 관련 절차와 방법은 어떻게 되는지 문의.(예 : 방위사업청 기반전력사업지원부 표준자원관리팀에 협조공문을 발송하여 진행 등)"
+        ],
+        "block_count": 9,
+        "accepted": true,
+        "reject_reason": null,
+        "hallucination_suspected": false,
+        "confidence": 0.95,
+        "decision": "replace",
+        "llm_segments": [
+          "국방규격화 별도 진행 가능 여부 문의",
+          "국방규격화 관련 절차와 방법 문의",
+          "국방규격화 불가능 시 사유 및 대안 문의"
+        ],
+        "elapsed_sec": 18.48,
+        "raw_response_head": "{\"decision\":\"replace\",\"segments\":[\n    {\"text\":\"국방규격화 별도 진행 가능 여부 문의\", \"evidence_ids\":[\"S6\"]},\n    {\"text\":\"국방규격화 관련 절차와 방법 문의\", \"evidence_ids\":[\"S7\"]},\n    {\"text\":\"국방규격화 불가능 시 사유 및 대안 문의\", \"evidence_ids\":[\"S8\"]}\n], \"confidence\":0.95}"
+      }
+    ]
+  }
+}

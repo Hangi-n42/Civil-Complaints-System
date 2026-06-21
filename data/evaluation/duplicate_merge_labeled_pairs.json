@@ -1,0 +1,7357 @@
+[
+  {
+    "pair_id": "TD-001",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-001-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-001-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음",
+        "행복아파트 인근"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-001-a": "facility_improvement",
+      "td-001-b": "facility_improvement"
+    },
+    "notes": "apartment-noise 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-002",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-002-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-002-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음",
+        "행복아파트 인근"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-002-a": "facility_improvement",
+      "td-002-b": "facility_improvement"
+    },
+    "notes": "apartment-noise 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-003",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-003-a",
+      "received_at": "2026-06-20T09:06:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-003-b",
+      "received_at": "2026-06-20T09:07:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음",
+        "행복아파트 인근"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-003-a": "facility_improvement",
+      "td-003-b": "facility_improvement"
+    },
+    "notes": "apartment-noise 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-004",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-004-a",
+      "received_at": "2026-06-20T09:09:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-004-b",
+      "received_at": "2026-06-20T09:10:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음",
+        "행복아파트 인근"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-004-a": "facility_improvement",
+      "td-004-b": "facility_improvement"
+    },
+    "notes": "apartment-noise 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-005",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-005-a",
+      "received_at": "2026-06-20T09:12:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-005-b",
+      "received_at": "2026-06-20T09:13:00+00:00",
+      "body": "행복아파트 야간 공사 소음 보수 요청",
+      "region": "행복아파트",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "행복아파트",
+        "정문",
+        "소음",
+        "행복아파트 인근"
+      ],
+      "request_segments": [
+        "야간 공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "야간 공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-005-a": "facility_improvement",
+      "td-005-b": "facility_improvement"
+    },
+    "notes": "apartment-noise 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-006",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-006-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-006-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀",
+        "중앙로12길 인근"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-006-a": "safety_action",
+      "td-006-b": "safety_action"
+    },
+    "notes": "road-pothole 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-007",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-007-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-007-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀",
+        "중앙로12길 인근"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-007-a": "safety_action",
+      "td-007-b": "safety_action"
+    },
+    "notes": "road-pothole 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-008",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-008-a",
+      "received_at": "2026-06-20T09:06:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-008-b",
+      "received_at": "2026-06-20T09:07:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀",
+        "중앙로12길 인근"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-008-a": "safety_action",
+      "td-008-b": "safety_action"
+    },
+    "notes": "road-pothole 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-009",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-009-a",
+      "received_at": "2026-06-20T09:09:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-009-b",
+      "received_at": "2026-06-20T09:10:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀",
+        "중앙로12길 인근"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-009-a": "safety_action",
+      "td-009-b": "safety_action"
+    },
+    "notes": "road-pothole 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-010",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-010-a",
+      "received_at": "2026-06-20T09:12:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-010-b",
+      "received_at": "2026-06-20T09:13:00+00:00",
+      "body": "중앙로12길 도로 파임 긴급 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "도로관리과",
+      "civil_category": "도로",
+      "entity_texts": [
+        "중앙로12길",
+        "포트홀",
+        "중앙로12길 인근"
+      ],
+      "request_segments": [
+        "도로 파임 긴급 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 파임 긴급 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-010-a": "safety_action",
+      "td-010-b": "safety_action"
+    },
+    "notes": "road-pothole 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-011",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-011-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-011-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기",
+        "새빛공원 인근"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-011-a": "enforcement",
+      "td-011-b": "enforcement"
+    },
+    "notes": "trash-dump 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-012",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-012-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-012-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기",
+        "새빛공원 인근"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-012-a": "enforcement",
+      "td-012-b": "enforcement"
+    },
+    "notes": "trash-dump 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-013",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-013-a",
+      "received_at": "2026-06-20T09:06:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-013-b",
+      "received_at": "2026-06-20T09:07:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기",
+        "새빛공원 인근"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-013-a": "enforcement",
+      "td-013-b": "enforcement"
+    },
+    "notes": "trash-dump 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-014",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-014-a",
+      "received_at": "2026-06-20T09:09:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-014-b",
+      "received_at": "2026-06-20T09:10:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기",
+        "새빛공원 인근"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-014-a": "enforcement",
+      "td-014-b": "enforcement"
+    },
+    "notes": "trash-dump 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-015",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-015-a",
+      "received_at": "2026-06-20T09:12:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-015-b",
+      "received_at": "2026-06-20T09:13:00+00:00",
+      "body": "새빛공원 무단투기 단속 요청",
+      "region": "새빛공원",
+      "final_department": "청소행정과",
+      "civil_category": "환경",
+      "entity_texts": [
+        "새빛공원",
+        "무단투기",
+        "새빛공원 인근"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛공원 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-015-a": "enforcement",
+      "td-015-b": "enforcement"
+    },
+    "notes": "trash-dump 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-016",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-016-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-016-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등",
+        "푸른초등학교 인근"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-016-a": "facility_improvement",
+      "td-016-b": "facility_improvement"
+    },
+    "notes": "streetlight 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-017",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-017-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-017-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등",
+        "푸른초등학교 인근"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-017-a": "facility_improvement",
+      "td-017-b": "facility_improvement"
+    },
+    "notes": "streetlight 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-018",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-018-a",
+      "received_at": "2026-06-20T09:06:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-018-b",
+      "received_at": "2026-06-20T09:07:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등",
+        "푸른초등학교 인근"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-018-a": "facility_improvement",
+      "td-018-b": "facility_improvement"
+    },
+    "notes": "streetlight 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-019",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-019-a",
+      "received_at": "2026-06-20T09:09:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-019-b",
+      "received_at": "2026-06-20T09:10:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등",
+        "푸른초등학교 인근"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-019-a": "facility_improvement",
+      "td-019-b": "facility_improvement"
+    },
+    "notes": "streetlight 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-020",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-020-a",
+      "received_at": "2026-06-20T09:12:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-020-b",
+      "received_at": "2026-06-20T09:13:00+00:00",
+      "body": "푸른초등학교 가로등 교체 요청",
+      "region": "푸른초등학교",
+      "final_department": "도로조명과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른초등학교",
+        "가로등",
+        "푸른초등학교 인근"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른초등학교 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-020-a": "facility_improvement",
+      "td-020-b": "facility_improvement"
+    },
+    "notes": "streetlight 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-021",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-021-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-021-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로",
+        "한강대로5길 인근"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-021-a": "facility_improvement",
+      "td-021-b": "facility_improvement"
+    },
+    "notes": "drainage 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-022",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-022-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-022-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로",
+        "한강대로5길 인근"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-022-a": "facility_improvement",
+      "td-022-b": "facility_improvement"
+    },
+    "notes": "drainage 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-023",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-023-a",
+      "received_at": "2026-06-20T09:06:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-023-b",
+      "received_at": "2026-06-20T09:07:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로",
+        "한강대로5길 인근"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-023-a": "facility_improvement",
+      "td-023-b": "facility_improvement"
+    },
+    "notes": "drainage 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-024",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-024-a",
+      "received_at": "2026-06-20T09:09:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-024-b",
+      "received_at": "2026-06-20T09:10:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로",
+        "한강대로5길 인근"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-024-a": "facility_improvement",
+      "td-024-b": "facility_improvement"
+    },
+    "notes": "drainage 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "TD-025",
+    "category": "true duplicate",
+    "left_event": {
+      "id": "td-025-a",
+      "received_at": "2026-06-20T09:12:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 주변에서 같은 문제가 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "td-025-b",
+      "received_at": "2026-06-20T09:13:00+00:00",
+      "body": "한강대로5길 배수로 정비 요청",
+      "region": "한강대로5길",
+      "final_department": "하수관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한강대로5길",
+        "배수로",
+        "한강대로5길 인근"
+      ],
+      "request_segments": [
+        "배수로 정비 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한강대로5길 인근 주민들이 같은 불편을 다시 신고했습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "배수로 정비 요청"
+        },
+        "context": {
+          "text": "한강대로5길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "td-025-a": "facility_improvement",
+      "td-025-b": "facility_improvement"
+    },
+    "notes": "drainage 동일 장소 동일 요청 반복 접수"
+  },
+  {
+    "pair_id": "SK-001",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-001-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구청 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구청 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-001-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구문화센터 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구문화센터 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-001-a": "facility_improvement",
+      "sk-001-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-002",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-002-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구청 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구청 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-002-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구문화센터 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구문화센터 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-002-a": "facility_improvement",
+      "sk-002-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-003",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-003-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구청 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구청 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-003-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구문화센터 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구문화센터 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-003-a": "facility_improvement",
+      "sk-003-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-004",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-004-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구청 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구청 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-004-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구문화센터 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구문화센터 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-004-a": "facility_improvement",
+      "sk-004-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-005",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-005-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구청 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구청 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-005-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중구문화센터 앞",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중구문화센터 앞 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-005-a": "facility_improvement",
+      "sk-005-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-006",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-006-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 북문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 북문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-006-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 남문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 남문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-006-a": "facility_improvement",
+      "sk-006-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-007",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-007-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 북문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 북문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-007-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 남문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 남문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-007-a": "facility_improvement",
+      "sk-007-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-008",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-008-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 북문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 북문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-008-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 남문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 남문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-008-a": "facility_improvement",
+      "sk-008-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-009",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-009-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 북문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 북문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-009-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 남문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 남문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-009-a": "facility_improvement",
+      "sk-009-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-010",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-010-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 북문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 북문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-010-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "남산공원 남문",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "남산공원 남문 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-010-a": "facility_improvement",
+      "sk-010-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-011",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-011-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "새빛아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-011-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "푸른아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-011-a": "facility_improvement",
+      "sk-011-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-012",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-012-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "새빛아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-012-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "푸른아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-012-a": "facility_improvement",
+      "sk-012-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-013",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-013-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "새빛아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-013-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "푸른아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-013-a": "facility_improvement",
+      "sk-013-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-014",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-014-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "새빛아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-014-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "푸른아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-014-a": "facility_improvement",
+      "sk-014-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-015",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-015-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "새빛아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-015-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "푸른아파트",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른아파트 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-015-a": "facility_improvement",
+      "sk-015-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-016",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-016-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로12길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-016-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로88길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로88길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-016-a": "facility_improvement",
+      "sk-016-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-017",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-017-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로12길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-017-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로88길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로88길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-017-a": "facility_improvement",
+      "sk-017-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-018",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-018-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로12길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-018-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로88길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로88길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-018-a": "facility_improvement",
+      "sk-018-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-019",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-019-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로12길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-019-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로88길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로88길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-019-a": "facility_improvement",
+      "sk-019-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-020",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-020-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로12길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-020-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "중앙로88길",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로88길 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-020-a": "facility_improvement",
+      "sk-020-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-021",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-021-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희초등학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-021-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희중학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희중학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-021-a": "facility_improvement",
+      "sk-021-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-022",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-022-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희초등학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-022-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희중학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희중학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-022-a": "facility_improvement",
+      "sk-022-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-023",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-023-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희초등학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-023-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희중학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희중학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-023-a": "facility_improvement",
+      "sk-023-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-024",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-024-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희초등학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-024-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희중학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희중학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-024-a": "facility_improvement",
+      "sk-024-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SK-025",
+    "category": "same keyword different event",
+    "left_event": {
+      "id": "sk-025-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희초등학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sk-025-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중구 공사 소음 보수 요청",
+      "region": "중구",
+      "final_department": "환경관리과",
+      "civil_category": "생활불편",
+      "entity_texts": [
+        "연희중학교",
+        "소음"
+      ],
+      "request_segments": [
+        "공사 소음 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희중학교 공사장에서 소음이 반복됩니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "공사 소음 보수 요청"
+        },
+        "context": {
+          "text": "중구 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": false,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "LOCATION_MISMATCH"
+    ],
+    "expected_location_state": "conflict",
+    "expected_request_types": {
+      "sk-025-a": "facility_improvement",
+      "sk-025-b": "facility_improvement"
+    },
+    "notes": "같은 키워드지만 세부 장소가 다른 사건"
+  },
+  {
+    "pair_id": "SR-001",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-001-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "연희초등학교 불법 주정차 단속 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 단속 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-001-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "연희초등학교 불법 주정차 차량으로 인한 피해 보상 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 차량으로 인한 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 차량으로 인한 피해 보상 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-001-a": "enforcement",
+      "sr-001-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-002",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-002-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "연희초등학교 불법 주정차 단속 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 단속 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-002-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "연희초등학교 불법 주정차 차량으로 인한 피해 보상 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 차량으로 인한 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 차량으로 인한 피해 보상 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-002-a": "enforcement",
+      "sr-002-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-003",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-003-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "연희초등학교 불법 주정차 단속 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 단속 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-003-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "연희초등학교 불법 주정차 차량으로 인한 피해 보상 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 차량으로 인한 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 차량으로 인한 피해 보상 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-003-a": "enforcement",
+      "sr-003-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-004",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-004-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "연희초등학교 불법 주정차 단속 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 단속 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-004-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "연희초등학교 불법 주정차 차량으로 인한 피해 보상 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 차량으로 인한 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 차량으로 인한 피해 보상 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-004-a": "enforcement",
+      "sr-004-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-005",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-005-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "연희초등학교 불법 주정차 단속 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 단속 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-005-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "연희초등학교 불법 주정차 차량으로 인한 피해 보상 요청",
+      "region": "연희초등학교",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "연희초등학교",
+        "반복민원"
+      ],
+      "request_segments": [
+        "불법 주정차 차량으로 인한 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "불법 주정차 차량으로 인한 피해 보상 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-005-a": "enforcement",
+      "sr-005-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-006",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-006-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "중앙로12길 도로 침하 긴급 안전 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 긴급 안전 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 긴급 안전 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-006-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중앙로12길 도로 침하 처리 절차 문의",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 처리 절차 문의"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 처리 절차 문의"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "SAFETY_AND_INCONVENIENCE_MIXED",
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-006-a": "safety_action",
+      "sr-006-b": "inquiry"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-007",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-007-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "중앙로12길 도로 침하 긴급 안전 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 긴급 안전 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 긴급 안전 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-007-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중앙로12길 도로 침하 처리 절차 문의",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 처리 절차 문의"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 처리 절차 문의"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "SAFETY_AND_INCONVENIENCE_MIXED",
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-007-a": "safety_action",
+      "sr-007-b": "inquiry"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-008",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-008-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "중앙로12길 도로 침하 긴급 안전 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 긴급 안전 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 긴급 안전 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-008-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중앙로12길 도로 침하 처리 절차 문의",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 처리 절차 문의"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 처리 절차 문의"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "SAFETY_AND_INCONVENIENCE_MIXED",
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-008-a": "safety_action",
+      "sr-008-b": "inquiry"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-009",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-009-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "중앙로12길 도로 침하 긴급 안전 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 긴급 안전 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 긴급 안전 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-009-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중앙로12길 도로 침하 처리 절차 문의",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 처리 절차 문의"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 처리 절차 문의"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "SAFETY_AND_INCONVENIENCE_MIXED",
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-009-a": "safety_action",
+      "sr-009-b": "inquiry"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-010",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-010-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "중앙로12길 도로 침하 긴급 안전 점검 요청",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 긴급 안전 점검 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 긴급 안전 점검 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-010-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "중앙로12길 도로 침하 처리 절차 문의",
+      "region": "중앙로12길",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "중앙로12길",
+        "반복민원"
+      ],
+      "request_segments": [
+        "도로 침하 처리 절차 문의"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "도로 침하 처리 절차 문의"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "SAFETY_AND_INCONVENIENCE_MIXED",
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-010-a": "safety_action",
+      "sr-010-b": "inquiry"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-011",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-011-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "푸른공원 가로등 교체 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-011-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "푸른공원 가로등 사고 피해 보상 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-011-a": "facility_improvement",
+      "sr-011-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-012",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-012-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "푸른공원 가로등 교체 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-012-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "푸른공원 가로등 사고 피해 보상 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-012-a": "facility_improvement",
+      "sr-012-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-013",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-013-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "푸른공원 가로등 교체 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-013-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "푸른공원 가로등 사고 피해 보상 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-013-a": "facility_improvement",
+      "sr-013-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-014",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-014-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "푸른공원 가로등 교체 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-014-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "푸른공원 가로등 사고 피해 보상 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-014-a": "facility_improvement",
+      "sr-014-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-015",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-015-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "푸른공원 가로등 교체 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 교체 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 교체 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-015-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "푸른공원 가로등 사고 피해 보상 요청",
+      "region": "푸른공원",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "푸른공원",
+        "반복민원"
+      ],
+      "request_segments": [
+        "가로등 사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "가로등 사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-015-a": "facility_improvement",
+      "sr-015-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-016",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-016-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "새빛시장 무단투기 단속 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-016-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "새빛시장 무단투기 처리 절차 안내 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 처리 절차 안내 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 처리 절차 안내 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-016-a": "enforcement",
+      "sr-016-b": "guidance"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-017",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-017-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "새빛시장 무단투기 단속 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-017-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "새빛시장 무단투기 처리 절차 안내 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 처리 절차 안내 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 처리 절차 안내 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-017-a": "enforcement",
+      "sr-017-b": "guidance"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-018",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-018-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "새빛시장 무단투기 단속 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-018-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "새빛시장 무단투기 처리 절차 안내 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 처리 절차 안내 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 처리 절차 안내 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-018-a": "enforcement",
+      "sr-018-b": "guidance"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-019",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-019-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "새빛시장 무단투기 단속 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-019-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "새빛시장 무단투기 처리 절차 안내 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 처리 절차 안내 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 처리 절차 안내 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-019-a": "enforcement",
+      "sr-019-b": "guidance"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-020",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-020-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "새빛시장 무단투기 단속 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 단속 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 단속 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-020-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "새빛시장 무단투기 처리 절차 안내 요청",
+      "region": "새빛시장",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "새빛시장",
+        "반복민원"
+      ],
+      "request_segments": [
+        "무단투기 처리 절차 안내 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새빛시장의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "무단투기 처리 절차 안내 요청"
+        },
+        "context": {
+          "text": "새빛시장 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-020-a": "enforcement",
+      "sr-020-b": "guidance"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-021",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-021-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "행복아파트 놀이터 시설 보수 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 시설 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-021-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "행복아파트 놀이터 안전사고 피해 보상 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 안전사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 안전사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-021-a": "facility_improvement",
+      "sr-021-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-022",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-022-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "행복아파트 놀이터 시설 보수 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 시설 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-022-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "행복아파트 놀이터 안전사고 피해 보상 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 안전사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 안전사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-022-a": "facility_improvement",
+      "sr-022-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-023",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-023-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "행복아파트 놀이터 시설 보수 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 시설 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-023-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "행복아파트 놀이터 안전사고 피해 보상 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 안전사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 안전사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-023-a": "facility_improvement",
+      "sr-023-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-024",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-024-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "행복아파트 놀이터 시설 보수 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 시설 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-024-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "행복아파트 놀이터 안전사고 피해 보상 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 안전사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 안전사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-024-a": "facility_improvement",
+      "sr-024-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "SR-025",
+    "category": "same event different request",
+    "left_event": {
+      "id": "sr-025-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "행복아파트 놀이터 시설 보수 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트에서 같은 사건이 반복 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 시설 보수 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "sr-025-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "행복아파트 놀이터 안전사고 피해 보상 요청",
+      "region": "행복아파트",
+      "final_department": "민원관리과",
+      "civil_category": "복합민원",
+      "entity_texts": [
+        "행복아파트",
+        "반복민원"
+      ],
+      "request_segments": [
+        "놀이터 안전사고 피해 보상 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "행복아파트의 같은 사건에 대해 다른 요구가 접수되었습니다."
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "놀이터 안전사고 피해 보상 요청"
+        },
+        "context": {
+          "text": "행복아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": false,
+    "expected_risk_flags": [
+      "REQUEST_TYPE_MISMATCH",
+      "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "sr-025-a": "facility_improvement",
+      "sr-025-b": "compensation"
+    },
+    "notes": "동일 사건 가능성은 있으나 요청 유형이 다름"
+  },
+  {
+    "pair_id": "PII-001",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-001-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "서울로 123 100동 200호 앞 시설 파손 신고입니다. 연락처 010-1234-5601, 이메일 citizen001@example.com",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 시설 파손이 반복됩니다. 010-1234-5601 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-001-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 100동 200호 주변 시설 파손 반복 민원입니다. 010-1234-5601",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 같은 위치 시설 파손 신고입니다. citizen001@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-001-a": "facility_improvement",
+      "pii-001-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-002",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-002-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 101동 201호 앞 시설 파손 신고입니다. 연락처 010-1234-5602, 이메일 citizen002@example.com",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 시설 파손이 반복됩니다. 010-1234-5602 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-002-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 101동 201호 주변 시설 파손 반복 민원입니다. 010-1234-5602",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 같은 위치 시설 파손 신고입니다. citizen002@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-002-a": "facility_improvement",
+      "pii-002-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-003",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-003-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 102동 202호 앞 시설 파손 신고입니다. 연락처 010-1234-5603, 이메일 citizen003@example.com",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 시설 파손이 반복됩니다. 010-1234-5603 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-003-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 102동 202호 주변 시설 파손 반복 민원입니다. 010-1234-5603",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 같은 위치 시설 파손 신고입니다. citizen003@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-003-a": "facility_improvement",
+      "pii-003-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-004",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-004-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 103동 203호 앞 시설 파손 신고입니다. 연락처 010-1234-5604, 이메일 citizen004@example.com",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 시설 파손이 반복됩니다. 010-1234-5604 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-004-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 103동 203호 주변 시설 파손 반복 민원입니다. 010-1234-5604",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 같은 위치 시설 파손 신고입니다. citizen004@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-004-a": "facility_improvement",
+      "pii-004-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-005",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-005-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 104동 204호 앞 시설 파손 신고입니다. 연락처 010-1234-5605, 이메일 citizen005@example.com",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 시설 파손이 반복됩니다. 010-1234-5605 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-005-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "서울로 123 104동 204호 주변 시설 파손 반복 민원입니다. 010-1234-5605",
+      "region": "한빛아파트",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "한빛아파트",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "한빛아파트 같은 위치 시설 파손 신고입니다. citizen005@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "한빛아파트 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-005-a": "facility_improvement",
+      "pii-005-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-006",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-006-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "서울로 123 100동 200호 앞 시설 파손 신고입니다. 연락처 010-1234-5606, 이메일 citizen006@example.com",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 시설 파손이 반복됩니다. 010-1234-5606 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-006-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 100동 200호 주변 시설 파손 반복 민원입니다. 010-1234-5606",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 같은 위치 시설 파손 신고입니다. citizen006@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-006-a": "facility_improvement",
+      "pii-006-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-007",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-007-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 101동 201호 앞 시설 파손 신고입니다. 연락처 010-1234-5607, 이메일 citizen007@example.com",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 시설 파손이 반복됩니다. 010-1234-5607 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-007-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 101동 201호 주변 시설 파손 반복 민원입니다. 010-1234-5607",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 같은 위치 시설 파손 신고입니다. citizen007@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-007-a": "facility_improvement",
+      "pii-007-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-008",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-008-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 102동 202호 앞 시설 파손 신고입니다. 연락처 010-1234-5608, 이메일 citizen008@example.com",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 시설 파손이 반복됩니다. 010-1234-5608 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-008-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 102동 202호 주변 시설 파손 반복 민원입니다. 010-1234-5608",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 같은 위치 시설 파손 신고입니다. citizen008@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-008-a": "facility_improvement",
+      "pii-008-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-009",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-009-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 103동 203호 앞 시설 파손 신고입니다. 연락처 010-1234-5609, 이메일 citizen009@example.com",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 시설 파손이 반복됩니다. 010-1234-5609 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-009-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 103동 203호 주변 시설 파손 반복 민원입니다. 010-1234-5609",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 같은 위치 시설 파손 신고입니다. citizen009@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-009-a": "facility_improvement",
+      "pii-009-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-010",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-010-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 104동 204호 앞 시설 파손 신고입니다. 연락처 010-1234-5610, 이메일 citizen010@example.com",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 시설 파손이 반복됩니다. 010-1234-5610 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-010-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "서울로 123 104동 204호 주변 시설 파손 반복 민원입니다. 010-1234-5610",
+      "region": "새움빌딩",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "새움빌딩",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "새움빌딩 같은 위치 시설 파손 신고입니다. citizen010@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "새움빌딩 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-010-a": "facility_improvement",
+      "pii-010-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-011",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-011-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "서울로 123 100동 200호 앞 시설 파손 신고입니다. 연락처 010-1234-5611, 이메일 citizen011@example.com",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 시설 파손이 반복됩니다. 010-1234-5611 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-011-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 100동 200호 주변 시설 파손 반복 민원입니다. 010-1234-5611",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 같은 위치 시설 파손 신고입니다. citizen011@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-011-a": "facility_improvement",
+      "pii-011-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-012",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-012-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 101동 201호 앞 시설 파손 신고입니다. 연락처 010-1234-5612, 이메일 citizen012@example.com",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 시설 파손이 반복됩니다. 010-1234-5612 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-012-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 101동 201호 주변 시설 파손 반복 민원입니다. 010-1234-5612",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 같은 위치 시설 파손 신고입니다. citizen012@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-012-a": "facility_improvement",
+      "pii-012-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-013",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-013-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 102동 202호 앞 시설 파손 신고입니다. 연락처 010-1234-5613, 이메일 citizen013@example.com",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 시설 파손이 반복됩니다. 010-1234-5613 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-013-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 102동 202호 주변 시설 파손 반복 민원입니다. 010-1234-5613",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 같은 위치 시설 파손 신고입니다. citizen013@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-013-a": "facility_improvement",
+      "pii-013-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-014",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-014-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 103동 203호 앞 시설 파손 신고입니다. 연락처 010-1234-5614, 이메일 citizen014@example.com",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 시설 파손이 반복됩니다. 010-1234-5614 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-014-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 103동 203호 주변 시설 파손 반복 민원입니다. 010-1234-5614",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 같은 위치 시설 파손 신고입니다. citizen014@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-014-a": "facility_improvement",
+      "pii-014-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-015",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-015-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 104동 204호 앞 시설 파손 신고입니다. 연락처 010-1234-5615, 이메일 citizen015@example.com",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 시설 파손이 반복됩니다. 010-1234-5615 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-015-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "서울로 123 104동 204호 주변 시설 파손 반복 민원입니다. 010-1234-5615",
+      "region": "푸른공원",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "푸른공원",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "푸른공원 같은 위치 시설 파손 신고입니다. citizen015@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "푸른공원 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-015-a": "facility_improvement",
+      "pii-015-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-016",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-016-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "서울로 123 100동 200호 앞 시설 파손 신고입니다. 연락처 010-1234-5616, 이메일 citizen016@example.com",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 시설 파손이 반복됩니다. 010-1234-5616 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-016-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 100동 200호 주변 시설 파손 반복 민원입니다. 010-1234-5616",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 같은 위치 시설 파손 신고입니다. citizen016@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-016-a": "facility_improvement",
+      "pii-016-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-017",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-017-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 101동 201호 앞 시설 파손 신고입니다. 연락처 010-1234-5617, 이메일 citizen017@example.com",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 시설 파손이 반복됩니다. 010-1234-5617 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-017-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 101동 201호 주변 시설 파손 반복 민원입니다. 010-1234-5617",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 같은 위치 시설 파손 신고입니다. citizen017@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-017-a": "facility_improvement",
+      "pii-017-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-018",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-018-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 102동 202호 앞 시설 파손 신고입니다. 연락처 010-1234-5618, 이메일 citizen018@example.com",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 시설 파손이 반복됩니다. 010-1234-5618 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-018-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 102동 202호 주변 시설 파손 반복 민원입니다. 010-1234-5618",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 같은 위치 시설 파손 신고입니다. citizen018@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-018-a": "facility_improvement",
+      "pii-018-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-019",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-019-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 103동 203호 앞 시설 파손 신고입니다. 연락처 010-1234-5619, 이메일 citizen019@example.com",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 시설 파손이 반복됩니다. 010-1234-5619 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-019-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 103동 203호 주변 시설 파손 반복 민원입니다. 010-1234-5619",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 같은 위치 시설 파손 신고입니다. citizen019@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-019-a": "facility_improvement",
+      "pii-019-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-020",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-020-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 104동 204호 앞 시설 파손 신고입니다. 연락처 010-1234-5620, 이메일 citizen020@example.com",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 시설 파손이 반복됩니다. 010-1234-5620 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-020-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "서울로 123 104동 204호 주변 시설 파손 반복 민원입니다. 010-1234-5620",
+      "region": "중앙로12길",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "중앙로12길",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "중앙로12길 같은 위치 시설 파손 신고입니다. citizen020@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "중앙로12길 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-020-a": "facility_improvement",
+      "pii-020-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-021",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-021-a",
+      "received_at": "2026-06-20T09:00:00+00:00",
+      "body": "서울로 123 100동 200호 앞 시설 파손 신고입니다. 연락처 010-1234-5621, 이메일 citizen021@example.com",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 시설 파손이 반복됩니다. 010-1234-5621 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-021-b",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 100동 200호 주변 시설 파손 반복 민원입니다. 010-1234-5621",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 100동 200호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 같은 위치 시설 파손 신고입니다. citizen021@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-021-a": "facility_improvement",
+      "pii-021-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-022",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-022-a",
+      "received_at": "2026-06-20T09:01:00+00:00",
+      "body": "서울로 123 101동 201호 앞 시설 파손 신고입니다. 연락처 010-1234-5622, 이메일 citizen022@example.com",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 시설 파손이 반복됩니다. 010-1234-5622 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-022-b",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 101동 201호 주변 시설 파손 반복 민원입니다. 010-1234-5622",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 101동 201호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 같은 위치 시설 파손 신고입니다. citizen022@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-022-a": "facility_improvement",
+      "pii-022-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-023",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-023-a",
+      "received_at": "2026-06-20T09:02:00+00:00",
+      "body": "서울로 123 102동 202호 앞 시설 파손 신고입니다. 연락처 010-1234-5623, 이메일 citizen023@example.com",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 시설 파손이 반복됩니다. 010-1234-5623 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-023-b",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 102동 202호 주변 시설 파손 반복 민원입니다. 010-1234-5623",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 102동 202호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 같은 위치 시설 파손 신고입니다. citizen023@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-023-a": "facility_improvement",
+      "pii-023-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-024",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-024-a",
+      "received_at": "2026-06-20T09:03:00+00:00",
+      "body": "서울로 123 103동 203호 앞 시설 파손 신고입니다. 연락처 010-1234-5624, 이메일 citizen024@example.com",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 시설 파손이 반복됩니다. 010-1234-5624 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-024-b",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 103동 203호 주변 시설 파손 반복 민원입니다. 010-1234-5624",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 103동 203호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 같은 위치 시설 파손 신고입니다. citizen024@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-024-a": "facility_improvement",
+      "pii-024-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  },
+  {
+    "pair_id": "PII-025",
+    "category": "PII risk",
+    "left_event": {
+      "id": "pii-025-a",
+      "received_at": "2026-06-20T09:04:00+00:00",
+      "body": "서울로 123 104동 204호 앞 시설 파손 신고입니다. 연락처 010-1234-5625, 이메일 citizen025@example.com",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 시설 파손이 반복됩니다. 010-1234-5625 연락 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "right_event": {
+      "id": "pii-025-b",
+      "received_at": "2026-06-20T09:05:00+00:00",
+      "body": "서울로 123 104동 204호 주변 시설 파손 반복 민원입니다. 010-1234-5625",
+      "region": "연희초등학교",
+      "final_department": "시설관리과",
+      "civil_category": "시설",
+      "entity_texts": [
+        "연희초등학교",
+        "시설파손",
+        "서울로 123 104동 204호"
+      ],
+      "request_segments": [
+        "시설 보수 요청"
+      ],
+      "structured_elements": {
+        "observation": {
+          "text": "연희초등학교 같은 위치 시설 파손 신고입니다. citizen025@example.com로 회신 요청"
+        },
+        "result": {
+          "text": "현장 확인과 담당자 검토가 필요합니다."
+        },
+        "request": {
+          "text": "시설 보수 요청"
+        },
+        "context": {
+          "text": "연희초등학교 관련 반복 민원입니다."
+        }
+      }
+    },
+    "expected_candidate": true,
+    "expected_confirm_allowed": true,
+    "expected_risk_flags": [
+      "PII_RISK"
+    ],
+    "expected_location_state": "exact",
+    "expected_request_types": {
+      "pii-025-a": "facility_improvement",
+      "pii-025-b": "facility_improvement"
+    },
+    "notes": "합성 전화번호/이메일/상세주소가 포함된 반복 민원"
+  }
+]

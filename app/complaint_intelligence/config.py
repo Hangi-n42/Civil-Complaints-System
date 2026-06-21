@@ -64,6 +64,27 @@ class ComplaintIntelligenceConfig:
     score_weight_cohesion: float
     score_weight_spatial: float
     score_weight_risk: float
+    public_insight_llm_prompt_mode: str = "default"
+    public_insight_llm_debug_raw_response: bool = False
+    public_insight_llm_debug_raw_response_dir: str = "reports/llm_raw"
+    public_insight_llm_debug_raw_response_max_chars: int = 4000
+    public_insight_llm_action_retry_enabled: bool = False
+    repository: str = "sqlite"
+    db_path: str = "data/complaint_intelligence/complaint_intelligence.db"
+    default_mode: str = "realtime"
+    retention_days: int = 90
+    auto_create_db: bool = True
+    scheduler_enabled: bool = False
+    scheduler_interval_seconds: float = 300.0
+    scheduler_batch_size: int = 500
+    scheduler_min_events: int = 1
+    scheduler_source_name: str = "repository_realtime"
+    scheduler_mode: str = "realtime"
+    collector: str = "repository_replay"
+    collector_limit: int = 500
+    collector_source_name: str = "repository_replay"
+    checkpoint_enabled: bool = True
+    public_insight_llm_slow_ms: float = 180000.0
 
 
 def get_complaint_intelligence_config() -> ComplaintIntelligenceConfig:
@@ -101,6 +122,11 @@ def get_complaint_intelligence_config() -> ComplaintIntelligenceConfig:
         public_insight_llm_num_gpu=settings.PUBLIC_INSIGHT_LLM_NUM_GPU,
         public_insight_llm_keep_alive=settings.PUBLIC_INSIGHT_LLM_KEEP_ALIVE,
         public_insight_llm_stream=settings.PUBLIC_INSIGHT_LLM_STREAM,
+        public_insight_llm_prompt_mode=settings.PUBLIC_INSIGHT_LLM_PROMPT_MODE,
+        public_insight_llm_debug_raw_response=settings.PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE,
+        public_insight_llm_debug_raw_response_dir=settings.PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_DIR,
+        public_insight_llm_debug_raw_response_max_chars=settings.PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_MAX_CHARS,
+        public_insight_llm_action_retry_enabled=settings.PUBLIC_INSIGHT_LLM_ACTION_RETRY_ENABLED,
         public_insight_max_representative_complaints=settings.PUBLIC_INSIGHT_MAX_REPRESENTATIVE_COMPLAINTS,
         public_insight_max_evidence_chars_per_complaint=settings.PUBLIC_INSIGHT_MAX_EVIDENCE_CHARS_PER_COMPLAINT,
         public_insight_min_candidate_complaint_count=settings.PUBLIC_INSIGHT_MIN_CANDIDATE_COMPLAINT_COUNT,
@@ -123,4 +149,20 @@ def get_complaint_intelligence_config() -> ComplaintIntelligenceConfig:
         score_weight_cohesion=settings.CI_SCORE_WEIGHT_COHESION,
         score_weight_spatial=settings.CI_SCORE_WEIGHT_SPATIAL,
         score_weight_risk=settings.CI_SCORE_WEIGHT_RISK,
+        repository=settings.COMPLAINT_INTELLIGENCE_REPOSITORY,
+        db_path=settings.COMPLAINT_INTELLIGENCE_DB_PATH,
+        default_mode=settings.COMPLAINT_INTELLIGENCE_DEFAULT_MODE,
+        retention_days=settings.COMPLAINT_INTELLIGENCE_RETENTION_DAYS,
+        auto_create_db=settings.COMPLAINT_INTELLIGENCE_AUTO_CREATE_DB,
+        scheduler_enabled=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_ENABLED,
+        scheduler_interval_seconds=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_INTERVAL_SECONDS,
+        scheduler_batch_size=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_BATCH_SIZE,
+        scheduler_min_events=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_MIN_EVENTS,
+        scheduler_source_name=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_SOURCE_NAME,
+        scheduler_mode=settings.COMPLAINT_INTELLIGENCE_SCHEDULER_MODE,
+        collector=settings.COMPLAINT_INTELLIGENCE_COLLECTOR,
+        collector_limit=settings.COMPLAINT_INTELLIGENCE_COLLECTOR_LIMIT,
+        collector_source_name=settings.COMPLAINT_INTELLIGENCE_COLLECTOR_SOURCE_NAME,
+        checkpoint_enabled=settings.COMPLAINT_INTELLIGENCE_CHECKPOINT_ENABLED,
+        public_insight_llm_slow_ms=settings.PUBLIC_INSIGHT_LLM_SLOW_MS,
     )

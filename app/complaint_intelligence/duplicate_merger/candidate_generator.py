@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timezone
+from datetime import datetime, timezone
 
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from app.complaint_intelligence.duplicate_merger.merge_verifier import MergeVerifier, has_blocker
@@ -44,10 +44,16 @@ class DuplicateCandidateGenerator:
 
         for index, left in enumerate(sorted_events):
             for right in sorted_events[index + 1:]:
-                result = score_duplicate_pair(left, right)
-                if result.time_delta_hours > self.max_pair_window_hours:
+                if _time_delta_hours(left.received_at, right.received_at) > self.max_pair_window_hours:
                     continue
+                result = score_duplicate_pair(left, right)
                 if result.score < self.min_candidate_score:
+                    continue
+                if result.location_state == "conflict":
+                    continue
+                if result.location_state == "ambiguous" and (left.pii_detected or right.pii_detected):
+                    continue
+                if result.location_state == "ambiguous" and result.score < 0.80:
                     continue
                 key = tuple(sorted(result.case_ids))
                 pair_results[key] = result
@@ -79,12 +85,13 @@ class DuplicateCandidateGenerator:
         pair_results: list[DuplicateScoreResult],
     ) -> DuplicateMergeRecord:
         representative = self.representative_selector.select(events)
-        flags = self.verifier.verify(events, pair_results)
+        verification_pairs = _complete_pair_results(events, pair_results)
+        flags = self.verifier.verify(events, verification_pairs)
         confidence = round(sum(result.score for result in pair_results) / len(pair_results), 4)
         evidence = _dedupe_evidence([evidence for result in pair_results for evidence in result.evidence])
-        location_state = _aggregate_location_state(pair_results)
+        location_state = _aggregate_location_state(verification_pairs)
         request_types: dict[str, str] = {}
-        for result in pair_results:
+        for result in verification_pairs:
             request_types.update(result.request_types)
         allowed_actions, blocked_actions = actions_for_status("candidate", flags)
         return DuplicateMergeRecord(
@@ -187,3 +194,29 @@ def _dedupe_evidence(items: list[DuplicateEvidence]) -> list[DuplicateEvidence]:
         seen.add(key)
         result.append(item)
     return result
+
+
+def _complete_pair_results(
+    events: list[ComplaintIntelligenceEvent],
+    pair_results: list[DuplicateScoreResult],
+) -> list[DuplicateScoreResult]:
+    results = {tuple(sorted(result.case_ids)): result for result in pair_results}
+    sorted_events = sorted(events, key=lambda item: item.id)
+    for index, left in enumerate(sorted_events):
+        for right in sorted_events[index + 1:]:
+            key = tuple(sorted((left.id, right.id)))
+            if key not in results:
+                results[key] = score_duplicate_pair(left, right)
+    return list(results.values())
+
+
+def _time_delta_hours(left: datetime, right: datetime) -> float:
+    left_value = _as_aware(left)
+    right_value = _as_aware(right)
+    return abs((left_value - right_value).total_seconds()) / 3600
+
+
+def _as_aware(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)

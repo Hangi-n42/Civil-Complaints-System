@@ -144,7 +144,10 @@ BE3로 전달:
 
 FE로 전달:
 - applied_filters 표시용 키 사전
+- `/search` 응답의 `routing_hint`와 `routing_trace`는 같은 민원의 `/qa` 요청에 함께 전달한다.
+- `/qa`는 `routing_trace.request_segments`를 canonical segment로 사용하며, 누락 시 fallback 재계산 여부를 `routing_trace.warnings`로 남긴다.
 
 완료 체크:
 - trace 필수 키 5종 항상 존재
 - `/search`와 `/qa` route_key 일치율 100%
+- Search→QA `request_segments` 배열 일치율 100%

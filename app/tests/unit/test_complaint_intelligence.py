@@ -4,9 +4,11 @@ import json
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.main import app
+from app.complaint_intelligence import set_complaint_intelligence_service
 from app.complaint_intelligence.config import ComplaintIntelligenceConfig
 from app.complaint_intelligence.issue_detection import IssueDetectionEngine
 from app.complaint_intelligence.public_insights import PublicAgencyInsightEngine
@@ -16,8 +18,10 @@ from app.complaint_intelligence.public_insights.evidence_pack import EvidencePac
 from app.complaint_intelligence.public_insights.grounding_verifier import GroundingVerifier
 from app.complaint_intelligence.public_insights.llm_provider import LocalLLMProvider, PublicInsightLLMProvider
 from app.complaint_intelligence.public_insights.llm_synthesizer import PublicAgencyInsightDraft
+from app.complaint_intelligence.repository import InMemoryComplaintIntelligenceRepository
 from app.complaint_intelligence.public_insights.service import PublicInsightService
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent, PublicInsightType, RecommendedAction
+from app.complaint_intelligence.service import ComplaintIntelligenceService
 
 
 BASE_TIME = datetime(2026, 6, 18, 12, 0, tzinfo=timezone.utc)
@@ -79,6 +83,20 @@ def _config(*, llm_enabled: bool = True) -> ComplaintIntelligenceConfig:
         score_weight_spatial=0.15,
         score_weight_risk=0.10,
     )
+
+
+@pytest.fixture(autouse=True)
+def isolated_complaint_intelligence_service() -> None:
+    """API 테스트가 실제 SQLite read-model을 건드리지 않도록 격리한다."""
+
+    service = ComplaintIntelligenceService(
+        repository=InMemoryComplaintIntelligenceRepository(),
+        config=_config(),
+    )
+    set_complaint_intelligence_service(service)
+    yield
+    service.clear()
+    set_complaint_intelligence_service(None)
 
 
 def _event(

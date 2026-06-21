@@ -8,7 +8,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.complaint_intelligence.pii import mask_pii
-from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
+from app.complaint_intelligence.public_insights.action_rubric import allowed_action_types_for_pack
+from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack, valid_evidence_ids_for_pack
 from app.complaint_intelligence.schemas import PublicAgencyInsight, RecommendedAction
 
 
@@ -102,6 +103,21 @@ class InsightQualityGate:
             failures.append(_failure("SCHEMA_INVALID", "필수 설명 필드가 비어 있습니다."))
         if not insight.recommended_actions:
             failures.append(_failure("NO_ACTIONS", "recommended_actions가 비어 있습니다."))
+
+        invalid_action_types: list[dict[str, str]] = []
+        if pack is not None:
+            allowed_action_types = set(allowed_action_types_for_pack(pack))
+            for action in insight.recommended_actions:
+                if str(action.action_type) not in allowed_action_types:
+                    invalid_action_types.append({"action": action.action, "action_type": str(action.action_type)})
+        if invalid_action_types:
+            failures.append(
+                _failure(
+                    "ACTION_TYPE_RUBRIC_INVALID",
+                    "추천 조치 action_type이 EvidencePack rubric 허용 목록 밖입니다.",
+                    {"actions": invalid_action_types[:5]},
+                )
+            )
 
         invalid_actions = [
             action.action
@@ -267,12 +283,7 @@ def _evidence_ids(insight: PublicAgencyInsight, pack: PublicInsightEvidencePack 
         ids.add(str(evidence.complaint_id))
         ids.update(str(item) for item in evidence.source_complaint_ids if item)
     if pack is not None:
-        for item in pack.representative_complaints:
-            if item.get("complaint_id"):
-                ids.add(str(item.get("complaint_id")))
-            source_ids = item.get("source_complaint_ids")
-            if isinstance(source_ids, list):
-                ids.update(str(source_id) for source_id in source_ids if source_id)
+        ids.update(valid_evidence_ids_for_pack(pack))
     return ids
 
 

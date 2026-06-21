@@ -1,0 +1,112 @@
+{
+  "overall": {
+    "total_reviewed": 500,
+    "judgment_counts": {
+      "fail": 1,
+      "pass": 466,
+      "partial": 33
+    },
+    "pass": 466,
+    "partial": 33,
+    "fail": 1,
+    "unsure": 0,
+    "pass_rate": 0.932,
+    "pass_partial_rate": 0.998,
+    "fail_rate": 0.002
+  },
+  "cumulative_by_100": [
+    {
+      "range": "1-100",
+      "total": 100,
+      "pass": 93,
+      "partial": 6,
+      "fail": 1,
+      "unsure": 0,
+      "pass_rate": 0.93,
+      "fail_rate": 0.01
+    },
+    {
+      "range": "1-200",
+      "total": 200,
+      "pass": 185,
+      "partial": 14,
+      "fail": 1,
+      "unsure": 0,
+      "pass_rate": 0.925,
+      "fail_rate": 0.005
+    },
+    {
+      "range": "1-300",
+      "total": 300,
+      "pass": 278,
+      "partial": 21,
+      "fail": 1,
+      "unsure": 0,
+      "pass_rate": 0.9266666666666666,
+      "fail_rate": 0.0033333333333333335
+    },
+    {
+      "range": "1-400",
+      "total": 400,
+      "pass": 372,
+      "partial": 27,
+      "fail": 1,
+      "unsure": 0,
+      "pass_rate": 0.93,
+      "fail_rate": 0.0025
+    },
+    {
+      "range": "1-500",
+      "total": 500,
+      "pass": 466,
+      "partial": 33,
+      "fail": 1,
+      "unsure": 0,
+      "pass_rate": 0.932,
+      "fail_rate": 0.002
+    }
+  ],
+  "error_type_counts": {
+    "under_split": 24,
+    "none": 466,
+    "too_abstract": 4,
+    "over_split": 6
+  },
+  "assist_recommendation_counts": {
+    "reject": 1,
+    "allow": 466,
+    "review_required": 33
+  },
+  "fallback_reason_by_judgment": {
+    "fallback_single_segment": {
+      "pass": 20
+    },
+    "heading_list_under_split": {
+      "pass": 45,
+      "partial": 1
+    },
+    "numbered_under_split": {
+      "fail": 1,
+      "pass": 441,
+      "partial": 32
+    },
+    "strong_candidate_single_segment": {
+      "pass": 236,
+      "partial": 7
+    }
+  },
+  "risk_tag_by_judgment": {
+    "numbered_or_heading_list": {
+      "fail": 1,
+      "pass": 466,
+      "partial": 33
+    }
+  },
+  "latency": {
+    "avg": 12.898,
+    "p50": 11.784,
+    "p95": 20.696,
+    "max": 30.103
+  },
+  "gate_judgment": "assist_limited_ready_for_controlled_rollout"
+}

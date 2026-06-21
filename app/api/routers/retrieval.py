@@ -17,7 +17,10 @@ from app.api.schemas.retrieval import (
 )
 from app.core.exceptions import RetrievalError
 from app.core.logging import api_logger
-from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.request_segment_analysis import (
+    build_request_segment_analysis,
+    enrich_request_segment_trace,
+)
 from app.retrieval.analyzers.topic_analyzer import detect as detect_topic
 from app.retrieval.router.adaptive_router import route as route_adaptive
 from app.retrieval.service import get_retrieval_service
@@ -123,7 +126,7 @@ def _log_routing_decision(
 def _build_routing_payload(query: str) -> dict:
     topic_type = detect_topic(query)
     analyzer_started = perf_counter()
-    analyzer_output = build_analyzer_output(text=query, topic_type=topic_type)
+    analyzer_output = build_request_segment_analysis(text=query, topic_type=topic_type)
     analyzer_latency_ms = int((perf_counter() - analyzer_started) * 1000)
 
     router_started = perf_counter()
@@ -142,7 +145,25 @@ def _build_routing_payload(query: str) -> dict:
         "chunk_policy": routing_decision.applied_params.chunk_policy,
         "retrieval_policy": routing_decision.retrieval_policy,
     }
-    merge_policy = "dedupe_max_score" if len(request_segments) > 1 else "single_query"
+    merge_policy = "segment_aware_dedupe" if len(request_segments) > 1 else "single_query"
+
+    routing_trace = enrich_request_segment_trace(
+        {
+            "topic_type": analyzer_output["topic_type"],
+            "complexity_level": analyzer_output["complexity_level"],
+            "complexity_score": analyzer_output["complexity_score"],
+            "request_segments": request_segments,
+            "complexity_trace": analyzer_output["complexity_trace"],
+            "route_reason": routing_decision.route_reason,
+            "route_key": routing_decision.route_key,
+            "strategy_id": routing_decision.strategy_id,
+            "applied_filters": {},
+            "segment_count": len(request_segments) if request_segments else 1,
+            "merge_policy": merge_policy,
+            "retrieval_policy": routing_decision.retrieval_policy,
+        },
+        analyzer_output,
+    )
 
     return {
         "strategy_id": routing_decision.strategy_id,
@@ -157,20 +178,7 @@ def _build_routing_payload(query: str) -> dict:
             "snippet_max_chars": routing_decision.applied_params.snippet_max_chars,
             "chunk_policy": routing_decision.applied_params.chunk_policy,
         },
-        "routing_trace": {
-            "topic_type": analyzer_output["topic_type"],
-            "complexity_level": analyzer_output["complexity_level"],
-            "complexity_score": analyzer_output["complexity_score"],
-            "request_segments": request_segments,
-            "complexity_trace": analyzer_output["complexity_trace"],
-            "route_reason": routing_decision.route_reason,
-            "route_key": routing_decision.route_key,
-            "strategy_id": routing_decision.strategy_id,
-            "applied_filters": {},
-            "segment_count": len(request_segments) if request_segments else 1,
-            "merge_policy": merge_policy,
-            "retrieval_policy": routing_decision.retrieval_policy,
-        },
+        "routing_trace": routing_trace,
         "analyzer_output": analyzer_output,
         "analyzer_latency_ms": analyzer_latency_ms,
         "router_latency_ms": router_latency_ms,
@@ -305,12 +313,11 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
     }
     routing["routing_hint"].update(fixed_search_hint)
     routing["applied_params"].update(fixed_search_hint)
-    routing["merge_policy"] = "single_query"
-    routing["routing_trace"]["merge_policy"] = "single_query"
+    segment_count = routing["routing_trace"]["segment_count"]
     routing["routing_trace"]["route_reason"] = (
-        "answer_hint_only; "
+        f"{'segment_aware_search' if segment_count > 1 else 'single_query_search'}; "
         f"complexity={routing['routing_trace']['complexity_level']}; "
-        f"top_k={request.top_k}; chunk_policy=balanced"
+        f"segments={segment_count}; top_k={request.top_k}; chunk_policy=balanced"
     )
     service = get_retrieval_service()
 
@@ -335,7 +342,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             filters=filters,
             collection_name=request.collection_name,
             topic_type=routing["routing_trace"]["topic_type"],
-            request_segments=None,
+            request_segments=routing["request_segments"] if segment_count > 1 else None,
             retrieval_policy=routing["retrieval_policy"],
             snippet_max_chars=fixed_search_hint["snippet_max_chars"],
             query_signals=request.query_signals.model_dump() if request.query_signals else None,

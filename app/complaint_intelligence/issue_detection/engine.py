@@ -48,6 +48,16 @@ class _Cluster:
 class IssueDetectionEngine:
     """masked text 기반으로 의미/공간/기준선 급증을 결합해 경보를 만든다."""
 
+    _CONCRETE_TOPIC_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("대형폐기물 배출 안내", ("대형폐기물", "스티커", "배출", "수거", "신청", "방법", "안내")),
+        ("야간 하수 악취", ("악취", "냄새", "하수", "야간", "밤", "새벽")),
+        ("공공자전거 예약/대여 불편", ("공공자전거", "자전거", "예약", "대여", "결제", "앱", "오류")),
+        ("초등학교 앞 불법주정차", ("초등학교", "학교 앞", "불법주정차", "불법주차", "주정차", "단속")),
+        ("가로등/보안등 고장", ("가로등", "보안등", "꺼짐", "고장", "조명", "어두움")),
+        ("공사 소음 시간대 집중", ("공사", "소음", "새벽", "야간", "주말", "진동")),
+        ("도로 침하/싱크홀 위험", ("싱크홀", "침하", "꺼짐", "구멍", "아스팔트", "도로", "움푹")),
+        ("복지 지원 신청/기준 안내", ("복지", "지원", "신청", "기준", "자격", "서류")),
+    )
     _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "도로침하": ("싱크홀", "침하", "꺼짐", "구멍", "포트홀", "아스팔트", "도로", "움푹", "내려앉"),
         "쓰레기": ("쓰레기", "폐기물", "무단투기", "청소", "악취"),
@@ -57,6 +67,11 @@ class IssueDetectionEngine:
         "복지": ("복지", "지원", "급여", "생활비", "노인"),
     }
     _RISK_KEYWORDS = ("싱크홀", "침하", "꺼짐", "구멍", "위험", "파손", "균열", "누수", "침수", "화재", "사고", "움푹", "내려앉")
+    _UX_KEYWORDS = ("공공자전거", "자전거", "앱", "예약", "대여", "결제", "오류", "로그인")
+    _ACCESSIBILITY_KEYWORDS = ("고령자", "장애인", "외국인", "디지털", "취약계층", "접근성", "어려움", "복잡", "글씨")
+    _REPEAT_KEYWORDS = ("재민원", "반복", "다시", "재발", "계속", "여러 번", "불만")
+    _OPEN_STATUSES = {"접수", "처리중", "진행중", "open", "pending", "in_progress", "delayed", "지연"}
+    _CLOSED_STATUSES = {"완료", "처리완료", "종결", "closed", "resolved", "done"}
 
     def __init__(
         self,
@@ -107,11 +122,16 @@ class IssueDetectionEngine:
                 alert = self._merge_active_alert(active_by_id[alert.id], alert)
             alerts.append(alert)
 
-        return sorted(alerts, key=lambda item: item.confidence, reverse=True)
+        for alert in self._operational_alerts(recent_events, reference_time, recent_start):
+            if alert.id in active_by_id:
+                alert = self._merge_active_alert(active_by_id[alert.id], alert)
+            alerts.append(alert)
+
+        return sorted(_dedupe_alerts(alerts), key=lambda item: item.confidence, reverse=True)
 
     def _event_vectors(self, events: list[ComplaintIntelligenceEvent]) -> dict[str, list[float]]:
         # 외부 embedding 필드가 있어도 sidecar는 마스킹된 텍스트만 임베딩 입력으로 사용한다.
-        texts = [event.masked_text for event in events]
+        texts = [_analysis_text(event) for event in events]
         return {
             event.id: vector
             for event, vector in zip(events, self.embedding_provider.embed(texts))
@@ -228,6 +248,7 @@ class IssueDetectionEngine:
         return IssueAlert(
             id=alert_id,
             severity=severity,
+            trigger_type="SURGE_HOTSPOT",
             title=f"{region_label} {topic} 민원 급증",
             summary=(
                 f"최근 {self.config.recent_hours}시간 동안 {len(cluster.events)}건이 접수되었고 "
@@ -265,7 +286,10 @@ class IssueDetectionEngine:
         return incoming
 
     def _infer_topic(self, events: Iterable[ComplaintIntelligenceEvent]) -> str:
-        text = " ".join(event.masked_text for event in events)
+        text = " ".join(_analysis_text(event) for event in events)
+        concrete_topic = _best_concrete_topic(text, self._CONCRETE_TOPIC_RULES)
+        if concrete_topic:
+            return concrete_topic
         best_topic = "반복 민원"
         best_count = 0
         for topic, keywords in self._TOPIC_KEYWORDS.items():
@@ -276,8 +300,12 @@ class IssueDetectionEngine:
         return best_topic
 
     def _extract_keywords(self, events: Iterable[ComplaintIntelligenceEvent]) -> list[str]:
-        text = " ".join(event.masked_text for event in events)
+        text = " ".join(_analysis_text(event) for event in events)
         selected: list[str] = []
+        for _topic, keywords in self._CONCRETE_TOPIC_RULES:
+            for keyword in keywords:
+                if keyword in text and keyword not in selected:
+                    selected.append(keyword)
         for keywords in self._TOPIC_KEYWORDS.values():
             for keyword in keywords:
                 if keyword in text and keyword not in selected:
@@ -294,6 +322,183 @@ class IssueDetectionEngine:
 
     def _contains_risk_keyword(self, text: str) -> bool:
         return any(keyword in text for keyword in self._RISK_KEYWORDS)
+
+    def _operational_alerts(
+        self,
+        recent_events: list[ComplaintIntelligenceEvent],
+        reference_time: datetime,
+        recent_start: datetime,
+    ) -> list[IssueAlert]:
+        """급증 클러스터가 약한 운영 신호를 보수적으로 alert로 승격한다."""
+
+        alerts: list[IssueAlert] = []
+        alerts.extend(self._backlog_alerts(recent_events, reference_time, recent_start))
+        alerts.extend(self._repeat_alerts(recent_events, reference_time, recent_start))
+        alerts.extend(
+            self._keyword_operational_alerts(
+                recent_events,
+                reference_time,
+                recent_start,
+                topic="공공자전거 예약/대여 불편",
+                keywords=self._UX_KEYWORDS,
+                trigger_type="SERVICE_UX_PATTERN",
+            )
+        )
+        alerts.extend(
+            self._keyword_operational_alerts(
+                recent_events,
+                reference_time,
+                recent_start,
+                topic="접근성/사용성 반복 불편",
+                keywords=self._ACCESSIBILITY_KEYWORDS,
+                trigger_type="SERVICE_ACCESSIBILITY_PATTERN",
+            )
+        )
+        return alerts
+
+    def _backlog_alerts(
+        self,
+        recent_events: list[ComplaintIntelligenceEvent],
+        reference_time: datetime,
+        recent_start: datetime,
+    ) -> list[IssueAlert]:
+        by_department: dict[str, list[ComplaintIntelligenceEvent]] = {}
+        for event in recent_events:
+            if not _is_open_status(event.status, self._OPEN_STATUSES, self._CLOSED_STATUSES):
+                continue
+            if event.handling_time_minutes is None:
+                continue
+            if float(event.handling_time_minutes) < self.config.public_insight_process_delay_minutes_threshold:
+                continue
+            department = " ".join(str(event.final_department or "담당 부서 미상").split())
+            by_department.setdefault(department, []).append(event)
+
+        alerts: list[IssueAlert] = []
+        threshold = max(self.config.min_recent_count, self.config.department_bottleneck_min_count)
+        for department, events in by_department.items():
+            if len(events) < threshold:
+                continue
+            avg_minutes = sum(float(event.handling_time_minutes or 0.0) for event in events) / len(events)
+            alerts.append(
+                self._build_operational_alert(
+                    events,
+                    topic=f"{department} 처리 지연/미처리 누적",
+                    reference_time=reference_time,
+                    recent_start=recent_start,
+                    trigger_type="OPERATIONAL_BACKLOG",
+                    confidence=0.86,
+                    severity="WARNING",
+                    explanation=(
+                        f"open/pending 상태와 처리시간 기준 초과가 {len(events)}건 누적, "
+                        f"avg_handling_time_minutes={avg_minutes:.1f}"
+                    ),
+                )
+            )
+        return alerts
+
+    def _repeat_alerts(
+        self,
+        recent_events: list[ComplaintIntelligenceEvent],
+        reference_time: datetime,
+        recent_start: datetime,
+    ) -> list[IssueAlert]:
+        repeat_events = [
+            event for event in recent_events
+            if event.reopened
+            or _contains_any(_analysis_text(event), self._REPEAT_KEYWORDS)
+            or (event.user_feedback_score is not None and float(event.user_feedback_score) <= 2.0)
+        ]
+        if len(repeat_events) < max(self.config.min_recent_count, self.config.repeat_risk_count):
+            return []
+        return [
+            self._build_operational_alert(
+                repeat_events,
+                topic="재민원/반복 민원 증가",
+                reference_time=reference_time,
+                recent_start=recent_start,
+                trigger_type="REOPEN_REPEAT",
+                confidence=0.84,
+                severity="WARNING",
+                explanation=f"reopened/반복/불만족 신호가 {len(repeat_events)}건 확인되었습니다.",
+            )
+        ]
+
+    def _keyword_operational_alerts(
+        self,
+        recent_events: list[ComplaintIntelligenceEvent],
+        reference_time: datetime,
+        recent_start: datetime,
+        *,
+        topic: str,
+        keywords: tuple[str, ...],
+        trigger_type: str,
+    ) -> list[IssueAlert]:
+        matched = [event for event in recent_events if _contains_any(_analysis_text(event), keywords)]
+        if len(matched) < self.config.min_recent_count:
+            return []
+        if _dominant_region_share(matched) < self.config.public_insight_regional_concentration_threshold:
+            return []
+        return [
+            self._build_operational_alert(
+                matched,
+                topic=topic,
+                reference_time=reference_time,
+                recent_start=recent_start,
+                trigger_type=trigger_type,
+                confidence=0.82,
+                severity="WARNING",
+                explanation=f"{topic} 운영 신호가 {len(matched)}건 반복되었습니다.",
+            )
+        ]
+
+    def _build_operational_alert(
+        self,
+        events: list[ComplaintIntelligenceEvent],
+        *,
+        topic: str,
+        reference_time: datetime,
+        recent_start: datetime,
+        trigger_type: str,
+        confidence: float,
+        severity: str,
+        explanation: str,
+    ) -> IssueAlert:
+        region = _cluster_region(events)
+        first_seen = min(_as_aware(event.received_at) for event in events)
+        last_seen = max(_as_aware(event.received_at) for event in events)
+        baseline = _baseline_count(events, reference_time, recent_start)
+        surge_ratio = len(events) / max(baseline, 1.0)
+        representatives = [
+            RepresentativeComplaint(
+                id=event.id,
+                masked_text=mask_pii(_analysis_text(event)[:180]).text,
+                region=event.region,
+                received_at=_as_aware(event.received_at),
+            )
+            for event in sorted(events, key=lambda item: _as_aware(item.received_at), reverse=True)[:3]
+        ]
+        region_label = region or "지역 미상"
+        return IssueAlert(
+            id=self._alert_id(topic, region),
+            severity=severity,  # type: ignore[arg-type]
+            trigger_type=trigger_type,  # type: ignore[arg-type]
+            title=f"{region_label} {topic}",
+            summary=f"최근 {self.config.recent_hours}시간 동안 {len(events)}건의 {topic} 신호가 관측되었습니다.",
+            topic=topic,
+            keywords=self._extract_keywords(events),
+            region=region,
+            center=_center(events),
+            radius=_radius_km(events),
+            recent_count=len(events),
+            baseline=round(baseline, 4),
+            surge_ratio=round(surge_ratio, 4),
+            first_seen=first_seen,
+            last_seen=last_seen,
+            representative_complaints=representatives,
+            related_ids=sorted(event.id for event in events),
+            confidence=confidence,
+            explanation=f"trigger_type={trigger_type}; {explanation}",
+        )
 
     def _alert_id(self, topic: str, region: str | None) -> str:
         key = f"{topic}|{region or 'unknown'}"
@@ -334,6 +539,74 @@ def _region_compatible(left: str | None, right: str | None) -> bool:
     if left_value.startswith(right_value) or right_value.startswith(left_value):
         return True
     return len(left_value) >= 2 and len(right_value) >= 2 and left_value[:2] == right_value[:2]
+
+
+def _analysis_text(event: ComplaintIntelligenceEvent) -> str:
+    chunks: list[str] = []
+    for field in ("observation", "result", "request", "context"):
+        element = getattr(event.structured_elements, field, None)
+        if element is not None and element.text.strip():
+            chunks.append(element.text)
+    if event.masked_text:
+        chunks.append(event.masked_text)
+    return " ".join(chunks)
+
+
+def _contains_any(text: str, keywords: tuple[str, ...]) -> bool:
+    return any(keyword in text for keyword in keywords)
+
+
+def _best_concrete_topic(text: str, rules: tuple[tuple[str, tuple[str, ...]], ...]) -> str | None:
+    best_topic: str | None = None
+    best_score = 0
+    for topic, keywords in rules:
+        score = sum(1 for keyword in keywords if keyword in text)
+        if score > best_score:
+            best_topic = topic
+            best_score = score
+    return best_topic if best_score >= 2 else None
+
+
+def _baseline_count(
+    events: list[ComplaintIntelligenceEvent],
+    reference_time: datetime,
+    recent_start: datetime,
+) -> float:
+    older = [
+        event for event in events
+        if _as_aware(event.received_at) < recent_start
+        and _as_aware(event.received_at) >= reference_time - timedelta(days=7)
+    ]
+    return len(older) / 7 if older else 0.0
+
+
+def _dominant_region_share(events: list[ComplaintIntelligenceEvent]) -> float:
+    counts: dict[str, int] = {}
+    for event in events:
+        region = _normalize_region(event.region)
+        if region:
+            counts[region] = counts.get(region, 0) + 1
+    if not counts:
+        return 1.0
+    return max(counts.values()) / len(events)
+
+
+def _is_open_status(status: str | None, open_statuses: set[str], closed_statuses: set[str]) -> bool:
+    value = " ".join(str(status or "").split()).lower()
+    if not value:
+        return False
+    if value in closed_statuses:
+        return False
+    return value in open_statuses or value not in closed_statuses
+
+
+def _dedupe_alerts(alerts: list[IssueAlert]) -> list[IssueAlert]:
+    by_id: dict[str, IssueAlert] = {}
+    for alert in alerts:
+        current = by_id.get(alert.id)
+        if current is None or (alert.confidence, alert.recent_count) > (current.confidence, current.recent_count):
+            by_id[alert.id] = alert
+    return list(by_id.values())
 
 
 def _average_centroid_similarity(vectors: list[list[float]], centroid: list[float]) -> float:

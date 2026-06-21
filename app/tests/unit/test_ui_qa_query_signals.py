@@ -24,6 +24,7 @@ def _structured_case():
             "entity_texts": [{"text": "가설건축물"}],
             "legal_refs": [{"name": "건축법", "law_id": "001823"}],
             "key_terms": ["가설건축물", "이행강제금"],
+            "request_segments": ["처리 기준 안내", "이행강제금 산정 기준 안내"],
             "responsible_unit": [{"name": "건축과", "source": "be1_structured"}],
             "urgency": {"level": "높음"},
         },
@@ -36,6 +37,7 @@ def test_ui_case_adapter_preserves_be1_generation_signals():
 
     assert structured["legal_refs"] == [{"name": "건축법", "law_id": "001823"}]
     assert structured["key_terms"] == ["가설건축물", "이행강제금"]
+    assert case["request_segments"] == ["처리 기준 안내", "이행강제금 산정 기준 안내"]
     assert structured["responsible_unit"] == [{"name": "건축과", "source": "be1_structured"}]
     assert structured["urgency"] == {"level": "높음"}
     assert case["civil_category"]["primary"] == "도시·건축·주택"
@@ -79,6 +81,22 @@ def test_run_qa_via_api_sends_required_contract(monkeypatch):
             "snippet_max_chars": 1100,
             "chunk_policy": "balanced",
         },
+        routing_trace={
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "complexity_score": 0.55,
+            "request_segments": ["처리 기준 안내", "이행강제금 산정 기준 안내"],
+            "complexity_trace": {
+                "intent_count": 2,
+                "constraint_count": 0,
+                "entity_diversity": 1,
+                "policy_reference_count": 1,
+                "cross_sentence_dependency": False,
+            },
+            "route_reason": "segment_aware_search",
+            "route_key": "general/medium",
+            "strategy_id": "topic_general_medium_v1",
+        },
         top_k=5,
         use_search_results=False,
         search_results=[],
@@ -90,6 +108,7 @@ def test_run_qa_via_api_sends_required_contract(monkeypatch):
     assert result["success"] is True
     assert captured["complaint_id"] == "CASE-LEGAL-1"
     assert captured["routing_hint"]["route_key"] == "general/medium"
+    assert captured["routing_trace"]["request_segments"] == ["처리 기준 안내", "이행강제금 산정 기준 안내"]
     assert captured["query_signals"]["legal_ref_ids"] == ["001823"]
 
 

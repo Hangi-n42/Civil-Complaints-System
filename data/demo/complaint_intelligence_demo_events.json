@@ -1,0 +1,2674 @@
+{
+  "mode": "replay",
+  "source_name": "complaint_intelligence_demo",
+  "as_of": "2026-06-20T09:00:00+09:00",
+  "description": "실제 공개 민원 데이터를 실시간 관제 데모용 replay timeline으로 재배치한 seed",
+  "synthetic_fill_enabled": false,
+  "scenarios": [
+    {
+      "id": "sinkhole_hotspot",
+      "label": "도로 침하/싱크홀 급증",
+      "expected_alert": true,
+      "expected_insight_types": [
+        "SAFETY_RISK_SIGNAL",
+        "HOTSPOT_RESPONSE_REQUIRED",
+        "FACILITY_MAINTENANCE_PRIORITY"
+      ],
+      "expected_min_alerts": 1,
+      "expected_min_insights": 1,
+      "source_policy": "real_text_excerpt_replayed_time",
+      "events": [
+        {
+          "id": "demo-sinkhole_hotspot-001",
+          "received_at": "2026-06-20T08:50:00+09:00",
+          "title": "도로 포트홀 및 침하 발생시 대처방법",
+          "body": "도로 포트홀 및 침하 발생시 대처방법",
+          "masked_text": "도로 포트홀 및 침하 발생시 대처방법 도로 포트홀 및 침하 발생시 대처방법",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "도로 포트홀 및 침하 발생시 대처방법",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-sinkhole_hotspot-002",
+          "received_at": "2026-06-20T08:41:00+09:00",
+          "title": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?",
+          "body": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?",
+          "masked_text": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지? 도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-sinkhole_hotspot-003",
+          "received_at": "2026-06-20T08:32:00+09:00",
+          "title": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?",
+          "body": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?",
+          "masked_text": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요? 도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-sinkhole_hotspot-004",
+          "received_at": "2026-06-20T08:23:00+09:00",
+          "title": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?",
+          "body": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?",
+          "masked_text": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요? (경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "안전 > 생활안전",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-sinkhole_hotspot-005",
+          "received_at": "2026-06-20T08:14:00+09:00",
+          "title": "도로위에 물이 누수현상 및 땅꺼짐",
+          "body": "도로위에 물이 누수현상 및 땅꺼짐",
+          "masked_text": "도로위에 물이 누수현상 및 땅꺼짐 도로위에 물이 누수현상 및 땅꺼짐",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "도로위에 물이 누수현상 및 땅꺼짐",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-sinkhole_hotspot-006",
+          "received_at": "2026-06-20T08:05:00+09:00",
+          "title": "도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요?",
+          "body": "도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요?",
+          "masked_text": "도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요? 도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "도로 침하/싱크홀 급증 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지역에서 최근 3시간 안에 도로 침하 관련 신고가 집중되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "도로 침하/싱크홀 급증",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ],
+      "source_records": [
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6896304",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "침하",
+            "포트홀",
+            "도로"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "도로 포트홀 및 침하 발생시 대처방법"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "180368",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "아스팔트",
+            "도로"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "도로의 아스팔트 포장 언제부터 도로점용허가가 가능한지?"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6891723",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "포트홀",
+            "도로"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "도로를 주행하다가 포트홀로 인해 차량이 파손되었습니다. 보상 가능할까요?"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6893627",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "안전 > 생활안전",
+          "keyword_hits": [
+            "싱크홀",
+            "꺼짐"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "(경기북부청)싱크홀(땅꺼짐) 발생 시 어떻게 해야하나요?"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6894996",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "꺼짐",
+            "도로"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "도로위에 물이 누수현상 및 땅꺼짐"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6895054",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "포트홀",
+            "도로"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "도로 파손(포트홀 등) 신고 시 처리 절차는 어떻게 되나요?"
+        }
+      ]
+    },
+    {
+      "id": "illegal_parking_enforcement",
+      "label": "불법주정차 특정 시간대 반복",
+      "expected_alert": true,
+      "expected_insight_types": [
+        "ENFORCEMENT_PRIORITY",
+        "HOTSPOT_RESPONSE_REQUIRED"
+      ],
+      "expected_min_alerts": 1,
+      "expected_min_insights": 1,
+      "source_policy": "real_text_excerpt_replayed_time",
+      "events": [
+        {
+          "id": "demo-illegal_parking_enforcement-001",
+          "received_at": "2026-06-20T08:43:00+09:00",
+          "title": "불법주정차 단속 및 거주자우선주차 지역 확대 요청",
+          "body": "불법주정차 단속 및 거주자우선주차 지역 확대 요청",
+          "masked_text": "불법주정차 단속 및 거주자우선주차 지역 확대 요청 불법주정차 단속 및 거주자우선주차 지역 확대 요청",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "동대문구 건설교통국 주차행정과",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "불법주정차 단속 및 거주자우선주차 지역 확대 요청",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-illegal_parking_enforcement-002",
+          "received_at": "2026-06-20T08:34:00+09:00",
+          "title": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요",
+          "body": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요",
+          "masked_text": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요 고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "경제교통과",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-illegal_parking_enforcement-003",
+          "received_at": "2026-06-20T08:25:00+09:00",
+          "title": "불법주차한 차량으로 인한 불편 및 위험",
+          "body": "불법주차한 차량으로 인한 불편 및 위험",
+          "masked_text": "불법주차한 차량으로 인한 불편 및 위험 불법주차한 차량으로 인한 불편 및 위험",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "불법주차한 차량으로 인한 불편 및 위험",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-illegal_parking_enforcement-004",
+          "received_at": "2026-06-20T08:16:00+09:00",
+          "title": "불법주정차 차량 신고 방법을 알고 싶습니다.",
+          "body": "불법주정차 차량 신고 방법을 알고 싶습니다.",
+          "masked_text": "불법주정차 차량 신고 방법을 알고 싶습니다. 불법주정차 차량 신고 방법을 알고 싶습니다.",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 도로시설물",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "불법주정차 차량 신고 방법을 알고 싶습니다.",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-illegal_parking_enforcement-005",
+          "received_at": "2026-06-20T08:07:00+09:00",
+          "title": "불법주정차위반 단속 의견제출 방법 문의",
+          "body": "불법주정차위반 단속 의견제출 방법 문의",
+          "masked_text": "불법주정차위반 단속 의견제출 방법 문의 불법주정차위반 단속 의견제출 방법 문의",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "미분류",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "불법주정차위반 단속 의견제출 방법 문의",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-illegal_parking_enforcement-006",
+          "received_at": "2026-06-20T07:58:00+09:00",
+          "title": "주정차금지 구간에 주차한 차량에 과태료 부과",
+          "body": "주정차금지 구간에 주차한 차량에 과태료 부과",
+          "masked_text": "주정차금지 구간에 주차한 차량에 과태료 부과 주정차금지 구간에 주차한 차량에 과태료 부과",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "교통·물류 > 자동차",
+          "region": "서구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "주정차금지 구간에 주차한 차량에 과태료 부과",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "불법주정차 특정 시간대 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "출퇴근 또는 등하교 시간대에 같은 위치 민원이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "불법주정차 특정 시간대 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ],
+      "source_records": [
+        {
+          "source_dataset": "data\\processed\\processed_consulting_data.json",
+          "source_id": "000932",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "동대문구 건설교통국 주차행정과",
+          "keyword_hits": [
+            "불법주정차",
+            "주정차",
+            "주차",
+            "단속"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "불법주정차 단속 및 거주자우선주차 지역 확대 요청"
+        },
+        {
+          "source_dataset": "data\\processed\\processed_consulting_data.json",
+          "source_id": "800321",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "경제교통과",
+          "keyword_hits": [
+            "불법주정차",
+            "주정차",
+            "단속",
+            "차량"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "고가도로 밑에 매일 매일 불법주정차 차량 단속 좀 해주세요"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6881148",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "불법주차",
+            "주차",
+            "차량"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "불법주차한 차량으로 인한 불편 및 위험"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6889317",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 도로시설물",
+          "keyword_hits": [
+            "불법주정차",
+            "주정차",
+            "차량"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "불법주정차 차량 신고 방법을 알고 싶습니다."
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6889575",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "미분류",
+          "keyword_hits": [
+            "불법주정차",
+            "주정차",
+            "단속"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "불법주정차위반 단속 의견제출 방법 문의"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6892310",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "교통·물류 > 자동차",
+          "keyword_hits": [
+            "주정차",
+            "주차",
+            "차량"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "주정차금지 구간에 주차한 차량에 과태료 부과"
+        }
+      ]
+    },
+    {
+      "id": "bulky_waste_guidance",
+      "label": "대형폐기물 배출 방법 문의 반복",
+      "expected_alert": true,
+      "expected_insight_types": [
+        "PUBLIC_GUIDANCE_NEEDED",
+        "SERVICE_DESIGN_IMPROVEMENT"
+      ],
+      "expected_min_alerts": 1,
+      "expected_min_insights": 1,
+      "source_policy": "real_text_excerpt_replayed_time",
+      "events": [
+        {
+          "id": "demo-bulky_waste_guidance-001",
+          "received_at": "2026-06-20T08:36:00+09:00",
+          "title": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법",
+          "body": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법",
+          "masked_text": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법 진북면 대형폐기물 수거 일정 및 스티커 발부 방법",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 폐기물",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-bulky_waste_guidance-002",
+          "received_at": "2026-06-20T08:27:00+09:00",
+          "title": "강동구 대형폐기물 배출 신고방법이 궁금합니다.",
+          "body": "강동구 대형폐기물 배출 신고방법이 궁금합니다.",
+          "masked_text": "강동구 대형폐기물 배출 신고방법이 궁금합니다. 강동구 대형폐기물 배출 신고방법이 궁금합니다.",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 폐기물",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "강동구 대형폐기물 배출 신고방법이 궁금합니다.",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-bulky_waste_guidance-003",
+          "received_at": "2026-06-20T08:18:00+09:00",
+          "title": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내",
+          "body": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내",
+          "masked_text": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내 대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "안전 > 생활안전",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-bulky_waste_guidance-004",
+          "received_at": "2026-06-20T08:09:00+09:00",
+          "title": "대형폐기물 수거신청(서울특별시 강동구 암사동)",
+          "body": "대형폐기물 수거신청(서울특별시 강동구 암사동)",
+          "masked_text": "대형폐기물 수거신청(서울특별시 강동구 암사동) 대형폐기물 수거신청(서울특별시 강동구 암사동)",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 폐기물",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "대형폐기물 수거신청(서울특별시 강동구 암사동)",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-bulky_waste_guidance-005",
+          "received_at": "2026-06-20T08:00:00+09:00",
+          "title": "대형폐기물 배출신고에 대하여 절차가 궁금해요",
+          "body": "대형폐기물 배출신고에 대하여 절차가 궁금해요",
+          "masked_text": "대형폐기물 배출신고에 대하여 절차가 궁금해요 대형폐기물 배출신고에 대하여 절차가 궁금해요",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 폐기물",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "대형폐기물 배출신고에 대하여 절차가 궁금해요",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-bulky_waste_guidance-006",
+          "received_at": "2026-06-20T07:51:00+09:00",
+          "title": "구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다",
+          "body": "구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다",
+          "masked_text": "구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다 구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 폐기물",
+          "region": "동구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "대형폐기물 배출 방법 문의 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "대형폐기물 배출 절차를 확인하려는 문의가 최근 유입되었습니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "대형폐기물 배출 방법 문의 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ],
+      "source_records": [
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6889877",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 폐기물",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "스티커",
+            "수거"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "진북면 대형폐기물 수거 일정 및 스티커 발부 방법"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6891135",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 폐기물",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "배출",
+            "신고"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "강동구 대형폐기물 배출 신고방법이 궁금합니다."
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6896015",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "안전 > 생활안전",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "배출",
+            "신고"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "대구 남구 대형폐기물 및 폐가전제품 배출 신고 안내"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6902218",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 폐기물",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "수거",
+            "신청"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "대형폐기물 수거신청(서울특별시 강동구 암사동)"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6904762",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 폐기물",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "배출",
+            "신고"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "대형폐기물 배출신고에 대하여 절차가 궁금해요"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6879898",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 폐기물",
+          "keyword_hits": [
+            "대형폐기물",
+            "폐기물",
+            "스티커"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "구미시 대형폐기물처리스티커 품목별 가격을 알고 싶습니다"
+        }
+      ]
+    },
+    {
+      "id": "welfare_support_process",
+      "label": "복지 지원 기준/신청 절차 불편 반복",
+      "expected_alert": true,
+      "expected_insight_types": [
+        "POLICY_IMPROVEMENT_OPPORTUNITY",
+        "PUBLIC_GUIDANCE_NEEDED"
+      ],
+      "expected_min_alerts": 1,
+      "expected_min_insights": 1,
+      "source_policy": "real_text_excerpt_replayed_time",
+      "events": [
+        {
+          "id": "demo-welfare_support_process-001",
+          "received_at": "2026-06-20T08:29:00+09:00",
+          "title": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차",
+          "body": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차",
+          "masked_text": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차 학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "일자리·노동·교육 > 교육",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-welfare_support_process-002",
+          "received_at": "2026-06-20T08:20:00+09:00",
+          "title": "긴급복지지원은 어떤 대상이 신청할수 있나요?",
+          "body": "긴급복지지원은 어떤 대상이 신청할수 있나요?",
+          "masked_text": "긴급복지지원은 어떤 대상이 신청할수 있나요? 긴급복지지원은 어떤 대상이 신청할수 있나요?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "사회복지 > 복지정책",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "긴급복지지원은 어떤 대상이 신청할수 있나요?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-welfare_support_process-003",
+          "received_at": "2026-06-20T08:11:00+09:00",
+          "title": "긴급복지 지원 대상 및 기준 문의",
+          "body": "긴급복지 지원 대상 및 기준 문의",
+          "masked_text": "긴급복지 지원 대상 및 기준 문의 긴급복지 지원 대상 및 기준 문의",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "사회복지 > 복지정책",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "긴급복지 지원 대상 및 기준 문의",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-welfare_support_process-004",
+          "received_at": "2026-06-20T08:02:00+09:00",
+          "title": "주택관리사 자격증 신청절차 및 구비서류",
+          "body": "주택관리사 자격증 신청절차 및 구비서류",
+          "masked_text": "주택관리사 자격증 신청절차 및 구비서류 주택관리사 자격증 신청절차 및 구비서류",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "도시·건축·주택 > 주택",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "주택관리사 자격증 신청절차 및 구비서류",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-welfare_support_process-005",
+          "received_at": "2026-06-20T07:53:00+09:00",
+          "title": "2026년 기초연금 대상 및 지원 기준, 신청방법",
+          "body": "2026년 기초연금 대상 및 지원 기준, 신청방법",
+          "masked_text": "2026년 기초연금 대상 및 지원 기준, 신청방법 2026년 기초연금 대상 및 지원 기준, 신청방법",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "사회복지 > 노인복지",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "2026년 기초연금 대상 및 지원 기준, 신청방법",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-welfare_support_process-006",
+          "received_at": "2026-06-20T07:44:00+09:00",
+          "title": "장애인활동지원사업 신청자격과 선정절차",
+          "body": "장애인활동지원사업 신청자격과 선정절차",
+          "masked_text": "장애인활동지원사업 신청자격과 선정절차 장애인활동지원사업 신청자격과 선정절차",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "사회복지 > 장애인복지",
+          "region": "중구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "장애인활동지원사업 신청자격과 선정절차",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "복지 지원 기준/신청 절차 불편 반복 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "복지 지원 신청 전 단계에서 기준과 절차 이해 어려움이 반복됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "복지 지원 기준/신청 절차 불편 반복",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ],
+      "source_records": [
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6890078",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "일자리·노동·교육 > 교육",
+          "keyword_hits": [
+            "지원",
+            "신청",
+            "대상",
+            "절차"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "학생 마음바우처 지원대상, 신청방법, 치료비 청구 절차"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6890788",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "사회복지 > 복지정책",
+          "keyword_hits": [
+            "복지",
+            "지원",
+            "신청",
+            "대상"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "긴급복지지원은 어떤 대상이 신청할수 있나요?"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6892340",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "사회복지 > 복지정책",
+          "keyword_hits": [
+            "복지",
+            "지원",
+            "기준",
+            "대상"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "긴급복지 지원 대상 및 기준 문의"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6894469",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "도시·건축·주택 > 주택",
+          "keyword_hits": [
+            "신청",
+            "서류",
+            "자격",
+            "절차"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "주택관리사 자격증 신청절차 및 구비서류"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6900276",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "사회복지 > 노인복지",
+          "keyword_hits": [
+            "지원",
+            "기준",
+            "신청",
+            "대상"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "2026년 기초연금 대상 및 지원 기준, 신청방법"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6902908",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "사회복지 > 장애인복지",
+          "keyword_hits": [
+            "지원",
+            "신청",
+            "자격",
+            "절차"
+          ],
+          "score": 8.8,
+          "masked_excerpt": "장애인활동지원사업 신청자격과 선정절차"
+        }
+      ]
+    },
+    {
+      "id": "odor_night_hotspot",
+      "label": "악취/냄새/하수 민원 야간 집중",
+      "expected_alert": true,
+      "expected_insight_types": [
+        "HOTSPOT_RESPONSE_REQUIRED",
+        "SEASONAL_OR_TIME_PATTERN",
+        "ENFORCEMENT_PRIORITY"
+      ],
+      "expected_min_alerts": 1,
+      "expected_min_insights": 1,
+      "source_policy": "real_text_excerpt_replayed_time",
+      "events": [
+        {
+          "id": "demo-odor_night_hotspot-001",
+          "received_at": "2026-06-20T08:22:00+09:00",
+          "title": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다.",
+          "body": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다.",
+          "masked_text": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다. ▲▲▲공장 하수구 냄새 때문에 너무 불편합니다.",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "환경위생과",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다.",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-odor_night_hotspot-002",
+          "received_at": "2026-06-20T08:13:00+09:00",
+          "title": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?",
+          "body": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?",
+          "masked_text": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요? 길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 환경",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-odor_night_hotspot-003",
+          "received_at": "2026-06-20T08:04:00+09:00",
+          "title": "개인하수처리시설(정화조, 오수처리시설) 폐쇄",
+          "body": "개인하수처리시설(정화조, 오수처리시설) 폐쇄",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 폐쇄 개인하수처리시설(정화조, 오수처리시설) 폐쇄",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 하천",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "개인하수처리시설(정화조, 오수처리시설) 폐쇄",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-odor_night_hotspot-004",
+          "received_at": "2026-06-20T07:55:00+09:00",
+          "title": "개인하수처리시설(정화조, 오수처리시설) 설치",
+          "body": "개인하수처리시설(정화조, 오수처리시설) 설치",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치 개인하수처리시설(정화조, 오수처리시설) 설치",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 하천",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "개인하수처리시설(정화조, 오수처리시설) 설치",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-odor_night_hotspot-005",
+          "received_at": "2026-06-20T07:46:00+09:00",
+          "title": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고",
+          "body": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고",
+          "masked_text": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고 개인하수처리시설(정화조, 오수처리시설) 설치/변경신고",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 하천",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "demo-odor_night_hotspot-006",
+          "received_at": "2026-06-20T07:37:00+09:00",
+          "title": "하수도 낙엽 및 쓰레기 정비 요청",
+          "body": "하수도 낙엽 및 쓰레기 정비 요청",
+          "masked_text": "하수도 낙엽 및 쓰레기 정비 요청 하수도 낙엽 및 쓰레기 정비 요청",
+          "predicted_category": null,
+          "final_category": null,
+          "predicted_department": null,
+          "final_department": "공원녹지·환경 > 하천",
+          "region": "남구",
+          "latitude": null,
+          "longitude": null,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "하수도 낙엽 및 쓰레기 정비 요청",
+              "confidence": 0.72,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "악취/냄새/하수 민원 야간 집중 관련 불편과 행정 대응 필요성이 확인됩니다.",
+              "confidence": 0.68,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
+              "confidence": 0.74,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "야간 또는 이른 오전 시간대에 악취·하수 관련 민원이 집중됩니다.",
+              "confidence": 0.7,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [],
+          "responsible_unit": [],
+          "civil_category": "악취/냄새/하수 민원 야간 집중",
+          "entity_texts": [],
+          "urgency": null,
+          "risk_level": null,
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ],
+      "source_records": [
+        {
+          "source_dataset": "data\\processed\\processed_consulting_data.json",
+          "source_id": "80316",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "환경위생과",
+          "keyword_hits": [
+            "냄새",
+            "하수",
+            "공장"
+          ],
+          "score": 6.8,
+          "masked_excerpt": "▲▲▲공장 하수구 냄새 때문에 너무 불편합니다."
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6890282",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 환경",
+          "keyword_hits": [
+            "냄새",
+            "쓰레기"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "길가에 쓰레기가 무단방치 되어있어서 냄새가 나요. 처리 가능할까요?"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6892790",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 하천",
+          "keyword_hits": [
+            "하수",
+            "오수"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "개인하수처리시설(정화조, 오수처리시설) 폐쇄"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6892791",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 하천",
+          "keyword_hits": [
+            "하수",
+            "오수"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "개인하수처리시설(정화조, 오수처리시설) 설치"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6900001",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 하천",
+          "keyword_hits": [
+            "하수",
+            "오수"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "개인하수처리시설(정화조, 오수처리시설) 설치/변경신고"
+        },
+        {
+          "source_dataset": "data\\processed\\civil_policy_qna_processed.json",
+          "source_id": "6902829",
+          "original_received_at": "[REDACTED:ACCOUNT]",
+          "original_region": null,
+          "original_department": "공원녹지·환경 > 하천",
+          "keyword_hits": [
+            "하수",
+            "쓰레기"
+          ],
+          "score": 4.8,
+          "masked_excerpt": "하수도 낙엽 및 쓰레기 정비 요청"
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import {
   buildDraftTextareaValue,
   computeSegmentViewMode,
   pairSegmentsWithActions,
+  selectDraftRequestSegments,
   DRAFT_ERROR_FALLBACK,
 } from "../lib/draft";
 import fixturesJson from "./fixtures/qa_demo_fixtures.json";
@@ -84,6 +85,26 @@ describe("computeSegmentViewMode — 보조 UI 분기 (AC2/AC4)", () => {
     expect(
       computeSegmentViewMode({ draftStage: "success", segmentCount: c.structuredOutput.requestSegments.length }),
     ).toBe("multi");
+  });
+});
+
+describe("selectDraftRequestSegments — 원본 복합 세그먼트 보존", () => {
+  it("응답이 단일 요청으로 축소되어도 원본 민원이 복합이면 원본 세그먼트를 쓴다", () => {
+    expect(
+      selectDraftRequestSegments({
+        responseSegments: ["브런치 콘서트 단체 예매 절차 문의"],
+        fallbackSegments: ["단체 사전 예매 가능 여부", "예매 매수 제한", "콜센터 또는 현장 예매 가능 여부"],
+      }),
+    ).toEqual(["단체 사전 예매 가능 여부", "예매 매수 제한", "콜센터 또는 현장 예매 가능 여부"]);
+  });
+
+  it("응답과 원본이 모두 복합이면 더 자세한 쪽을 쓴다", () => {
+    expect(
+      selectDraftRequestSegments({
+        responseSegments: ["인증 절차", "제출 서류"],
+        fallbackSegments: ["인증 절차", "제출 서류", "제도 차이", "상담 방법"],
+      }),
+    ).toEqual(["인증 절차", "제출 서류", "제도 차이", "상담 방법"]);
   });
 });
 

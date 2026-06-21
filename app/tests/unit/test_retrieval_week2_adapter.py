@@ -51,3 +51,32 @@ def test_normalize_record_enforces_chunk_id_pattern_and_entity_alignment():
     assert normalized["entity_labels"] == ["FACILITY", "TIME"]
     assert normalized["entity_texts"] == ["가로등", "저녁 8시"]
     assert len(normalized["entity_labels"]) == len(normalized["entity_texts"])
+
+
+def test_policy_qna_uses_full_text_before_structured_summary():
+    service = RetrievalService()
+    record = {
+        "case_id": "CASE-POLICY-175436",
+        "source_id": "175436",
+        "created_at": "2019-01-02T00:00:00+09:00",
+        "source": "국토교통부",
+        "category": "교통·물류 > 도로시설물",
+        "text": "제한차량 운행허가 신청 방법\n온라인 신청 방법을 안내합니다.",
+        "structured_text": {"request": "제한차량 운행허가신청 방법 안내"},
+        "metadata": {
+            "content_type": "policy_qna",
+            "document_type": "policy_qna",
+            "index_text_source": "search_text_with_answer",
+        },
+    }
+
+    normalized = service._normalize_record(record, index=0)
+
+    assert normalized["chunk_text"] == record["text"]
+    assert normalized["content_type"] == "policy_qna"
+    assert normalized["document_type"] == "policy_qna"
+    assert normalized["source_id"] == "175436"
+    assert normalized["metadata"]["content_type"] == "policy_qna"
+    assert normalized["metadata"]["document_type"] == "policy_qna"
+    assert normalized["metadata"]["source_id"] == "175436"
+    assert normalized["metadata"]["index_text_source"] == "search_text_with_answer"

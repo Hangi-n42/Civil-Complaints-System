@@ -53,6 +53,29 @@ class _FailSearchService:
         raise RetrievalError("index unavailable")
 
 
+class _CapturingRetrievalService(_StubRetrievalService):
+    def __init__(self):
+        self.calls = []
+
+    async def search(self, query, top_k=5, filters=None, collection_name=None, **kwargs):
+        self.calls.append(
+            {
+                "query": query,
+                "top_k": top_k,
+                "filters": filters,
+                "collection_name": collection_name,
+                **kwargs,
+            }
+        )
+        return await super().search(
+            query,
+            top_k=top_k,
+            filters=filters,
+            collection_name=collection_name,
+            **kwargs,
+        )
+
+
 def test_search_response_is_wrapped(monkeypatch):
     from app.api.routers import retrieval as retrieval_router
 
@@ -94,7 +117,13 @@ def test_search_response_is_wrapped(monkeypatch):
     assert isinstance(body["data"]["routing_trace"]["applied_filters"], dict)
     assert isinstance(body["data"]["routing_trace"]["request_segments"], list)
     assert len(body["data"]["routing_trace"]["request_segments"]) >= 1
+    assert isinstance(body["data"]["routing_trace"]["intent_count"], int)
+    assert isinstance(body["data"]["routing_trace"]["fallback_used"], bool)
+    assert isinstance(body["data"]["routing_trace"]["truncated"], bool)
+    assert isinstance(body["data"]["routing_trace"]["request_segments_low_confidence"], bool)
     assert "cross_sentence_dependency" in body["data"]["routing_trace"]["complexity_trace"]
+    assert body["data"]["routing_trace"]["complexity_trace"]["fallback_used"] == body["data"]["routing_trace"]["fallback_used"]
+    assert body["data"]["routing_trace"]["complexity_trace"]["truncated"] == body["data"]["routing_trace"]["truncated"]
     assert body["data"]["routing_trace"]["complexity_trace"]["title_question_boundary_used"] is False
     assert body["data"]["routing_trace"]["segment_count"] >= 1
     assert body["data"]["routing_trace"]["merge_policy"] == "single_query"
@@ -139,6 +168,80 @@ def test_search_response_is_wrapped(monkeypatch):
     assert set(first["summary"].keys()) == {"observation", "request"}
     assert isinstance(first["answers_by_admin_unit"], dict)
     assert isinstance(first["department_answers"], dict)
+
+
+def test_search_passes_request_segments_for_complex_query(monkeypatch):
+    from app.api.routers import retrieval as retrieval_router
+
+    service = _CapturingRetrievalService()
+    monkeypatch.setattr(
+        retrieval_router,
+        "get_retrieval_service",
+        lambda: service,
+    )
+    monkeypatch.setattr(
+        retrieval_router,
+        "_build_routing_payload",
+        lambda query: {
+            "strategy_id": "topic_traffic_high_v1",
+            "route_key": "traffic/high",
+            "retrieval_policy": "field_ops",
+            "request_segments": ["도로 파손 보수 요청", "불법 주정차 단속 요청"],
+            "merge_policy": "segment_aware_dedupe",
+            "routing_hint": {
+                "strategy_id": "topic_traffic_high_v1",
+                "route_key": "traffic/high",
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "balanced",
+            },
+            "routing_trace": {
+                "topic_type": "traffic",
+                "complexity_level": "high",
+                "complexity_score": 0.86,
+                "request_segments": ["도로 파손 보수 요청", "불법 주정차 단속 요청"],
+                "complexity_trace": {
+                    "intent_count": 2,
+                    "constraint_count": 0,
+                    "entity_diversity": 2,
+                    "policy_reference_count": 0,
+                    "cross_sentence_dependency": False,
+                },
+                "route_reason": "stub",
+                "route_key": "traffic/high",
+                "strategy_id": "topic_traffic_high_v1",
+                "applied_filters": {},
+                "segment_count": 2,
+                "merge_policy": "segment_aware_dedupe",
+                "retrieval_policy": "field_ops",
+            },
+            "analyzer_output": {},
+            "analyzer_latency_ms": 0,
+            "router_latency_ms": 0,
+            "applied_params": {
+                "top_k": 5,
+                "snippet_max_chars": 1100,
+                "chunk_policy": "balanced",
+                "retrieval_policy": "field_ops",
+            },
+        },
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/search",
+        json={
+            "request_id": "SRCH-2026-000002",
+            "query": "도로 파손도 보수하고 불법 주정차도 단속해 주세요.",
+            "top_k": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["routing_trace"]["merge_policy"] == "segment_aware_dedupe"
+    assert body["data"]["routing_trace"]["route_reason"].startswith("segment_aware_search;")
+    assert service.calls[0]["request_segments"] == ["도로 파손 보수 요청", "불법 주정차 단속 요청"]
 
 
 def test_index_response_is_wrapped(monkeypatch):

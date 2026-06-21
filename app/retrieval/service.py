@@ -201,11 +201,14 @@ class RetrievalService:
         if candidate and re.fullmatch(rf"{re.escape(case_id)}__chunk-\d+", candidate):
             return candidate
 
-        raw_index = record.get("chunk_index", index)
+        # 명시 chunk_index가 없는 단일 문서는 입력/배치 순서와 무관하게 같은 upsert key를 써야 한다.
+        raw_index = record.get("chunk_index")
+        if raw_index in (None, ""):
+            raw_index = 0
         try:
             chunk_index = max(0, int(raw_index))
         except (TypeError, ValueError):
-            chunk_index = max(0, index)
+            chunk_index = 0
 
         return f"{case_id}__chunk-{chunk_index}"
 
@@ -240,6 +243,16 @@ class RetrievalService:
         return ""
 
     def _build_chunk_text(self, record: Dict[str, Any]) -> str:
+        metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        content_type = str(record.get("content_type") or metadata.get("content_type") or "").strip()
+        document_type = str(record.get("document_type") or metadata.get("document_type") or "").strip()
+        if "policy_qna" in {content_type.lower(), document_type.lower()}:
+            # 정책 Q&A는 4요소 요약보다 질문+답변 전문이 검색 근거로 더 적합하다.
+            for key in ("text", "search_text", "raw_text"):
+                text = str(record.get(key) or "").strip()
+                if text:
+                    return text
+
         structured_text = record.get("structured_text")
         if isinstance(structured_text, dict):
             ordered = [
@@ -378,6 +391,14 @@ class RetrievalService:
         created_at_ts = int(datetime.fromisoformat(created_at).timestamp())
 
         metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+        validation = record.get("validation") if isinstance(record.get("validation"), dict) else {}
+        content_type = str(record.get("content_type") or metadata.get("content_type") or "full").strip() or "full"
+        document_type = (
+            str(record.get("document_type") or metadata.get("document_type") or content_type).strip()
+            or content_type
+        )
+        source_id = str(record.get("source_id") or metadata.get("source_id") or "").strip()
+        index_text_source = str(record.get("index_text_source") or metadata.get("index_text_source") or "").strip()
         source = (
             str(record.get("source") or metadata.get("source") or "unknown").strip()
             or "unknown"
@@ -486,6 +507,9 @@ class RetrievalService:
             "case_id": case_id,
             "chunk_text": chunk_text,
             "chunk_type": str(record.get("chunk_type", "combined")),
+            "source_id": source_id,
+            "content_type": content_type,
+            "document_type": document_type,
             "source": source,
             "created_at": created_at,
             "created_at_ts": created_at_ts,
@@ -513,8 +537,13 @@ class RetrievalService:
             "metadata": {
                 "pipeline_version": "week2",
                 "structuring_confidence": confidence,
-                "content_type": "full",
+                "content_type": content_type,
+                "document_type": document_type,
+                "source_id": source_id,
+                "index_text_source": index_text_source,
                 "created_at_ts": created_at_ts,
+                "structured_by": str(record.get("structured_by") or metadata.get("structured_by") or ""),
+                "is_valid": bool(record.get("is_valid", metadata.get("is_valid", validation.get("is_valid", False)))),
             },
         }
 
@@ -776,10 +805,78 @@ class RetrievalService:
                 )
 
         merged_results.sort(key=lambda item: float(item.get("score", 0.0) or 0.0), reverse=True)
-        results_list = merged_results[: max(1, top_k)]
+        selected: List[Dict[str, Any]] = []
+        selected_keys: set[str] = set()
+        for segment, _ in segment_results:
+            segment_candidates = [
+                item
+                for item in merged_results
+                if segment in (item.get("matched_segments") or [])
+            ]
+            if not segment_candidates:
+                continue
+            candidate = segment_candidates[0]
+            key = f"{candidate.get('doc_id') or candidate.get('case_id')}::{candidate.get('chunk_id')}"
+            if key in selected_keys:
+                continue
+            selected_keys.add(key)
+            selected.append(candidate)
+            if len(selected) >= max(1, top_k):
+                break
+
+        for item in merged_results:
+            if len(selected) >= max(1, top_k):
+                break
+            key = f"{item.get('doc_id') or item.get('case_id')}::{item.get('chunk_id')}"
+            if key in selected_keys:
+                continue
+            selected_keys.add(key)
+            selected.append(item)
+
+        results_list = selected[: max(1, top_k)]
         for rank, item in enumerate(results_list, start=1):
             item["rank"] = rank
         return results_list
+
+    def _merge_ranked_results(
+        self,
+        protected_results: List[Dict[str, Any]],
+        candidate_results: List[Dict[str, Any]],
+        *,
+        top_k: int,
+    ) -> List[Dict[str, Any]]:
+        selected: List[Dict[str, Any]] = []
+        selected_keys: set[str] = set()
+
+        def result_key(item: Dict[str, Any]) -> str:
+            return f"{item.get('doc_id') or item.get('case_id')}::{item.get('chunk_id')}"
+
+        for item in protected_results:
+            key = result_key(item)
+            if key in selected_keys:
+                continue
+            selected_keys.add(key)
+            selected.append(item)
+            if len(selected) >= max(1, top_k):
+                break
+
+        remaining = sorted(
+            candidate_results,
+            key=lambda item: float(item.get("score", 0.0) or 0.0),
+            reverse=True,
+        )
+        for item in remaining:
+            if len(selected) >= max(1, top_k):
+                break
+            key = result_key(item)
+            if key in selected_keys:
+                continue
+            selected_keys.add(key)
+            selected.append(item)
+
+        for rank, item in enumerate(selected, start=1):
+            item["rank"] = rank
+        return selected
 
     def _normalize_query_signals(
         self,
@@ -988,33 +1085,79 @@ class RetrievalService:
             normalized_query_signals = self._normalize_query_signals(query_signals)
             metadata_rerank_on = bool(normalized_query_signals)
 
-            # request_segments remain available to BE3 through routing_trace, but
-            # they do not change BE2's fixed Hybrid candidate set or ranking.
+            # 복합 민원은 원문 검색 결과에 세그먼트별 검색 결과를 더해 쟁점별 근거
+            # 독식을 줄인다. LLM 호출은 추가하지 않고 기존 검색기만 반복 사용한다.
             effective_strategy = strategy or settings.RETRIEVAL_STRATEGY
             use_hybrid = effective_strategy == "hybrid" and not (filters or {})
             retrieve_k = max(top_k, effective_grounding_pool) if grounding_on else top_k
             if metadata_rerank_on:
                 retrieve_k = max(retrieve_k, settings.HYBRID_FANOUT)
             fanout = max(retrieve_k, settings.HYBRID_FANOUT) if use_hybrid else retrieve_k
-            dense_results = store.query(
-                collection_name=collection_key,
-                query=query,
-                top_k=fanout,
-                filters=filters or {},
-                threshold=threshold,
-                snippet_max_chars=effective_snippet_max_chars,
-            )
-            if use_hybrid:
-                try:
-                    results = self._get_hybrid().search(
-                        collection_key, query, retrieve_k, dense_results,
-                        fanout=settings.HYBRID_FANOUT,
+
+            def retrieve_candidates(search_query: str) -> List[Dict[str, Any]]:
+                dense_results = store.query(
+                    collection_name=collection_key,
+                    query=search_query,
+                    top_k=fanout,
+                    filters=filters or {},
+                    threshold=threshold,
+                    snippet_max_chars=effective_snippet_max_chars,
+                )
+                if use_hybrid:
+                    try:
+                        return self._get_hybrid().search(
+                            collection_key,
+                            search_query,
+                            retrieve_k,
+                            dense_results,
+                            fanout=settings.HYBRID_FANOUT,
+                        )
+                    except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
+                        self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
+                        return dense_results[:retrieve_k]
+                return dense_results[:retrieve_k]
+
+            protected_segment_results: List[Dict[str, Any]] = []
+            results = retrieve_candidates(query)
+            normalized_segments = self._normalize_request_segments(
+                query,
+                request_segments,
+            ) if request_segments else []
+            normalized_segments = [
+                segment
+                for segment in normalized_segments
+                if segment.casefold() != str(query or "").strip().casefold()
+            ][:6]
+            if len(normalized_segments) >= 2:
+                segment_results = [
+                    (segment, retrieve_candidates(segment))
+                    for segment in normalized_segments
+                ]
+                guaranteed_segment_results = self._merge_segment_results(
+                    segment_results,
+                    top_k=max(top_k, len(normalized_segments)),
+                )
+                protected_segment_results = guaranteed_segment_results
+                results = self._merge_ranked_results(
+                    guaranteed_segment_results,
+                    [*guaranteed_segment_results, *results],
+                    top_k=retrieve_k,
+                )
+
+                matched_segment_count = sum(
+                    1
+                    for segment in normalized_segments
+                    if any(
+                        segment in (item.get("matched_segments") or [])
+                        for item in guaranteed_segment_results
                     )
-                except Exception as exc:  # 안전: Hybrid 실패 시 Dense로 폴백
-                    self.logger.warning(f"Hybrid 검색 실패, Dense 폴백: {exc}")
-                    results = dense_results[:retrieve_k]
-            else:
-                results = dense_results[:retrieve_k]
+                )
+                self.logger.info(
+                    "세그먼트 검색 병합: segments=%s covered=%s top_k=%s",
+                    len(normalized_segments),
+                    matched_segment_count,
+                    top_k,
+                )
 
             if exclude_case_id:
                 excluded = str(exclude_case_id).strip().upper()
@@ -1047,6 +1190,12 @@ class RetrievalService:
                     query,
                     results[:effective_grounding_pool],
                     top_k,
+                )
+            elif protected_segment_results:
+                results = self._merge_ranked_results(
+                    protected_segment_results,
+                    results,
+                    top_k=max(1, top_k),
                 )
             elif metadata_rerank_on:
                 results = results[: max(1, top_k)]

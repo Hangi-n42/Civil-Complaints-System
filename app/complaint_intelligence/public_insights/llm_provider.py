@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+import hashlib
 import json
 import re
 import socket
@@ -10,6 +14,7 @@ import urllib.request
 from typing import Any, Protocol
 
 from app.complaint_intelligence.config import ComplaintIntelligenceConfig
+from app.complaint_intelligence.pii import mask_pii
 
 
 class PublicInsightLLMProvider(Protocol):
@@ -17,6 +22,31 @@ class PublicInsightLLMProvider(Protocol):
 
     def generate_json(self, prompt: str, schema: dict) -> dict:
         """프롬프트와 JSON schema를 받아 JSON 객체를 반환한다."""
+
+
+class PublicInsightLLMError(RuntimeError):
+    """LLM 경로 실패 사유를 trace/report에 남기기 위한 예외."""
+
+    def __init__(
+        self,
+        reason: str,
+        message: str,
+        *,
+        repair_steps: list[str] | None = None,
+        raw_debug_path: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.repair_steps = repair_steps or []
+        self.raw_debug_path = raw_debug_path
+
+
+@dataclass(frozen=True)
+class JsonRepairResult:
+    """JSON repair 결과와 적용된 syntax-level 단계."""
+
+    payload: dict[str, Any]
+    repair_steps: list[str] = field(default_factory=list)
 
 
 class DisabledLLMProvider:
@@ -41,7 +71,7 @@ class FakePublicInsightLLMProvider:
         evidence_ids = [str(item.get("complaint_id")) for item in pack.get("representative_complaints", []) if item.get("complaint_id")]
         selected_ids = evidence_ids[:3]
         top_aspects = ", ".join(str(item.get("aspect")) for item in aspects[:2]) or "반복 불편"
-        action = _action_for(insight_type, topic)
+        action = _action_for(insight_type, topic, _allowed_action_types_from_pack(pack))
 
         return {
             "title": _title_for(insight_type, region, topic),
@@ -91,6 +121,9 @@ class LocalLLMProvider:
         self.num_gpu = config.public_insight_llm_num_gpu
         self.keep_alive = config.public_insight_llm_keep_alive
         self.stream = config.public_insight_llm_stream
+        self.debug_raw_response = config.public_insight_llm_debug_raw_response
+        self.debug_raw_response_dir = Path(config.public_insight_llm_debug_raw_response_dir)
+        self.debug_raw_response_max_chars = config.public_insight_llm_debug_raw_response_max_chars
 
     def generate_json(self, prompt: str, schema: dict) -> dict:
         if not self.base_url:
@@ -109,22 +142,26 @@ class LocalLLMProvider:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 raw = self._read_streaming_response(response) if self.stream else response.read().decode("utf-8")
         except (TimeoutError, socket.timeout) as exc:
-            raise TimeoutError(f"PUBLIC_INSIGHT_LLM_TIMEOUT:{self.timeout}") from exc
+            raise PublicInsightLLMError("LLM_TIMEOUT", f"PUBLIC_INSIGHT_LLM_TIMEOUT:{self.timeout}") from exc
         except urllib.error.URLError as exc:
-            raise RuntimeError("PUBLIC_INSIGHT_LLM_REQUEST_FAILED") from exc
+            raise PublicInsightLLMError("LLM_REQUEST_FAILED", "PUBLIC_INSIGHT_LLM_REQUEST_FAILED") from exc
 
-        parsed = json.loads(raw)
+        raw_debug_path = self._write_raw_debug(prompt, raw)
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return self._parse_content(raw, raw_debug_path=raw_debug_path)
         if isinstance(parsed, dict) and isinstance(parsed.get("response"), str):
-            return _parse_json_object(parsed["response"])
+            return self._parse_content(parsed["response"], raw_debug_path=raw_debug_path)
         if isinstance(parsed, dict) and isinstance(parsed.get("message"), dict):
             content = str(parsed["message"].get("content") or "")
-            return _parse_json_object(content)
+            return self._parse_content(content, raw_debug_path=raw_debug_path)
         if isinstance(parsed, dict) and isinstance(parsed.get("choices"), list):
             content = parsed["choices"][0].get("message", {}).get("content", "")
-            return _parse_json_object(str(content))
+            return self._parse_content(str(content), raw_debug_path=raw_debug_path)
         if isinstance(parsed, dict):
             return parsed
-        raise ValueError("PUBLIC_INSIGHT_LLM_RESPONSE_NOT_OBJECT")
+        raise PublicInsightLLMError("LLM_JSON_PARSE_FAILED", "PUBLIC_INSIGHT_LLM_RESPONSE_NOT_OBJECT", raw_debug_path=raw_debug_path)
 
     def _payload(self, prompt: str, schema: dict) -> dict[str, Any]:
         response_format: str | dict[str, Any] = schema if schema else "json"
@@ -177,6 +214,40 @@ class LocalLLMProvider:
             payload["keep_alive"] = self.keep_alive
         return payload
 
+    def _parse_content(self, content: str, *, raw_debug_path: str | None) -> dict[str, Any]:
+        try:
+            return _parse_json_object_with_repair(content).payload
+        except Exception as exc:  # noqa: BLE001 - fallback reason을 보존한다.
+            repair_steps = getattr(exc, "repair_steps", [])
+            raise PublicInsightLLMError(
+                "LLM_JSON_PARSE_FAILED",
+                "PUBLIC_INSIGHT_LLM_JSON_PARSE_FAILED",
+                repair_steps=list(repair_steps),
+                raw_debug_path=raw_debug_path,
+            ) from exc
+
+    def _write_raw_debug(self, prompt: str, raw_response: str) -> str | None:
+        """수동 평가용 raw response를 PII 마스킹 후 저장한다. 기본은 비활성이다."""
+
+        if not self.debug_raw_response:
+            return None
+        candidate_id = _candidate_id_from_prompt(prompt)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        digest = hashlib.sha1(prompt.encode("utf-8")).hexdigest()[:8]
+        filename = f"{timestamp}_{candidate_id}_{digest}.json"
+        self.debug_raw_response_dir.mkdir(parents=True, exist_ok=True)
+        path = self.debug_raw_response_dir / filename
+        masked_response = mask_pii(raw_response[: self.debug_raw_response_max_chars]).text
+        payload = {
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "model": self.model,
+            "candidate_id": candidate_id,
+            "raw_response_truncated": len(raw_response) > self.debug_raw_response_max_chars,
+            "raw_response": masked_response,
+        }
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        return str(path)
+
 
 def build_llm_provider(config: ComplaintIntelligenceConfig) -> PublicInsightLLMProvider:
     """config 값에 맞는 provider를 생성한다."""
@@ -212,24 +283,140 @@ def _normalize_ollama_url(base_url: str) -> str:
 
 
 def _parse_json_object(content: str) -> dict[str, Any]:
-    cleaned = _strip_code_fence(content.strip())
+    return _parse_json_object_with_repair(content).payload
+
+
+def _parse_json_object_with_repair(content: str) -> JsonRepairResult:
+    cleaned, repair_steps = _prepare_json_candidate(content)
     try:
         parsed = json.loads(cleaned)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", cleaned, re.S)
-        if not match:
-            raise
-        parsed = json.loads(match.group(0))
+    except json.JSONDecodeError as first_error:
+        repaired = _repair_json_syntax(cleaned, repair_steps)
+        try:
+            parsed = json.loads(repaired)
+        except json.JSONDecodeError as exc:
+            setattr(exc, "repair_steps", repair_steps)
+            raise exc from first_error
     if not isinstance(parsed, dict):
-        raise ValueError("PUBLIC_INSIGHT_LLM_JSON_NOT_OBJECT")
-    return parsed
+        error = ValueError("PUBLIC_INSIGHT_LLM_JSON_NOT_OBJECT")
+        setattr(error, "repair_steps", repair_steps)
+        raise error
+    return JsonRepairResult(payload=parsed, repair_steps=repair_steps)
+
+
+def _prepare_json_candidate(content: str) -> tuple[str, list[str]]:
+    repair_steps: list[str] = []
+    cleaned = _remove_control_characters(str(content).strip())
+    if cleaned != content:
+        repair_steps.append("remove_control_characters")
+    without_fence = _strip_code_fence(cleaned)
+    if without_fence != cleaned:
+        repair_steps.append("strip_markdown_fence")
+    cleaned = _normalize_quotes(without_fence)
+    extracted = _extract_balanced_json(cleaned)
+    if extracted != cleaned:
+        repair_steps.append("extract_balanced_json_object")
+    return extracted.strip(), repair_steps
+
+
+def _repair_json_syntax(cleaned: str, repair_steps: list[str]) -> str:
+    repaired = cleaned
+    replaced_literals = re.sub(r"\bTrue\b", "true", repaired)
+    replaced_literals = re.sub(r"\bFalse\b", "false", replaced_literals)
+    replaced_literals = re.sub(r"\bNone\b", "null", replaced_literals)
+    if replaced_literals != repaired:
+        repair_steps.append("replace_python_literals")
+        repaired = replaced_literals
+    without_trailing_commas = re.sub(r",\s*([}\]])", r"\1", repaired)
+    if without_trailing_commas != repaired:
+        repair_steps.append("remove_trailing_commas")
+        repaired = without_trailing_commas
+    balanced = _close_unbalanced_json(repaired)
+    if balanced != repaired:
+        repair_steps.append("close_unbalanced_brackets")
+    return balanced
 
 
 def _strip_code_fence(content: str) -> str:
-    if content.startswith("```"):
-        content = re.sub(r"^```(?:json)?\s*", "", content)
-        content = re.sub(r"\s*```$", "", content)
-    return content.strip()
+    return re.sub(r"```(?:json)?|```", "", content, flags=re.I).strip()
+
+
+def _normalize_quotes(content: str) -> str:
+    table = str.maketrans({
+        "“": '"',
+        "”": '"',
+        "„": '"',
+        "＂": '"',
+        "‘": "'",
+        "’": "'",
+        "，": ",",
+        "：": ":",
+    })
+    return content.translate(table)
+
+
+def _remove_control_characters(content: str) -> str:
+    return "".join(char for char in content if char in "\n\r\t" or ord(char) >= 32)
+
+
+def _extract_balanced_json(content: str) -> str:
+    start = content.find("{")
+    if start < 0:
+        return content
+    depth = 0
+    in_string = False
+    escape = False
+    for index, char in enumerate(content[start:], start=start):
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return content[start:index + 1]
+    return content[start:]
+
+
+def _close_unbalanced_json(content: str) -> str:
+    stack: list[str] = []
+    in_string = False
+    escape = False
+    for char in content:
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char in "{[":
+            stack.append("}" if char == "{" else "]")
+        elif char in "}]" and stack and stack[-1] == char:
+            stack.pop()
+    if in_string:
+        content += '"'
+    return content + "".join(reversed(stack))
+
+
+def _candidate_id_from_prompt(prompt: str) -> str:
+    try:
+        pack = _extract_pack(prompt)
+    except Exception:  # noqa: BLE001 - debug 파일명 fallback
+        pack = {}
+    candidate_id = str(pack.get("candidate_id") or "unknown")
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", candidate_id)[:80]
 
 
 def _dominant_region(pack: dict[str, Any]) -> str | None:
@@ -256,7 +443,7 @@ def _title_for(insight_type: str, region: str | None, topic: str) -> str:
     return f"{prefix}{topic} {suffix}"
 
 
-def _action_for(insight_type: str, topic: str) -> dict[str, str | None]:
+def _action_for(insight_type: str, topic: str, allowed_action_types: list[str] | None = None) -> dict[str, str | None]:
     defaults = {
         "POLICY_IMPROVEMENT_OPPORTUNITY": {
             "action": f"{topic} 관련 반복 개선 요구를 신청 절차, 기준, 안내 개선 과제로 분리해 검토합니다.",
@@ -294,7 +481,7 @@ def _action_for(insight_type: str, topic: str) -> dict[str, str | None]:
             "risk_or_dependency": "단속 권한과 인력 배치 확인이 필요합니다.",
         },
     }
-    return defaults.get(
+    action = defaults.get(
         insight_type,
         {
             "action": f"{topic} 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
@@ -304,3 +491,11 @@ def _action_for(insight_type: str, topic: str) -> dict[str, str | None]:
             "risk_or_dependency": "담당자 검토가 필요합니다.",
         },
     )
+    if allowed_action_types and action["action_type"] not in allowed_action_types:
+        action = {**action, "action_type": allowed_action_types[0]}
+    return action
+
+
+def _allowed_action_types_from_pack(pack: dict[str, Any]) -> list[str]:
+    values = pack.get("preferred_action_types") or pack.get("allowed_action_types") or []
+    return [str(value) for value in values if value]

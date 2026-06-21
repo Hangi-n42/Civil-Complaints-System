@@ -124,7 +124,7 @@ class PublicInsightCandidateGenerator:
         candidates: list[PublicInsightCandidate] = []
         for alert in alerts:
             text = " ".join([alert.topic, alert.summary, " ".join(alert.keywords)])
-            insight_type: PublicInsightType = "SAFETY_RISK_SIGNAL" if _contains_any(text, self.SAFETY_KEYWORDS) else "HOTSPOT_RESPONSE_REQUIRED"
+            insight_type = _insight_type_from_alert(alert, text, self.SAFETY_KEYWORDS)
             metrics = {
                 "complaint_count": alert.recent_count,
                 "surge_ratio": alert.surge_ratio,
@@ -252,6 +252,8 @@ class PublicInsightCandidateGenerator:
             matched = [event for event in events if _contains_any(_analysis_text(event), keywords)]
             if len(matched) < min_count:
                 continue
+            if _is_dispersed_keyword_noise(matched, self.config):
+                continue
             candidates.append(
                 self._keyword_candidate(
                     insight_type=insight_type,
@@ -280,7 +282,19 @@ class PublicInsightCandidateGenerator:
         candidates: list[PublicInsightCandidate] = []
         for department, department_events in by_department.items():
             open_count = sum(1 for event in department_events if _is_open_status(event.status, self.OPEN_STATUSES, self.CLOSED_STATUSES))
+            delayed_count = sum(
+                1 for event in department_events
+                if _is_delayed(
+                    event,
+                    window_end,
+                    self.config.public_insight_process_delay_minutes_threshold,
+                    self.OPEN_STATUSES,
+                    self.CLOSED_STATUSES,
+                )
+            )
             if len(department_events) < self.config.department_bottleneck_min_count and open_count < self.config.department_bottleneck_min_count:
+                continue
+            if delayed_count < self.config.public_insight_min_candidate_complaint_count and _is_dispersed_keyword_noise(department_events, self.config):
                 continue
             candidates.append(
                 self._candidate(
@@ -308,6 +322,9 @@ class PublicInsightCandidateGenerator:
             if _is_delayed(event, window_end, self.config.public_insight_process_delay_minutes_threshold, self.OPEN_STATUSES, self.CLOSED_STATUSES)
         ]
         if len(delayed) < self.config.public_insight_min_candidate_complaint_count:
+            return []
+        explicit_delayed = [event for event in delayed if event.handling_time_minutes is not None]
+        if not explicit_delayed and _is_dispersed_keyword_noise(delayed, self.config):
             return []
         avg_minutes = sum(_handling_minutes(event, window_end) for event in delayed) / len(delayed)
         return [
@@ -484,6 +501,53 @@ def _region_share(events: list[ComplaintIntelligenceEvent], region: str) -> floa
     if not events:
         return 0.0
     return sum(1 for event in events if _clean(event.region) == region) / len(events)
+
+
+def _insight_type_from_alert(
+    alert: IssueAlert,
+    text: str,
+    safety_keywords: tuple[str, ...],
+) -> PublicInsightType:
+    trigger_type = str(getattr(alert, "trigger_type", "") or "")
+    if trigger_type == "OPERATIONAL_BACKLOG":
+        return "PROCESS_DELAY_RISK"
+    if trigger_type == "REOPEN_REPEAT":
+        return "REOPEN_OR_REPEAT_RISK"
+    if trigger_type == "SERVICE_ACCESSIBILITY_PATTERN":
+        return "ACCESSIBILITY_OR_USABILITY_ISSUE"
+    if trigger_type == "SERVICE_UX_PATTERN":
+        return "SERVICE_DESIGN_IMPROVEMENT"
+    if _contains_any(text, safety_keywords):
+        return "SAFETY_RISK_SIGNAL"
+    return "HOTSPOT_RESPONSE_REQUIRED"
+
+
+def _is_dispersed_keyword_noise(
+    events: list[ComplaintIntelligenceEvent],
+    config: ComplaintIntelligenceConfig,
+) -> bool:
+    """지역·시간이 넓게 흩어진 keyword-only 신호는 과잉 인사이트 후보에서 제외한다."""
+
+    if len(events) < config.public_insight_min_candidate_complaint_count:
+        return False
+    regions = {_clean(event.region) for event in events if _clean(event.region)}
+    if len(regions) < 3:
+        return False
+    ordered = sorted(_as_aware(event.received_at) for event in events)
+    span_hours = (ordered[-1] - ordered[0]).total_seconds() / 3600
+    latest = ordered[-1]
+    recent_start = latest - timedelta(hours=config.public_insight_recent_window_hours)
+    recent_count = sum(1 for event in events if _as_aware(event.received_at) >= recent_start)
+    region_counts = {
+        region: sum(1 for event in events if _clean(event.region) == region)
+        for region in regions
+    }
+    dominant_share = max(region_counts.values(), default=0) / len(events)
+    return (
+        span_hours > max(config.public_insight_recent_window_hours * 4, 12)
+        and recent_count < config.public_insight_min_candidate_complaint_count
+        and dominant_share < config.public_insight_regional_concentration_threshold
+    )
 
 
 def _clean(value: str | None) -> str:

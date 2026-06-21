@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from app.complaint_intelligence.pii import mask_pii
-from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
+from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack, valid_evidence_ids_for_pack
 from app.complaint_intelligence.public_insights.llm_synthesizer import PublicAgencyInsightDraft
 from app.complaint_intelligence.schemas import RecommendedAction, RootCauseHypothesis
 
@@ -118,14 +118,7 @@ def _repair_hypothesis(item: RootCauseHypothesis, allowed_ids: set[str]) -> Root
 
 
 def _allowed_evidence_ids(pack: PublicInsightEvidencePack) -> set[str]:
-    allowed_ids: set[str] = set()
-    for item in pack.representative_complaints:
-        if item.get("complaint_id"):
-            allowed_ids.add(str(item.get("complaint_id")))
-        source_ids = item.get("source_complaint_ids")
-        if isinstance(source_ids, list):
-            allowed_ids.update(str(source_id) for source_id in source_ids if source_id)
-    return allowed_ids
+    return set(valid_evidence_ids_for_pack(pack))
 
 
 def _has_unsupported_claim(text: str, pack: PublicInsightEvidencePack) -> bool:

@@ -37,7 +37,7 @@ class Settings:
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b-instruct")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")
     OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 120))
     GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 640))
     GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 2048))
@@ -45,7 +45,7 @@ class Settings:
     # ChromaDB 설정
     CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "chroma_db"))
     CHROMA_PERSIST_DIRECTORY: Optional[str] = CHROMA_DB_PATH
-    DEFAULT_CHROMA_COLLECTION: str = os.getenv("DEFAULT_CHROMA_COLLECTION", "civil_cases_v1")
+    DEFAULT_CHROMA_COLLECTION: str = os.getenv("DEFAULT_CHROMA_COLLECTION", "civil_cases_v3")
 
     # 임베딩 설정
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
@@ -85,6 +85,9 @@ class Settings:
     # 검증 설정
     MIN_CONFIDENCE_SCORE: float = float(os.getenv("MIN_CONFIDENCE_SCORE", 0.5))
     MAX_RETRY_COUNT: int = int(os.getenv("MAX_RETRY_COUNT", 3))
+    # PII 마스킹 정책. 기본값은 운영 안전을 위해 fail_closed 이며,
+    # MVP 색인량 우선 실험은 build_index.py --pii-policy mask-only 로 명시한다.
+    PII_SANITIZATION_POLICY: str = os.getenv("PII_SANITIZATION_POLICY", "fail_closed").strip().lower()
 
     # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
     # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b
@@ -154,6 +157,11 @@ class Settings:
     PUBLIC_INSIGHT_LLM_NUM_GPU: int = int(os.getenv("PUBLIC_INSIGHT_LLM_NUM_GPU", "-1"))
     PUBLIC_INSIGHT_LLM_KEEP_ALIVE: str = os.getenv("PUBLIC_INSIGHT_LLM_KEEP_ALIVE", "10m")
     PUBLIC_INSIGHT_LLM_STREAM: bool = os.getenv("PUBLIC_INSIGHT_LLM_STREAM", "true").lower() == "true"
+    PUBLIC_INSIGHT_LLM_PROMPT_MODE: str = os.getenv("PUBLIC_INSIGHT_LLM_PROMPT_MODE", "default").lower()
+    PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE: bool = os.getenv("PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE", "false").lower() == "true"
+    PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_DIR: str = os.getenv("PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_DIR", "reports/llm_raw")
+    PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_MAX_CHARS: int = int(os.getenv("PUBLIC_INSIGHT_LLM_DEBUG_RAW_RESPONSE_MAX_CHARS", "4000"))
+    PUBLIC_INSIGHT_LLM_ACTION_RETRY_ENABLED: bool = os.getenv("PUBLIC_INSIGHT_LLM_ACTION_RETRY_ENABLED", "false").lower() == "true"
     PUBLIC_INSIGHT_MAX_REPRESENTATIVE_COMPLAINTS: int = int(os.getenv("PUBLIC_INSIGHT_MAX_REPRESENTATIVE_COMPLAINTS", "8"))
     PUBLIC_INSIGHT_MAX_EVIDENCE_CHARS_PER_COMPLAINT: int = int(os.getenv("PUBLIC_INSIGHT_MAX_EVIDENCE_CHARS_PER_COMPLAINT", "500"))
     PUBLIC_INSIGHT_MIN_CANDIDATE_COMPLAINT_COUNT: int = int(os.getenv("PUBLIC_INSIGHT_MIN_CANDIDATE_COMPLAINT_COUNT", "5"))
@@ -176,6 +184,41 @@ class Settings:
     CI_SCORE_WEIGHT_COHESION: float = float(os.getenv("CI_SCORE_WEIGHT_COHESION", "0.20"))
     CI_SCORE_WEIGHT_SPATIAL: float = float(os.getenv("CI_SCORE_WEIGHT_SPATIAL", "0.15"))
     CI_SCORE_WEIGHT_RISK: float = float(os.getenv("CI_SCORE_WEIGHT_RISK", "0.10"))
+    # Complaint Intelligence read-model 저장소. 데모는 SQLite, 단위 테스트/장애 fallback은 memory를 사용한다.
+    COMPLAINT_INTELLIGENCE_REPOSITORY: str = os.getenv("COMPLAINT_INTELLIGENCE_REPOSITORY", "sqlite").lower()
+    COMPLAINT_INTELLIGENCE_DB_PATH: str = os.getenv(
+        "COMPLAINT_INTELLIGENCE_DB_PATH",
+        str(DATA_DIR / "complaint_intelligence" / "complaint_intelligence.db"),
+    )
+    COMPLAINT_INTELLIGENCE_DEFAULT_MODE: str = os.getenv("COMPLAINT_INTELLIGENCE_DEFAULT_MODE", "realtime").lower()
+    COMPLAINT_INTELLIGENCE_RETENTION_DAYS: int = int(os.getenv("COMPLAINT_INTELLIGENCE_RETENTION_DAYS", "90"))
+    COMPLAINT_INTELLIGENCE_AUTO_CREATE_DB: bool = os.getenv("COMPLAINT_INTELLIGENCE_AUTO_CREATE_DB", "true").lower() == "true"
+    COMPLAINT_INTELLIGENCE_SCHEDULER_ENABLED: bool = os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_ENABLED", "false").lower() == "true"
+    COMPLAINT_INTELLIGENCE_SCHEDULER_INTERVAL_SECONDS: float = float(os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_INTERVAL_SECONDS", "300"))
+    COMPLAINT_INTELLIGENCE_SCHEDULER_BATCH_SIZE: int = int(os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_BATCH_SIZE", "500"))
+    COMPLAINT_INTELLIGENCE_SCHEDULER_MIN_EVENTS: int = int(os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_MIN_EVENTS", "1"))
+    COMPLAINT_INTELLIGENCE_SCHEDULER_SOURCE_NAME: str = os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_SOURCE_NAME", "repository_realtime")
+    COMPLAINT_INTELLIGENCE_SCHEDULER_MODE: str = os.getenv("COMPLAINT_INTELLIGENCE_SCHEDULER_MODE", "realtime").lower()
+    COMPLAINT_INTELLIGENCE_COLLECTOR: str = os.getenv("COMPLAINT_INTELLIGENCE_COLLECTOR", "repository_replay").lower()
+    COMPLAINT_INTELLIGENCE_COLLECTOR_LIMIT: int = int(os.getenv("COMPLAINT_INTELLIGENCE_COLLECTOR_LIMIT", "500"))
+    COMPLAINT_INTELLIGENCE_COLLECTOR_SOURCE_NAME: str = os.getenv("COMPLAINT_INTELLIGENCE_COLLECTOR_SOURCE_NAME", "repository_replay")
+    COMPLAINT_INTELLIGENCE_CHECKPOINT_ENABLED: bool = os.getenv("COMPLAINT_INTELLIGENCE_CHECKPOINT_ENABLED", "true").lower() == "true"
+    PUBLIC_INSIGHT_LLM_SLOW_MS: float = float(os.getenv("PUBLIC_INSIGHT_LLM_SLOW_MS", "180000"))
+
+    # request_segments LLM hybrid fallback. 기본 off로 기존 규칙 기반 라우팅을 유지한다.
+    # mode: off(무동작), shadow(LLM 후보 검증만 trace 기록), assist(검증 통과 시 segment 교체).
+    REQUEST_SEGMENT_LLM_MODE: str = os.getenv("REQUEST_SEGMENT_LLM_MODE", "off").lower()
+    REQUEST_SEGMENT_LLM_PROVIDER: str = os.getenv("REQUEST_SEGMENT_LLM_PROVIDER", "none").lower()
+    REQUEST_SEGMENT_LLM_MODEL: str = os.getenv("REQUEST_SEGMENT_LLM_MODEL", STRUCTURING_MODEL)
+    REQUEST_SEGMENT_LLM_BASE_URL: str = os.getenv("REQUEST_SEGMENT_LLM_BASE_URL", OLLAMA_BASE_URL)
+    REQUEST_SEGMENT_LLM_TIMEOUT: float = float(os.getenv("REQUEST_SEGMENT_LLM_TIMEOUT", "30.0"))
+    REQUEST_SEGMENT_LLM_MIN_CONFIDENCE: float = float(os.getenv("REQUEST_SEGMENT_LLM_MIN_CONFIDENCE", "0.65"))
+    REQUEST_SEGMENT_LLM_PROMPT_STYLE: str = os.getenv("REQUEST_SEGMENT_LLM_PROMPT_STYLE", "text").lower()
+    # assist 정책은 기본 none으로 둔다. v2_strict는 내부 제한 실험에서만 사용한다.
+    REQUEST_SEGMENT_LLM_ASSIST_POLICY: str = os.getenv("REQUEST_SEGMENT_LLM_ASSIST_POLICY", "none").lower()
+    REQUEST_SEGMENT_LLM_SOURCE_BLOCK_LIMIT: int = int(os.getenv("REQUEST_SEGMENT_LLM_SOURCE_BLOCK_LIMIT", "30"))
+    REQUEST_SEGMENT_LLM_NUM_PREDICT: int = int(os.getenv("REQUEST_SEGMENT_LLM_NUM_PREDICT", "512"))
+    REQUEST_SEGMENT_LLM_BLOCK_NUM_PREDICT: int = int(os.getenv("REQUEST_SEGMENT_LLM_BLOCK_NUM_PREDICT", "256"))
 
     # Civil Complaint LLM-Rubric vNext: QA 초안 생성 직후 운영 응답에 평가 리포트를 붙인다.
     ENABLE_CIVIL_LLM_RUBRIC: bool = os.getenv("ENABLE_CIVIL_LLM_RUBRIC", "true").lower() == "true"

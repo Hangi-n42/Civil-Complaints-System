@@ -83,6 +83,23 @@ def _field_text(structured_src: Dict[str, Any], name: str) -> str:
     return ""
 
 
+def _string_list(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    normalized: List[str] = []
+    seen = set()
+    for item in value:
+        text = " ".join(str(item or "").split())
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(text)
+    return normalized
+
+
 def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
     raw_text = str(item.get("raw_text") or item.get("text") or "")
 
@@ -144,6 +161,9 @@ def to_ui_queue_case(item: Dict[str, Any], index: int) -> Dict[str, Any]:
         "status": status,
         "assignee": assignee,
         "raw_text": raw_text,
+        "request_segments": _string_list(
+            item.get("request_segments") or structured_src.get("request_segments")
+        ),
         "category": category,
         "category_display": civil_category_label(civil_category),
         "civil_category": civil_category,

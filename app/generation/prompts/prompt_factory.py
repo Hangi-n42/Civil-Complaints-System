@@ -10,6 +10,10 @@ from app.core.logging import pipeline_logger
 from app.core.config import settings
 from app.generation.grounding_quality import rerank_contexts_by_semantic_match
 from app.retrieval.analyzers.complexity_analyzer import build_analyzer_output
+from app.retrieval.analyzers.request_segment_analysis import (
+    build_request_segment_analysis,
+    enrich_request_segment_trace,
+)
 from app.retrieval.analyzers.topic_analyzer import analyze as analyze_topic
 from app.retrieval.router.adaptive_router import route
 from app.retrieval.service import RetrievalService, get_retrieval_service
@@ -828,7 +832,7 @@ class PromptFactory:
         if not complexity_level or "complexity_score" not in derived_trace or "request_segments" not in derived_trace:
             try:
                 title, question = cls._extract_title_question_boundary(record)
-                analysis = build_analyzer_output(
+                analysis = build_request_segment_analysis(
                     query,
                     topic_type=topic_type or "general",
                     title=title or None,
@@ -842,6 +846,7 @@ class PromptFactory:
                 complexity_trace = analysis.get("complexity_trace")
                 if isinstance(complexity_trace, dict):
                     derived_trace.setdefault("complexity_trace", complexity_trace)
+                derived_trace = enrich_request_segment_trace(derived_trace, analysis)
             except Exception:
                 derived_trace.setdefault(
                     "complexity_level",
@@ -859,7 +864,7 @@ class PromptFactory:
             except Exception:
                 derived_trace["retrieval_policy"] = cls._infer_retrieval_policy_from_record(record, fallback="general")
 
-        return query, derived_trace
+        return query, enrich_request_segment_trace(derived_trace)
 
     @classmethod
     def build(
