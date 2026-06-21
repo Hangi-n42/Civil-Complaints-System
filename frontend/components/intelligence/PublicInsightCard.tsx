@@ -1,5 +1,6 @@
 import type { IntelPublicInsightCard } from "@/lib/api";
 import { InsightPriorityBadge } from "./InsightPriorityBadge";
+import { actionTypeLabel } from "./insight";
 
 // 행정 인사이트 1건 카드(핸드오프 §4.2). 클릭하면 상세 패널을 연다.
 export function PublicInsightCard({
@@ -34,9 +35,14 @@ export function PublicInsightCard({
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
         {insight.target_area && <span>{insight.target_area}</span>}
         <span>규모 {insight.affected_count}건</span>
-        <span>grounding {insight.grounding_score.toFixed(2)}</span>
-        <span>조치 {insight.recommended_actions.length}건</span>
+        <span>신뢰도 {(insight.grounding_score * 100).toFixed(0)}%</span>
+        <span>추천 조치 {insight.recommended_actions.length}건</span>
       </div>
+      {insight.recommended_actions[0] && (
+        <div className="mt-2 text-[11px] font-semibold text-slate-500">
+          우선 조치: {actionTypeLabel(insight.recommended_actions[0].action_type)}
+        </div>
+      )}
     </button>
   );
 }

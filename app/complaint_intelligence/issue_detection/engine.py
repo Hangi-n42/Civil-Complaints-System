@@ -461,6 +461,9 @@ class IssueDetectionEngine:
         ]
         if len(repeat_events) < max(self.config.min_recent_count, self.config.repeat_risk_count):
             return []
+        repeat_events = _dominant_region_events(repeat_events)
+        if len(repeat_events) < max(self.config.min_recent_count, self.config.repeat_risk_count):
+            return []
         return [
             self._build_operational_alert(
                 repeat_events,
@@ -489,6 +492,9 @@ class IssueDetectionEngine:
             return []
         if _dominant_region_share(matched) < self.config.public_insight_regional_concentration_threshold:
             return []
+        matched = _dominant_region_events(matched)
+        if len(matched) < self.config.min_recent_count:
+            return []
         return [
             self._build_operational_alert(
                 matched,
@@ -515,10 +521,13 @@ class IssueDetectionEngine:
         explanation: str,
     ) -> IssueAlert:
         region = _cluster_region(events)
-        first_seen = min(_as_aware(event.received_at) for event in events)
-        last_seen = max(_as_aware(event.received_at) for event in events)
-        baseline = _baseline_count(events, reference_time, recent_start)
-        surge_ratio = len(events) / max(baseline, 1.0)
+        display_events = _events_for_region(events, region)
+        if len(display_events) < self.config.min_recent_count:
+            display_events = events
+        first_seen = min(_as_aware(event.received_at) for event in display_events)
+        last_seen = max(_as_aware(event.received_at) for event in display_events)
+        baseline = _baseline_count(display_events, reference_time, recent_start)
+        surge_ratio = len(display_events) / max(baseline, 1.0)
         representatives = [
             RepresentativeComplaint(
                 id=event.id,
@@ -526,7 +535,7 @@ class IssueDetectionEngine:
                 region=event.region,
                 received_at=_as_aware(event.received_at),
             )
-            for event in sorted(events, key=lambda item: _as_aware(item.received_at), reverse=True)[:3]
+            for event in sorted(display_events, key=lambda item: _as_aware(item.received_at), reverse=True)[:3]
         ]
         region_label = region or "지역 미상"
         return IssueAlert(
@@ -534,19 +543,19 @@ class IssueDetectionEngine:
             severity=severity,  # type: ignore[arg-type]
             trigger_type=trigger_type,  # type: ignore[arg-type]
             title=f"{region_label} {topic}",
-            summary=f"최근 {self.config.recent_hours}시간 동안 {len(events)}건의 {topic} 신호가 관측되었습니다.",
+            summary=f"최근 {self.config.recent_hours}시간 동안 {len(display_events)}건의 {topic} 신호가 관측되었습니다.",
             topic=topic,
-            keywords=self._extract_keywords(events),
+            keywords=self._extract_keywords(display_events),
             region=region,
-            center=_center(events),
-            radius=_radius_km(events),
-            recent_count=len(events),
+            center=_center(display_events),
+            radius=_radius_km(display_events),
+            recent_count=len(display_events),
             baseline=round(baseline, 4),
             surge_ratio=round(surge_ratio, 4),
             first_seen=first_seen,
             last_seen=last_seen,
             representative_complaints=representatives,
-            related_ids=sorted(event.id for event in events),
+            related_ids=sorted(event.id for event in display_events),
             confidence=confidence,
             explanation=f"trigger_type={trigger_type}; {explanation}",
         )
@@ -571,6 +580,21 @@ def _cluster_region(events: Iterable[ComplaintIntelligenceEvent]) -> str | None:
     if not counts:
         return None
     return sorted(counts.items(), key=lambda item: item[1], reverse=True)[0][0]
+
+
+def _events_for_region(
+    events: list[ComplaintIntelligenceEvent],
+    region: str | None,
+) -> list[ComplaintIntelligenceEvent]:
+    if not region:
+        return events
+    focused = [event for event in events if _normalize_region(event.region) == region]
+    return focused or events
+
+
+def _dominant_region_events(events: list[ComplaintIntelligenceEvent]) -> list[ComplaintIntelligenceEvent]:
+    region = _cluster_region(events)
+    return _events_for_region(events, region)
 
 
 def _normalize_region(region: str | None) -> str | None:

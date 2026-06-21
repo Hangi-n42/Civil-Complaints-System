@@ -149,7 +149,7 @@ export default function IntelligencePage() {
               ))}
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50/50 px-3 pt-3">
                 {TABS.map((tab) => {
                   const isActive = tab.id === activeTab;
@@ -199,7 +199,7 @@ export default function IntelligencePage() {
                           duplicateGroupCounts={duplicateGroupCountsByAlert}
                         />
                       </section>
-                      <div className="order-1 xl:order-2">
+                      <div className="order-1 xl:sticky xl:top-4 xl:order-2 xl:self-start">
                         <HotspotMap
                           alerts={data.issue_alerts}
                           duplicateGroupCounts={duplicateGroupCountsByAlert}

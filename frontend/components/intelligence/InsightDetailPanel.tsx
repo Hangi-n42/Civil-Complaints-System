@@ -1,6 +1,6 @@
 import type { IntelPublicInsightCard } from "@/lib/api";
 import { InsightPriorityBadge } from "./InsightPriorityBadge";
-import { groupActionsByHorizon, labeledCount } from "./insight";
+import { actionTypeLabel, groupActionsByHorizon, insightStatusLabel, labeledCount } from "./insight";
 import { EvidencePackDrawer } from "./EvidencePackDrawer";
 
 // 상세 패널 하단 액션 버튼(§4.3 ⑥). 동작 연결은 차기 — 지금은 자리만.
@@ -30,7 +30,7 @@ export function InsightDetailPanel({
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{insight.type_label}</span>
               <InsightPriorityBadge color={insight.color} label={insight.priority_label} />
-              <span className="text-[11px] text-slate-400">{insight.status}</span>
+              <span className="text-[11px] text-slate-400">{insightStatusLabel(insight.status)}</span>
             </div>
             <button type="button" onClick={onClose} aria-label="닫기" className="rounded p-1 text-slate-400 hover:bg-slate-100">
               ✕
@@ -69,7 +69,9 @@ export function InsightDetailPanel({
                       {group.actions.map((action, idx) => (
                         <div key={idx} className="rounded-lg border border-slate-200 p-3">
                           <div className="mb-1 flex items-center gap-2">
-                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">{action.action_type}</span>
+                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                              {actionTypeLabel(action.action_type)}
+                            </span>
                             <span className="text-sm font-semibold text-slate-800">{action.action}</span>
                           </div>
                           {action.why && <p className="text-xs text-slate-500">{action.why}</p>}

@@ -54,10 +54,14 @@ DEPARTMENT_FIELDS = (
 class ScenarioSpec:
     id: str
     label: str
+    event_title: str
     keywords: tuple[str, ...]
     expected_alert: bool
     expected_insight_types: tuple[str, ...]
     region: str
+    latitude: float
+    longitude: float
+    detail_location: str
     department: str
     status: str
     structured_request: str
@@ -81,10 +85,14 @@ SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         id="sinkhole_hotspot",
         label="도로 침하/싱크홀 급증",
+        event_title="을지로 보행로 도로 침하 안전 점검 요청",
         keywords=("싱크홀", "침하", "구멍", "포트홀", "아스팔트", "꺼짐", "내려앉", "도로"),
         expected_alert=True,
         expected_insight_types=("SAFETY_RISK_SIGNAL", "HOTSPOT_RESPONSE_REQUIRED", "FACILITY_MAINTENANCE_PRIORITY"),
-        region="중구",
+        region="서울특별시 중구",
+        latitude=37.5636,
+        longitude=126.9976,
+        detail_location="을지로 보행로",
         department="도로관리과",
         status="open",
         structured_request="현장 점검과 임시 안전 조치, 보수 일정을 요청합니다.",
@@ -93,10 +101,14 @@ SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         id="illegal_parking_enforcement",
         label="불법주정차 특정 시간대 반복",
+        event_title="가정초등학교 후문 불법 주정차 단속 요청",
         keywords=("불법주정차", "불법주차", "주정차", "주차", "단속", "차량", "어린이보호구역"),
         expected_alert=True,
         expected_insight_types=("ENFORCEMENT_PRIORITY", "HOTSPOT_RESPONSE_REQUIRED"),
-        region="서구",
+        region="인천광역시 서구",
+        latitude=37.5454,
+        longitude=126.6759,
+        detail_location="가정초등학교 후문",
         department="교통지도과",
         status="open",
         structured_request="반복 시간대 단속 강화와 현장 안내 표지 보강을 요청합니다.",
@@ -105,10 +117,14 @@ SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         id="bulky_waste_guidance",
         label="대형폐기물 배출 방법 문의 반복",
+        event_title="덕진동 대형폐기물 배출 신청 안내 요청",
         keywords=("대형폐기물", "폐기물", "스티커", "배출", "수거", "신청", "신고"),
         expected_alert=True,
         expected_insight_types=("PUBLIC_GUIDANCE_NEEDED", "SERVICE_DESIGN_IMPROVEMENT"),
-        region="동구",
+        region="전북특별자치도 전주시 덕진구",
+        latitude=35.8491,
+        longitude=127.1358,
+        detail_location="덕진동 주민센터 권역",
         department="청소행정과",
         status="open",
         structured_request="배출 신청 방법, 스티커 구매, 수거 기준 안내 보강을 요청합니다.",
@@ -117,10 +133,14 @@ SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         id="welfare_support_process",
         label="복지 지원 기준/신청 절차 불편 반복",
+        event_title="중촌동 복지 지원 신청 절차 안내 요청",
         keywords=("복지", "지원", "기준", "신청", "서류", "자격", "대상", "절차", "완화"),
         expected_alert=True,
         expected_insight_types=("POLICY_IMPROVEMENT_OPPORTUNITY", "PUBLIC_GUIDANCE_NEEDED"),
-        region="중구",
+        region="대전광역시 중구",
+        latitude=36.3257,
+        longitude=127.4215,
+        detail_location="중촌동 행정복지센터 권역",
         department="복지정책과",
         status="open",
         structured_request="지원 기준과 신청 절차, 필요 서류 안내를 쉽게 개선해 달라는 요청입니다.",
@@ -129,10 +149,14 @@ SCENARIOS: tuple[ScenarioSpec, ...] = (
     ScenarioSpec(
         id="odor_night_hotspot",
         label="악취/냄새/하수 민원 야간 집중",
+        event_title="삼산동 하수 악취 야간 현장 확인 요청",
         keywords=("악취", "냄새", "하수", "오수", "쓰레기", "소음", "공장", "산책로"),
         expected_alert=True,
         expected_insight_types=("HOTSPOT_RESPONSE_REQUIRED", "SEASONAL_OR_TIME_PATTERN", "ENFORCEMENT_PRIORITY"),
-        region="남구",
+        region="울산광역시 남구",
+        latitude=35.5439,
+        longitude=129.3301,
+        detail_location="삼산동 하수관로",
         department="환경관리과",
         status="open",
         structured_request="야간 시간대 현장 확인과 원인 점검, 시민 안내를 요청합니다.",
@@ -234,6 +258,8 @@ def build_demo_seed(
                 "scenario": spec.id,
                 "label": spec.label,
                 "source_policy": source_policy,
+                "replay_region": spec.region,
+                "replay_center": {"latitude": spec.latitude, "longitude": spec.longitude},
                 "candidate_count": len(candidates),
                 "selected_event_count": len(events),
                 "real_event_count": len([item for item in selected if not item.source_id.startswith("synthetic-")]),
@@ -410,18 +436,23 @@ def build_event(
 ) -> dict[str, Any]:
     received_at = replay_time(as_of, scenario_index, event_index)
     body = candidate.text
-    title = candidate.title or spec.label
+    title = replay_event_title(spec, event_index)
     event = {
         "id": f"demo-{spec.id}-{event_index + 1:03d}",
         "received_at": received_at.isoformat(),
         "title": title[:120],
         "body": body,
         "region": scenario_region(spec, candidate),
-        "final_department": candidate.department or spec.department,
+        "latitude": replay_latitude(spec, event_index),
+        "longitude": replay_longitude(spec, event_index),
+        "final_department": spec.department,
         "status": spec.status,
         "civil_category": spec.label,
+        "request_segments": [spec.structured_request],
+        "responsible_unit": [spec.department],
+        "entity_texts": [spec.region, spec.detail_location, spec.label],
         "structured_elements": {
-            "observation": {"text": body[:220], "confidence": 0.72},
+            "observation": {"text": f"{spec.detail_location}에서 {spec.label} 관련 민원이 반복 접수되었습니다.", "confidence": 0.72},
             "result": {"text": f"{spec.label} 관련 불편과 행정 대응 필요성이 확인됩니다.", "confidence": 0.68},
             "request": {"text": spec.structured_request, "confidence": 0.74},
             "context": {"text": spec.structured_context, "confidence": 0.7},
@@ -430,14 +461,103 @@ def build_event(
     return ComplaintIntelligenceEvent.model_validate(event).model_dump(mode="json")
 
 
+def replay_event_title(spec: ScenarioSpec, event_index: int) -> str:
+    # 같은 사건 반복 접수라도 신고 초점이 조금씩 다르게 보이도록 제목을 순환한다.
+    variants = replay_event_title_variants(spec)
+    return variants[event_index % len(variants)]
+
+
+def replay_event_title_variants(spec: ScenarioSpec) -> tuple[str, ...]:
+    variants_by_scenario = {
+        "sinkhole_hotspot": (
+            "을지로 보행로 꺼짐 안전 점검 요청",
+            "을지로 도로 침하 임시 조치 요청",
+            "을지로 보도 포트홀 확인 요청",
+            "을지로 보행로 균열 보수 문의",
+            "을지로 도로 파임 현장 확인 요청",
+            "을지로 인근 보행 위험 신고",
+            "을지로 노면 침하 보수 일정 문의",
+            "을지로 보도블록 꺼짐 재점검 요청",
+            "을지로 도로 안전 표지 설치 요청",
+            "을지로 침하 구간 긴급 확인 요청",
+        ),
+        "illegal_parking_enforcement": (
+            "가정초 후문 불법 주정차 단속 요청",
+            "가정초 등교 시간 차량 정체 신고",
+            "가정초 어린이보호구역 주차 단속 요청",
+            "가정초 후문 통학로 차량 계도 요청",
+            "가정초 주변 불법 주차 반복 신고",
+            "가정초 후문 승하차 혼잡 정리 요청",
+            "가정초 통학 안전 주정차 관리 요청",
+            "가정초 후문 단속 안내 표지 요청",
+            "가정초 주변 반복 주차 민원",
+            "가정초 후문 교통지도 강화 요청",
+        ),
+        "bulky_waste_guidance": (
+            "덕진동 대형폐기물 배출 신청 안내 요청",
+            "덕진동 폐가구 수거 절차 문의",
+            "덕진동 대형폐기물 스티커 구매 문의",
+            "덕진동 폐가전 배출 방법 확인 요청",
+            "덕진동 수거일 안내 부족 민원",
+            "덕진동 대형폐기물 접수 경로 문의",
+            "덕진동 폐기물 배출장소 안내 요청",
+            "덕진동 스티커 부착 기준 문의",
+            "덕진동 수거 신청 처리 확인 요청",
+            "덕진동 대형폐기물 안내 개선 요청",
+        ),
+        "welfare_support_process": (
+            "중촌동 복지 지원 신청 절차 안내 요청",
+            "중촌동 복지 서류 준비 기준 문의",
+            "중촌동 지원 대상 확인 요청",
+            "중촌동 복지 신청 창구 안내 요청",
+            "중촌동 생활지원 신청 방법 문의",
+            "중촌동 복지 기준 설명 요청",
+            "중촌동 지원 서류 보완 안내 요청",
+            "중촌동 복지 접수 절차 개선 요청",
+            "중촌동 지원 가능 여부 확인 요청",
+            "중촌동 복지 상담 연결 요청",
+        ),
+        "odor_night_hotspot": (
+            "삼산동 하수 악취 야간 현장 확인 요청",
+            "삼산동 산책로 냄새 원인 점검 요청",
+            "삼산동 하수구 악취 반복 신고",
+            "삼산동 야간 악취 민원",
+            "삼산동 오수 냄새 확인 요청",
+            "삼산동 공장 인근 악취 점검 요청",
+            "삼산동 배수로 냄새 개선 요청",
+            "삼산동 새벽 악취 현장 확인 요청",
+            "삼산동 생활 악취 원인 조사 요청",
+            "삼산동 하수 악취 안내 요청",
+        ),
+    }
+    return variants_by_scenario.get(spec.id, (spec.event_title,))
+
+
 def replay_time(as_of: datetime, scenario_index: int, event_index: int) -> datetime:
     # 모든 시나리오가 최근 3시간 안에 들어오되 서로 약간씩 어긋나도록 배치한다.
     minutes_before = 10 + scenario_index * 7 + event_index * 9
     return as_of - timedelta(minutes=minutes_before)
 
 
+def replay_latitude(spec: ScenarioSpec, event_index: int) -> float:
+    return round(spec.latitude + latitude_offset(event_index), 6)
+
+
+def replay_longitude(spec: ScenarioSpec, event_index: int) -> float:
+    return round(spec.longitude + longitude_offset(event_index), 6)
+
+
+def latitude_offset(event_index: int) -> float:
+    # 구 단위 중심 좌표 주변 1km 안팎으로만 흔들어 정확 주소처럼 보이지 않게 한다.
+    return ((event_index % 5) - 2) * 0.0016
+
+
+def longitude_offset(event_index: int) -> float:
+    return (((event_index // 5) % 4) - 1.5) * 0.0019
+
+
 def scenario_region(spec: ScenarioSpec, candidate: Candidate) -> str:
-    if candidate.region and len(candidate.region) <= 20:
+    if candidate.region and len(candidate.region) <= 30 and spec.region in candidate.region:
         return candidate.region
     return spec.region
 

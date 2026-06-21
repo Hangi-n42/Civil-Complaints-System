@@ -8,15 +8,20 @@
   "source_record_count": 23864,
   "allow_synthetic_fill": false,
   "min_events_per_scenario": 20,
-  "max_events_per_scenario": 30,
+  "max_events_per_scenario": 20,
   "scenarios": [
     {
       "scenario": "sinkhole_hotspot",
       "label": "도로 침하/싱크홀 급증",
       "source_policy": "real_text_excerpt_replayed_time",
+      "replay_region": "서울특별시 중구",
+      "replay_center": {
+        "latitude": 37.5636,
+        "longitude": 126.9976
+      },
       "candidate_count": 545,
-      "selected_event_count": 30,
-      "real_event_count": 30,
+      "selected_event_count": 20,
+      "real_event_count": 20,
       "synthetic_event_count": 0,
       "passed_minimum": true,
       "source_ids": [
@@ -39,26 +44,21 @@
         "175326",
         "175370",
         "175734",
-        "176085",
-        "176116",
-        "176128",
-        "176164",
-        "176229",
-        "176303",
-        "179382",
-        "179428",
-        "179440",
-        "179450",
-        "179451"
+        "176085"
       ]
     },
     {
       "scenario": "illegal_parking_enforcement",
       "label": "불법주정차 특정 시간대 반복",
       "source_policy": "real_text_excerpt_replayed_time",
+      "replay_region": "인천광역시 서구",
+      "replay_center": {
+        "latitude": 37.5454,
+        "longitude": 126.6759
+      },
       "candidate_count": 666,
-      "selected_event_count": 30,
-      "real_event_count": 30,
+      "selected_event_count": 20,
+      "real_event_count": 20,
       "synthetic_event_count": 0,
       "passed_minimum": true,
       "source_ids": [
@@ -81,26 +81,21 @@
         "6903148",
         "6903219",
         "6903628",
-        "6904293",
-        "6904428",
-        "6905862",
-        "30053",
-        "000412",
-        "000483",
-        "800219",
-        "800438",
-        "800488",
-        "800491",
-        "800849"
+        "6904293"
       ]
     },
     {
       "scenario": "bulky_waste_guidance",
       "label": "대형폐기물 배출 방법 문의 반복",
       "source_policy": "real_text_excerpt_replayed_time",
+      "replay_region": "전북특별자치도 전주시 덕진구",
+      "replay_center": {
+        "latitude": 35.8491,
+        "longitude": 127.1358
+      },
       "candidate_count": 2301,
-      "selected_event_count": 30,
-      "real_event_count": 30,
+      "selected_event_count": 20,
+      "real_event_count": 20,
       "synthetic_event_count": 0,
       "passed_minimum": true,
       "source_ids": [
@@ -123,26 +118,21 @@
         "6907296",
         "301926",
         "301245",
-        "185860",
-        "2188",
-        "6888457",
-        "6888762",
-        "6889055",
-        "6889168",
-        "6889177",
-        "6889704",
-        "6890135",
-        "6890223",
-        "6890296"
+        "185860"
       ]
     },
     {
       "scenario": "welfare_support_process",
       "label": "복지 지원 기준/신청 절차 불편 반복",
       "source_policy": "real_text_excerpt_replayed_time",
+      "replay_region": "대전광역시 중구",
+      "replay_center": {
+        "latitude": 36.3257,
+        "longitude": 127.4215
+      },
       "candidate_count": 3944,
-      "selected_event_count": 30,
-      "real_event_count": 30,
+      "selected_event_count": 20,
+      "real_event_count": 20,
       "synthetic_event_count": 0,
       "passed_minimum": true,
       "source_ids": [
@@ -165,26 +155,21 @@
         "6890797",
         "6890884",
         "6891011",
-        "6891672",
-        "6891973",
-        "6892051",
-        "6892070",
-        "6892229",
-        "6892361",
-        "6892515",
-        "6892565",
-        "6892610",
-        "6893056",
-        "6893175"
+        "6891672"
       ]
     },
     {
       "scenario": "odor_night_hotspot",
       "label": "악취/냄새/하수 민원 야간 집중",
       "source_policy": "real_text_excerpt_replayed_time",
+      "replay_region": "울산광역시 남구",
+      "replay_center": {
+        "latitude": 35.5439,
+        "longitude": 129.3301
+      },
       "candidate_count": 270,
-      "selected_event_count": 30,
-      "real_event_count": 30,
+      "selected_event_count": 20,
+      "real_event_count": 20,
       "synthetic_event_count": 0,
       "passed_minimum": true,
       "source_ids": [
@@ -207,17 +192,7 @@
         "177092",
         "180576",
         "181012",
-        "181285",
-        "183852",
-        "371150",
-        "465209",
-        "6886098",
-        "6886458",
-        "6886831",
-        "6887421",
-        "6887664",
-        "6888360",
-        "6888440"
+        "181285"
       ]
     }
   ]

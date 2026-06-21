@@ -58,6 +58,8 @@ export function DuplicateGroupTriage({
       .filter((group) => (riskOnly ? group.risk_flags.length > 0 : true))
       .filter((group) => (issueAlertFilterId ? group.linked_issue_alert_ids.includes(issueAlertFilterId) : true))
       .sort((a, b) => {
+        const confirmDelta = Number(b.allowed_actions.includes("confirm")) - Number(a.allowed_actions.includes("confirm"));
+        if (!riskOnly && confirmDelta !== 0) return confirmDelta;
         const riskDelta = b.risk_flags.length - a.risk_flags.length;
         if (riskDelta !== 0) return riskDelta;
         return b.confidence - a.confidence;
@@ -316,12 +318,92 @@ function DuplicateGroupCard({
 }
 
 function formatComplaintName(caseId: string): string {
-  if (caseId.startsWith("dm-hotspot-noise")) return `한빛아파트 공사 소음 신고 ${suffix(caseId)}`;
-  if (caseId.startsWith("dm-general-lamp")) return `늘봄공원 가로등 고장 신고 ${suffix(caseId)}`;
+  if (caseId.startsWith("dm-hotspot-noise")) return variedTitle(caseId, [
+    "한빛아파트 공사 소음 신고",
+    "한빛아파트 북문 진동 민원",
+    "한빛아파트 야간 공사 소음 문의",
+    "한빛아파트 공사장 방음 요청",
+  ]);
+  if (caseId.startsWith("dm-general-lamp")) return variedTitle(caseId, [
+    "늘봄공원 가로등 고장 신고",
+    "늘봄공원 산책로 조명 불량 민원",
+    "늘봄공원 북문 보안등 점검 요청",
+    "늘봄공원 야간 조도 개선 문의",
+  ]);
   if (caseId === "dm-risk-parking-01") return "새빛초 후문 불법 주정차 단속 요청";
   if (caseId === "dm-risk-parking-02") return "새빛초 후문 주정차 보상 상담 요청";
-  if (caseId.startsWith("dm-confirmed-library")) return `온누리도서관 냉난방기 고장 신고 ${suffix(caseId)}`;
+  if (caseId.startsWith("dm-confirmed-library")) return variedTitle(caseId, [
+    "온누리도서관 어린이실 냉난방기 고장 신고",
+    "온누리도서관 열람실 온도 불편 민원",
+    "온누리도서관 냉난방 점검 요청",
+    "온누리도서관 실내 환경 개선 문의",
+  ]);
+  if (caseId.startsWith("demo-sinkhole_hotspot")) return variedTitle(caseId, [
+    "을지로 보행로 꺼짐 안전 점검 요청",
+    "을지로 도로 침하 임시 조치 요청",
+    "을지로 보도 포트홀 확인 요청",
+    "을지로 보행로 균열 보수 문의",
+    "을지로 도로 파임 현장 확인 요청",
+    "을지로 인근 보행 위험 신고",
+    "을지로 노면 침하 보수 일정 문의",
+    "을지로 보도블록 꺼짐 재점검 요청",
+    "을지로 도로 안전 표지 설치 요청",
+    "을지로 침하 구간 긴급 확인 요청",
+  ]);
+  if (caseId.startsWith("demo-illegal_parking_enforcement")) return variedTitle(caseId, [
+    "가정초 후문 불법 주정차 단속 요청",
+    "가정초 등교 시간 차량 정체 신고",
+    "가정초 어린이보호구역 주차 단속 요청",
+    "가정초 후문 통학로 차량 계도 요청",
+    "가정초 주변 불법 주차 반복 신고",
+    "가정초 후문 승하차 혼잡 정리 요청",
+    "가정초 통학 안전 주정차 관리 요청",
+    "가정초 후문 단속 안내 표지 요청",
+    "가정초 주변 반복 주차 민원",
+    "가정초 후문 교통지도 강화 요청",
+  ]);
+  if (caseId.startsWith("demo-bulky_waste_guidance")) return variedTitle(caseId, [
+    "덕진동 대형폐기물 배출 신청 안내 요청",
+    "덕진동 폐가구 수거 절차 문의",
+    "덕진동 대형폐기물 스티커 구매 문의",
+    "덕진동 폐가전 배출 방법 확인 요청",
+    "덕진동 수거일 안내 부족 민원",
+    "덕진동 대형폐기물 접수 경로 문의",
+    "덕진동 폐기물 배출장소 안내 요청",
+    "덕진동 스티커 부착 기준 문의",
+    "덕진동 수거 신청 처리 확인 요청",
+    "덕진동 대형폐기물 안내 개선 요청",
+  ]);
+  if (caseId.startsWith("demo-welfare_support_process")) return variedTitle(caseId, [
+    "중촌동 복지 지원 신청 절차 안내 요청",
+    "중촌동 복지 서류 준비 기준 문의",
+    "중촌동 지원 대상 확인 요청",
+    "중촌동 복지 신청 창구 안내 요청",
+    "중촌동 생활지원 신청 방법 문의",
+    "중촌동 복지 기준 설명 요청",
+    "중촌동 지원 서류 보완 안내 요청",
+    "중촌동 복지 접수 절차 개선 요청",
+    "중촌동 지원 가능 여부 확인 요청",
+    "중촌동 복지 상담 연결 요청",
+  ]);
+  if (caseId.startsWith("demo-odor_night_hotspot")) return variedTitle(caseId, [
+    "삼산동 하수 악취 야간 현장 확인 요청",
+    "삼산동 산책로 냄새 원인 점검 요청",
+    "삼산동 하수구 악취 반복 신고",
+    "삼산동 야간 악취 민원",
+    "삼산동 오수 냄새 확인 요청",
+    "삼산동 공장 인근 악취 점검 요청",
+    "삼산동 배수로 냄새 개선 요청",
+    "삼산동 새벽 악취 현장 확인 요청",
+    "삼산동 생활 악취 원인 조사 요청",
+    "삼산동 하수 악취 안내 요청",
+  ]);
   return `민원 ${caseId}`;
+}
+
+function variedTitle(caseId: string, titles: string[]): string {
+  const index = Math.max(parseInt(suffix(caseId), 10) || 1, 1) - 1;
+  return titles[index % titles.length];
 }
 
 function suffix(caseId: string): string {

@@ -18,7 +18,7 @@ const args = [
   "--min-events-per-scenario",
   process.env.COMPLAINT_INTELLIGENCE_REAL_REPLAY_MIN_PER_SCENARIO || "20",
   "--max-events-per-scenario",
-  process.env.COMPLAINT_INTELLIGENCE_REAL_REPLAY_MAX_PER_SCENARIO || "30",
+  process.env.COMPLAINT_INTELLIGENCE_REAL_REPLAY_MAX_PER_SCENARIO || "20",
 ];
 
 console.log("[predev] Complaint Intelligence real_replay seed/run-analysis 준비를 시작합니다.");

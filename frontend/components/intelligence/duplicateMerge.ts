@@ -36,6 +36,11 @@ export function duplicateGroupTitle(group: DuplicateMergeRecord): string {
   if (ids.includes("dm-general-lamp")) return "늘봄공원 북문 가로등 고장 민원";
   if (ids.includes("dm-risk-parking")) return "새빛초 후문 불법 주정차 관련 민원";
   if (ids.includes("dm-confirmed-library")) return "온누리도서관 어린이실 냉난방기 고장 민원";
+  if (ids.includes("demo-sinkhole_hotspot")) return "을지로 보행로 도로 침하 반복 민원";
+  if (ids.includes("demo-illegal_parking_enforcement")) return "가정초등학교 후문 불법 주정차 반복 민원";
+  if (ids.includes("demo-bulky_waste_guidance")) return "덕진동 대형폐기물 배출 안내 반복 문의";
+  if (ids.includes("demo-welfare_support_process")) return "중촌동 복지 지원 신청 절차 반복 문의";
+  if (ids.includes("demo-odor_night_hotspot")) return "삼산동 하수 악취 야간 반복 민원";
 
   const locationState = group.location_state;
   if (locationState === "conflict") return "장소 확인이 필요한 중복 민원 후보";

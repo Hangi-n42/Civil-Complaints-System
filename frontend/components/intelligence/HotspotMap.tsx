@@ -42,11 +42,11 @@ export function HotspotMap({
     null;
 
   return (
-    <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:sticky xl:top-6">
+    <aside className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3">
         <h2 className="text-sm font-extrabold text-slate-900">핫스팟 지도</h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          지도 위에 민원 발생 중심과 반경을 표시합니다. 정확한 주소가 아니라 관제용 위치 신호입니다.
+          지도 위에 민원 발생 중심과 반경을 표시합니다.
         </p>
       </div>
 

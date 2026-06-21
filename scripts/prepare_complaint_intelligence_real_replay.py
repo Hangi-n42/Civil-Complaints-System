@@ -48,7 +48,7 @@ def main() -> int:
     parser.add_argument("--description", default=DEFAULT_DESCRIPTION)
     parser.add_argument("--as-of", default="2026-06-20T09:00:00+09:00")
     parser.add_argument("--min-events-per-scenario", type=int, default=20)
-    parser.add_argument("--max-events-per-scenario", type=int, default=30)
+    parser.add_argument("--max-events-per-scenario", type=int, default=20)
     parser.add_argument("--allow-synthetic-fill", default="false")
     parser.add_argument("--skip-build", action="store_true")
     args = parser.parse_args()
