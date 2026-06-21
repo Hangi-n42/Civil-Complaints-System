@@ -394,10 +394,10 @@ function FocusMetric({ label, value, tone, onClick }: { label: string; value: nu
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-16 items-center justify-between rounded-md border px-3 py-2 text-left transition hover:shadow-sm ${focusMetricToneClass(tone)}`}
+      className="flex min-h-16 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-left transition hover:border-slate-300 hover:shadow-sm"
     >
       <span className="text-xs font-extrabold text-slate-500">{label}</span>
-      <span className="text-2xl font-black tabular-nums text-slate-950">{value}</span>
+      <span className={`text-2xl font-black tabular-nums ${focusMetricValueClass(tone)}`}>{value}</span>
     </button>
   );
 }
@@ -438,10 +438,10 @@ function QueueActionButton({ item }: { item: ImmediateAction }) {
     <button
       type="button"
       onClick={item.onClick}
-      className={`w-full rounded-md border px-3 py-2 text-left transition hover:shadow-sm ${queueToneClass(item.tone)}`}
+      className={`w-full rounded-md border px-3 py-2 text-left transition hover:shadow-sm ${queueToneClass()}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-extrabold">{item.label}</span>
+        <span className={`text-[10px] font-extrabold ${queueLabelToneClass(item.tone)}`}>{item.label}</span>
         <span className="shrink-0 text-[10px] font-bold opacity-70">{item.actionLabel}</span>
       </div>
       <div className="mt-1 line-clamp-2 text-xs font-extrabold leading-snug text-slate-950">{item.title}</div>
@@ -506,18 +506,22 @@ function buildImmediateActions({
   return [...urgentAlerts, ...reviewInsights, ...duplicateActions].slice(0, 5);
 }
 
-function focusMetricToneClass(tone: Tone): string {
-  if (tone === "red") return "border-red-200 bg-red-50/70 hover:border-red-300";
-  if (tone === "amber") return "border-amber-200 bg-amber-50/70 hover:border-amber-300";
-  if (tone === "emerald") return "border-emerald-200 bg-emerald-50/70 hover:border-emerald-300";
-  if (tone === "blue") return "border-sky-200 bg-sky-50/70 hover:border-sky-300";
-  return "border-slate-200 bg-slate-50 hover:border-slate-300";
+// 지표 카드는 중립(slate)으로 통일하고, 의미색은 숫자에만 둔다(알록달록 방지).
+function focusMetricValueClass(tone: Tone): string {
+  if (tone === "red") return "text-red-600";
+  if (tone === "amber") return "text-amber-600";
+  if (tone === "blue") return "text-blue-600";
+  return "text-slate-900";
 }
 
-function queueToneClass(tone: Tone): string {
-  if (tone === "red") return "border-red-200 bg-red-50/80 text-red-800 hover:border-red-300";
-  if (tone === "amber") return "border-amber-200 bg-amber-50/80 text-amber-800 hover:border-amber-300";
-  if (tone === "emerald") return "border-emerald-200 bg-emerald-50/80 text-emerald-800 hover:border-emerald-300";
-  if (tone === "blue") return "border-sky-200 bg-sky-50/80 text-sky-800 hover:border-sky-300";
-  return "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300";
+// 우선 처리 카드도 중립(slate)으로 통일하고, 의미색은 작은 라벨 텍스트에만 둔다.
+function queueToneClass(): string {
+  return "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50";
+}
+
+function queueLabelToneClass(tone: Tone): string {
+  if (tone === "red") return "text-red-600";
+  if (tone === "amber") return "text-amber-600";
+  if (tone === "blue" || tone === "emerald") return "text-blue-600";
+  return "text-slate-500";
 }

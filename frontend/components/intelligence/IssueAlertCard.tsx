@@ -46,7 +46,7 @@ export function IssueAlertCard({
     <article
       id={`issue-alert-${alert.id}`}
       className={`rounded-md border bg-white px-3 py-3 transition ${
-        highlighted ? "border-sky-500 ring-2 ring-sky-100" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/40"
+        highlighted ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50/40"
       }`}
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -54,7 +54,7 @@ export function IssueAlertCard({
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             <SeverityBadge color={alert.color} label={alert.severity_label} />
             {hasDuplicateGroups && (
-              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+              <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
                 중복 {duplicateGroupCount}
               </span>
             )}
@@ -103,7 +103,7 @@ function formatSurge(ratio: number): string {
 
 function actionButtonClass(kind: "primary" | "primaryBlue" | "secondary" | "quiet"): string {
   if (kind === "primary") {
-    return "rounded-md border border-amber-300 bg-amber-100 px-3 py-1.5 text-xs font-extrabold text-amber-900 hover:bg-amber-200";
+    return "rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-blue-700";
   }
   if (kind === "primaryBlue") {
     return "rounded-md border border-blue-300 bg-blue-600 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-blue-700";
