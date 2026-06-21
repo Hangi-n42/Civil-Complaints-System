@@ -1,145 +1,133 @@
-# [PRD] 민원 담당자를 위한 Adaptive RAG Workbench 시스템
+# 제품 요구사항 개요
 
-문서 버전: v2.1  
-작성일: 2026-03-17  
-최신화: 2026-04-10 (복잡도 기반 라우팅 기준 반영)
+- 문서 상태: canonical
+- 최종 확인일: 2026-06-21
+- 기준 코드:
+  - `app/api/routers/retrieval.py`
+  - `app/api/routers/generation.py`
+  - `app/api/routers/complaint_intelligence.py`
+  - `frontend/app/workbench/page.tsx`
+  - `frontend/app/intelligence/page.tsx`
+- 관련 문서:
+  - `docs/00_overview/architecture.md`
+  - `docs/10_contracts/README.md`
+  - `docs/20_domains/complaint_intelligence/README.md`
 
-## 1. 문서 목적
+## 1. 제품 목표
 
-본 문서는 Week5-8 개발 범위를 Adaptive RAG 코어 로직 구현 및 데모 UI 완성에 집중하도록 고정한다.
+이 프로젝트는 민원 데이터를 기반으로 담당자의 답변 작성과 관제 판단을 돕는 시스템입니다.
 
-## 2. 프로젝트 개요
+현재 제품은 두 축으로 구성됩니다.
 
-- 목표: 민원 데이터를 Adaptive RAG로 처리하고, 담당자 워크벤치에서 근거 기반 답변 초안을 제공한다.
-- 환경: 로컬/온디바이스 우선.
-- 집중 범위: Analyzer -> Router -> Retrieval -> Generation -> Workbench E2E.
+1. 메인 RAG/QA Workbench
+   - 민원 내용을 검색하고 유사 근거를 찾습니다.
+   - 검색 근거를 바탕으로 답변 초안을 생성합니다.
+   - citation, structured output, request segment를 통해 답변 검증과 편집을 돕습니다.
 
-## 3. 성공 조건 (데모 중심)
+2. Complaint Intelligence Layer
+   - 지속 유입되는 민원을 관제 read-model로 분석합니다.
+   - IssueAlert로 민원 급증/핫스팟을 감지합니다.
+   - PublicAgencyInsight로 공공기관 담당자가 실행할 행정 조치를 제안합니다.
+   - Duplicate Merge Recommendation Layer로 유사 민원 묶음과 상태 전이를 제공합니다.
 
-- 민원 선택 후 adaptive 처리 결과가 UI에서 확인된다.
-- 유사 민원 근거와 답변 초안이 같은 화면 흐름에서 출력된다.
-- 단일/복합 요청 케이스 모두 워크벤치에서 처리된다.
+## 2. 사용자
 
-## 4. 사용자
+### 민원 담당자
 
-### 4.1 민원 담당 공무원
-- 빠른 요약 확인
-- 유사 사례 참고
-- 답변 초안 검토/편집
+- 유사 민원과 근거를 빠르게 확인합니다.
+- 답변 초안을 검토하고 필요한 내용을 보완합니다.
+- 중복 민원 후보를 확인하고 병합, 분리, 반려 여부를 판단합니다.
 
-### 4.2 관리자
-- 처리 상태 확인
-- 시연용 운영 흐름 점검
+### 관제/운영 담당자
 
-## 5. 범위 정의
+- 최근 민원 급증 지역과 주제를 확인합니다.
+- 안전, 시설, 안내, 단속, 처리 지연 등 행정 조치 우선순위를 봅니다.
+- replay/demo seed와 평가 리포트로 관제 품질을 검증합니다.
 
-### 5.1 In Scope
+### FE 담당자
 
-- TopicAnalyzer, ComplexityAnalyzer (복잡도 지표 기반)
-- AdaptiveRouter(route key: topic/complexity)
-- Topic/Complexity adaptive retrieval
-- Topic-aware PromptFactory
-- normalize_response 기반 unified output
-- FastAPI + React/Next.js 3단 Workbench UI
+- `frontend/lib/api.ts`와 `docs/10_contracts/frontend/*`를 기준으로 화면을 연결합니다.
+- Intelligence dashboard는 실시간 LLM 호출이 아니라 저장된 read-model 조회를 기본 UX로 둡니다.
 
-### 5.2 Out of Scope
+### BE 담당자
 
-- 추가적인 지표 벤치마크 작업
-- 지표 산출 리포트 확장 작업
-- 리팩토링 중심 작업
-- 실제 행정시스템 실연동
-- 모바일 네이티브 앱
+- API 계약은 `docs/10_contracts`를 기준으로 유지합니다.
+- 도메인 정책은 `docs/20_domains`를 기준으로 검토합니다.
 
-## 6. 핵심 유스케이스
+## 3. 핵심 기능 범위
 
-### UC-01: Adaptive 검색/생성
-- 입력: 민원 텍스트 또는 선택된 민원
-- 처리: analyzer -> router -> retrieval -> generation
-- 출력: 답변 초안 + citation + routing_trace
+### 3.1 Search/QA Workbench
 
-### UC-02: Workbench 검토
-- 입력: UC-01 결과
-- 처리: 우측 AI 패널 표시 + 초안 편집
-- 출력: 검토 가능한 답변 초안
+- `/api/v1/search`
+  - query, top_k, filters, query_signals 기반 검색
+  - adaptive routing trace와 routing hint 반환
+  - retrieved_docs/results/items 호환 필드 유지
 
-## 7. 기능 요구사항
+- `/api/v1/qa`
+  - query와 search_results 또는 자체 검색 결과 기반 답변 생성
+  - answer, citations, structured_output, generation_metadata 반환
 
-### FR-1 Analyzer
-- 주제(`topic_type`)와 복잡도(`complexity_level`, `complexity_score`)를 metadata로 반환한다.
-- 복잡도 산출 근거(`complexity_trace`)를 함께 반환한다.
+- `/api/v1/qa/stream`
+  - QA 처리 stage event와 done event를 SSE로 반환
 
-### FR-2 Router
-- `(topic_type, complexity_level)` 기반 전략을 선택한다.
+### 3.2 Complaint Intelligence Dashboard
 
-### FR-3 Retrieval
-- 전략별 파라미터를 적용해 검색 결과와 trace를 반환한다.
+- `/complaint-intelligence/dashboard`
+  - FE가 바로 표시할 수 있는 summary, issue_alerts, public_insights 반환
 
-### FR-4 Generation
-- topic-aware prompt를 사용해 답변을 생성한다.
-- normalize_response로 unified schema를 반환한다.
+- `/complaint-intelligence/dashboard/run-analysis`
+  - 입력 events로 분석을 실행하고 dashboard read-model 형태로 반환
 
-### FR-5 API 계약
-- `/search`는 `routing_trace`를 반환한다.
-- `/qa`는 `routing_hint`를 수신하고 `routing_trace`를 반환한다.
+- `/complaint-intelligence/issue-alerts`
+  - 저장된 IssueAlert 목록 조회
 
-### FR-6 UI/UX
-- 3단 분할 Workbench를 제공한다.
-  - 좌측: 네비게이션
-  - 중앙: 민원 목록/상태
-  - 우측: AI 패널(요약, 유사 민원, 답변 초안, citation, 편집)
+- `/complaint-intelligence/public-insights`
+  - 저장된 PublicAgencyInsight 목록 조회
 
-## 8. 비기능 요구사항
+- `/complaint-intelligence/public-insights/{insight_id}/evidence-pack`
+  - 관리자/검증용 masked EvidencePack 조회
 
-- 보안: 로컬 처리 원칙 유지
-- 안정성: 데모 시나리오 연속 동작 보장
-- 유지보수성: 모듈 경계와 API 계약 고정
+### 3.3 Duplicate Merge Recommendation Layer
 
-## 9. 시스템 아키텍처
+- `/complaint-intelligence/duplicate-groups/run-analysis`
+  - 입력 events에서 유사 민원 그룹 후보 생성
 
-1. Ingestion/Structuring
-2. Adaptive Analyzer
-3. Adaptive Router
-4. Retrieval
-5. Generation
-6. FastAPI API Layer
-7. Next.js Workbench Layer
+- `/complaint-intelligence/duplicate-groups`
+  - candidate/confirmed/split/rejected 상태별 그룹 조회
 
-## 9.1 데이터 기반 Adaptive RAG 설계 (실행 기준)
+- `/complaint-intelligence/duplicate-groups/{merge_id}/confirm`
+  - blocker가 없는 candidate를 confirmed로 전환
 
-### 9.1.1 Input Analyzer
-- `TopicAnalyzer`
-- `ComplexityAnalyzer`
-- (보조) `MultiRequestDetector`
-- 출력: `{topic_type, complexity_level, complexity_score, complexity_trace, request_segments}`
+- `/complaint-intelligence/duplicate-groups/{merge_id}/split`
+  - candidate 또는 confirmed 그룹을 split으로 전환
 
-### 9.1.2 Router
-- `AdaptiveRouter`
-- route key: `(topic_type, complexity_level)`
-- 출력: `{strategy_id, route_key, routing_trace}`
+- `/complaint-intelligence/duplicate-groups/{merge_id}/reject`
+  - candidate 그룹을 rejected로 전환
 
-### 9.1.3 Retrieval
-- `TopicAdaptiveRetriever`
-- `ComplexityAdaptiveRetriever`
-- 결과 metadata에 `strategy_id`, `topic_type`, `complexity_level` 포함
+- `/complaint-intelligence/duplicate-groups/{merge_id}/draft-reply`
+  - confirmed 그룹에서만 BE3 전달용 draft reply payload 생성
 
-### 9.1.4 Generation
-- `PromptFactory`
-- `normalize_response()`
-- unified output: `answer`, `citations`, `limitations`, `structured_output`, `routing_trace`
+- `/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft`
+  - confirmed 그룹에서만 실제 답변 초안 생성
 
-## 10. 주차 전략 (현재 시점)
+## 4. 비범위
 
-- Week1-4: 완료 사인오프
-- Week5-6: Adaptive 코어 모듈 구현
-- Week7-8: Workbench 통합 및 데모 동결
+- PublicAgencyInsight는 AI/RAG/prompt 개선 인사이트가 아닙니다.
+- Duplicate Merge candidate는 실제 민원 상태를 바꾸지 않습니다.
+- confirmed 상태도 자동 발송이나 외부 시스템 상태 변경이 아니라 내부 read-model 상태입니다.
+- Local LLM을 FE 요청 시마다 동기 호출하는 UX는 기본 운영 방식이 아닙니다.
+- 실제 외부 민원 접수 시스템, Kafka, Redis, 다중 인스턴스 분산 락은 현재 범위가 아닙니다.
 
-## 11. 역할 분담
+## 5. 품질 기준
 
-- FE: Next.js Workbench UX
-- BE1: Analyzer
-- BE2: Router/Retrieval
-- BE3: Generation/API 통합
+- PII는 API, EvidencePack, report에 raw 형태로 노출하지 않습니다.
+- PublicAgencyInsight는 EvidencePack과 GroundingVerifier/QualityGate를 통과해야 합니다.
+- Duplicate Merge는 blocker risk가 있으면 자동 confirm과 draft reply를 막습니다.
+- FE 계약은 후방 호환 필드를 최대한 유지합니다.
+- 문서 기준 계약은 코드로 확인된 범위만 적고, 불확실한 항목은 확인 필요로 표시합니다.
 
-## 12. 완료 판정
+## 6. 현재 데모/검증 전략
 
-- 특정 민원 선택 -> adaptive 처리 -> 답변 초안 + citation UI 출력이 연속 동작하면 완료로 판단한다.
+- 실제 공개/가공 데이터를 demo/replay timeline으로 재배치해 관제형 흐름을 시뮬레이션합니다.
+- curated scenario와 holdout 데이터로 IssueAlert/PublicAgencyInsight 품질을 평가합니다.
+- Local LLM 평가는 `exaone3.5:7.8b` 기준으로 수행하되, latency는 운영 정책 문서에서 별도 관리합니다.
