@@ -3,7 +3,13 @@ import {
   canCreateDraftReply,
   canGenerateDuplicateReplyDraft,
   duplicateBadgeForCase,
+  duplicateCandidateGrade,
+  duplicateCaseReviewRows,
+  duplicateCommonPoints,
+  duplicateDifferencePoints,
   duplicateGroupTitle,
+  duplicatePreMergeChecklist,
+  duplicateRequestTypeLabel,
   duplicateReviewPriorityLabel,
   duplicateStatusLabel,
   evidenceLabel,
@@ -92,6 +98,18 @@ describe("duplicate merge display helpers", () => {
     expect(`${semantic} ${location}`).not.toContain("exact");
   });
 
+  it("검토 등급은 100% 신뢰 표현 대신 후보 성격을 설명한다", () => {
+    expect(duplicateCandidateGrade(group({ recommendation_level: "strong", confidence: 1 })).label).toBe("강한 후보");
+    expect(
+      duplicateCandidateGrade(
+        group({
+          recommendation_level: "strong",
+          risk_flags: [{ code: "LEGAL_RIGHTS_OR_DEADLINE_RISK", severity: "blocker", message: "", affected_case_ids: [], evidence: [] }],
+        }),
+      ).label,
+    ).toBe("차단 위험");
+  });
+
   it("confidence는 화면에서 검토 우선도 등급으로 표시한다", () => {
     const labels = [
       duplicateReviewPriorityLabel(group({ confidence: 0.9 })),
@@ -110,6 +128,54 @@ describe("duplicate merge display helpers", () => {
     expect(labels.join(" ")).not.toContain("신뢰도");
     expect(labels.join(" ")).not.toContain("정확도");
     expect(labels.join(" ")).not.toContain("병합 가능성");
+  });
+
+  it("공통점과 차이점을 분리해 보여준다", () => {
+    const record = group({
+      evidence: [
+        { type: "semantic_similarity", message: "PII-safe 분석 텍스트 간 의미 유사도입니다.", affected_case_ids: [], value: 0.9 },
+      ],
+      request_types: {
+        "dm-risk-parking-01": "enforcement",
+        "dm-risk-parking-02": "compensation",
+      },
+      risk_flags: [{ code: "REQUEST_TYPE_MISMATCH", severity: "warning", message: "", affected_case_ids: [], evidence: [] }],
+    });
+
+    expect(duplicateCommonPoints(record).join(" ")).toContain("민원 요약과 요청 내용");
+    expect(duplicateDifferencePoints(record).join(" ")).toContain("요청 유형 혼합");
+    expect(duplicateDifferencePoints(record).join(" ")).toContain("단속·계도");
+    expect(duplicateDifferencePoints(record).join(" ")).toContain("보상·권리");
+  });
+
+  it("병합 전 체크리스트는 장소 충돌과 권리 위험을 차단으로 표시한다", () => {
+    const checklist = duplicatePreMergeChecklist(
+      group({
+        location_state: "conflict",
+        risk_flags: [{ code: "LEGAL_RIGHTS_OR_DEADLINE_RISK", severity: "blocker", message: "", affected_case_ids: [], evidence: [] }],
+      }),
+    );
+
+    expect(checklist.find((item) => item.label === "장소·시설")?.tone).toBe("blocker");
+    expect(checklist.find((item) => item.label === "권리·기한")?.tone).toBe("blocker");
+  });
+
+  it("민원별 확인표는 대표 민원과 요청 유형을 구분한다", () => {
+    const rows = duplicateCaseReviewRows(
+      group({
+        representative_complaint_id: "dm-risk-parking-02",
+        request_types: {
+          "dm-risk-parking-01": "enforcement",
+          "dm-risk-parking-02": "compensation",
+        },
+        risk_flags: [{ code: "REQUEST_TYPE_MISMATCH", severity: "warning", message: "", affected_case_ids: ["dm-risk-parking-01"], evidence: [] }],
+      }),
+    );
+
+    expect(rows.find((row) => row.complaintId === "dm-risk-parking-02")?.role).toBe("대표");
+    expect(rows.find((row) => row.complaintId === "dm-risk-parking-01")?.requestType).toBe("단속·계도");
+    expect(rows.find((row) => row.complaintId === "dm-risk-parking-01")?.attention).toBe("주의 사유 1건");
+    expect(duplicateRequestTypeLabel("safety_action")).toBe("안전 조치");
   });
 
   it("메인 민원 목록 배지는 confirmed를 우선 표시한다", () => {
