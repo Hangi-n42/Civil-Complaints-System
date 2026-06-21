@@ -389,6 +389,78 @@ export type IntelEvidencePack = {
   allowed_action_catalog: string[];
 };
 
+export type DuplicateMergeStatus = "candidate" | "confirmed" | "split" | "rejected";
+export type DuplicateMergeAction = "confirm" | "split" | "reject" | "draft_reply";
+export type DuplicateRiskSeverity = "info" | "warning" | "blocker";
+
+export type DuplicateEvidence = {
+  type: string;
+  message: string;
+  affected_case_ids: string[];
+  value?: number | string | null;
+  details?: Record<string, unknown>;
+};
+
+export type DuplicateRiskFlag = {
+  code: string;
+  severity: DuplicateRiskSeverity;
+  message: string;
+  affected_case_ids: string[];
+  evidence: string[];
+};
+
+export type DuplicateRepresentative = {
+  complaint_id: string;
+  selection_reason: string;
+  quality_score: number;
+};
+
+export type DuplicateMergeRecord = {
+  merge_id: string;
+  status: DuplicateMergeStatus;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  confidence: number;
+  recommendation_level: "weak" | "review" | "strong";
+  recommended_decision: "REVIEW_BEFORE_MERGE";
+  evidence: DuplicateEvidence[];
+  risk_flags: DuplicateRiskFlag[];
+  allowed_actions: DuplicateMergeAction[];
+  blocked_actions: DuplicateMergeAction[];
+  linked_issue_alert_ids: string[];
+  linked_public_insight_ids: string[];
+  representative: DuplicateRepresentative;
+  score_breakdown: Record<string, number>;
+  location_state: "exact" | "nearby" | "ambiguous" | "missing" | "conflict";
+  request_types: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DuplicateGroupsData = {
+  event_count?: number | null;
+  count: number;
+  duplicate_groups: DuplicateMergeRecord[];
+};
+
+export type DuplicateDraftReplyPayload = {
+  merge_id: string;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  representative: Record<string, unknown>;
+  members: Array<Record<string, unknown>>;
+  merge_evidence: DuplicateEvidence[];
+  risk_flags: DuplicateRiskFlag[];
+  system_instruction: string;
+  common_reply_constraints: string[];
+  prohibited_content_rules: string[];
+};
+
+const EMPTY_DUPLICATE_GROUPS: DuplicateGroupsData = {
+  count: 0,
+  duplicate_groups: [],
+};
+
 // 백엔드 호출 실패 시에도 탭이 렌더되도록 비어 있는 대시보드로 폴백한다(fetchAdminOverviewApi 패턴).
 const EMPTY_INTEL_DASHBOARD: IntelDashboardData = {
   summary: {
@@ -459,6 +531,55 @@ export async function fetchEvidencePackApi(
     }
     const pack = (await response.json()) as IntelEvidencePack;
     return { data: pack, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+export async function fetchDuplicateGroupsApi(filters?: {
+  status?: DuplicateMergeStatus;
+  complaintId?: string;
+  issueAlertId?: string;
+  publicInsightId?: string;
+}): Promise<ApiResponse<DuplicateGroupsData>> {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.complaintId) params.set("complaint_id", filters.complaintId);
+    if (filters?.issueAlertId) params.set("issue_alert_id", filters.issueAlertId);
+    if (filters?.publicInsightId) params.set("public_insight_id", filters.publicInsightId);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const payload = await fetchBackend<DuplicateGroupsData>(`/complaint-intelligence/duplicate-groups${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: EMPTY_DUPLICATE_GROUPS, error: toApiError(error) };
+  }
+}
+
+export async function transitionDuplicateGroupApi(
+  mergeId: string,
+  action: Exclude<DuplicateMergeAction, "draft_reply">,
+): Promise<ApiResponse<{ duplicate_group: DuplicateMergeRecord } | null>> {
+  try {
+    const payload = await fetchBackend<{ duplicate_group: DuplicateMergeRecord }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/${action}`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+export async function fetchDuplicateDraftReplyApi(
+  mergeId: string,
+): Promise<ApiResponse<{ draft_reply_payload: DuplicateDraftReplyPayload } | null>> {
+  try {
+    const payload = await fetchBackend<{ draft_reply_payload: DuplicateDraftReplyPayload }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/draft-reply`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
   } catch (error) {
     return { data: null, error: toApiError(error) };
   }

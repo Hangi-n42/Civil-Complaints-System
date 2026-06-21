@@ -226,10 +226,27 @@ class ComplaintIntelligenceService:
                 )
                 raise
 
-    def list_duplicate_groups(self, status: DuplicateMergeStatus | None = None) -> list[DuplicateMergeRecord]:
+    def list_duplicate_groups(
+        self,
+        status: DuplicateMergeStatus | None = None,
+        *,
+        complaint_id: str | None = None,
+        issue_alert_id: str | None = None,
+        public_insight_id: str | None = None,
+    ) -> list[DuplicateMergeRecord]:
         """저장된 중복 병합 추천 그룹을 반환한다."""
 
-        return self.repository.list_duplicate_groups(status=status)
+        groups = self.repository.list_duplicate_groups(status=status)
+        return [
+            group
+            for group in groups
+            if _matches_duplicate_group_filter(
+                group,
+                complaint_id=complaint_id,
+                issue_alert_id=issue_alert_id,
+                public_insight_id=public_insight_id,
+            )
+        ]
 
     def get_duplicate_group(self, merge_id: str) -> DuplicateMergeRecord | None:
         """중복 병합 추천 그룹 단건을 반환한다."""
@@ -376,6 +393,22 @@ def _latest_event_at(events: list[ComplaintIntelligenceEvent]) -> datetime | Non
     if not events:
         return None
     return max(_aware(event.received_at) for event in events)
+
+
+def _matches_duplicate_group_filter(
+    group: DuplicateMergeRecord,
+    *,
+    complaint_id: str | None,
+    issue_alert_id: str | None,
+    public_insight_id: str | None,
+) -> bool:
+    if complaint_id and complaint_id not in group.member_complaint_ids:
+        return False
+    if issue_alert_id and issue_alert_id not in group.linked_issue_alert_ids:
+        return False
+    if public_insight_id and public_insight_id not in group.linked_public_insight_ids:
+        return False
+    return True
 
 
 def _new_run_id() -> str:

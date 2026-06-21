@@ -230,6 +230,28 @@ def test_candidate_draft_reply_is_rejected_with_409() -> None:
     assert response.json()["error"]["code"] == "DUPLICATE_GROUP_NOT_CONFIRMED"
 
 
+def test_duplicate_groups_can_be_filtered_by_status_and_complaint_id() -> None:
+    client = TestClient(app)
+    data = _run_analysis(client, [_event("filter-1"), _event("filter-2", minutes_ago=10)])
+    merge_id = data["duplicate_groups"][0]["merge_id"]
+
+    by_complaint = client.get("/complaint-intelligence/duplicate-groups", params={"complaint_id": "filter-1"})
+    assert by_complaint.status_code == 200
+    assert by_complaint.json()["data"]["count"] == 1
+
+    missing_complaint = client.get("/complaint-intelligence/duplicate-groups", params={"complaint_id": "not-member"})
+    assert missing_complaint.status_code == 200
+    assert missing_complaint.json()["data"]["count"] == 0
+
+    client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/confirm")
+    confirmed = client.get(
+        "/complaint-intelligence/duplicate-groups",
+        params={"status": "confirmed", "complaint_id": "filter-2"},
+    )
+    assert confirmed.status_code == 200
+    assert confirmed.json()["data"]["duplicate_groups"][0]["status"] == "confirmed"
+
+
 def test_confirmed_group_returns_pii_safe_draft_reply_payload() -> None:
     client = TestClient(app)
     events = [

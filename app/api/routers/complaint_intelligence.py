@@ -570,10 +570,20 @@ async def run_duplicate_group_analysis(request: RunAnalysisRequest) -> Duplicate
 
 
 @router.get("/duplicate-groups", response_model=DuplicateGroupsResponse)
-async def list_duplicate_groups(status: Optional[DuplicateMergeStatus] = None) -> DuplicateGroupsResponse:
+async def list_duplicate_groups(
+    status: Optional[DuplicateMergeStatus] = None,
+    complaint_id: Optional[str] = None,
+    issue_alert_id: Optional[str] = None,
+    public_insight_id: Optional[str] = None,
+) -> DuplicateGroupsResponse:
     """저장된 중복 병합 추천 그룹을 조회한다."""
 
-    groups = get_complaint_intelligence_service().list_duplicate_groups(status=status)
+    groups = get_complaint_intelligence_service().list_duplicate_groups(
+        status=status,
+        complaint_id=complaint_id,
+        issue_alert_id=issue_alert_id,
+        public_insight_id=public_insight_id,
+    )
     return DuplicateGroupsResponse(
         request_id=make_request_id(),
         timestamp=now_iso(),
