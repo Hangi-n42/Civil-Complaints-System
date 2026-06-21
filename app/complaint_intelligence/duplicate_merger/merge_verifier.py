@@ -12,6 +12,15 @@ from app.complaint_intelligence.duplicate_merger.scoring import (
 from app.complaint_intelligence.duplicate_merger.schemas import DuplicateRiskFlag
 
 
+_DEPARTMENT_ALIASES = {
+    "환경과": "환경관리과",
+    "청소행정팀": "청소행정과",
+    "교통지도팀": "교통지도과",
+    "하수시설과": "하수관리과",
+    "도로시설팀": "도로관리과",
+}
+
+
 class MergeVerifier:
     """중복 점수와 별개로 담당자 승인 전 확인해야 할 위험을 생성한다."""
 
@@ -206,7 +215,8 @@ def _department_values(event: ComplaintIntelligenceEvent) -> list[str | None]:
 
 
 def _normalize_department(value: str | None) -> str:
-    return "".join(str(value or "").split())
+    cleaned = "".join(str(value or "").split())
+    return _DEPARTMENT_ALIASES.get(cleaned, cleaned)
 
 
 def _dedupe_flags(flags: list[DuplicateRiskFlag]) -> list[DuplicateRiskFlag]:
