@@ -30,9 +30,29 @@ def test_evaluation_scenario_json_loads() -> None:
 def test_evaluation_scenario_set_has_minimum_positive_and_negative_cases() -> None:
     scenarios = _scenario_payload()["scenarios"]
 
-    assert len(scenarios) >= 10
+    assert len(scenarios) >= 25
     assert any(scenario["expected_alert"] is True for scenario in scenarios)
     assert any(scenario["expected_alert"] is False for scenario in scenarios)
+
+
+def test_situation_expansion_scenarios_are_present() -> None:
+    scenario_ids = {scenario["scenario_id"] for scenario in _scenario_payload()["scenarios"]}
+    expected_ids = {
+        "flood_drainage_risk",
+        "illegal_dumping_recurring",
+        "park_playground_facility_safety",
+        "security_light_dark_walkway",
+        "bus_route_headway_discomfort",
+        "cctv_security_request",
+        "smoking_enforcement_recurring",
+        "illegal_banner_cleanup",
+        "pet_waste_leash_complaints",
+        "licensing_docs_guidance_confusion",
+        "accessibility_vulnerable_groups",
+        "school_zone_commute_safety",
+    }
+
+    assert expected_ids.issubset(scenario_ids)
 
 
 def test_evaluation_events_validate_as_complaint_intelligence_events() -> None:
@@ -183,6 +203,84 @@ def test_llm_evaluation_summary_contains_action_type_and_speed_metrics() -> None
     assert "human_review_postprocess_count" in llm_eval
     assert "speed_metrics" in llm_eval
     assert "avg_llm_duration_ms" in llm_eval["speed_metrics"]
+    assert "slowest_scenarios" in llm_eval
+    assert "timeout_scenarios" in llm_eval
+    assert "fallback_scenarios" in llm_eval
+
+
+def test_checkpoint_resume_accumulates_scenario_results(tmp_path: Path) -> None:
+    first = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        checkpoint_dir=tmp_path,
+        resume=True,
+        chunk_size=1,
+    )
+    second = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        checkpoint_dir=tmp_path,
+        resume=True,
+        chunk_size=1,
+    )
+
+    assert first["scenario_count_requested"] >= 25
+    assert first["scenario_count_evaluated"] == 1
+    assert first["limited_reason"]
+    assert first["checkpoint"]["processed_this_run"] == 1
+    assert second["scenario_count_evaluated"] == 2
+    assert second["checkpoint"]["completed_from_checkpoint"] == 1
+    assert second["checkpoint"]["processed_this_run"] == 1
+    assert len(list(tmp_path.glob("*.json"))) == 2
+
+
+def test_scenario_ids_filter_runs_requested_subset() -> None:
+    report = evaluate_scenario_file(
+        scenario_file=SCENARIO_FILE,
+        provider="fake",
+        scenario_ids=["sinkhole_hotspot", "low_count_negative"],
+    )
+    scenario_ids = {scenario["scenario_id"] for scenario in report["scenarios"]}
+
+    assert report["scenario_count_requested"] == 2
+    assert report["scenario_count_evaluated"] == 2
+    assert scenario_ids == {"sinkhole_hotspot", "low_count_negative"}
+
+
+def test_repeat_and_construction_failure_scenarios_pass_after_catalog_expansion() -> None:
+    scenarios = {
+        scenario["scenario_id"]: scenario
+        for scenario in _evaluation_report()["scenarios"]
+    }
+
+    assert scenarios["repeat_reopen_growth"]["passed"] is True
+    assert scenarios["construction_noise_time_pattern"]["passed"] is True
+
+
+def test_new_situation_scenarios_pass_at_least_ten_of_twelve_with_fake_provider() -> None:
+    new_ids = {
+        "flood_drainage_risk",
+        "illegal_dumping_recurring",
+        "park_playground_facility_safety",
+        "security_light_dark_walkway",
+        "bus_route_headway_discomfort",
+        "cctv_security_request",
+        "smoking_enforcement_recurring",
+        "illegal_banner_cleanup",
+        "pet_waste_leash_complaints",
+        "licensing_docs_guidance_confusion",
+        "accessibility_vulnerable_groups",
+        "school_zone_commute_safety",
+    }
+    scenarios = {
+        scenario["scenario_id"]: scenario
+        for scenario in _evaluation_report()["scenarios"]
+        if scenario["scenario_id"] in new_ids
+    }
+    passed_count = sum(1 for scenario in scenarios.values() if scenario["passed"])
+
+    assert set(scenarios) == new_ids
+    assert passed_count >= 10
 
 
 @lru_cache(maxsize=1)

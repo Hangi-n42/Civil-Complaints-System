@@ -7,7 +7,7 @@ from pydantic import Field
 from app.complaint_intelligence.pii import mask_pii
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack, valid_evidence_ids_for_pack
 from app.complaint_intelligence.public_insights.llm_synthesizer import PublicAgencyInsightDraft
-from app.complaint_intelligence.schemas import RecommendedAction, RootCauseHypothesis
+from app.complaint_intelligence.schemas import CitizenRequest, ExtractedAspect, RecommendedAction, RootCauseHypothesis
 
 
 UNSUPPORTED_CLAIM_TERMS = ("예산", "조례", "시장 지시", "법령", "즉시 변경 가능", "3억")
@@ -78,6 +78,8 @@ class GroundingVerifier:
             for item in draft.root_cause_hypotheses
             if set(item.supporting_evidence_ids).intersection(allowed_ids)
         ]
+        repaired_aspects = _merge_supported_aspects(draft.extracted_aspects, pack.extracted_aspects, allowed_ids)
+        repaired_requests = _merge_supported_requests(draft.citizen_requests, pack.citizen_requests, allowed_ids)
         if _has_unsupported_claim(summary + " " + diagnosis + " " + explanation, pack):
             uncertainty.append("근거 패키지에 없는 법령, 예산, 지시 관련 표현은 확정 사실로 사용하지 않았습니다.")
             summary = _remove_unsupported_terms(summary)
@@ -92,8 +94,8 @@ class GroundingVerifier:
             summary=summary,
             problem_diagnosis=diagnosis,
             root_cause_hypotheses=repaired_hypotheses,
-            extracted_aspects=draft.extracted_aspects,
-            citizen_requests=draft.citizen_requests,
+            extracted_aspects=repaired_aspects,
+            citizen_requests=repaired_requests,
             recommended_actions=repaired_actions,
             expected_impact=mask_pii(draft.expected_impact).text if draft.expected_impact else None,
             uncertainty=uncertainty,
@@ -102,6 +104,70 @@ class GroundingVerifier:
             grounding_score=score,
             removed_claims=removed,
         )
+
+
+def _merge_supported_aspects(
+    draft_items: list[ExtractedAspect],
+    pack_items: list[ExtractedAspect],
+    allowed_ids: set[str],
+    *,
+    max_items: int = 6,
+) -> list[ExtractedAspect]:
+    """EvidencePack에 있는 근거 기반 aspect를 LLM 누락 때문에 잃지 않게 보존한다."""
+
+    merged: list[ExtractedAspect] = []
+    seen: set[str] = set()
+    for raw_item in list(draft_items) + list(pack_items):
+        item = raw_item if isinstance(raw_item, ExtractedAspect) else ExtractedAspect.model_validate(raw_item)
+        evidence_ids = [evidence_id for evidence_id in item.evidence_ids if evidence_id in allowed_ids]
+        key = item.aspect.strip()
+        if not key or key in seen or not evidence_ids:
+            continue
+        phrases = [mask_pii(phrase).text for phrase in item.representative_phrases[:3]]
+        merged.append(
+            item.model_copy(
+                update={
+                    "aspect": mask_pii(key).text,
+                    "evidence_ids": evidence_ids,
+                    "representative_phrases": phrases,
+                }
+            )
+        )
+        seen.add(key)
+        if len(merged) >= max_items:
+            break
+    return merged
+
+
+def _merge_supported_requests(
+    draft_items: list[CitizenRequest],
+    pack_items: list[CitizenRequest],
+    allowed_ids: set[str],
+    *,
+    max_items: int = 5,
+) -> list[CitizenRequest]:
+    """EvidencePack에 있는 근거 기반 시민 요구를 LLM 누락 때문에 잃지 않게 보존한다."""
+
+    merged: list[CitizenRequest] = []
+    seen: set[str] = set()
+    for raw_item in list(draft_items) + list(pack_items):
+        item = raw_item if isinstance(raw_item, CitizenRequest) else CitizenRequest.model_validate(raw_item)
+        evidence_ids = [evidence_id for evidence_id in item.evidence_ids if evidence_id in allowed_ids]
+        key = item.request.strip()
+        if not key or key in seen or not evidence_ids:
+            continue
+        merged.append(
+            item.model_copy(
+                update={
+                    "request": mask_pii(key).text,
+                    "evidence_ids": evidence_ids,
+                }
+            )
+        )
+        seen.add(key)
+        if len(merged) >= max_items:
+            break
+    return merged
 
 
 def _repair_hypothesis(item: RootCauseHypothesis, allowed_ids: set[str]) -> RootCauseHypothesis:

@@ -1,0 +1,3891 @@
+{
+  "evaluation_name": "complaint_intelligence_holdout_50",
+  "holdout_file": "data\\evaluation\\complaint_intelligence_holdout_50.json",
+  "provider": "fake",
+  "model": null,
+  "prompt_mode": "compact",
+  "input_event_count": 50,
+  "run_id": "ci-run-b965b91d93f5",
+  "generated_alert_count": 13,
+  "generated_insight_count": 48,
+  "high_priority_insight_count": 1,
+  "fallback_rate": 0.0,
+  "direct_llm_success_rate": 1.0,
+  "candidate_count": 48,
+  "grounding_pass_rate": 1.0,
+  "avg_grounding_score": 1.0,
+  "avg_confidence": 0.7896,
+  "avg_actionability_score": 1.0,
+  "evidence_pack_presence_rate": 1.0,
+  "pii_leak_rate": 0.0,
+  "forbidden_ai_ops_term_rate": 0.0,
+  "llm_metrics": {
+    "enabled": true,
+    "llm_enabled": true,
+    "llm_provider": "fake",
+    "llm_provider_class": "FakePublicInsightLLMProvider",
+    "llm_model": "exaone3.5:7.8b",
+    "llm_prompt_mode": "compact",
+    "llm_timeout_seconds": 600.0,
+    "llm_num_predict": 1024,
+    "raw_response_debug_enabled": false,
+    "action_retry_enabled": true,
+    "llm_slow_threshold_ms": 180000.0,
+    "duration_ms": 607.237,
+    "candidate_count": 48,
+    "insight_count": 48,
+    "llm_attempt_count": 48,
+    "llm_success_count": 48,
+    "llm_failure_count": 0,
+    "fallback_count": 0,
+    "fallback_due_to_empty_actions_count": 0,
+    "discarded_count": 0,
+    "quality_gate_failure_count": 0,
+    "slow_llm_count": 0,
+    "avg_llm_duration_ms": 2.149,
+    "avg_retry_duration_ms": 1.448,
+    "invalid_evidence_id_count": 0,
+    "action_repair_attempt_count": 51,
+    "action_repair_success_count": 3,
+    "action_retry_attempt_count": 3,
+    "action_retry_success_count": 3,
+    "empty_actions_after_repair_count": 3,
+    "invalid_action_type_count": 13,
+    "repaired_action_type_count": 21,
+    "repaired_action_text_count": 0,
+    "removed_action_due_to_action_type_count": 3,
+    "human_review_postprocess_count": 33,
+    "action_type_rubric_pass_count": 48,
+    "error_types": {},
+    "failure_reasons": {},
+    "json_parse_failure_count": 0,
+    "schema_validation_failure_count": 0,
+    "grounding_failure_count": 0,
+    "candidate_trace_count": 48,
+    "candidate_trace_truncated": false,
+    "candidate_traces": [
+      {
+        "candidate_id": "candidate-a5b2efe6baa1",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "대형폐기물 배출 안내",
+        "complaint_count": 10,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 대형폐기물 배출 안내 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 대형폐기물 배출 안내 관련 민원 10건이 확인되었고, 안내 부족, 단속 공백 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 대형폐기물 배출 안내 민원에서 안내 부족, 단속 공백가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "안내 부족, 단속 공백에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "대형폐기물 배출 안내 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.322,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7958,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7958,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-010d39c24778",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "대형폐기물 배출 안내",
+        "complaint_count": 10,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "중구 대형폐기물 배출 안내 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 중구에서 대형폐기물 배출 안내 관련 민원 10건이 확인되었고, 신청 절차, 생활환경 불편 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 대형폐기물 배출 안내 민원에서 신청 절차, 생활환경 불편가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 생활환경 불편에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "대형폐기물 배출 안내 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.111,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7958,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7958,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-946830f0d925",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "공원 시설 파손",
+        "complaint_count": 4,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm_action_retry",
+        "llm_draft_summary": {
+          "title": "광역시 공원 시설 파손 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 광역시에서 공원 시설 파손 관련 민원 4건이 확인되었고, 단속 공백, 시간대 집중 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 공원 시설 파손 민원에서 단속 공백, 시간대 집중가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 시간대 집중에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-mixed_negative-046",
+                "holdout-mixed_negative-047",
+                "holdout-mixed_negative-049"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "공원 시설 파손 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-mixed_negative-046",
+                "holdout-mixed_negative-047",
+                "holdout-mixed_negative-049"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.811,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 1,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 1,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [],
+          "repair_strategy": [
+            "removed_action_with_unclear_action_type"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "pre_retry_failure_reason": "EMPTY_ACTIONS",
+        "action_retry_attempted": true,
+        "action_retry_duration_ms": 1.528,
+        "action_retry_draft_summary": {
+          "recommended_actions": [
+            {
+              "action": "민원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": []
+            }
+          ]
+        },
+        "action_retry_repair_report": {
+          "repaired_action_count": 1,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 1,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "FIELD_INSPECTION"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords",
+            "filled_from_matching_aspect_or_request"
+          ]
+        },
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": [],
+        "action_retry_success": true
+      },
+      {
+        "candidate_id": "candidate-a675f522bc0a",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "복지 지원 신청/기준 안내",
+        "complaint_count": 8,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "남구 복지 지원 신청/기준 안내 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 남구에서 복지 지원 신청/기준 안내 관련 민원 8건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 신청/기준 안내 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-service_accessibility-031",
+                "holdout-service_accessibility-032",
+                "holdout-service_accessibility-033"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 신청/기준 안내 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-service_accessibility-031",
+                "holdout-service_accessibility-032",
+                "holdout-service_accessibility-033"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.18,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-c8aa1b11953a",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "복지 지원 신청/기준 안내",
+        "complaint_count": 10,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 복지 지원 신청/기준 안내 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 복지 지원 신청/기준 안내 관련 민원 10건이 확인되었고, 신청 절차, 지원 기준 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 신청/기준 안내 민원에서 신청 절차, 지원 기준가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 지원 기준에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-guidance_process-022",
+                "holdout-guidance_process-023"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 신청/기준 안내 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-guidance_process-022",
+                "holdout-guidance_process-023"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.228,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7958,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7958,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-38b8e7a807cf",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "복지 지원 신청/기준 안내",
+        "complaint_count": 7,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "북구 복지 지원 신청/기준 안내 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 북구에서 복지 지원 신청/기준 안내 관련 민원 7건이 확인되었고, 안내 부족, 신청 절차 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 신청/기준 안내 민원에서 안내 부족, 신청 절차가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "안내 부족, 신청 절차에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 신청/기준 안내 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.284,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-98be400386e5",
+        "type_hint": "PROCESS_DELAY_RISK",
+        "topic_label": "- 처리 지연/미처리 누적",
+        "complaint_count": 6,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "북구 - 처리 지연/미처리 누적 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 북구에서 - 처리 지연/미처리 누적 관련 민원 6건이 확인되었고, 처리 지연, 유지보수 지연 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 - 처리 지연/미처리 누적 민원에서 처리 지연, 유지보수 지연가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "처리 지연, 유지보수 지연에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "- 처리 지연/미처리 누적 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.093,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-359013f3b776",
+        "type_hint": "REOPEN_OR_REPEAT_RISK",
+        "topic_label": "재민원/반복 민원 증가",
+        "complaint_count": 23,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 재민원/반복 민원 증가 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 재민원/반복 민원 증가 관련 민원 23건이 확인되었고, 재민원/반복 민원, 처리 완료 후 재문의 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 재민원/반복 민원 증가 민원에서 재민원/반복 민원, 처리 완료 후 재문의가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "재민원/반복 민원, 처리 완료 후 재문의에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-delay_repeat_communication-041",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "재민원/반복 민원 증가 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-delay_repeat_communication-041",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.272,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7495,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7495,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-797bca44e717",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "무단투기 반복",
+        "complaint_count": 6,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm_action_retry",
+        "llm_draft_summary": {
+          "title": "중구 무단투기 반복 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 중구에서 무단투기 반복 관련 민원 6건이 확인되었고, 무단투기, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 무단투기 반복 민원에서 무단투기, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "무단투기, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "무단투기 반복 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.997,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 1,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 1,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [],
+          "repair_strategy": [
+            "removed_action_with_unclear_action_type"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8792,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "pre_retry_failure_reason": "EMPTY_ACTIONS",
+        "action_retry_attempted": true,
+        "action_retry_duration_ms": 1.364,
+        "action_retry_draft_summary": {
+          "recommended_actions": [
+            {
+              "action": "민원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": []
+            }
+          ]
+        },
+        "action_retry_repair_report": {
+          "repaired_action_count": 1,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 1,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "FIELD_INSPECTION"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords",
+            "filled_from_matching_aspect_or_request"
+          ]
+        },
+        "quality_gate_score": 0.8792,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": [],
+        "action_retry_success": true
+      },
+      {
+        "candidate_id": "candidate-c4f5c08f8c2f",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "공원 시설 파손",
+        "complaint_count": 13,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm_action_retry",
+        "llm_draft_summary": {
+          "title": "중구 공원 시설 파손 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 중구에서 공원 시설 파손 관련 민원 13건이 확인되었고, 단속 공백, 생활환경 불편 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 공원 시설 파손 민원에서 단속 공백, 생활환경 불편가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 생활환경 불편에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-013",
+                "holdout-safety_facility-004"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "공원 시설 파손 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-013",
+                "holdout-safety_facility-004"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.126,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 1,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 1,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [],
+          "repair_strategy": [
+            "removed_action_with_unclear_action_type"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8163,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "pre_retry_failure_reason": "EMPTY_ACTIONS",
+        "action_retry_attempted": true,
+        "action_retry_duration_ms": 1.451,
+        "action_retry_draft_summary": {
+          "recommended_actions": [
+            {
+              "action": "민원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": []
+            }
+          ]
+        },
+        "action_retry_repair_report": {
+          "repaired_action_count": 1,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 1,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "FIELD_INSPECTION"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords",
+            "filled_from_matching_aspect_or_request"
+          ]
+        },
+        "quality_gate_score": 0.8163,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": [],
+        "action_retry_success": true
+      },
+      {
+        "candidate_id": "candidate-2e954e1dfb87",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "버스 노선/배차 불편",
+        "complaint_count": 4,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 버스 노선/배차 불편 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 버스 노선/배차 불편 관련 민원 4건이 확인되었고, 접근성/사용성, 배차 간격 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 버스 노선/배차 불편 민원에서 접근성/사용성, 배차 간격가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "접근성/사용성, 배차 간격에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-023",
+                "holdout-service_accessibility-034",
+                "holdout-enforcement_order-017"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "버스 노선/배차 불편 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-023",
+                "holdout-service_accessibility-034",
+                "holdout-enforcement_order-017"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.844,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "SERVICE_DESIGN"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.9125,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.9125,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-8b4a1379e3a1",
+        "type_hint": "SAFETY_RISK_SIGNAL",
+        "topic_label": "CCTV/방범 안전 요청",
+        "complaint_count": 3,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "중구 CCTV/방범 안전 요청 안전 위험 대응 필요",
+          "summary": "최근 분석 기간 동안 중구에서 CCTV/방범 안전 요청 관련 민원 3건이 확인되었고, 현장 안전, 침수 위험 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 CCTV/방범 안전 요청 민원에서 현장 안전, 침수 위험가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "현장 안전, 침수 위험에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-007",
+                "holdout-mixed_negative-048"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "CCTV/방범 안전 요청 위험 지점에 대한 긴급 현장 점검과 시민 안전 안내를 실시합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-007",
+                "holdout-mixed_negative-048"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.756,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type",
+            "high_priority"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8792,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8792,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-6a2bf4794443",
+        "type_hint": "HOTSPOT_RESPONSE_REQUIRED",
+        "topic_label": "금연구역 흡연 단속 필요",
+        "complaint_count": 4,
+        "linked_alert_count": 1,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "중구 금연구역 흡연 단속 필요 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 중구에서 금연구역 흡연 단속 필요 관련 민원 4건이 확인되었고, 생활환경 불편, 흡연 반복 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 금연구역 흡연 단속 필요 민원에서 생활환경 불편, 흡연 반복가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "생활환경 불편, 흡연 반복에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-009"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "금연구역 흡연 단속 필요 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-009"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.883,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8792,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8792,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-341d369582a4",
+        "type_hint": "RECURRING_COMPLAINT_PATTERN",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.206,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-94f7419f31a5",
+        "type_hint": "REGIONAL_SERVICE_GAP",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.206,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-6833939c4e52",
+        "type_hint": "SAFETY_RISK_SIGNAL",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 안전 위험 대응 필요",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 위험 지점에 대한 긴급 현장 점검과 시민 안전 안내를 실시합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.085,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-25df74627531",
+        "type_hint": "PUBLIC_GUIDANCE_NEEDED",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 시민 안내 개선 필요",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 FAQ, 신청 체크리스트, 고지문을 시민 표현 중심으로 보강합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.118,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-fd5ef275972f",
+        "type_hint": "FACILITY_MAINTENANCE_PRIORITY",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 시설 보수 우선순위 검토",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.109,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-0f4feacf43bf",
+        "type_hint": "ENFORCEMENT_PRIORITY",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 단속 우선순위 조정 필요",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 민원 집중 지역과 시간대를 기준으로 단속 동선을 조정합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.102,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-4e1ef49152fc",
+        "type_hint": "POLICY_IMPROVEMENT_OPPORTUNITY",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 정책/서비스 개선 검토",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 반복 개선 요구를 신청 절차, 기준, 안내 개선 과제로 분리해 검토합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.094,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "POLICY_REVIEW"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-1af9c3abe158",
+        "type_hint": "SERVICE_DESIGN_IMPROVEMENT",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 서비스 설계 개선 필요",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 접근성/사용성, 신청 절차 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 접근성/사용성, 신청 절차가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "접근성/사용성, 신청 절차에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 이용 절차의 신청/예약/결제 단계를 점검하고 안내 흐름을 단순화합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.462,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "FIELD_INSPECTION",
+              "to": "SERVICE_DESIGN"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-8cb46cc4b21e",
+        "type_hint": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 접근성/사용성 개선 필요",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 접근성/사용성, 신청 절차 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 접근성/사용성, 신청 절차가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "접근성/사용성, 신청 절차에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.586,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-41816babedf4",
+        "type_hint": "CITIZEN_COMMUNICATION_GAP",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.148,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-32112c9c2f01",
+        "type_hint": "SEASONAL_OR_TIME_PATTERN",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 44,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 44건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.177,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.708,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.708,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-e4b87635d2e4",
+        "type_hint": "REOPEN_OR_REPEAT_RISK",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 33,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 33건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.046,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7231,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7231,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-9a7934be2c29",
+        "type_hint": "RECURRING_COMPLAINT_PATTERN",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.99,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-7d5b34cc25c1",
+        "type_hint": "REGIONAL_SERVICE_GAP",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.038,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-6541f539799b",
+        "type_hint": "SAFETY_RISK_SIGNAL",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 안전 위험 대응 필요",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 위험 지점에 대한 긴급 현장 점검과 시민 안전 안내를 실시합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.187,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "FIELD_INSPECTION",
+              "to": "ENFORCEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-437fd828ffc1",
+        "type_hint": "PUBLIC_GUIDANCE_NEEDED",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 시민 안내 개선 필요",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 FAQ, 신청 체크리스트, 고지문을 시민 표현 중심으로 보강합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.924,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-2dc8d952cf53",
+        "type_hint": "FACILITY_MAINTENANCE_PRIORITY",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 시설 보수 우선순위 검토",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 3.043,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-a800383b19ff",
+        "type_hint": "ENFORCEMENT_PRIORITY",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 단속 우선순위 조정 필요",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 반려동물 관리 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 반려동물 관리가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 반려동물 관리에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 민원 집중 지역과 시간대를 기준으로 단속 동선을 조정합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.179,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-7d872b74f7b2",
+        "type_hint": "POLICY_IMPROVEMENT_OPPORTUNITY",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 정책/서비스 개선 검토",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 반복 개선 요구를 신청 절차, 기준, 안내 개선 과제로 분리해 검토합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.025,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-bb8b419c63c6",
+        "type_hint": "SERVICE_DESIGN_IMPROVEMENT",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 서비스 설계 개선 필요",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 접근성/사용성 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 접근성/사용성가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 접근성/사용성에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 이용 절차의 신청/예약/결제 단계를 점검하고 안내 흐름을 단순화합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.028,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "FIELD_INSPECTION",
+              "to": "ENFORCEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-7604e61146c5",
+        "type_hint": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 접근성/사용성 개선 필요",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 안내 부족, 단속 공백 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 안내 부족, 단속 공백가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "안내 부족, 단속 공백에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.058,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-ba760faba647",
+        "type_hint": "CITIZEN_COMMUNICATION_GAP",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.984,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-3eb523f395df",
+        "type_hint": "SEASONAL_OR_TIME_PATTERN",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 단속 공백, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 단속 공백, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.942,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-c4f737f37ef7",
+        "type_hint": "REOPEN_OR_REPEAT_RISK",
+        "topic_label": "불법주정차",
+        "complaint_count": 5,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 불법주정차 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 불법주정차 관련 민원 5건이 확인되었고, 재민원/반복 민원, 단속 공백 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 불법주정차 민원에서 재민원/반복 민원, 단속 공백가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "재민원/반복 민원, 단속 공백에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "불법주정차 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-012",
+                "holdout-enforcement_order-013",
+                "holdout-enforcement_order-015"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 1.975,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-49db1a202557",
+        "type_hint": "SAFETY_RISK_SIGNAL",
+        "topic_label": "무단투기 반복",
+        "complaint_count": 8,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 무단투기 반복 안전 위험 대응 필요",
+          "summary": "최근 분석 기간 동안 서구에서 무단투기 반복 관련 민원 8건이 확인되었고, 안내 부족, 현장 안전 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 무단투기 반복 민원에서 안내 부족, 현장 안전가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "안내 부족, 현장 안전에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-012",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "무단투기 반복 위험 지점에 대한 긴급 현장 점검과 시민 안전 안내를 실시합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-012",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.123,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.9125,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.9125,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-a7b7fc76df0f",
+        "type_hint": "PUBLIC_GUIDANCE_NEEDED",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 50,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "중구 인허가 기준 안내 혼선 시민 안내 개선 필요",
+          "summary": "최근 분석 기간 동안 중구에서 인허가 기준 안내 혼선 관련 민원 50건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 FAQ, 신청 체크리스트, 고지문을 시민 표현 중심으로 보강합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.146,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": []
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7025,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7025,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-84435d713ad6",
+        "type_hint": "FACILITY_MAINTENANCE_PRIORITY",
+        "topic_label": "복지 지원",
+        "complaint_count": 21,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "중구 복지 지원 시설 보수 우선순위 검토",
+          "summary": "최근 분석 기간 동안 중구에서 복지 지원 관련 민원 21건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-safety_facility-002",
+                "holdout-safety_facility-003"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.343,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7244,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7244,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-93ec260b84a0",
+        "type_hint": "ENFORCEMENT_PRIORITY",
+        "topic_label": "공사 소음 시간대 집중",
+        "complaint_count": 16,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 공사 소음 시간대 집중 단속 우선순위 조정 필요",
+          "summary": "최근 분석 기간 동안 서구에서 공사 소음 시간대 집중 관련 민원 16건이 확인되었고, 단속 공백, 반려동물 관리 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 공사 소음 시간대 집중 민원에서 단속 공백, 반려동물 관리가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "단속 공백, 반려동물 관리에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-safety_facility-002"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "공사 소음 시간대 집중 민원 집중 지역과 시간대를 기준으로 단속 동선을 조정합니다.",
+              "action_type": "ENFORCEMENT",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-safety_facility-002"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.177,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 0,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [],
+          "repair_strategy": []
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7542,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7542,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-910aa550f4d1",
+        "type_hint": "POLICY_IMPROVEMENT_OPPORTUNITY",
+        "topic_label": "인허가 기준 안내 혼선",
+        "complaint_count": 41,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 인허가 기준 안내 혼선 정책/서비스 개선 검토",
+          "summary": "최근 분석 기간 동안 동구에서 인허가 기준 안내 혼선 관련 민원 41건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 인허가 기준 안내 혼선 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "인허가 기준 안내 혼선 관련 반복 개선 요구를 신청 절차, 기준, 안내 개선 과제로 분리해 검토합니다.",
+              "action_type": "PUBLIC_GUIDANCE",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.132,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "PUBLIC_GUIDANCE",
+              "to": "POLICY_REVIEW"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7113,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7113,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-c2f3e918fbc0",
+        "type_hint": "SERVICE_DESIGN_IMPROVEMENT",
+        "topic_label": "복지 지원",
+        "complaint_count": 23,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "남구 복지 지원 서비스 설계 개선 필요",
+          "summary": "최근 분석 기간 동안 남구에서 복지 지원 관련 민원 23건이 확인되었고, 신청 절차, 안내 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 민원에서 신청 절차, 안내 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "신청 절차, 안내 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 이용 절차의 신청/예약/결제 단계를 점검하고 안내 흐름을 단순화합니다.",
+              "action_type": "FIELD_INSPECTION",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.19,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "FIELD_INSPECTION"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "FIELD_INSPECTION",
+              "to": "SERVICE_DESIGN"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": false,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7495,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7495,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-ee7c8895a62a",
+        "type_hint": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+        "topic_label": "복지 지원",
+        "complaint_count": 28,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 복지 지원 접근성/사용성 개선 필요",
+          "summary": "최근 분석 기간 동안 동구에서 복지 지원 관련 민원 28건이 확인되었고, 접근성/사용성, 신청 절차 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 민원에서 접근성/사용성, 신청 절차가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "접근성/사용성, 신청 절차에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-safety_facility-001",
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.984,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7339,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7339,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-236b668515c7",
+        "type_hint": "CITIZEN_COMMUNICATION_GAP",
+        "topic_label": "복지 지원",
+        "complaint_count": 40,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 복지 지원 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 복지 지원 관련 민원 40건이 확인되었고, 안내 부족, 신청 절차 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 복지 지원 민원에서 안내 부족, 신청 절차가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "안내 부족, 신청 절차에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021",
+                "holdout-safety_facility-002"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "복지 지원 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-guidance_process-021",
+                "holdout-safety_facility-002"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.135,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 1,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [
+            "STAFFING_OR_WORKLOAD_REVIEW"
+          ],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_invalid_action_type_by_clear_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7125,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7125,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-4c09f59e239c",
+        "type_hint": "DEPARTMENT_WORKLOAD_BOTTLENECK",
+        "topic_label": "부서 처리량",
+        "complaint_count": 21,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "서구 부서 처리량 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 서구에서 부서 처리량 관련 민원 21건이 확인되었고, 유지보수 지연, 소통 부족 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 부서 처리량 민원에서 유지보수 지연, 소통 부족가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "유지보수 지연, 소통 부족에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "부서 처리량 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-enforcement_order-011",
+                "holdout-safety_facility-002",
+                "holdout-enforcement_order-012"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.101,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7577,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7577,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-fde6cb2e9440",
+        "type_hint": "DEPARTMENT_WORKLOAD_BOTTLENECK",
+        "topic_label": "부서 처리량",
+        "complaint_count": 23,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "동구 부서 처리량 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 동구에서 부서 처리량 관련 민원 23건이 확인되었고, 소통 부족, 유지보수 지연 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 부서 처리량 민원에서 소통 부족, 유지보수 지연가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "소통 부족, 유지보수 지연에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031",
+                "holdout-delay_repeat_communication-041"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "부서 처리량 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-guidance_process-021",
+                "holdout-service_accessibility-031",
+                "holdout-delay_repeat_communication-041"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.094,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.7495,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.7495,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      },
+      {
+        "candidate_id": "candidate-6b1705d4d213",
+        "type_hint": "PROCESS_DELAY_RISK",
+        "topic_label": "처리 지연",
+        "complaint_count": 7,
+        "linked_alert_count": 0,
+        "llm_attempted": true,
+        "llm_success": true,
+        "fallback_used": false,
+        "path": "llm",
+        "llm_draft_summary": {
+          "title": "북구 처리 지연 행정 대응 인사이트",
+          "summary": "최근 분석 기간 동안 북구에서 처리 지연 관련 민원 7건이 확인되었고, 처리 지연, 유지보수 지연 관련 불편이 반복되었습니다.",
+          "problem_diagnosis": "핵심 문제는 처리 지연 민원에서 처리 지연, 유지보수 지연가 반복되어 담당자가 즉시 확인할 수 있는 행정 조치 단위로 정리할 필요가 있다는 점입니다.",
+          "root_cause_hypotheses": [
+            {
+              "hypothesis": "처리 지연, 유지보수 지연에 대한 안내 또는 처리 흐름이 시민 관점에서 충분히 명확하지 않을 가능성이 있습니다.",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "recommended_actions": [
+            {
+              "action": "처리 지연 관련 대표 민원을 검토하고 담당 부서의 대응 계획을 수립합니다.",
+              "action_type": "STAFFING_OR_WORKLOAD_REVIEW",
+              "supporting_evidence_ids": [
+                "holdout-delay_repeat_communication-041",
+                "holdout-delay_repeat_communication-042",
+                "holdout-delay_repeat_communication-043"
+              ]
+            }
+          ],
+          "uncertainty": [
+            "민원 텍스트 기반 분석이므로 실제 제도 변경 가능성, 예산, 현장 상태는 담당자 확인이 필요합니다."
+          ]
+        },
+        "llm_duration_ms": 2.09,
+        "action_repair_report": {
+          "repaired_action_count": 0,
+          "removed_action_count": 0,
+          "invalid_evidence_ids": [],
+          "empty_action_count": 0,
+          "invalid_action_type_count": 0,
+          "repaired_action_type_count": 1,
+          "repaired_action_text_count": 0,
+          "removed_action_due_to_action_type_count": 0,
+          "invalid_action_types": [],
+          "action_type_repairs": [
+            {
+              "from": "STAFFING_OR_WORKLOAD_REVIEW",
+              "to": "PROCESS_IMPROVEMENT"
+            }
+          ],
+          "repair_strategy": [
+            "repaired_allowed_action_type_by_preferred_keywords"
+          ]
+        },
+        "human_review_postprocess": {
+          "changed": true,
+          "reasons": [
+            "risk_type"
+          ]
+        },
+        "grounding_score": 1.0,
+        "confidence": 0.8458,
+        "avg_actionability_score": 1.0,
+        "min_actionability_score": 1.0,
+        "quality_gate_score": 0.8458,
+        "quality_gate_failures": [],
+        "quality_gate_warnings": []
+      }
+    ]
+  },
+  "alert_summaries": [
+    {
+      "id": "issue-3017f7d1237d",
+      "topic": "대형폐기물 배출 안내",
+      "region": "서구",
+      "severity": "CRITICAL",
+      "confidence": 0.987,
+      "related_count": 10
+    },
+    {
+      "id": "issue-4ce7b42d6076",
+      "topic": "대형폐기물 배출 안내",
+      "region": "중구",
+      "severity": "CRITICAL",
+      "confidence": 0.9863,
+      "related_count": 10
+    },
+    {
+      "id": "issue-34edbfc4cc33",
+      "topic": "공원 시설 파손",
+      "region": "광역시",
+      "severity": "CRITICAL",
+      "confidence": 0.8926,
+      "related_count": 4
+    },
+    {
+      "id": "issue-d9c707bb8d4e",
+      "topic": "복지 지원 신청/기준 안내",
+      "region": "남구",
+      "severity": "CRITICAL",
+      "confidence": 0.8916,
+      "related_count": 8
+    },
+    {
+      "id": "issue-fbc23dd3bc32",
+      "topic": "복지 지원 신청/기준 안내",
+      "region": "동구",
+      "severity": "CRITICAL",
+      "confidence": 0.8909,
+      "related_count": 10
+    },
+    {
+      "id": "issue-7e7009861a16",
+      "topic": "복지 지원 신청/기준 안내",
+      "region": "북구",
+      "severity": "CRITICAL",
+      "confidence": 0.8908,
+      "related_count": 7
+    },
+    {
+      "id": "issue-8d97f287a959",
+      "topic": "- 처리 지연/미처리 누적",
+      "region": "북구",
+      "severity": "WARNING",
+      "confidence": 0.86,
+      "related_count": 6
+    },
+    {
+      "id": "issue-a56a5d173e9a",
+      "topic": "재민원/반복 민원 증가",
+      "region": "서구",
+      "severity": "WARNING",
+      "confidence": 0.84,
+      "related_count": 23
+    },
+    {
+      "id": "issue-ce4ca05fed35",
+      "topic": "무단투기 반복",
+      "region": "중구",
+      "severity": "WARNING",
+      "confidence": 0.82,
+      "related_count": 6
+    },
+    {
+      "id": "issue-2f89c1d38b81",
+      "topic": "CCTV/방범 안전 요청",
+      "region": "중구",
+      "severity": "WARNING",
+      "confidence": 0.82,
+      "related_count": 3
+    },
+    {
+      "id": "issue-4c6feb02409e",
+      "topic": "금연구역 흡연 단속 필요",
+      "region": "중구",
+      "severity": "WARNING",
+      "confidence": 0.82,
+      "related_count": 4
+    },
+    {
+      "id": "issue-433f02c0766e",
+      "topic": "공원 시설 파손",
+      "region": "중구",
+      "severity": "WARNING",
+      "confidence": 0.82,
+      "related_count": 13
+    },
+    {
+      "id": "issue-c1f6428e93bb",
+      "topic": "버스 노선/배차 불편",
+      "region": "서구",
+      "severity": "WARNING",
+      "confidence": 0.82,
+      "related_count": 4
+    }
+  ],
+  "insight_summaries": [
+    {
+      "insight_id": "public-insight-606ea4cbf213",
+      "type": "SAFETY_RISK_SIGNAL",
+      "priority": "MEDIUM",
+      "topic": "무단투기 반복",
+      "confidence": 0.9125,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "FIELD_INSPECTION"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-4471046a21f0",
+      "type": "HOTSPOT_RESPONSE_REQUIRED",
+      "priority": "MEDIUM",
+      "topic": "버스 노선/배차 불편",
+      "confidence": 0.9125,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "SERVICE_DESIGN"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-62082bc72886",
+      "type": "HOTSPOT_RESPONSE_REQUIRED",
+      "priority": "MEDIUM",
+      "topic": "무단투기 반복",
+      "confidence": 0.8792,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "FIELD_INSPECTION"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-d15d089b6f26",
+      "type": "HOTSPOT_RESPONSE_REQUIRED",
+      "priority": "MEDIUM",
+      "topic": "금연구역 흡연 단속 필요",
+      "confidence": 0.8792,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-3fd8ac32b95f",
+      "type": "SAFETY_RISK_SIGNAL",
+      "priority": "HIGH",
+      "topic": "CCTV/방범 안전 요청",
+      "confidence": 0.8792,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "FIELD_INSPECTION"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-56e4f9269905",
+      "type": "HOTSPOT_RESPONSE_REQUIRED",
+      "priority": "MEDIUM",
+      "topic": "복지 지원 신청/기준 안내",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "PUBLIC_GUIDANCE"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-490c51c80e08",
+      "type": "HOTSPOT_RESPONSE_REQUIRED",
+      "priority": "MEDIUM",
+      "topic": "복지 지원 신청/기준 안내",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "PUBLIC_GUIDANCE"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-1e832585ca43",
+      "type": "PROCESS_DELAY_RISK",
+      "priority": "LOW",
+      "topic": "처리 지연",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "PROCESS_IMPROVEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-9fb64e27ffd9",
+      "type": "PROCESS_DELAY_RISK",
+      "priority": "MEDIUM",
+      "topic": "- 처리 지연/미처리 누적",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "STAFFING_OR_WORKLOAD_REVIEW"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-6695afc19a04",
+      "type": "SAFETY_RISK_SIGNAL",
+      "priority": "MEDIUM",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-bd0fbe5f610e",
+      "type": "RECURRING_COMPLAINT_PATTERN",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "insight_id": "public-insight-b5dd6c1588a1",
+      "type": "REGIONAL_SERVICE_GAP",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "insight_id": "public-insight-c92188eaeab7",
+      "type": "PUBLIC_GUIDANCE_NEEDED",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-b86db3fa41a0",
+      "type": "FACILITY_MAINTENANCE_PRIORITY",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "insight_id": "public-insight-fa94ef5cac7f",
+      "type": "ENFORCEMENT_PRIORITY",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-fcfe85a23b5e",
+      "type": "POLICY_IMPROVEMENT_OPPORTUNITY",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-f7b972483f5c",
+      "type": "SERVICE_DESIGN_IMPROVEMENT",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-b9d71a2ed0c6",
+      "type": "ACCESSIBILITY_OR_USABILITY_ISSUE",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "insight_id": "public-insight-388932fe5a4e",
+      "type": "CITIZEN_COMMUNICATION_GAP",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "insight_id": "public-insight-071663fa7da0",
+      "type": "SEASONAL_OR_TIME_PATTERN",
+      "priority": "LOW",
+      "topic": "불법주정차",
+      "confidence": 0.8458,
+      "grounding_score": 1.0,
+      "avg_actionability_score": 1.0,
+      "recommended_action_types": [
+        "ENFORCEMENT"
+      ],
+      "requires_human_review": false
+    }
+  ],
+  "failure_categories": [],
+  "qualitative_notes": [
+    "holdout은 정답 label이 없는 open-world robustness 평가이므로 pass rate를 성능 주장으로 해석하지 않습니다.",
+    "생성된 insight는 EvidencePack, GroundingVerifier, QualityGate 경로를 통과한 최종 read-model 기준입니다.",
+    "raw PII와 prompt 원문은 리포트에 저장하지 않았습니다."
+  ],
+  "duration_seconds": 1.219
+}

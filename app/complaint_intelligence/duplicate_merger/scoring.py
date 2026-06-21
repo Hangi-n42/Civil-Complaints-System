@@ -222,6 +222,18 @@ def classify_request_type(event: ComplaintIntelligenceEvent) -> DuplicateRequest
     """구조화 request와 요약 텍스트에서 최소 요청 유형을 분류한다."""
 
     text = _request_intent_text(event)
+    if any(keyword in text for keyword in ("보상", "배상", "피해", "손해배상", "수리비", "치료비", "금전", "변상")):
+        return "compensation"
+    if any(keyword in text for keyword in ("문의", "궁금", "확인", "가능", "어떻게", "언제", "여부", "조회")):
+        return "inquiry"
+    if any(keyword in text for keyword in ("안내", "공지", "홍보", "방법", "절차", "알림", "공고", "신청 방법", "처리 절차")):
+        return "guidance"
+    if any(keyword in text for keyword in ("단속", "과태료", "불법주정차", "철거", "계도", "시정명령", "행정조치", "현장단속", "불법 적치", "불법주차")):
+        return "enforcement"
+    if any(keyword in text for keyword in ("위험", "안전", "사고", "긴급", "침하", "싱크홀", "점검", "붕괴", "균열", "동상", "파손 위험")):
+        return "safety_action"
+    if any(keyword in text for keyword in ("개선", "보수", "정비", "설치", "교체", "시설", "수리", "정돈", "신설", "보강", "복구", "배수로", "가로등")):
+        return "facility_improvement"
     if any(keyword in text for keyword in ("보상", "배상", "손해", "피해보상", "환불", "수리비", "치료비", "금전", "변상")):
         return "compensation"
     if any(keyword in text for keyword in ("문의", "궁금", "확인", "가능", "어떻게", "언제", "여부", "조회")):
@@ -283,10 +295,37 @@ def _looks_like_detail_location(value: str, normalized: str) -> bool:
         return False
     if normalized in _GENERIC_LOCATION_DETAILS or normalized in _NON_LOCATION_ENTITY_TERMS:
         return False
+    if _looks_like_issue_topic_entity(normalized):
+        return False
     if _is_broad_region(normalized):
         return False
     markers = _DETAIL_LOCATION_MARKERS + _ADDITIONAL_DETAIL_LOCATION_MARKERS
     return bool(any(marker in text for marker in markers))
+
+
+def _looks_like_issue_topic_entity(value: str) -> bool:
+    return any(
+        keyword in value
+        for keyword in (
+            "도로침하",
+            "도로파임",
+            "싱크홀",
+            "침하",
+            "파임",
+            "포트홀",
+            "균열",
+            "붕괴",
+            "위험",
+            "소음",
+            "진동",
+            "악취",
+            "냄새",
+            "불법주정차",
+            "무단투기",
+            "고장",
+            "파손",
+        )
+    )
 
 
 def _is_broad_region(value: str | None) -> bool:

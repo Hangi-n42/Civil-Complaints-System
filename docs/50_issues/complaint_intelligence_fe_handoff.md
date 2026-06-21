@@ -1,5 +1,39 @@
 # Complaint Intelligence FE 핸드오프
 
+## 2026-06-21 갱신 요약
+
+- FE는 Local LLM 생성을 직접 기다리지 않고 `GET /complaint-intelligence/dashboard` read-model을 조회합니다.
+- IssueAlert는 빠른 관제 신호, PublicAgencyInsight는 검증된 행정 조치 브리프로 분리해 표시합니다.
+- EvidencePack은 관리자/검증 화면에서만 열고, 일반 카드에는 masked evidence preview 또는 evidence count만 표시합니다.
+- PII 원문, prompt, raw LLM response는 FE에 표시하지 않습니다.
+- Local LLM `exaone3.5:7.8b` curated 25개 평가 기준 direct success/fallback/PII/forbidden term 지표는 안정적이지만, 평균 생성 시간이 길기 때문에 scheduler 기반 비동기 갱신 UX를 권장합니다.
+
+### FE 우선 연결 endpoint
+
+```http
+GET /complaint-intelligence/dashboard
+GET /complaint-intelligence/issue-alerts
+GET /complaint-intelligence/public-insights
+GET /complaint-intelligence/public-insights/{insight_id}
+GET /complaint-intelligence/public-insights/{insight_id}/evidence-pack
+```
+
+### Dashboard summary 핵심 필드
+
+| 필드 | 표시 용도 |
+| --- | --- |
+| `as_of` | 관제 기준 시각 |
+| `latest_event_at` | 최근 유입 민원 시각 |
+| `event_count` | 분석 대상 이벤트 수 |
+| `active_alert_count` | 현재 활성 이슈 수 |
+| `high_priority_insight_count` | HIGH/CRITICAL 행정 인사이트 수 |
+
+### 카드 표시 권장
+
+- IssueAlert: `topic`, `region`, `severity`, `trigger_type`, `last_seen`, `confidence`, `recent_count`, `surge_ratio`
+- PublicAgencyInsight: `title`, `summary`, `problem_diagnosis`, `priority`, `type`, `target_area`, `recommended_actions`, `requires_human_review`, `confidence`, `grounding_score`
+- Evidence: 원문 금지. `masked_text` preview와 evidence count 중심 표시.
+
 기준일: 2026-06-19  
 범위: 민원 인텔리전스 탭 FE 연결 계약
 
