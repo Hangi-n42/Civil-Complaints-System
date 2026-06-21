@@ -21,6 +21,7 @@ import { findById } from "@/components/intelligence/links";
 import { sortAlertsBySeverity } from "@/components/intelligence/severity";
 
 type ActiveIntelTab = "issue_alerts" | "public_insights" | "duplicate_groups";
+type HotspotMapSize = "compact" | "large";
 type Tone = "red" | "amber" | "blue" | "emerald" | "slate";
 type ImmediateAction = {
   id: string;
@@ -64,7 +65,7 @@ export default function IntelligencePage() {
   const [focusedDuplicateGroupId, setFocusedDuplicateGroupId] = useState<string | null>(null);
   const [duplicateIssueAlertFilterId, setDuplicateIssueAlertFilterId] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  const [mapSize, setMapSize] = useState<HotspotMapSize>("compact");
 
   useEffect(() => {
     let isMounted = true;
@@ -151,7 +152,6 @@ export default function IntelligencePage() {
   function goToInsight(insightId: string) {
     const insight = data ? findById(data.public_insights, insightId) : undefined;
     if (!insight) return;
-    setActiveTab("public_insights");
     setSelectedInsight(insight);
   }
 
@@ -293,13 +293,17 @@ export default function IntelligencePage() {
                     <p className="mt-0.5 text-xs font-semibold text-slate-400">{tabCounts[activeTab]}건</p>
                   </div>
                   {activeTab === "issue_alerts" && data && data.issue_alerts.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowMap((value) => !value)}
-                      className="w-fit rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-700 hover:bg-slate-50"
-                    >
-                      {showMap ? "지도 닫기" : "지도 보기"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapSize((value) => (value === "large" ? "compact" : "large"));
+                        }}
+                        className="w-fit rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-700 hover:bg-slate-50"
+                      >
+                        {mapSize === "large" ? "지도 작게보기" : "지도 크게보기"}
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -312,24 +316,42 @@ export default function IntelligencePage() {
                     </div>
                   ) : activeTab === "issue_alerts" ? (
                     data && data.issue_alerts.length > 0 ? (
-                      <div className={showMap ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]" : ""}>
+                      <div
+                        className={
+                          mapSize === "large"
+                            ? "space-y-4"
+                            : "grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]"
+                        }
+                      >
+                        {mapSize === "large" && (
+                          <HotspotMap
+                            alerts={data.issue_alerts}
+                            duplicateGroupCounts={duplicateGroupCountsByAlert}
+                            focusedAlertId={focusedAlertId}
+                            size="large"
+                            onFocusAlert={setFocusedAlertId}
+                            onClearFocus={() => setFocusedAlertId(null)}
+                            onOpenDuplicateGroups={openDuplicateGroupsForAlert}
+                          />
+                        )}
                         <IssueAlertList
                           alerts={data.issue_alerts}
                           onOpenInsight={goToInsight}
                           onFocusAlert={(alertId) => {
                             setFocusedAlertId(alertId);
-                            setShowMap(true);
                           }}
                           onOpenDuplicateGroups={openDuplicateGroupsForAlert}
                           focusedAlertId={focusedAlertId}
                           duplicateGroupCounts={duplicateGroupCountsByAlert}
                         />
-                        {showMap && (
+                        {mapSize === "compact" && (
                           <HotspotMap
                             alerts={data.issue_alerts}
                             duplicateGroupCounts={duplicateGroupCountsByAlert}
                             focusedAlertId={focusedAlertId}
+                            size="compact"
                             onFocusAlert={setFocusedAlertId}
+                            onClearFocus={() => setFocusedAlertId(null)}
                             onOpenDuplicateGroups={openDuplicateGroupsForAlert}
                           />
                         )}

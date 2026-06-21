@@ -7,6 +7,9 @@ export type HotspotMapPoint = {
   label: string;
 };
 
+export const KOREA_MAP_CENTER: [number, number] = [36.45, 127.85];
+export const KOREA_MAP_ZOOM = 7;
+
 // 실제 주소 좌표가 아니라 데모 지도 표시용 행정구역 대표 좌표입니다.
 const REGION_POINTS: Record<string, { latitude: number; longitude: number }> = {
   중구: { latitude: 37.5636, longitude: 126.9976 },
@@ -87,7 +90,7 @@ export function hotspotSeverityTone(severity: string): {
 }
 
 export function averageMapCenter(points: HotspotMapPoint[]): [number, number] {
-  if (points.length === 0) return [37.5665, 126.978];
+  if (points.length === 0) return KOREA_MAP_CENTER;
   const latitude = points.reduce((sum, point) => sum + point.latitude, 0) / points.length;
   const longitude = points.reduce((sum, point) => sum + point.longitude, 0) / points.length;
   return [latitude, longitude];

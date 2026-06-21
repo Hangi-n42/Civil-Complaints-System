@@ -20,7 +20,7 @@ export function InsightDetailPanel({
   const actionGroups = groupActionsByHorizon(insight.recommended_actions);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[1200] flex justify-end">
       <button type="button" aria-label="닫기" onClick={onClose} className="absolute inset-0 bg-black/30" />
 
       <div className="relative h-full w-full max-w-xl overflow-y-auto bg-white shadow-xl">

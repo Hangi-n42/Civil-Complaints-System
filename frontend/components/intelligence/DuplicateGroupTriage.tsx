@@ -173,24 +173,21 @@ export function DuplicateGroupTriage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-base font-extrabold text-slate-950">중복 병합</h2>
-          {issueAlertFilterId && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-bold text-sky-700">
-                핫스팟 연결 후보
-              </span>
-              <button
-                type="button"
-                onClick={onClearIssueAlertFilter}
-                className="text-[11px] font-bold text-slate-500 hover:text-slate-800"
-              >
-                필터 해제
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-end">
+        {issueAlertFilterId && (
+          <div className="flex flex-wrap items-center gap-2 lg:mr-auto">
+            <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-bold text-sky-700">
+              핫스팟 연결 후보
+            </span>
+            <button
+              type="button"
+              onClick={onClearIssueAlertFilter}
+              className="text-[11px] font-bold text-slate-500 hover:text-slate-800"
+            >
+              필터 해제
+            </button>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-1" aria-label="중복 병합 상태 필터">
             {STATUS_FILTERS.map((filter) => (
@@ -405,14 +402,14 @@ function DuplicateGroupDetail({
             <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${duplicateStatusTone(group.status)}`}>
               {duplicateStatusLabel(group.status)}
             </span>
+            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${candidateGrade.className}`} title={candidateGrade.description}>
+              {candidateGrade.label}
+            </span>
             <span
               className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600"
               title="이 값은 중복 후보 검토 우선순위이며, 병합 가능성이나 법적 동일성을 보장하지 않습니다."
             >
               {duplicateReviewPriorityLabel(group)}
-            </span>
-            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${candidateGrade.className}`} title={candidateGrade.description}>
-              {candidateGrade.label}
             </span>
             {processedCount > 0 && (
               <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${allProcessed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
@@ -443,59 +440,59 @@ function DuplicateGroupDetail({
             <div className="mt-1 text-[11px] font-semibold text-slate-500">{nextActionDescription(group, processedCount)}</div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {isCandidate && (
-              <button
-                type="button"
-                disabled={busy || !confirmAllowed}
-                onClick={() => onTransition(group, "confirm")}
-                title={confirmAllowed ? "담당자 확정 처리" : "차단 위험이 있거나 추천 후보 상태가 아니어서 확정할 수 없습니다."}
-                className={buttonClass(!busy && confirmAllowed, "primary")}
-              >
-                병합 확정
-              </button>
-            )}
-            {isConfirmed && (
-              <button
-                type="button"
-                disabled={busy || !replyDraftAllowed}
-                onClick={() => onReplyDraft(group)}
-                title={replyDraftAllowed ? "확정된 그룹의 대표 답변 초안을 생성합니다." : "담당자 확정 후 생성 가능"}
-                className={buttonClass(!busy && replyDraftAllowed, "primary")}
-              >
-                {busy ? "생성 중..." : "답변 초안 생성"}
-              </button>
-            )}
-            {isConfirmed && (
-              <button
-                type="button"
-                disabled={busy || !draftAllowed}
-                onClick={() => onDraft(group)}
-                title={draftAllowed ? "대표 답변 초안 자료 보기" : "담당자 확정 후에만 초안 자료를 만들 수 있습니다."}
-                className={buttonClass(!busy && draftAllowed, "secondary")}
-              >
-                초안 자료
-              </button>
-            )}
-            {splitAllowed && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => onTransition(group, "split")}
-                className={buttonClass(!busy, "secondary")}
-              >
-                분리
-              </button>
-            )}
-            {isCandidate && (
-              <button
-                type="button"
-                disabled={busy || !rejectAllowed}
-                onClick={() => onTransition(group, "reject")}
-                className={buttonClass(!busy && rejectAllowed, "danger")}
-              >
-                기각
-              </button>
-            )}
+          {isCandidate && (
+            <button
+              type="button"
+              disabled={busy || !confirmAllowed}
+              onClick={() => onTransition(group, "confirm")}
+              title={confirmAllowed ? "담당자 확정 처리" : "차단 위험이 있거나 추천 후보 상태가 아니어서 확정할 수 없습니다."}
+              className={buttonClass(!busy && confirmAllowed, "primary")}
+            >
+              병합 확정
+            </button>
+          )}
+          {isConfirmed && (
+            <button
+              type="button"
+              disabled={busy || !replyDraftAllowed}
+              onClick={() => onReplyDraft(group)}
+              title={replyDraftAllowed ? "확정된 그룹의 대표 답변 초안을 생성합니다." : "담당자 확정 후 생성 가능"}
+              className={buttonClass(!busy && replyDraftAllowed, "primary")}
+            >
+              {busy ? "생성 중..." : "답변 초안 생성"}
+            </button>
+          )}
+          {isConfirmed && (
+            <button
+              type="button"
+              disabled={busy || !draftAllowed}
+              onClick={() => onDraft(group)}
+              title={draftAllowed ? "대표 답변 초안 자료 보기" : "담당자 확정 후에만 초안 자료를 만들 수 있습니다."}
+              className={buttonClass(!busy && draftAllowed, "secondary")}
+            >
+              초안 자료
+            </button>
+          )}
+          {splitAllowed && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onTransition(group, "split")}
+              className={buttonClass(!busy, "secondary")}
+            >
+              분리
+            </button>
+          )}
+          {isCandidate && (
+            <button
+              type="button"
+              disabled={busy || !rejectAllowed}
+              onClick={() => onTransition(group, "reject")}
+              className={buttonClass(!busy && rejectAllowed, "danger")}
+            >
+              기각
+            </button>
+          )}
           </div>
         </div>
       </div>

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { hotspotCircleRadius, hotspotMarkerSize, resolveHotspotMapPoint } from "../components/intelligence/hotspotMapUtils";
+import {
+  averageMapCenter,
+  hotspotCircleRadius,
+  hotspotMarkerSize,
+  KOREA_MAP_CENTER,
+  KOREA_MAP_ZOOM,
+  resolveHotspotMapPoint,
+} from "../components/intelligence/hotspotMapUtils";
 import type { IntelIssueAlertCard } from "../lib/api";
 
 function alert(overrides: Partial<IntelIssueAlertCard>): IntelIssueAlertCard {
@@ -57,5 +64,11 @@ describe("hotspot map helpers", () => {
   it("반경이 없으면 최근 건수 기반의 보수적 표시 반경을 사용한다", () => {
     expect(hotspotCircleRadius(alert({ radius: null, recent_count: 6 }))).toBeGreaterThan(180);
     expect(hotspotCircleRadius(alert({ radius: 0.25 }))).toBe(250);
+  });
+
+  it("대한민국 전체를 볼 수 있는 기본 지도 중심과 줌을 사용한다", () => {
+    expect(KOREA_MAP_CENTER).toEqual([36.45, 127.85]);
+    expect(KOREA_MAP_ZOOM).toBe(7);
+    expect(averageMapCenter([])).toEqual(KOREA_MAP_CENTER);
   });
 });

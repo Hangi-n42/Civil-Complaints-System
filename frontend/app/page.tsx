@@ -7,11 +7,9 @@ import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
 import { fetchDuplicateGroupsApi, fetchUiCasesApi, type AssignedCase, type DuplicateMergeRecord } from "@/lib/api";
-import { CASE_STATUS_OPTIONS, readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
+import { loadCaseStatusOverrides } from "@/lib/caseStatus";
+import { CASE_STATUS_OPTIONS, safeString } from "@/lib/safe-data";
 import { duplicateBadgeForCase } from "@/components/intelligence/duplicateMerge";
-
-const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
 
 export default function QueuePage() {
   const router = useRouter();
@@ -67,15 +65,8 @@ export default function QueuePage() {
   }, []);
 
   useEffect(() => {
-    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
-      maxBytes: MAX_STATUS_STORAGE_BYTES,
-      removeOnOversize: true,
-    });
-
-    if (parsed) {
-      setCaseStatuses(sanitizeCaseStatuses(parsed, mockAssignedCases.map((item) => item.case_id)));
-    }
-  }, []);
+    setCaseStatuses(loadCaseStatusOverrides(caseList.map((item) => item.case_id)));
+  }, [caseList]);
 
   const getEffectiveStatus = useCallback(
     (c: AssignedCase) => caseStatuses[c.case_id] || c.status || "미처리",
