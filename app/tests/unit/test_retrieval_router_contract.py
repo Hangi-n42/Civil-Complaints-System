@@ -28,6 +28,7 @@ class _StubRetrievalService:
                 "case_id": "CASE-1",
                 "title": "테스트 제목",
                 "snippet": "테스트 스니펫",
+                "answer": "과거 답변 본문",
                 "summary": {"observation": "obs", "request": "req"},
                 "metadata": {
                     "created_at": "2026-03-20T10:00:00+09:00",
@@ -212,6 +213,7 @@ def test_search_response_is_wrapped(monkeypatch):
     assert isinstance(first["score"], float)
     assert first["chunk_id"] == "CASE-1__chunk-0"
     assert isinstance(first["snippet"], str)
+    assert first["answer"] == "과거 답변 본문"
     assert set(first["summary"].keys()) == {"observation", "request"}
     assert isinstance(first["answers_by_admin_unit"], dict)
     assert isinstance(first["department_answers"], dict)

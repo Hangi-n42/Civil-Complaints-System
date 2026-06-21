@@ -45,6 +45,10 @@ def _split_pipe_list(value: Any, *, uppercase: bool = False) -> list[str]:
     return items
 
 
+def _normalize_text(value: Any) -> str:
+    return " ".join(str(value or "").split())
+
+
 class InvertedBM25:
     """역색인 기반 BM25 (build_fair_pool_qrels.py 검증 구현과 동일 공식)."""
 
@@ -112,6 +116,7 @@ class HybridRetriever:
         doc, meta = self._payload[case_id]
         obs = str(meta.get("summary_observation") or "")
         req = str(meta.get("summary_request") or "")
+        answer = _normalize_text(meta.get("answer"))
         return {
             "doc_id": str(meta.get("doc_id") or case_id),
             "case_id": case_id,
@@ -119,11 +124,13 @@ class HybridRetriever:
             "chunk_id": str(meta.get("chunk_id") or ""),
             "title": str(meta.get("title") or obs),
             "snippet": " ".join(doc.split())[:600],
+            "answer": answer,
             "summary": {"observation": obs, "request": req},
             "metadata": {
                 "category": str(meta.get("category") or ""),
                 "region": str(meta.get("region") or ""),
                 "created_at": str(meta.get("created_at") or ""),
+                "answer": answer,
                 "entity_labels": _split_pipe_list(meta.get("entity_labels"), uppercase=True),
                 "entity_texts": _split_pipe_list(meta.get("entity_texts")),
                 "legal_ref_names": _split_pipe_list(meta.get("legal_ref_names")),
