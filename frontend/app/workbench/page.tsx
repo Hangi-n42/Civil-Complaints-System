@@ -133,7 +133,7 @@ function WorkbenchContent() {
   // 이슈 #451: 초안을 만든 쿼리의 해시. 이후 다른 쿼리로 재검색하면 화면 초안이 stale임을 표시한다.
   const [draftQueryHash, setDraftQueryHash] = useState<string | null>(null);
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
-  const [isRawCollapsed, setIsRawCollapsed] = useState(true);
+  const [isRawCollapsed, setIsRawCollapsed] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -216,7 +216,7 @@ function WorkbenchContent() {
     setDraftQueryHash(null);
     setDraftError(null);
     setExpandedDocId(null);
-    setIsRawCollapsed(true);
+    setIsRawCollapsed(false);
     // Clear draft snapshot when switching cases
     clearDraftSnapshot();
   }, [selectedCaseId, selectedCase]);
