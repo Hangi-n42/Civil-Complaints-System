@@ -7,10 +7,13 @@ from fastapi.testclient import TestClient
 
 from app.api.main import app
 from app.complaint_intelligence import set_complaint_intelligence_service
+from app.complaint_intelligence.duplicate_merger.reply_safety import build_reply_safety_warnings
 from app.complaint_intelligence.duplicate_merger.scoring import analysis_text, score_duplicate_pair
 from app.complaint_intelligence.repository import InMemoryComplaintIntelligenceRepository
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from app.complaint_intelligence.service import ComplaintIntelligenceService
+from app.core.exceptions import RetrievalError
+from app.generation.prompts.prompt_factory import PromptFactory
 
 
 BASE_TIME = datetime(2026, 6, 19, 9, 0, tzinfo=timezone.utc)
@@ -309,3 +312,197 @@ def test_rejected_and_split_groups_cannot_build_draft_reply() -> None:
     assert split_response.json()["data"]["duplicate_group"]["status"] == "split"
     split_draft = client.post(f"/complaint-intelligence/duplicate-groups/{split_id}/draft-reply")
     assert split_draft.status_code == 409
+
+
+def test_candidate_reply_draft_generation_is_rejected_with_409() -> None:
+    client = TestClient(app)
+    data = _run_analysis(client, [_event("reply-candidate-1"), _event("reply-candidate-2", minutes_ago=10)])
+    merge_id = data["duplicate_groups"][0]["merge_id"]
+
+    response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft")
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "DUPLICATE_GROUP_NOT_CONFIRMED"
+
+
+def test_confirmed_group_reply_draft_uses_generation_pipeline_and_excludes_members(monkeypatch) -> None:
+    class FakeRetrievalService:
+        async def search(self, **kwargs):
+            assert kwargs["exclude_case_id"]
+            assert kwargs["request_segments"]
+            return [
+                {
+                    "case_id": "reply-flow-1",
+                    "doc_id": "reply-flow-1",
+                    "chunk_id": "reply-flow-1__chunk-0",
+                    "snippet": "현재 중복 그룹 구성 민원입니다.",
+                    "score": 0.99,
+                },
+                {
+                    "case_id": "reply-precedent-1",
+                    "doc_id": "reply-precedent-1",
+                    "chunk_id": "reply-precedent-1__chunk-0",
+                    "snippet": "공사 소음 민원은 현장 확인 후 소음 저감 조치 가능성을 검토합니다.",
+                    "score": 0.88,
+                },
+            ]
+
+    class FakeGenerationService:
+        async def generate_qa(self, *, query, context, routing_trace, query_signals):
+            assert query
+            assert routing_trace["prompt_mode"] == "duplicate_group"
+            assert routing_trace["duplicate_group"]["status"] == "confirmed"
+            assert all(item.get("case_id") != "reply-flow-1" for item in context)
+            assert query_signals["responsible_units_source"] == "duplicate_merge_confirmed_group"
+            return {
+                "answer": (
+                    "1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.\n\n"
+                    "2. 반복 접수된 공사 소음 사항은 담당자가 확정한 중복 그룹의 공통 검토 대상으로 이해됩니다.\n\n"
+                    "3. 담당부서에서 현장 여건과 관련 기준을 확인한 뒤 공통 안내가 가능한 조치와 "
+                    "개별 확인이 필요한 사항을 구분해 검토하겠습니다.\n\n"
+                    "4. 추가 설명이 필요한 경우 담당부서로 문의해 주시면 후속 절차를 안내해 드리겠습니다. 감사합니다. 끝."
+                ),
+                "citations": [
+                    {
+                        "case_id": "reply-precedent-1",
+                        "chunk_id": "reply-precedent-1__chunk-0",
+                        "snippet": "공사 소음 민원은 현장 확인 후 소음 저감 조치 가능성을 검토합니다.",
+                        "relevance_score": 0.88,
+                    }
+                ],
+                "limitations": ["담당자 검토 후 발송 여부를 결정해야 합니다."],
+                "structured_output": {
+                    "summary": "공사 소음 반복 민원 공통 답변 초안",
+                    "action_items": ["공통 사실관계 확인", "개별 쟁점 분리"],
+                    "request_segments": ["공사 소음 저감 조치 요청"],
+                    "segment_answers": [],
+                },
+                "generation_metadata": {"fallback_used": False},
+            }
+
+    monkeypatch.setattr("app.complaint_intelligence.service.get_retrieval_service", lambda: FakeRetrievalService())
+    monkeypatch.setattr("app.complaint_intelligence.service.get_generation_service", lambda: FakeGenerationService())
+
+    client = TestClient(app)
+    data = _run_analysis(client, [_event("reply-flow-1"), _event("reply-flow-2", minutes_ago=10)])
+    merge_id = data["duplicate_groups"][0]["merge_id"]
+    confirm_response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/confirm")
+    assert confirm_response.status_code == 200
+
+    response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft")
+
+    assert response.status_code == 200
+    reply_draft = response.json()["data"]["reply_draft"]
+    assert reply_draft["requires_human_review"] is True
+    assert reply_draft["routing_trace"]["prompt_mode"] == "duplicate_group"
+    assert reply_draft["generation_metadata"]["duplicate_group_reply"] is True
+    assert reply_draft["generation_metadata"]["fallback_used"] is False
+    assert all(item["case_id"] != "reply-flow-1" for item in reply_draft["search_results"])
+    assert reply_draft["draft_reply_payload"]["merge_id"] == merge_id
+
+
+def test_reply_draft_falls_back_when_only_duplicate_members_are_retrieved(monkeypatch) -> None:
+    class FakeRetrievalService:
+        async def search(self, **kwargs):
+            return [
+                {
+                    "case_id": "fallback-flow-1",
+                    "doc_id": "fallback-flow-1",
+                    "chunk_id": "fallback-flow-1__chunk-0",
+                    "snippet": "현재 중복 그룹 구성 민원입니다.",
+                    "score": 0.99,
+                }
+            ]
+
+    class FailIfCalledGenerationService:
+        async def generate_qa(self, **kwargs):
+            raise AssertionError("검색 근거가 없으면 생성 서비스를 호출하지 않아야 합니다.")
+
+    monkeypatch.setattr("app.complaint_intelligence.service.get_retrieval_service", lambda: FakeRetrievalService())
+    monkeypatch.setattr("app.complaint_intelligence.service.get_generation_service", lambda: FailIfCalledGenerationService())
+
+    client = TestClient(app)
+    data = _run_analysis(client, [_event("fallback-flow-1"), _event("fallback-flow-2", minutes_ago=10)])
+    merge_id = data["duplicate_groups"][0]["merge_id"]
+    assert client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/confirm").status_code == 200
+
+    response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft")
+
+    assert response.status_code == 200
+    reply_draft = response.json()["data"]["reply_draft"]
+    assert reply_draft["generation_metadata"]["fallback_used"] is True
+    assert "NO_SEARCH_CONTEXT" in reply_draft["safety_warnings"]
+    assert reply_draft["citations"] == []
+    assert reply_draft["search_results"] == []
+
+
+def test_reply_draft_falls_back_when_retrieval_fails(monkeypatch) -> None:
+    class FailingRetrievalService:
+        async def search(self, **kwargs):
+            raise RetrievalError("검색 인덱스가 준비되지 않았습니다.")
+
+    class FailIfCalledGenerationService:
+        async def generate_qa(self, **kwargs):
+            raise AssertionError("검색 실패 시 생성 서비스를 호출하지 않아야 합니다.")
+
+    monkeypatch.setattr("app.complaint_intelligence.service.get_retrieval_service", lambda: FailingRetrievalService())
+    monkeypatch.setattr("app.complaint_intelligence.service.get_generation_service", lambda: FailIfCalledGenerationService())
+
+    client = TestClient(app)
+    data = _run_analysis(client, [_event("retrieval-fail-1"), _event("retrieval-fail-2", minutes_ago=10)])
+    merge_id = data["duplicate_groups"][0]["merge_id"]
+    assert client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/confirm").status_code == 200
+
+    response = client.post(f"/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft")
+
+    assert response.status_code == 200
+    reply_draft = response.json()["data"]["reply_draft"]
+    assert reply_draft["generation_metadata"]["fallback_reason"] == "RETRIEVAL_ERROR"
+    assert "RETRIEVAL_ERROR" in reply_draft["safety_warnings"]
+    assert reply_draft["requires_human_review"] is True
+
+
+def test_reply_safety_warns_for_pii_and_prohibited_promises() -> None:
+    warnings = build_reply_safety_warnings(
+        "010-1234-5678 또는 test@example.com으로 자동 발송하고 보상해 드리겠습니다."
+    )
+
+    assert "PII_PHONE" in warnings
+    assert "PII_EMAIL" in warnings
+    assert "AUTO_SEND_PROMISE" in warnings
+    assert "COMPENSATION_PROMISE" in warnings
+
+
+def test_duplicate_group_prompt_mode_includes_group_safety_rules() -> None:
+    prompt = PromptFactory.build(
+        query="공사 소음 공통 답변",
+        context=[
+            {
+                "case_id": "reply-precedent-1",
+                "chunk_id": "reply-precedent-1__chunk-0",
+                "snippet": "공사 소음 민원은 현장 확인 후 안내합니다.",
+                "score": 0.8,
+            }
+        ],
+        routing_trace={
+            "topic_type": "general",
+            "complexity_level": "medium",
+            "complexity_score": 0.6,
+            "request_segments": ["소음 저감 요청"],
+            "retrieval_policy": "general",
+            "prompt_mode": "duplicate_group",
+            "duplicate_group": {
+                "merge_id": "merge-1",
+                "representative_complaint_id": "case-1",
+                "constraints": ["자동 발송 금지", "개별 보상 판단 금지"],
+                "risk_flags": ["LOW_EVIDENCE: 구조화 근거 부족"],
+                "evidence": ["같은 위치의 공사 소음"],
+                "member_summaries": ["case-2: 같은 공사 소음 민원"],
+            },
+        },
+    )
+
+    assert "[duplicate_group MODE]" in prompt
+    assert "[DUPLICATE GROUP CONTEXT]" in prompt
+    assert "자동 발송" in prompt
+    assert "개별 보상" in prompt
