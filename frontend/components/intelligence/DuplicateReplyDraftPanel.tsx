@@ -41,7 +41,7 @@ export function DuplicateReplyDraftPanel({
   return (
     <section
       aria-label="담당자 검토용 대표 답변 초안"
-      className="rounded-lg border border-emerald-200 bg-white p-4 shadow-sm"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -71,25 +71,25 @@ export function DuplicateReplyDraftPanel({
         <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-600">
           검색 근거 {searchResults.length}건
         </span>
-        <span className={`rounded-md border px-2 py-1 text-[11px] font-bold ${allProcessed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+        <span className={`rounded-md border px-2 py-1 text-[11px] font-bold ${allProcessed ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
           처리완료 {processedCount}/{memberComplaintIds.length}건
         </span>
       </div>
 
       {fallbackNotice && (
-        <div className="mt-3 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800">
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
           {fallbackNotice}
         </div>
       )}
 
       {safetyWarnings.length > 0 && (
-        <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 p-3">
-          <div className="text-xs font-bold text-rose-800">발송 전 확인이 필요한 사항</div>
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
+          <div className="text-xs font-bold text-amber-800">발송 전 확인이 필요한 사항</div>
           <ul className="mt-1 space-y-1">
             {safetyWarnings.map((code) => (
               <li
                 key={code}
-                className={`text-xs font-semibold ${code.startsWith("PII") ? "text-rose-700" : "text-slate-600"}`}
+                className={`text-xs font-semibold ${code.startsWith("PII") ? "text-amber-700" : "text-slate-600"}`}
               >
                 · {safetyWarningLabel(code)}
               </li>
@@ -109,7 +109,7 @@ export function DuplicateReplyDraftPanel({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-xs font-bold text-slate-500">처리 기록</div>
-            <div className={`mt-1 text-sm font-extrabold ${allProcessed ? "text-emerald-700" : "text-slate-800"}`}>
+            <div className={`mt-1 text-sm font-extrabold ${allProcessed ? "text-blue-700" : "text-slate-800"}`}>
               처리완료 {processedCount}/{memberComplaintIds.length}건
             </div>
           </div>
@@ -128,7 +128,7 @@ export function DuplicateReplyDraftPanel({
               className={
                 !onMarkProcessed || allProcessed || memberComplaintIds.length === 0
                   ? "cursor-not-allowed rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-400"
-                  : "rounded-md border border-emerald-700 bg-emerald-700 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-emerald-800"
+                  : "rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-blue-700"
               }
             >
               {allProcessed ? "처리완료 기록됨" : "전체 처리완료 기록"}

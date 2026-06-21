@@ -18,7 +18,7 @@ export function PublicInsightCard({
     <button
       type="button"
       onClick={() => onSelect(insight)}
-      className="w-full rounded-md border border-slate-200 bg-white px-3 py-3 text-left transition hover:border-sky-200 hover:bg-slate-50/50"
+      className="w-full rounded-md border border-slate-200 bg-white px-3 py-3 text-left transition hover:border-slate-300 hover:bg-slate-50/50"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
@@ -41,7 +41,7 @@ export function PublicInsightCard({
           </div>
         </div>
 
-        <span className="shrink-0 rounded-md border border-sky-200 bg-white px-3 py-1.5 text-xs font-extrabold text-sky-700">
+        <span className="shrink-0 rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-extrabold text-blue-700">
           상세 검토
         </span>
       </div>

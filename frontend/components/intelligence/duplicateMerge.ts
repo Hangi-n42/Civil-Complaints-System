@@ -37,11 +37,11 @@ export function duplicateStatusTone(status: DuplicateMergeRecord["status"]): str
     case "candidate":
       return "border-amber-200 bg-amber-50 text-amber-800";
     case "confirmed":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+      return "border-blue-200 bg-blue-50 text-blue-800";
     case "split":
       return "border-slate-200 bg-slate-50 text-slate-600";
     case "rejected":
-      return "border-rose-200 bg-rose-50 text-rose-700";
+      return "border-slate-200 bg-slate-50 text-slate-600";
     default:
       return "border-slate-200 bg-slate-50 text-slate-600";
   }
@@ -63,7 +63,7 @@ export function duplicateCandidateGrade(group: DuplicateMergeRecord): {
     return {
       label: "강한 후보",
       description: "공통점이 뚜렷하지만 담당자 확인은 필요합니다.",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-blue-200 bg-blue-50 text-blue-700",
     };
   }
   if (group.recommendation_level === "weak") {
@@ -343,7 +343,7 @@ export function duplicateBadgeForCase(caseId: string, groups: DuplicateMergeReco
   if (related.some((group) => group.status === "confirmed")) {
     return {
       label: "확정 그룹",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-blue-200 bg-blue-50 text-blue-700",
       title: "담당자가 확정한 중복 민원 그룹에 포함되어 있습니다.",
     };
   }

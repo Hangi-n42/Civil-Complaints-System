@@ -176,7 +176,7 @@ export function DuplicateGroupTriage({
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-end">
         {issueAlertFilterId && (
           <div className="flex flex-wrap items-center gap-2 lg:mr-auto">
-            <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-bold text-sky-700">
+            <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
               핫스팟 연결 후보
             </span>
             <button
@@ -221,7 +221,7 @@ export function DuplicateGroupTriage({
         <div
           className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
             message.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "border-blue-200 bg-blue-50 text-blue-700"
               : message.type === "info"
                 ? "border-amber-200 bg-amber-50 text-amber-700"
                 : "border-red-200 bg-red-50 text-red-700"
@@ -277,21 +277,21 @@ export function DuplicateGroupTriage({
             )}
 
             {draftPayload && (
-              <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-sky-900">대표 답변 초안 자료</h3>
-                    <p className="mt-0.5 text-xs text-sky-700">확정 그룹에 적용할 답변 검토용 요약 자료입니다.</p>
+                    <h3 className="text-sm font-bold text-blue-900">대표 답변 초안 자료</h3>
+                    <p className="mt-0.5 text-xs text-blue-700">확정 그룹에 적용할 답변 검토용 요약 자료입니다.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setDraftPayload(null)}
-                    className="rounded-md border border-sky-200 bg-white px-2 py-1 text-xs font-bold text-sky-700"
+                    className="rounded-md border border-blue-200 bg-white px-2 py-1 text-xs font-bold text-blue-700"
                   >
                     닫기
                   </button>
                 </div>
-                <div className="mt-2 grid gap-2 text-xs text-sky-900 md:grid-cols-3">
+                <div className="mt-2 grid gap-2 text-xs text-blue-900 md:grid-cols-3">
                   <div>대표 민원: {formatComplaintName(draftPayload.representative_complaint_id)}</div>
                   <div>대상 민원: {draftPayload.member_complaint_ids.length}건</div>
                   <div>주의 사유: {draftPayload.risk_flags.length}건</div>
@@ -335,7 +335,7 @@ function DuplicateGroupQueueItem({
       type="button"
       onClick={() => onSelect(group.merge_id)}
       className={`w-full rounded-md border px-3 py-2 text-left transition ${
-        selected ? "border-emerald-400 bg-emerald-50/70 ring-1 ring-emerald-100" : "border-slate-200 bg-white hover:bg-slate-50"
+        selected ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-100" : "border-slate-200 bg-white hover:bg-slate-50"
       }`}
     >
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
@@ -350,7 +350,7 @@ function DuplicateGroupQueueItem({
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold text-slate-500">
         <span>{group.member_complaint_ids.length}건</span>
         <span>주의 {riskCount}건</span>
-        {processedCount > 0 && <span className={allProcessed ? "text-emerald-700" : "text-amber-700"}>처리 {processedCount}/{group.member_complaint_ids.length}</span>}
+        {processedCount > 0 && <span className={allProcessed ? "text-blue-700" : "text-amber-700"}>처리 {processedCount}/{group.member_complaint_ids.length}</span>}
       </div>
       <div className="mt-2 text-[11px] font-extrabold text-slate-700">{nextActionLabel(group)}</div>
     </button>
@@ -393,7 +393,7 @@ function DuplicateGroupDetail({
   return (
     <article
       className={`rounded-lg border bg-white p-4 transition ${
-        focused ? "border-emerald-500 ring-2 ring-emerald-100" : "border-slate-200"
+        focused ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"
       }`}
     >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
@@ -412,7 +412,7 @@ function DuplicateGroupDetail({
               {duplicateReviewPriorityLabel(group)}
             </span>
             {processedCount > 0 && (
-              <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${allProcessed ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+              <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${allProcessed ? "border-blue-200 bg-blue-50 text-blue-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
                 처리완료 {processedCount}/{group.member_complaint_ids.length}
               </span>
             )}
@@ -553,7 +553,7 @@ function DuplicateGroupDetail({
                         <div className="truncate font-semibold text-slate-700">{formatComplaintName(row.complaintId)}</div>
                       </td>
                       <td className="px-2 py-2">
-                        <span className={row.role === "대표" ? "font-extrabold text-emerald-700" : "text-slate-500"}>{row.role}</span>
+                        <span className={row.role === "대표" ? "font-extrabold text-blue-700" : "text-slate-500"}>{row.role}</span>
                       </td>
                       <td className="px-2 py-2 text-slate-500">{row.requestType}</td>
                       <td className="px-2 py-2">
@@ -575,7 +575,7 @@ function DuplicateGroupDetail({
                 </li>
               ))}
             </ul>
-            <div className={`mt-3 text-sm font-extrabold ${allProcessed ? "text-emerald-700" : "text-slate-800"}`}>
+            <div className={`mt-3 text-sm font-extrabold ${allProcessed ? "text-blue-700" : "text-slate-800"}`}>
               처리완료 {processedCount}/{group.member_complaint_ids.length}건
             </div>
             <div className="mt-1 text-[11px] text-slate-400">대표 선정 기준: {representativeReasonLabel(group)}</div>
@@ -732,7 +732,7 @@ function buttonClass(enabled: boolean, variant: "primary" | "secondary" | "dange
     return "cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400";
   }
   if (variant === "primary") {
-    return "rounded-md border border-emerald-700 bg-emerald-700 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800";
+    return "rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-700";
   }
   if (variant === "danger") {
     return "rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50";
@@ -743,11 +743,11 @@ function buttonClass(enabled: boolean, variant: "primary" | "secondary" | "dange
 function reviewToneClass(tone: DuplicateReviewTone): string {
   if (tone === "blocker") return "border-red-200 bg-red-50 text-red-800";
   if (tone === "review") return "border-amber-200 bg-amber-50 text-amber-800";
-  return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function reviewBadgeClass(tone: DuplicateReviewTone): string {
   if (tone === "blocker") return "bg-red-100 text-red-700";
   if (tone === "review") return "bg-amber-100 text-amber-700";
-  return "bg-emerald-100 text-emerald-700";
+  return "bg-slate-100 text-slate-600";
 }
