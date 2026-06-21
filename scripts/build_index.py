@@ -255,6 +255,16 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         else:
             index_text_source = "empty"
 
+    def _extract_answer_text() -> str:
+        for source in (normalized, normalized_metadata):
+            for key in ("answer", "consultant_answer", "final_answer", "response"):
+                value = str(source.get(key) or "").strip()
+                if value:
+                    return value
+        return ""
+
+    answer_text = _extract_answer_text()
+
     def _metadata_value(key: str, default: str = "") -> str:
         value = normalized.get(key)
         if value in (None, ""):
@@ -281,6 +291,8 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "index_text_source": index_text_source,
         "empty_structured_text_fallback": empty_structured_text_fallback,
     }
+    if answer_text:
+        metadata["answer"] = answer_text
     for key in (
         "adapter",
         "input_schema",
@@ -317,6 +329,7 @@ def _build_api_case_record(normalized: Dict[str, Any], structured: Dict[str, Any
         "category": structured["category"],
         "region": structured.get("region") or normalized.get("region"),
         "text": combined_text,
+        "answer": answer_text,
         "structured_text": {
             k: v for k, v in {
                 "observation": obs_text,
@@ -624,6 +637,9 @@ async def main(
                         "text": item.get("text") or "",
                         "metadata": item_metadata,
                         "search_text": item.get("search_text") or item.get("text") or item.get("raw_text") or "",
+                        "answer": item.get("answer") or "",
+                        "consultant_answer": item.get("consultant_answer") or "",
+                        "final_answer": item.get("final_answer") or "",
                         "content_type": item.get("content_type") or item_metadata.get("content_type") or "",
                         "document_type": item.get("document_type") or item_metadata.get("document_type") or "",
                     })

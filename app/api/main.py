@@ -155,6 +155,7 @@ async def root():
             "duplicate_group_split": "/complaint-intelligence/duplicate-groups/{merge_id}/split",
             "duplicate_group_reject": "/complaint-intelligence/duplicate-groups/{merge_id}/reject",
             "duplicate_group_draft_reply": "/complaint-intelligence/duplicate-groups/{merge_id}/draft-reply",
+            "duplicate_group_reply_draft": "/complaint-intelligence/duplicate-groups/{merge_id}/reply-draft",
         },
     }
 

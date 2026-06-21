@@ -114,3 +114,35 @@ class DraftReplyPayload(BaseModel):
     system_instruction: str
     common_reply_constraints: list[str]
     prohibited_content_rules: list[str]
+
+
+class DuplicateReplyContext(BaseModel):
+    """confirmed 중복 그룹을 기존 BE2/BE3 입력으로 변환한 컨텍스트."""
+
+    merge_id: str
+    query: str
+    routing_hint: dict[str, Any] = Field(default_factory=dict)
+    routing_trace: dict[str, Any] = Field(default_factory=dict)
+    query_signals: dict[str, Any] = Field(default_factory=dict)
+    request_segments: list[str] = Field(default_factory=list)
+    excluded_case_ids: list[str] = Field(default_factory=list)
+
+
+class DuplicateReplyDraft(BaseModel):
+    """confirmed 중복 그룹의 실제 대표 답변 초안 생성 결과."""
+
+    merge_id: str
+    representative_complaint_id: str
+    member_complaint_ids: list[str]
+    requires_human_review: bool = True
+    answer: str
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    structured_output: dict[str, Any] = Field(default_factory=dict)
+    generation_metadata: dict[str, Any] = Field(default_factory=dict)
+    safety_warnings: list[str] = Field(default_factory=list)
+    query: str
+    routing_hint: dict[str, Any] = Field(default_factory=dict)
+    routing_trace: dict[str, Any] = Field(default_factory=dict)
+    search_results: list[dict[str, Any]] = Field(default_factory=list)
+    draft_reply_payload: DraftReplyPayload

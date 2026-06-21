@@ -228,8 +228,14 @@ Civil/
 
 # 대용량 로컬 데이터 (원시 데이터 및 벡터DB)
 data/chroma_db/
+data/chroma_db.*/
 data/Public_Civil_Service_LLM_Data/
 data/bm25_index/
+
+# 로컬 생성 산출물 (벡터DB 백업·색인 append payload·크롤러 덤프)
+data/append_inputs/
+data/raw_civil_policy_qna/
+scripts/data/
 
 # Runtime logs and generated artifacts
 logs/**

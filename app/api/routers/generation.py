@@ -58,7 +58,7 @@ QA_STAGE_LABELS = {
 }
 StageCallback = Callable[[str], Awaitable[None]]
 NO_SIMILAR_CASE_LIMITATION = (
-    "LLM 관련성 필터 적용 결과 참고할 만한 유사 민원 근거가 충분하지 않아 "
+    "참고할 만한 유사 민원 근거가 충분하지 않아 "
     "과거 사례 citation 없이 일반 민원 회신 원칙에 따라 작성했습니다."
 )
 SEGMENT_NO_EVIDENCE_MESSAGE = "유사 선례 없음 — 담당부서 확인 필요"
@@ -262,67 +262,6 @@ def _build_segment_evidence_map(
             "status": "grounded" if evidence else "no_evidence",
             "evidence": evidence,
         }
-
-    return evidence_map
-
-
-async def _build_grounded_segment_evidence_map(
-    *,
-    retrieval_service,
-    request_segments: list[str],
-    context: list[dict],
-    max_segments: int = 4,
-    max_evidence_per_segment: int = 2,
-) -> dict[int, dict]:
-    evidence_map = _build_segment_evidence_map(
-        request_segments,
-        context,
-        max_segments=max_segments,
-        max_evidence_per_segment=max_evidence_per_segment,
-    )
-    apply_filter = getattr(retrieval_service, "_apply_grounding_filter", None)
-    if not callable(apply_filter):
-        return evidence_map
-
-    for segment_index, info in list(evidence_map.items()):
-        evidence = info.get("evidence") if isinstance(info, dict) else []
-        evidence = evidence if isinstance(evidence, list) else []
-        if not evidence:
-            continue
-
-        candidate_keys = {
-            (str(item.get("case_id") or ""), str(item.get("chunk_id") or ""))
-            for item in evidence
-            if isinstance(item, dict)
-        }
-        try:
-            filtered = await apply_filter(
-                str(info.get("request_segment") or ""),
-                evidence,
-                max_evidence_per_segment,
-            )
-        except Exception as exc:  # noqa: BLE001
-            api_logger.warning(
-                "segment_grounding_filter_failed segment_index=%s error=%s",
-                segment_index,
-                str(exc),
-            )
-            continue
-
-        filtered_evidence = [
-            _segment_evidence_item(item)
-            for item in filtered
-            if isinstance(item, dict)
-            and (
-                str(item.get("case_id") or ""),
-                str(item.get("chunk_id") or ""),
-            )
-            in candidate_keys
-        ][:max_evidence_per_segment]
-        evidence_map[segment_index]["evidence"] = filtered_evidence
-        evidence_map[segment_index]["status"] = (
-            "grounded" if filtered_evidence else "no_evidence"
-        )
 
     return evidence_map
 
@@ -561,28 +500,22 @@ def _build_no_similar_case_payload(
     )
 
 
-async def _apply_qa_grounding_filter(
+def _apply_qa_metadata_soft_rerank(
     *,
     retrieval_service,
-    query: str,
     raw_context: list[dict],
-    top_k: int,
     query_signals: dict | None = None,
 ) -> list[dict]:
-    """QA 답변 grounding에 쓰기 전 참고 선례를 BE2 LLM 필터로 정밀화한다."""
+    """QA 초안 생성에서는 grounding filter 없이 구조화 신호 순서 보정만 유지한다."""
     if not raw_context:
         return []
 
     normalize_signals = getattr(retrieval_service, "_normalize_query_signals", None)
     apply_soft_rerank = getattr(retrieval_service, "_apply_metadata_soft_rerank", None)
     if query_signals and callable(normalize_signals) and callable(apply_soft_rerank):
-        raw_context = apply_soft_rerank(raw_context, normalize_signals(query_signals))
+        return apply_soft_rerank(raw_context, normalize_signals(query_signals))
 
-    apply_filter = getattr(retrieval_service, "_apply_grounding_filter", None)
-    if apply_filter is None:
-        return raw_context[:top_k]
-
-    return await apply_filter(query, raw_context, top_k)
+    return raw_context
 
 
 def _citation_coverage(citation_count: int, mismatch_count: int) -> float:
@@ -1082,20 +1015,18 @@ async def _generate_qa(
         grounding_top_k = max(1, min(QA_GROUNDING_TOP_K, int(effective_top_k)))
         if request.use_search_results and request.search_results:
             raw_context = [item.model_dump() for item in request.search_results]
-            raw_context = await _apply_qa_grounding_filter(
+            raw_context = _apply_qa_metadata_soft_rerank(
                 retrieval_service=retrieval_service,
-                query=request.query,
                 raw_context=raw_context,
-                top_k=grounding_top_k,
                 query_signals=query_signals,
-            )
+            )[:grounding_top_k]
         else:
             filters = request.filters.model_dump(exclude_none=True) if request.filters else {}
             raw_context = await retrieval_service.search(
                 query=request.query,
                 top_k=grounding_top_k,
                 filters=filters,
-                grounding_filter=True,
+                grounding_filter=False,
                 grounding_pool=max(5, grounding_top_k),
                 topic_type=routing_trace.get("topic_type"),
                 request_segments=routing_trace.get("request_segments"),
@@ -1162,11 +1093,7 @@ async def _generate_qa(
     if request_segments:
         routing_trace["request_segments"] = request_segments
         routing_trace["segment_count"] = len(request_segments)
-    segment_evidence_map = await _build_grounded_segment_evidence_map(
-        retrieval_service=retrieval_service,
-        request_segments=request_segments,
-        context=context,
-    )
+    segment_evidence_map = _build_segment_evidence_map(request_segments, context)
     if segment_evidence_map:
         routing_trace["segment_evidence_map"] = segment_evidence_map
 
@@ -1237,7 +1164,7 @@ async def _generate_qa(
             "/api/v1/qa",
             request_id,
             took_ms,
-            True,
+            False,
         )
         return QAResponse(
             success=True,

@@ -15,6 +15,7 @@ from app.complaint_intelligence.duplicate_merger.service import DuplicateGroupNo
 from app.complaint_intelligence.duplicate_merger.schemas import (
     DraftReplyPayload,
     DuplicateMergeRecord,
+    DuplicateReplyDraft,
     DuplicateMergeStatus,
 )
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
@@ -366,6 +367,21 @@ class DuplicateDraftReplyResponse(BaseModel):
     data: DuplicateDraftReplyData
 
 
+class DuplicateReplyDraftData(BaseModel):
+    """중복 병합 대표 답변 생성 응답 데이터."""
+
+    reply_draft: DuplicateReplyDraft
+
+
+class DuplicateReplyDraftResponse(BaseModel):
+    """중복 병합 대표 답변 생성 응답."""
+
+    success: bool = True
+    request_id: str
+    timestamp: str
+    data: DuplicateReplyDraftData
+
+
 @router.post("/run-analysis", response_model=RunAnalysisResponse)
 async def run_analysis(request: RunAnalysisRequest) -> RunAnalysisResponse:
     """민원 이벤트 배치를 분석해 경보와 공공기관 행정 인사이트를 생성한다."""
@@ -570,10 +586,20 @@ async def run_duplicate_group_analysis(request: RunAnalysisRequest) -> Duplicate
 
 
 @router.get("/duplicate-groups", response_model=DuplicateGroupsResponse)
-async def list_duplicate_groups(status: Optional[DuplicateMergeStatus] = None) -> DuplicateGroupsResponse:
+async def list_duplicate_groups(
+    status: Optional[DuplicateMergeStatus] = None,
+    complaint_id: Optional[str] = None,
+    issue_alert_id: Optional[str] = None,
+    public_insight_id: Optional[str] = None,
+) -> DuplicateGroupsResponse:
     """저장된 중복 병합 추천 그룹을 조회한다."""
 
-    groups = get_complaint_intelligence_service().list_duplicate_groups(status=status)
+    groups = get_complaint_intelligence_service().list_duplicate_groups(
+        status=status,
+        complaint_id=complaint_id,
+        issue_alert_id=issue_alert_id,
+        public_insight_id=public_insight_id,
+    )
     return DuplicateGroupsResponse(
         request_id=make_request_id(),
         timestamp=now_iso(),
@@ -660,6 +686,23 @@ async def build_duplicate_draft_reply(merge_id: str) -> DuplicateDraftReplyRespo
         request_id=make_request_id(),
         timestamp=now_iso(),
         data=DuplicateDraftReplyData(draft_reply_payload=payload),
+    )
+
+
+@router.post("/duplicate-groups/{merge_id}/reply-draft", response_model=DuplicateReplyDraftResponse)
+async def build_duplicate_reply_draft(merge_id: str) -> DuplicateReplyDraftResponse | JSONResponse:
+    """confirmed 그룹에 대해서만 실제 대표 답변 초안을 생성한다."""
+
+    try:
+        reply_draft = await get_complaint_intelligence_service().build_duplicate_reply_draft(merge_id)
+    except DuplicateGroupNotFound:
+        raise HTTPException(status_code=404, detail="duplicate group not found")
+    except DuplicateMergeConflict as exc:
+        return _duplicate_conflict_response(exc)
+    return DuplicateReplyDraftResponse(
+        request_id=make_request_id(),
+        timestamp=now_iso(),
+        data=DuplicateReplyDraftData(reply_draft=reply_draft),
     )
 
 

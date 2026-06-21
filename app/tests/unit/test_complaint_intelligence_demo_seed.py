@@ -9,8 +9,13 @@ from fastapi.testclient import TestClient
 
 from app.api.main import app
 from app.complaint_intelligence import set_complaint_intelligence_service
+from app.complaint_intelligence.duplicate_merger.candidate_generator import DuplicateCandidateGenerator
 from app.complaint_intelligence.schemas import ComplaintIntelligenceEvent
 from scripts.build_complaint_intelligence_demo_seed import build_demo_seed
+from scripts.prepare_complaint_intelligence_real_replay import (
+    choose_seed_payload,
+    count_seed_events,
+)
 from scripts.seed_complaint_intelligence_demo import (
     build_service,
     load_seed,
@@ -61,7 +66,67 @@ def test_build_script_extracts_candidates_from_fixture_data(tmp_path) -> None:
 
     assert len(seed["scenarios"]) == 5
     assert all(len(scenario["events"]) == 1 for scenario in seed["scenarios"])
+    assert all(
+        event["latitude"] is not None and event["longitude"] is not None
+        for scenario in seed["scenarios"]
+        for event in scenario["events"]
+    )
+    assert all(
+        not scenario["events"][0]["title"].startswith("demo-")
+        for scenario in seed["scenarios"]
+    )
+    assert all(
+        len({event["title"] for event in scenario["events"]}) == len(scenario["events"])
+        for scenario in seed["scenarios"]
+    )
+    assert all(
+        scenario["events"][0]["entity_texts"]
+        and scenario["events"][0]["request_segments"]
+        and scenario["events"][0]["responsible_unit"]
+        for scenario in seed["scenarios"]
+    )
+    assert {scenario["events"][0]["region"] for scenario in seed["scenarios"]} >= {
+        "서울특별시 중구",
+        "인천광역시 서구",
+        "전북특별자치도 전주시 덕진구",
+        "대전광역시 중구",
+        "울산광역시 남구",
+    }
     assert all(item["synthetic_event_count"] == 0 for item in report["scenarios"])
+
+
+def test_replay_seed_fields_create_confirmable_duplicate_candidates(tmp_path) -> None:
+    fixture = tmp_path / "fixture.json"
+    fixture.write_text(
+        json.dumps(
+            [
+                {"source_id": "park-1", "raw_text": "어린이보호구역 불법주정차 차량 단속을 요청합니다.", "consulting_category": "교통지도과"},
+                {"source_id": "park-2", "raw_text": "어린이보호구역 불법주차 차량이 반복되어 현장단속이 필요합니다.", "consulting_category": "교통지도과"},
+                {"source_id": "waste-1", "raw_text": "대형폐기물 배출 스티커 신청 방법 안내가 필요합니다.", "consulting_category": "청소행정과"},
+                {"source_id": "waste-2", "raw_text": "대형폐기물 수거 신청 절차와 배출 방법을 알고 싶습니다.", "consulting_category": "청소행정과"},
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    seed, _report = build_demo_seed(
+        input_paths=[fixture],
+        as_of=AS_OF,
+        min_events_per_scenario=0,
+        max_events_per_scenario=2,
+        allow_synthetic_fill=False,
+    )
+    events = [
+        ComplaintIntelligenceEvent.model_validate(event)
+        for scenario in seed["scenarios"]
+        for event in scenario["events"]
+    ]
+    groups = DuplicateCandidateGenerator().generate(events)
+
+    assert groups
+    assert any("confirm" in group.allowed_actions for group in groups)
+    assert all(not (event.title or "").startswith("demo-") for event in events)
 
 
 def test_seed_script_runs_real_pipeline_and_creates_dashboard_read_model(tmp_path) -> None:
@@ -95,6 +160,39 @@ def test_threshold_validation_fails_when_alerts_and_insights_are_empty() -> None
         "NO_ALERT_CREATED",
         "NO_PUBLIC_INSIGHT_CREATED",
     }
+
+
+def test_real_replay_prepare_keeps_existing_seed_when_new_build_is_empty(tmp_path) -> None:
+    seed_path = tmp_path / "real_replay.json"
+    existing_seed = {
+        "scenarios": [
+            {
+                "id": "existing",
+                "events": [{"id": "existing-1"}],
+            }
+        ]
+    }
+    generated_seed = {"scenarios": [{"id": "empty", "events": []}]}
+    seed_path.write_text(json.dumps(existing_seed), encoding="utf-8")
+
+    selected_seed, should_write_seed, fallback = choose_seed_payload(generated_seed, seed_path)
+
+    assert selected_seed == existing_seed
+    assert should_write_seed is False
+    assert fallback is not None
+    assert fallback["existing_event_count"] == 1
+    assert count_seed_events(selected_seed) == 1
+
+
+def test_real_replay_prepare_fails_before_db_reset_when_no_seed_data(tmp_path) -> None:
+    generated_seed = {"scenarios": [{"id": "empty", "events": []}]}
+
+    try:
+        choose_seed_payload(generated_seed, tmp_path / "missing.json")
+    except RuntimeError as exc:
+        assert "기존 seed도 비어" in str(exc)
+    else:
+        raise AssertionError("empty real_replay seed must fail instead of overwriting data")
 
 
 def test_seed_pipeline_masks_pii_in_reports_dashboard_and_evidence_pack(tmp_path) -> None:

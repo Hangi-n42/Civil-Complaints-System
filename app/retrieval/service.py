@@ -384,6 +384,14 @@ class RetrievalService:
             "source": source,
         }
 
+    def _get_answer_text(self, record: Dict[str, Any], metadata: Dict[str, Any]) -> str:
+        for source in (record, metadata):
+            for key in ("answer", "consultant_answer", "final_answer", "response"):
+                value = str(source.get(key) or "").strip()
+                if value:
+                    return value
+        return ""
+
     def _normalize_record(self, record: Dict[str, Any], index: int) -> Dict[str, Any]:
         case_id = self._normalize_case_id(record, index=index)
         doc_id = str(record.get("doc_id") or case_id)
@@ -486,6 +494,7 @@ class RetrievalService:
         )
         urgency_level = self._extract_urgency_level(urgency_value)
         civil_category = self._extract_civil_category(record, metadata)
+        answer = self._get_answer_text(record, metadata)
 
         chunk_text = self._build_chunk_text(record)
         chunk_id = self._normalize_chunk_id(case_id=case_id, record=record, index=index)
@@ -517,6 +526,7 @@ class RetrievalService:
             "category": category,
             "region": region,
             "title": title,
+            "answer": answer,
             "entity_labels": entity_labels,
             "entity_texts": entity_texts,
             "search_entity_texts": search_entity_texts,
@@ -541,6 +551,7 @@ class RetrievalService:
                 "document_type": document_type,
                 "source_id": source_id,
                 "index_text_source": index_text_source,
+                "answer": answer,
                 "created_at_ts": created_at_ts,
                 "structured_by": str(record.get("structured_by") or metadata.get("structured_by") or ""),
                 "is_valid": bool(record.get("is_valid", metadata.get("is_valid", validation.get("is_valid", False)))),
@@ -1269,7 +1280,15 @@ class RetrievalService:
                 max_concurrency=settings.GROUNDING_FILTER_MAX_CONCURRENCY,
             )
             filter_mode = "per_item_fallback"
-        filtered = [item for item, _ in kept]
+        filtered = []
+        for item, grounding_score in kept:
+            updated = dict(item)
+            metadata = dict(item.get("metadata") or {})
+            metadata["grounding_relevance_score"] = float(grounding_score)
+            metadata["grounding_filter_applied"] = True
+            metadata["grounding_filter_mode"] = filter_mode
+            updated["metadata"] = metadata
+            filtered.append(updated)
         self.logger.info(
             f"grounding 필터({filter_mode}): {len(results)}→{len(filtered)}개 "
             "(해로운 선례 제거)"

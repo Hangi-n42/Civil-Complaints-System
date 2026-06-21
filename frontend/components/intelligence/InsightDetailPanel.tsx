@@ -1,6 +1,6 @@
 import type { IntelPublicInsightCard } from "@/lib/api";
 import { InsightPriorityBadge } from "./InsightPriorityBadge";
-import { groupActionsByHorizon, labeledCount } from "./insight";
+import { actionTypeLabel, groupActionsByHorizon, insightStatusLabel, labeledCount } from "./insight";
 import { EvidencePackDrawer } from "./EvidencePackDrawer";
 
 // 상세 패널 하단 액션 버튼(§4.3 ⑥). 동작 연결은 차기 — 지금은 자리만.
@@ -20,28 +20,42 @@ export function InsightDetailPanel({
   const actionGroups = groupActionsByHorizon(insight.recommended_actions);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[1200] flex justify-end">
       <button type="button" aria-label="닫기" onClick={onClose} className="absolute inset-0 bg-black/30" />
 
       <div className="relative h-full w-full max-w-xl overflow-y-auto bg-white shadow-xl">
         {/* 1. 헤더: 제목·우선순위·상태·담당부서 후보 */}
-        <div className="sticky top-0 border-b border-slate-200 bg-white px-6 py-4">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-6 py-4">
+          <div className="mb-2 flex items-start justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{insight.type_label}</span>
               <InsightPriorityBadge color={insight.color} label={insight.priority_label} />
-              <span className="text-[11px] text-slate-400">{insight.status}</span>
+              <span className="text-[11px] text-slate-400">{insightStatusLabel(insight.status)}</span>
             </div>
-            <button type="button" onClick={onClose} aria-label="닫기" className="rounded p-1 text-slate-400 hover:bg-slate-100">
-              ✕
+            <button type="button" onClick={onClose} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-600 hover:bg-slate-50">
+              닫기
             </button>
           </div>
-          <h2 className="text-base font-extrabold text-slate-900">{insight.title}</h2>
+          <h2 className="text-lg font-extrabold leading-snug text-slate-950">{insight.title}</h2>
           {insight.related_department && (
             <p className="mt-1 text-xs text-slate-500">
               담당 부서 후보: <span className="font-semibold text-slate-700">{insight.related_department}</span>
             </p>
           )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {insight.linked_alert_ids.length > 0 && onOpenAlert && (
+              <button
+                type="button"
+                onClick={() => onOpenAlert(insight.linked_alert_ids[0])}
+                className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-extrabold text-blue-700 hover:bg-blue-100"
+              >
+                연결 경보 보기
+              </button>
+            )}
+            <span className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
+              근거 {insight.representative_evidence_ids.length}건
+            </span>
+          </div>
         </div>
 
         <div className="space-y-6 px-6 py-5">
@@ -69,7 +83,9 @@ export function InsightDetailPanel({
                       {group.actions.map((action, idx) => (
                         <div key={idx} className="rounded-lg border border-slate-200 p-3">
                           <div className="mb-1 flex items-center gap-2">
-                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">{action.action_type}</span>
+                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                              {actionTypeLabel(action.action_type)}
+                            </span>
                             <span className="text-sm font-semibold text-slate-800">{action.action}</span>
                           </div>
                           {action.why && <p className="text-xs text-slate-500">{action.why}</p>}
@@ -157,7 +173,7 @@ export function InsightDetailPanel({
                 type="button"
                 disabled
                 title="다음 단계에서 연결됩니다"
-                className="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400"
+                className="cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400"
               >
                 {label}
               </button>

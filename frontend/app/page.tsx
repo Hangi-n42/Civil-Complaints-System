@@ -3,14 +3,12 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { mockAssignedCases } from "@/lib/mockData";
 import { PriorityBadge, StatusBadge } from "@/components/SearchUI";
 import AppSidebar from "@/components/AppSidebar";
-import { fetchUiCasesApi, type AssignedCase } from "@/lib/api";
-import { CASE_STATUS_OPTIONS, readJsonFromLocalStorage, sanitizeCaseStatuses, safeString } from "@/lib/safe-data";
-
-const CASE_STATUS_STORAGE_KEY = "case-status-overrides";
-const MAX_STATUS_STORAGE_BYTES = 24 * 1024;
+import { fetchDuplicateGroupsApi, fetchUiCasesApi, type AssignedCase, type DuplicateMergeRecord } from "@/lib/api";
+import { loadCaseStatusOverrides } from "@/lib/caseStatus";
+import { CASE_STATUS_OPTIONS, safeString } from "@/lib/safe-data";
+import { duplicateBadgeForCase } from "@/components/intelligence/duplicateMerge";
 
 export default function QueuePage() {
   const router = useRouter();
@@ -21,23 +19,26 @@ export default function QueuePage() {
   const [sortBy, setSortBy] = useState("우선순위");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [caseStatuses, setCaseStatuses] = useState<Record<string, string>>({});
-  const [caseList, setCaseList] = useState<AssignedCase[]>(mockAssignedCases);
+  const [caseList, setCaseList] = useState<AssignedCase[]>([]);
+  const [casesLoading, setCasesLoading] = useState(true);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateMergeRecord[]>([]);
 
   useEffect(() => {
     let isMounted = true;
 
     fetchUiCasesApi()
       .then((response) => {
-        if (!isMounted || response.error) {
+        if (!isMounted) {
           return;
         }
 
-        if (Array.isArray(response.data.cases) && response.data.cases.length > 0) {
-          setCaseList(response.data.cases);
-        }
+        // fetchUiCasesApi는 백엔드 오류·빈 응답이면 목업으로 폴백하므로 결과를 그대로 사용한다.
+        setCaseList(response.data.cases);
       })
-      .catch(() => {
-        // keep fallback mock data
+      .finally(() => {
+        if (isMounted) {
+          setCasesLoading(false);
+        }
       });
 
     return () => {
@@ -46,15 +47,27 @@ export default function QueuePage() {
   }, []);
 
   useEffect(() => {
-    const parsed = readJsonFromLocalStorage<Record<string, string>>(CASE_STATUS_STORAGE_KEY, {
-      maxBytes: MAX_STATUS_STORAGE_BYTES,
-      removeOnOversize: true,
-    });
+    let isMounted = true;
 
-    if (parsed) {
-      setCaseStatuses(sanitizeCaseStatuses(parsed, mockAssignedCases.map((item) => item.case_id)));
-    }
+    fetchDuplicateGroupsApi()
+      .then((response) => {
+        if (!isMounted || response.error) {
+          return;
+        }
+        setDuplicateGroups(response.data.duplicate_groups);
+      })
+      .catch(() => {
+        // 중복 병합 보조 정보가 없어도 기존 민원 목록은 계속 표시한다.
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    setCaseStatuses(loadCaseStatusOverrides(caseList.map((item) => item.case_id)));
+  }, [caseList]);
 
   const getEffectiveStatus = useCallback(
     (c: AssignedCase) => caseStatuses[c.case_id] || c.status || "미처리",
@@ -247,7 +260,7 @@ export default function QueuePage() {
         {/* 민원 목록 테이블 */}
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/50">
-            <h3 className="text-sm font-bold text-slate-800">민원 목록 ({filteredCases.length}건)</h3>
+            <h3 className="text-sm font-bold text-slate-800">{casesLoading ? "민원 목록" : `민원 목록 (${filteredCases.length}건)`}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-200">
@@ -258,39 +271,68 @@ export default function QueuePage() {
                   <th className="px-4 py-3">접수일</th>
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3">우선순위</th>
+                  <th className="px-4 py-3">중복</th>
                   <th className="px-5 py-3">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCases.map((c) => (
-                  <tr
-                    key={c.case_id}
-                    onClick={() => router.push(`/workbench?case_id=${c.case_id}`)}
-                    className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
-                  >
-                    <td className="px-5 py-3">
-                      <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate max-w-75">
-                        {buildTitle(c)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-[11px] font-medium text-slate-400 truncate max-w-30">{c.case_id}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <PriorityBadge priority={c.priority} />
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={getEffectiveStatus(c)} />
-                    </td>
-                  </tr>
-                ))}
-                {filteredCases.length === 0 && (
+                {casesLoading &&
+                  [0, 1, 2, 3, 4].map((i) => (
+                    <tr key={`skeleton-${i}`} className="animate-pulse">
+                      <td className="px-5 py-3"><div className="h-4 w-3/4 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-5 w-14 rounded bg-slate-200" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-8 rounded bg-slate-200" /></td>
+                      <td className="px-5 py-3"><div className="h-5 w-14 rounded bg-slate-200" /></td>
+                    </tr>
+                  ))}
+                {!casesLoading &&
+                  filteredCases.map((c) => {
+                  const duplicateBadge = duplicateBadgeForCase(c.case_id, duplicateGroups);
+                  return (
+                    <tr
+                      key={c.case_id}
+                      onClick={() => router.push(`/workbench?case_id=${c.case_id}`)}
+                      className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate max-w-75">
+                          {buildTitle(c)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-[11px] font-medium text-slate-400 truncate max-w-30">{c.case_id}</div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{c.received_at}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        <div className="max-w-60 truncate" title={getCaseCategoryLabel(c)}>{getCaseCategoryLabel(c)}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <PriorityBadge priority={c.priority} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {duplicateBadge ? (
+                          <span
+                            title={duplicateBadge.title}
+                            className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold ${duplicateBadge.className}`}
+                          >
+                            {duplicateBadge.label}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-medium text-slate-300">-</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={getEffectiveStatus(c)} />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!casesLoading && filteredCases.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
+                    <td colSpan={7} className="px-5 py-16 text-center text-sm text-slate-500 font-medium bg-slate-50/30">
                       조건에 맞는 민원이 없습니다. 필터를 조정해보세요.
                     </td>
                   </tr>

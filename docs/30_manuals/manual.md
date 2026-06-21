@@ -1,3 +1,10 @@
+# Historical 안내
+
+> 문서 상태: historical
+> 최종 확인일: 2026-06-21
+> 현재 실행 절차는 `docs/30_manuals/local_dev_runbook.md`, `docs/30_manuals/evaluation_runbook.md`, `docs/30_manuals/complaint_intelligence_demo_replay.md`를 기준으로 합니다.
+> 이 문서는 Week5-8 실행 맥락을 보존하는 historical 자료입니다.
+
 # Week5-8 실행 매뉴얼 (파트별 역할/산출물 가이드)
 
 문서 버전: v1.1  

@@ -1,0 +1,101 @@
+{
+  "seed": "data\\complaint_intelligence\\duplicate_merge_demo_events.json",
+  "db_path": "data\\complaint_intelligence\\duplicate_merge_demo.db",
+  "source_name": "duplicate_merge_demo",
+  "mode": "replay",
+  "as_of": "2026-06-20T09:00:00+09:00",
+  "run_id": "ci-run-99dd7defc422",
+  "event_count": 12,
+  "scenario_count": 4,
+  "issue_alert_count": 2,
+  "public_insight_count": 11,
+  "duplicate_group_count": 4,
+  "scenario_results": [
+    {
+      "scenario": "hotspot_apartment_noise_duplicate",
+      "label": "핫스팟 안 반복 공사 소음 중복 후보",
+      "passed": true,
+      "event_count": 6,
+      "matched_group_ids": [
+        "dup-237d040a8ab7"
+      ],
+      "linked_issue_alert_ids": [
+        "issue-5cc4a2bb235b",
+        "issue-6cec756f4f75"
+      ],
+      "risk_flags": [],
+      "statuses": [
+        "candidate"
+      ],
+      "failures": []
+    },
+    {
+      "scenario": "general_duplicate_queue",
+      "label": "핫스팟과 무관한 일반 중복 후보",
+      "passed": true,
+      "event_count": 2,
+      "matched_group_ids": [
+        "dup-bcebd376afb4"
+      ],
+      "linked_issue_alert_ids": [],
+      "risk_flags": [],
+      "statuses": [
+        "candidate"
+      ],
+      "failures": []
+    },
+    {
+      "scenario": "different_request_risk",
+      "label": "같은 사건이지만 요청 유형이 섞인 주의 후보",
+      "passed": true,
+      "event_count": 2,
+      "matched_group_ids": [
+        "dup-0bea82b603ae"
+      ],
+      "linked_issue_alert_ids": [],
+      "risk_flags": [
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK",
+        "REQUEST_TYPE_MISMATCH"
+      ],
+      "statuses": [
+        "candidate"
+      ],
+      "failures": []
+    },
+    {
+      "scenario": "confirmed_draft_demo",
+      "label": "담당자 확정 후 draft payload 생성 확인용 후보",
+      "passed": true,
+      "event_count": 2,
+      "matched_group_ids": [
+        "dup-5a14491bc608"
+      ],
+      "linked_issue_alert_ids": [],
+      "risk_flags": [],
+      "statuses": [
+        "confirmed"
+      ],
+      "failures": []
+    }
+  ],
+  "draft_contract": {
+    "passed": true,
+    "candidate_draft_blocked": true,
+    "candidate_error_code": "DUPLICATE_GROUP_NOT_CONFIRMED",
+    "confirmed_draft_payload_created": true,
+    "confirmed_group_id": "dup-5a14491bc608",
+    "failures": []
+  },
+  "pii": {
+    "passed": true,
+    "raw_pii_detected": false
+  },
+  "http_verification": null,
+  "fe_check_endpoints": [
+    "GET /complaint-intelligence/dashboard",
+    "GET /complaint-intelligence/duplicate-groups",
+    "GET /complaint-intelligence/duplicate-groups?issue_alert_id={alert_id}",
+    "POST /complaint-intelligence/duplicate-groups/{merge_id}/draft-reply"
+  ],
+  "passed": true
+}

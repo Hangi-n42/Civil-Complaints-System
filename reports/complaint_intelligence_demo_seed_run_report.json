@@ -12,7 +12,7 @@
     "GET /complaint-intelligence/issue-alerts",
     "GET /complaint-intelligence/public-insights"
   ],
-  "run_id": "ci-run-33321e16b4c0",
+  "run_id": "ci-run-667a85b93296",
   "latest_event_at": "2026-06-19T23:50:00+00:00",
   "dashboard": {
     "passed": true,
@@ -20,14 +20,14 @@
       "as_of": "2026-06-20T00:00:00+00:00",
       "latest_event_at": "2026-06-19T23:50:00+00:00",
       "event_count": 30,
-      "active_alert_count": 5,
+      "active_alert_count": 7,
       "high_priority_insight_count": 1
     },
     "failures": []
   },
-  "issue_alert_count": 5,
-  "public_insight_count": 47,
-  "evidence_pack_count": 47,
+  "issue_alert_count": 7,
+  "public_insight_count": 49,
+  "evidence_pack_count": 49,
   "scenario_results": [
     {
       "scenario": "sinkhole_hotspot",
@@ -54,8 +54,8 @@
       "label": "불법주정차 특정 시간대 반복",
       "passed": true,
       "event_count": 6,
-      "matched_alert_count": 1,
-      "matched_insight_count": 15,
+      "matched_alert_count": 2,
+      "matched_insight_count": 16,
       "matched_insight_types": [
         "DEPARTMENT_WORKLOAD_BOTTLENECK",
         "ENFORCEMENT_PRIORITY",
@@ -76,8 +76,8 @@
       "label": "대형폐기물 배출 방법 문의 반복",
       "passed": true,
       "event_count": 6,
-      "matched_alert_count": 1,
-      "matched_insight_count": 10,
+      "matched_alert_count": 2,
+      "matched_insight_count": 11,
       "matched_insight_types": [
         "DEPARTMENT_WORKLOAD_BOTTLENECK",
         "HOTSPOT_RESPONSE_REQUIRED",
@@ -95,8 +95,8 @@
       "label": "복지 지원 기준/신청 절차 불편 반복",
       "passed": true,
       "event_count": 6,
-      "matched_alert_count": 1,
-      "matched_insight_count": 10,
+      "matched_alert_count": 3,
+      "matched_insight_count": 12,
       "matched_insight_types": [
         "ACCESSIBILITY_OR_USABILITY_ISSUE",
         "HOTSPOT_RESPONSE_REQUIRED",

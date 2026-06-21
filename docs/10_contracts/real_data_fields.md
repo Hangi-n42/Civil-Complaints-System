@@ -1,3 +1,10 @@
+# Historical 안내
+
+> 문서 상태: historical
+> 최종 확인일: 2026-06-21
+> 현재 기준 데이터 계약은 `docs/10_contracts/data/current_data_contract.md`입니다.
+> 이 문서는 과거 FE/BE 필드 정리 기록으로 보존하며, 현재 API/스키마 계약 판단에는 사용하지 않습니다.
+
 # 실데이터 필드 목록 (FE/BE 공유용)
 
 작성일: 2026-04-06  

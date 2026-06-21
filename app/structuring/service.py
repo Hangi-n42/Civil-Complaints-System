@@ -326,21 +326,6 @@ class StructuringService:
             },
         }
 
-    def _first_meaningful_paragraph(self, text: str, max_chars: int = 500) -> str:
-        """답변 본문에서 색인/요약에 쓸 첫 의미 단락을 고른다."""
-        normalized = str(text or "").strip()
-        if not normalized:
-            return ""
-        paragraphs = [
-            re.sub(r"\s+", " ", part).strip()
-            for part in re.split(r"\n\s*\n+", normalized)
-            if part.strip()
-        ]
-        paragraph = paragraphs[0] if paragraphs else re.sub(r"\s+", " ", normalized).strip()
-        if len(paragraph) <= max_chars:
-            return paragraph
-        return paragraph[:max_chars].rstrip()
-
     def _find_span(self, raw_text: str, value: str) -> List[int]:
         """원문에 실제 존재하는 repair 텍스트만 span으로 표시한다."""
         text = str(raw_text or "")
@@ -353,7 +338,7 @@ class StructuringService:
         return [index, index + len(target)]
 
     def _split_policy_qna_search_text(self, raw_text: str, search_text: str) -> Dict[str, str]:
-        """정책 Q&A의 질문부(raw_text)와 답변부(search_text suffix)를 분리한다."""
+        """정책 Q&A의 질문부(raw_text)를 observation/request로 분리한다."""
         raw = str(raw_text or "").strip()
         search = str(search_text or "").strip()
         raw_lines = [line.strip() for line in raw.splitlines() if line.strip()]
@@ -399,7 +384,6 @@ class StructuringService:
         split = self._split_policy_qna_search_text(raw_text, search_text)
         observation_text = split["observation"]
         request_text = split["request"] or observation_text
-        result_text = self._first_meaningful_paragraph(split["answer"])
 
         repaired = dict(candidate)
         repaired["observation"] = {
@@ -414,10 +398,10 @@ class StructuringService:
             "evidence_span": self._find_span(raw_text, request_text),
         }
         repaired["result"] = {
-            "text": result_text,
-            "confidence": 0.8 if result_text else 0.0,
+            "text": "",
+            "confidence": 0.0,
             "evidence_span": [0, 0],
-            "status": "present" if result_text else "pending",
+            "status": "pending",
         }
         context = candidate.get("context") if isinstance(candidate.get("context"), dict) else {}
         repaired["context"] = {
@@ -427,6 +411,7 @@ class StructuringService:
         }
         extraction_meta = dict(candidate.get("extraction_meta") or {})
         extraction_meta["policy_qna_repair"] = True
+        extraction_meta["policy_qna_answer_suffix_present"] = bool(str(split.get("answer") or "").strip())
         extraction_meta["repair_reasons"] = list(repair_reasons or [])
         extraction_meta["llm_latency_ms"] = int(extraction_meta.get("llm_latency_ms") or 0)
         extraction_meta["llm_non_null_count"] = sum(

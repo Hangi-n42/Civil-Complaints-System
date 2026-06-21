@@ -142,7 +142,7 @@ class PromptFactory:
         "시민",
     }
 
-    _SUPPORTED_PROMPT_MODES = {"default", "compact", "force_json"}
+    _SUPPORTED_PROMPT_MODES = {"default", "compact", "force_json", "duplicate_group"}
 
     @classmethod
     def _normalize_prompt_mode(cls, mode: str | None) -> str:
@@ -314,6 +314,16 @@ class PromptFactory:
                 "- Prevent required-key omissions by filling limitations with the missing/uncertain points.\n"
                 "- Answer only from the context; if context is insufficient, state the limitation inside limitations.\n"
                 "- Keep answer substantive: usually 5 to 8 Korean sentences across 4 numbered paragraphs unless the context is extremely limited.\n"
+            )
+        elif prompt_mode == "duplicate_group":
+            mode_rules = (
+                "[duplicate_group MODE]\n"
+                "- Write one representative draft for a confirmed duplicate complaint group, not separate replies for each citizen.\n"
+                "- The draft must cover only facts and guidance that can be commonly applied to all member complaints.\n"
+                "- Never imply automatic merge, automatic status change, automatic bulk sending, compensation approval, legal-rights judgment, or deadline change.\n"
+                "- If risk flags or evidence limitations are present, reflect them as 담당자 확인 필요 conditions in limitations or the review-result paragraph.\n"
+                "- Keep the answer as a human-review draft. Do not write as if it has already been sent or finally decided.\n"
+                "- action_items must prioritize common fact checking, responsible-unit review, and separating member-specific issues.\n"
             )
         elif prompt_mode == "compact":
             mode_rules = (
@@ -753,7 +763,7 @@ class PromptFactory:
             retrieval_policy=str(derived_trace.get("retrieval_policy") or decision.retrieval_policy),
             snippet_max_chars=int(snippet_max_chars),
             query_signals=query_signals,
-            grounding_filter=True,
+            grounding_filter=False,
             grounding_pool=max(3, effective_top_k),
             exclude_case_id=exclude_case_id or None,
         )
@@ -921,6 +931,11 @@ class PromptFactory:
                 f"{numbered}"
             )
 
+        duplicate_guide = ""
+        duplicate_group = routing_trace.get("duplicate_group") if isinstance(routing_trace, dict) else None
+        if prompt_mode == "duplicate_group" and isinstance(duplicate_group, dict):
+            duplicate_guide = cls._build_duplicate_group_guide(duplicate_group)
+
         snippet_max_chars = 120 if is_compact else 200
         citation_snippet_max_chars = 120 if is_compact else 200
         context_limit = 2 if is_compact else min(3, len(context))
@@ -1055,6 +1070,7 @@ class PromptFactory:
             + f"복잡도 지시문: {complexity_guide}"
             + f"\n운영 정책 지시문: {policy_guide}"
             + record_guide
+            + duplicate_guide
             + f"{segment_guide}\n\n"
             + "최종 점검: 출력 직전에 최상위 키가 citations/answer/limitations/structured_output 네 개뿐인지 확인하고, citations 키를 가장 먼저 출력하세요. "
             + "answer는 반드시 '1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.'로 시작하고, "
@@ -1072,4 +1088,28 @@ class PromptFactory:
             )
             + "검색 컨텍스트:\n"
             + "\n".join(context_lines)
+        )
+
+    @classmethod
+    def _build_duplicate_group_guide(cls, duplicate_group: Dict[str, Any]) -> str:
+        """중복 그룹 전용 제약을 프롬프트에 짧게 추가한다."""
+
+        def lines(title: str, values: Any, limit: int) -> str:
+            if not isinstance(values, list):
+                return ""
+            items = [str(item).strip() for item in values if str(item).strip()][:limit]
+            if not items:
+                return ""
+            return title + "\n" + "\n".join(f"- {item}" for item in items) + "\n"
+
+        return (
+            "\n[DUPLICATE GROUP CONTEXT]\n"
+            f"- merge_id: {duplicate_group.get('merge_id')}\n"
+            f"- representative_complaint_id: {duplicate_group.get('representative_complaint_id')}\n"
+            "- This group is confirmed only as an internal review unit. It is not an automatic status change or bulk-send approval.\n"
+            "- Member complaint summaries are PII-safe summaries. Do not infer individual identities, compensation, deadlines, or legal rights from them.\n"
+            + lines("[DUPLICATE COMMON CONSTRAINTS]", duplicate_group.get("constraints"), 8)
+            + lines("[DUPLICATE RISK FLAGS]", duplicate_group.get("risk_flags"), 8)
+            + lines("[DUPLICATE MERGE EVIDENCE]", duplicate_group.get("evidence"), 5)
+            + lines("[PII-SAFE MEMBER SUMMARIES]", duplicate_group.get("member_summaries"), 6)
         )

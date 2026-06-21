@@ -17,6 +17,7 @@ class _FeFlowStubRetrievalService:
                 "case_id": "CASE-100",
                 "title": "도로 보수 요청",
                 "snippet": "강남구 도로 파손으로 차량 통행에 위험이 있어 보수가 필요합니다.",
+                "answer": "현장 확인 후 보수 공사 일정을 안내합니다.",
                 "summary": {"observation": "도로 파손", "request": "긴급 보수 요청"},
                 "metadata": {
                     "created_at": "2026-04-08T10:00:00+09:00",
@@ -88,6 +89,7 @@ def test_be2_fe_search_to_qa_context_flow(monkeypatch):
     first = body["data"]["results"][0]
     assert first["case_id"] == "CASE-100"
     assert first["chunk_id"] == "CASE-100__chunk-0"
+    assert first["answer"] == "현장 확인 후 보수 공사 일정을 안내합니다."
     assert isinstance(first["answers_by_admin_unit"], dict)
     assert isinstance(first["department_answers"], dict)
     assert first["answers_by_admin_unit"] == first["department_answers"]
@@ -131,6 +133,7 @@ def test_be2_fe_search_response_fallbacks_are_stable(monkeypatch):
     assert first["case_id"] == "DOC-200"
     assert first["chunk_id"] == "DOC-200__chunk-0"
     assert first["snippet"] == "가로등 고장"
+    assert first["answer"] == ""
     assert isinstance(first["summary"], dict)
     assert isinstance(first["answers_by_admin_unit"], dict)
     assert first["answers_by_admin_unit"] == {}

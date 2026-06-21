@@ -1,0 +1,11 @@
+{
+  "collection": "civil_cases_v3",
+  "snapshot_date": "2026-06-21",
+  "total_chunks": 25565,
+  "policy_qna_cases": 16433,
+  "other_cases": 9132,
+  "masking_mode": "STRICT",
+  "chunks_per_case": 1.0,
+  "ids_sha256": "fdda4ce93c5d5328922c46be50b4c89e2e8f4355d480e7d5ca1fe77953c6c54d",
+  "note": "PARANOID->STRICT 재색인 + stale 14250 정리 후. LLM-silver 평가 기준 코퍼스. 평가 중 변경 금지."
+}

@@ -346,6 +346,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             retrieval_policy=routing["retrieval_policy"],
             snippet_max_chars=fixed_search_hint["snippet_max_chars"],
             query_signals=request.query_signals.model_dump() if request.query_signals else None,
+            grounding_filter=True,
         )
     except RetrievalError as e:
         took_ms = int((perf_counter() - start) * 1000)
@@ -421,6 +422,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         chunk_id = str(item.get("chunk_id") or f"{case_id}__chunk-0") if case_id else str(item.get("chunk_id") or "")
         score = float(item.get("score", 0.0) or 0.0)
         answers_by_admin_unit = _normalize_department_answers(item)
+        answer = str(item.get("answer") or (item.get("metadata") or {}).get("answer") or "").strip()
         content = {
             "observation": observation,
             "result": str(raw_content.get("result") or ""),
@@ -429,6 +431,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         }
         metadata = item.get("metadata") or {}
         matched_segments = metadata.get("matched_segments") or item.get("matched_segments") or []
+        grounding_relevance_score = metadata.get("grounding_relevance_score")
         formatted_results.append(
             {
                 "rank": int(item.get("rank", 0)),
@@ -454,6 +457,9 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "complexity_level": routing["routing_trace"]["complexity_level"],
                     "retrieval_policy": routing["retrieval_policy"],
                     "matched_segments": matched_segments,
+                    "grounding_relevance_score": grounding_relevance_score,
+                    "grounding_filter_applied": metadata.get("grounding_filter_applied"),
+                    "grounding_filter_mode": metadata.get("grounding_filter_mode"),
                 },
                 "doc_id": doc_id,
                 "score": score,
@@ -461,6 +467,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                 "chunk_id": chunk_id,
                 "title": item.get("title"),
                 "snippet": snippet,
+                "answer": answer,
                 "summary": {
                     "observation": observation,
                     "request": request_text,
@@ -471,8 +478,18 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             }
         )
 
-    # Issue #193, #191: Deduplication by doc_id and sort by score desc
-    formatted_results.sort(key=lambda x: x["score"], reverse=True)
+    def _grounding_sort_score(item: dict) -> float:
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        try:
+            return float(metadata.get("grounding_relevance_score"))
+        except (TypeError, ValueError):
+            return -1.0
+
+    # Issue #193, #191: Deduplication by doc_id and sort by grounding relevance, then search score
+    formatted_results.sort(
+        key=lambda x: (_grounding_sort_score(x), x["score"]),
+        reverse=True,
+    )
     seen_docs = set()
     deduped_results = []
     for r in formatted_results:

@@ -1,5 +1,6 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
 import type { ResponsibleUnit } from "./responsibleUnit";
+import { normalizeSegmentAnswers, type SegmentAnswerCard } from "./draft";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -87,9 +88,12 @@ export type RetrievedDoc = {
   case_id?: string;
   title: string;
   snippet: string;
+  answer?: string;
   score: number;
   similarity_score?: number;
   received_at?: string;
+  category?: string;
+  region?: string;
   summary?: {
     observation?: string;
     request?: string;
@@ -122,12 +126,16 @@ export type QaResponseData = {
     summary?: string;
     actionItems?: string[];
     requestSegments?: string[];
+    // 이슈 #451: 요청별 답변·근거(BE3 segment_answers). 구버전 응답엔 없어 폴백으로 평면 answer를 쓴다.
+    segmentAnswers?: SegmentAnswerCard[];
   };
 };
 
+type ApiError = { message: string; code?: string };
+
 type ApiResponse<T> = {
   data: T;
-  error: { message: string } | null;
+  error: ApiError | null;
 };
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
@@ -137,7 +145,7 @@ const DRAFT_STORAGE_KEY = "workbench-last-draft";
 type BackendEnvelope<T> = {
   success?: boolean;
   data?: T;
-  error?: { message?: string };
+  error?: { message?: string; code?: string };
   detail?: string;
 };
 
@@ -168,6 +176,7 @@ type BackendSearchResult = {
   chunk_id?: string;
   title?: string;
   snippet?: string;
+  answer?: string;
   score?: number;
   similarity_score?: number;
   summary?: {
@@ -184,6 +193,7 @@ type BackendSearchResult = {
     created_at?: string;
     category?: string;
     region?: string;
+    answer?: string;
   };
   answers_by_admin_unit?: Record<string, string>;
   department_answers?: Record<string, string>;
@@ -209,6 +219,7 @@ type BackendQaData = {
     summary?: string;
     action_items?: string[];
     request_segments?: string[];
+    segment_answers?: unknown;
   };
 };
 
@@ -385,6 +396,97 @@ export type IntelEvidencePack = {
   allowed_action_catalog: string[];
 };
 
+export type DuplicateMergeStatus = "candidate" | "confirmed" | "split" | "rejected";
+export type DuplicateMergeAction = "confirm" | "split" | "reject" | "draft_reply";
+export type DuplicateRiskSeverity = "info" | "warning" | "blocker";
+
+export type DuplicateEvidence = {
+  type: string;
+  message: string;
+  affected_case_ids: string[];
+  value?: number | string | null;
+  details?: Record<string, unknown>;
+};
+
+export type DuplicateRiskFlag = {
+  code: string;
+  severity: DuplicateRiskSeverity;
+  message: string;
+  affected_case_ids: string[];
+  evidence: string[];
+};
+
+export type DuplicateRepresentative = {
+  complaint_id: string;
+  selection_reason: string;
+  quality_score: number;
+};
+
+export type DuplicateMergeRecord = {
+  merge_id: string;
+  status: DuplicateMergeStatus;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  confidence: number;
+  recommendation_level: "weak" | "review" | "strong";
+  recommended_decision: "REVIEW_BEFORE_MERGE";
+  evidence: DuplicateEvidence[];
+  risk_flags: DuplicateRiskFlag[];
+  allowed_actions: DuplicateMergeAction[];
+  blocked_actions: DuplicateMergeAction[];
+  linked_issue_alert_ids: string[];
+  linked_public_insight_ids: string[];
+  representative: DuplicateRepresentative;
+  score_breakdown: Record<string, number>;
+  location_state: "exact" | "nearby" | "ambiguous" | "missing" | "conflict";
+  request_types: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DuplicateGroupsData = {
+  event_count?: number | null;
+  count: number;
+  duplicate_groups: DuplicateMergeRecord[];
+};
+
+export type DuplicateDraftReplyPayload = {
+  merge_id: string;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  representative: Record<string, unknown>;
+  members: Array<Record<string, unknown>>;
+  merge_evidence: DuplicateEvidence[];
+  risk_flags: DuplicateRiskFlag[];
+  system_instruction: string;
+  common_reply_constraints: string[];
+  prohibited_content_rules: string[];
+};
+
+// confirmed 그룹의 실제 대표 답변 초안(BE2 검색 + BE3 생성 결과). 자동 발송이 아니라 담당자 검토용이다.
+export type DuplicateReplyDraft = {
+  merge_id: string;
+  representative_complaint_id: string;
+  member_complaint_ids: string[];
+  requires_human_review: boolean;
+  answer: string;
+  citations: Array<Record<string, unknown>>;
+  limitations: string[];
+  structured_output: Record<string, unknown>;
+  generation_metadata: Record<string, unknown>;
+  safety_warnings: string[];
+  query: string;
+  routing_hint: Record<string, unknown>;
+  routing_trace: Record<string, unknown>;
+  search_results: Array<Record<string, unknown>>;
+  draft_reply_payload: DuplicateDraftReplyPayload;
+};
+
+const EMPTY_DUPLICATE_GROUPS: DuplicateGroupsData = {
+  count: 0,
+  duplicate_groups: [],
+};
+
 // 백엔드 호출 실패 시에도 탭이 렌더되도록 비어 있는 대시보드로 폴백한다(fetchAdminOverviewApi 패턴).
 const EMPTY_INTEL_DASHBOARD: IntelDashboardData = {
   summary: {
@@ -455,6 +557,70 @@ export async function fetchEvidencePackApi(
     }
     const pack = (await response.json()) as IntelEvidencePack;
     return { data: pack, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+export async function fetchDuplicateGroupsApi(filters?: {
+  status?: DuplicateMergeStatus;
+  complaintId?: string;
+  issueAlertId?: string;
+  publicInsightId?: string;
+}): Promise<ApiResponse<DuplicateGroupsData>> {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.complaintId) params.set("complaint_id", filters.complaintId);
+    if (filters?.issueAlertId) params.set("issue_alert_id", filters.issueAlertId);
+    if (filters?.publicInsightId) params.set("public_insight_id", filters.publicInsightId);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const payload = await fetchBackend<DuplicateGroupsData>(`/complaint-intelligence/duplicate-groups${query}`);
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: EMPTY_DUPLICATE_GROUPS, error: toApiError(error) };
+  }
+}
+
+export async function transitionDuplicateGroupApi(
+  mergeId: string,
+  action: Exclude<DuplicateMergeAction, "draft_reply">,
+): Promise<ApiResponse<{ duplicate_group: DuplicateMergeRecord } | null>> {
+  try {
+    const payload = await fetchBackend<{ duplicate_group: DuplicateMergeRecord }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/${action}`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+export async function fetchDuplicateDraftReplyApi(
+  mergeId: string,
+): Promise<ApiResponse<{ draft_reply_payload: DuplicateDraftReplyPayload } | null>> {
+  try {
+    const payload = await fetchBackend<{ draft_reply_payload: DuplicateDraftReplyPayload }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/draft-reply`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: null, error: toApiError(error) };
+  }
+}
+
+// confirmed 그룹에서만 실제 대표 답변 초안을 생성한다. candidate/split/rejected는 409(DUPLICATE_GROUP_NOT_CONFIRMED).
+export async function fetchDuplicateReplyDraftApi(
+  mergeId: string,
+): Promise<ApiResponse<{ reply_draft: DuplicateReplyDraft } | null>> {
+  try {
+    const payload = await fetchBackend<{ reply_draft: DuplicateReplyDraft }>(
+      `/complaint-intelligence/duplicate-groups/${encodeURIComponent(mergeId)}/reply-draft`,
+      { method: "POST" },
+    );
+    return { data: payload, error: null };
   } catch (error) {
     return { data: null, error: toApiError(error) };
   }
@@ -669,7 +835,9 @@ async function fetchBackend<T>(path: string, init: RequestInit = {}): Promise<T>
   const envelope = (await response.json().catch(() => ({}))) as BackendEnvelope<T>;
 
   if (!response.ok || envelope.success === false) {
-    throw new Error(envelope.error?.message || envelope.detail || `API 요청 실패 (${response.status})`);
+    const failure = new Error(envelope.error?.message || envelope.detail || `API 요청 실패 (${response.status})`);
+    if (envelope.error?.code) (failure as { code?: string }).code = envelope.error.code;
+    throw failure;
   }
   if (!envelope.data) {
     throw new Error("API 응답에 data 필드가 없습니다.");
@@ -762,6 +930,7 @@ function toRetrievedDoc(item: BackendSearchResult, index: number): RetrievedDoc 
   };
   const title = item.title || summary.observation || item.snippet || `유사 민원 ${index + 1}`;
   const score = Number(item.score ?? item.similarity_score ?? 0);
+  const answer = String(item.answer || item.metadata?.answer || "").trim();
 
   return {
     docId,
@@ -770,9 +939,12 @@ function toRetrievedDoc(item: BackendSearchResult, index: number): RetrievedDoc 
     case_id: caseId,
     title,
     snippet: item.snippet || summary.request || summary.observation || "",
+    answer,
     score,
     similarity_score: Number(item.similarity_score ?? score),
     received_at: item.metadata?.created_at,
+    category: item.metadata?.category,
+    region: item.metadata?.region,
     summary,
     answers_by_admin_unit: item.answers_by_admin_unit || item.department_answers || {},
     department_answers: item.department_answers || item.answers_by_admin_unit || {},
@@ -845,6 +1017,7 @@ function mapQaData(payload: BackendQaData, params: {
       summary: payload.structured_output?.summary || params.caseContext?.summary || params.query,
       actionItems: payload.structured_output?.action_items || [],
       requestSegments: requestSegments.length > 0 ? requestSegments : [params.caseContext?.summary || params.query].filter(Boolean),
+      segmentAnswers: normalizeSegmentAnswers(payload.structured_output?.segment_answers),
     },
   };
 }
@@ -870,9 +1043,12 @@ function mockSearchData(params: {
       case_id: item.case_id,
       title: item.complaint,
       snippet: item.answer,
+      answer: item.answer,
       score: item.score,
       similarity_score: item.score,
       received_at: item.received_at,
+      category: item.category,
+      region: item.region,
       summary: {
         observation: item.complaint,
         request: item.answer,
@@ -989,10 +1165,12 @@ function normalizeComplexityLevel(value?: string): "low" | "medium" | "high" | n
   return null;
 }
 
-function toApiError(error: unknown) {
-  return {
-    message: error instanceof Error ? error.message : "API 요청 중 오류가 발생했습니다.",
-  };
+function toApiError(error: unknown): ApiError {
+  if (error instanceof Error) {
+    const code = (error as { code?: unknown }).code;
+    return { message: error.message, code: typeof code === "string" ? code : undefined };
+  }
+  return { message: "API 요청 중 오류가 발생했습니다." };
 }
 
 function mapCategoryToTopic(category = ""): TopicType {

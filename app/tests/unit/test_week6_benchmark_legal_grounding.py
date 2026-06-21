@@ -188,7 +188,7 @@ def test_prompt_factory_autoretrieve_passes_query_signals_to_retrieval():
     )
 
     assert retrieval.kwargs["query_signals"] == signals
-    assert retrieval.kwargs["grounding_filter"] is True
+    assert retrieval.kwargs["grounding_filter"] is False
     assert context[0]["chunk_id"] == "CHUNK-1"
 
 

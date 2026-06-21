@@ -1,3 +1,10 @@
+# Source-spec 안내
+
+> 문서 상태: source-spec
+> 최종 확인일: 2026-06-21
+> 현재 기준 데이터 계약은 `docs/10_contracts/data/current_data_contract.md`입니다.
+> 이 문서는 과거 설계와 변경 배경을 보존하기 위한 원본 사양으로 유지합니다.
+
 # Data Schema Spec (Pydantic + TypeScript)
 
 문서 버전: v1.1  

@@ -63,6 +63,32 @@ export function groupActionsByHorizon<T extends { horizon: string }>(
   return groups.filter((g) => g.actions.length > 0);
 }
 
+export function actionTypeLabel(actionType: string): string {
+  const labels: Record<string, string> = {
+    FIELD_INSPECTION: "현장 확인",
+    SAFETY_NOTICE: "안전 안내",
+    MAINTENANCE: "시설 보수",
+    ENFORCEMENT: "단속·계도",
+    PUBLIC_GUIDANCE: "시민 안내",
+    SERVICE_DESIGN: "서비스 개선",
+    PROCESS_IMPROVEMENT: "절차 개선",
+    POLICY_REVIEW: "제도 검토",
+    STAFFING_OR_WORKLOAD_REVIEW: "업무량 조정",
+    CITIZEN_COMMUNICATION: "시민 소통",
+  };
+  return labels[actionType] ?? "조치 검토";
+}
+
+export function insightStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    open: "검토 중",
+    acknowledged: "확인됨",
+    resolved: "조치 완료",
+    dismissed: "기각됨",
+  };
+  return labels[status] ?? "상태 확인 필요";
+}
+
 // top_aspects/citizen_requests 항목(loose dict)에서 라벨+건수를 안전 추출.
 export function labeledCount(item: Record<string, unknown>, labelKey: string): { label: string; count: number } {
   const rawLabel = item[labelKey];

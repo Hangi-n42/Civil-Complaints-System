@@ -132,20 +132,23 @@ def _primary_for(meta: Dict[str, Any]) -> str:
     return (civil or {}).get("primary") or _UNCLASSIFIED
 
 
-def _build_index() -> List[Dict[str, Optional[str]]]:
-    global _doc_index
-    if _doc_index is not None:
-        return _doc_index
+def _is_policy_qna_meta(meta: Dict[str, Any]) -> bool:
+    case_id = str(meta.get("case_id") or "")
+    doc_id = str(meta.get("doc_id") or "")
+    return (
+        meta.get("document_type") == "policy_qna"
+        or meta.get("content_type") == "policy_qna"
+        or case_id.startswith("CASE-POLICY-")
+        or doc_id.startswith("CASE-POLICY-")
+    )
 
-    import chromadb
 
-    client = chromadb.PersistentClient(path=settings.CHROMA_DB_PATH)
-    collection = client.get_collection(settings.DEFAULT_CHROMA_COLLECTION)
-    result = collection.get(include=["metadatas"])
-
+def _build_index_from_metadatas(metadatas: List[Dict[str, Any]]) -> List[Dict[str, Optional[str]]]:
     seen: set = set()
     index: List[Dict[str, Optional[str]]] = []
-    for meta in result.get("metadatas") or []:
+    for meta in metadatas:
+        if _is_policy_qna_meta(meta):
+            continue
         case_id = str(meta.get("case_id") or meta.get("doc_id") or "")
         if case_id and case_id in seen:
             continue
@@ -159,9 +162,22 @@ def _build_index() -> List[Dict[str, Optional[str]]]:
             "region": (str(meta.get("region") or "").strip() or None),
             "issues": _split_pipe(meta.get("issue_types")),
         })
-
-    _doc_index = index
     return index
+
+
+def _build_index() -> List[Dict[str, Optional[str]]]:
+    global _doc_index
+    if _doc_index is not None:
+        return _doc_index
+
+    import chromadb
+
+    client = chromadb.PersistentClient(path=settings.CHROMA_DB_PATH)
+    collection = client.get_collection(settings.DEFAULT_CHROMA_COLLECTION)
+    result = collection.get(include=["metadatas"])
+
+    _doc_index = _build_index_from_metadatas(result.get("metadatas") or [])
+    return _doc_index
 
 
 @router.get("/overview")

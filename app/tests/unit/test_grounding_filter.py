@@ -113,6 +113,23 @@ def test_apply_grounding_filter_removes_rel0(monkeypatch):
     assert [r["case_id"] for r in out] == ["A", "C"]
 
 
+def test_apply_grounding_filter_reranks_rel2_before_rel1_and_records_metadata(monkeypatch):
+    async def fake_batch(q, texts, **kw):  # noqa: ARG001
+        return [1 if "부분" in text else 2 for text in texts]
+    monkeypatch.setattr(gf, "score_relevance_batch", fake_batch)
+
+    results = [
+        {"case_id": "REL1", "snippet": "부분 참고 사례", "score": 0.99},
+        {"case_id": "REL2", "snippet": "직접 근거 사례", "score": 0.50},
+    ]
+    out = _run(_bare_service()._apply_grounding_filter("q", results, top_k=5))
+
+    assert [r["case_id"] for r in out] == ["REL2", "REL1"]
+    assert out[0]["metadata"]["grounding_relevance_score"] == 2.0
+    assert out[0]["metadata"]["grounding_filter_applied"] is True
+    assert out[0]["metadata"]["grounding_filter_mode"] == "batch"
+
+
 def test_apply_grounding_filter_empty_when_all_bad(monkeypatch):
     async def fake_batch(q, texts, **kw):  # noqa: ARG001
         return [0] * len(texts)

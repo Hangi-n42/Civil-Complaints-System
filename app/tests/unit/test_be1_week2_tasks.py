@@ -344,8 +344,9 @@ async def test_policy_qna_repair_fills_minimum_fields_and_validates():
     assert repaired["observation"]["text"] == "토지의 평가기준"
     assert repaired["request"]["text"] == "토지 가격을 평가하는 기준에 대해 알고 싶습니다."
     assert repaired["request"]["request"] == repaired["request"]["text"]
-    assert repaired["result"]["status"] == "present"
-    assert repaired["result"]["text"].startswith("공익사업에 편입되는 토지는")
+    assert repaired["result"]["status"] == "pending"
+    assert repaired["result"]["text"] == ""
+    assert repaired["extraction_meta"]["policy_qna_answer_suffix_present"] is True
     assert validation["is_valid"] is True
 
 

@@ -1,0 +1,1006 @@
+{
+  "mode": "replay",
+  "source_name": "duplicate_merge_demo",
+  "description": "PII-safe 중복 민원 병합 UI 검증용 replay seed",
+  "as_of": "2026-06-20T09:00:00+09:00",
+  "scenarios": [
+    {
+      "id": "hotspot_apartment_noise_duplicate",
+      "label": "핫스팟 안 반복 공사 소음 중복 후보",
+      "expected_alert": true,
+      "expected_duplicate": true,
+      "expected_linked_issue_alert": true,
+      "expected_status": "candidate",
+      "events": [
+        {
+          "id": "dm-hotspot-noise-00",
+          "received_at": "2026-06-20T09:00:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.5665,
+          "longitude": 126.978,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-hotspot-noise-01",
+          "received_at": "2026-06-20T08:42:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.566579999999995,
+          "longitude": 126.97806999999999,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-hotspot-noise-02",
+          "received_at": "2026-06-20T08:24:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.56666,
+          "longitude": 126.97814,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-hotspot-noise-03",
+          "received_at": "2026-06-20T08:06:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.566739999999996,
+          "longitude": 126.97820999999999,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-hotspot-noise-04",
+          "received_at": "2026-06-20T07:48:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.56682,
+          "longitude": 126.97828,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-hotspot-noise-05",
+          "received_at": "2026-06-20T07:30:00+09:00",
+          "title": "한빛아파트 북문 공사 소음 반복 신고",
+          "body": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "masked_text": "한빛아파트 북문 공사 소음 반복 신고 한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다. 거주자 휴식과 통학 동선에 불편이 커지고 있습니다. 현장 점검과 공사 소음 저감 조치를 요청합니다. 최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "생활불편",
+          "predicted_department": "환경관리과",
+          "final_department": "환경관리과",
+          "region": "새빛동",
+          "latitude": 37.5669,
+          "longitude": 126.97834999999999,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "한빛아파트 북문 공사장에서 굴착 장비 소음과 진동이 반복되고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "거주자 휴식과 통학 동선에 불편이 커지고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 점검과 공사 소음 저감 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "최근 세 시간 안에 같은 공사장 관련 신고가 집중 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "현장 점검과 소음 저감 조치 요청"
+          ],
+          "responsible_unit": [
+            "환경관리과"
+          ],
+          "civil_category": "생활불편",
+          "entity_texts": [
+            "한빛아파트 북문 공사장",
+            "공사 소음",
+            "진동"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ]
+    },
+    {
+      "id": "general_duplicate_queue",
+      "label": "핫스팟과 무관한 일반 중복 후보",
+      "expected_alert": false,
+      "expected_duplicate": true,
+      "expected_linked_issue_alert": false,
+      "expected_status": "candidate",
+      "events": [
+        {
+          "id": "dm-general-lamp-00",
+          "received_at": "2026-06-20T03:00:00+09:00",
+          "title": "늘봄공원 북문 가로등 고장 신고",
+          "body": "늘봄공원 북문 가로등 고장 신고 늘봄공원 북문 산책로 가로등이 꺼져 있습니다. 퇴근 시간 보행자가 어두운 길을 지나야 합니다. 가로등 점검과 보수를 요청합니다. 같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+          "masked_text": "늘봄공원 북문 가로등 고장 신고 늘봄공원 북문 산책로 가로등이 꺼져 있습니다. 퇴근 시간 보행자가 어두운 길을 지나야 합니다. 가로등 점검과 보수를 요청합니다. 같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "시설보수",
+          "predicted_department": "도로조명과",
+          "final_department": "도로조명과",
+          "region": "달빛동",
+          "latitude": 37.5563,
+          "longitude": 126.9237,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "늘봄공원 북문 산책로 가로등이 꺼져 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "퇴근 시간 보행자가 어두운 길을 지나야 합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "가로등 점검과 보수를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "가로등 보수 요청"
+          ],
+          "responsible_unit": [
+            "도로조명과"
+          ],
+          "civil_category": "시설보수",
+          "entity_texts": [
+            "늘봄공원 북문",
+            "가로등"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-general-lamp-01",
+          "received_at": "2026-06-20T02:40:00+09:00",
+          "title": "늘봄공원 북문 가로등 고장 신고",
+          "body": "늘봄공원 북문 가로등 고장 신고 늘봄공원 북문 산책로 가로등이 꺼져 있습니다. 퇴근 시간 보행자가 어두운 길을 지나야 합니다. 가로등 점검과 보수를 요청합니다. 같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+          "masked_text": "늘봄공원 북문 가로등 고장 신고 늘봄공원 북문 산책로 가로등이 꺼져 있습니다. 퇴근 시간 보행자가 어두운 길을 지나야 합니다. 가로등 점검과 보수를 요청합니다. 같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "시설보수",
+          "predicted_department": "도로조명과",
+          "final_department": "도로조명과",
+          "region": "달빛동",
+          "latitude": 37.55636,
+          "longitude": 126.92378,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "늘봄공원 북문 산책로 가로등이 꺼져 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "퇴근 시간 보행자가 어두운 길을 지나야 합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "가로등 점검과 보수를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지점의 시설 고장 신고가 반복 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "가로등 보수 요청"
+          ],
+          "responsible_unit": [
+            "도로조명과"
+          ],
+          "civil_category": "시설보수",
+          "entity_texts": [
+            "늘봄공원 북문",
+            "가로등"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ]
+    },
+    {
+      "id": "different_request_risk",
+      "label": "같은 사건이지만 요청 유형이 섞인 주의 후보",
+      "expected_alert": false,
+      "expected_duplicate": true,
+      "expected_linked_issue_alert": false,
+      "expected_status": "candidate",
+      "expected_risk_flags": [
+        "REQUEST_TYPE_MISMATCH",
+        "LEGAL_RIGHTS_OR_DEADLINE_RISK"
+      ],
+      "events": [
+        {
+          "id": "dm-risk-parking-01",
+          "received_at": "2026-06-20T03:55:00+09:00",
+          "title": "새빛초 후문 불법 주정차 단속 요청",
+          "body": "새빛초 후문 불법 주정차 단속 요청 새빛초 후문 횡단보도 주변에 불법 주정차 차량이 반복 정차합니다. 등하교 시간 보행 안전이 우려됩니다. 현장 단속과 계도 조치를 요청합니다. 같은 시간대에 같은 지점에서 반복 신고가 접수되었습니다.",
+          "masked_text": "새빛초 후문 불법 주정차 단속 요청 새빛초 후문 횡단보도 주변에 불법 주정차 차량이 반복 정차합니다. 등하교 시간 보행 안전이 우려됩니다. 현장 단속과 계도 조치를 요청합니다. 같은 시간대에 같은 지점에서 반복 신고가 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "교통",
+          "predicted_department": "교통지도과",
+          "final_department": "교통지도과",
+          "region": "새빛동",
+          "latitude": 37.5658,
+          "longitude": 126.9769,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "새빛초 후문 횡단보도 주변에 불법 주정차 차량이 반복 정차합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "등하교 시간 보행 안전이 우려됩니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "현장 단속과 계도 조치를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 시간대에 같은 지점에서 반복 신고가 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "불법 주정차 단속 요청"
+          ],
+          "responsible_unit": [
+            "교통지도과"
+          ],
+          "civil_category": "교통",
+          "entity_texts": [
+            "새빛초 후문",
+            "불법 주정차"
+          ],
+          "urgency": "high",
+          "risk_level": "high",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-risk-parking-02",
+          "received_at": "2026-06-20T03:36:00+09:00",
+          "title": "새빛초 후문 불법 주정차 관련 보상 상담 요청",
+          "body": "새빛초 후문 불법 주정차 관련 보상 상담 요청 새빛초 후문 불법 주정차 차량 때문에 통행 중 차량 흠집 피해가 있었다고 주장합니다. 개별 보상과 책임 관계 확인이 필요한 상황입니다. 피해 보상 상담과 처리 기준 안내를 요청합니다. 같은 지점의 불법 주정차 상황과 연결될 수 있으나 요구사항은 다릅니다.",
+          "masked_text": "새빛초 후문 불법 주정차 관련 보상 상담 요청 새빛초 후문 불법 주정차 차량 때문에 통행 중 차량 흠집 피해가 있었다고 주장합니다. 개별 보상과 책임 관계 확인이 필요한 상황입니다. 피해 보상 상담과 처리 기준 안내를 요청합니다. 같은 지점의 불법 주정차 상황과 연결될 수 있으나 요구사항은 다릅니다.",
+          "predicted_category": null,
+          "final_category": "교통",
+          "predicted_department": "교통지도과",
+          "final_department": "교통지도과",
+          "region": "새빛동",
+          "latitude": 37.5659,
+          "longitude": 126.977,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "새빛초 후문 불법 주정차 차량 때문에 통행 중 차량 흠집 피해가 있었다고 주장합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "개별 보상과 책임 관계 확인이 필요한 상황입니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "피해 보상 상담과 처리 기준 안내를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 지점의 불법 주정차 상황과 연결될 수 있으나 요구사항은 다릅니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "피해 보상 상담 요청"
+          ],
+          "responsible_unit": [
+            "교통지도과"
+          ],
+          "civil_category": "교통",
+          "entity_texts": [
+            "새빛초 후문",
+            "불법 주정차"
+          ],
+          "urgency": "normal",
+          "risk_level": "medium",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ]
+    },
+    {
+      "id": "confirmed_draft_demo",
+      "label": "담당자 확정 후 draft payload 생성 확인용 후보",
+      "expected_alert": false,
+      "expected_duplicate": true,
+      "expected_linked_issue_alert": false,
+      "expected_status_after_demo": "confirmed",
+      "events": [
+        {
+          "id": "dm-confirmed-library-00",
+          "received_at": "2026-06-20T02:00:00+09:00",
+          "title": "온누리도서관 열람실 냉난방기 고장 신고",
+          "body": "온누리도서관 열람실 냉난방기 고장 신고 온누리도서관 열람실 냉난방기가 작동하지 않습니다. 이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다. 냉난방기 점검과 수리를 요청합니다. 같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+          "masked_text": "온누리도서관 열람실 냉난방기 고장 신고 온누리도서관 열람실 냉난방기가 작동하지 않습니다. 이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다. 냉난방기 점검과 수리를 요청합니다. 같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "시설보수",
+          "predicted_department": "시설관리과",
+          "final_department": "시설관리과",
+          "region": "온누리동",
+          "latitude": 37.5729,
+          "longitude": 126.9794,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "온누리도서관 열람실 냉난방기가 작동하지 않습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "냉난방기 점검과 수리를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "냉난방기 점검과 수리 요청"
+          ],
+          "responsible_unit": [
+            "시설관리과"
+          ],
+          "civil_category": "시설보수",
+          "entity_texts": [
+            "온누리도서관 열람실",
+            "냉난방기"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        },
+        {
+          "id": "dm-confirmed-library-01",
+          "received_at": "2026-06-20T01:48:00+09:00",
+          "title": "온누리도서관 열람실 냉난방기 고장 신고",
+          "body": "온누리도서관 열람실 냉난방기 고장 신고 온누리도서관 열람실 냉난방기가 작동하지 않습니다. 이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다. 냉난방기 점검과 수리를 요청합니다. 같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+          "masked_text": "온누리도서관 열람실 냉난방기 고장 신고 온누리도서관 열람실 냉난방기가 작동하지 않습니다. 이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다. 냉난방기 점검과 수리를 요청합니다. 같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+          "predicted_category": null,
+          "final_category": "시설보수",
+          "predicted_department": "시설관리과",
+          "final_department": "시설관리과",
+          "region": "온누리동",
+          "latitude": 37.57295,
+          "longitude": 126.97945,
+          "status": "open",
+          "handling_time_minutes": null,
+          "reopened": false,
+          "escalated": false,
+          "user_feedback_score": null,
+          "reviewer_feedback": null,
+          "rag": {
+            "doc_ids": [],
+            "scores": [],
+            "query": null,
+            "retrieval_score": null
+          },
+          "answer": null,
+          "evaluation": {
+            "score": null,
+            "rubric": null,
+            "failure_reasons": []
+          },
+          "feedback": null,
+          "structured_elements": {
+            "observation": {
+              "text": "온누리도서관 열람실 냉난방기가 작동하지 않습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "result": {
+              "text": "이용자들이 장시간 머무르기 어렵다는 불편을 호소하고 있습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "request": {
+              "text": "냉난방기 점검과 수리를 요청합니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            },
+            "context": {
+              "text": "같은 시설의 같은 장비 고장 신고가 반복 접수되었습니다.",
+              "confidence": null,
+              "evidence_span": [],
+              "status": null
+            }
+          },
+          "request_segments": [
+            "냉난방기 점검과 수리 요청"
+          ],
+          "responsible_unit": [
+            "시설관리과"
+          ],
+          "civil_category": "시설보수",
+          "entity_texts": [
+            "온누리도서관 열람실",
+            "냉난방기"
+          ],
+          "urgency": "normal",
+          "risk_level": "normal",
+          "embedding": null,
+          "pipeline_version": null,
+          "prompt_version": null,
+          "model_version": null,
+          "pii_status": "PASSED",
+          "pii_detected": false,
+          "pii_labels": []
+        }
+      ]
+    }
+  ]
+}
