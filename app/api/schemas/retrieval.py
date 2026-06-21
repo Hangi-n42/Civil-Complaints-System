@@ -301,6 +301,9 @@ class SearchResultMetadata(BaseModel):
     complexity_level: Optional[str] = None
     retrieval_policy: Optional[str] = None
     matched_segments: List[str] = Field(default_factory=list)
+    grounding_relevance_score: Optional[float] = None
+    grounding_filter_applied: Optional[bool] = None
+    grounding_filter_mode: Optional[str] = None
 
 
 class SearchResultItem(BaseModel):

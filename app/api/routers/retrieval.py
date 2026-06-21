@@ -430,6 +430,7 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
         }
         metadata = item.get("metadata") or {}
         matched_segments = metadata.get("matched_segments") or item.get("matched_segments") or []
+        grounding_relevance_score = metadata.get("grounding_relevance_score")
         formatted_results.append(
             {
                 "rank": int(item.get("rank", 0)),
@@ -455,6 +456,9 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
                     "complexity_level": routing["routing_trace"]["complexity_level"],
                     "retrieval_policy": routing["retrieval_policy"],
                     "matched_segments": matched_segments,
+                    "grounding_relevance_score": grounding_relevance_score,
+                    "grounding_filter_applied": metadata.get("grounding_filter_applied"),
+                    "grounding_filter_mode": metadata.get("grounding_filter_mode"),
                 },
                 "doc_id": doc_id,
                 "score": score,
@@ -472,8 +476,18 @@ async def search_documents(request: SearchRequest) -> SearchResponse:
             }
         )
 
-    # Issue #193, #191: Deduplication by doc_id and sort by score desc
-    formatted_results.sort(key=lambda x: x["score"], reverse=True)
+    def _grounding_sort_score(item: dict) -> float:
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        try:
+            return float(metadata.get("grounding_relevance_score"))
+        except (TypeError, ValueError):
+            return -1.0
+
+    # Issue #193, #191: Deduplication by doc_id and sort by grounding relevance, then search score
+    formatted_results.sort(
+        key=lambda x: (_grounding_sort_score(x), x["score"]),
+        reverse=True,
+    )
     seen_docs = set()
     deduped_results = []
     for r in formatted_results:

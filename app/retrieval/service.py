@@ -1269,7 +1269,15 @@ class RetrievalService:
                 max_concurrency=settings.GROUNDING_FILTER_MAX_CONCURRENCY,
             )
             filter_mode = "per_item_fallback"
-        filtered = [item for item, _ in kept]
+        filtered = []
+        for item, grounding_score in kept:
+            updated = dict(item)
+            metadata = dict(item.get("metadata") or {})
+            metadata["grounding_relevance_score"] = float(grounding_score)
+            metadata["grounding_filter_applied"] = True
+            metadata["grounding_filter_mode"] = filter_mode
+            updated["metadata"] = metadata
+            filtered.append(updated)
         self.logger.info(
             f"grounding 필터({filter_mode}): {len(results)}→{len(filtered)}개 "
             "(해로운 선례 제거)"
