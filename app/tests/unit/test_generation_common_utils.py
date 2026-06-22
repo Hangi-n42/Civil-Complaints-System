@@ -8,6 +8,8 @@ from app.generation.parsing.json_utils import (
     parse_qa_json_response,
 )
 from app.generation.validators.qa_response_validator import (
+    _CIVIL_REPLY_CLOSING,
+    _CIVIL_REPLY_PREFIX_3,
     build_validation_result,
     ensure_citation_tokens,
     format_civil_reply_answer,
@@ -200,7 +202,7 @@ def test_normalize_citations_and_tokens():
     assert len(citations) == 1
     assert citations[0]["ref_id"] == 1
     assert "[[출처 1]]" not in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
 
 
 def test_normalize_citations_falls_back_when_model_returns_nested_list():
@@ -232,8 +234,8 @@ def test_format_civil_reply_removes_citation_tokens_from_answer():
     )
 
     assert answer.startswith("1. 귀하께서 신청하신 민원에 대한 검토 결과를 다음과 같이 답변드립니다.")
-    assert "3. 검토 의견은 다음과 같습니다. 현장 여건을 확인한 뒤 조치 가능 여부를 검토하겠습니다." in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert f"{_CIVIL_REPLY_PREFIX_3} 현장 여건을 확인한 뒤 조치 가능 여부를 검토하겠습니다." in answer
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
     assert "[[출처 1]]" not in answer
     assert "[[출처 2]]" not in answer
 
@@ -263,7 +265,7 @@ def test_format_civil_reply_removes_generic_bridge_phrase():
 
     assert "위 내용을 바탕으로 담당부서에서는 현장 여건" not in answer
     assert "주차장 설치 요청 취지를 확인했습니다." in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
 
 
 def test_format_civil_reply_keeps_single_closing_only():
@@ -278,8 +280,8 @@ def test_format_civil_reply_keeps_single_closing_only():
 
     answer = format_civil_reply_answer(raw, citations)
 
-    assert answer.count("감사합니다. 끝.") == 1
-    assert "3. 검토 의견은 다음과 같습니다. 현장 확인 후 처리 가능 여부를 검토하겠습니다." in answer
+    assert answer.count("감사합니다.") == 1
+    assert f"{_CIVIL_REPLY_PREFIX_3} 현장 확인 후 처리 가능 여부를 검토하겠습니다." in answer
 
 
 def test_format_civil_reply_softens_strong_commitment():
@@ -357,7 +359,7 @@ def test_format_civil_reply_trims_incomplete_tail_after_complete_sentence():
 
     assert "추가로 왔습" not in answer
     assert "현장 확인 결과 통행 불편이 확인되었습니다." in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
 
 
 def test_format_civil_reply_replaces_fully_incomplete_body_with_fallback():
@@ -368,7 +370,7 @@ def test_format_civil_reply_replaces_fully_incomplete_body_with_fallback():
     assert "담당부서 검토 결과 주변" not in answer
     assert "검색된 유사 사례는 처리 방향을 검토하기 위한 참고자료" in answer
     assert "도로 파손 민원은 현장 확인 후 보수 여부를 검토합니다." not in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
 
 
 def test_format_civil_reply_strips_html_and_trims_list_fragment():
@@ -384,7 +386,7 @@ def test_format_civil_reply_strips_html_and_trims_list_fragment():
     assert "<ul>" not in answer
     assert "공원 내 주요" not in answer
     assert "즉시 조치로는 다음 활동을 진행하겠습니다." in answer
-    assert answer.endswith("감사합니다. 끝.")
+    assert answer.endswith(_CIVIL_REPLY_CLOSING)
 
 
 def test_format_civil_reply_removes_literal_newlines_internal_labels_and_redacted_tail():
