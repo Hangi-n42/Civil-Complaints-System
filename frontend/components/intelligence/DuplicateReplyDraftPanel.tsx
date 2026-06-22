@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DuplicateReplyDraft } from "@/lib/api";
 import { replyDraftFallbackNotice, safetyWarningLabel } from "./duplicateMerge";
 
@@ -17,6 +17,11 @@ export function DuplicateReplyDraftPanel({
   onMarkProcessed?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [editedAnswer, setEditedAnswer] = useState(replyDraft.answer);
+  // 새 초안이 생성되면(answer 변경) 편집창을 최신 초안으로 동기화한다. 워크벤치 답변 초안과 동일한 동작.
+  useEffect(() => {
+    setEditedAnswer(replyDraft.answer);
+  }, [replyDraft.answer]);
   const fallbackNotice = replyDraftFallbackNotice(replyDraft.generation_metadata);
   const safetyWarnings = replyDraft.safety_warnings ?? [];
   const limitations = replyDraft.limitations ?? [];
@@ -31,7 +36,7 @@ export function DuplicateReplyDraftPanel({
 
   async function copyAnswer() {
     try {
-      await navigator.clipboard.writeText(replyDraft.answer);
+      await navigator.clipboard.writeText(editedAnswer);
       setCopied(true);
     } catch {
       setCopied(false);
@@ -100,9 +105,15 @@ export function DuplicateReplyDraftPanel({
 
       <div className="mt-3">
         <div className="mb-1 text-xs font-bold text-slate-500">대표 답변 초안</div>
-        <div className="whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-800">
-          {replyDraft.answer}
-        </div>
+        <textarea
+          value={editedAnswer}
+          onChange={(event) => {
+            setEditedAnswer(event.target.value);
+            setCopied(false);
+          }}
+          placeholder="AI가 생성한 초안을 검토·편집하세요..."
+          className="h-44 w-full resize-y rounded-md border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-800 outline-none focus:border-slate-400"
+        />
       </div>
 
       <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
