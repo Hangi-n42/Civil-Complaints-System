@@ -12,6 +12,24 @@ from app.core.config import PROJECT_ROOT, settings
 from app.core.title_builder import build_case_title
 
 
+def build_snippet(chunk_text: str, max_length: int = 120) -> str:
+    parts = [" ".join(part.split()) for part in chunk_text.splitlines() if part.strip()]
+    text = " ".join(parts)
+    if len(text) <= max_length:
+        return text
+    if len(parts) > 1:
+        separator = " | "
+        budget = max(12, (max_length - len(separator) * (len(parts) - 1)) // len(parts))
+        rendered = [
+            part if len(part) <= budget else part[: max(1, budget - 3)].rstrip() + "..."
+            for part in parts
+        ]
+        return separator.join(rendered)[:max_length].rstrip()
+    tail_size = max(24, max_length // 2)
+    head_size = max(24, max_length - tail_size - 5)
+    return f"{text[:head_size].rstrip()} ... {text[-tail_size:].lstrip()}"
+
+
 def _normalize_text(value: Any) -> str:
     return " ".join(str(value or "").split())
 
@@ -421,18 +439,4 @@ class ChromaVectorStore:
         return results_list
 
     def _build_snippet(self, chunk_text: str, max_length: int = 120) -> str:
-        parts = [" ".join(part.split()) for part in chunk_text.splitlines() if part.strip()]
-        text = " ".join(parts)
-        if len(text) <= max_length:
-            return text
-        if len(parts) > 1:
-            separator = " | "
-            budget = max(12, (max_length - len(separator) * (len(parts) - 1)) // len(parts))
-            rendered = [
-                part if len(part) <= budget else part[: max(1, budget - 3)].rstrip() + "..."
-                for part in parts
-            ]
-            return separator.join(rendered)[:max_length].rstrip()
-        tail_size = max(24, max_length // 2)
-        head_size = max(24, max_length - tail_size - 5)
-        return f"{text[:head_size].rstrip()} ... {text[-tail_size:].lstrip()}"
+        return build_snippet(chunk_text, max_length)

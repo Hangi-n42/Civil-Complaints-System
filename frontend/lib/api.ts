@@ -1,6 +1,6 @@
 import { mockAssignedCases, mockWorkbenchSimilarCases } from "./mockData";
 import type { ResponsibleUnit } from "./responsibleUnit";
-import { normalizeSegmentAnswers, type SegmentAnswerCard } from "./draft";
+import { normalizeSegmentAnswers, normalizeSegments, selectDraftRequestSegments, type SegmentAnswerCard } from "./draft";
 
 export type TopicType = "welfare" | "traffic" | "environment" | "construction" | "general";
 
@@ -1116,19 +1116,7 @@ function deriveMockRequestSegments(summary: string, explicitSegments?: string[])
 }
 
 function preferDetailedSegments(primary?: string[], fallback?: string[]): string[] {
-  const primarySegments = normalizeSegments(primary);
-  const fallbackSegments = normalizeSegments(fallback);
-  if (fallbackSegments.length > primarySegments.length && fallbackSegments.length > 1) return fallbackSegments;
-  if (primarySegments.length > 1) return primarySegments;
-  if (fallbackSegments.length > 1) return fallbackSegments;
-  if (primarySegments.length > 0) return primarySegments;
-  return fallbackSegments;
-}
-
-function normalizeSegments(segments?: string[]): string[] {
-  return (segments || [])
-    .map((segment) => String(segment || "").split(/\s+/).join(" "))
-    .filter(Boolean);
+  return selectDraftRequestSegments({ responseSegments: primary, fallbackSegments: fallback });
 }
 
 function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> | null {
