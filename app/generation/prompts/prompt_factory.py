@@ -6,6 +6,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.exceptions import NoEvidenceError
+from app.generation.citation.citation_mapper import CitationMapper
 from app.core.logging import pipeline_logger
 from app.core.config import settings
 from app.generation.grounding_quality import rerank_contexts_by_semantic_match
@@ -749,7 +750,7 @@ class PromptFactory:
             derived_trace.setdefault("excluded_case_id", exclude_case_id)
 
         prompt_mode = str(derived_trace.get("prompt_mode") or "default").lower()
-        snippet_max_chars = 120 if prompt_mode == "compact" else 200
+        snippet_max_chars = 120 if prompt_mode == "compact" else CitationMapper.SNIPPET_MAX_CHARS
 
         service = retrieval_service or get_retrieval_service()
         raw_context = await service.search(
@@ -936,8 +937,8 @@ class PromptFactory:
         if prompt_mode == "duplicate_group" and isinstance(duplicate_group, dict):
             duplicate_guide = cls._build_duplicate_group_guide(duplicate_group)
 
-        snippet_max_chars = 120 if is_compact else 200
-        citation_snippet_max_chars = 120 if is_compact else 200
+        snippet_max_chars = 120 if is_compact else CitationMapper.SNIPPET_MAX_CHARS
+        citation_snippet_max_chars = 120 if is_compact else CitationMapper.SNIPPET_MAX_CHARS
         context_limit = 2 if is_compact else min(3, len(context))
         segment_count = len(request_segments[:4]) if request_segments else 1
         citations_max = max(1, min(len(context), segment_count * 2))

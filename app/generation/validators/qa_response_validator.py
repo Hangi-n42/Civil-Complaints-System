@@ -6,6 +6,8 @@ import ast
 import re
 from typing import Any, Dict, List
 
+from app.generation.citation.citation_mapper import CitationMapper
+
 
 _CITE_TOKEN_PATTERN = re.compile(r"\[\[출처\s*(\d+)\]\]")
 _DEBUG_METADATA_PATTERN = re.compile(
@@ -815,7 +817,7 @@ def normalize_citations(raw_citations: List[Dict[str, Any]], context: List[Dict[
             continue
 
         doc_id = str(item.get("doc_id") or ctx.get("doc_id") or "").strip() or None
-        snippet = str(item.get("snippet") or ctx.get("snippet") or "").strip()
+        snippet = str(item.get("snippet") or ctx.get("snippet") or "").strip()[:CitationMapper.SNIPPET_MAX_CHARS]
 
         if not snippet or not chunk_id:
             continue

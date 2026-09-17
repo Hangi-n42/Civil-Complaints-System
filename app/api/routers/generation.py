@@ -538,6 +538,7 @@ async def _attach_civil_llm_rubric(
     generation_service,
     citation_validation: dict | None = None,
     query_signals: dict | None = None,
+    q2_cache: dict | None = None,
 ) -> dict | None:
     """Attach runtime Civil Complaint LLM-Rubric report to the QA payload."""
     if not settings.ENABLE_CIVIL_LLM_RUBRIC:
@@ -554,13 +555,14 @@ async def _attach_civil_llm_rubric(
         else {}
     )
     llm_call = (
-        getattr(generation_service, "call_ollama", None)
+        getattr(generation_service, "call_rubric_judge", None)
         if settings.CIVIL_LLM_RUBRIC_USE_LLM_JUDGE
         else None
     )
 
     try:
         rubric_result = await get_civil_llm_rubric_evaluator().evaluate(
+            q2_cache=q2_cache,
             case_id=str(request.complaint_id or ""),
             complaint_text=request.query,
             generated_answer=str(unified_payload.get("answer") or ""),
@@ -659,6 +661,7 @@ async def _maybe_apply_prometheus_revision(
     strategy_id: str,
     route_key: str,
     query_signals: dict | None,
+    q2_cache: dict | None = None,
 ) -> dict | None:
     if (
         not settings.ENABLE_PROMETHEUS_RUBRIC_FEEDBACK
@@ -871,6 +874,7 @@ async def _maybe_apply_prometheus_revision(
         }
     )
     final_rubric = await _attach_civil_llm_rubric(
+        q2_cache=q2_cache,
         unified_payload=revised_payload,
         request=request,
         references=context,
@@ -957,6 +961,7 @@ async def _generate_qa(
 ) -> QAResponse | JSONResponse:
     """검색 결과 기반 RAG QA 응답을 생성한다."""
     request_id = str(request.request_id or "").strip() or make_request_id()
+    q2_cache: dict = {}
     start = perf_counter()
     response.headers["X-Contract-Version"] = CONTRACT_VERSION
 
@@ -1140,6 +1145,7 @@ async def _generate_qa(
             )
         )
         await _attach_civil_llm_rubric(
+            q2_cache=q2_cache,
             unified_payload=unified_payload,
             request=request,
             references=[],
@@ -1425,6 +1431,7 @@ async def _generate_qa(
         }
     )
     await _attach_civil_llm_rubric(
+        q2_cache=q2_cache,
         unified_payload=unified_payload,
         request=request,
         references=context,
@@ -1437,6 +1444,7 @@ async def _generate_qa(
         query_signals=query_signals,
     )
     prometheus_revision_result = await _maybe_apply_prometheus_revision(
+        q2_cache=q2_cache,
         unified_payload=unified_payload,
         request=request,
         generation_service=generation_service,

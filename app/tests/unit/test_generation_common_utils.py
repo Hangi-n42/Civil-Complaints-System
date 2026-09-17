@@ -686,3 +686,39 @@ def test_format_civil_reply_removes_unsupported_relocation_promise():
     assert "주민 설명회" not in answer
     assert "설치하는 방안" not in answer
     assert "처리 가능 여부를 검토하겠습니다" in answer
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode,limit", [("default", 200), ("compact", 120)])
+async def test_long_citation_matches_prompt_schema_and_fallback(mode, limit, monkeypatch):
+    from app.generation.citation.citation_mapper import CitationMapper
+    from app.generation.service import GenerationService
+
+    original = "현장 확인 후 처리 방향을 안내합니다. " * 16
+    context = [{"chunk_id": "C1", "case_id": "CASE-1", "snippet": original, "score": 0.9}]
+    service = GenerationService()
+    prompt = await service.build_rag_prompt("처리 절차 안내", context, mode=mode)
+    schema = build_qa_response_schema(context, snippet_max_chars=limit)
+    excerpt = schema["properties"]["citations"]["items"]["properties"]["snippet"]["enum"][0]
+    assert excerpt == original.strip()[:limit]
+    assert f"snippet={excerpt}" in prompt.splitlines()
+
+    attempts = []
+
+    async def invalid_response(prompt, temperature=0.7, response_schema=None):
+        expected_limit = limit if not attempts else 120
+        snippet_schema = response_schema["properties"]["citations"]["items"]["properties"]["snippet"]
+        assert snippet_schema["enum"] == [original.strip()[:expected_limit]]
+        attempts.append(expected_limit)
+        return "not-json"
+
+    monkeypatch.setattr(service, "call_ollama", invalid_response)
+    result = await service.generate_qa("처리 절차 안내", context, routing_trace={"prompt_mode": mode})
+    assert attempts == [limit, 120]
+    assert result["generation_metadata"]["fallback_used"] is True
+    fallback = result["citations"]
+    generated = await service.build_citations("", context)
+    for citations in (normalize_citations(context, context), normalize_citations([], context), fallback, generated):
+        assert citations[0]["snippet"] == original.strip()[:200]
+        assert CitationMapper().validate_citations_against_context(citations, context) == (True, 0, [])
+    assert context[0]["snippet"] == original

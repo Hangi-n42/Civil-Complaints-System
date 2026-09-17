@@ -229,8 +229,9 @@ class Settings:
     )
     CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION: str = os.getenv(
         "CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION",
-        "judge_prompt_2026_06_18",
+        "judge_prompt_2026_09_17_q4_structured",
     )
+    CIVIL_LLM_RUBRIC_MODEL: str = os.getenv("CIVIL_LLM_RUBRIC_MODEL", "qwen3.5:4b")
     CIVIL_LLM_RUBRIC_MAX_CONTEXTS: int = int(os.getenv("CIVIL_LLM_RUBRIC_MAX_CONTEXTS", "5"))
     CIVIL_LLM_RUBRIC_TEMPERATURE: float = float(os.getenv("CIVIL_LLM_RUBRIC_TEMPERATURE", "0.0"))
     ENABLE_PROMETHEUS_RUBRIC_FEEDBACK: bool = os.getenv(
