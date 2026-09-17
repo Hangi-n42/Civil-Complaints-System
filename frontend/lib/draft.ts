@@ -122,7 +122,7 @@ export function isDraftStale(params: { draftQueryHash: string | null; searchQuer
   return draftQueryHash !== searchQueryHash;
 }
 
-function normalizeSegments(segments?: string[]): string[] {
+export function normalizeSegments(segments?: string[]): string[] {
   return (segments || [])
     .map((segment) => String(segment || "").split(/\s+/).join(" "))
     .filter(Boolean);

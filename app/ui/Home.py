@@ -15,6 +15,7 @@ from urllib import error as urlerror
 from urllib import request as urlrequest
 
 from app.core.title_builder import build_case_title
+from app.ui.services.ui_case_adapter import _format_received_at, _span_to_evidence_text
 from app.ui.components.search_ui import (
     render_search_filter,
     render_search_result_card,
@@ -1590,16 +1591,6 @@ def _clear_case_status_cache_file() -> None:
 # 2. MOCK DATA DEFINITIONS
 # ============================================================================
 
-def _format_received_at(value: Any) -> str:
-    if isinstance(value, str) and value:
-        try:
-            dt = datetime.fromisoformat(value.replace("Z", ""))
-            return dt.strftime("%Y-%m-%d %H:%M")
-        except ValueError:
-            return value
-    return "-"
-
-
 def _safe_index(options: List[str], value: Any, default: int = 0) -> int:
     try:
         text = "" if value is None else str(value)
@@ -1723,22 +1714,6 @@ def filter_cases_by_status(cases: List[Dict[str, Any]], statuses: Dict[str, Any]
     if not status_value or status_value == "전체":
         return list(cases)
     return [case for case in cases if get_case_status_kr(case, statuses) == status_value]
-
-
-def _span_to_evidence_text(raw_text: str, span: Any) -> str:
-    if isinstance(span, str):
-        return span
-    if (
-        isinstance(span, (list, tuple))
-        and len(span) == 2
-        and isinstance(span[0], int)
-        and isinstance(span[1], int)
-    ):
-        start, end = span
-        if isinstance(raw_text, str) and 0 <= start < end <= len(raw_text):
-            return raw_text[start:end]
-        return f"{start}:{end}"
-    return ""
 
 
 def load_week2_structured_sample_cases() -> List[Dict[str, Any]]:

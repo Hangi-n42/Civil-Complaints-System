@@ -134,21 +134,20 @@ def render_search_result_card(idx: int, item: Dict[str, Any]) -> None:
             st.caption(snippet)
 
 
+def _status_text(status: str) -> str:
+    return (status or "").strip().upper() or "PENDING"
+
+
+def _esc(value: Any) -> str:
+    return html.escape(str(value or "-"), quote=False)
+
+
 def render_similar_cases_table(rows: list[dict[str, Any]], *, return_html: bool = False) -> str | None:
     """워크벤치(스크린샷)용 유사 민원 테이블 렌더러.
 
     Expected row keys:
       - case_id, date, similarity, status
     """
-
-    def _status_text(status: str) -> str:
-        text = (status or "").strip().upper()
-        if not text:
-            text = "PENDING"
-        return text
-
-    def _esc(value: Any) -> str:
-        return str(value or "-").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     body_rows: list[str] = []
     for row in rows or []:
@@ -184,15 +183,6 @@ def render_similar_cases_collapsible(rows: list[dict[str, Any]], *, return_html:
       - case_id, date, similarity, status
       - complaint (민원), answer (답변)
     """
-
-    def _esc(value: Any) -> str:
-        return str(value or "-").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-    def _status_text(status: str) -> str:
-        text = (status or "").strip().upper()
-        if not text:
-            text = "PENDING"
-        return text
 
     items: list[str] = []
     for idx, row in enumerate(rows or [], start=1):

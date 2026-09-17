@@ -182,23 +182,19 @@ def normalize_response(payload: Dict[str, Any]) -> Dict[str, Any]:
 def validate_unified_contract(payload: Dict[str, Any]) -> List[str]:
     missing = [key for key in sorted(REQUIRED_KEYS) if key not in payload]
 
-    if not isinstance(payload.get("routing_trace"), dict):
-        missing.append("routing_trace")
-    if not isinstance(payload.get("structured_output"), dict):
-        missing.append("structured_output")
-    if not isinstance(payload.get("citations"), list):
-        missing.append("citations")
-    if not isinstance(payload.get("legal_citations"), list):
-        missing.append("legal_citations")
-    if not isinstance(payload.get("legal_citation_warnings"), list):
-        missing.append("legal_citation_warnings")
-    if not isinstance(payload.get("limitations"), list):
-        missing.append("limitations")
-    if not isinstance(payload.get("latency_ms"), dict):
-        missing.append("latency_ms")
-    if not isinstance(payload.get("quality_signals"), dict):
-        missing.append("quality_signals")
-    if not isinstance(payload.get("generation_metadata"), dict):
-        missing.append("generation_metadata")
+    field_types = {
+        "routing_trace": dict,
+        "structured_output": dict,
+        "citations": list,
+        "legal_citations": list,
+        "legal_citation_warnings": list,
+        "limitations": list,
+        "latency_ms": dict,
+        "quality_signals": dict,
+        "generation_metadata": dict,
+    }
+    for key, expected_type in field_types.items():
+        if not isinstance(payload.get(key), expected_type):
+            missing.append(key)
 
     return sorted(set(missing))

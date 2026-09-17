@@ -18,6 +18,15 @@ class PostcheckResult:
     findings: list[PiiFinding]
 
 
+_ADDRESS_PATTERN = re.compile(
+    r"(?:[가-힣]{2,}(?:특별시|광역시|특별자치시|특별자치도|도|시)\s*)?"
+    r"(?:[가-힣]{1,}(?:구|군)\s*)?"
+    r"(?:[가-힣0-9]{2,}(?:대로|로|길))\s*\d+(?:-\d+)?"
+    r"(?:\s*(?:\d{1,4}동|\d{1,4}호|\d{1,4}층|[가-힣0-9]+아파트|[가-힣0-9]+빌라))*"
+)
+_ADDRESS_DETAIL_PATTERN = re.compile(r"(?<!\d)\d{1,4}\s*동\s*\d{1,4}\s*호(?!\d)")
+
+
 _HIGH_RISK_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
         "주민등록번호",
@@ -42,32 +51,22 @@ _HIGH_RISK_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
         "상세주소",
         "상세주소 후보가 마스킹 후에도 남아 있음",
-        re.compile(
-            r"(?:[가-힣]{2,}(?:특별시|광역시|특별자치시|특별자치도|도|시)\s*)?"
-            r"(?:[가-힣]{1,}(?:구|군)\s*)?"
-            r"(?:[가-힣0-9]{2,}(?:대로|로|길))\s*\d+(?:-\d+)?"
-            r"(?:\s*(?:\d{1,4}동|\d{1,4}호|\d{1,4}층|[가-힣0-9]+아파트|[가-힣0-9]+빌라))*"
-        ),
+        _ADDRESS_PATTERN,
     ),
     (
         "상세주소",
         "동호수 상세주소 후보가 마스킹 후에도 남아 있음",
-        re.compile(r"(?<!\d)\d{1,4}\s*동\s*\d{1,4}\s*호(?!\d)"),
+        _ADDRESS_DETAIL_PATTERN,
     ),
 )
 
 _SUPPLEMENTAL_REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
-        re.compile(
-            r"(?:[가-힣]{2,}(?:특별시|광역시|특별자치시|특별자치도|도|시)\s*)?"
-            r"(?:[가-힣]{1,}(?:구|군)\s*)?"
-            r"(?:[가-힣0-9]{2,}(?:대로|로|길))\s*\d+(?:-\d+)?"
-            r"(?:\s*(?:\d{1,4}동|\d{1,4}호|\d{1,4}층|[가-힣0-9]+아파트|[가-힣0-9]+빌라))*"
-        ),
+        _ADDRESS_PATTERN,
         "[상세주소]",
     ),
     (
-        re.compile(r"(?<!\d)\d{1,4}\s*동\s*\d{1,4}\s*호(?!\d)"),
+        _ADDRESS_DETAIL_PATTERN,
         "[상세주소]",
     ),
     (

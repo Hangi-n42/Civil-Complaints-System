@@ -10,7 +10,7 @@ from threading import RLock
 from typing import Any
 
 from app.complaint_intelligence.duplicate_merger.schemas import DuplicateMergeRecord, DuplicateMergeStatus
-from app.complaint_intelligence.pii import mask_pii
+from app.complaint_intelligence.pii import mask_strings as _mask_strings
 from app.complaint_intelligence.public_insights.evidence_pack import PublicInsightEvidencePack
 from app.complaint_intelligence.repository import (
     AnalysisRunMode,
@@ -559,15 +559,3 @@ def _dt(value: datetime) -> str:
 
 def _parse_dt(value: str) -> datetime:
     return datetime.fromisoformat(value)
-
-
-def _mask_strings(value: Any) -> Any:
-    """DB payload에 raw PII 문자열이 남지 않도록 재귀적으로 마스킹한다."""
-
-    if isinstance(value, str):
-        return mask_pii(value).text
-    if isinstance(value, list):
-        return [_mask_strings(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _mask_strings(item) for key, item in value.items()}
-    return value

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -38,3 +39,15 @@ def mask_pii(text: str | None) -> PiiMaskResult:
             labels.append(label)
             masked = pattern.sub(f"[REDACTED:{label}]", masked)
     return PiiMaskResult(text=masked, detected_labels=tuple(dict.fromkeys(labels)))
+
+
+def mask_strings(value: Any) -> Any:
+    """저장 payload에 raw PII 문자열이 섞이지 않도록 재귀적으로 마스킹한다."""
+
+    if isinstance(value, str):
+        return mask_pii(value).text
+    if isinstance(value, list):
+        return [mask_strings(item) for item in value]
+    if isinstance(value, dict):
+        return {key: mask_strings(item) for key, item in value.items()}
+    return value

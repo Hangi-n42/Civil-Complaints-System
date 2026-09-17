@@ -21,7 +21,7 @@ from app.core.exceptions import RetrievalError
 from app.core.config import settings
 from app.core.title_builder import build_case_title
 from app.retrieval.entity_labels import ALLOWED_ENTITY_LABELS
-from app.retrieval.vectorstores.chroma_store import ChromaVectorStore
+from app.retrieval.vectorstores.chroma_store import ChromaVectorStore, build_snippet
 
 
 METADATA_SOFT_RERANK_WEIGHTS = {
@@ -701,21 +701,7 @@ class RetrievalService:
         return True
 
     def _build_snippet(self, chunk_text: str, max_length: int = 120) -> str:
-        parts = [" ".join(part.split()) for part in chunk_text.splitlines() if part.strip()]
-        text = " ".join(parts)
-        if len(text) <= max_length:
-            return text
-        if len(parts) > 1:
-            separator = " | "
-            budget = max(12, (max_length - len(separator) * (len(parts) - 1)) // len(parts))
-            rendered = [
-                part if len(part) <= budget else part[: max(1, budget - 3)].rstrip() + "..."
-                for part in parts
-            ]
-            return separator.join(rendered)[:max_length].rstrip()
-        tail_size = max(24, max_length // 2)
-        head_size = max(24, max_length - tail_size - 5)
-        return f"{text[:head_size].rstrip()} ... {text[-tail_size:].lstrip()}"
+        return build_snippet(chunk_text, max_length)
 
     def _build_title(self, chunk: Dict[str, Any], max_length: int = 60) -> str:
         summary = chunk.get("summary") or {}
