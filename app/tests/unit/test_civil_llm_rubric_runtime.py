@@ -43,12 +43,16 @@ async def test_runtime_rubric_runs_rule_fallback_and_applies_missing_citation_ca
 
 
 @pytest.mark.asyncio
-async def test_runtime_rubric_uses_independent_q_prompts_and_q2_reference_only():
+async def test_runtime_rubric_uses_groups_with_independent_q6_and_q2_reference_only():
     prompts: list[str] = []
 
     async def fake_llm_call(prompt: str, **kwargs):
         prompts.append(prompt)
-        return json.dumps({"choice": 4, "confidence": 0.8})
+        fields = kwargs["response_schema"]["properties"]
+        if "choice" in fields:
+            return json.dumps({"choice": 4, "confidence": 0.8})
+        return json.dumps({qid: {"choice": 4, "confidence": 0.8,
+                                "reason": "확인됨", "issues": []} for qid in fields})
 
     evaluator = CivilComplaintRubricEvaluator(use_llm_judge=True)
     result = await evaluator.evaluate(
@@ -75,11 +79,37 @@ async def test_runtime_rubric_uses_independent_q_prompts_and_q2_reference_only()
     )
 
     assert result["judge_status"] == "llm_judge"
-    assert len(prompts) == 8
-    assert "[생성 답변]" in prompts[0]
-    assert "[생성 답변]" not in prompts[2]
+    assert len(prompts) == 5
+    assert "[생성 답변]" in prompts[3]
+    assert "[생성 답변]" not in prompts[0]
     assert result["llm_rubric_raw"]["q0"]["source"] == "llm_judge_synthetic_probs"
     assert result["llm_rubric_raw"]["q0"]["argmax"] == 4
+    assert "source=DOC-1" in prompts[1]
+    assert "Inline [C1] markers are NOT required" in prompts[1]
+    assert "Q4 MUST be 1 or 2" in prompts[1]
+    assert "unconfirmed" in prompts[0]
+    assert "Ordinary instructions" in prompts[3]
+
+
+@pytest.mark.asyncio
+async def test_routine_guidance_without_law_does_not_force_revision():
+    async def judge(prompt, **kwargs):
+        fields = kwargs["response_schema"]["properties"]
+        item = {"choice": 4, "confidence": 0.9, "reason": "근거와 일치", "issues": []}
+        return json.dumps(item if "choice" in fields else {qid: item for qid in fields})
+
+    evaluator = CivilComplaintRubricEvaluator(use_llm_judge=True)
+    result = await evaluator.evaluate(
+        case_id="routine", complaint_text="누수 신고는 어디에 하나요?",
+        generated_answer="누수 위치를 상수도관리팀에 알려 신고해 주세요.",
+        references=[{"doc_id": "WATER", "snippet": "누수 위치를 상수도관리팀에 신고합니다."}],
+        citations=[{"doc_id": "WATER", "quote": "누수 위치를 상수도관리팀에 신고합니다."}],
+        citation_validation={"is_valid": True, "mismatch_count": 0}, llm_call=judge,
+    )
+    assert not result["safety_layer"]["cap_applied"]
+    assert select_low_score_items(result, threshold_1_4=2) == []
+    assert "missing_legal_basis" not in json.dumps(result["diagnostics"])
+    assert evaluator._manual_core_missing_count({"legal_basis_present": False}) == 0
 
 
 @pytest.mark.asyncio
@@ -155,11 +185,139 @@ def test_low_score_items_include_safety_capped_q0_below_six():
             },
             "safety_layer": {
                 "final_q0_score_0_10": 5.0,
-                "cap_reason": "missing_legal_basis",
+                "cap_reason": "special_complaint_process_missing",
             },
         },
         threshold_1_4=2.0,
     )
 
     assert low_items[0]["qid"] == "q0"
-    assert low_items[0]["cap_reason"] == "missing_legal_basis"
+    assert low_items[0]["cap_reason"] == "special_complaint_process_missing"
+
+
+@pytest.mark.asyncio
+async def test_q2_cache_is_request_local_and_invalidated_by_input_changes():
+    prompts = []
+
+    async def judge(prompt, **kwargs):
+        prompts.append(prompt)
+        fields = kwargs['response_schema']['properties']
+        value = {'choice': 2, 'confidence': 0.8, 'reason': 'UNIQUE_JUDGE_RESULT', 'issues': []}
+        return json.dumps(value if 'choice' in fields else {qid: value for qid in fields})
+
+    evaluator = CivilComplaintRubricEvaluator(use_llm_judge=True)
+    inputs = dict(case_id='cache', complaint_text='원문', generated_answer='첫 답변',
+                  references=[{'case_id': 'R1', 'snippet': '근거'}], llm_call=judge)
+    cache = {}
+    first = await evaluator.evaluate(**inputs, q2_cache=cache)
+    inputs['generated_answer'] = '수정 답변'
+    second = await evaluator.evaluate(**inputs, q2_cache=cache)
+    assert len(prompts) == 9
+    assert first['llm_rubric_raw']['q2'] == second['llm_rubric_raw']['q2']
+    assert all('UNIQUE_JUDGE_RESULT' not in prompt for prompt in prompts)
+    assert '첫 답변' not in prompts[0]
+    inputs['references'][0]['snippet'] = '변경된 근거'
+    await evaluator.evaluate(**inputs, q2_cache=cache)
+    assert len(prompts) == 14
+    inputs['complaint_text'] = '변경된 원문'
+    await evaluator.evaluate(**inputs, q2_cache=cache)
+    assert len(prompts) == 19
+    await evaluator.evaluate(**inputs, q2_cache={})
+    assert len(prompts) == 24
+
+
+@pytest.mark.asyncio
+async def test_group_error_uses_existing_rule_fallback_without_extra_calls():
+    calls = []
+
+    async def judge(prompt, **kwargs):
+        fields = kwargs['response_schema']['properties']
+        calls.append(fields)
+        if 'q3' in fields:
+            return 'invalid json'
+        value = {'choice': 3, 'confidence': 0.8, 'reason': '간단한 사유'}
+        return json.dumps(value if 'choice' in fields else {qid: value for qid in fields})
+
+    result = await CivilComplaintRubricEvaluator().evaluate(
+        case_id='invalid', complaint_text='민원', generated_answer='답변', llm_call=judge)
+    assert len(calls) == 5
+    assert result['judge_status'] == 'llm_judge_partial_with_rule_fallback'
+    for qid in ('q3', 'q4', 'q5'):
+        assert result['llm_rubric_raw'][qid]['source'] == 'rule_fallback_after_llm_error'
+
+
+@pytest.mark.asyncio
+async def test_rubric_transport_separates_model_and_disables_thinking(monkeypatch):
+    import httpx
+    from app.core.config import settings
+    from app.generation.service import GenerationService
+    payloads = []
+
+    async def post(client, url, **kwargs):
+        payloads.append(kwargs['json'])
+        return httpx.Response(200, json={'response': '{"choice":3}'})
+
+    monkeypatch.setattr(httpx.AsyncClient, 'post', post)
+    service = GenerationService()
+    for fields in ({'choice': {}}, {'q3': {}}, {'q1': {}}):
+        await service.call_rubric_judge('평가', response_schema={'properties': fields})
+    await service.call_ollama('답변 생성')
+    assert [p['options']['num_predict'] for p in payloads[:3]] == [192, 1536, 640]
+    assert all(p['model'] == settings.CIVIL_LLM_RUBRIC_MODEL and p['think'] is False for p in payloads[:3])
+    assert payloads[3]['model'] == settings.OLLAMA_MODEL
+    assert 'think' not in payloads[3]
+    assert payloads[3]['options']['num_predict'] == settings.GENERATION_NUM_PREDICT
+
+
+@pytest.mark.parametrize('change,expected', [
+    ({}, True),
+    ({'support': 'supported'}, False),
+    ({'support': 'partial', 'legal_assertion': False}, False),
+    ({'support': 'partial', 'legal_assertion': True}, True),
+    ({'material': False}, False),
+    ({'evidence_id': 'R1'}, False),
+    ({'evidence_id': 'C2'}, False),
+    ({'sentence': '답변에 없는 문장'}, False),
+    ({'excerpt': '근거 없음'}, False),
+    ({'excerpt': ''}, False),
+])
+def test_q4_cap_requires_matching_input_text(change, expected):
+    check = dict(sentence='내일 완료됩니다.', evidence_id='C1', excerpt='일정은 미정입니다.',
+                 support='contradicted', material=True, legal_assertion=False)
+    check.update(change)
+    evaluator = CivilComplaintRubricEvaluator()
+    assert evaluator._q4_check_can_cap(
+        check, '내일 완료됩니다.', [{'doc_id': 'D1', 'snippet': '일정은 미정입니다.'}],
+        [{'doc_id': 'D1', 'quote': '일정은 미정입니다.'}],
+    ) is expected
+    # An excerpt present only in another source must not authorize the cap.
+    assert not evaluator._q4_check_can_cap(
+        check, '내일 완료됩니다.', [{'doc_id': 'D2', 'snippet': '일정은 미정입니다.'}],
+        [{'doc_id': 'D1', 'quote': '일정은 미정입니다.'}],
+    )
+
+
+@pytest.mark.asyncio
+async def test_q4_structured_negative_assessment_caps_inconsistent_score():
+    async def judge(prompt, **kwargs):
+        value = {'choice': 4, 'confidence': 0.9, 'reason': '근거와 반대인 확약', 'issues': []}
+        fields = kwargs['response_schema']['properties']
+        if 'choice' in fields:
+            return json.dumps(value)
+        payload = {qid: dict(value) for qid in fields}
+        if 'q4' in payload:
+            payload['q4']['issues'] = [dict(sentence='내일 완료됩니다.', evidence_id='C1',
+                excerpt='모델이 만들어낸 발췌문', support='contradicted', material=True, legal_assertion=False)]
+        return json.dumps(payload)
+
+    result = await CivilComplaintRubricEvaluator().evaluate(
+        case_id='cap', complaint_text='언제 완료되나요?', generated_answer='내일 완료됩니다.',
+        references=[{'doc_id': 'D1', 'snippet': '일정은 미정입니다.'}],
+        citations=[{'doc_id': 'D1', 'quote': '일정은 미정입니다.'}], llm_call=judge,
+    )
+    q4 = result['llm_rubric_raw']['q4']
+    assert q4['argmax'] == 2
+    detail = json.loads(q4['reason'])
+    assert detail['model_choice'] == 4 and detail['consistency_cap_applied'] is True
+    assert detail['checks'][0]['excerpt'] == '일정은 미정입니다.'
+    assert result['llm_rubric_raw']['q5']['argmax'] == 4

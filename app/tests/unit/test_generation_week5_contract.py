@@ -219,7 +219,7 @@ def _assert_civil_llm_rubric_attached(data: dict) -> None:
 
     rubric = data["generation_metadata"]["civil_llm_rubric"]
     assert rubric["rubric_version"] == "civil_llm_rubric_q0_q7_v1.0"
-    assert rubric["judge_prompt_version"] == "judge_prompt_2026_06_18"
+    assert rubric["judge_prompt_version"] == "judge_prompt_2026_09_17_q4_structured"
     assert set(rubric["llm_rubric_raw"].keys()) == {
         "q0",
         "q1",

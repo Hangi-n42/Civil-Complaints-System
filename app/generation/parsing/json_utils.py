@@ -6,12 +6,14 @@ import json
 from typing import Any, Dict, List
 
 from app.core.exceptions import GenerationError
+from app.generation.citation.citation_mapper import CitationMapper
 
 
 def build_qa_response_schema(
     context: List[Dict[str, Any]],
     *,
     citations_max: int = 3,
+    snippet_max_chars: int = CitationMapper.SNIPPET_MAX_CHARS,
     request_segments: List[str] | None = None,
 ) -> Dict[str, Any]:
     """Build an Ollama constrained-decoding schema from retrieved evidence."""
@@ -23,7 +25,10 @@ def build_qa_response_schema(
         dict.fromkeys(str(item.get("case_id") or "").strip() for item in evidence)
     )
     snippets = list(
-        dict.fromkeys(str(item.get("snippet") or "").strip() for item in evidence)
+        dict.fromkeys(
+            str(item.get("snippet") or "").strip()[:snippet_max_chars]
+            for item in evidence
+        )
     )
     chunk_ids = [value for value in chunk_ids if value]
     case_ids = [value for value in case_ids if value]

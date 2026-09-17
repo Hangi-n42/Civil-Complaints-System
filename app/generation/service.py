@@ -16,6 +16,7 @@ import httpx
 
 from app.core.logging import pipeline_logger
 from app.core.exceptions import GenerationError, RetrievalError
+from app.generation.citation.citation_mapper import CitationMapper
 from app.core.config import settings
 from app.generation.prompts.prompt_factory import PromptFactory
 from app.generation.parsing.json_utils import (
@@ -49,11 +50,29 @@ class GenerationService:
         """confidence를 0~1 number로 정규화한다."""
         return normalize_confidence(value)
 
+    async def call_rubric_judge(
+        self, prompt: str, temperature: float = 0.0,
+        response_schema: Dict[str, Any] | None = None,
+    ) -> str:
+        properties = (response_schema or {}).get("properties", {})
+        # Short labels for single questions; bounded evidence/reasons for groups.
+        budget = 1536 if "q3" in properties else 640 if "q1" in properties else 192
+        return await self.call_ollama(
+            prompt, temperature, response_schema,
+            model=settings.CIVIL_LLM_RUBRIC_MODEL,
+            num_predict=budget, num_ctx=8192, think=False,
+        )
+
     async def call_ollama(
         self,
         prompt: str,
         temperature: float = 0.7,
         response_schema: Dict[str, Any] | None = None,
+        *,
+        model: str | None = None,
+        num_predict: int | None = None,
+        num_ctx: int | None = None,
+        think: bool | None = None,
     ) -> str:
         """
         Ollama LLM 호출
@@ -74,6 +93,7 @@ class GenerationService:
         """
         from app.core.logging import log_ollama_call, log_ollama_error
         
+        model = model or self.model
         endpoint = "/api/generate"
         stage = "init"
         
@@ -82,23 +102,26 @@ class GenerationService:
             log_ollama_call(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 temperature=temperature,
             )
             
             payload = {
-                "model": self.model,
+                "model": model,
                 "prompt": prompt,
                 "stream": False,
                 "format": response_schema or "json",
                 "options": {
                     "temperature": temperature,
-                    "num_predict": settings.GENERATION_NUM_PREDICT,
-                    "num_ctx": settings.GENERATION_NUM_CTX,
+                    "num_predict": num_predict if num_predict is not None else settings.GENERATION_NUM_PREDICT,
+                    "num_ctx": num_ctx if num_ctx is not None else settings.GENERATION_NUM_CTX,
                 },
             }
+
+            if think is not None:
+                payload["think"] = think
 
             url = f"{self.ollama_url.rstrip('/')}{endpoint}"
             
@@ -136,7 +159,7 @@ class GenerationService:
             log_ollama_error(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 stage=stage,
@@ -161,7 +184,7 @@ class GenerationService:
             log_ollama_error(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 stage=stage,
@@ -187,7 +210,7 @@ class GenerationService:
             log_ollama_error(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 stage=stage,
@@ -217,24 +240,24 @@ class GenerationService:
                 log_ollama_error(
                     self.logger,
                     endpoint=endpoint,
-                    model=self.model,
+                    model=model,
                     ollama_base_url=self.ollama_url,
                     timeout=self.timeout,
                     stage=stage,
                     upstream_status=upstream_status,
                     error_code="MODEL_NOT_FOUND",
-                    error_message=f"모델을 찾을 수 없음: {self.model}",
+                    error_message=f"모델을 찾을 수 없음: {model}",
                     retryable=False,
                 )
                 raise GenerationError(
-                    f"요청하신 모델 '{self.model}'을 찾을 수 없습니다. "
+                    f"요청하신 모델 '{model}'을 찾을 수 없습니다. "
                     "Ollama에 해당 모델이 설치되어 있는지 확인해주세요.",
                     code="MODEL_NOT_FOUND",
                     retryable=False,
                     details={
                         "stage": stage,
                         "error_type": "HTTPStatusError",
-                        "model": self.model,
+                        "model": model,
                     },
                     upstream_status=upstream_status,
                 ) from e
@@ -244,7 +267,7 @@ class GenerationService:
                 log_ollama_error(
                     self.logger,
                     endpoint=endpoint,
-                    model=self.model,
+                    model=model,
                     ollama_base_url=self.ollama_url,
                     timeout=self.timeout,
                     stage=stage,
@@ -270,7 +293,7 @@ class GenerationService:
                 log_ollama_error(
                     self.logger,
                     endpoint=endpoint,
-                    model=self.model,
+                    model=model,
                     ollama_base_url=self.ollama_url,
                     timeout=self.timeout,
                     stage=stage,
@@ -296,7 +319,7 @@ class GenerationService:
                 log_ollama_error(
                     self.logger,
                     endpoint=endpoint,
-                    model=self.model,
+                    model=model,
                     ollama_base_url=self.ollama_url,
                     timeout=self.timeout,
                     stage=stage,
@@ -321,7 +344,7 @@ class GenerationService:
             log_ollama_error(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 stage=stage,
@@ -349,7 +372,7 @@ class GenerationService:
             log_ollama_error(
                 self.logger,
                 endpoint=endpoint,
-                model=self.model,
+                model=model,
                 ollama_base_url=self.ollama_url,
                 timeout=self.timeout,
                 stage=stage,
@@ -608,7 +631,7 @@ class GenerationService:
                 {
                     "chunk_id": str(first.get("chunk_id", "")),
                     "case_id": str(first.get("case_id", "")),
-                    "snippet": snippet[:240],
+                    "snippet": snippet[:CitationMapper.SNIPPET_MAX_CHARS],
                     "relevance_score": normalize_confidence(first.get("score", 0.5)),
                 }
             ]
@@ -658,7 +681,7 @@ class GenerationService:
                 citation: Dict[str, Any] = {
                     "chunk_id": str(item.get("chunk_id", "")),
                     "case_id": str(item.get("case_id", "")),
-                    "snippet": str(item.get("snippet", "")),
+                    "snippet": str(item.get("snippet", "")).strip()[:CitationMapper.SNIPPET_MAX_CHARS],
                     "relevance_score": self._normalize_confidence(
                         item.get("score", item.get("relevance_score", 0.5))
                     ),
@@ -926,6 +949,12 @@ class GenerationService:
                         response_schema=build_qa_response_schema(
                             context,
                             citations_max=citations_max,
+                            snippet_max_chars=(
+                                120
+                                if step["mode"] == "compact"
+                                or str((routing_trace or {}).get("prompt_mode", "")).strip().lower() == "compact"
+                                else CitationMapper.SNIPPET_MAX_CHARS
+                            ),
                             request_segments=request_segments,
                         ),
                     )

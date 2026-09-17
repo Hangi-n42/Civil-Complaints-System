@@ -310,6 +310,7 @@ class CivilComplaintRubricEvaluator:
         query_signals: dict[str, Any] | None = None,
         generation_metadata: dict[str, Any] | None = None,
         llm_call: LLMCall | None = None,
+        q2_cache: dict | None = None,
     ) -> dict[str, Any]:
         references = references or []
         citations = citations or []
@@ -350,25 +351,36 @@ class CivilComplaintRubricEvaluator:
         llm_errors: list[str] = []
         can_call_llm = self.use_llm_judge and callable(llm_call)
         if can_call_llm:
-            for qid in RUBRIC_OPTIONS:
+            cache_key = (complaint_text, json.dumps(references, sort_keys=True, ensure_ascii=False))
+            for group in (("q2",), ("q3", "q4", "q5"), ("q1", "q7"), ("q6",), ("q0",)):
+                if group == ("q2",) and q2_cache is not None and q2_cache.get("key") == cache_key:
+                    llm_raw["q2"] = dict(q2_cache["result"])
+                    continue
                 try:
-                    llm_raw[qid] = await self._judge_question(
-                        qid=qid,
-                        complaint_text=complaint_text,
-                        generated_answer=generated_answer,
-                        references=references,
-                        citations=citations,
-                        llm_call=llm_call,
-                    )
+                    if len(group) == 1:
+                        qid = group[0]
+                        llm_raw[qid] = await self._judge_question(
+                            qid=qid, complaint_text=complaint_text,
+                            generated_answer=generated_answer, references=references,
+                            citations=citations, llm_call=llm_call,
+                        )
+                        if qid == "q2" and q2_cache is not None:
+                            q2_cache.update(key=cache_key, result=dict(llm_raw[qid]))
+                    else:
+                        llm_raw.update(await self._judge_group(
+                            group=group, complaint_text=complaint_text,
+                            generated_answer=generated_answer, references=references,
+                            citations=citations, llm_call=llm_call,
+                        ))
                 except Exception as exc:  # noqa: BLE001
-                    llm_errors.append(f"{qid}:{type(exc).__name__}")
-                    llm_raw[qid] = _rubric_item(
-                        qid=qid,
-                        probs=rule_baseline[qid]["probs"],
-                        source="rule_fallback_after_llm_error",
-                        reason="LLM judge failed; rule baseline was used.",
-                        error=f"{type(exc).__name__}: {exc}",
-                    )
+                    for qid in group:
+                        llm_errors.append(f"{qid}:{type(exc).__name__}")
+                        llm_raw[qid] = _rubric_item(
+                            qid=qid, probs=rule_baseline[qid]["probs"],
+                            source="rule_fallback_after_llm_error",
+                            reason="LLM judge failed; rule baseline was used.",
+                            error=f"{type(exc).__name__}: {exc}",
+                        )
         else:
             for qid in RUBRIC_OPTIONS:
                 llm_raw[qid] = _rubric_item(
@@ -422,6 +434,167 @@ class CivilComplaintRubricEvaluator:
             "diagnostics": diagnostics,
         }
 
+    async def _judge_group(
+        self, *, group: tuple[str, ...], complaint_text: str,
+        generated_answer: str, references: list[dict[str, Any]],
+        citations: list[dict[str, Any]], llm_call: LLMCall,
+    ) -> dict[str, Any]:
+        # Keep the original inputs, question definitions and 1-4 choices.
+        original = self._build_judge_prompt(
+            qid=group[0], complaint_text=complaint_text,
+            generated_answer=generated_answer, references=references, citations=citations,
+        )
+        inputs = original.split("[Input]\n", 1)[1].split("\n\n[Question]", 1)[0]
+        questions = []
+        properties = {}
+        evidence_group = "q3" in group
+        for qid in group:
+            rubric = RUBRIC_OPTIONS[qid]
+            options = "\n".join(f"{n}. {label}" for n, label in rubric["options"].items())
+            questions.append(f"[{qid}: {rubric['name']}]\n{rubric['question']}\n{options}")
+            fields = {
+                "choice": {"type": "integer", "minimum": 1, "maximum": 4},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "reason": {"type": "string", "maxLength": 120},
+            }
+            if evidence_group:
+                fields["issues"] = {
+                    "type": "array", "maxItems": 1,
+                    "items": {
+                        "type": "object", "additionalProperties": False,
+                        "properties": {
+                            "sentence": {"type": "string", "maxLength": 160},
+                            "evidence_id": {"type": "string", "maxLength": 80},
+                            "excerpt": {"type": "string", "maxLength": 100},
+                        },
+                        "required": ["sentence", "evidence_id", "excerpt"],
+                    },
+                }
+                if qid == "q4":
+                    check = fields["issues"]["items"]
+                    # Copy excerpts from the chosen citation rather than asking the judge to recreate them.
+                    del check["properties"]["excerpt"]
+                    check["required"].remove("excerpt")
+                    check["properties"]["evidence_id"] = {
+                        "type": "string", "enum": [f"C{i + 1}" for i in range(len(citations))] or [""],
+                    }
+                    check["properties"].update({
+                        "support": {"type": "string", "enum": ["supported", "partial", "contradicted", "unverified"]},
+                        "material": {"type": "boolean"},
+                        "legal_assertion": {"type": "boolean"},
+                    })
+                    check["required"] += ["support", "material", "legal_assertion"]
+                    fields["issues"]["minItems"] = 1
+            properties[qid] = {
+                "type": "object", "additionalProperties": False,
+                "properties": fields, "required": list(fields),
+            }
+        instructions = (
+            "Evaluate each rubric separately using its original 1-4 choices. Return only JSON keyed by qid. "
+            "Give a brief Korean reason for each score. Do not assume all dimensions deserve the same score.\n"
+        )
+        if evidence_group:
+            instructions += (
+                "Use ONLY the supplied evidence. Do not use common knowledge to fill missing support. "
+                "Check legal article numbers, commitments and citation-to-claim support literally. "
+                "For Q3/Q5 report the most important problematic answer sentence, the matching supplied "
+                "evidence ID and short verbatim excerpt, or '근거 없음' if unsupported. "
+                "For Q3/Q5 use issues=[] when no problem is found. Explain the issue in reason.\n"
+                "The separate structured citation list is part of the answer. Inline [C1] markers "
+                "are NOT required. Match each citation's source ID and quote to the supplied references. "
+                "A different, uncited reference supporting the answer does not validate a wrong citation.\n"
+                "Q3 checks whether the answer's actual core claims have citations. Q4 checks whether "
+                "those citations support those claims. Q5 checks the selected source against available sources. "
+                "Do not lower Q4 merely because the answer omits a requested topic; assess that omission "
+                "under response completeness, not as a false statement.\n"
+                "Before claiming a sentence, detail or citation is absent, read the full supplied answer "
+                "and citation quote again, including paraphrases and reordered clauses. "
+                "Do not invent a missing detail that is explicitly present.\n"
+                "Separately check every law name, article number and legal obligation asserted as "
+                "authority in the answer. If a material legal assertion is unsupported by the supplied "
+                "evidence, Q4 MUST be 1 or 2, even when the surrounding practical guidance is correct. "
+                "Report that legal assertion in issues. Merely mentioning a law, asking which law applies, "
+                "or explicitly reserving judgment pending verification is not an unsupported legal assertion. "
+                "Judge support in the supplied material, not real-world validity from memory.\n"
+                "For Q4 always return one structured check in issues: prioritize an asserted legal basis, "
+                "otherwise the most important claim with questionable citation support, otherwise a supported claim. "
+                "Copy a short exact span from the answer into sentence (no paraphrase). evidence_id must select "
+                "the actual citation being checked (C1, C2, etc.), even when its quote is unrelated or lacks "
+                "the asserted law. Its excerpt will be copied from the input by code. Only if there are no "
+                "citations may evidence_id be empty. "
+                "support: supported=the citation supports the claim; partial=only part supported; "
+                "contradicted=the citation says the opposite; unverified=the citation does not establish the claim "
+                "(including a citation on a different topic). material means the claim affects the requested answer. "
+                "A statement that a schedule/decision is unconfirmed IS supported when the citation explicitly "
+                "says it is unconfirmed; do not demand a definite date to support an accurate uncertainty statement. "
+                "legal_assertion=true only for an asserted legal authority/obligation, not a mere mention or "
+                "explicitly deferred verification. It describes what the ANSWER asserts, regardless of whether "
+                "the assertion is proven. Legal article numbers matching alone do not establish an obligation.\n"
+            )
+        schema = {"type": "object", "additionalProperties": False,
+                  "properties": properties, "required": list(group)}
+        text = await llm_call(
+            instructions + "[Input]\n" + inputs + "\n\n" + "\n\n".join(questions),
+            temperature=self.temperature, response_schema=schema,
+        )
+        payload = json.loads(text)
+        result = {}
+        for qid in group:
+            item = payload[qid]
+            choice = item["choice"]
+            if type(choice) is not int or choice not in (1, 2, 3, 4):
+                raise ValueError(f"Invalid score for {qid}")
+            reason = str(item["reason"])
+            if evidence_group:
+                detail = {"reason": reason, "issues": item["issues"]}
+                if qid == "q4":
+                    checks = []
+                    for check in item["issues"]:
+                        match = re.fullmatch(r"C([1-9]\d*)", str(check.get("evidence_id", "")))
+                        cited = citations[int(match[1]) - 1] if match and int(match[1]) <= len(citations) else {}
+                        checks.append({**check, "excerpt": str(cited.get("quote") or cited.get("snippet") or "")[:100]})
+                    # Exact input correspondence does not prove the model's semantic judgment.
+                    cap = any(self._q4_check_can_cap(check, generated_answer, references, citations)
+                              for check in checks)
+                    detail["checks"] = checks
+                    detail["issues"] = [{k: check[k] for k in ("sentence", "evidence_id", "excerpt")}
+                                        for check in checks if check.get("support") != "supported"]
+                    detail["model_choice"] = choice
+                    detail["consistency_cap_applied"] = cap and choice > 2
+                    if cap:
+                        choice = min(choice, 2)
+                reason = json.dumps(detail, ensure_ascii=False)
+            result[qid] = _rubric_item(
+                qid=qid, probs=_probs_from_choice(choice, item.get("confidence")),
+                source="llm_judge_synthetic_probs", reason=reason,
+            )
+        return result
+
+    def _q4_check_can_cap(self, check: dict, answer: str, references: list[dict], citations: list[dict]) -> bool:
+        """Cap only a material negative assessment tied to actual input text."""
+        if check.get("material") is not True:
+            return False
+        support = check.get("support")
+        if support not in ("contradicted", "unverified") and not (
+            support == "partial" and check.get("legal_assertion") is True
+        ):
+            return False
+        match = re.fullmatch(r"C([1-9]\d*)", str(check.get("evidence_id", "")))
+        if not match or int(match[1]) > len(citations):
+            return False
+        citation = citations[int(match[1]) - 1]
+        source = str(citation.get("doc_id") or citation.get("case_id") or citation.get("source") or "")
+        quote = str(citation.get("quote") or citation.get("snippet") or "")[:300]
+        normalize = lambda value: re.sub(r"\s+", "", str(value or ""))
+        sentence, excerpt = normalize(check.get("sentence")), normalize(check.get("excerpt"))
+        if not sentence or sentence not in normalize(answer) or not excerpt or excerpt not in normalize(quote):
+            return False
+        return any(
+            source in {str(ref.get(key) or "") for key in ("doc_id", "case_id", "chunk_id")}
+            and excerpt in normalize(str(ref.get("snippet") or ref.get("text") or "")[:500])
+            for ref in references[:self.max_contexts]
+        ) if source else False
+
     async def _judge_question(
         self,
         *,
@@ -447,6 +620,10 @@ class CivilComplaintRubricEvaluator:
             },
             "required": ["choice"],
         }
+        if qid == "q6":
+            schema["properties"]["reason"] = {"type": "string", "maxLength": 120}
+            schema["required"].append("reason")
+            prompt += "\nInclude a short Korean reason for the Q6 score in JSON reason."
         try:
             text = await llm_call(
                 prompt,
@@ -464,7 +641,7 @@ class CivilComplaintRubricEvaluator:
             qid=qid,
             probs=probs,
             source="llm_judge_synthetic_probs",
-            reason="Ollama logprobs are unavailable; choice/confidence was converted to a probability vector.",
+            reason=str(payload.get("reason") or "Ollama logprobs are unavailable; choice/confidence was converted to a probability vector."),
         )
 
     def _build_judge_prompt(
@@ -504,10 +681,31 @@ class CivilComplaintRubricEvaluator:
         options = "\n".join(
             f"{number}. {text}" for number, text in rubric["options"].items()
         )
+        guidance = (
+            "A separate structured citation list counts as citations; inline citation markers are not required. "
+            "Routine procedural guidance does not require a law citation. If the complaint explicitly asks "
+            "for a legal basis, check whether the answer addresses that request.\n"
+        )
+        if qid == "q2":
+            guidance = (
+                "Assess whether the relevant evidence is sufficient to give an accurate answer, including "
+                "an explicit statement that a decision or schedule is not yet confirmed. An unconfirmed "
+                "status explicitly documented in the evidence is not itself insufficient evidence. "
+                "Extra irrelevant references do not make an otherwise sufficient relevant reference insufficient.\n"
+            )
+        elif qid == "q6":
+            guidance += (
+                "Faithful use or paraphrase of source wording is not itself harmful copy-paste, repetition "
+                "or internal metadata leakage. Repetition means unnecessary repetition within the answer. "
+                "Only report metadata leakage when an actual internal identifier, debug field or model log "
+                "is visible in the answer; quote the offending text in the reason. Ordinary instructions "
+                "and statements of an unconfirmed status are not internal metadata.\n"
+            )
         return (
             "You are evaluating a Korean public-sector civil complaint response.\n"
             "Choose exactly one option for the rubric question.\n"
-            "Return only JSON: {\"choice\": 1|2|3|4, \"confidence\": 0.0-1.0}.\n\n"
+            + guidance
+            + "Return only JSON: {\"choice\": 1|2|3|4, \"confidence\": 0.0-1.0}.\n\n"
             "[Input]\n"
             + "\n".join(input_parts)
             + "\n\n[Question]\n"
@@ -522,7 +720,9 @@ class CivilComplaintRubricEvaluator:
             title = str(item.get("title") or item.get("case_id") or item.get("doc_id") or f"R{index}")
             text = str(item.get("snippet") or item.get("text") or "")[:500]
             priority = _source_priority(item)
-            lines.append(f"R{index}. title={title} priority={priority} text={text}")
+            source_id = str(item.get("doc_id") or item.get("case_id") or "")
+            chunk_id = str(item.get("chunk_id") or "")
+            lines.append(f"R{index}. source={source_id} chunk_id={chunk_id} title={title} priority={priority} text={text}")
         return "\n".join(lines)
 
     @staticmethod
@@ -951,7 +1151,6 @@ class CivilComplaintRubricEvaluator:
         core_keys = (
             "complaint_issue_identified",
             "judgment_or_answer_present",
-            "legal_basis_present",
             "procedure_guidance_present",
             "followup_guidance_present",
         )
@@ -978,8 +1177,6 @@ class CivilComplaintRubricEvaluator:
             caps.append((4.0, "missing_citation"))
         if rule_features["emotional_response_flag"] and rule_features["special_complaint_flag"]:
             caps.append((4.5, "special_complaint_emotional_response"))
-        if rule_features["legal_anchor_count"] == 0 and not manual_features.get("legal_basis_present", False):
-            caps.append((5.0, "missing_legal_basis"))
         if (
             rule_features["special_complaint_flag"]
             and manual_features.get("special_complaint_process_present") is False
@@ -1031,8 +1228,6 @@ class CivilComplaintRubricEvaluator:
             reasons.append("redundant_or_template_answer")
         if manual_features.get("procedure_guidance_present") is False:
             reasons.append("incomplete_procedure_guidance")
-        if manual_features.get("legal_basis_present") is False:
-            reasons.append("missing_legal_basis")
         if rule_features["unsafe_promise_flag"]:
             reasons.append("unsafe_promise")
         if rule_features["emotional_response_flag"]:
