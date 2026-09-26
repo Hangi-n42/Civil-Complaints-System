@@ -147,11 +147,11 @@ topic/complexity에 맞는 답변 구조를 생성한다.
 
 | 용도 | 파일 |
 | --- | --- |
-| Adaptive Router 가치 재평가 | `docs/50_issues/adaptive_router_decision.md` |
-| Adaptive RAG 비교 평가 | `docs/40_delivery/BE2_adaptive_rag_comparison.md` |
-| BE2 최종 KPI | `docs/40_delivery/BE2_final_kpi_snapshot.md` |
+| Adaptive Router 가치 재평가 | `experiments/retrieval/docs/50_issues/adaptive_router_decision.md` |
+| Adaptive RAG 비교 평가 | `experiments/retrieval/docs/40_delivery/BE2_adaptive_rag_comparison.md` |
+| BE2 최종 KPI | `experiments/retrieval/docs/40_delivery/BE2_final_kpi_snapshot.md` |
 | 최종 Hybrid 평가 | `reports/retrieval/v3/eval_hybrid_noself.json` |
-| metadata soft rerank 평가 | `reports/retrieval/v3/metadata_soft_rerank_summary.md` |
+| metadata soft rerank 평가 | `experiments/retrieval/reports/retrieval/v3/metadata_soft_rerank_summary.md` |
 | policy boost 영향 | `reports/retrieval/v3/risk3c_policy_boost_impact.json` |
 | grounding filter 효과 | `reports/retrieval/v3/grounding_filter_effect.json` |
 | BE3 handoff | `docs/40_delivery/BE3_handoff.md` |

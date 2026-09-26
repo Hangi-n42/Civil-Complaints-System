@@ -240,7 +240,7 @@ severity 색상:
 
 관련 리포트:
 
-- `reports/duplicate_merge_labeled_eval_report.md`
-- `reports/duplicate_merge_followup_hardening_report.md`
-- `reports/duplicate_merge_real_holdout_eval_report.md`
-- `reports/duplicate_merge_batch_performance_report.md`
+- `experiments/duplicate_merge/reports/duplicate_merge_labeled_eval_report.md`
+- `experiments/duplicate_merge/reports/duplicate_merge_followup_hardening_report.md`
+- `experiments/duplicate_merge/reports/duplicate_merge_real_holdout_eval_report.md`
+- `experiments/duplicate_merge/reports/duplicate_merge_batch_performance_report.md`

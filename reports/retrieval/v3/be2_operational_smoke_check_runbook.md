@@ -77,6 +77,6 @@ ChromaDB 적재율 상세 JSON/Markdown은 기본적으로 `/tmp/be2_operational
 
 ## 관련 기존 문서
 
-- `reports/retrieval/v3/be2_readiness_audit.md`
-- `reports/retrieval/v3/law_articles_index_check.md`
-- `reports/retrieval/v3/law_grounding_qa_e2e_recheck.md`
+- `experiments/retrieval/reports/retrieval/v3/be2_readiness_audit.md`
+- `experiments/retrieval/reports/retrieval/v3/law_articles_index_check.md`
+- `experiments/retrieval/reports/retrieval/v3/law_grounding_qa_e2e_recheck.md`

@@ -316,7 +316,7 @@ snapshot을 사용해야 한다. 특히 `full_reply` 결과와 `generated_body` 
 
 - 평가 코드: `scripts/evaluate_llm_rubric_civil_replies.py`
 - 평가 매뉴얼: `docs/30_manuals/llm_rubric_civil_reply_evaluation.md`
-- 현재 요약 결과: `docs/40_delivery/rubric_summary.md`
+- 현재 요약 결과: `experiments/evaluation/docs/40_delivery/rubric_summary.md`
 - 생성 본문 전용 최신 결과:
   `logs/evaluation/week11/be3_model_benchmark_exaone_rand50_direct_speed_quality_20260612/llm_rubric_exaone_rand50_generated_body_20260612_v2/`
 - 참조 답안: `data/processed/processed_consulting_data.json`

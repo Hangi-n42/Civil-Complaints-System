@@ -11,7 +11,7 @@
 작성일: 2026-04-10  
 기준 문서:
 - 이전: `previous_prd.md`, `previous_wbs_8weeks_v2_updated.md`
-- 현재: `docs/00_overview/prd.md`, `docs/00_overview/wbs_8weeks_v2_updated.md`
+- 현재: `docs/00_overview/complaint_system_prd.md`, `docs/90_archive/complaint_system/wbs_8weeks_v2_updated.md`
 
 ---
 

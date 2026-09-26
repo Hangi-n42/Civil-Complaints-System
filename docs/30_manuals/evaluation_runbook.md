@@ -1,7 +1,9 @@
 # 평가 Runbook
 
 - 문서 상태: runbook
-- 최종 확인일: 2026-06-21
+- 문서 버전: v2.0
+- 범위·경로 정리일: 2026-09-26
+- 명령 재실행: 미수행; 아래 다중행 명령은 PowerShell 문법
 - 기준 코드:
   - `scripts/evaluate_complaint_intelligence_scenarios.py`
   - `scripts/evaluate_complaint_intelligence_holdout.py`
@@ -13,6 +15,14 @@
   - `docs/20_domains/complaint_intelligence/README.md`
   - `docs/50_issues/complaint_intelligence_local_llm_operations.md`
 
+## 평가 종류 구분
+
+- 기존 민원 온라인 평가는 `app/evaluation/civil_llm_rubric.py`의 Qwen Q0~Q7 5그룹이며 Q2 재사용 재평가는 4회다.
+- [오프라인 proxy](llm_rubric_civil_reply_evaluation.md)는 Q0~Q8, 0~10점 규칙 기반 평가로 별도 도구다.
+- 아래 EXAONE 명령은 Complaint Intelligence 평가이며 온라인 답변 평가 모델 설정을 대체하지 않는다.
+- 신규 지식 제품의 12개 과제는 입력만 고정됐으며 제품 비교 실행 결과는 없다.
+- 먼저 [로컬 실행 안내](local_dev_runbook.md)에 따라 가상환경을 활성화한다. 아래 명령은 PowerShell 기준이며 macOS에서는 줄 연결을 셸 문법에 맞추거나 한 줄로 실행하고 경로 구분자를 `/`로 바꾼다.
+
 ## 기본 원칙
 
 - curated scenario와 open-world holdout을 구분합니다.
@@ -23,13 +33,13 @@
 ## Complaint Intelligence curated 평가
 
 ```powershell
-civil\Scripts\python.exe scripts\evaluate_complaint_intelligence_scenarios.py --provider fake --output reports\complaint_intelligence_eval_report_final_fake.json
+python scripts\evaluate_complaint_intelligence_scenarios.py --provider fake --output reports\complaint_intelligence_eval_report_final_fake.json
 ```
 
 Local LLM:
 
 ```powershell
-civil\Scripts\python.exe scripts\evaluate_complaint_intelligence_scenarios.py `
+python scripts\evaluate_complaint_intelligence_scenarios.py `
   --provider local `
   --model exaone3.5:7.8b `
   --base-url http://localhost:11434 `
@@ -51,13 +61,13 @@ civil\Scripts\python.exe scripts\evaluate_complaint_intelligence_scenarios.py `
 holdout 생성:
 
 ```powershell
-civil\Scripts\python.exe scripts\build_complaint_intelligence_holdout.py
+python scripts\build_complaint_intelligence_holdout.py
 ```
 
 holdout 평가:
 
 ```powershell
-civil\Scripts\python.exe scripts\evaluate_complaint_intelligence_holdout.py --provider fake --output reports\complaint_intelligence_holdout_eval_report.json
+python scripts\evaluate_complaint_intelligence_holdout.py --provider fake --output reports\complaint_intelligence_holdout_eval_report.json
 ```
 
 해석:
@@ -68,8 +78,8 @@ civil\Scripts\python.exe scripts\evaluate_complaint_intelligence_holdout.py --pr
 ## Duplicate Merge 평가
 
 ```powershell
-civil\Scripts\python.exe scripts\evaluate_duplicate_merge_labeled_pairs.py
-civil\Scripts\python.exe scripts\evaluate_duplicate_merge_real_holdout.py
+python scripts\evaluate_duplicate_merge_labeled_pairs.py
+python scripts\evaluate_duplicate_merge_real_holdout.py
 ```
 
 실제 사용 가능한 옵션은 스크립트 `--help`로 확인합니다.
@@ -96,7 +106,7 @@ git diff --check
 코드나 스크립트 변경이 있는 경우 관련 pytest를 실행합니다.
 
 ```powershell
-civil\Scripts\python.exe -m pytest app\tests\unit -q
+python -m pytest app\tests\unit -q
 ```
 
 ## PII leak check

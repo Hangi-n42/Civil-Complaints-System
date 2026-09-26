@@ -3,7 +3,7 @@
 문서 버전: v0.1  
 작성일: 2026-03-13  
 작성자: BE3 김현석  
-기준 문서: [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [schema_contract.md](../../10_contracts/schema/schema_contract.md), [api_spec.md](../../10_contracts/api/api_spec.md)
+기준 문서: [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [schema_contract.md](../../10_contracts/schema/old_schema_contract.md), [api_spec.md](../../10_contracts/api/old_api_spec.md)
 
 ## 1. 문서 목적
 

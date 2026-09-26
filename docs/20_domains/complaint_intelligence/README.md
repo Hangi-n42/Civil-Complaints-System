@@ -1,7 +1,9 @@
 # Complaint Intelligence 도메인
 
 - 문서 상태: canonical
-- 최종 확인일: 2026-06-21
+- 문서 버전: v2.0
+- 문서 분류·링크 정리일: 2026-09-26
+- 하위 문서 전체의 구현 일치 여부를 이번에 재검증한 것은 아님
 - 기준 코드:
   - `app/complaint_intelligence/service.py`
   - `app/complaint_intelligence/schemas.py`
@@ -38,3 +40,7 @@ Complaint Intelligence는 메인 RAG/QA 파이프라인을 대체하지 않는 �
 2. `public_insight_policy.md`
 3. `duplicate_merge_policy.md`
 4. `pii_safety_policy.md`
+
+## 신규 제품과의 관계
+
+기존 민원 관제의 참고 기준이다. 신규 개발 기준은 [문서 지도](../../README.md)를 따른다.

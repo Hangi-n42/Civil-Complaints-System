@@ -5,9 +5,9 @@
 기준 브랜치: `feature/#194-W7-Be3`  
 
 참고 문서(프로젝트 기준선):
-- `docs/00_overview/mvp_scope.md`
-- `docs/00_overview/prd.md`
-- `docs/00_overview/wbs_8weeks_v2_updated.md`
+- `docs/90_archive/complaint_system/mvp_scope.md`
+- `docs/00_overview/complaint_system_prd.md`
+- `docs/90_archive/complaint_system/wbs_8weeks_v2_updated.md`
 - `docs/30_manuals/manual.md`
 - `docs/50_issues/week8/check.md` (2026-05-07, 일부 항목은 현재 브랜치에서 개선됨)
 - `docs/10_contracts/interfaces/week6/week6_be3_interface.md`
