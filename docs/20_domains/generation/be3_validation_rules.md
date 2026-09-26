@@ -3,7 +3,7 @@
 문서 버전: v0.2  
 작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/be2_be3_compromise_contract_week1.md), [schema_contract.md](../../10_contracts/schema/schema_contract.md), [api_spec.md](../../10_contracts/api/api_spec.md), [be3_manual.md](../../30_manuals/be3_manual.md), [prd.md](../../00_overview/prd.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/week1/be2_be3_compromise_contract_week1.md), [schema_contract.md](../../10_contracts/schema/old_schema_contract.md), [api_spec.md](../../10_contracts/api/old_api_spec.md), [be3_manual.md](../../30_manuals/manual.md), [prd.md](../../00_overview/complaint_system_prd.md)
 
 ## 1. 문서 목적
 
@@ -346,7 +346,7 @@ error 규칙:
 
 ## 10. 현재 확인된 문서/스키마 불일치
 
-현재 [schemas/civil_case.schema.json](../schemas/civil_case.schema.json)은 README 및 계약 문서 기준 구조와 다르다.
+현재 [schemas/civil_case.schema.json](../../../schemas/civil_case.schema.json)은 README 및 계약 문서 기준 구조와 다르다.
 
 현재 스키마 파일은 아래 특성을 가진다.
 

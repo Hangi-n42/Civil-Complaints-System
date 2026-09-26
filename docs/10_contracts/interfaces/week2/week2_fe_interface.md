@@ -1,3 +1,5 @@
+> 문서 정리 확인(2026-09-26): 이 문서에 연결된 일부 과거 스크립트·로그·체크리스트는 현재 작업 공간에 없다. 당시 결과의 재현 가능성은 확인하지 못했다.
+
 # Week 2 FE 인터페이스 문서
 
 문서 버전: v1.3-week2-final  
@@ -67,7 +69,7 @@
 
 **Ingest/Structure 시뮬레이션 동작:**
 - 파일 업로드/구조화 화면은 `build_structure_success_payload()` 함수로 생성된 샘플 데이터 사용
-- 함수 위치: [app/ui/Home.py#L496](app/ui/Home.py#L496)
+- 함수 위치: [app/ui/Home.py#L496](../../../../app/ui/Home.py#L496)
 - 실제 API 호출 없이 하드코딩된 시나리오 JSON 반환
 - **Purpose**: 실제 BE API 구현 전 FE 레이아웃 테스트, 필드 매핑 검증
 

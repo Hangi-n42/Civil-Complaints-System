@@ -3,7 +3,7 @@
 문서 버전: v0.2  
 작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/be2_be3_compromise_contract_week1.md), [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [api_spec.md](../../10_contracts/api/api_spec.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/week1/be2_be3_compromise_contract_week1.md), [be3_json_parse_failures.md](be3_json_parse_failures.md), [be3_error_codes.md](be3_error_codes.md), [be3_validation_format.md](be3_validation_format.md), [api_spec.md](../../10_contracts/api/old_api_spec.md)
 
 ## 1. 문서 목적
 

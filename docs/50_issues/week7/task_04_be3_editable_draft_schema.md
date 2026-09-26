@@ -5,7 +5,7 @@
 - **참고 Spec**:
   - `docs/60_specs/api_interface_spec.md`
   - `docs/60_specs/data_schema_spec.md`
-  - `docs/00_overview/prd.md`
+  - `docs/00_overview/complaint_system_prd.md`
 
 - **작업 상세 내용 (Technical Spec)**:
   1. 답변 초안 스키마 고정

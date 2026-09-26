@@ -35,6 +35,10 @@ class Settings:
     API_PORT: int = int(os.getenv("API_PORT", 8000))
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
 
+    # 회사 지식 파일럿은 기존 민원 저장소와 분리한다.
+    KNOWLEDGE_ENABLED: bool = os.getenv("KNOWLEDGE_ENABLED", "false").lower() == "true"
+    KNOWLEDGE_DB_PATH: str = str(PROJECT_ROOT / os.getenv("KNOWLEDGE_DB_PATH", "data/knowledge/knowledge.db"))
+
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")

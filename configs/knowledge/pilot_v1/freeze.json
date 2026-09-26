@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "pilot_id": "lh-knowledge-pilot-v1",
+  "version": "1.0",
+  "status": "frozen_not_executed",
+  "frozen_at": "2026-09-26T05:39:21.729041+00:00",
+  "counts": {
+    "document_files": 10,
+    "logical_document_versions": 8,
+    "csv_files": 1,
+    "tasks": 12,
+    "development": 6,
+    "new_preimplementation": 6,
+    "local": 3,
+    "global": 3,
+    "build_update": 6,
+    "evidence_records": 43
+  },
+  "files": [
+    {
+      "path": "configs/knowledge/pilot_v1/README.md",
+      "sha256": "9b4b31386818a7ffa185111f129cb0f35e059bf171b0531d43ea5044e4c7d601"
+    },
+    {
+      "path": "configs/knowledge/pilot_v1/sources.json",
+      "sha256": "6d53ab41798b7ba2f0f3796c6952273bbc25c683f65af86f8a108810b48c59e0"
+    },
+    {
+      "path": "configs/knowledge/pilot_v1/evidence.json",
+      "sha256": "ed5c6e918714498001bd4fb80b344d3459c2c540698fdaad061371f9f7e5776a"
+    },
+    {
+      "path": "configs/knowledge/pilot_v1/tasks.development.json",
+      "sha256": "f655297f4b13d743dd9f12d0a13a353a25b28cac9174922391f8961f673cb418"
+    },
+    {
+      "path": "configs/knowledge/pilot_v1/tasks.new.json",
+      "sha256": "91360e71467957cb9fe769879146e33ceacde501a48f2576198d6093358965a9"
+    }
+  ],
+  "originals": [
+    {
+      "source_id": "notice_original_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020732.html",
+      "sha256": "9da88e9040498fd5034b663d367dafb2c1768e66fdc9581abeb8ce600e91a14d"
+    },
+    {
+      "source_id": "notice_correction1_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.html",
+      "sha256": "2a4183079601418ce219ac1e82ff1b3d625dec71af6f3fdda4fa0d122d56e3ce"
+    },
+    {
+      "source_id": "notice_correction2_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.html",
+      "sha256": "c19c45ec3dca660f9425ce63c7af15da004cd21118c6d0094a6691fcafb85450"
+    },
+    {
+      "source_id": "notice_correction1_pdf",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.pdf",
+      "sha256": "a20dfccd93599eed0f40df66d32ff1bf724ae4773832c96fd427cbb2ee868352"
+    },
+    {
+      "source_id": "notice_correction2_pdf",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.pdf",
+      "sha256": "8e0d5cf4ba98b08c235563d37ac28302aac283fd56ec070161be5f4be35cf5f8"
+    },
+    {
+      "source_id": "complex_registry_csv",
+      "path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+      "sha256": "66063191dac736ccc7e977c4aee4248504c605868fdcfa23a247f060cb51469e"
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "path": "data/knowledge/pilot_v1/raw/guide_1022.html",
+      "sha256": "58215000d878ed0c16264d50e4073900aa0d78d49215a910487914f2c937e0b4"
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "path": "data/knowledge/pilot_v1/raw/guide_1023.html",
+      "sha256": "c4e9a09487084933d2aadc9552cdbf0ca4ee08faff01f7f702ffe0b6eb77f5ed"
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "path": "data/knowledge/pilot_v1/raw/guide_1025.html",
+      "sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "path": "data/knowledge/pilot_v1/raw/qa_2026.hwpx",
+      "sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397"
+    },
+    {
+      "source_id": "LH-RULES-2015",
+      "path": "data/knowledge/pilot_v1/raw/rental_rules_2015.pdf",
+      "sha256": "a77e97440cd309b60fb4de6abcee83e73b1bfe7b97f47d3dcda96ee37d2cf83e"
+    }
+  ],
+  "review": {
+    "kind": "AI_expert_persona_source_and_evaluation_review",
+    "report": "docs/50_issues/company_knowledge_pilot_review_2026-09-26.md",
+    "report_sha256": "afdb1da46e620170b799c558e187506b91e613620cf5ebeee03f51af3cfbb9c8",
+    "blocking_draft_findings_resolved": 2,
+    "human_domain_expert_approved": false,
+    "runtime_evaluation_executed": false,
+    "blind_holdout": false
+  },
+  "change_policy": "원문 또는 기대 판정 변경 시 새 버전과 이유를 기록한다. 기존 해시를 조용히 대체하지 않는다.",
+  "rights_note": "CSV 외 개별 자료의 운영 이용·재배포 허락은 미확인. 로컬 대조용 선정이며 이용허락 확인 완료가 아니다."
+}

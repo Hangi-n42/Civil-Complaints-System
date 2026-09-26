@@ -3,7 +3,7 @@
 문서 버전: v0.1  
 작성일: 2026-03-13  
 작성자: BE3 김현석  
-기준 문서: [be3_manual.md](../../30_manuals/be3_manual.md), [be3_error_codes.md](be3_error_codes.md), [be3_json_retry_strategy.md](be3_json_retry_strategy.md), [mvp_scope.md](../../00_overview/mvp_scope.md), [prd.md](../../00_overview/prd.md)
+기준 문서: [be3_manual.md](../../30_manuals/manual.md), [be3_error_codes.md](be3_error_codes.md), [be3_json_retry_strategy.md](be3_json_retry_strategy.md), [mvp_scope.md](../../90_archive/complaint_system/mvp_scope.md), [prd.md](../../00_overview/complaint_system_prd.md)
 
 ## 1. 문서 목적
 

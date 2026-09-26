@@ -3,7 +3,7 @@
 작성일: 2026-06-09  
 작성: BE2 검색  
 관련 이슈: #350  
-근거 리포트: `reports/retrieval/v3/law_grounding_qa_e2e_recheck.md`
+근거 리포트: `experiments/retrieval/reports/retrieval/v3/law_grounding_qa_e2e_recheck.md`
 
 ## 1. 목적
 

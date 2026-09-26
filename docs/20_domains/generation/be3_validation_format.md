@@ -3,7 +3,7 @@
 문서 버전: v0.2  
 작성일: 2026-03-18  
 작성자: BE3 김현석  
-기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/be2_be3_compromise_contract_week1.md), [be3_validation_rules.md](be3_validation_rules.md), [be3_error_codes.md](be3_error_codes.md), [schema_contract.md](../../10_contracts/schema/schema_contract.md), [api_spec.md](../../10_contracts/api/api_spec.md)
+기준 문서: [be2_be3_compromise_contract_week1.md](../../10_contracts/interfaces/week1/be2_be3_compromise_contract_week1.md), [be3_validation_rules.md](be3_validation_rules.md), [be3_error_codes.md](be3_error_codes.md), [schema_contract.md](../../10_contracts/schema/old_schema_contract.md), [api_spec.md](../../10_contracts/api/old_api_spec.md)
 
 ## 1. 문서 목적
 
@@ -320,7 +320,7 @@ validation 결과를 로그로 저장할 때 아래 필드를 권장한다.
 
 Citation, Error, Validation UI 연동용 단일 통합 스펙은 아래 문서를 기준으로 사용한다.
 
-- [docs/10_contracts/interfaces/be3_fe_be2_unified_spec.md](../../10_contracts/interfaces/be3_fe_be2_unified_spec.md)
+- [docs/10_contracts/interfaces/be3_fe_be2_unified_spec.md](../../10_contracts/interfaces/week1/be3_fe_be2_unified_spec.md)
 
 이 문서는 ValidationResult/ValidationIssue 기본 계약을 유지하고,
 FE 렌더링 규칙과 BE2 응답 필드 매핑을 단일 포맷으로 통합한다.

@@ -1,3 +1,5 @@
+> 문서 정리 확인(2026-09-26): 이 문서에 연결된 일부 과거 스크립트·로그·체크리스트는 현재 작업 공간에 없다. 당시 결과의 재현 가능성은 확인하지 못했다.
+
 # RAG 검색 성능 평가 — 졸업작품 친화 lite 플랜
 
 문서 버전: v3.0 (Lite)
@@ -258,7 +260,7 @@ MiniLM, BM25 단독은 시간 남으면 추가.
 
 ## 16. 참고 문서 및 코드
 
-- 기술 스택: [be2_retrieval_tech_stack.md](../00_overview/be2_retrieval_tech_stack.md)
+- 기술 스택: [be2_retrieval_tech_stack.md](../90_archive/complaint_system/be2_retrieval_tech_stack.md)
 - Week5-6 액션 플랜: [week5_6_adaptive_rag_core_action_plan.md](week5_6_adaptive_rag_core_action_plan.md)
 - 평가 스크립트: [scripts/run_issue_103.py](../../scripts/run_issue_103.py), [scripts/evaluate_retrieval.py](../../scripts/evaluate_retrieval.py)
 - 평가셋 빌더: [scripts/build_aihub_retrieval_eval_set.py](../../scripts/build_aihub_retrieval_eval_set.py)
