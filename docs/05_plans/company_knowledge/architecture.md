@@ -1,23 +1,23 @@
 # 회사 지식 워크벤치 — 목표 아키텍처·설계
 
-- 문서 버전: v1.6
+- 문서 버전: v1.7
 - 문서 정리·코드 정적 확인일: 2026-09-26
-- 상태: K2 자료 계층 구현·Mac 확인 완료. 이후 계층은 목표 설계다.
+- 상태: K2 자료 계층·K3 온톨로지 초안 구현 및 Mac 확인 완료. 이후 계층은 목표 설계다.
 
 [제품 요구사항](../../00_overview/company_knowledge_prd.md) · [구현 계획](implementation.md) · [마일스톤](milestones.md)
 
 ## 설계와 현재 코드의 경계
 
-회사 지식 구축·검수·갱신·Local/Global 검색이 제품의 주기능이다. 기존 민원 시스템은 재사용 기반이며 P1 활용 예시다. 현재 `app/knowledge`, knowledge router, `/knowledge` 화면에 K2 자료 등록·추출·원문 위치 조회가 구현되어 있다. SQLite 원장은 Source/SourceVersion/ParsedBlock/Evidence/parse Run을 저장한다. 온톨로지·그래프·검색은 이후 목표 설계다. [K2 확인 결과](../../30_manuals/knowledge_k2_runbook.md)를 참고한다.
+회사 지식 구축·검수·갱신·Local/Global 검색이 제품의 주기능이다. 기존 민원 시스템은 재사용 기반이며 P1 활용 예시다. 현재 `app/knowledge`, knowledge router, `/knowledge` 화면에 K2 자료 등록·추출·원문 위치 조회가 구현되어 있다. SQLite 원장은 Source/SourceVersion/ParsedBlock/Evidence/parse Run을 저장한다. K3 초안 생성·검토·LinkML 버전도 구현했다. 그래프·활성화·검색은 이후 목표 설계다. [K2 확인 결과](../../30_manuals/knowledge_k2_runbook.md)를 참고한다.
 
 ## 1. 현재 구현과 신규 부분
 
-2026-09-26 작업 트리 정적 확인 기준이다. K2는 Mac 실제 API·화면을 확인했으며 Windows 실행은 미확인이다.
+2026-09-27 작업 트리 기준이다. K2·K3는 Mac 실제 API·화면을 확인했으며 Windows 실행은 미확인이다.
 
 | 경계 | 현재 확인 | 이번 요구 |
 |---|---|---|
 | API | FastAPI, Search/QA/stream·민원 구조화·Intelligence 존재 | 신규 지식 라우터와 별도 계약 |
-| 지식 원장 | `app/knowledge`의 K2 자료 원장 구현 | 온톨로지·주장·검토·활성화 계층 추가 |
+| 지식 원장 | `app/knowledge`의 K2 자료·K3 온톨로지/결정 원장 구현 | 주장·활성화 계층 추가 |
 | 검색 | 운영 service는 Chroma·BM25/RRF 등의 경로. filters가 있으면 hybrid 미사용 | 기존 경로 보존, 비교 실험의 필터 조건 고정 |
 | QA 근거 | `SearchInputResult`의 chunk_id/case_id/snippet 필수 | 회사 문서에 가짜 민원 case_id를 부여하지 않음 |
 | 평가 | Qwen `qwen3.5:4b`, Q2 / Q3·Q4·Q5 / Q1·Q7 / Q6 / Q0의 5그룹. 재평가 Q2 재사용 시 4호출 | 기존 민원 평가 보존. 회사 지식 정답 평가로 전용하지 않음 |
@@ -56,3 +56,7 @@
 - 민원 연결: 별도 assist 계약으로 연결하며 기존 case_id·Search/QA·평가 계약을 보존한다.
 
 필드·상태·API 기준은 [최소 계약](contracts.md), 라이브러리별 접점은 [구현 계획](implementation.md), 데이터 의미·상태 전이·수용 기준은 [PRD](../../00_overview/company_knowledge_prd.md)에 둔다. 실제 코드가 생기면 구현 범위를 확인한 뒤 현재 계약 문서로 반영한다.
+
+## K3 구현 반영 (2026-09-27)
+
+기존 직렬 Run에 온톨로지 순차 실행을 추가했다. SQLite의 ontology_versions/changesets/decisions에 정본·후보·결정을 저장하고 자료 화면의 온톨로지 탭에서 검토한다. 기존 파싱 상태 갱신은 parse만 수행한다. 지식그래프·활성화·검색은 후속 단계다. [K3 안내](../../30_manuals/knowledge_k3_runbook.md).

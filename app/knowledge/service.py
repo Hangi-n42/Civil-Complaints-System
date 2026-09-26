@@ -150,8 +150,11 @@ class KnowledgeService:
 
     def start(self, request: RunRequest):
         from .parsers import plan_units, parser_info
+        if request.kind == 'ontology':
+            from .ontology_run import start
+            return start(self, request)
         if request.kind != 'parse':
-            raise ValueError('K2에서는 parse 작업만 지원합니다.')
+            raise ValueError('현재 parse와 ontology 작업만 지원합니다.')
         with self.lock, self.repository.connect() as db:
             if self.closed:
                 raise KnowledgeConflict('서비스가 종료 중입니다.')
@@ -163,6 +166,8 @@ class KnowledgeService:
                        metrics=dict(llm_calls=0, model_total_s=0, elapsed_s=0))
             if request.retry_of_run_id:
                 previous = self.repository.get(db, 'runs', request.retry_of_run_id)
+                if previous['kind'] != 'parse':
+                    raise ValueError('parse 작업만 parse로 재시도할 수 있습니다.')
                 eligible = {u['id']: u for u in previous['units'] if u['status'] in {'failed', 'cancelled'}}
                 selected = request.unit_ids if request.unit_ids is not None else list(eligible)
                 if not selected or any(uid not in eligible for uid in selected):
@@ -221,6 +226,8 @@ class KnowledgeService:
             return dict(run_id=run_id, status=run['status'])
 
     def _update_versions(self, db, run):
+        if run['kind'] != 'parse':
+            return
         for vid in run['input_version_ids']:
             version = self.repository.get(db, 'versions', vid)
             lineage = [run]

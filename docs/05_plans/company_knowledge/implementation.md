@@ -1,8 +1,8 @@
 # 회사 지식 워크벤치 — 구현 계획·오픈소스 재사용
 
-- 문서 버전: v1.6
+- 문서 버전: v1.7
 - 문서 정리·코드 정적 확인일: 2026-09-26
-- 상태: K2 구현·Mac 확인 완료, 나머지는 구현 계획. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md).
+- 상태: K2·K3 구현 및 Mac 확인 완료, 나머지는 구현 계획. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md).
 
 [PRD](../../00_overview/company_knowledge_prd.md) · [아키텍처](architecture.md) · [마일스톤](milestones.md)
 
@@ -154,4 +154,8 @@ CQ4OE/LLMs4OL의 연구 데이터는 LH 정답으로 가져오지 않고 질문�
 
 ## K2 실제 도입 결과 (2026-09-26)
 
-pdfplumber 0.11.10·python-hwpx 6.5.0·BeautifulSoup4 4.15.0을 직접 사용했다. Pillow 12.3.0·Streamlit 1.64.0으로 제약을 함께 맞췄다. Mac 설치·pip check·Streamlit Home 초기 렌더·실제 선정 자료 파싱을 확인했다. 위 §8 후보 표는 계획 당시 조사이며 K3 이후 후보와 Windows 검증은 미완료다. 패키지 내부 수정·전체 엔진 도입은 없다.
+pdfplumber 0.11.10·python-hwpx 6.5.0·BeautifulSoup4 4.15.0을 직접 사용했다. Pillow 12.3.0·Streamlit 1.64.0으로 제약을 함께 맞췄다. Mac 설치·pip check·Streamlit Home 초기 렌더·실제 선정 자료 파싱을 확인했다. 위 §8 후보 표는 계획 당시 조사이며 K3 실제 결과는 아래에 기록한다. K4 이후 후보와 Windows 검증은 미완료다. 패키지 내부 수정·전체 엔진 도입은 없다.
+
+## K3 구현 반영 (2026-09-27)
+
+LinkML/runtime 1.11.1 직접 사용, OntoGPT 작성 구조·검사 방법 및 AutoSchemaKG 개념화 지침의 최소 적용. [재사용 기록](../../third_party/knowledge_k3_reuse.md), [K3 실행·제약](../../30_manuals/knowledge_k3_runbook.md). 코드 생성/import·OAK·외부 그래프 서버는 도입하지 않았다. 분석/설계와 Qwen 반례 검토를 기존 직렬 Run으로 실행하며 수정은 최대 1회다. 전체 FR-03·06 완료나 현업 효용 입증과 구분한다.

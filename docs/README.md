@@ -18,7 +18,7 @@ K1의 구체적 실행 기준: [B0/B1/B2 작업표·측정](05_plans/company_kno
 
 [파일럿 고정 기록](70_research/company_knowledge/company_knowledge_pilot_freeze_2026-09-26.md)의 입력·측정 절차·최소 계약 준비는 완료됐지만 P0 제품 구현·효용 검증은 완료되지 않았습니다. 연구·선정 근거는 `70_research/company_knowledge/`에서 확인합니다.
 
-K2의 자료 등록·원문 추출·위치 조회가 구현되었습니다. [K2 결과·실행 안내](30_manuals/knowledge_k2_runbook.md)에서 확인 범위와 남은 한계를 확인합니다.
+K2 자료 등록·원문 추출·위치 조회와 K3 온톨로지 초안 생성·검토가 구현되었습니다. [K3 결과·실행 안내](30_manuals/knowledge_k3_runbook.md). [K2 결과·실행 안내](30_manuals/knowledge_k2_runbook.md)에서 확인 범위와 남은 한계를 확인합니다.
 
 ## 현재 실행 가능한 민원 시스템
 

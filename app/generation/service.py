@@ -73,7 +73,8 @@ class GenerationService:
         num_predict: int | None = None,
         num_ctx: int | None = None,
         think: bool | None = None,
-    ) -> str:
+        return_metadata: bool = False,
+    ) -> str | Dict[str, Any]:
         """
         Ollama LLM 호출
 
@@ -152,6 +153,9 @@ class GenerationService:
                     upstream_status=200,
                 )
 
+            if return_metadata:
+                return {"text": text, **{key: data.get(key) for key in (
+                    "done", "done_reason", "prompt_eval_count", "eval_count", "total_duration")}}
             return text
             
         # 1. 연결 거부/Ollama 미기동

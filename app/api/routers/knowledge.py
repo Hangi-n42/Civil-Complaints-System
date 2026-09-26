@@ -10,8 +10,9 @@ from pydantic import BaseModel, ValidationError
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.core.config import settings
-from app.knowledge.schemas import RunRequest, SourceRegistration
+from app.knowledge.schemas import DecisionRequest, RunRequest, SourceRegistration
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
+from app.knowledge import ontology_schema
 
 
 class KnowledgeRoute(APIRoute):
@@ -25,6 +26,8 @@ class KnowledgeRoute(APIRoute):
                 return await original(request)
             except KeyError:
                 return error_response(request_id=make_request_id(), error_code='NOT_FOUND', message='등록 항목을 찾을 수 없습니다.', status_code=404)
+            except ontology_schema.VersionConflict as exc:
+                return error_response(request_id=make_request_id(), error_code='VERSION_CONFLICT', message=str(exc), status_code=409)
             except KnowledgeConflict as exc:
                 return error_response(request_id=make_request_id(), error_code='RUN_BUSY', message=str(exc), status_code=409)
             except (ValueError, ValidationError, RequestValidationError) as exc:
@@ -105,3 +108,29 @@ def run(run_id: str, service=Depends(get_knowledge_service)):
 @router.post('/runs/{run_id}/cancel', response_model=KnowledgeResponse)
 def cancel(run_id: str, service=Depends(get_knowledge_service)):
     return result(service.cancel(run_id))
+
+
+@router.get('/ontology-cqs', response_model=KnowledgeResponse)
+def ontology_cqs(service=Depends(get_knowledge_service)):
+    return result(ontology_schema.default_cqs())
+
+
+@router.get('/ontologies', response_model=KnowledgeResponse)
+def ontologies(service=Depends(get_knowledge_service)):
+    return result(ontology_schema.list_ontologies(service))
+
+
+@router.get('/ontologies/{ontology_id}', response_model=KnowledgeResponse)
+def ontology(ontology_id: str, service=Depends(get_knowledge_service)):
+    return result(ontology_schema.get_ontology(service, ontology_id))
+
+
+@router.get('/candidates', response_model=KnowledgeResponse)
+def ontology_candidates(changeset_id: str | None = None, kind: str | None = None,
+                        review_status: str | None = None, service=Depends(get_knowledge_service)):
+    return result(ontology_schema.candidates(service, changeset_id, kind, review_status))
+
+
+@router.post('/changes/{changeset_id}/decisions', response_model=KnowledgeResponse)
+def decisions(changeset_id: str, request: DecisionRequest, service=Depends(get_knowledge_service)):
+    return result(ontology_schema.decide(service, changeset_id, request))

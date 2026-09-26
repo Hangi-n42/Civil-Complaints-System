@@ -1,7 +1,7 @@
 # 회사 지식 P0 최소 데이터·API 계약
 
-- 버전: v1.1 · 2026-09-26
-- 상태: K2 자료 등록·파싱·근거 API 구현. K3 이후 타입·endpoint는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md).
+- 버전: v1.2 · 2026-09-27
+- 상태: K2 자료 계층과 K3 온톨로지 초안·검토 API 구현. K4 이후는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md), [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
 - 기준: [PRD](../../00_overview/company_knowledge_prd.md), [구현 계획](implementation.md), [아키텍처](architecture.md).
 - 적용: Python 3.11.9, 기존 FastAPI/Pydantic 응답·오류 봉투, SQLite 한 원장, 단일 작업 실행. 기존 민원 API에는 변경 없음.
 
@@ -57,7 +57,7 @@ K2는 원문을 재작성하지 않고 추출 block.text를 보존한다. 정규
 |---|---|---|
 | K2 | POST /sources | multipart file + metadata(JSON: source_id? 또는 title/publisher/namespace/external_id/source_url/rights, dates, selected_scope, acquired_at?) → source_id, source_version_id, disposition(registered/duplicate). 서버가 hash 계산·허용된 데이터 디렉터리에 저장; 등록 응답은 즉시 메타 반환 |
 | K2 | GET /sources | source_id? → items[{source,versions,processing_status}]. P0 소량 목록, 일반화된 쿼리 언어 없음 |
-| K2 | POST /runs | kind= parse, source_version_ids[], retry_of_run_id?, unit_ids? (extract/ontology/change는 후속 단계) → run_id,status(queued). kind별 미구현 경로는 성공으로 위장하지 않음 |
+| K2~3 | POST /runs | kind=parse 또는 ontology, source_version_ids[], retry_of_run_id?. ontology는 cqs[{id,question}], base_ontology_version_id? 추가. unit_ids는 parse 재시도만 지원. → run_id,status |
 | K2 | GET /runs/{id} | → Run, 진행/실패 단위, counts, metrics |
 | K2 | POST /runs/{id}/cancel | → {run_id,status}; 이미 종료됐으면 현재 상태 그대로 |
 | K2 | GET /sources/{id}/versions/{version_id} | → 출처·날짜·권리·hash·selected_scope·processing_status·raw_url |
@@ -113,3 +113,9 @@ P1 `/knowledge/assist`는 [구현 계획 §1](implementation.md#1-제안-api-목
 K2에서 실제 선정 포맷별 원문 위치 1건과 중복 등록/실패 표시를 확인한다. K3~5에서 관련 개발 과제와 잘못된 근거 제외·활성화 실패 유지·롤백 중단 상태 유지만 확인한다. K6~7 Local/Global 각 3건, K8 실제 날짜 정정, K9 정지 상태 백업/복원 1회 및 가능한 OS 확인을 누적한다. 필드별 테스트·모든 상태 조합·전체 민원 평가 반복을 선행 조건으로 추가하지 않는다. 변경과 직접 관계 있는 실패만 재검증한다.
 
 K2 실행은 단일 프로세스·직렬 작업이다. Evidence는 전체 블록의 `[0,len(text))` 발췌이며 matched는 문자열 위치 일치만 뜻한다. 부분 주장 정렬·검토는 K4 이후다.
+
+## K3 구현 계약 (2026-09-27)
+
+`GET /ontology-cqs`는 개발 질문 id/question만 반환한다. `GET /ontologies`와 `GET /ontologies/{id}`는 draft/reviewed 버전과 LinkML·JSON Schema·해시를 조회한다. `/candidates`·`/changes/{id}/decisions`는 개념·속성·관계 후보를 지원하며 Entity/Assertion은 K4다. Candidate는 proposed→accepted/deferred/rejected, modify는 수정 후 accepted. reviewed는 활성 상태가 아니다.
+
+모델은 근거 ID를 선택하고 인용은 고정 블록에서 구성한다. API 수정 인용은 원문 일치 검사하며 의미 타당성은 별도의 검토 대상이다. 재시도는 저장된 성공 단계 결과를 재사용하며 모델·프롬프트·입력 변경은 새 실행으로 처리한다. [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
