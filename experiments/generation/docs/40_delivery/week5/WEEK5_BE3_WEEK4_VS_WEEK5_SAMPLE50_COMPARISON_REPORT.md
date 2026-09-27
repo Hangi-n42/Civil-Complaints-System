@@ -5,9 +5,9 @@
 
 # Week4 vs Week5 BE3 모델 비교 분석 리포트
 
-작성일: 2026-04-09  
-비교 대상: [Week4 통합 벤치마크 및 모델 추천 리포트](../../../../../docs/40_delivery/week4/WEEK4_BE3_INTEGRATED_WEEK3_TO_WEEK4_MODEL_REPORT.md), [Week5 sample50 4개 모델 비교 리포트](WEEK5_BE3_4_MODEL_SAMPLE50_COMPARISON_REPORT.md)  
-비교 범위: Week4 Stage 1 / Week5 Stage 1 sample50 / 동일 계열 모델 비교  
+작성일: 2026-04-09
+비교 대상: [Week4 통합 벤치마크 및 모델 추천 리포트](../../../../../docs/40_delivery/week4/WEEK4_BE3_INTEGRATED_WEEK3_TO_WEEK4_MODEL_REPORT.md), [Week5 sample50 4개 모델 비교 리포트](WEEK5_BE3_4_MODEL_SAMPLE50_COMPARISON_REPORT.md)
+비교 범위: Week4 Stage 1 / Week5 Stage 1 sample50 / 동일 계열 모델 비교
 
 ---
 

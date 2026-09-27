@@ -1,8 +1,10 @@
 # 회사 지식 워크벤치 — 구현 계획·오픈소스 재사용
 
-- 문서 버전: v1.6
+> **2026-09-27 병합 상태 보충:** #497의 구현 계획을 기준으로 유지한다. #498의 실제 K2 도입 패키지·구현 범위·기존 확인 결과는 [K2 안내](../../30_manuals/knowledge_k2_runbook.md)에 기록되어 있다. 아래 미설치·미확인 설명은 계획 당시 기준이며 이번 충돌 해결에서 설치·실행을 재검증하지 않았다.
+
+- 문서 버전: v1.3
 - 문서 정리·코드 정적 확인일: 2026-09-26
-- 상태: K2 구현·Mac 확인 완료, 나머지는 구현 계획. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md).
+- 상태: 회사 지식 제품의 메인 구현 예정 기준. 기능 구현·실행 검증 완료를 뜻하지 않음.
 
 [PRD](../../00_overview/company_knowledge_prd.md) · [아키텍처](architecture.md) · [마일스톤](milestones.md)
 
@@ -10,7 +12,27 @@ PRD v1.2의 API 초안·재사용 설계·버전 조정 내용을 분리했다. 
 
 ## 1. 제안 API 목록
 
-필드·상태·endpoint의 단일 기준은 [P0 최소 데이터/API 계약](contracts.md)이다. Pydantic/OpenAPI는 해당 기능 구현 시 함께 작성한다. 이번 문서 고정 때문에 P0 전체 빈 라우터·서비스를 선행 생성하지 않는다. 기존 민원 endpoint는 유지한다.
+아래는 구현 예정 계약 초안이다. 기존 endpoint 변경을 의미하지 않는다. 구현 전 Pydantic/OpenAPI에 필드와 오류 코드를 확정한다.
+
+| API | 목적·주요 입출력 |
+|---|---|
+| `POST /api/v1/knowledge/sources` | 파일과 출처 메타 등록 → source_id/version_id, duplicate/registered |
+| `POST /api/v1/knowledge/runs` | version_ids, 작업 종류(extract/ontology/change) → run_id |
+| `GET /api/v1/knowledge/runs/{id}` | 상태, 처리/실패 단위, 호출 수·시간 |
+| `POST /api/v1/knowledge/runs/{id}/cancel` | 취소 요청 → cancel_requested 또는 이미 종료된 상태. PRD §8.2 경계에서 cancelled |
+| `GET /api/v1/knowledge/candidates` | 유형·상태·변경 묶음 필터 → 근거 포함 검토 후보 |
+| `POST /api/v1/knowledge/changes/{id}/decisions` | candidate_id별 결정·수정·사유, base_version → 결정 결과 |
+| `POST /api/v1/knowledge/snapshots` | changeset_id, expected_active_id → 새 snapshot_id |
+| `POST /api/v1/knowledge/snapshots/{id}/activate` | expected_active_id, 사유 → 활성 상태. 되돌리기도 같은 동작 |
+| `POST /api/v1/knowledge/search` | query, mode(local/global), snapshot_id, source_ids, scope, as_of 선택 → answer, 주장·경로·인용, 사용/제외 자료 범위, limitations, 상태·호출 수·시간. 미지정 snapshot은 현재 활성 버전으로 해석 |
+| `GET /api/v1/knowledge/sources/{id}/versions/{version_id}` | 원문 위치 조회용 메타·허용된 로컬 원문 |
+| `GET /api/v1/knowledge/export` | snapshot_id, 형식 → 이용 범위에 맞는 구조화 자료 |
+
+공통 응답은 기존 `success/request_id/timestamp/data` 형태를 따른다. 검토·활성화의 base version 불일치는 409, 잘못된 입력은 422로 표시한다. 지식 비활성 상태는 명시적으로 반환하며 기존 민원 결과로 위장하지 않는다.
+
+지식 검색의 근거는 `source_id/source_version_id/evidence_id/locator/quote/url`로 식별하고, 별도의 `assertion_id/snapshot_id/status_revision/status_checked_at/scope/validity_status`를 반환한다. 직접 근거 없는 관계는 확정 지식 답변에 포함하지 않는다.
+
+두 검색의 생성에도 동일한 근거 식별자를 사용한다. 서버가 검색 대상의 스냅샷·사용 상태를 확인하고 응답 시 상태 변경 여부를 한 번 확인한다. 변경됐으면 영향을 받은 근거가 포함된 답변을 재조회 대상으로 표시한다. Global 응답은 자료군/버전별 포함·제외 목록과 부분 처리 여부를 반환한다. Local 관계 경로에 필요하지 않은 Global 전용 필드는 빈 값으로 둔다.
 
 **P1 연결 결정:** 기존 `/api/v1/qa`의 case_id 계약을 억지로 변환하지 않는다. 별도 `POST /api/v1/knowledge/assist`에서 민원 query, snapshot_id, 선택한 assertion_ids, scope, as_of를 받고 `answer, knowledge_citations, snapshot_id, status_revision, status_checked_at, limitations`를 반환한다. 서버가 선택한 스냅샷의 주장·근거와 최신 사용 가능 상태·적용 범위를 다시 확인한다. 미검토·제외·스냅샷 외 ID는 거부하며 클라이언트의 원문·상태를 신뢰하지 않는다. 적용 범위를 확인할 조건이 부족하면 추가로 필요한 조건을 표시한다. 생성 직전에 사용 상태를 확인하고 응답 확정 전 status_revision이 바뀌면 선택 근거를 재확인한다. 제외된 근거가 있으면 성공 답변 대신 재조회 필요를 반환한다.
 
@@ -23,7 +45,7 @@ PRD v1.2의 API 초안·재사용 설계·버전 조정 내용을 분리했다. 
 | 대상 | 채택 방식 | 실제 사용할 기능과 최소 수정 | 연결 요구 |
 |---|---|---|---|
 | **pdfplumber** [S14] | 패키지 직접 사용 | `open`, 페이지의 단어·좌표·`find_tables` 결과 사용. 페이지/표/셀을 ParsedBlock·Evidence로 변환하는 어댑터만 작성 | FR-02 |
-| **python-hwpx** [S14] | 패키지 직접 사용 | K2에서는 공개 `TextExtractor`·`ParagraphInfo` 읽기 API 사용. package part·구역·표·셀 경로를 원문 위치로 매핑. 라이브러리에 없는 위치 메타만 ZIP/XML로 보완 | FR-02 |
+| **python-hwpx** [S14] | 패키지 직접 사용 | `HwpxDocument.open`, 공개 읽기·문단/표 모델 사용. package part·구역·표·셀 경로를 원문 위치로 매핑. 라이브러리에 없는 위치 메타만 ZIP/XML로 보완 | FR-02 |
 | **LinkML + linkml-runtime** [S15] | 패키지 직접 사용 | `SchemaView`로 클래스·슬롯·범위 해석, `JsonSchemaGenerator`로 추출용 JSON Schema 생성. 자체 스키마 컴파일러 대신 기존 생성기를 사용 | FR-03·05 |
 | **LangExtract** [S16] | 위치 정렬 부분 직접 사용 | `Extraction`과 `Resolver.align`에 기존 Ollama가 만든 발췌 후보와 원문 블록을 전달. 문자 범위·정렬 상태를 Evidence로 변환. 별도 추출 LLM 호출은 하지 않음 | FR-02·05 |
 | **OntoGPT 작성 자산** [S13] | 템플릿·지침·검사 일부 이식 | author-template skeleton의 필드/범위/설명/예시 구조와 validator의 root·range·prefix 검사 부분을 가져와 LH용으로 수정. 원본 전체 CLI·엔진은 호출하지 않음 | FR-03 |
@@ -40,7 +62,7 @@ OntoGPT 전체 SPIRES의 재귀 추출·OAK grounding은 LH 등록부와 근거 
 
 ## 3. 파서·추출·원문 위치 접점
 
-라이브러리 객체는 어댑터 내부에서만 사용하고 API/SQLite에는 [최소 계약](contracts.md)으로 저장한다. 새 모듈을 범용 플러그인 플랫폼으로 만들지 않는다.
+라이브러리 객체는 어댑터 내부에서만 사용하고 API/SQLite에는 프로젝트의 데이터 계약으로 저장한다. 새 모듈을 범용 플러그인 플랫폼으로 만들지 않는다.
 
 ```text
 CSV/HTML + pdfplumber/Python-HWPX
@@ -81,7 +103,7 @@ CSV/HTML + pdfplumber/Python-HWPX
 - 전체 입력이 예산 안에 들면 한 번 종합한다. 초과하면 개념/주제와 적용 범위를 기준으로 묶되 자료 출처를 유지하고, 각 묶음 요약 후 한 번 종합한다. 묶음 처리는 순차 실행한다. 정상 처리의 생성 호출은 직접 종합 1회 또는 묶음 수 g에 대해 g+1회이며 실제 실패/재실행은 별도 합산한다.
 - 중간 결과는 `points[{text, assertion_ids, evidence_ids, conditions, exceptions}]`와 실제 사용/누락 범위를 가진다. 원본 프롬프트의 report ID 인용을 원문 Evidence 인용으로 바꾸고, 중요도 점수만으로 예외·상충 조건을 삭제하거나 reference ID를 5개로 잘라 원장의 근거 목록을 손실시키지 않는다. 화면 인용을 접더라도 전체 목록은 유지한다.
 - 원본 엔진의 점수 기반 요점 선택·병렬 호출·파싱 실패를 빈 점수로 바꾸는 처리는 그대로 가져오지 않는다. 실패한 묶음은 실패/부분 처리로 표시한다. 최종 입력이 여전히 크면 제외 범위와 한계를 표시하고 추가 다층 요약을 자동 생성하지 않는다.
-- P0 중간 요약은 요청 안에서만 유지한다. Run에 `snapshot_id`, 사용한 `status_revision`, 자료 범위, **질문/질문 해시**, 모델·프롬프트·스키마 버전과 실제 의존 assertion/evidence ID를 기록한다. 질문 간 재사용·영속 요약 캐시·무효화 시스템을 만들지 않는다. 응답 전 상태 변경으로 사용할 수 없어진 근거는 stale로 반환한다.
+- 중간 요약을 보관한다면 `snapshot_id`, 사용한 `status_revision`, 자료 범위, **질문/질문 해시**, 모델·프롬프트·스키마 버전과 실제 의존 assertion/evidence ID를 기록한다. 질문 의존 요약을 다른 질문에 무조건 재사용하지 않는다. 사용 상태가 바뀐 관련 요약은 재생성하거나 제외한다. 별도 캐시 서비스는 필요 없다.
 - 사용·제외 자료 목록과 상태는 DB에서 계산한다. LLM이 생성한 출처 목록을 전체 처리의 증거로 삼지 않는다. 공통 규칙은 실제 공통 범위가 확인된 경우만 묶고, 개별 완화 조건·현행성 불명을 함께 표시한다. 주요 사실의 최종 인용은 중간 요약 자체가 아닌 원문까지 연결한다.
 
 두 검색은 기존 생성 호출만 재사용하며 민원 Q0~Q7 평가 루프를 호출하지 않는다. 관계 자동화와 기본 검색의 비교는 PRD §12의 B1/B2에 포함하고 LightRAG·GraphRAG 전체 플랫폼별 별도 벤치마크를 추가하지 않는다.
@@ -142,16 +164,3 @@ CQ4OE/LLMs4OL의 연구 데이터는 LH 정답으로 가져오지 않고 질문�
 구현 시 기존 동작을 보존하면서 필요한 직접·전이 의존성을 함께 조정한다. 공통 requirements에 조정한 버전을 기록하고 Mac/Windows 전용 차이만 environment marker로 표현한다. 모든 패키지를 최신판으로 일괄 올리거나 충돌을 `--no-deps`로 숨기지 않는다. 기본 운영은 하나의 프로젝트 환경으로 유지하며 임시 의존성 해석 환경을 별도 운영 서비스로 남기지 않는다.
 
 라이브러리 버전 정합성 확인과 영향 받은 기존 경로의 소규모 smoke를 K2~K4에 포함한다. 실제 호환성 문제가 확인되면 해당 조정만 추가 1~2일 작업으로 나누고 마일스톤 추정치를 갱신한다. 현 단계에서 resolver·설치·Mac/Windows 실행·한국어 품질은 아직 확인하지 않았으므로 위 조합을 호환성 검증 완료로 표시하지 않는다.
-
-
-## 9. 개발 속도를 지키는 적용 범위
-
-- 패키지는 K2 파서, K3 LinkML/온톨로지 자산, K4 정렬, K8 diff 순서로 필요한 때 설치한다. 모든 라이브러리 호환성 검증을 K2 시작 조건으로 두지 않는다. 관련 버전 충돌만 해결한다.
-- AI 반례 검토는 온톨로지 생성·변경 묶음 1회, 필요 시 후보 수정 최대 1회다. 사실마다 재평가·자동 재작성·전문가 합의 호출을 추가하지 않는다.
-- 스키마 검사는 API/추출 경계, 참조 검사는 DB/활성화 경계, 사용 상태는 검색 시작/변경 시에 배치한다. 같은 검사를 FE·서비스·어댑터마다 복제하지 않는다.
-- 원문 위치 어댑터는 실제 선정 형식부터 구현하고 원문을 정규화하지 않는 경로를 우선한다. 정규화 대응표는 실제 정규화할 때만 추가한다.
-- 대표 사례 결과는 누적한다. 실패·변경이 없는 전체 테스트 반복, OS 조합 전수검사, 매 단계 36회 비교는 하지 않는다. [측정 계약](evaluation_protocol.md)과 [계획 점검](../../70_research/company_knowledge/planning_scope_review_2026-09-26.md)을 따른다.
-
-## K2 실제 도입 결과 (2026-09-26)
-
-pdfplumber 0.11.10·python-hwpx 6.5.0·BeautifulSoup4 4.15.0을 직접 사용했다. Pillow 12.3.0·Streamlit 1.64.0으로 제약을 함께 맞췄다. Mac 설치·pip check·Streamlit Home 초기 렌더·실제 선정 자료 파싱을 확인했다. 위 §8 후보 표는 계획 당시 조사이며 K3 이후 후보와 Windows 검증은 미완료다. 패키지 내부 수정·전체 엔진 도입은 없다.

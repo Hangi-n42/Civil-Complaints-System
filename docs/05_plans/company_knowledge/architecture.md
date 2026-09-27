@@ -1,23 +1,25 @@
 # 회사 지식 워크벤치 — 목표 아키텍처·설계
 
-- 문서 버전: v1.6
+> **2026-09-27 병합 상태 보충:** 아래 미구현 표기는 #497 작성 당시의 설계 기준이다. #498에는 `app/knowledge`, knowledge router, `/knowledge` 화면의 K2 자료 등록·추출·근거 위치 조회가 존재한다. 온톨로지·주장·활성화·Local/Global은 후속 범위다. [K2 기록](../../30_manuals/knowledge_k2_runbook.md)을 참고한다.
+
+- 문서 버전: v1.3
 - 문서 정리·코드 정적 확인일: 2026-09-26
-- 상태: K2 자료 계층 구현·Mac 확인 완료. 이후 계층은 목표 설계다.
+- 상태: 회사 지식 제품의 메인 구현 예정 기준. 기능 구현·실행 검증 완료를 뜻하지 않음.
 
 [제품 요구사항](../../00_overview/company_knowledge_prd.md) · [구현 계획](implementation.md) · [마일스톤](milestones.md)
 
 ## 설계와 현재 코드의 경계
 
-회사 지식 구축·검수·갱신·Local/Global 검색이 제품의 주기능이다. 기존 민원 시스템은 재사용 기반이며 P1 활용 예시다. 현재 `app/knowledge`, knowledge router, `/knowledge` 화면에 K2 자료 등록·추출·원문 위치 조회가 구현되어 있다. SQLite 원장은 Source/SourceVersion/ParsedBlock/Evidence/parse Run을 저장한다. 온톨로지·그래프·검색은 이후 목표 설계다. [K2 확인 결과](../../30_manuals/knowledge_k2_runbook.md)를 참고한다.
+회사 지식 구축·검수·갱신·Local/Global 검색이 제품의 주기능이다. 기존 민원 시스템은 재사용 기반이며 P1 활용 예시다. 현재 `app/knowledge`, knowledge router, `/knowledge` 화면은 없고 파일럿 입력과 12개 평가 과제만 고정되어 있다. SQLite 지식 원장과 아래 흐름은 목표 설계다.
 
 ## 1. 현재 구현과 신규 부분
 
-2026-09-26 작업 트리 정적 확인 기준이다. K2는 Mac 실제 API·화면을 확인했으며 Windows 실행은 미확인이다.
+2026-09-26 작업 트리 정적 확인 기준이다. 실제 서비스 재실행·Windows 테스트를 이번 문서 작성에서 수행한 것은 아니다.
 
 | 경계 | 현재 확인 | 이번 요구 |
 |---|---|---|
 | API | FastAPI, Search/QA/stream·민원 구조화·Intelligence 존재 | 신규 지식 라우터와 별도 계약 |
-| 지식 원장 | `app/knowledge`의 K2 자료 원장 구현 | 온톨로지·주장·검토·활성화 계층 추가 |
+| 지식 원장 | `app/knowledge` 없음 | 독립 모듈 신규 구현 |
 | 검색 | 운영 service는 Chroma·BM25/RRF 등의 경로. filters가 있으면 hybrid 미사용 | 기존 경로 보존, 비교 실험의 필터 조건 고정 |
 | QA 근거 | `SearchInputResult`의 chunk_id/case_id/snippet 필수 | 회사 문서에 가짜 민원 case_id를 부여하지 않음 |
 | 평가 | Qwen `qwen3.5:4b`, Q2 / Q3·Q4·Q5 / Q1·Q7 / Q6 / Q0의 5그룹. 재평가 Q2 재사용 시 4호출 | 기존 민원 평가 보존. 회사 지식 정답 평가로 전용하지 않음 |
@@ -43,7 +45,7 @@
 - 저장은 `data/knowledge/knowledge.db`를 기본으로 하고 원문은 로컬 데이터 영역에 둔다. 원문·DB·모델·비밀 값은 Git에 올리지 않는다.
 - SQLite에서 개체·관계·근거·버전을 관리한다. 필요할 때 제한된 관계 조회를 수행하며 별도 Neo4j·벡터 DB·메시지 큐를 필수로 추가하지 않는다.
 - 기존 Chroma를 활용할 경우 별도 collection과 source_version 필터를 사용하고 기존 민원 collection을 섞지 않는다. DB가 진실의 원장이며 파생 검색 인덱스는 활성 ID를 다시 확인한다.
-- 두 검색의 입력과 근거 형식을 공유한다. Global 중간 요약은 요청 안에서만 유지하고 스냅샷·자료 범위·의존 ID를 Run에 기록한다. 원문 인용은 지식 원장에서 조회한다. 응답 전 사용 상태가 바뀐 경우 관련 ID만 재확인한다. 영속 요약 캐시·무효화 서비스·이중 원장은 만들지 않는다.
+- 두 검색의 입력과 근거 형식을 공유한다. Global의 중간 요약이 필요하면 해당 스냅샷·자료 범위에 연결된 파생 결과로 저장하고, 원문 인용은 지식 원장에서 조회한다. 상태 변경 시 관련 요약만 재생성하거나 해당 질의에서 제외한다. 별도 캐시 서비스·이중 원장은 만들지 않는다.
 - 최초 구현은 기존 앱을 띄우는 동안 명시적으로 시작한 단일 작업으로 충분하다. 작업 상태를 남기되 병렬 처리·분산 스케줄러는 도입하지 않는다.
 
 
@@ -55,4 +57,4 @@
 - 검색: 원장의 활성/사용 가능 상태를 기준으로 Local 관계 조회와 Global 종합을 제공한다.
 - 민원 연결: 별도 assist 계약으로 연결하며 기존 case_id·Search/QA·평가 계약을 보존한다.
 
-필드·상태·API 기준은 [최소 계약](contracts.md), 라이브러리별 접점은 [구현 계획](implementation.md), 데이터 의미·상태 전이·수용 기준은 [PRD](../../00_overview/company_knowledge_prd.md)에 둔다. 실제 코드가 생기면 구현 범위를 확인한 뒤 현재 계약 문서로 반영한다.
+API 초안과 라이브러리별 접점은 [구현 계획](implementation.md), 데이터 의미·상태 전이·수용 기준은 [PRD](../../00_overview/company_knowledge_prd.md)에 둔다. 실제 코드가 생기면 구현 범위를 확인한 뒤 현재 계약 문서로 반영한다.
