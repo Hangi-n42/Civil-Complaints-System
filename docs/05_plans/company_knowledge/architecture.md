@@ -1,9 +1,11 @@
 # 회사 지식 워크벤치 — 목표 아키텍처·설계
 
-> **2026-09-27 병합 상태 보충:** 아래 미구현 표기는 #497 작성 당시의 설계 기준이다. #498에는 `app/knowledge`, knowledge router, `/knowledge` 화면의 K2 자료 등록·추출·근거 위치 조회가 존재한다. 온톨로지·주장·활성화·Local/Global은 후속 범위다. [K2 기록](../../30_manuals/knowledge_k2_runbook.md)을 참고한다.
+> **#509 병합 기준(2026-09-27):** main의 문서 구조·요구사항을 유지하고 K3 구현 상태를 보충했다. 아래 #497/#498 당시 상태보다 이 문서의 K3 기록이 우선한다. 실행·품질 검증은 이번 충돌 해결에서 반복하지 않았다.
 
-- 문서 버전: v1.3
-- 문서 정리·코드 정적 확인일: 2026-09-26
+> **2026-09-27 병합 상태 보충:** 아래 미구현 표기는 #497 작성 당시의 설계 기준이다. #498에는 `app/knowledge`, knowledge router, `/knowledge` 화면의 K2 자료 등록·추출·근거 위치 조회가 존재한다. K3 온톨로지 초안·후보 검토·버전 저장은 추가됐으며 주장·활성화·Local/Global은 후속 범위다. [K2 기록](../../30_manuals/knowledge_k2_runbook.md)을 참고한다.
+
+- 문서 버전: v1.5
+- 문서 병합·정리일: 2026-09-27
 - 상태: 회사 지식 제품의 메인 구현 예정 기준. 기능 구현·실행 검증 완료를 뜻하지 않음.
 
 [제품 요구사항](../../00_overview/company_knowledge_prd.md) · [구현 계획](implementation.md) · [마일스톤](milestones.md)
@@ -58,3 +60,7 @@
 - 민원 연결: 별도 assist 계약으로 연결하며 기존 case_id·Search/QA·평가 계약을 보존한다.
 
 API 초안과 라이브러리별 접점은 [구현 계획](implementation.md), 데이터 의미·상태 전이·수용 기준은 [PRD](../../00_overview/company_knowledge_prd.md)에 둔다. 실제 코드가 생기면 구현 범위를 확인한 뒤 현재 계약 문서로 반영한다.
+
+## K3 구현 반영 (2026-09-27)
+
+기존 직렬 Run에 온톨로지 순차 실행을 추가했다. SQLite의 ontology_versions/changesets/decisions에 정본·후보·결정을 저장하고 자료 화면의 온톨로지 탭에서 검토한다. 기존 파싱 상태 갱신은 parse만 수행한다. 지식그래프·활성화·검색은 후속 단계다. [K3 안내](../../30_manuals/knowledge_k3_runbook.md).

@@ -1,5 +1,7 @@
 # 문서 지도
 
+> **#509 병합 기준(2026-09-27):** main의 문서 구조·요구사항을 유지하고 K3 구현 상태를 보충했다. 아래 #497/#498 당시 상태보다 이 문서의 K3 기록이 우선한다. 실행·품질 검증은 이번 충돌 해결에서 반복하지 않았다.
+
 - 문서 버전: v2.1
 - 기준일: 2026-09-26
 
@@ -39,3 +41,7 @@
 [최소 계약](05_plans/company_knowledge/contracts.md) · [측정 절차](05_plans/company_knowledge/evaluation_protocol.md) · [K2 실행 안내](30_manuals/knowledge_k2_runbook.md)
 
 문서 구조·요구사항은 #497 기준이며 K1/K2 후속 상태는 위 문서를 참고한다.
+
+## #509 K3 구현 반영
+
+K3 온톨로지 초안 생성·검토·버전 저장이 추가됐다. [실행 기록·한계](30_manuals/knowledge_k3_runbook.md), [재사용·라이선스](third_party/knowledge_k3_reuse.md)를 참고한다. 운영 활성화·지식그래프·검색·효용 검증 완료를 의미하지 않는다.

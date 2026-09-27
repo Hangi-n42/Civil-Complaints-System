@@ -18,6 +18,9 @@ class KnowledgeRepository:
                     id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
                     sha256 TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(source_id, sha256));
                 CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS ontology_versions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS changesets (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS decisions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS blocks (
                     id TEXT PRIMARY KEY, version_id TEXT NOT NULL REFERENCES versions(id),
                     run_id TEXT NOT NULL REFERENCES runs(id), unit_id TEXT NOT NULL,
@@ -38,7 +41,7 @@ class KnowledgeRepository:
 
     @staticmethod
     def get(db, table, object_id):
-        if table not in {'sources', 'versions', 'runs', 'blocks'}:
+        if table not in {'sources', 'versions', 'runs', 'blocks', 'ontology_versions', 'changesets', 'decisions'}:
             raise ValueError('Unknown ledger table')
         row = db.execute(f'SELECT payload FROM {table} WHERE id=?', (object_id,)).fetchone()
         if row is None:
@@ -47,7 +50,7 @@ class KnowledgeRepository:
 
     @staticmethod
     def save(db, table, value):
-        if table not in {'versions', 'runs'}:
+        if table not in {'versions', 'runs', 'changesets'}:
             raise ValueError('Unsupported update')
         db.execute(f'UPDATE {table} SET payload=? WHERE id=?',
                    (json.dumps(value, ensure_ascii=False), value['id']))
