@@ -1,6 +1,8 @@
 # 문서 지도
 
-- 문서 버전: v2.3
+> **#509 병합 기준(2026-09-27):** main의 문서 구조·요구사항을 유지하고 K3 구현 상태를 보충했다. 아래 #497/#498 당시 상태보다 이 문서의 K3 기록이 우선한다. 실행·품질 검증은 이번 충돌 해결에서 반복하지 않았다.
+
+- 문서 버전: v2.1
 - 기준일: 2026-09-26
 
 ## 신규 제품: 회사 지식 워크벤치
@@ -14,11 +16,7 @@
 | [구현 계획](05_plans/company_knowledge/implementation.md) | API·데이터·오픈소스 재사용·버전 조정 |
 | [마일스톤](05_plans/company_knowledge/milestones.md) | K1 이후 구현 순서와 완료 조건 |
 
-K1의 구체적 실행 기준: [B0/B1/B2 작업표·측정](05_plans/company_knowledge/evaluation_protocol.md), [최소 데이터/API 계약](05_plans/company_knowledge/contracts.md). [계획의 검증 범위 점검](70_research/company_knowledge/planning_scope_review_2026-09-26.md)도 반영했다.
-
-[파일럿 고정 기록](70_research/company_knowledge/company_knowledge_pilot_freeze_2026-09-26.md)의 입력·측정 절차·최소 계약 준비는 완료됐지만 P0 제품 구현·효용 검증은 완료되지 않았습니다. 연구·선정 근거는 `70_research/company_knowledge/`에서 확인합니다.
-
-K2 자료 등록·원문 추출·위치 조회와 K3 온톨로지 초안 생성·검토가 구현되었습니다. [K3 결과·실행 안내](30_manuals/knowledge_k3_runbook.md). [K2 결과·실행 안내](30_manuals/knowledge_k2_runbook.md)에서 확인 범위와 남은 한계를 확인합니다.
+[파일럿 고정 기록](70_research/company_knowledge/company_knowledge_pilot_freeze_2026-09-26.md)의 입력 준비는 완료됐지만 P0 제품 구현·효용 검증은 완료되지 않았습니다. 연구·선정 근거는 `70_research/company_knowledge/`에서 확인합니다.
 
 ## 현재 실행 가능한 민원 시스템
 
@@ -36,4 +34,14 @@ K2 자료 등록·원문 추출·위치 조회와 K3 온톨로지 초안 생성�
 
 [문서 감사표](DOCS_AUDIT.md) · [이번 정리 검수 기록](documentation_reorganization_review_2026-09-26.md)
 
-2026-09-26 후속 정리: 메인 PRD는 `00_overview/company_knowledge_prd.md`(현재 v1.5), 상세 설계·구현·마일스톤은 `05_plans/company_knowledge/`에 둔다. [ADR](00_overview/adr_architecture_decision_record.md)은 Git·현재 코드에 맞춰 v3.0으로 갱신했다.
+2026-09-26 후속 정리: 메인 PRD는 `00_overview/company_knowledge_prd.md`(v1.4), 상세 설계·구현·마일스톤은 `05_plans/company_knowledge/`에 둔다. [ADR](00_overview/adr_architecture_decision_record.md)은 Git·현재 코드에 맞춰 v3.0으로 갱신했다.
+
+## #498 구현 문서
+
+[최소 계약](05_plans/company_knowledge/contracts.md) · [측정 절차](05_plans/company_knowledge/evaluation_protocol.md) · [K2 실행 안내](30_manuals/knowledge_k2_runbook.md)
+
+문서 구조·요구사항은 #497 기준이며 K1/K2 후속 상태는 위 문서를 참고한다.
+
+## #509 K3 구현 반영
+
+K3 온톨로지 초안 생성·검토·버전 저장이 추가됐다. [실행 기록·한계](30_manuals/knowledge_k3_runbook.md), [재사용·라이선스](third_party/knowledge_k3_reuse.md)를 참고한다. 운영 활성화·지식그래프·검색·효용 검증 완료를 의미하지 않는다.

@@ -60,7 +60,7 @@
 | NEW-05 | 신규 | 구축·변경 | 영구임대 입주자 국민임대 우선공급 조건과 3% 상한 의미 |
 | NEW-06 | 신규 | 구축·변경 | Q&A 기준월·정책 시행일·관리비예치금 반환 시점 구분 |
 
-개별 질문·기대항목·실패조건·근거 ID·합성 주입은 [개발 과제](../../../configs/knowledge/pilot_v1/tasks.development.json)와 [신규 과제](../../../configs/knowledge/pilot_v1/tasks.new.json)에 있다. 각 과제는 모든 핵심 항목과 근거 연결을 만족해야 통과하며 부분 성공을 전체 통과로 세지 않는다. 아직 어떤 시스템에서도 이 12건을 실행하지 않았다.
+개별 질문·기대항목·실패조건·근거 ID·합성 주입은 개발 과제 (`configs/knowledge/pilot_v1/tasks.development.json`)와 신규 과제 (`configs/knowledge/pilot_v1/tasks.new.json`)에 있다. 각 과제는 모든 핵심 항목과 근거 연결을 만족해야 통과하며 부분 성공을 전체 통과로 세지 않는다. 아직 어떤 시스템에서도 이 12건을 실행하지 않았다.
 
 ### 검수·확인 결과
 
@@ -72,7 +72,7 @@
 
 ### 산출물과 고정 방식
 
-[입력·평가 사용 설명](../../../configs/knowledge/pilot_v1/README.md), [출처 등록부](../../../configs/knowledge/pilot_v1/sources.json), [근거 위치](../../../configs/knowledge/pilot_v1/evidence.json), [고정 해시](../../../configs/knowledge/pilot_v1/freeze.json)를 기준으로 사용한다. 원문은 로컬 `data/knowledge/pilot_v1/raw/`에 보존하고 `.gitignore`로 제외한다. 다른 컴퓨터에서 같은 평가를 재현하려면 공식 취득/허용된 사본의 해시 일치가 필요하다. URL만 같으면 동일 버전이라는 가정은 하지 않는다.
+입력·평가 사용 설명 (`configs/knowledge/pilot_v1/README.md`), 출처 등록부 (`configs/knowledge/pilot_v1/sources.json`), 근거 위치 (`configs/knowledge/pilot_v1/evidence.json`), 고정 해시 (`configs/knowledge/pilot_v1/freeze.json`)를 기준으로 사용한다. 원문은 로컬 `data/knowledge/pilot_v1/raw/`에 보존하고 `.gitignore`로 제외한다. 다른 컴퓨터에서 같은 평가를 재현하려면 공식 취득/허용된 사본의 해시 일치가 필요하다. URL만 같으면 동일 버전이라는 가정은 하지 않는다.
 
 ### 남은 한계와 다음 작업
 
