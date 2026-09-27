@@ -33,3 +33,9 @@
 [문서 감사표](DOCS_AUDIT.md) · [이번 정리 검수 기록](documentation_reorganization_review_2026-09-26.md)
 
 2026-09-26 후속 정리: 메인 PRD는 `00_overview/company_knowledge_prd.md`(v1.4), 상세 설계·구현·마일스톤은 `05_plans/company_knowledge/`에 둔다. [ADR](00_overview/adr_architecture_decision_record.md)은 Git·현재 코드에 맞춰 v3.0으로 갱신했다.
+
+## #498 구현 문서
+
+[최소 계약](05_plans/company_knowledge/contracts.md) · [측정 절차](05_plans/company_knowledge/evaluation_protocol.md) · [K2 실행 안내](30_manuals/knowledge_k2_runbook.md)
+
+문서 구조·요구사항은 #497 기준이며 K1/K2 후속 상태는 위 문서를 참고한다.

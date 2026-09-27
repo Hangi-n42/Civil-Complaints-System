@@ -1,5 +1,7 @@
 # 프로젝트 폴더 구조
 
+> **2026-09-27 병합 상태 보충:** #498에서 `app/knowledge/`, `app/api/routers/knowledge.py`, `frontend/app/knowledge/`, `scripts/import_knowledge_pilot.py`가 추가됐다. 아래 목표 디렉터리 부재 설명은 #497 정리 당시 기준이다. `docs/05_plans/company_knowledge/contracts.md`, `evaluation_protocol.md`와 K2 실행 안내도 함께 유지한다.
+
 - 문서 버전: v2.1
 - 기준일: 2026-09-26
 

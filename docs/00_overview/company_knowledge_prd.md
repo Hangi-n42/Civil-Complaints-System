@@ -1,5 +1,7 @@
 # 회사 지식 온톨로지·지식그래프 구축 및 갱신 워크벤치 PRD
 
+> **2026-09-27 병합 상태 보충:** 제품 요구사항은 #497의 v1.4를 기준으로 유지한다. 아래 K1 미완료·구현 전 표기는 2026-09-26 문서 정리 당시 기록이다. #498에는 [K1 측정 절차](../05_plans/company_knowledge/evaluation_protocol.md)·[최소 계약](../05_plans/company_knowledge/contracts.md)과 [K2 자료 계층](../30_manuals/knowledge_k2_runbook.md)이 추가됐다. 계약과 충돌하는 요구는 이 PRD가 우선하며 후속 설계 변경은 별도 구분한다. 전체 P0·Windows·효용 검증은 미완료다.
+
 | 항목 | 내용 |
 |---|---|
 | 문서 유형 | Product Requirements Document — 제품 요구사항 정의서 |
@@ -411,5 +413,3 @@ v1.3은 문서 체계 정리 버전이다. 회사 지식 제품을 메인 기준
 ### v1.4 문서 배치 변경
 
 PRD를 `docs/00_overview/company_knowledge_prd.md`로 이동했다. 요구사항 변경은 없으며 상세 설계·구현·마일스톤은 `docs/05_plans/company_knowledge/`에 유지한다.
-
-> PR 범위 안내: 위 `configs/knowledge/pilot_v1/` 참조는 문서 작성 당시 로컬 준비 자료다. 이번 문서 정리 PR에는 설정·평가 데이터가 포함되지 않으며 별도 작업에서 반영해야 한다.

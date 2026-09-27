@@ -1,0 +1,523 @@
+{
+  "version": "1.0",
+  "tasks": [
+    {
+      "task_id": "DEV-01",
+      "type": "build_update",
+      "title": "정정 계보와 기준일 변경",
+      "query": "양산 공고 20732→20794→20796의 정정 계보를 구성하고, 확인 가능한 변경 전후 사실과 확인 불가 항목을 분리해줘.",
+      "split": "development",
+      "source_ids": [
+        "notice_correction1_html",
+        "notice_correction2_html",
+        "notice_correction1_pdf",
+        "notice_correction2_pdf"
+      ],
+      "evidence_refs": [
+        "reason_correction1",
+        "reason_correction2",
+        "date_correction1",
+        "date_correction2"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-01-C1",
+          "requirement": "원공고와 두 정정 공고를 별도 버전으로 연결하고 공고 기준일을 정정 게시시각으로 사용하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "reason_correction1",
+            "reason_correction2",
+            "date_correction1",
+            "date_correction2"
+          ]
+        },
+        {
+          "check_id": "DEV-01-C2",
+          "requirement": "전용 50㎡ 미만 1순위 양산 거주 기준일 2026-07-15→2026-09-15을 근거 양쪽과 함께 보존한다. 이전 사실을 삭제하지 않고 후속 버전으로 연결한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "reason_correction1",
+            "reason_correction2",
+            "date_correction1",
+            "date_correction2"
+          ]
+        },
+        {
+          "check_id": "DEV-01-C3",
+          "requirement": "첫 정정의 물금5 36·46형 및 사송A-4 46형 대기 예비자수 정정 사유는 기록하되 원공고 PDF가 없으므로 변경 전 수치는 확인 불가로 둔다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "reason_correction1",
+            "reason_correction2",
+            "date_correction1",
+            "date_correction2"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "변경 전 대기 인원 추정",
+        "구 버전 전체 사실을 일괄 무효화",
+        "모든 면적·순위에 기준일 변경 일반화"
+      ],
+      "allowed_uncertainty": [
+        "첫 정정 변경 전 숫자 및 개별 정정 게시시각은 확보 자료로 확정하지 않음"
+      ],
+      "test_injections": [],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    },
+    {
+      "task_id": "DEV-02",
+      "type": "build_update",
+      "title": "단지 식별자와 별칭 연결",
+      "query": "양산 공고 6단지를 공식 단지코드로 CSV와 연결하고 PDF 명칭을 별칭으로 보존해줘.",
+      "split": "development",
+      "source_ids": [
+        "notice_correction2_html",
+        "complex_registry_csv",
+        "notice_correction2_pdf"
+      ],
+      "evidence_refs": [
+        "html_C00446",
+        "csv_C00446",
+        "html_C01643",
+        "csv_C01643",
+        "html_C01951",
+        "csv_C01951",
+        "html_C01953",
+        "csv_C01953",
+        "html_C02715",
+        "csv_C02715",
+        "html_C02748",
+        "csv_C02748",
+        "pdf_complex_양산물금2",
+        "pdf_complex_양산물금5",
+        "pdf_complex_양산사송A-4블록",
+        "pdf_complex_양산사송A-5블록",
+        "pdf_complex_금산휴먼시아",
+        "pdf_complex_소주휴먼시아"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-02-C1",
+          "requirement": "공고 sbdList의 6코드 C00446/C01643/C01951/C01953/C02715/C02748만 대상 단지로 선택한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "csv_C00446",
+            "html_C01643",
+            "csv_C01643",
+            "html_C01951",
+            "csv_C01951",
+            "html_C01953",
+            "csv_C01953",
+            "html_C02715",
+            "csv_C02715",
+            "html_C02748",
+            "csv_C02748",
+            "pdf_complex_양산물금2",
+            "pdf_complex_양산물금5",
+            "pdf_complex_양산사송A-4블록",
+            "pdf_complex_양산사송A-5블록",
+            "pdf_complex_금산휴먼시아",
+            "pdf_complex_소주휴먼시아"
+          ]
+        },
+        {
+          "check_id": "DEV-02-C2",
+          "requirement": "코드 일치를 우선하여 CSV·HTML 레코드를 연결하며 PDF 명칭과 주소를 대조해 별칭 근거를 보존한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "csv_C00446",
+            "html_C01643",
+            "csv_C01643",
+            "html_C01951",
+            "csv_C01951",
+            "html_C01953",
+            "csv_C01953",
+            "html_C02715",
+            "csv_C02715",
+            "html_C02748",
+            "csv_C02748",
+            "pdf_complex_양산물금2",
+            "pdf_complex_양산물금5",
+            "pdf_complex_양산사송A-4블록",
+            "pdf_complex_양산사송A-5블록",
+            "pdf_complex_금산휴먼시아",
+            "pdf_complex_소주휴먼시아"
+          ]
+        },
+        {
+          "check_id": "DEV-02-C3",
+          "requirement": "C01643의 양산소주(06 주2) 1단지와 소주휴먼시아를 연결하고 모든 원문 명칭·코드·출처를 유지한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "csv_C00446",
+            "html_C01643",
+            "csv_C01643",
+            "html_C01951",
+            "csv_C01951",
+            "html_C01953",
+            "csv_C01953",
+            "html_C02715",
+            "csv_C02715",
+            "html_C02748",
+            "csv_C02748",
+            "pdf_complex_양산물금2",
+            "pdf_complex_양산물금5",
+            "pdf_complex_양산사송A-4블록",
+            "pdf_complex_양산사송A-5블록",
+            "pdf_complex_금산휴먼시아",
+            "pdf_complex_소주휴먼시아"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "페이지 공통 스크립트의 다른 단지를 유입",
+        "이름 유사성만으로 단지 병합",
+        "공식 코드 변경"
+      ],
+      "allowed_uncertainty": [
+        "원문에 없는 내부 자산 ID·조직 담당자 관계는 생성하지 않음"
+      ],
+      "test_injections": [],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    },
+    {
+      "task_id": "DEV-03",
+      "type": "local",
+      "title": "A-5 세대수의 범위와 알 수 없는 공실",
+      "query": "양산사송 A-5의 HTML 521세대, PDF 985호, CSV 990세대는 각각 무슨 범위인가? 이 자료로 현재 빈집 수를 알 수 있나?",
+      "split": "development",
+      "source_ids": [
+        "notice_correction2_html",
+        "notice_correction2_pdf",
+        "complex_registry_csv"
+      ],
+      "evidence_refs": [
+        "html_C02748",
+        "html_a5_type_scope",
+        "pdf_complex_양산사송A-5블록",
+        "csv_C02748"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-03-C1",
+          "requirement": "HTML 국민임대 521 및 영구임대 464, 합계 985라는 명시 내용을 분리해 제시한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C02748",
+            "html_a5_type_scope",
+            "pdf_complex_양산사송A-5블록",
+            "csv_C02748"
+          ]
+        },
+        {
+          "check_id": "DEV-03-C2",
+          "requirement": "PDF 5개동 985호와 CSV 6동 990세대(국민임대+영구임대+임대상가)를 각각 출처·시점과 함께 보존한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C02748",
+            "html_a5_type_scope",
+            "pdf_complex_양산사송A-5블록",
+            "csv_C02748"
+          ]
+        },
+        {
+          "check_id": "DEV-03-C3",
+          "requirement": "세대수 차이 원인과 실시간 공실 수는 확인 불가라고 답하고 단지→수치 사실→근거 경로를 제시한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C02748",
+            "html_a5_type_scope",
+            "pdf_complex_양산사송A-5블록",
+            "csv_C02748"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "차이 5를 임대상가 5호로 단정",
+        "521·985·990 중 하나로 덮어쓰기",
+        "예비자 모집 수를 현재 빈집 수로 취급"
+      ],
+      "allowed_uncertainty": [
+        "수치 차이 원인, 현재 공실, 현재 입주 보장 여부는 확인 불가"
+      ],
+      "test_injections": [],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    },
+    {
+      "task_id": "DEV-04",
+      "type": "build_update",
+      "title": "입주 관련 날짜의 의미 분리",
+      "query": "금산휴먼시아의 입주예정월·최초입주월·입주지정시작일·준공일을 구분하여 추출해줘.",
+      "split": "development",
+      "source_ids": [
+        "notice_correction2_html",
+        "notice_correction2_pdf",
+        "complex_registry_csv"
+      ],
+      "evidence_refs": [
+        "html_C00446",
+        "html_geumsan_expected_month_label",
+        "pdf_complex_금산휴먼시아",
+        "csv_C00446"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-04-C1",
+          "requirement": "입주예정월 2011-05(HTML)과 최초입주월 2011-06(PDF)을 별도 속성으로 보존한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "html_geumsan_expected_month_label",
+            "pdf_complex_금산휴먼시아",
+            "csv_C00446"
+          ]
+        },
+        {
+          "check_id": "DEV-04-C2",
+          "requirement": "CSV 입주지정시작일 2011-05-26 및 준공일 2011-05-23을 별도 날짜 역할로 저장한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "html_geumsan_expected_month_label",
+            "pdf_complex_금산휴먼시아",
+            "csv_C00446"
+          ]
+        },
+        {
+          "check_id": "DEV-04-C3",
+          "requirement": "월 단위 값에 임의의 일을 붙이지 않으며 서로 다른 속성을 충돌·오류로 자동 판정하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "html_C00446",
+            "html_geumsan_expected_month_label",
+            "pdf_complex_금산휴먼시아",
+            "csv_C00446"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "모든 날짜를 입주일 하나로 병합",
+        "월에 임의로 01일 추가"
+      ],
+      "allowed_uncertainty": [
+        "어느 속성이 실제 개별 세대 입주일인지는 확인 불가"
+      ],
+      "test_injections": [],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    },
+    {
+      "task_id": "DEV-05",
+      "type": "global",
+      "title": "일반 기준과 공고 특례·부분 coverage",
+      "query": "선택 자료 전체에서 국민임대 일반 자격과 양산 정정 공고의 완화·갱신 조건을 비교하고, 분석에 포함되지 않은 자료를 명시해줘.",
+      "split": "development",
+      "source_ids": [
+        "LH-GUIDE-1023",
+        "notice_correction2_pdf",
+        "LH-GUIDE-1025",
+        "LH-RULES-2015",
+        "notice_correction1_pdf",
+        "LH-GUIDE-1022"
+      ],
+      "evidence_refs": [
+        "guide_general",
+        "conditions_1",
+        "conditions_renewal"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-05-C1",
+          "requirement": "일반 안내의 소득·자산 기준과 이 양산 공고의 소득·자산 기준 미적용을 적용 범위가 다른 사실로 구분한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "guide_general",
+            "conditions_1"
+          ]
+        },
+        {
+          "check_id": "DEV-05-C2",
+          "requirement": "계약금 50만원 및 주택 소유 완화는 이 공고 범위로 한정하며 예외 조건을 유지한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "guide_general",
+            "conditions_1"
+          ]
+        },
+        {
+          "check_id": "DEV-05-C3",
+          "requirement": "소득·총자산 요건 1회 미충족 시 재계약 허용(할증 없음), 2회 미충족 시 해당 법령 요건을 충족하는 예비입주자가 없는 경우의 재계약 허용 조건을 구분한다. 무주택요건 완화는 공고일 전 취득한 주택에 한해 1회차까지 재계약 가능하고, 2회차부터 종전 주택 계속 보유 또는 새 취득 시 재계약 거절·해제·해지 가능하다는 조건을 유지한다. 2회차 이상 갱신은 본래 국민임대 입주자격 기준으로 판단해 할증 또는 거절 가능하다는 원문 주석도 함께 제시하며, 최초 신청 완화를 영구 면제로 일반화하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "conditions_renewal"
+          ]
+        },
+        {
+          "check_id": "DEV-05-C4",
+          "requirement": "아래 fixture의 제외·누락 자료와 사유를 전부 밝히고 부분 분석이라고 표시한다. 누락 내용을 상식으로 보완하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "guide_general",
+            "conditions_1",
+            "conditions_renewal"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "일반 안내를 폐지된 규정으로 단정",
+        "모든 LH 국민임대에 자격 완화 적용",
+        "누락 자료까지 분석 완료라고 주장"
+      ],
+      "allowed_uncertainty": [
+        "예산상 제외 자료의 내용은 이 응답에서 판단하지 않음"
+      ],
+      "test_injections": [
+        {
+          "kind": "evaluation_state_only",
+          "not_real_lh_history": true,
+          "active_included": [
+            "notice_correction2_pdf",
+            "LH-GUIDE-1023"
+          ],
+          "excluded": {
+            "LH-GUIDE-1025": "unreviewed",
+            "LH-RULES-2015": "currentness_unverified",
+            "notice_correction1_pdf": "query_selects_later_version"
+          },
+          "active_but_omitted_from_model_input": {
+            "LH-GUIDE-1022": "deterministic_input_budget_fixture"
+          },
+          "instruction": "위 상태와 포함/제외 목록을 질의 메타데이터에 제공. 토큰 임계값을 임의 구현할 필요 없이 입력 누락 상태를 고정한다."
+        }
+      ],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    },
+    {
+      "task_id": "DEV-06",
+      "type": "build_update",
+      "title": "오래된 시행세칙과 무근거 확약 후보",
+      "query": "2015 시행세칙의 개정·시행일과 현행성 상태를 구분하고 주입된 후보 주장의 근거를 검토해줘.",
+      "split": "development",
+      "source_ids": [
+        "LH-RULES-2015"
+      ],
+      "evidence_refs": [
+        "rules_amended",
+        "rules_effective",
+        "rules_article3"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "DEV-06-C1",
+          "requirement": "개정일 2015-01-08과 시행일 2015-01-12를 구분한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "rules_amended",
+            "rules_effective",
+            "rules_article3"
+          ]
+        },
+        {
+          "check_id": "DEV-06-C2",
+          "requirement": "이 고정 문서만으로 2026년 현행 여부를 확정하지 않으며 현행 근거로 자동 활성화하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "rules_amended",
+            "rules_effective",
+            "rules_article3"
+          ]
+        },
+        {
+          "check_id": "DEV-06-C3",
+          "requirement": "제3조가 존재하더라도 7일 이내 입주 확정을 뒷받침하지 않으므로 주입 후보를 근거 불충분으로 반려/보류한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "rules_amended",
+            "rules_effective",
+            "rules_article3"
+          ]
+        }
+      ],
+      "critical_failures": [
+        "제3조 자체가 없다고 판정",
+        "7일 입주 확약을 승인",
+        "오래되었다는 이유만으로 폐지 확정"
+      ],
+      "allowed_uncertainty": [
+        "현행 여부와 후속 개정 존재는 선정 자료에서 확인 불가"
+      ],
+      "test_injections": [
+        {
+          "kind": "synthetic_candidate",
+          "text": "이 자료 제3조에 따라 신청하면 7일 이내 입주가 확정된다.",
+          "is_source_quote": false,
+          "purpose": "실제 존재 조문에 근거 없는 이행 확약을 연결하는 오류 탐지"
+        }
+      ],
+      "setup": "계획상 평가 fixture이며 실제 운영 승인 이력이 아님. 구축 과제는 등록 원문에서 후보 생성; 질의 과제는 지정 버전의 검토·활성 상태를 설정.",
+      "as_of": null,
+      "knowledge_cutoff": "고정 해시의 자료 범위만 사용",
+      "exposure": {
+        "designer_exposed": true,
+        "blind_holdout": false,
+        "human_domain_expert_reviewed": false
+      },
+      "pass_rule": "모든 expected_checks 충족, critical_failures 없음, 근거 위치 일치 시 통과. 근거 부족 고지는 환각과 구별하지만 제공된 충분한 사실을 답하지 못하면 성공 아님.",
+      "status": "frozen_not_executed",
+      "human_verified": false
+    }
+  ]
+}

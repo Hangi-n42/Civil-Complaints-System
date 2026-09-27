@@ -1,0 +1,407 @@
+{
+  "version": "1.0",
+  "exposure_notice": "새 과제/절 선정일 뿐 블라인드 또는 독립 검증셋 아님. 설계·AI 검토에 정답 노출. 구현 튜닝에 사용하면 개발용으로 재분류.",
+  "tasks": [
+    {
+      "task_id": "NEW-01",
+      "type": "local",
+      "title": "우선공급 서류에서 발급기관까지 탐색",
+      "query": "등록된 국민임대 제출서류 안내(1025)에서 중소기업근로자의 우선공급 확인서 이름과 발급기관을 찾아 근거와 관계 경로를 보여줘.",
+      "source_ids": [
+        "LH-GUIDE-1025"
+      ],
+      "critical_failures": [
+        "모든 신청자의 필수 제출서류로 일반화",
+        "같은 표의 다른 행 발급기관(주민센터 등) 혼입",
+        "원문 없는 개별 담당부서 또는 담당자 생성"
+      ],
+      "conditions": [
+        "중소기업근로자 우선공급 안내라는 범위",
+        "안내 자체의 설명이며 실제 자격 인정이나 서류 발급 보장 아님"
+      ],
+      "expected_output": "짧은 답변+경로+원문 인용",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-01-E1"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-01-C1",
+          "requirement": "문서명은 중소기업근로자 국민임대주택 우선공급확인서, 발급기관은 각 지방 중소벤처기업청으로 연결한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-01-E1"
+          ]
+        },
+        {
+          "check_id": "NEW-01-C2",
+          "requirement": "우선공급 자격 유형→필요 서류→발급기관 관계 및 동일 표 행을 근거로 제시한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-01-E1"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    },
+    {
+      "task_id": "NEW-02",
+      "type": "local",
+      "title": "특정 Q&A의 청약통장 재사용 조건",
+      "query": "2026 LH Q&A 임대주택 Q7에 따르면 국민임대 입주자로 선정된 경우 사용한 청약통장을 다시 사용할 수 있는가? 적용되는 이전 주택 유형과 다음 청약 유형을 구분해줘.",
+      "source_ids": [
+        "LH-QA-2026"
+      ],
+      "critical_failures": [
+        "모든 주택 당첨 후 무조건 재사용 가능으로 확대",
+        "국민임대 당첨이면 통장을 폐기해야 한다고 답변",
+        "Q7에 없는 개인별 신청 가능 여부 확정"
+      ],
+      "conditions": [
+        "Q7 자료 설명 범위",
+        "개인별 다른 청약 자격을 검증하는 문제가 아님"
+      ],
+      "expected_output": "조건 구분 답변+Q7 근거",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-02-E1"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-02-C1",
+          "requirement": "이전 선정 유형은 분양전환되지 않는 공공임대이며 국민임대가 예시에 포함된다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-02-E1"
+          ]
+        },
+        {
+          "check_id": "NEW-02-C2",
+          "requirement": "다음 청약은 비분양전환 공공임대, 일정 기간 후 분양전환 공공임대, 공공분양으로 구분한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-02-E1"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    },
+    {
+      "task_id": "NEW-03",
+      "type": "global",
+      "title": "미성년자 신청 원칙과 예외의 문서 간 종합",
+      "query": "등록된 자격 안내와 2026 Q&A에서 미성년자 신청에 관한 공통 원칙·예외·추가 조건을 종합해줘. 한 자료에만 적힌 조건은 구분해줘.",
+      "source_ids": [
+        "LH-GUIDE-1023",
+        "LH-QA-2026"
+      ],
+      "critical_failures": [
+        "미성년자는 예외 없이 불가능",
+        "예외 중 하나라도 핵심 한정조건 삭제",
+        "Q&A 문구 부재를 두 문서의 법적 충돌 또는 면제라고 단정"
+      ],
+      "conditions": [
+        "국민임대 안내와 공공임대 Q&A의 문서 범위 구분",
+        "날짜 우선순위로 자동 덮어쓰기 금지"
+      ],
+      "expected_output": "공통·차이·예외+두 출처 인용+사용 범위",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-03-E1",
+        "NEW-03-E2"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-03-C1",
+          "requirement": "일반적 신청 제한과 예외 3개를 함께 남긴다: 자녀가 있는 미성년 세대주, 직계존속 부재 사유로 형제자매를 부양하는 세대주, 외국인 부모 한부모가족의 내국인 미성년 세대주.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-03-E1",
+            "NEW-03-E2"
+          ]
+        },
+        {
+          "check_id": "NEW-03-C2",
+          "requirement": "자격 안내의 법정대리인 조건을 따로 표시한다. Q&A의 해당 문구 부재를 그 조건 면제라는 의미로 해석하지 않는다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-03-E1",
+            "NEW-03-E2"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    },
+    {
+      "task_id": "NEW-04",
+      "type": "global",
+      "title": "신청·서류심사·입주 단계의 서류 구분",
+      "query": "등록된 국민임대 절차·제출서류 안내와 2026 Q&A를 종합해 신청 심사와 실제 입주 때의 서류를 구분해줘. 조건부 서류와 입주 후 제출도 따로 표시해줘.",
+      "source_ids": [
+        "LH-GUIDE-1022",
+        "LH-GUIDE-1025",
+        "LH-QA-2026"
+      ],
+      "critical_failures": [
+        "모든 서류를 신청 첫날 일괄 제출한다고 합침",
+        "입주 후 주민등록표를 청약 사전 필수로 바꿈",
+        "자료 미포함 개인별 추가 서류를 확정"
+      ],
+      "conditions": [
+        "모집·심사와 입주를 동일 절차로 병합하지 않음",
+        "종합 범위는 선택한 세 자료에 한정"
+      ],
+      "expected_output": "단계별 종합+조건/예외+세 출처 인용+포함 자료",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-04-E1",
+        "NEW-04-E2",
+        "NEW-04-E3",
+        "NEW-04-E4",
+        "NEW-04-E5"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-04-C1",
+          "requirement": "신청 심사 단계 서류와 Q12의 입주 단계 서류를 분리한다. 가족관계증명서는 안내에 명시된 관계 확인 조건을 붙인다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-04-E1",
+            "NEW-04-E2",
+            "NEW-04-E3",
+            "NEW-04-E4",
+            "NEW-04-E5"
+          ]
+        },
+        {
+          "check_id": "NEW-04-C2",
+          "requirement": "Q12의 계약서·잔금 영수증·신분증·도장은 입주 시, 전입 신고된 주민등록표는 입주 후로 구분한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-04-E1",
+            "NEW-04-E2",
+            "NEW-04-E3",
+            "NEW-04-E4",
+            "NEW-04-E5"
+          ]
+        },
+        {
+          "check_id": "NEW-04-C3",
+          "requirement": "인터넷접수자의 대상자 발표·서류 접수 조건 및 계층별 추가 서류의 입주안내문 참조를 남긴다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-04-E1",
+            "NEW-04-E2",
+            "NEW-04-E3",
+            "NEW-04-E4",
+            "NEW-04-E5"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    },
+    {
+      "task_id": "NEW-05",
+      "type": "build_update",
+      "title": "영구임대에서 국민임대로 이동하는 조건의 구조화",
+      "query": "2026 Q&A 임대주택 Q8을 근거로 일반 신청 절차와 우선공급 조건을 분리한 사실 후보를 작성해줘. 숫자에 단위와 적용 범위를 붙여줘.",
+      "source_ids": [
+        "LH-QA-2026"
+      ],
+      "critical_failures": [
+        "기존 거주자의 자동 이전 또는 자동 당첨",
+        "국민임대 모든 모집에 3% 일괄 적용",
+        "3%의 분모를 신청자수 또는 기존 입주자수로 바꿈"
+      ],
+      "conditions": [
+        "Q8은 예비자 모집에도 적용된다는 근거를 제공하지 않음",
+        "원문 근거 없이 실행 가능한 법률 판단으로 전환하지 않음"
+      ],
+      "expected_output": "조건·대상·숫자·단위·원문 위치를 포함한 검토 후보",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-05-E1"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-05-C1",
+          "requirement": "별도 신청 후 당첨이라는 절차와 우선공급 규칙을 별도 후보로 만든다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-05-E1"
+          ]
+        },
+        {
+          "check_id": "NEW-05-C2",
+          "requirement": "우선공급은 신규 모집, 공고일 현재 비수급자 영구임대 계약자, 국민임대 자격 충족의 결합 조건을 보존한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-05-E1"
+          ]
+        },
+        {
+          "check_id": "NEW-05-C3",
+          "requirement": "3%는 공급 호수에 대한 범위 상한이며 보장 당첨률이 아니다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-05-E1"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    },
+    {
+      "task_id": "NEW-06",
+      "type": "build_update",
+      "title": "관리비예치금의 기준시점과 대상별 취급",
+      "query": "2026 Q&A 임대주택 Q13에서 관리비예치금 취급을 지식 후보로 만들고, 문서 기준월·정책 시행일·입주 대상 조건을 구분해줘.",
+      "source_ids": [
+        "LH-QA-2026"
+      ],
+      "critical_failures": [
+        "취득일 또는 2026.03을 정책 시행일로 채움",
+        "기존 납부자에게 즉시 환급한다고 생성",
+        "문서 취득시각만으로 현행 법령 검증 완료 주장"
+      ],
+      "conditions": [
+        "법령 원문 검증이 아니라 Q13의 설명을 구조화하는 과제",
+        "과거 상태와 후속 버전 실측 비교 과제가 아닌 동일 문서 내 시점 모델링"
+      ],
+      "expected_output": "별도 사실 2개+날짜 역할+근거 및 현행성 한계",
+      "split": "new_preimplementation",
+      "selection_basis": "existing_seed_documents_new_sections_and_tasks",
+      "exposure": {
+        "source_documents_previously_researched": true,
+        "task_newly_authored_before_implementation": true,
+        "designer_exposed": true,
+        "ai_curator_exposed": true,
+        "human_domain_expert_reviewed": false,
+        "tuning_use_planned": false,
+        "blind_holdout": false
+      },
+      "fictional_factual_content": false,
+      "question_authored_for_evaluation": true,
+      "setup": "평가용 상태만 지정: build_update는 등록 원문에서 후보 생성, local/global은 지정 자료의 검토·활성 상태를 fixture로 설정한다. 현재 실제 인간 승인 또는 운영 활성화 사실을 의미하지 않는다.",
+      "pass_rule": "expected 항목을 충족하고 critical_failures가 없으며 핵심 사실이 지정 근거로 확인되어야 통과. 자료 제한을 밝힌 불충분 응답은 환각 실패와 구분하되, 충분한 근거가 제공된 이 과제의 정상 답변 성공으로 세지 않음.",
+      "status": "frozen_not_executed",
+      "human_verified": false,
+      "evidence_refs": [
+        "NEW-06-E1",
+        "NEW-06-E2"
+      ],
+      "expected_checks": [
+        {
+          "check_id": "NEW-06-C1",
+          "requirement": "문서의 2026.03은 기준월, 2019-11-01은 Q13이 설명하는 개정 시행일로 구분한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-06-E1",
+            "NEW-06-E2"
+          ]
+        },
+        {
+          "check_id": "NEW-06-C2",
+          "requirement": "시행일 이후 입주자에게 받지 않는다는 내용과 이미 납부하고 거주하는 입주자의 퇴거 시 반환을 별도 사실로 보존한다.",
+          "severity": "critical",
+          "evidence_refs": [
+            "NEW-06-E1",
+            "NEW-06-E2"
+          ]
+        }
+      ],
+      "test_injections": [],
+      "as_of": null,
+      "knowledge_cutoff": "고정된 원문 해시와 지정 절만 사용; 현실의 최신 정책을 판정하지 않음"
+    }
+  ]
+}

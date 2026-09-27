@@ -1,0 +1,836 @@
+{
+  "version": "1.0",
+  "evidence": [
+    {
+      "id": "date_correction1",
+      "source_id": "notice_correction1_pdf",
+      "physical_page": 6,
+      "printed_page": 11,
+      "section": "5. 선정기준 > 선정방법(전용면적 50㎡미만주택) > 1순위",
+      "quote": "1순위 : 모집공고일(2026.07.15.) 현재 주민등록표등본상 경상남도 양산시에 거주하는 자"
+    },
+    {
+      "id": "date_correction2",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 6,
+      "printed_page": 11,
+      "section": "5. 선정기준 > 선정방법(전용면적 50㎡미만주택) > 1순위",
+      "quote": "1순위 : 모집공고일(2026.09.15.) 현재 주민등록표등본상 경상남도 양산시에 거주하는 자"
+    },
+    {
+      "id": "csv_C02748",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5469,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C02748",
+        "단지명": "양산사송 A-5블록",
+        "세대수": "990",
+        "동수": "6",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대+영구임대+임대상가",
+        "주소": "경상남도 양산시 동면 노포사송로 400(양산사송 LH5단지) ",
+        "준공일": "2022-12-15",
+        "입주지정시작일": "2022-12-31",
+        "입주지정종료일": "2023-02-28"
+      }
+    },
+    {
+      "id": "csv_C01643",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5497,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C01643",
+        "단지명": "양산소주(06 주2) 1단지",
+        "세대수": "937",
+        "동수": "10",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대",
+        "주소": "경상남도 양산시 번영로 435(소주동 소주휴먼시아) ",
+        "준공일": "2011-08-22",
+        "입주지정시작일": "2011-08-24",
+        "입주지정종료일": "2011-09-22"
+      }
+    },
+    {
+      "id": "csv_C00446",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5522,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C00446",
+        "단지명": "양산금산휴먼시아",
+        "세대수": "1300",
+        "동수": "12",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대",
+        "주소": "경상남도 양산시 동면 금산2길 12(휴먼시아아파트) ",
+        "준공일": "2011-05-23",
+        "입주지정시작일": "2011-05-26",
+        "입주지정종료일": "2011-06-24"
+      }
+    },
+    {
+      "id": "csv_C01951",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5558,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C01951",
+        "단지명": "양산물금2단지",
+        "세대수": "452",
+        "동수": "5",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대",
+        "주소": "경상남도 양산시 물금읍 물금2길 50(양산신도시엘에이치아파트2단지) ",
+        "준공일": "2016-03-15",
+        "입주지정시작일": "2016-03-31",
+        "입주지정종료일": "2016-04-30"
+      }
+    },
+    {
+      "id": "csv_C01953",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5623,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C01953",
+        "단지명": "양산물금5단지",
+        "세대수": "472",
+        "동수": "3",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대",
+        "주소": "경상남도 양산시 물금읍 새실로 54(양산신도시엘에이치아파트5단지) ",
+        "준공일": "2016-04-05",
+        "입주지정시작일": "2016-06-02",
+        "입주지정종료일": "2016-07-02"
+      }
+    },
+    {
+      "id": "csv_C02715",
+      "source_id": "complex_registry_csv",
+      "physical_row": 5699,
+      "column_names": [
+        "지역본부",
+        "단지코드",
+        "단지명",
+        "세대수",
+        "동수",
+        "임대유형",
+        "주택유형",
+        "주소",
+        "준공일",
+        "입주지정시작일",
+        "입주지정종료일"
+      ],
+      "values": {
+        "지역본부": "경남지역본부",
+        "단지코드": "C02715",
+        "단지명": "양산사송 A-4블록",
+        "세대수": "1168",
+        "동수": "16",
+        "임대유형": "건설임대",
+        "주택유형": "국민임대+임대상가",
+        "주소": "경상남도 양산시 동면 사송로 169 양산사송 A-4BL",
+        "준공일": "2023-12-29",
+        "입주지정시작일": "2024-03-29",
+        "입주지정종료일": "2024-05-31"
+      }
+    },
+    {
+      "id": "html_C01951",
+      "source_id": "notice_correction2_html",
+      "line_start": 5910,
+      "line_end": 5927,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "72150005",
+        "ltrNot": "76",
+        "sbdLgoNo": "C01951",
+        "sbdLgoNm": "양산물금2단지",
+        "lgdnAdr": "경상남도 양산시 물금읍 물금2길 50(양산신도시엘에이치아파트2단지)",
+        "lgdnDtlAdr": "",
+        "ddoAr": "33.83~46.95",
+        "hshCnt": "452",
+        "mvinXpcYm": "2016.03",
+        "sn": "1033",
+        "lccNtNm": "양산 물금2휴먼시아",
+        "awlSn": "1",
+        "coaCodtXxs": "35.309746",
+        "coaCodtYxs": "128.9923443"
+      }
+    },
+    {
+      "id": "html_C01953",
+      "source_id": "notice_correction2_html",
+      "line_start": 5929,
+      "line_end": 5946,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "72150006",
+        "ltrNot": "58",
+        "sbdLgoNo": "C01953",
+        "sbdLgoNm": "양산물금5단지",
+        "lgdnAdr": "경상남도 양산시 물금읍 새실로 54(양산신도시엘에이치아파트5단지)",
+        "lgdnDtlAdr": "",
+        "ddoAr": "36.77~46.78",
+        "hshCnt": "472",
+        "mvinXpcYm": "2016.06",
+        "sn": "1034",
+        "lccNtNm": "양산 물금5휴먼시아",
+        "awlSn": "2",
+        "coaCodtXxs": "35.3110081",
+        "coaCodtYxs": "128.9942732"
+      }
+    },
+    {
+      "id": "html_C02715",
+      "source_id": "notice_correction2_html",
+      "line_start": 5948,
+      "line_end": 5965,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "112210027",
+        "ltrNot": "22",
+        "sbdLgoNo": "C02715",
+        "sbdLgoNm": "양산사송 A-4블록",
+        "lgdnAdr": "경상남도 양산시 동면 사송로 169",
+        "lgdnDtlAdr": "양산사송 A-4BL",
+        "ddoAr": "29.21~49.48",
+        "hshCnt": "1156",
+        "mvinXpcYm": "2024.08",
+        "sn": "3817",
+        "lccNtNm": "양산사송 A-4BL 국민임대주택",
+        "awlSn": "3",
+        "coaCodtXxs": "35.3113354",
+        "coaCodtYxs": "129.06366"
+      }
+    },
+    {
+      "id": "html_C02748",
+      "source_id": "notice_correction2_html",
+      "line_start": 5967,
+      "line_end": 5984,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "112220004",
+        "ltrNot": "18",
+        "sbdLgoNo": "C02748",
+        "sbdLgoNm": "양산사송 A-5블록",
+        "lgdnAdr": "경상남도 양산시 동면 노포사송로 400(양산사송 LH5단지)",
+        "lgdnDtlAdr": "",
+        "ddoAr": "29.9~46.69",
+        "hshCnt": "521",
+        "mvinXpcYm": "2022.12",
+        "sn": "3429",
+        "lccNtNm": "양산사송 A-5BL 국민임대",
+        "awlSn": "4",
+        "coaCodtXxs": "35.309271",
+        "coaCodtYxs": "129.0775107"
+      }
+    },
+    {
+      "id": "html_C00446",
+      "source_id": "notice_correction2_html",
+      "line_start": 5986,
+      "line_end": 6003,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "72100003",
+        "ltrNot": "103",
+        "sbdLgoNo": "C00446",
+        "sbdLgoNm": "양산금산휴먼시아",
+        "lgdnAdr": "경상남도 양산시 동면 금산2길 12(휴먼시아아파트)",
+        "lgdnDtlAdr": "",
+        "ddoAr": "36.65~59.88",
+        "hshCnt": "1300",
+        "mvinXpcYm": "2011.05",
+        "sn": "1202",
+        "lccNtNm": "양산 금산휴먼시아",
+        "awlSn": "5",
+        "coaCodtXxs": "35.3019784",
+        "coaCodtYxs": "129.0255175"
+      }
+    },
+    {
+      "id": "html_C01643",
+      "source_id": "notice_correction2_html",
+      "line_start": 6005,
+      "line_end": 6022,
+      "section": "sbdList embedded public complex metadata",
+      "values": {
+        "ccrCnntSysDsCd": "03",
+        "panId": "2015122300020796",
+        "ltrUntNo": "72110001",
+        "ltrNot": "116",
+        "sbdLgoNo": "C01643",
+        "sbdLgoNm": "양산소주(06,주2) 1단지",
+        "lgdnAdr": "경상남도 양산시 번영로 435(소주동,소주휴먼시아)",
+        "lgdnDtlAdr": "",
+        "ddoAr": "33.55~51.55",
+        "hshCnt": "937",
+        "mvinXpcYm": "2011.08",
+        "sn": "1203",
+        "lccNtNm": "양산 소주휴먼시아",
+        "awlSn": "6",
+        "coaCodtXxs": "35.409293",
+        "coaCodtYxs": "129.1559542"
+      }
+    },
+    {
+      "id": "reason_correction1",
+      "source_id": "notice_correction1_html",
+      "line_start": 3031,
+      "quote": "대기중인 예비자수 정정 : 물금5단지(36형,46형) ,사송A-4단지(46형)"
+    },
+    {
+      "id": "reason_correction2",
+      "source_id": "notice_correction2_html",
+      "line_start": 3031,
+      "quote": "공고문 p11.모집공고일 2026.07.15 =>2026.09.15 정정"
+    },
+    {
+      "id": "pdf_complex_양산물금2",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "양산물금2",
+        "경상남도 양산시 물금읍 물금2길 50 (양산신도시LH아파트2단지)\n경상남도 양산시 물금읍 물금리 890-3번지",
+        "5개동",
+        "452호",
+        "201603"
+      ]
+    },
+    {
+      "id": "pdf_complex_양산물금5",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "양산물금5",
+        "경상남도 양산시 물금읍 새실로 54 (양산신도시LH아파트5단지)\n경상남도 양산시 물금읍 가촌리 1276-3번지",
+        "3개동",
+        "472호",
+        "201606"
+      ]
+    },
+    {
+      "id": "pdf_complex_양산사송A-4블록",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "양산사송\nA-4블록",
+        "경상남도 양산시 동면 사송로 169 (양산사송 LH4단지)\n경상남도 양산시 동면 사송리 1217번지",
+        "15개동",
+        "1156호",
+        "202408"
+      ]
+    },
+    {
+      "id": "pdf_complex_양산사송A-5블록",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "양산사송\nA-5블록",
+        "경상남도 양산시 동면 노포사송로 400 (양산사송 LH5단지)\n경상남도 양산시 동면 사송리 1167번지",
+        "5개동",
+        "985호",
+        "202212"
+      ]
+    },
+    {
+      "id": "pdf_complex_금산휴먼시아",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "금산휴먼시아",
+        "경상남도 양산시 동면 금산2길 12(양산금산휴먼시아)\n경상남도 양산시 동면 금산리 855",
+        "12개동",
+        "1,300호",
+        "201106"
+      ]
+    },
+    {
+      "id": "pdf_complex_소주휴먼시아",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 4,
+      "section": "1. 주택단지 개요",
+      "headers": [
+        "단지명",
+        "단 지 위 치",
+        "건설호수",
+        null,
+        "최초입주"
+      ],
+      "cells": [
+        "소주휴먼시아",
+        "경상남도 양산시 번영로 435(양산소주휴먼시아)\n경상남도 양산시 소주동 870-2",
+        "10개동",
+        "937호",
+        "201108"
+      ]
+    },
+    {
+      "id": "conditions_1",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 3,
+      "quote": "계약금 50만원 정액 고정",
+      "page_region": "left",
+      "bbox_pdf_points": [
+        0,
+        0,
+        420.5,
+        595
+      ],
+      "section": "입주자격 완화 주요내용 > 전체 단지 완화내용 및 소형·저가주택 주석",
+      "reading_instruction": "짧은 인용은 위치 확인용. 지정 좌면 표와 소형·저가주택 주석 전체를 읽어 범위·예외를 판정한다."
+    },
+    {
+      "id": "conditions_2",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 3,
+      "printed_page": 6,
+      "quote": "• 대기중인 예비자수는 26.09.15.일 기준이며, 계약 예정(26.9.30일 계약) 예비자가 1회 연기 신청시 예비자 수가 추가\n될 수 있습니다.",
+      "page_region": "right",
+      "bbox_pdf_points": [
+        420.5,
+        0,
+        841,
+        595
+      ],
+      "section": "모집대상 주택 > 대기중인 예비자수 기준일 주석; 갱신조건의 근거가 아님"
+    },
+    {
+      "id": "html_a5_type_scope",
+      "source_id": "notice_correction2_html",
+      "line_start": 5350,
+      "quote": "총 985세대로 이루어져 있으며, 국민임대 521세대와 영구임대 464세대 혼합단지입니다."
+    },
+    {
+      "id": "html_geumsan_expected_month_label",
+      "source_id": "notice_correction2_html",
+      "line_start": 4283,
+      "quote": "입주예정월 : 2011.05"
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "source_sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "retrieved_at": "2026-09-26T05:24:46.694630+00:00",
+      "locator": {
+        "format": "html",
+        "css_root": "#cntntsView",
+        "section_or_row": "우선공급 대상자 제출서류 표 / 중소기업근로자 행",
+        "table_caption_contains": "우선공급 대상자 제출서류",
+        "row_header_exact": "중소기업근로자",
+        "expected_cells": [
+          "중소기업근로자",
+          "중소기업근로자 국민임대주택 우선공급확인서",
+          "각 지방 중소벤처기업청"
+        ]
+      },
+      "short_quote": "중소기업근로자 국민임대주택 우선공급확인서",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "3670bff554a4197d057a9762fc63d7c4fc3e79b2cad237bdf5b2d8d54d0e4132"
+      },
+      "id": "NEW-01-E1"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 521,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님",
+        "section_label": "임대주택 Q7 답변; 이전 선정 주택유형 및 다음 청약유형이 함께 있는 문단"
+      },
+      "short_quote": "공공분양주택의 청약 시 사용 가능합니다.",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "b2675bab28b9d3b1115b2e2fc183ac4a34217e102bf03bab023d9cee9a634a12"
+      },
+      "id": "NEW-02-E1"
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "source_sha256": "c4e9a09487084933d2aadc9552cdbf0ca4ee08faff01f7f702ffe0b6eb77f5ed",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "retrieved_at": "2026-09-26T05:24:42.924168+00:00",
+      "locator": {
+        "format": "html",
+        "css_root": "#cntntsView",
+        "section_or_row": "입주자격 첫 문단 및 미성년자 예외 1~3"
+      },
+      "short_quote": "법정대리인의 동의 또는 대리 필요",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "804c1cc1f39778cfb6881accf630a208697a47a5bffe63a5652713a9071f013a"
+      },
+      "id": "NEW-03-E1"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 407,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님",
+        "section_label": "임대주택 Q5 답변; 제한 원칙과 예외 ①②③ 포함"
+      },
+      "short_quote": "미성년자는 원칙적으로",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "c483b240a3c1e672f6f719fd86e9724d7dfb3f2f97dc487a9077ba1b34eec29a"
+      },
+      "id": "NEW-03-E2"
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "source_sha256": "58215000d878ed0c16264d50e4073900aa0d78d49215a910487914f2c937e0b4",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "retrieved_at": "2026-09-26T05:24:38.749839+00:00",
+      "locator": {
+        "format": "html",
+        "css_root": "#cntntsView",
+        "section_or_row": "STEP02~STEP03"
+      },
+      "short_quote": "인터넷접수자에 한함",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "ef4e960a077ac8140cfe76a1ec874748337dc4deaf3e4e97b52a2b556a6c9b5a"
+      },
+      "id": "NEW-04-E1"
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "source_sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "retrieved_at": "2026-09-26T05:24:46.694630+00:00",
+      "locator": {
+        "format": "html",
+        "css_root": "#cntntsView",
+        "section_or_row": "기본제출서류 표 / 가족관계증명서 행"
+      },
+      "short_quote": "배우자 관계를 확인할 수 없는 경우",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "7c5a606f833bcc9db1a5eead810944a04fb3963e5150cd7ea689a5ea5e1a807a"
+      },
+      "id": "NEW-04-E2"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 790,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+      },
+      "short_quote": "입주 시",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "8773b6241c35d559c84fe0cd50a465fbba3536947949a8ef2bb1f33665d96962"
+      },
+      "id": "NEW-04-E3"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 801,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+      },
+      "short_quote": "입주 후",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "16d621a1d039b788b86b8cfdd3b74d73272d278c37567c0ddcb72c4ccd2e056f"
+      },
+      "id": "NEW-04-E4"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 812,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님",
+        "continuation_element_preorder_index_zero_based": 817,
+        "section_label": "임대주택 Q12 답변; 812 원소의 끝은 817 원소로 이어져 해당 주택 입주안내문 참조를 완성"
+      },
+      "short_quote": "입주 시 자격검증",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "f167184e99f29b4f7b60653ec3d58147653b477f780e09a08e4dc1888cb75b39"
+      },
+      "id": "NEW-04-E5"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 567,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님",
+        "section_label": "임대주택 Q8 답변 전체; 신규 모집 및 공고일 당시 자격의 결합조건 포함"
+      },
+      "short_quote": "공급 호수의 3% 범위 내",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "7754a68f20978404088fb3ecc0b176a1d9117d12202f1fe6354044ff66902914"
+      },
+      "id": "NEW-05-E1"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 86,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+      },
+      "short_quote": "2026.03 기준",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "92afbf365497421ecad360b8abe064f4befa667403018467c784a53c73036cac"
+      },
+      "id": "NEW-06-E1"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "source_sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "locator": {
+        "format": "hwpx",
+        "xml_member": "Contents/section0.xml",
+        "element_preorder_index_zero_based": 860,
+        "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+      },
+      "short_quote": "19.11.01",
+      "locator_verification": {
+        "verified_by": "AI curator deterministic locator and substring check",
+        "human_verified": false,
+        "nonempty_quote_match": true,
+        "resolved_text_sha256": "57d13b9579348a730690d799f53873a4aa840842273475e707eef32f2c699ad1"
+      },
+      "id": "NEW-06-E2"
+    },
+    {
+      "id": "guide_general",
+      "source_id": "LH-GUIDE-1023",
+      "locator": {
+        "format": "html",
+        "css_root": "#cntntsView",
+        "section": "입주자격 > 소득 및 자산 기준"
+      },
+      "quote": "소득"
+    },
+    {
+      "id": "rules_amended",
+      "source_id": "LH-RULES-2015",
+      "physical_page": 1,
+      "printed_page": 13,
+      "section": "표제 개정 이력",
+      "quote": "2015. 1. 8"
+    },
+    {
+      "id": "rules_effective",
+      "source_id": "LH-RULES-2015",
+      "physical_page": 6,
+      "printed_page": 18,
+      "section": "부칙",
+      "quote": "2015년 1월 12일"
+    },
+    {
+      "id": "rules_article3",
+      "source_id": "LH-RULES-2015",
+      "physical_page": 1,
+      "printed_page": 13,
+      "section": "제3조",
+      "quote": "제3조(동․호수추첨및변경)"
+    },
+    {
+      "id": "conditions_renewal",
+      "source_id": "notice_correction2_pdf",
+      "physical_page": 2,
+      "printed_page": 3,
+      "page_region": "left",
+      "bbox_pdf_points": [
+        0,
+        0,
+        420.5,
+        595
+      ],
+      "section": "입주자격 완화 주요내용 > 소득·총자산 요건 완화 입주자 / 무주택요건 완화 입주자 / 2회차 이상 갱신계약 주석",
+      "quote": "※ • (소득·총자산 요건 완화 입주자)\n- 소득, 총자산 요건이 1회 미충족시에도 재계약 허용(임대조건 할증 X)\n- 소득, 총자산 요건이 2회 미충족시에는 「공공주택특별법 시행규칙」 제17조 제1항에 따른 요건을 충족하는\n예비입주자가 없는 경우 추후 재계약 허용(임대조건 할증X)\n• (무주택요건 완화 입주자) 공고일 전 취득한 주택에 한해 1회차까지 재계약이 가능하며, 2회차 재계약부터는\n종전 주택을 계속 보유하거나 새로 취득하는 경우에는 재계약이 거절되어 계약이 해제·해지될 수 있습니다.\n※ 2회차 이상 갱신계약 시에는 공공주택특별법 시행규칙 별표 4호에 따른 본래 국민임대주택 입주자격 요건을\n기준으로 재계약 여부를 판단하며, 할증비율을 적용하거나 재계약이 거절될 수 있습니다.",
+      "extraction_note": "물리2쪽을 좌우 분리한 왼쪽 인쇄3쪽에서 추출; 반대쪽 사무소·단지 표 텍스트 혼입 제외."
+    }
+  ]
+}

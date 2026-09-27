@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type ActiveMenu = "queue" | "workbench" | "admin" | "intelligence";
+type ActiveMenu = "queue" | "workbench" | "admin" | "intelligence" | "knowledge";
 
 interface AppSidebarProps {
   activeMenu: ActiveMenu;
@@ -21,6 +21,7 @@ export default function AppSidebar({ activeMenu }: AppSidebarProps) {
   }
 
   const navigationItems: Array<{ key: ActiveMenu; label: string; path: string; className?: string }> = [
+    { key: "knowledge", label: "회사 지식 자료", path: "/knowledge" },
     { key: "queue", label: "민원 선택", path: "/" },
     { key: "workbench", label: "처리 워크벤치", path: "/workbench", className: "mt-1" },
     { key: "admin", label: "관리자 통계", path: "/admin", className: "mt-1" },

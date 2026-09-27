@@ -1,5 +1,16 @@
 # AGENTS.md
 
+## 프로젝트 공통 완료 보고 규칙
+
+모든 작업의 완료 보고에는 사용자가 파일을 별도로 열지 않아도 이해할 수 있도록 다음 내용을 설명한다.
+
+- **진행 이유:** 왜 해당 범위·자료·방법을 선택했는지, 중요한 선택의 근거를 설명한다.
+- **결과:** 무엇을 변경하거나 확인했고 어떤 결과가 나왔는지 설명한다. 완료·미완료, 실제 검증·추정, 한계를 구분한다.
+- **다음 작업:** 다음에 해야 할 일과 그 이유를 구체적으로 제시한다.
+- **사용자 결정 사항:** 사용자가 결정해야 할 선택과 영향을 명시한다. 필요한 결정이 없으면 '현재 사용자 결정이 필요한 사항 없음'이라고 밝힌다. 이미 승인된 범위나 일반적인 구현 선택은 불필요하게 재승인받지 않는다.
+
+링크와 파일 목록만으로 설명을 대신하지 않는다. 작업 규모에 맞게 간결하게 작성하며, 이 규칙은 코드·조사·설계·문서 작업 모두에 적용한다.
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.

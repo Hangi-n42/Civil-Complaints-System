@@ -138,7 +138,7 @@ type ApiResponse<T> = {
   error: ApiError | null;
 };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8001").replace(/\/$/, "");
 const ROUTING_STORAGE_KEY = "workbench-routing-info";
 const DRAFT_STORAGE_KEY = "workbench-last-draft";
 

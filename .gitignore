@@ -232,6 +232,9 @@ data/chroma_db.*/
 data/Public_Civil_Service_LLM_Data/
 data/bm25_index/
 
+# Knowledge pilot source documents and local evidence extracts
+data/knowledge/pilot_v1/
+
 # 로컬 생성 산출물 (벡터DB 백업·색인 append payload·크롤러 덤프)
 data/append_inputs/
 data/raw_civil_policy_qna/
@@ -263,3 +266,8 @@ AGENTS.override.md
 
 # retrieval 평가 캐시 (재생성 가능)
 reports/retrieval/v3/_cache_*.json
+
+# Knowledge workspace outputs (local originals, ledger, evaluation artifacts)
+data/knowledge/raw/
+data/knowledge/evaluations/
+data/knowledge/knowledge.db*

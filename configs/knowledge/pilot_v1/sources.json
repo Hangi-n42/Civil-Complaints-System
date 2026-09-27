@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "pilot_id": "company_knowledge_pilot_v1",
+  "manifest_status": "fixed_input_selection",
+  "fixed_at": "2026-09-26T05:34:09.041779+00:00",
+  "selection_basis": "PRD v1.2 K1; 개발 과제6+새 확인 과제6의 고정 자료. 현재 구현된 등록/승인 상태를 뜻하지 않음.",
+  "counts": {
+    "document_files": 10,
+    "csv_files": 1,
+    "total_raw_files": 11,
+    "logical_document_versions": 8,
+    "logical_notice_versions": 3,
+    "notice_html_pdf_alternate_formats_counted_once": true
+  },
+  "scope_policy": "각 corpus_scope만 지식 후보·검색에 투입. 전체 raw 보존은 전체 원문 검색 허용을 뜻하지 않음. 새 확인용 정답은 학습·프롬프트에 넣지 않음.",
+  "rights_policy": "공개 접근·로컬 파일럿 선정·운영 이용허락·재배포를 별개 상태로 기록. 원문 전체는 Git 제외. 개별 미확인을 허가 또는 금지로 단정하지 않음.",
+  "sources": [
+    {
+      "source_id": "notice_original_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020732 HTML",
+      "publisher": "한국토지주택공사",
+      "external_id": "2015122300020732",
+      "namespace": "apply.lh.or.kr:panId",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020732&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020732&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "format": "HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020732.html",
+      "sha256": "9da88e9040498fd5034b663d367dafb2c1768e66fdc9581abeb8ce600e91a14d",
+      "bytes": 352825,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-09-15",
+      "document_date_basis": "HTML 공고일/공고문 표제의 기준 공고일. 개별 정정 게시시각과 구분.",
+      "version_family": "yangsan_20260915",
+      "version_status": "historical_superseded_in_selected_family",
+      "corpus_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction1_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 HTML",
+      "publisher": "한국토지주택공사",
+      "external_id": "2015122300020794",
+      "namespace": "apply.lh.or.kr:panId",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "format": "HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.html",
+      "sha256": "2a4183079601418ce219ac1e82ff1b3d625dec71af6f3fdda4fa0d122d56e3ce",
+      "bytes": 353350,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-09-15",
+      "document_date_basis": "HTML 공고일/공고문 표제의 기준 공고일. 개별 정정 게시시각과 구분.",
+      "version_family": "yangsan_20260915",
+      "version_status": "historical_superseded_in_selected_family",
+      "corpus_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction2_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 HTML",
+      "publisher": "한국토지주택공사",
+      "external_id": "2015122300020796",
+      "namespace": "apply.lh.or.kr:panId",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "format": "HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.html",
+      "sha256": "c19c45ec3dca660f9425ce63c7af15da004cd21118c6d0094a6691fcafb85450",
+      "bytes": 353058,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-09-15",
+      "document_date_basis": "HTML 공고일/공고문 표제의 기준 공고일. 개별 정정 게시시각과 구분.",
+      "version_family": "yangsan_20260915",
+      "version_status": "latest_in_selected_family_not_live_guarantee",
+      "corpus_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction1_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 PDF",
+      "publisher": "한국토지주택공사",
+      "external_id": "2015122300020794",
+      "namespace": "apply.lh.or.kr:panId",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68635562",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "format": "PDF",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.pdf",
+      "sha256": "a20dfccd93599eed0f40df66d32ff1bf724ae4773832c96fd427cbb2ee868352",
+      "bytes": 898614,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-09-15",
+      "document_date_basis": "HTML 공고일/공고문 표제의 기준 공고일. 개별 정정 게시시각과 구분.",
+      "version_family": "yangsan_20260915",
+      "version_status": "historical_superseded_in_selected_family",
+      "corpus_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          1,
+          12
+        ],
+        "source_total_physical_pages": 21,
+        "page_layout": "물리 페이지 하나에 인쇄쪽 2면",
+        "exclude": "물리7~21쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction2_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 PDF",
+      "publisher": "한국토지주택공사",
+      "external_id": "2015122300020796",
+      "namespace": "apply.lh.or.kr:panId",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68641696",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "format": "PDF",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.pdf",
+      "sha256": "8e0d5cf4ba98b08c235563d37ac28302aac283fd56ec070161be5f4be35cf5f8",
+      "bytes": 885821,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-09-15",
+      "document_date_basis": "HTML 공고일/공고문 표제의 기준 공고일. 개별 정정 게시시각과 구분.",
+      "version_family": "yangsan_20260915",
+      "version_status": "latest_in_selected_family_not_live_guarantee",
+      "corpus_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          1,
+          12
+        ],
+        "source_total_physical_pages": 21,
+        "page_layout": "물리 페이지 하나에 인쇄쪽 2면",
+        "exclude": "물리7~21쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "complex_registry_csv",
+      "title": "전국 LH아파트 단지정보 20260810",
+      "publisher": "한국토지주택공사",
+      "external_id": "15080989:20260810",
+      "namespace": "data.go.kr:fileData",
+      "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000007630594&fileDetailSn=1&insertDataPrcus=N",
+      "landing_url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "format": "CSV",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+      "sha256": "66063191dac736ccc7e977c4aee4248504c605868fdcfa23a247f060cb51469e",
+      "bytes": 1051082,
+      "retrieved_at": null,
+      "verified_at": "2026-09-26T05:24:57.283193+00:00",
+      "acquisition": "과거 공식 자료 조사 사본의 해시 검증·등록. 최초 취득시각 미기록. 이번 작업에서 제한된 첨부 경로 재다운로드 없음.",
+      "document_date": "2026-08-10",
+      "document_date_basis": "파일명 스냅샷 기준일; 카탈로그 게시일 2026-08-13/수정일 2026-09-08과 구분",
+      "version_family": "lh_complex_registry",
+      "version_status": "dated_snapshot",
+      "corpus_scope": {
+        "registry": "원본 6217행 11열을 ID 등록부로 보존",
+        "knowledge_input_complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "knowledge_input_limit": "공고와 연결된 6개 코드 행만 사실 후보 입력",
+        "exclude": "실시간 공실·현 재고로 해석 금지"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "unrestricted_dataset_terms",
+        "redistribution_permission": "unrestricted_dataset_terms",
+        "git_raw_allowed": false,
+        "basis": "csv_catalog.html: 이용허락범위 제한 없음; JSON-LD license",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "title": "국민임대 임대절차",
+      "publisher": "한국토지주택공사",
+      "external_id": "1022",
+      "namespace": "apply.lh.or.kr:cntntsId",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "resolved_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "retrieval_started_at": "2026-09-26T05:24:38.231334+00:00",
+      "retrieved_at": "2026-09-26T05:24:38.749839+00:00",
+      "sha256": "58215000d878ed0c16264d50e4073900aa0d78d49215a910487914f2c937e0b4",
+      "bytes": 125573,
+      "content_type": "text/html; charset=UTF-8",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1022.html",
+      "document_date": null,
+      "document_date_basis": "페이지 개정일/시행일 미표시; 취득시각으로 대체하지 않음",
+      "corpus_scope": "#cntntsView 본문",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      },
+      "acquisition": "공식 공개 제공 URL 정상 응답; 차단 우회 없음; 현재 직접 재취득하여 기존 임시파일의 미기록 취득시각을 사용하지 않음",
+      "format": "HTML",
+      "version_status": "publication_or_effective_date_unknown"
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "title": "국민임대 입주자격",
+      "publisher": "한국토지주택공사",
+      "external_id": "1023",
+      "namespace": "apply.lh.or.kr:cntntsId",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "resolved_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "retrieval_started_at": "2026-09-26T05:24:38.795275+00:00",
+      "retrieved_at": "2026-09-26T05:24:42.924168+00:00",
+      "sha256": "c4e9a09487084933d2aadc9552cdbf0ca4ee08faff01f7f702ffe0b6eb77f5ed",
+      "bytes": 161372,
+      "content_type": "text/html; charset=UTF-8",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1023.html",
+      "document_date": null,
+      "document_date_basis": "페이지 개정일/시행일 미표시; 취득시각으로 대체하지 않음",
+      "corpus_scope": "#cntntsView 본문",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      },
+      "acquisition": "공식 공개 제공 URL 정상 응답; 차단 우회 없음; 현재 직접 재취득하여 기존 임시파일의 미기록 취득시각을 사용하지 않음",
+      "format": "HTML",
+      "version_status": "publication_or_effective_date_unknown"
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "title": "국민임대 제출서류",
+      "publisher": "한국토지주택공사",
+      "external_id": "1025",
+      "namespace": "apply.lh.or.kr:cntntsId",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "resolved_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "retrieval_started_at": "2026-09-26T05:24:42.963296+00:00",
+      "retrieved_at": "2026-09-26T05:24:46.694630+00:00",
+      "sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf",
+      "bytes": 133844,
+      "content_type": "text/html; charset=UTF-8",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1025.html",
+      "document_date": null,
+      "document_date_basis": "페이지 개정일/시행일 미표시; 취득시각으로 대체하지 않음",
+      "corpus_scope": "#cntntsView 본문",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      },
+      "acquisition": "공식 공개 제공 URL 정상 응답; 차단 우회 없음; 현재 직접 재취득하여 기존 임시파일의 미기록 취득시각을 사용하지 않음",
+      "format": "HTML",
+      "version_status": "publication_or_effective_date_unknown"
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "title": "2026 LH 유관민원 주요 Q&A",
+      "publisher": "한국토지주택공사",
+      "external_id": "654658:21102",
+      "namespace": "lh.or.kr:boardAttachment",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "resolved_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "retrieval_started_at": "2026-09-26T05:24:46.732668+00:00",
+      "retrieved_at": "2026-09-26T05:24:47.018174+00:00",
+      "sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "bytes": 85547,
+      "content_type": "application/x-hwp;charset=UTF-8",
+      "raw_path": "data/knowledge/pilot_v1/raw/qa_2026.hwpx",
+      "document_date": "2026-03",
+      "document_date_basis": "문서 표지의 기준월, 게시일 또는 시행일과 구분",
+      "corpus_scope": {
+        "include": "임대주택 Q1~Q16",
+        "exclude": "그 밖의 분야 Q&A",
+        "note": "원본 전체 보존; HWPX 문단/표/셀 근거 위치를 유지하여 임대 구간만 입력",
+        "metadata_include": {
+          "purpose": "표지 기준월 출처 메타데이터",
+          "hwpx_member": "Contents/section0.xml",
+          "quote": "2026.03 기준",
+          "note": "본문 지식 범위인 임대 Q1~Q16과 별개로 표지 기준월 메타데이터를 포함; 시행일 또는 최신성 보증으로 해석하지 않음",
+          "element_preorder_index_zero_based": 86,
+          "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+        }
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      },
+      "acquisition": "공식 공개 제공 URL 정상 응답; 차단 우회 없음; 현재 직접 재취득하여 기존 임시파일의 미기록 취득시각을 사용하지 않음",
+      "format": "HWPX",
+      "version_status": "dated_reference_currentness_not_guaranteed"
+    },
+    {
+      "source_id": "LH-RULES-2015",
+      "title": "주택임대규정 시행세칙 (2015-01-08 개정본)",
+      "publisher": "한국토지주택공사",
+      "external_id": "651428:1",
+      "namespace": "lh.or.kr:boardAttachment",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=651428&seq=1",
+      "resolved_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=651428&seq=1",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0055&list_no=651428",
+      "retrieved_at": "2026-09-26T05:24:30.741348+00:00",
+      "sha256": "a77e97440cd309b60fb4de6abcee83e73b1bfe7b97f47d3dcda96ee37d2cf83e",
+      "bytes": 1075807,
+      "content_type": "application/pdf;charset=UTF-8",
+      "format": "PDF",
+      "raw_path": "data/knowledge/pilot_v1/raw/rental_rules_2015.pdf",
+      "document_date": "2015-01-08",
+      "document_date_basis": "물리1쪽/인쇄13쪽 개정일",
+      "effective_date": "2015-01-12",
+      "effective_date_basis": "물리6쪽/인쇄18쪽 부칙",
+      "version_status": "currentness_unverified",
+      "corpus_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          13,
+          18
+        ],
+        "source_total_physical_pages": 80,
+        "exclude": "그 밖의 쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 원문 직접 취득. 개별 기계 처리·재배포 이용허락은 미확인. 오래된 개정본이라는 이유만으로 폐지 단정 금지."
+      },
+      "acquisition": "공식 공개 boardDownload 제공 경로 정상 응답; 차단 우회 없음"
+    }
+  ]
+}
