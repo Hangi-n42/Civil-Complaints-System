@@ -1,99 +1,59 @@
-# 개발 기술 스택
+# 기술 스택 — 현재 구현과 회사 지식 제품 계획
 
-- 문서 상태: canonical
-- 최종 확인일: 2026-06-21
-- 기준 코드:
-  - `requirements.txt`
-  - `frontend/package.json`
-  - `app/core/config.py`
-  - `app/api/main.py`
-  - `app/retrieval/`
-  - `app/generation/`
-  - `app/complaint_intelligence/`
-- 관련 문서:
-  - `docs/30_manuals/local_dev_runbook.md`
-  - `docs/30_manuals/evaluation_runbook.md`
+- 문서 버전: v2.0
+- 상태: 현재 코드·의존성 선언 기준
+- 기준일: 2026-09-26
+- 확인 범위: 선언 파일과 소스의 정적 대조. 설치 패키지 실측·성능·Mac/Windows 실행 인증이 아님.
 
-## 백엔드
+프로젝트의 메인 제품 기준은 [회사 지식 PRD](company_knowledge_prd.md), [아키텍처](../05_plans/company_knowledge/architecture.md), [구현 설계](../05_plans/company_knowledge/implementation.md)다. 현재 실행 가능한 코드는 민원 활용 시스템이며 `app/knowledge`와 회사 지식 전용 API/UI는 아직 없다. 아래 버전은 현재 선언이며, 신규 제품의 도입 후보가 이미 설치·통합됐다는 의미가 아니다.
 
-- 언어/런타임: Python
-- API framework: FastAPI
-- 데이터 모델: Pydantic
-- 실행: Uvicorn 또는 `scripts/run_api.py`
-- 설정: `.env`, `app/core/config.py`, 일부 YAML config
-- 테스트: pytest
+## 현재 의존성
 
-주요 API 라우터는 `app/api/routers/`에 있습니다.
+| 영역 | 선언·개발 기준 | 기준 파일 |
+|---|---|---|
+| Python | 개발 기준 3.11.9 | 로컬 개발 정책; 패키지 핀은 `requirements.txt` |
+| API·검증 | FastAPI 0.115.12, Uvicorn 0.35.0, Pydantic 2.11.7 | `requirements.txt` |
+| 검색 | ChromaDB 1.5.5, bm25s 0.3.9, kiwipiepy 0.23.1 | `requirements.txt` |
+| 임베딩 | sentence-transformers 3.4.1, transformers 4.46.3, torch 2.5.1 | `requirements.txt` |
+| 수치·데이터 | NumPy 1.26.4, pandas 2.2.3 | `requirements.txt` |
+| LLM 접속 | Ollama Python 0.6.1, httpx 0.28.1; Ollama 서버는 외부 프로그램 | `requirements.txt`, 설정 |
+| FE | Next.js 16.2.3, React/React DOM 19.2.4 | `frontend/package.json` |
+| FE UI | Tailwind ^4, Leaflet ^1.9.4, react-leaflet ^5.0.0 | 동일; 정확한 해석 버전은 lock 파일 |
+| 별도 기존 UI | Streamlit 1.44.1 | `app/ui`, `requirements.txt` |
+| 확인 도구 | pytest 8.3.5, Vitest ^4.1.9 | Python/FE 선언 파일 |
 
-- `retrieval.py`: `/api/v1/index`, `/api/v1/search`
-- `generation.py`: `/api/v1/qa`, `/api/v1/qa/stream`
-- `complaint_intelligence.py`: 관제형 민원 인텔리전스 API
-- `ui.py`: Workbench case API
-- `admin.py`: 관리자 통계 API
-- `structuring.py`: 단건 구조화 API
+현재 Next.js 설치 패키지는 Node.js >=20.9.0을 요구한다. 버전 변경이 필요한 신규 라이브러리는 관련 의존성을 함께 조정하고 해당 경로를 확인한다. 단순 버전 충돌만으로 도입 후보를 제외하지 않는다.
 
-## 프론트엔드
+## 현재 실행 경계
 
-- framework: Next.js
-- UI runtime: React
-- 스타일: Tailwind 계열 CSS와 컴포넌트 스타일
-- 지도: Leaflet 기반 Intelligence hotspot map
-- API client: `frontend/lib/api.ts`
-- 주요 화면:
-  - `frontend/app/page.tsx`
-  - `frontend/app/workbench/page.tsx`
-  - `frontend/app/intelligence/page.tsx`
-  - `frontend/app/admin/page.tsx`
+1. `app/ingestion`, `app/structuring` 및 `src/pii`: 원천 입력·PII 처리·구조화.
+2. `app/retrieval`: Chroma dense와 BM25를 결합한 hybrid 검색. `RETRIEVAL_STRATEGY` 기본값은 `hybrid`다. API는 분석·라우팅 정보를 남기되 검색 `top_k`는 요청값, snippet 1100, chunk policy balanced로 고정하며, 필터가 있으면 서비스의 hybrid 분기를 사용하지 않는다.
+3. `app/generation`: 근거 기반 생성·정규화·인용 검증·재작성 흐름.
+4. `app/evaluation/civil_llm_rubric.py`: 운영 Q0~Q7 평가. 현재 그룹은 Q2 / Q3·Q4·Q5 / Q1·Q7 / Q6 / Q0의 **5회**이며 같은 요청의 Q2 재사용 시 재평가 모델 호출은 4회다. 실제 성공 호출 수는 오류·설정에 따라 달라질 수 있다.
+5. `app/complaint_intelligence`: 급증 알림·공공기관 인사이트·중복 민원 후보 및 담당자 action gate, SQLite read-model. 신규 회사 지식 원장과 같은 저장소로 간주하지 않는다.
+6. `frontend`: 케이스 진입, Workbench, Intelligence, 관리자 화면. 기존 `app/ui`의 Streamlit UI는 별도다.
 
-기본 API URL은 `frontend/lib/api.ts`에서 `NEXT_PUBLIC_API_BASE_URL` 또는 `http://127.0.0.1:8001`로 정해집니다. 실제 로컬 실행 포트는 실행 명령과 환경변수에 맞춰 확인해야 합니다.
+주요 라우터는 `app/api/routers` 아래 retrieval, generation, structuring, ui, admin, complaint_intelligence다. 회사 지식 검색 경로는 [신규 구현 설계](../05_plans/company_knowledge/implementation.md)의 계획이며 현재 API 목록에 포함하지 않는다.
 
-## RAG/Search/QA
+## 모델과 환경 설정
 
-메인 민원 답변 파이프라인은 다음 경계로 나뉩니다.
+- 생성·재작성: `OLLAMA_MODEL=exaone3.5:7.8b` 기본.
+- 운영 평가: `CIVIL_LLM_RUBRIC_MODEL=qwen3.5:4b` 기본.
+- 임베딩: `BAAI/bge-m3`, 코드의 장치 기본값 `cpu` (`.env.example`은 `cuda`여서 Mac 로컬 수정 필요).
+- PublicAgencyInsight의 fake/Ollama 공급자는 별도 설정이다. `.env.example`은 fake이며 일반 민원 생성 모델 설정만 바꿔도 이 공급자가 자동 전환되는 것은 아니다.
+- 루트 `.env`는 `app/core/config.py`에서 로드하며 기존 셸 환경변수가 우선한다.
+- API 코드 기본 포트 8000과 FE 기본 8001이 달라 로컬에서 명시적으로 맞춰야 한다.
+- FE `npm run dev`의 predev는 replay DB 초기화·분석을 수행한다. 데이터 보존과 DB 경로는 [실행 안내](../30_manuals/local_dev_runbook.md)를 따른다.
 
-1. ingestion/structuring: 원천 민원 데이터 로딩, PII 처리, 4요소 구조화
-2. retrieval: query 분석, adaptive routing, ChromaDB/hybrid search
-3. generation: 검색 근거 기반 답변 생성, JSON parsing, citation/validation
-4. Workbench: 검색 결과와 답변 초안을 FE에서 표시
+## 저장소와 문서 기준
 
-주요 구성요소:
+| 위치 | 용도 |
+|---|---|
+| `data/raw` 또는 기존 `data/raw_data` | 원천 입력 |
+| `data/processed` | 가공 민원 입력 |
+| `data/chroma_db` | 기본 벡터 저장소 |
+| `data/complaint_intelligence` | 관제 seed와 SQLite 데이터 |
+| `data/evaluation` | 평가 과제·qrels 등 |
+| `reports` | 스크립트의 현재 출력 경로; 과거 실험 기록은 문서 지도에서 별도 확인 |
 
-- ChromaDB vector store
-- BM25/dense/hybrid retrieval
-- topic/complexity analyzer
-- request segment analyzer
-- PromptFactory
-- QA response normalizer
-- citation/legal grounding validator
-
-## Complaint Intelligence Layer
-
-Complaint Intelligence는 메인 RAG/QA 파이프라인을 대체하지 않는 sidecar입니다. 목적은 민원 데이터 묶음에서 실시간 관제형 read-model을 만드는 것입니다.
-
-주요 기능:
-
-- IssueAlert: 의미/시간/지역/기준선 기반 민원 급증 감지
-- PublicAgencyInsight: EvidencePack 기반 공공기관 행정 조치 인사이트
-- Duplicate Merge Recommendation Layer: 유사 민원 그룹 후보와 담당자 action gate
-- SQLite repository: demo/로컬 환경의 영속 read-model
-- scheduler/collector: 향후 실시간 수집원 연결을 위한 단일 프로세스 구조
-
-## Local LLM
-
-PublicAgencyInsight는 Fake provider와 Local Ollama provider를 모두 지원합니다. 운영 준비 평가에서 사용한 모델은 `exaone3.5:7.8b`입니다.
-
-주의:
-
-- Local LLM은 요청-응답형 실시간 생성보다 scheduler/read-model 갱신에 적합합니다.
-- GroundingVerifier와 QualityGate 기준은 운영 품질 기준입니다.
-- raw PII, prompt dump, raw response는 기본 저장하지 않습니다.
-
-## 저장소와 산출물
-
-- `data/processed`: 실제/가공 민원 데이터
-- `data/demo`: demo seed
-- `data/complaint_intelligence`: real replay/duplicate merge demo seed
-- `data/evaluation`: curated scenario, holdout, retrieval qrels/pool
-- `reports`: 평가 결과와 검증 산출물
-
-`reports`에는 PR에 포함할 최종 리포트와 로컬 검증용 중간 산출물이 함께 있을 수 있습니다. PR에 포함할 때는 최종 summary 중심으로 범위를 정리해야 합니다.
+문서 진입은 [문서 지도](../README.md), 실행은 [runbook](../30_manuals/local_dev_runbook.md), 현재 민원 범위는 [민원 시스템 PRD](complaint_system_prd.md)를 사용한다. 신규 제품의 라이브러리 적용 방식과 마일스톤은 해당 계획 문서가 기준이며 이 파일에 중복 정의하지 않는다.

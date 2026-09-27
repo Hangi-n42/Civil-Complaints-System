@@ -5,7 +5,7 @@
 - **참고 Spec**:
   - `docs/60_specs/api_interface_spec.md`
   - `docs/60_specs/data_schema_spec.md`
-  - `docs/00_overview/wbs_8weeks_v2_updated.md`
+  - `docs/90_archive/complaint_system/wbs_8weeks_v2_updated.md`
 
 - **작업 상세 내용 (Technical Spec)**:
   1. 3단 Workbench 레이아웃 구현

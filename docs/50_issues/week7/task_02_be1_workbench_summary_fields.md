@@ -4,8 +4,8 @@
 - **목표**: Workbench 중앙 민원 목록에서 담당자가 빠르게 상태와 분류를 확인할 수 있도록 구조화/분류 요약 필드를 안정적으로 제공한다.
 - **참고 Spec**:
   - `docs/60_specs/data_schema_spec.md`
-  - `docs/00_overview/prd.md`
-  - `docs/00_overview/wbs_8weeks_v2_updated.md`
+  - `docs/00_overview/complaint_system_prd.md`
+  - `docs/90_archive/complaint_system/wbs_8weeks_v2_updated.md`
 
 - **작업 상세 내용 (Technical Spec)**:
   1. Workbench list summary 계약 고정
