@@ -28,3 +28,7 @@
 | `reports/` | 기존 스크립트 산출물·평가 절차 |
 
 `app/knowledge/`와 지식 전용 라우터·화면은 목표 설계이며 현재 존재하는 소스로 표시하지 않습니다. [문서 지도](../README.md)와 [실행 안내](../30_manuals/local_dev_runbook.md)를 참고합니다.
+
+## 2026-09-28 불필요한 추적 파일 정리
+
+루트 `schemas/`, `tests/fixtures/`, `.tmp_issue_bodies/`와 `logs/`에 남아 있던 과거 추적 파일을 삭제했다. 코드·테스트에서 해당 파일을 읽는 참조는 발견하지 못했다. `app/api/schemas/`, 각 모듈의 `schemas.py`, `app/tests/fixtures/`는 별개이며 유지한다. `logs/`는 실행 시 다시 만들어지는 로컬 출력 경로로 계속 사용하며 기존 Git 제외 규칙을 유지한다.

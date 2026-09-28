@@ -1,3 +1,5 @@
+> 2026-09-28 정리: 참조되지 않는 루트 `schemas/civil_case.schema.json`은 삭제했다. 아래 해당 파일 설명은 과거 기록이며 원문은 Git 이력에서 확인한다. 현재 구조화 검증은 `app/structuring/service.py`의 `validate_schema()`와 관련 Python 모델을 참고한다.
+
 # 스키마 계약 문서
 
 문서 버전: v1.1-week2-aligned
