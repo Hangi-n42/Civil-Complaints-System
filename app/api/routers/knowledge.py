@@ -1,6 +1,7 @@
 """K2 source registration and parsing endpoints."""
 from functools import lru_cache
 from typing import Any
+from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import FileResponse
@@ -11,9 +12,11 @@ from pydantic import BaseModel, ValidationError
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.core.config import settings
 from app.knowledge.schemas import DecisionRequest, ManualAssertionRequest, RunRequest, SourceRegistration
+from app.knowledge.schemas import SnapshotRequest, ActivateSnapshotRequest, AvailabilityRequest
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
 from app.knowledge import extraction_store
+from app.knowledge import snapshots
 
 
 class KnowledgeRoute(APIRoute):
@@ -151,3 +154,40 @@ def entity(entity_id: str, service=Depends(get_knowledge_service)):
 @router.post('/changes/{changeset_id}/assertions', response_model=KnowledgeResponse)
 def add_assertion(changeset_id: str, request: ManualAssertionRequest, service=Depends(get_knowledge_service)):
     return result(extraction_store.add_manual(service, changeset_id, request))
+
+
+@router.post('/snapshots', response_model=KnowledgeResponse)
+def create_snapshot(request: SnapshotRequest, service=Depends(get_knowledge_service)):
+    return result(snapshots.create(service, request))
+
+
+@router.get('/snapshots', response_model=KnowledgeResponse)
+def snapshot_list(service=Depends(get_knowledge_service)):
+    return result(snapshots.list_snapshots(service))
+
+
+@router.get('/snapshots/{snapshot_id}', response_model=KnowledgeResponse)
+def snapshot_detail(snapshot_id: str, entity_id: str | None = None, as_of: date | None = None,
+                    service=Depends(get_knowledge_service)):
+    return result(snapshots.get_snapshot(service, None if snapshot_id == 'active' else snapshot_id, entity_id, as_of))
+
+
+@router.post('/snapshots/{snapshot_id}/activate', response_model=KnowledgeResponse)
+def activate_snapshot(snapshot_id: str, request: ActivateSnapshotRequest, service=Depends(get_knowledge_service)):
+    return result(snapshots.activate(service, snapshot_id, request))
+
+
+@router.get('/availability', response_model=KnowledgeResponse)
+def availability(type: str, id: str, service=Depends(get_knowledge_service)):
+    return result(snapshots.availability(service, type, id))
+
+
+@router.post('/availability', response_model=KnowledgeResponse)
+def set_availability(request: AvailabilityRequest, service=Depends(get_knowledge_service)):
+    return result(snapshots.set_availability(service, request))
+
+
+@router.get('/export', response_model=KnowledgeResponse)
+def export_snapshot(snapshot_id: str | None = None, format: str = 'json', entity_id: str | None = None,
+                    as_of: date | None = None, service=Depends(get_knowledge_service)):
+    return result(snapshots.export(service, snapshot_id, format, entity_id, as_of))

@@ -139,9 +139,11 @@ class KnowledgeService:
             block = self.repository.get(db, 'blocks', evidence['block_id'] if evidence else evidence_id)
             version = self.repository.get(db, 'versions', block['source_version_id'])
             source = self.repository.get(db, 'sources', version['source_id'])
+            from .snapshots import current_restrictions
+            restrictions = current_restrictions(self.repository, db, {'evidence_ids': [evidence_id]})
             return dict(evidence=evidence or dict(id=evidence_id, block_id=block['id'], quote=block['text'],
                                       start_char=0, end_char=len(block['text']), alignment_status='matched'),
-                        block=block, source=source, version=version)
+                        block=block, source=source, version=version, usage_restrictions=restrictions)
 
     def run(self, run_id):
         with self.repository.connect() as db:

@@ -1,7 +1,7 @@
 # 회사 지식 P0 최소 데이터·API 계약
 
-- 버전: v1.4 · 2026-09-28
-- 상태: K2 자료 계층과 K3 온톨로지 초안·검토 API 구현. K4 개체·사실 후보 저장·추출·검토도 구현되었으며 K5 이후는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md), [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
+- 버전: v1.5 · 2026-09-28
+- 상태: K2~K5 자료·온톨로지·사실 검토·스냅샷·활성화/사용 상태·기본 조회 구현. K6 이후는 계획이다. [K5 실행 결과](../../30_manuals/knowledge_k5_runbook.md).
 - 기준: [PRD](../../00_overview/company_knowledge_prd.md), [구현 계획](implementation.md), [아키텍처](architecture.md).
 - 적용: Python 3.11.9, 기존 FastAPI/Pydantic 응답·오류 봉투, SQLite 한 원장, 단일 작업 실행. 기존 민원 API에는 변경 없음.
 
@@ -131,8 +131,10 @@ K4 실제 오류 보완: link 수정 허용 필드에 `mention`, `evidence_ids`�
 
 K4 품질 보완: `POST /changes/{id}/assertions`에 expected_changeset_revision, actor, reason, subject_link_id, predicate_id, block_id, quote, raw_value, scope, object_link_id?를 전달하여 고정 원문에서 수동 후보를 추가한다. 자동 Run 출력/호출 수는 보존하고 `origin=manual`과 생성 결정 이력을 남긴다. 기존 결정 API로 별도 수락한다. [결과](../../30_manuals/knowledge_k4_quality_result.md).
 
-## K5 구현 예정 계약 보충 (2026-09-28)
+## K5 구현 계약 보충 (2026-09-28)
 
-[K5 계획](k5_implementation_plan.md)이 아직 없는 K5 API의 구체화 기준이다. 두 수락 묶음을 포함할 수 있도록 단일 changeset 입력을 selections로 대체했다. 선택한 주장에 필요한 수락 링크도 명시적으로 포함해야 한다. 스냅샷은 후보/revision·정본·개체·근거를 복사하며 현재 후보 재조회로 과거 내용을 재구성하지 않는다.
+[K5 계획](k5_implementation_plan.md)에 따라 API·화면을 구현했다. 두 수락 묶음을 포함할 수 있도록 단일 changeset 입력을 selections로 대체했다. 선택한 주장에 필요한 수락 링크도 명시적으로 포함해야 한다. 스냅샷은 후보/revision·정본·개체·근거를 복사하며 현재 후보 재조회로 과거 내용을 재구성하지 않는다. `/snapshots/active`는 현재 활성 버전을 같은 형식으로 조회한다. 활성 버전이 없으면 null ID와 빈 목록을 반환한다.
 
 사용 불가 상태가 나중에 생긴 스냅샷으로도 롤백할 수 있으나 해당 주장은 최신 상태 필터로 계속 제외한다. 알려진 수락 사실 수정/기각과 직접 링크 변경은 같은 결정 트랜잭션에서 해당 assertion에 needs_review를 기록하고 blocked를 완화하지 않는다. 상태 제한은 주장·필드·주체/대상 링크의 직접 근거와 자료 버전까지 확인한다. 생성/활성화/기본 조회에는 LLM 호출이 없다. 기준일 근거가 없는 사건 날짜는 유효기간으로 추정하지 않는다. 내보내기는 구조화 값·ID·위치·상태만 제공하고 전체 원문/블록 텍스트는 제외한다.
+
+`GET /export`도 기존 응답 봉투를 사용한다. JSON은 data의 구조화 원장, CSV는 data.content 문자열과 snapshot_id/status_revision/coverage다. 화면에서 파일로 저장한다. `GET /availability?type=...&id=...`는 allowed/needs_review/blocked와 이력·전역 revision을 반환한다. 기존 후보·근거 API의 `usage_restrictions`는 저장하지 않는 최신 상태 주석이며 수락 여부와 별개다.

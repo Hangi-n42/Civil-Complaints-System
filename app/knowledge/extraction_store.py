@@ -223,6 +223,10 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
     if not isinstance(assertion.get('dates'), list) or any(not isinstance(d, dict) for d in assertion['dates']):
         errors.append('invalid_dates')
     else:
+        try:
+            validity_bounds(assertion)
+        except (ValueError, TypeError, KeyError):
+            errors.append('invalid_validity_period')
         month_slot = assertion.get('predicate_id') in {'ATTRIBUTE_007', 'FirstOccupancyMonth'}
         value = assertion.get('value')
         if month_slot:
@@ -243,6 +247,25 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
     if require_accepted:
         assertion['link_dependencies'] = dependencies
     return list(dict.fromkeys(errors))
+
+
+def validity_bounds(assertion):
+    """Explicit, day-precision validity only; never infer it from an event date."""
+    bounds = {}
+    for item in assertion.get('dates', []):
+        role = item.get('role')
+        if role not in {'valid_from', 'valid_to'}:
+            continue
+        value = item.get('value')
+        ids = item.get('evidence_ids')
+        if (role in bounds or item.get('precision') != 'day' or not isinstance(value, str)
+                or date.fromisoformat(value).isoformat() != value or not isinstance(ids, list) or not ids
+                or not all(isinstance(i, str) for i in ids) or not set(ids) <= set(assertion.get('evidence_ids', []))):
+            raise ValueError('유효기간에는 일 단위 날짜와 해당 주장의 근거가 필요합니다.')
+        bounds[role] = value
+    if bounds.get('valid_from', '') > bounds.get('valid_to', '9999-12-31'):
+        raise ValueError('유효기간 시작이 종료보다 늦습니다.')
+    return bounds
 
 
 def publish_unit(service, run, unit, links, assertions, evidence, entities):
@@ -302,6 +325,7 @@ def _items(repo, db, change):
 
 def _publish_result(repo, db, change):
     items = _items(repo, db, change)
+    _usage_annotations(repo, db, items)
     invalid = sum(bool(v.get('validation_errors')) for v in items)
     return dict(changeset_id=change['id'], changeset_revision=change['revision'], items=items,
                 counts=dict(valid=len(items)-invalid, invalid=invalid,
@@ -316,6 +340,7 @@ def candidates(service, changeset_id=None, kind=None, review_status=None):
         items = []
         for change in changes:
             change['candidates'] = _items(service.repository, db, change)
+            _usage_annotations(service.repository, db, change['candidates'])
             change['unresolved_count'] = sum(c['review_status'] in {'proposed', 'deferred'} for c in change['candidates'])
             change['decisions'] = [d for d in _all(db, 'decisions') if d.get('changeset_id') == change['id']]
             items.extend(c for c in change['candidates'] if (not kind or c['kind'] == kind)
@@ -323,6 +348,13 @@ def candidates(service, changeset_id=None, kind=None, review_status=None):
     first = changes[0] if changes else {}
     return dict(items=items, changesets=changes, changeset_id=first.get('id'), changeset_revision=first.get('revision'),
                 unresolved_count=first.get('unresolved_count', 0))
+
+
+def _usage_annotations(repo, db, items):
+    from .snapshots import current_restrictions, _statuses
+    statuses = _statuses(db)
+    for item in items:
+        item['usage_restrictions'] = current_restrictions(repo, db, item, statuses)
 
 
 def list_entities(service, concept_id=None, namespace=None, official_id=None, q=None):
@@ -356,6 +388,7 @@ def decide(service, changeset_id, request):
     request = DecisionRequest.model_validate(request)
     repo = service.repository
     with service.lock, repo.connect() as db:
+        db.execute('BEGIN IMMEDIATE')
         change = repo.get(db, 'changesets', changeset_id)
         if change['revision'] != request.expected_changeset_revision:
             raise VersionConflict('후보가 변경되었습니다. 최신 내용을 다시 조회해 주세요.')
@@ -369,6 +402,7 @@ def decide(service, changeset_id, request):
         # Links are explicit decisions, never silently accepted for a dependent assertion.
         ordered = sorted(request.decisions, key=lambda d: current[d.candidate_id]['kind'] != 'entity_link')
         changed_sets = {change['id']: change}
+        changed_assertions = set()
         for decision in ordered:
             value = current[decision.candidate_id]
             before = deepcopy(value)
@@ -423,6 +457,8 @@ def decide(service, changeset_id, request):
                 'defer': 'deferred', 'reject': 'rejected', 'unlink': 'proposed'}[decision.action]
             value['revision'] += 1
             repo.save(db, table, value)
+            if not is_link and before['review_status'] == 'accepted' and decision.action in {'modify', 'defer', 'reject'}:
+                changed_assertions.add(value['id'])
             _decision(db, change['id'], request.actor, decision.action, decision.reason, before, value, change['revision'] + 1)
             if is_link:
                 for assertion in _all(db, 'assertions'):
@@ -435,6 +471,7 @@ def decide(service, changeset_id, request):
                     assertion['validation_errors'] = list(dict.fromkeys(assertion.get('validation_errors', []) + ['dependency_changed']))
                     # Preserve accepted subject/object IDs until this assertion is reviewed again.
                     repo.save(db, 'assertions', assertion)
+                    changed_assertions.add(assertion['id'])
                     affected_id = assertion['changeset_id']
                     if affected_id not in changed_sets:
                         changed_sets[affected_id] = repo.get(db, 'changesets', affected_id)
@@ -445,6 +482,9 @@ def decide(service, changeset_id, request):
         for changed in changed_sets.values():
             changed['revision'] += 1
             repo.save(db, 'changesets', changed)
+        if changed_assertions:
+            from .snapshots import mark_changed
+            mark_changed(db, changed_assertions, request.actor, '수락 사실 또는 직접 의존 연결 변경; 재허용 전 검토 필요')
         result = _publish_result(repo, db, change)
         result['invalid_count'] = result['counts']['invalid']
         result['unresolved_count'] = result['counts']['unresolved']

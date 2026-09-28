@@ -1,6 +1,6 @@
 # K5 구현 계획 — 검토된 지식의 스냅샷·사용 상태·기본 조회
 
-- 기준일: 2026-09-28. **계획 확정, K5 코드 미구현.** 구현 이슈 #503.
+- 기준일: 2026-09-28. **아래 계획에 따른 K5 구현·공고군 확인 완료.** 구현 이슈 #503. [실제 결과·한계](../../30_manuals/knowledge_k5_runbook.md). 아래 절차·추정은 구현 전 계획 기록이다.
 - 근거: [PRD FR-06·08·09](../../00_overview/company_knowledge_prd.md), [최소 계약](contracts.md), [K4 보완·최종 검토 결과](../../30_manuals/knowledge_k4_quality_result.md).
 - Ponytail 적용: 기존 SQLite·검토 API·Next.js 재사용. 새 모델 호출·의존성·작업 큐·그래프 DB·별도 승인 화면 없음. 다음 구현 단계는 K6 Local 검색이다.
 
