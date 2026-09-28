@@ -163,3 +163,9 @@ lxml==6.1.3
 linkml==1.11.1
 linkml-runtime==1.11.1
 chardet==7.6.0
+
+# Knowledge K4 evidence alignment (no cloud provider calls)
+langextract==1.7.0
+google-genai==2.8.0
+google-api-core==2.33.0
+proto-plus==1.28.2

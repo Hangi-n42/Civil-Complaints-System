@@ -18,3 +18,12 @@
 OntoGPT의 구조·검사 방법을 회사 지식용으로 적응했으며 원본 validator 그대로가 아니다. AutoSchemaKG는 방법을 재구현한 것으로 프롬프트 전문이나 엔진 코드를 복사하지 않았다. 원본 저장소 라이선스는 [OntoGPT](ontogpt_LICENSE.txt), [AutoSchemaKG](autoschemakg_LICENSE.txt)에 보존했다. OntoGPT skeleton 자체에는 CC0 선언이 있다.
 
 LinkML 정본의 candidate annotation에 정의·포함/제외·CQ·근거를 보존한다. Pydantic은 고정 메타모델만 검증하고, 회사 도메인 클래스·슬롯은 LinkML에서 파생한다. 허용하지 않은 후보 필드는 명시적으로 거절한다. 복잡한 법률 조건은 자연어 정의/범위로 남기며 실행 가능한 법률 규칙으로 변환하지 않는다.
+
+
+## K4 적용 (2026-09-28)
+
+- `langextract==1.7.0`의 `Extraction`·`Resolver.align` 공개 API만 호출한다. `fuzzy=False`, `accept_match_lesser=False`에 원문 substring 일치 확인을 더했다. 한국어 부분 어절·반복 발췌는 미해결로 남긴다.
+- 원본 [Resolver](https://github.com/google/langextract/blob/62b933a2c757fd2bbb100498571b8d1692db4344/langextract/resolver.py), [Apache-2.0 라이선스](langextract_LICENSE.txt). 패키지 내부 수정·코드 복사는 없다. 배포 패키지에 포함된 라이선스를 보존했다.
+- `lx.extract`·provider·원격 API를 사용하지 않는다. 패키지의 Google SDK 전이 의존성은 설치되지만 실행에는 사용하지 않는다.
+- 기존 Pydantic·protobuf·OpenTelemetry 제약을 유지하도록 google-genai 2.8.0, google-api-core 2.33.0, proto-plus 1.28.2를 함께 고정했다. 현재 Mac Python 3.11.9에서 pip check 통과. Windows 전체 설치는 미확인이다.
+- LinkML JSON Schema를 그대로 바탕으로 추출 슬롯 타입을 구성한다. 단지 현황 PDF 표의 명시 헤더 3개가 확인될 때는 단지명·수량·최초입주월 슬롯만 허용한다. OntoGPT의 표기/ID 연결 분리, SKOS식 별칭, PROV식 출처는 로컬 원장 필드로 반영하며 엔진·외부 온톨로지를 추가하지 않는다.

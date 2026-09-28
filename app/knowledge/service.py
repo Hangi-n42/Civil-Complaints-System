@@ -134,10 +134,12 @@ class KnowledgeService:
 
     def evidence(self, evidence_id):
         with self.repository.connect() as db:
-            block = self.repository.get(db, 'blocks', evidence_id)
+            saved = db.execute('SELECT payload FROM evidence WHERE id=?', (evidence_id,)).fetchone()
+            evidence = json.loads(saved['payload']) if saved else None
+            block = self.repository.get(db, 'blocks', evidence['block_id'] if evidence else evidence_id)
             version = self.repository.get(db, 'versions', block['source_version_id'])
             source = self.repository.get(db, 'sources', version['source_id'])
-            return dict(evidence=dict(id=evidence_id, block_id=block['id'], quote=block['text'],
+            return dict(evidence=evidence or dict(id=evidence_id, block_id=block['id'], quote=block['text'],
                                       start_char=0, end_char=len(block['text']), alignment_status='matched'),
                         block=block, source=source, version=version)
 
@@ -146,6 +148,15 @@ class KnowledgeService:
             run = self.repository.get(db, 'runs', run_id)
         run['counts'] = {status: sum(u['status'] == status for u in run['units'])
                          for status in ('queued', 'running', 'succeeded', 'failed', 'cancelled')}
+        if run['kind'] == 'extract':
+            run['processed_block_ids'] = list(dict.fromkeys(b for u in run['units']
+                if u['status'] == 'succeeded' for b in u['block_ids']))
+            if run.get('changeset_id'):
+                from .extraction_store import candidates
+                items = candidates(self, run['changeset_id'])['items']
+                invalid = sum(bool(v.get('validation_errors')) for v in items)
+                run['candidate_counts'] = dict(valid=len(items)-invalid, invalid=invalid,
+                    unresolved=sum(v['review_status'] in {'proposed', 'deferred'} for v in items))
         return run
 
     def start(self, request: RunRequest):
@@ -153,8 +164,11 @@ class KnowledgeService:
         if request.kind == 'ontology':
             from .ontology_run import start
             return start(self, request)
+        if request.kind == 'extract':
+            from .extraction import start
+            return start(self, request)
         if request.kind != 'parse':
-            raise ValueError('현재 parse와 ontology 작업만 지원합니다.')
+            raise ValueError('현재 parse, ontology, extract 작업만 지원합니다.')
         with self.lock, self.repository.connect() as db:
             if self.closed:
                 raise KnowledgeConflict('서비스가 종료 중입니다.')

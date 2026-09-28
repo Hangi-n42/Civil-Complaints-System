@@ -1,7 +1,7 @@
 # 회사 지식 P0 최소 데이터·API 계약
 
-- 버전: v1.2 · 2026-09-27
-- 상태: K2 자료 계층과 K3 온톨로지 초안·검토 API 구현. K4 이후는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md), [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
+- 버전: v1.3 · 2026-09-27
+- 상태: K2 자료 계층과 K3 온톨로지 초안·검토 API 구현. K4 개체·사실 후보 저장·추출·검토도 구현되었으며 K5 이후는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md), [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
 - 기준: [PRD](../../00_overview/company_knowledge_prd.md), [구현 계획](implementation.md), [아키텍처](architecture.md).
 - 적용: Python 3.11.9, 기존 FastAPI/Pydantic 응답·오류 봉투, SQLite 한 원장, 단일 작업 실행. 기존 민원 API에는 변경 없음.
 
@@ -119,3 +119,10 @@ K2 실행은 단일 프로세스·직렬 작업이다. Evidence는 전체 블록
 `GET /ontology-cqs`는 개발 질문 id/question만 반환한다. `GET /ontologies`와 `GET /ontologies/{id}`는 draft/reviewed 버전과 LinkML·JSON Schema·해시를 조회한다. `/candidates`·`/changes/{id}/decisions`는 개념·속성·관계 후보를 지원하며 Entity/Assertion은 K4다. Candidate는 proposed→accepted/deferred/rejected, modify는 수정 후 accepted. reviewed는 활성 상태가 아니다.
 
 모델은 근거 ID를 선택하고 인용은 고정 블록에서 구성한다. API 수정 인용은 원문 일치 검사하며 의미 타당성은 별도의 검토 대상이다. 재시도는 저장된 성공 단계 결과를 재사용하며 모델·프롬프트·입력 변경은 새 실행으로 처리한다. [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
+
+## K4 구현 계약 (2026-09-28)
+
+[K4 구현 계획 §3~4](k4_implementation_plan.md)의 저장/API 세부 사항을 이 계약의 K4 부록으로 채택한다. entities/entity_links/assertions/evidence 4개 테이블, kind=extract Run, entity_link/assertion 후보, 링크 전용 unlink 결정을 추가한다. 기존 K2/K3 응답 봉투와 필드는 유지한다. 링크 변경에 직접 의존하는 주장은 재검토 상태로 전환하며, 운영 활성화/일반 영향 전파는 K5/K8에 남긴다. API와 화면을 구현했다. 실제 확인 및 미검증 범위는 [K4 실행 결과](../../30_manuals/knowledge_k4_runbook.md)를 따른다.
+
+
+K4 실제 오류 보완: link 수정 허용 필드에 `mention`, `evidence_ids`를 추가했다. 원문에 없는 별칭은 수락할 수 없으며 K2 전체 블록 근거도 고정 입력 범위 내에서 수정에 사용할 수 있다. `GET /runs/{id}`는 단위 상태 `counts`와 후보 상태 `candidate_counts`, `processed_block_ids`, `invalid_record_count`를 분리한다. 구조 불량 레코드는 단위의 `invalid_records`에 보존하며 기술 성공과 품질 완료를 구분한다. 단위별 후보 counts는 그 시점의 묶음 누적값이므로 합산하지 않는다.

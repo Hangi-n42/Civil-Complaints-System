@@ -21,6 +21,18 @@ class KnowledgeRepository:
                 CREATE TABLE IF NOT EXISTS ontology_versions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS changesets (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS decisions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS entities (
+                    id TEXT PRIMARY KEY, namespace TEXT NOT NULL, official_id TEXT,
+                    payload TEXT NOT NULL, UNIQUE(namespace, official_id));
+                CREATE TABLE IF NOT EXISTS entity_links (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL, unit_id TEXT NOT NULL,
+                    local_candidate_key TEXT NOT NULL, payload TEXT NOT NULL,
+                    UNIQUE(run_id, unit_id, local_candidate_key));
+                CREATE TABLE IF NOT EXISTS assertions (
+                    id TEXT PRIMARY KEY, run_id TEXT NOT NULL, unit_id TEXT NOT NULL,
+                    local_candidate_key TEXT NOT NULL, payload TEXT NOT NULL,
+                    UNIQUE(run_id, unit_id, local_candidate_key));
+                CREATE TABLE IF NOT EXISTS evidence (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS blocks (
                     id TEXT PRIMARY KEY, version_id TEXT NOT NULL REFERENCES versions(id),
                     run_id TEXT NOT NULL REFERENCES runs(id), unit_id TEXT NOT NULL,
@@ -41,7 +53,8 @@ class KnowledgeRepository:
 
     @staticmethod
     def get(db, table, object_id):
-        if table not in {'sources', 'versions', 'runs', 'blocks', 'ontology_versions', 'changesets', 'decisions'}:
+        if table not in {'sources', 'versions', 'runs', 'blocks', 'ontology_versions', 'changesets', 'decisions',
+                         'entities', 'entity_links', 'assertions', 'evidence'}:
             raise ValueError('Unknown ledger table')
         row = db.execute(f'SELECT payload FROM {table} WHERE id=?', (object_id,)).fetchone()
         if row is None:
@@ -50,7 +63,7 @@ class KnowledgeRepository:
 
     @staticmethod
     def save(db, table, value):
-        if table not in {'versions', 'runs', 'changesets'}:
+        if table not in {'versions', 'runs', 'changesets', 'entity_links', 'assertions', 'entities'}:
             raise ValueError('Unsupported update')
         db.execute(f'UPDATE {table} SET payload=? WHERE id=?',
                    (json.dumps(value, ensure_ascii=False), value['id']))
