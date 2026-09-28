@@ -12,10 +12,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.ingestion.service import IngestionService
 from app.retrieval.service import RetrievalService
-from src.pii.ko_pii_adapter import KoPiiAdapterResult
-from src.pii.postcheck import postcheck_text
-from src.structuring.pii.pipeline import PiiSanitizationPipeline
-from src.structuring.pii.risk_policy import PiiStatus
+from app.structuring.pii.ko_pii_adapter import KoPiiAdapterResult
+from app.structuring.pii.postcheck import postcheck_text
+from app.structuring.pii.pipeline import PiiSanitizationPipeline
+from app.structuring.pii.risk_policy import PiiStatus
 
 
 class PassthroughAdapter:

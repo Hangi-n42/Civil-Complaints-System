@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from src.pii.ko_pii_adapter import KoPiiAdapter
-from src.pii.postcheck import postcheck_text, redact_address_and_vehicle
-from src.structuring.pii.risk_policy import (
+from app.structuring.pii.ko_pii_adapter import KoPiiAdapter
+from app.structuring.pii.postcheck import postcheck_text, redact_address_and_vehicle
+from app.structuring.pii.risk_policy import (
     PiiPipelineDecision,
     detect_review_risks,
     finding_to_dict,

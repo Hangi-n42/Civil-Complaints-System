@@ -18,7 +18,7 @@
 
 | 기존 ID | 현재 상태 | 현재 결정·변경 이유 | 확인 근거 |
 |---|---|---|---|
-| ARD-001 로컬 우선 | 현행 | Ollama 기반 생성·평가와 로컬 검색 유지. 로컬 실행만으로 개인정보 보호가 보장되는 것은 아니며 기존 PII 처리를 함께 사용 | `app/core/config.py`, `app/generation/service.py`, `src/pii/` |
+| ARD-001 로컬 우선 | 현행 | Ollama 기반 생성·평가와 로컬 검색 유지. 로컬 실행만으로 개인정보 보호가 보장되는 것은 아니며 기존 PII 처리를 함께 사용 | `app/core/config.py`, `app/generation/service.py`, `app/structuring/pii/` |
 | ARD-002 모듈 분리 | 현행·확장 | 기존 ingestion/structuring/retrieval/generation/api/ui에 evaluation·complaint_intelligence와 별도 frontend가 존재 | `app/`, `frontend/` |
 | ARD-003 FastAPI+Streamlit | 부분 대체 | 주 FE는 Next.js. Streamlit 소스는 기존 UI로 남으며 제거된 것으로 기록하지 않음. 당시 선택은 ARD-013으로 대체 | `frontend/package.json`, `app/ui/Home.py` |
 | ARD-004 스키마·검증 우선 | 현행 | Pydantic/API 계약과 구조화 검증을 유지. 회사 문서를 기존 민원 case_id 계약에 억지로 맞추는 것은 신규 설계에서 제외 | `app/api/schemas/`, `app/structuring/schemas.py`, 신규 PRD |

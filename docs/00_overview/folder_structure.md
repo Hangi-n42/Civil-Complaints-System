@@ -12,7 +12,7 @@
 | `app/complaint_intelligence/` | 민원 관제·중복 판단 |
 | `app/ui/` | 기존 Streamlit UI 코드 |
 | `frontend/` | Next.js Workbench·Intelligence 화면 |
-| `src/`, `scripts/` | 전처리·PII·적재·평가 등 기존 처리 |
+| `scripts/` | 전처리·PII·적재·평가 등 기존 처리 |
 | `configs/knowledge/pilot_v1/` | 신규 제품 파일럿 자료 목록·근거·12개 과제 |
 | `data/` 및 설정된 Chroma 디렉터리 | 로컬 데이터·인덱스. 실제 경로는 설정과 실행 안내 확인 |
 | `docs/00_overview/company_knowledge_prd.md` | 신규 제품의 메인 PRD v1.4 |
@@ -32,3 +32,5 @@
 ## 2026-09-28 불필요한 추적 파일 정리
 
 루트 `schemas/`, `tests/fixtures/`, `.tmp_issue_bodies/`와 `logs/`에 남아 있던 과거 추적 파일을 삭제했다. 코드·테스트에서 해당 파일을 읽는 참조는 발견하지 못했다. `app/api/schemas/`, 각 모듈의 `schemas.py`, `app/tests/fixtures/`는 별개이며 유지한다. `logs/`는 실행 시 다시 만들어지는 로컬 출력 경로로 계속 사용하며 기존 Git 제외 규칙을 유지한다.
+
+2026-09-28: 개인정보 파이프라인·ko-pii 어댑터·후검사·위험 정책을 `app/structuring/pii/`로 통합했다. ingestion과 관련 테스트는 새 경로를 사용하며 비어 있는 `src` 패키지를 제거했다. 처리 규칙은 변경하지 않았다.
