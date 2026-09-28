@@ -28,7 +28,7 @@
 
 ## 현재 실행 경계
 
-1. `app/ingestion`, `app/structuring` 및 `src/pii`: 원천 입력·PII 처리·구조화.
+1. `app/ingestion`, `app/structuring` 및 `app/structuring/pii`: 원천 입력·PII 처리·구조화.
 2. `app/retrieval`: Chroma dense와 BM25를 결합한 hybrid 검색. `RETRIEVAL_STRATEGY` 기본값은 `hybrid`다. API는 분석·라우팅 정보를 남기되 검색 `top_k`는 요청값, snippet 1100, chunk policy balanced로 고정하며, 필터가 있으면 서비스의 hybrid 분기를 사용하지 않는다.
 3. `app/generation`: 근거 기반 생성·정규화·인용 검증·재작성 흐름.
 4. `app/evaluation/civil_llm_rubric.py`: 운영 Q0~Q7 평가. 현재 그룹은 Q2 / Q3·Q4·Q5 / Q1·Q7 / Q6 / Q0의 **5회**이며 같은 요청의 Q2 재사용 시 재평가 모델 호출은 4회다. 실제 성공 호출 수는 오류·설정에 따라 달라질 수 있다.

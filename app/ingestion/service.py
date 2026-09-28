@@ -273,7 +273,7 @@ class IngestionService:
 
     def _get_pii_pipeline(self):
         if self._pii_pipeline is None:
-            from src.structuring.pii.pipeline import PiiSanitizationPipeline
+            from app.structuring.pii.pipeline import PiiSanitizationPipeline
 
             self._pii_pipeline = PiiSanitizationPipeline(logger=self.logger)
         return self._pii_pipeline
