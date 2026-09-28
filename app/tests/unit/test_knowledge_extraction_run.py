@@ -29,9 +29,14 @@ def record(block_id):
 
 
 def model_result(prompt):
-    context, _ = json.JSONDecoder().raw_decode(prompt.split('\nINPUT:\n', 1)[1])
-    return dict(text=json.dumps({'records': [record(context['blocks'][0]['block_id'])]}, ensure_ascii=False),
-                done=True, done_reason='stop', eval_count=100)
+    context = json.loads(prompt.split('\nINPUT:\n', 1)[1])
+    groups=[]
+    for g in context['units']:
+        bid=g['blocks'][0]['block_id']
+        ev=[dict(block_id=bid,quote='201106')]
+        groups.append(dict(unit_id=g['unit_id'],subject=dict(mention='행복단지',concept_id='CONCEPT_001',official_id='C00001',evidence=[dict(block_id=bid,quote='C00001')]),
+            facts=[dict(predicate_id='FirstOccupancyMonth',raw_value='201106',evidence=ev,unit=None,scope='미확인',scope_evidence=[],conditions=[],conditions_evidence=[],exceptions=[],exceptions_evidence=[])], reason=''))
+    return dict(text=json.dumps({'units':groups},ensure_ascii=False),done=True,done_reason='stop',eval_count=100)
 
 
 def seeded_service(tmp_path):
@@ -64,6 +69,8 @@ def test_korean_alignment_rejects_ambiguous_and_nonmatching_quotes():
     aligned = extraction.align(block, '201106')
     assert aligned['alignment_status'] == 'matched'
     assert block['text'][aligned['start_char']:aligned['end_char']] == aligned['quote']
+    suffix = extraction.align(dict(id='suffix', text='총 985세대로 이루어져 있습니다.'), '총 985세대')
+    assert suffix['alignment_status']=='matched' and suffix['end_char']==7
     repeated = extraction.align(dict(id='repeated', text='201106 / 201106'), '201106')
     assert repeated['alignment_status'] == 'ambiguous'
     assert repeated['start_char'] is None and repeated['end_char'] is None
@@ -71,38 +78,19 @@ def test_korean_alignment_rejects_ambiguous_and_nonmatching_quotes():
     assert missing['alignment_status'] == 'unmatched'
 
 
-def test_generated_schema_preserves_stable_concept_ids_and_rejects_unknown_slots():
-    items = definitions()
-    items += [dict(items[1], id='ATTRIBUTE_003', range='integer'),
-              dict(items[1], id='ATTRIBUTE_005', range='date'),
-              dict(items[1], id='ATTRIBUTE_007'), dict(items[0], id='Notice')]
-    _, generated = ontology_schema.build_schema(items)
-    ref = generated['$defs']['KnowledgeDocument']['properties']['items_CONCEPT_001']['items']['$ref']
-    assert ref.rsplit('/', 1)[-1] != 'CONCEPT_001'
-    run = dict(json_schema=generated, ontology_candidates=items, frozen_blocks=[
-        dict(id=f'header-{i}', text=text, locator=dict(format='pdf', row=0, table=2))
-        for i, text in enumerate(['단지명', '건설호수', '최초입주'])])
-    schema = extraction.response_schema(run)  # No unit keeps the existing complete schema.
-    validator = Draft202012Validator(schema)
-    value = {'records': [record('block-1')]}
-    assert not list(validator.iter_errors(value))
-    value['records'][0]['values']['UnapprovedSlot'] = 'unapproved'
-    assert list(validator.iter_errors(value))
-    unit = dict(block_ids=[b['id'] for b in run['frozen_blocks']])
-    limited = extraction.response_schema(run, unit)
-    variants = limited['properties']['records']['items']['anyOf']
-    assert len(variants) == 1 and variants[0]['properties']['concept_id']['const'] == 'CONCEPT_001'
-    allowed = variants[0]['properties']['values']['properties']
-    assert set(allowed) == {'ATTRIBUTE_002', 'ATTRIBUTE_003', 'FirstOccupancyMonth'}
-    full = schema['properties']['records']['items']['anyOf'][0]['properties']['values']['properties']
-    assert allowed == {k: full[k] for k in allowed}  # Reviewed slot types are reused verbatim.
-    limited_validator = Draft202012Validator(limited)
-    assert not list(limited_validator.iter_errors({'records': [record('data-cell')]}))
-    for wrong_slot, wrong_value in [('ATTRIBUTE_005', '2011-06-01'), ('ATTRIBUTE_007', '2011-06')]:
-        wrong = dict(record('data-cell'), values={wrong_slot: wrong_value})
-        assert not list(validator.iter_errors({'records': [wrong]}))
-        assert list(limited_validator.iter_errors({'records': [wrong]}))
-    assert extraction.response_schema(run, dict(block_ids=unit['block_ids'][:2])) == schema
+def test_output_contract_rejects_unknown_slots_null_and_outside_evidence():
+    items=definitions()
+    _,generated=ontology_schema.build_schema(items)
+    run=dict(json_schema=generated,ontology_candidates=items,frozen_blocks=[dict(id='b',source_version_id='v',text='201106',locator={})])
+    unit=dict(block_ids=['b'])
+    validator=Draft202012Validator(extraction.response_schema(run,unit))
+    output=json.loads(model_result(extraction.prompt_for(run,unit))['text'])
+    assert not list(validator.iter_errors(output))
+    fact=output['units'][0]['facts'][0]
+    for field,value in [('predicate_id','UnapprovedSlot'),('raw_value',None),('evidence',[dict(block_id='missing',quote='201106')])]:
+        previous=fact[field];fact[field]=value
+        assert list(validator.iter_errors(output))
+        fact[field]=previous
 
 
 def test_n_text_calls_keep_mapping_and_parse_pointers(tmp_path, monkeypatch):
@@ -179,9 +167,10 @@ def test_malformed_records_preserve_valid_candidates_and_model_time(tmp_path, mo
     async def model(prompt, schema, run):
         clock['now'] += 2.0
         response = model_result(prompt)
-        valid = json.loads(response['text'])['records'][0]
-        response['text'] = json.dumps({'records': [valid, dict(valid, values=None),
-                                                  dict(valid, values=[]), dict(valid, field_evidence=None)]})
+        output = json.loads(response['text'])
+        valid = output['units'][0]['facts'][0]
+        output['units'][0]['facts'] += [dict(valid,raw_value=None),dict(valid,evidence=None),dict(valid,evidence=[])]
+        response['text'] = json.dumps(output)
         return response
     def materialize(*args):
         result = original_materialize(*args)
@@ -199,13 +188,27 @@ def test_malformed_records_preserve_valid_candidates_and_model_time(tmp_path, mo
         for unit in run['units'][1:]:
             assert unit['call']['elapsed_s'] == 2.0 and unit['elapsed_s'] == 5.0
             assert len(unit['records']) == 1 and unit['counts']['invalid_records'] == 3
-            assert [item['index'] for item in unit['invalid_records']] == [1, 2, 3]
+            assert len(unit['invalid_records']) == 3
             assert all(item['validation_errors'] for item in unit['invalid_records'])
-            assert unit['invalid_records'][0]['raw_record']['values'] is None
-            assert unit['invalid_records'][1]['raw_record']['values'] == []
-            assert unit['invalid_records'][2]['raw_record']['field_evidence'] is None
+            assert unit['invalid_records'][0]['raw_record']['raw_value'] is None
+            assert unit['invalid_records'][1]['raw_record']['evidence'] is None
+            assert unit['invalid_records'][2]['raw_record']['evidence'] == []
         with service.repository.connect() as db:
             values = [json.loads(row['payload']) for row in db.execute('SELECT payload FROM assertions')]
         assert len([v for v in values if v['predicate_id'] == 'FirstOccupancyMonth']) == 2
     finally:
         service.shutdown()
+
+
+def test_registry_context_does_not_regenerate_csv_candidates(tmp_path, monkeypatch):
+    service, request, registered, _ = seeded_service(tmp_path)
+    request.source_version_ids=[registered[1]['source_version_id']]
+    async def model(prompt,schema,run):return model_result(prompt)
+    monkeypatch.setattr(extraction,'model_call',model)
+    try:
+        run=finished(service,service.start(request)['run_id'])
+        assert run['status']=='succeeded'
+        assert all(u['stage']=='llm' for u in run['units'])
+        assert any(b['locator']['format']=='csv' for b in run['frozen_blocks'])
+        assert len(run['entities'])==1
+    finally:service.shutdown()

@@ -156,6 +156,7 @@ class KnowledgeService:
                 items = candidates(self, run['changeset_id'])['items']
                 invalid = sum(bool(v.get('validation_errors')) for v in items)
                 run['candidate_counts'] = dict(valid=len(items)-invalid, invalid=invalid,
+                    manual=sum(v.get('origin')=='manual' for v in items), automatic=sum(v.get('origin')!='manual' for v in items),
                     unresolved=sum(v['review_status'] in {'proposed', 'deferred'} for v in items))
         return run
 
