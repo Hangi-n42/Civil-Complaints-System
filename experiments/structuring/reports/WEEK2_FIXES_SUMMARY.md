@@ -1,3 +1,5 @@
+> 2026-09-28 정리: 참조되지 않는 루트 `schemas/civil_case.schema.json`은 삭제했다. 아래 해당 파일 설명은 과거 기록이며 원문은 Git 이력에서 확인한다. 현재 구조화 검증은 `app/structuring/service.py`의 `validate_schema()`와 관련 Python 모델을 참고한다.
+
 > 과거 실험 기록 · 보관 문서 v1.0 · 정리일 2026-09-26
 > 원래 경로: `reports/WEEK2_FIXES_SUMMARY.md`. 원작성일·실험 조건·수치·결론은 당시 기록이며 현재 성능 확인 결과가 아니다.
 
@@ -47,7 +49,7 @@ input = {"text": "민원 원문", ...}
 ### 2️⃣ 심각도 HIGH: Entity Label 검증 부재
 
 **문제:**
-- [schemas/civil_case.schema.json#L140](../../../schemas/civil_case.schema.json#L140) 에서 enum 정의: `["LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"]`
+- `schemas/civil_case.schema.json`(삭제된 과거 스키마) 에서 enum 정의: `["LOCATION", "TIME", "FACILITY", "HAZARD", "ADMIN_UNIT"]`
 - [app/structuring/service.py#L282](../../../app/structuring/service.py#L282) validate_schema에서 `isinstance(entities, list)` 만 확인
 - 비표준 라벨(TYPE, RISK, DATE, PLACE, AREA) 입력해도 validation.is_valid=true로 통과
 - 결과: 검색/QA 파이프라인에 오염된 라벨 데이터 흐름

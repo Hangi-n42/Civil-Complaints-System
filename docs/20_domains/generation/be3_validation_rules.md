@@ -1,3 +1,5 @@
+> 2026-09-28 정리: 참조되지 않는 루트 `schemas/civil_case.schema.json`은 삭제했다. 아래 해당 파일 설명은 과거 기록이며 원문은 Git 이력에서 확인한다. 현재 구조화 검증은 `app/structuring/service.py`의 `validate_schema()`와 관련 Python 모델을 참고한다.
+
 # BE3 Validation 규칙 메모
 
 문서 버전: v0.2  
@@ -346,7 +348,7 @@ error 규칙:
 
 ## 10. 현재 확인된 문서/스키마 불일치
 
-현재 [schemas/civil_case.schema.json](../../../schemas/civil_case.schema.json)은 README 및 계약 문서 기준 구조와 다르다.
+현재 `schemas/civil_case.schema.json`(삭제된 과거 스키마)은 README 및 계약 문서 기준 구조와 다르다.
 
 현재 스키마 파일은 아래 특성을 가진다.
 
