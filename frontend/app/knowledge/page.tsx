@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import KnowledgeOntology from "@/components/KnowledgeOntology";
+import KnowledgeExtraction from "@/components/KnowledgeExtraction";
 import { API_BASE_URL } from "@/lib/api";
 
 type Version = { id: string; format: string; processing_status?: string; sha256: string; latest_parse_run_id?: string; verified_at?: string; acquired_at?: string; dates?: {role: string; value: string}[] };
@@ -27,7 +28,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function KnowledgePage() {
-  const [tab, setTab] = useState<"sources" | "ontology">("sources");
+  const [tab, setTab] = useState<"sources" | "ontology" | "extraction">("sources");
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [selected, setSelected] = useState<{ source: Source; version: Version } | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -129,7 +130,8 @@ export default function KnowledgePage() {
     <AppSidebar activeMenu="knowledge" />
     <main className="min-w-0 flex-1 space-y-5 p-6">
       <header><h1 className="text-2xl font-bold">회사 지식 워크벤치</h1><p className="mt-1 text-sm text-slate-600">원문을 보존하고 문단·표의 위치를 확인합니다. 추출 결과는 아직 검토·활성화된 지식이 아닙니다.</p></header>
-      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button></nav>
+      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button></nav>
+      <div hidden={tab !== "extraction"}><KnowledgeExtraction request={request} sources={sources} /></div>
       <div hidden={tab !== "ontology"}><KnowledgeOntology request={request} sources={sources} /></div>
       <div hidden={tab !== "sources"} className="space-y-5">
       {error && <p role="alert" className="rounded bg-red-50 p-3 text-red-800">{error}</p>}

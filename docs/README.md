@@ -18,6 +18,8 @@
 
 [파일럿 고정 기록](70_research/company_knowledge/company_knowledge_pilot_freeze_2026-09-26.md)의 입력 준비는 완료됐지만 P0 제품 구현·효용 검증은 완료되지 않았습니다. 연구·선정 근거는 `70_research/company_knowledge/`에서 확인합니다.
 
+K3 잔여 후보의 원문 대조·결정 반영을 완료했으며 [K4 구체 구현 계획](05_plans/company_knowledge/k4_implementation_plan.md)을 확정했습니다. K4 개체·사실·관계 후보 추출 및 검토가 구현되었습니다. 실제 확인 범위와 모델 오류는 [K4 결과·실행 안내](30_manuals/knowledge_k4_runbook.md)에 기록합니다.
+
 ## 현재 실행 가능한 민원 시스템
 
 - [기능 PRD](00_overview/complaint_system_prd.md), [현재 아키텍처](00_overview/complaint_system_architecture.md), [기술 스택](00_overview/dev_stack.md)

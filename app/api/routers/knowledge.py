@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.knowledge.schemas import DecisionRequest, RunRequest, SourceRegistration
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
+from app.knowledge import extraction_store
 
 
 class KnowledgeRoute(APIRoute):
@@ -134,3 +135,14 @@ def ontology_candidates(changeset_id: str | None = None, kind: str | None = None
 @router.post('/changes/{changeset_id}/decisions', response_model=KnowledgeResponse)
 def decisions(changeset_id: str, request: DecisionRequest, service=Depends(get_knowledge_service)):
     return result(ontology_schema.decide(service, changeset_id, request))
+
+
+@router.get('/entities', response_model=KnowledgeResponse)
+def entities(concept_id: str | None = None, namespace: str | None = None, official_id: str | None = None,
+             q: str | None = None, service=Depends(get_knowledge_service)):
+    return result(extraction_store.list_entities(service, concept_id, namespace, official_id, q))
+
+
+@router.get('/entities/{entity_id}', response_model=KnowledgeResponse)
+def entity(entity_id: str, service=Depends(get_knowledge_service)):
+    return result(extraction_store.get_entity(service, entity_id))

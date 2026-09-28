@@ -140,7 +140,7 @@ def _base(service, run):
 def publish(service, run, candidates):
     base = _base(service, run)
     values = validate_candidates(candidates, run['frozen_blocks'], run['cqs'], base)
-    change = dict(id=uuid4().hex, revision=0, created_at=_now(), run_id=run['id'],
+    change = dict(id=uuid4().hex, kind='ontology', revision=0, created_at=_now(), run_id=run['id'],
                   base_ontology_version_id=run.get('base_ontology_version_id'),
                   original_candidates=deepcopy(values),
                   review_status={c['id']: 'proposed' for c in values},
@@ -171,9 +171,15 @@ def list_ontologies(service):
 
 
 def candidates(service, changeset_id=None, kind=None, review_status=None):
+    from . import extraction_store
+    if kind in {'entity_link', 'assertion'}:
+        return extraction_store.candidates(service, changeset_id, kind, review_status)
     with service.repository.connect() as db:
         changes = ([service.repository.get(db, 'changesets', changeset_id)] if changeset_id else
                    [json.loads(r['payload']) for r in db.execute('SELECT payload FROM changesets ORDER BY rowid DESC')])
+        if changeset_id and changes[0].get('kind') == 'extraction':
+            return extraction_store.candidates(service, changeset_id, kind, review_status)
+        changes = [c for c in changes if c.get('kind', 'ontology') == 'ontology']
         for change in changes:
             change['decisions'] = [json.loads(r['payload']) for r in db.execute(
                 "SELECT payload FROM decisions WHERE json_extract(payload, '$.changeset_id')=? ORDER BY rowid", (change['id'],))]
@@ -192,6 +198,13 @@ def candidates(service, changeset_id=None, kind=None, review_status=None):
 
 def decide(service, changeset_id, request):
     request = DecisionRequest.model_validate(request)
+    with service.repository.connect() as db:
+        kind = service.repository.get(db, 'changesets', changeset_id).get('kind', 'ontology')
+    if kind == 'extraction':
+        from .extraction_store import decide as decide_extraction
+        return decide_extraction(service, changeset_id, request)
+    if any(d.action == 'unlink' for d in request.decisions):
+        raise ValueError('온톨로지 후보에는 연결 취소를 사용할 수 없습니다.')
     with service.lock, service.repository.connect() as db:
         change = service.repository.get(db, 'changesets', changeset_id)
         if request.expected_changeset_revision != change['revision']:

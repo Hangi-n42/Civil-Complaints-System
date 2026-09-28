@@ -58,7 +58,7 @@ class Candidate(BaseModel):
 class CandidateDecision(BaseModel):
     model_config = {'extra': 'forbid'}
     candidate_id: str
-    action: Literal['accept', 'modify', 'defer', 'reject']
+    action: Literal['accept', 'modify', 'defer', 'reject', 'unlink']
     patch: dict[str, Any] | None = None
     reason: str = ''
 
@@ -76,3 +76,6 @@ class RunRequest(BaseModel):
     unit_ids: list[str] | None = None
     cqs: list[CompetencyQuestion] = Field(default_factory=list)
     base_ontology_version_id: str | None = None
+    ontology_version_id: str | None = None
+    registry_source_version_id: str | None = None
+    block_ids: list[str] = Field(default_factory=list)
