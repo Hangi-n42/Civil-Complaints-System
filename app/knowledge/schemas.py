@@ -79,3 +79,16 @@ class RunRequest(BaseModel):
     ontology_version_id: str | None = None
     registry_source_version_id: str | None = None
     block_ids: list[str] = Field(default_factory=list)
+
+
+class ManualAssertionRequest(BaseModel):
+    expected_changeset_revision: int = Field(ge=0)
+    actor: str = Field(min_length=1)
+    reason: str = ''
+    subject_link_id: str
+    object_link_id: str | None = None
+    predicate_id: str
+    block_id: str
+    quote: str = ''
+    raw_value: str = ''
+    scope: str = '미확인'

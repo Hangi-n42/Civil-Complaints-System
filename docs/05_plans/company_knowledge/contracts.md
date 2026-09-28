@@ -1,6 +1,6 @@
 # 회사 지식 P0 최소 데이터·API 계약
 
-- 버전: v1.3 · 2026-09-27
+- 버전: v1.4 · 2026-09-28
 - 상태: K2 자료 계층과 K3 온톨로지 초안·검토 API 구현. K4 개체·사실 후보 저장·추출·검토도 구현되었으며 K5 이후는 계획이다. [K2 실행 결과](../../30_manuals/knowledge_k2_runbook.md), [K3 안내](../../30_manuals/knowledge_k3_runbook.md).
 - 기준: [PRD](../../00_overview/company_knowledge_prd.md), [구현 계획](implementation.md), [아키텍처](architecture.md).
 - 적용: Python 3.11.9, 기존 FastAPI/Pydantic 응답·오류 봉투, SQLite 한 원장, 단일 작업 실행. 기존 민원 API에는 변경 없음.
@@ -43,7 +43,7 @@ K2는 원문을 재작성하지 않고 추출 block.text를 보존한다. 정규
 - 처리 상태: registered / parsed / extracted / failed. 부분 실패 세부는 Run.units로 표시하여 성공으로 위장하지 않는다.
 - Run: queued → running → succeeded / partial / failed; 취소는 cancel_requested → cancelled. 진행 중 단위는 마치고 다음 단위를 시작하지 않는다. 재시작으로 남은 running은 중단 실패로 표시하고 사용자가 실패 단위만 재실행한다. 작업 큐 서버·자동 무한 재시도 없음.
 - 후보: proposed → accepted / deferred / rejected. 수정은 수정내용+accepted 결정, 기존 제안은 보존. accepted가 곧 활성은 아니다.
-- 활성화 시 한 트랜잭션에서 스키마/개체/근거 의존성과 accepted 상태, 변경 묶음 revision, expected_active_id를 확인한다. 잘못된 항목은 미리 후보별 validation_errors로 보여준다. 선택한 묶음에 오류가 남으면 부분 commit하지 않고 422로 반환하여 사용자가 유효 후보만 선택할 수 있게 한다.
+- K5 스냅샷 생성 시 한 트랜잭션에서 스키마/개체/근거 의존성과 accepted 상태, 선택한 변경 묶음 revision, expected_active_id를 확인한다. 활성화는 저장한 스냅샷의 참조와 expected_active_id를 확인한다. 이후 바뀐 현재 후보 revision 때문에 과거 스냅샷 복원을 막지 않으며 최신 사용 제한은 유지한다. 잘못된 항목은 후보별 validation_errors로 보여준다. 선택 항목에 오류가 남으면 부분 commit하지 않고 422로 반환하여 유효 후보를 다시 선택하게 한다.
 - 검토자·운영자·활성화자는 P0에서 같은 한 명이다. 한 화면에서 묶음 수락 후 활성화할 수 있고 별도 사람·승인 티켓·재로그인을 요구하지 않는다. 후보별 수동 승인 클릭 반복도 요구하지 않는다.
 - 스냅샷은 새로 만들고 활성 pointer만 바꾼다. rollback도 같은 activate 동작이다. 최신 AvailabilityHistory는 롤백하지 않는다.
 - 조회 시작 시 스냅샷과 현재 status_revision을 고정하고, 응답 전에 한 번 revision을 읽는다. 달라졌을 때만 사용한 ID의 상태를 다시 확인한다. 사용 중단된 근거가 있으면 answer=null, status=stale로 반환한다. 별도 감시 서버·질문별 다중 AI 평가 없음.
@@ -66,10 +66,12 @@ K2는 원문을 재작성하지 않고 추출 block.text를 보존한다. 정규
 | K2 | GET /evidence/{id} | → Evidence+block.text+locator+source/version metadata. 근거 화면 원문 위치 조회 |
 | K3~4 | GET /candidates | changeset_id?, kind?, review_status? → items, changeset_revision, unresolved_count |
 | K3~5 | POST /changes/{id}/decisions | expected_changeset_revision, actor, decisions[{candidate_id,action(accept/modify/defer/reject),patch?,reason?}] → decisions, changeset_revision, validation_errors. change 후보의 별도 resolution(no_change/modify/withdraw/defer)도 payload로 기록 |
-| K5 | POST /snapshots | changeset_id, expected_changeset_revision, expected_active_id(null 허용), actor, reason → snapshot_id, parent_id. 생성은 비활성; create가 activate를 몰래 수행하지 않음 |
+| K5 | POST /snapshots | selections[{changeset_id,expected_changeset_revision,candidate_ids}], expected_active_id(null 허용), actor, reason → snapshot_id, parent_id, counts. 명시적 전체 선택 집합으로 비활성 생성; parent에 자동 누적하거나 활성화하지 않음 |
 | K5 | POST /snapshots/{id}/activate | expected_active_id, actor, reason → active_snapshot_id,status_revision,status_checked_at. 롤백도 동일 API |
 | K5 | POST /availability | targets[{type,id}], state, expected_status_revision, actor, reason → status_revision. 근거 사용중단·재검토/재허용은 이 공통 동작 사용 |
 | K5 | GET /snapshots | → active_snapshot_id,items[{id,parent_id,created_at,reason}]; 조회·롤백 대상 선택 |
+| K5 | GET /snapshots/{id} | entity_id?, as_of? → 동결된 선택·온톨로지·자료 범위, 최신 상태를 적용한 개체/주장/직접 관계·coverage/excluded/status_revision |
+| K5 | GET /availability | type/id → 해당 대상의 최신 상태·이력, 전역 status_revision |
 | K5 | GET /export | snapshot_id?, format(json/csv) → 구조화 원장 자료. 최신 사용중단 원문/파생 답변 제외; 원문 전체는 포함하지 않음 |
 | K6~7 | POST /search | 아래 계약 → 답변·인용·경로·범위·상태·metrics |
 
@@ -126,3 +128,11 @@ K2 실행은 단일 프로세스·직렬 작업이다. Evidence는 전체 블록
 
 
 K4 실제 오류 보완: link 수정 허용 필드에 `mention`, `evidence_ids`를 추가했다. 원문에 없는 별칭은 수락할 수 없으며 K2 전체 블록 근거도 고정 입력 범위 내에서 수정에 사용할 수 있다. `GET /runs/{id}`는 단위 상태 `counts`와 후보 상태 `candidate_counts`, `processed_block_ids`, `invalid_record_count`를 분리한다. 구조 불량 레코드는 단위의 `invalid_records`에 보존하며 기술 성공과 품질 완료를 구분한다. 단위별 후보 counts는 그 시점의 묶음 누적값이므로 합산하지 않는다.
+
+K4 품질 보완: `POST /changes/{id}/assertions`에 expected_changeset_revision, actor, reason, subject_link_id, predicate_id, block_id, quote, raw_value, scope, object_link_id?를 전달하여 고정 원문에서 수동 후보를 추가한다. 자동 Run 출력/호출 수는 보존하고 `origin=manual`과 생성 결정 이력을 남긴다. 기존 결정 API로 별도 수락한다. [결과](../../30_manuals/knowledge_k4_quality_result.md).
+
+## K5 구현 예정 계약 보충 (2026-09-28)
+
+[K5 계획](k5_implementation_plan.md)이 아직 없는 K5 API의 구체화 기준이다. 두 수락 묶음을 포함할 수 있도록 단일 changeset 입력을 selections로 대체했다. 선택한 주장에 필요한 수락 링크도 명시적으로 포함해야 한다. 스냅샷은 후보/revision·정본·개체·근거를 복사하며 현재 후보 재조회로 과거 내용을 재구성하지 않는다.
+
+사용 불가 상태가 나중에 생긴 스냅샷으로도 롤백할 수 있으나 해당 주장은 최신 상태 필터로 계속 제외한다. 알려진 수락 사실 수정/기각과 직접 링크 변경은 같은 결정 트랜잭션에서 해당 assertion에 needs_review를 기록하고 blocked를 완화하지 않는다. 상태 제한은 주장·필드·주체/대상 링크의 직접 근거와 자료 버전까지 확인한다. 생성/활성화/기본 조회에는 LLM 호출이 없다. 기준일 근거가 없는 사건 날짜는 유효기간으로 추정하지 않는다. 내보내기는 구조화 값·ID·위치·상태만 제공하고 전체 원문/블록 텍스트는 제외한다.

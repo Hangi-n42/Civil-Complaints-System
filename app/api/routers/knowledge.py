@@ -10,7 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.core.config import settings
-from app.knowledge.schemas import DecisionRequest, RunRequest, SourceRegistration
+from app.knowledge.schemas import DecisionRequest, ManualAssertionRequest, RunRequest, SourceRegistration
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
 from app.knowledge import extraction_store
@@ -146,3 +146,8 @@ def entities(concept_id: str | None = None, namespace: str | None = None, offici
 @router.get('/entities/{entity_id}', response_model=KnowledgeResponse)
 def entity(entity_id: str, service=Depends(get_knowledge_service)):
     return result(extraction_store.get_entity(service, entity_id))
+
+
+@router.post('/changes/{changeset_id}/assertions', response_model=KnowledgeResponse)
+def add_assertion(changeset_id: str, request: ManualAssertionRequest, service=Depends(get_knowledge_service)):
+    return result(extraction_store.add_manual(service, changeset_id, request))

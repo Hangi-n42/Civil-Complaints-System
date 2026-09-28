@@ -7,7 +7,8 @@ import re
 from uuid import uuid4
 
 from .ontology_schema import VersionConflict, _from_schema, _now
-from .schemas import DecisionRequest
+from .schemas import DecisionRequest, ManualAssertionRequest
+from . import extraction_contract as contract
 
 LINK_FIELDS = {'target_entity_id', 'scope', 'mention', 'evidence_ids'}
 ASSERTION_FIELDS = {'value', 'raw_value', 'unit', 'scope', 'conditions', 'exceptions', 'dates',
@@ -168,6 +169,52 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
             # Literal presence only: this does not prove the slot, unit or scope is correct.
             if not str(raw).strip() or not any(str(raw) in quote for quote in quotes):
                 errors.append('raw_value_not_in_value_evidence')
+            if predicate.get('range')=='integer':
+                token = re.escape(str(raw).strip())
+                if not any(re.search(r'(?<![\d,])'+token+r'(?![\d,])',quote) for quote in quotes):
+                    errors.append('raw_numeric_token_not_in_evidence')
+                units = {m.group(1) for quote in quotes for m in re.finditer(r'(?<![\d,])'+token+r'\s*(세대|호|개동|동)',quote)}
+                if len(units)==1 and assertion.get('unit') not in units:
+                    errors.append('evidence_unit_mismatch')
+                if assertion.get('predicate_id')=='ATTRIBUTE_003' and units & {'개동','동'}:
+                    errors.append('quantity_role_mismatch')
+
+    if predicate.get('kind') == 'attribute' and not predicate.get('multivalued'):
+        if predicate.get('range') in {'integer','float','double','decimal','date'} or predicate.get('id') in contract.MONTHS:
+            try:
+                normalized, raw_unit = contract.normalize(assertion.get('raw_value'), predicate)
+                if normalized != assertion.get('value'):
+                    errors.append('literal_normalization_mismatch')
+                if raw_unit and raw_unit != assertion.get('unit'):
+                    errors.append('literal_unit_mismatch')
+                if assertion.get('predicate_id')=='ATTRIBUTE_003' and (raw_unit or assertion.get('unit')) in {'개동','동'}:
+                    errors.append('quantity_role_mismatch')
+            except (ValueError,TypeError):
+                errors.append('literal_raw_invalid')
+    # Only PDF data cells must share a row; header and identity context are separate evidence roles.
+    frozen = {b['id']:b for b in run.get('frozen_blocks',[])}
+    def pdf_rows(ids):
+        rows = set()
+        for identifier in ids:
+            ev = _optional(repo,db,'evidence',identifier) or {}
+            b = frozen.get(ev.get('block_id'),{})
+            loc = b.get('locator',{})
+            if loc.get('format')=='pdf' and loc.get('table') is not None and loc.get('row',0)>0:
+                rows.add((*contract.table_key(b),loc['row']))
+        return rows
+    value_rows = pdf_rows(field_evidence.get('value',[]) if isinstance(field_evidence,dict) else [])
+    if value_rows:
+        for identifier in field_evidence.get('value',[]):
+            ev = _optional(repo,db,'evidence',identifier) or {}
+            b = frozen.get(ev.get('block_id'))
+            if b and b.get('locator',{}).get('format')=='pdf' and b['locator'].get('row',0)>0:
+                expected_slot = contract.pdf_slot(run,b)
+                if expected_slot and expected_slot != assertion.get('predicate_id'):
+                    errors.append('table_column_slot_mismatch')
+        subject = _optional(repo,db,'entity_links',assertion.get('subject_link_id')) or {}
+        subject_rows = pdf_rows(subject.get('evidence_ids',[]))
+        if len(value_rows)!=1 or len(subject_rows)!=1 or value_rows != subject_rows:
+            errors.append('table_subject_value_row_mismatch')
     if not isinstance(assertion.get('scope'), dict):
         errors.append('invalid_scope')
     for key in ('conditions', 'exceptions'):
@@ -344,6 +391,12 @@ def decide(service, changeset_id, request):
                     if not isinstance(new_scope, dict) or new_scope.get('source_version_id') != old_source:
                         raise ValueError('원문 source_version_id는 수정할 수 없습니다.')
                 value.update(decision.patch)
+                if not is_link and 'value' in decision.patch and 'dates' not in decision.patch:
+                    definition = schema.get(value.get('predicate_id'),{})
+                    if definition.get('range')=='date' or value.get('predicate_id') in contract.MONTHS:
+                        value['dates']=[dict(role=definition.get('name'), value=value['value'],
+                            precision='month' if value['predicate_id'] in contract.MONTHS else 'day')]
+
                 if is_link and 'target_entity_id' in decision.patch:
                     value['method'] = 'manual' if value.get('target_entity_id') else 'unresolved'
             if decision.action == 'unlink':
@@ -402,3 +455,47 @@ def _decision(db, changeset_id, actor, action, reason, before, after, revision):
     record = dict(id=uuid4().hex, changeset_id=changeset_id, revision=revision, actor=actor, action=action,
                   candidate_id=after['id'], reason=reason, created_at=_now(), before=before, after=deepcopy(after))
     db.execute('INSERT INTO decisions VALUES(?,?)', (record['id'], _encode(record)))
+
+
+def add_manual(service, changeset_id, request):
+    """Append a proposed fact without changing automatic run output or retry units."""
+    from .extraction import align
+    request = ManualAssertionRequest.model_validate(request)
+    repo = service.repository
+    with service.lock, repo.connect() as db:
+        change = repo.get(db,'changesets',changeset_id)
+        if change.get('kind')!='extraction':
+            raise ValueError('추출 묶음에만 사실을 추가할 수 있습니다.')
+        if change['revision']!=request.expected_changeset_revision:
+            raise VersionConflict('후보가 변경되었습니다. 최신 내용을 다시 조회해 주세요.')
+        run = repo.get(db,'runs',change['run_id'])
+        schema = _schema(repo,db,run)
+        definition = schema.get(request.predicate_id,{})
+        if definition.get('kind') not in {'attribute','relation'} or (definition.get('kind')=='attribute' and definition.get('multivalued')):
+            raise ValueError('지원하는 단일값 속성 또는 관계를 선택하세요.')
+        block = next((b for b in run['frozen_blocks'] if b['id']==request.block_id),None)
+        if not block:
+            raise ValueError('고정 입력에 없는 원문입니다.')
+        ev = align(block,request.quote or block['text'])
+        if ev['alignment_status']!='matched':
+            raise ValueError('원문에서 유일한 셀/구간을 선택하세요.')
+        for link_id in filter(None,[request.subject_link_id,request.object_link_id]):
+            link = repo.get(db,'entity_links',link_id)
+            if link['run_id']!=run['id']:
+                raise ValueError('같은 실행의 개체 연결을 선택하세요.')
+        value, unit = (None,None) if definition['kind']=='relation' else contract.normalize(request.raw_value,definition)
+        identifier = uuid4().hex
+        dates = [dict(role=definition.get('name'),value=value,precision='month' if request.predicate_id in contract.MONTHS else 'day')] if definition.get('range')=='date' or request.predicate_id in contract.MONTHS else []
+        candidate = dict(id=identifier,kind='assertion',run_id=run['id'],unit_id='manual',local_candidate_key='manual:'+identifier,
+            changeset_id=change['id'],ontology_version_id=run['ontology_version_id'],origin='manual',revision=0,review_status='proposed',
+            subject_link_id=request.subject_link_id,object_link_id=request.object_link_id,predicate_id=request.predicate_id,
+            value=value,raw_value=request.raw_value,unit=unit,scope={'source_version_id':block['source_version_id'],'description':request.scope},
+            evidence_ids=[ev['id']],field_evidence={'object' if definition['kind']=='relation' else 'value':[ev['id']], 'scope':[ev['id']]},
+            conditions=[],exceptions=[],dates=dates,link_dependencies=[])
+        db.execute('INSERT OR IGNORE INTO evidence VALUES(?,?)',(ev['id'],_encode(ev)))
+        candidate['validation_errors']=_assertion_errors(repo,db,candidate,run,schema)
+        db.execute('INSERT INTO assertions VALUES(?,?,?,?,?)',(identifier,run['id'],'manual',candidate['local_candidate_key'],_encode(candidate)))
+        change['candidate_ids'].append(identifier);change['revision']+=1
+        repo.save(db,'changesets',change)
+        _decision(db,change['id'],request.actor,'create_manual',request.reason,None,candidate,change['revision'])
+        return _publish_result(repo,db,change)
