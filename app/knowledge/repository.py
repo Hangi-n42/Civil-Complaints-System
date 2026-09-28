@@ -33,6 +33,16 @@ class KnowledgeRepository:
                     local_candidate_key TEXT NOT NULL, payload TEXT NOT NULL,
                     UNIQUE(run_id, unit_id, local_candidate_key));
                 CREATE TABLE IF NOT EXISTS evidence (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS snapshots (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS knowledge_state (
+                    id INTEGER PRIMARY KEY CHECK(id=1), active_snapshot_id TEXT REFERENCES snapshots(id),
+                    status_revision INTEGER NOT NULL DEFAULT 0);
+                INSERT OR IGNORE INTO knowledge_state(id) VALUES(1);
+                CREATE TABLE IF NOT EXISTS availability_history (
+                    id TEXT PRIMARY KEY, status_revision INTEGER NOT NULL,
+                    target_type TEXT NOT NULL, target_id TEXT NOT NULL, payload TEXT NOT NULL,
+                    UNIQUE(status_revision,target_type,target_id));
+                CREATE TABLE IF NOT EXISTS snapshot_events (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS blocks (
                     id TEXT PRIMARY KEY, version_id TEXT NOT NULL REFERENCES versions(id),
                     run_id TEXT NOT NULL REFERENCES runs(id), unit_id TEXT NOT NULL,
@@ -54,7 +64,7 @@ class KnowledgeRepository:
     @staticmethod
     def get(db, table, object_id):
         if table not in {'sources', 'versions', 'runs', 'blocks', 'ontology_versions', 'changesets', 'decisions',
-                         'entities', 'entity_links', 'assertions', 'evidence'}:
+                         'entities', 'entity_links', 'assertions', 'evidence', 'snapshots'}:
             raise ValueError('Unknown ledger table')
         row = db.execute(f'SELECT payload FROM {table} WHERE id=?', (object_id,)).fetchone()
         if row is None:

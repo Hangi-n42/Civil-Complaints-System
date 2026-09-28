@@ -92,3 +92,36 @@ class ManualAssertionRequest(BaseModel):
     quote: str = ''
     raw_value: str = ''
     scope: str = '미확인'
+
+
+class SnapshotSelection(BaseModel):
+    model_config = {'extra': 'forbid'}
+    changeset_id: str
+    expected_changeset_revision: int = Field(ge=0)
+    candidate_ids: list[str] = Field(min_length=1)
+
+
+class RecordedAction(BaseModel):
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    actor: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
+class ActivateSnapshotRequest(RecordedAction):
+    expected_active_id: str | None
+
+
+class SnapshotRequest(ActivateSnapshotRequest):
+    selections: list[SnapshotSelection] = Field(min_length=1)
+
+
+class AvailabilityTarget(BaseModel):
+    model_config = {'extra': 'forbid'}
+    type: Literal['assertion', 'evidence', 'source_version']
+    id: str = Field(min_length=1)
+
+
+class AvailabilityRequest(RecordedAction):
+    targets: list[AvailabilityTarget] = Field(min_length=1)
+    state: Literal['allowed', 'needs_review', 'blocked']
+    expected_status_revision: int = Field(ge=0)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import KnowledgeOntology from "@/components/KnowledgeOntology";
 import KnowledgeExtraction from "@/components/KnowledgeExtraction";
+import KnowledgeSnapshots from "@/components/KnowledgeSnapshots";
 import { API_BASE_URL } from "@/lib/api";
 
 type Version = { id: string; format: string; processing_status?: string; sha256: string; latest_parse_run_id?: string; verified_at?: string; acquired_at?: string; dates?: {role: string; value: string}[] };
@@ -11,7 +12,7 @@ type Source = { id: string; title: string; publisher: string; source_url?: strin
 type SourceItem = { source: Source; versions: Version[] };
 type Block = { id: string; text: string; locator: Record<string, unknown>; evidence_id: string };
 type Run = { id: string; status: string; units: { id: string; source_version_id: string; status: string; error?: string }[]; metrics?: { elapsed_s?: number }; };
-type Evidence = { evidence: { quote: string; start_char: number; end_char: number }; block: Block; version: Version; source: Source };
+type Evidence = { usage_restrictions?: { state: string }[]; evidence: { quote: string; start_char: number; end_char: number }; block: Block; version: Version; source: Source };
 const endpoint = (path: string) => `${API_BASE_URL}/api/v1/knowledge${path}`;
 const labels: Record<string, string> = { registered: "등록됨", parsed: "추출 완료", failed: "실패", partial: "일부 완료", queued: "대기", running: "처리 중", succeeded: "완료", cancel_requested: "취소 요청됨", cancelled: "취소됨", unknown: "미확인", local_only: "로컬 사용", allowed: "사용 허용", restricted: "제한됨" };
 const inputClass = "w-full rounded border border-slate-300 px-3 py-2 text-sm";
@@ -28,7 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function KnowledgePage() {
-  const [tab, setTab] = useState<"sources" | "ontology" | "extraction">("sources");
+  const [tab, setTab] = useState<"sources" | "ontology" | "extraction" | "snapshots">("sources");
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [selected, setSelected] = useState<{ source: Source; version: Version } | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -129,8 +130,9 @@ export default function KnowledgePage() {
   return <div className="flex min-h-screen bg-slate-50 text-slate-900">
     <AppSidebar activeMenu="knowledge" />
     <main className="min-w-0 flex-1 space-y-5 p-6">
-      <header><h1 className="text-2xl font-bold">회사 지식 워크벤치</h1><p className="mt-1 text-sm text-slate-600">원문을 보존하고 문단·표의 위치를 확인합니다. 추출 결과는 아직 검토·활성화된 지식이 아닙니다.</p></header>
-      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button></nav>
+      <header><h1 className="text-2xl font-bold">회사 지식 워크벤치</h1><p className="mt-1 text-sm text-slate-600">원문과 추출 후보를 검토하고, 선택한 지식 버전을 활성화하여 조회합니다.</p></header>
+      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button><button aria-pressed={tab === "snapshots"} className={tab === "snapshots" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("snapshots")}>지식 버전</button></nav>
+      <div hidden={tab !== "snapshots"}><KnowledgeSnapshots request={request} visible={tab === "snapshots"} /></div>
       <div hidden={tab !== "extraction"}><KnowledgeExtraction request={request} sources={sources} /></div>
       <div hidden={tab !== "ontology"}><KnowledgeOntology request={request} sources={sources} /></div>
       <div hidden={tab !== "sources"} className="space-y-5">
@@ -162,7 +164,7 @@ export default function KnowledgePage() {
           {run && <div className="my-3 rounded bg-slate-100 p-3 text-sm" role="status"><p>작업: {labels[run.status] || run.status}</p><p>작업 전체 단위 {run.units.filter(u => u.status === "succeeded").length}/{run.units.length} 완료</p>{run.units.filter(u => u.error).map(u => <p key={u.id} className="text-red-700">{u.id}: {u.error}</p>)}{running && <button className="mt-2 underline" onClick={async () => { try { await request(`/runs/${run.id}/cancel`, { method: "POST" }); setRun(await request<Run>(`/runs/${run.id}`)); } catch (e) { setError((e as Error).message); } }}>다음 단위부터 취소</button>}{["failed", "partial", "cancelled"].includes(run.status) && run.units.some(u => u.source_version_id === selected.version.id && ["failed", "cancelled"].includes(u.status)) && <button disabled={busy} className="mt-2 underline" onClick={() => startParse(true)}>실패·미완료 단위만 재실행</button>}</div>}
           <p className="my-3 text-sm text-slate-500">추출 구간 {blocks.length}개 · 위치 일치는 내용의 정확성 검토를 뜻하지 않습니다.</p>
           <div className="max-h-72 space-y-2 overflow-auto">{blocks.map(b => <button key={b.id} className="block w-full rounded border p-2 text-left text-sm hover:bg-slate-50" onClick={async () => { try { setEvidence(await request<Evidence>(`/evidence/${b.evidence_id}`)); } catch (e) { setError((e as Error).message); } }}>{b.text.slice(0, 160)}</button>)}</div>
-          {evidence && <div className="mt-4 border-t pt-3"><h3 className="font-semibold">선택 구간 · 원문 발췌</h3><pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-sm">{evidence.evidence.quote}</pre><details className="mt-2 text-xs"><summary>페이지·표·문단 위치</summary><pre className="overflow-auto whitespace-pre-wrap">{JSON.stringify(evidence.block.locator, null, 2)}</pre></details></div>}
+          {evidence && <div className="mt-4 border-t pt-3"><h3 className="font-semibold">선택 구간 · 원문 발췌</h3>{!!evidence.usage_restrictions?.length && <p className="text-sm text-amber-800">사용 제한된 근거입니다. 지식 버전 탭에서 상태·사유를 확인하세요.</p>}<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-3 text-sm">{evidence.evidence.quote}</pre><details className="mt-2 text-xs"><summary>페이지·표·문단 위치</summary><pre className="overflow-auto whitespace-pre-wrap">{JSON.stringify(evidence.block.locator, null, 2)}</pre></details></div>}
         </>}</section>
       </div>
       </div>
