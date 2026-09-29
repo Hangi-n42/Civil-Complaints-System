@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
+
+import httpx
 
 import app.retrieval.grounding_filter as gf
 from app.retrieval.grounding_filter import (
@@ -29,6 +32,21 @@ def _run(coro):
 
 
 # ── 공유 코어 ───────────────────────────────────────────────────────────────
+def test_direct_filter_calls_use_non_thinking_json(monkeypatch):
+    payloads = []
+    def respond(request):
+        payload = json.loads(request.content)
+        payloads.append(payload)
+        value = {'scores': [2, 0]} if isinstance(payload['format'], dict) else {'score': 2}
+        return httpx.Response(200, json={'response': json.dumps(value)})
+    original = httpx.AsyncClient
+    monkeypatch.setattr(httpx, 'AsyncClient', lambda **kw: original(
+        transport=httpx.MockTransport(respond), **kw))
+    assert _run(gf.score_relevance('질문', '근거', model='selected-model')) == 2
+    assert _run(gf.score_relevance_batch('질문', ['관련', '무관'], model='selected-model')) == [2, 0]
+    assert all(p['think'] is False and p['model'] == 'selected-model' for p in payloads)
+
+
 def test_extract_score():
     assert extract_score('{"score": 2}') == 2
     assert extract_score("score: 0") == 0

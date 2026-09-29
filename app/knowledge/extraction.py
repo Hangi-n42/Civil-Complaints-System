@@ -19,6 +19,9 @@ facts의 각 항목은 predicate_id와 raw_value(정규화하지 않은 실제 �
 scope와 scope_evidence, conditions와 conditions_evidence, exceptions와 exceptions_evidence를 가진다.
 관계만 raw_value 대신 object(mention, concept_id, official_id, evidence)를 쓴다. 근거 없는 관계를 만들지 않는다.
 숫자는 원문 단위까지 그대로 raw_value에 복사한다. 날짜도 원문 표기를 복사한다. 정규화는 서버가 한다.
+raw_value는 evidence의 quote 안에 실제로 연속해서 존재하는 문자열이어야 한다. 여러 유형을 쉼표로 합친 값을 만들지 말고 각 원문 유형을 별도 사실로 추출한다.
+유형 같은 범주형 속성의 raw_value에는 수량이나 설명 문장을 붙이지 않는다. 값이 짧아도 quote는 주변 문장을 포함해 해당 블록에서 위치를 하나로 특정할 수 있게 쓴다.
+scope를 적었다면 그 범위를 뒷받침하는 원문을 scope_evidence에도 반드시 넣는다. evidence에 이미 있어도 scope_evidence를 생략하지 않는다.
 같은 속성이어도 총 수량과 유형별 수량은 범위가 다른 별도 사실로 모두 남긴다. 동수와 세대수를 혼동하지 않는다.
 범위가 명시되면 짧게 쓰고 문장을 scope_evidence로 인용한다. 모르면 scope=미확인. 없는 값은 null 사실 대신 생략한다.
 단지명, 공식코드, 주소는 다시 추출하지 않는다. 설명의 기존 문장 밖에서 값을 보충하지 않는다.
@@ -37,7 +40,7 @@ def recipe():
     return dict(version='k6-local-entities-v1', model=settings.STRUCTURING_MODEL, mapping=contract.PROFILE,
                 prompt_hash=sha256(PROMPT.encode()).hexdigest(),
                 contract_hash=sha256(Path(contract.__file__).read_bytes()).hexdigest(), alignment='langextract-1.7.0',
-                num_predict=4096, num_ctx=32768)
+                num_predict=4096, num_ctx=32768, think=False)
 
 
 def fields(block):
@@ -221,7 +224,7 @@ def prompt_for(run, unit):
 
 async def model_call(prompt,schema,run):
     return await GenerationService().call_ollama(prompt,temperature=0,response_schema=schema,model=run['recipe']['model'],
-                                                num_predict=run['recipe']['num_predict'],num_ctx=run['recipe']['num_ctx'],think=None,return_metadata=True)
+                                                num_predict=run['recipe']['num_predict'],num_ctx=run['recipe']['num_ctx'],think=run['recipe'].get('think'),return_metadata=True)
 
 
 def materialize(run,unit,records):

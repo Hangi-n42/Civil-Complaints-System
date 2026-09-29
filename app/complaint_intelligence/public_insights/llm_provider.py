@@ -170,6 +170,7 @@ class LocalLLMProvider:
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": self.stream,
+                "think": False,
                 "format": response_format,
             }
             return self._with_runtime_options(payload)
@@ -177,6 +178,7 @@ class LocalLLMProvider:
             "model": self.model,
             "prompt": prompt,
             "stream": self.stream,
+            "think": False,
             "format": response_format,
         }
         return self._with_runtime_options(payload)

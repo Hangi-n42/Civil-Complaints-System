@@ -901,6 +901,7 @@ class DepartmentAssigner:
                 {"role": "user", "content": user},
             ],
             "stream": False,
+            "think": False,
             "format": "json",
             "options": {"temperature": 0.0, "num_predict": 512},
         }

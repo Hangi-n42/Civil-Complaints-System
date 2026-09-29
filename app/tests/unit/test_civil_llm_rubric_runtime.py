@@ -87,6 +87,8 @@ async def test_runtime_rubric_uses_groups_with_independent_q6_and_q2_reference_o
     assert "source=DOC-1" in prompts[1]
     assert "Inline [C1] markers are NOT required" in prompts[1]
     assert "Q4 MUST be 1 or 2" in prompts[1]
+    assert prompts[1].endswith("Q4의 reason과 support는 같은 문제 문장의 근거 관계를 일관되게 설명해야 한다.")
+    assert "본문에 [C1] 표기가 없다는 이유로 감점하지 않는다" in prompts[1]
     assert "unconfirmed" in prompts[0]
     assert "Ordinary instructions" in prompts[3]
 
@@ -321,3 +323,17 @@ async def test_q4_structured_negative_assessment_caps_inconsistent_score():
     assert detail['model_choice'] == 4 and detail['consistency_cap_applied'] is True
     assert detail['checks'][0]['excerpt'] == '일정은 미정입니다.'
     assert result['llm_rubric_raw']['q5']['argmax'] == 4
+
+
+def test_revision_preserves_information_boundaries_in_all_output_fields():
+    from app.evaluation.prometheus_feedback import PrometheusFeedbackEngine
+
+    prompt = PrometheusFeedbackEngine().build_revision_prompt(
+        complaint_text="수리 여부와 담당부서를 알려주세요.",
+        current_answer="확인 후 조치하겠습니다. 소관 부서가 상이합니다.",
+        references=[], citations=[], prometheus_feedback={},
+    )
+    final_rules = prompt.split("[최종 작성 규칙 — 피드백보다 원문 우선]")[1]
+    assert "answer와 action_items 모두" in final_rules
+    assert "소관 부서가 상이하다" in final_rules
+    assert "마지막에 한 번만" in final_rules

@@ -145,6 +145,12 @@ def _strip_standard_reply_shell(text: str) -> str:
     ]
     for pattern in patterns:
         rendered = re.sub(pattern, "", rendered, flags=re.DOTALL)
+    # The formatter supplies the closing; remove only this generic trailing duplicate.
+    rendered = re.sub(
+        r"(?:답변 내용에 대해 추가 설명이 필요하시거나 궁금한 점이 있으시면 "
+        r"담당 부서로 문의해 주시기 바랍니다\.\s*)?감사합니다[.!]?\s*$",
+        "", rendered,
+    )
     rendered = re.sub(r"(?m)^\s*[가-하]\.\s*", "", rendered)
     rendered = re.sub(r"\n{3,}", "\n\n", rendered)
     rendered = re.sub(r"[ \t]{2,}", " ", rendered)

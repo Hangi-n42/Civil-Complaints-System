@@ -9,7 +9,9 @@ from app.generation.service import GenerationService
 
 def test_call_ollama_string_and_metadata_with_non_thinking_payload(monkeypatch):
     payloads = []
+    timeouts = []
     def respond(request):
+        timeouts.append(request.extensions['timeout']['read'])
         payloads.append(json.loads(request.content))
         return httpx.Response(200, json={
             'response': ' {"ok":true} ', 'done': True, 'done_reason': 'stop',
@@ -21,7 +23,7 @@ def test_call_ollama_string_and_metadata_with_non_thinking_payload(monkeypatch):
     plain = asyncio.run(service.call_ollama('plain'))
     detailed = asyncio.run(service.call_ollama(
         'review', response_schema={'type': 'object'}, model='qwen3.5:4b',
-        num_predict=2048, num_ctx=16384, think=False, return_metadata=True))
+        num_predict=2048, num_ctx=16384, think=False, timeout=360, return_metadata=True))
     assert plain == '{"ok":true}'
     assert detailed == {'text': plain, 'done': True, 'done_reason': 'stop',
                         'prompt_eval_count': 21, 'eval_count': 8, 'total_duration': 1000}
@@ -33,3 +35,4 @@ def test_call_ollama_string_and_metadata_with_non_thinking_payload(monkeypatch):
     assert payloads[1]['options']['num_ctx'] == 16384
     assert asyncio.run(service.call_ollama('legacy explicit omission', think=None)) == plain
     assert 'think' not in payloads[2]
+    assert timeouts == [service.timeout, 360, service.timeout]

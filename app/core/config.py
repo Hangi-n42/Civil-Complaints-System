@@ -39,13 +39,14 @@ class Settings:
     KNOWLEDGE_ENABLED: bool = os.getenv("KNOWLEDGE_ENABLED", "false").lower() == "true"
     KNOWLEDGE_DB_PATH: str = str(PROJECT_ROOT / os.getenv("KNOWLEDGE_DB_PATH", "data/knowledge/knowledge.db"))
     KNOWLEDGE_SEARCH_MODEL: str = os.getenv("KNOWLEDGE_SEARCH_MODEL", "")  # 빈 값이면 OLLAMA_MODEL
+    KNOWLEDGE_DESIGN_TIMEOUT: float = float(os.getenv("KNOWLEDGE_DESIGN_TIMEOUT", "360"))
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "exaone3.5:7.8b")
-    OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 120))
-    GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 640))
-    GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 2048))
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gemma4:31b-it-q4_K_M")
+    OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", 180))
+    GENERATION_NUM_PREDICT: int = int(os.getenv("GENERATION_NUM_PREDICT", 1536))
+    GENERATION_NUM_CTX: int = int(os.getenv("GENERATION_NUM_CTX", 8192))
 
     # ChromaDB 설정
     CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "chroma_db"))
@@ -95,9 +96,8 @@ class Settings:
     PII_SANITIZATION_POLICY: str = os.getenv("PII_SANITIZATION_POLICY", "fail_closed").strip().lower()
 
     # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
-    # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b
-    STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3.5:7.8b")
-    CIVIL_STRUCTURING_MODEL: str = os.getenv("CIVIL_STRUCTURING_MODEL", "")  # 활성 제약 구조화 전용; 빈 값이면 STRUCTURING_MODEL
+    STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "gemma4:31b-it-q4_K_M")
+    CIVIL_STRUCTURING_MODEL: str = os.getenv("CIVIL_STRUCTURING_MODEL", "gemma4:31b-it-q4_K_M")  # 활성 제약 구조화 전용; 빈 값이면 STRUCTURING_MODEL
     STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
     STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
 
@@ -235,9 +235,9 @@ class Settings:
     )
     CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION: str = os.getenv(
         "CIVIL_LLM_RUBRIC_JUDGE_PROMPT_VERSION",
-        "judge_prompt_2026_09_17_q4_structured",
+        "judge_prompt_2026_09_29_citation_claims",
     )
-    CIVIL_LLM_RUBRIC_MODEL: str = os.getenv("CIVIL_LLM_RUBRIC_MODEL", "qwen3.5:4b")
+    CIVIL_LLM_RUBRIC_MODEL: str = os.getenv("CIVIL_LLM_RUBRIC_MODEL", "gemma4:31b-it-q4_K_M")
     CIVIL_LLM_RUBRIC_MAX_CONTEXTS: int = int(os.getenv("CIVIL_LLM_RUBRIC_MAX_CONTEXTS", "5"))
     CIVIL_LLM_RUBRIC_TEMPERATURE: float = float(os.getenv("CIVIL_LLM_RUBRIC_TEMPERATURE", "0.0"))
     ENABLE_PROMETHEUS_RUBRIC_FEEDBACK: bool = os.getenv(
@@ -254,7 +254,7 @@ class Settings:
         os.getenv("PROMETHEUS_RUBRIC_TEMPERATURE", "0.0")
     )
     # 빈 값이면 생성 모델 사용. 피드백·재작성을 별도로 유지할 때 지정한다.
-    PROMETHEUS_FEEDBACK_MODEL: str = os.getenv("PROMETHEUS_FEEDBACK_MODEL", "")
+    PROMETHEUS_FEEDBACK_MODEL: str = os.getenv("PROMETHEUS_FEEDBACK_MODEL", "qwen3.8:27b-q4_K_M")
     PROMETHEUS_REVISION_MODEL: str = os.getenv("PROMETHEUS_REVISION_MODEL", "")
 
 

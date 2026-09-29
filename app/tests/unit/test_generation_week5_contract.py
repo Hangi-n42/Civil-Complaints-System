@@ -222,7 +222,7 @@ def _assert_civil_llm_rubric_attached(data: dict) -> None:
 
     rubric = data["generation_metadata"]["civil_llm_rubric"]
     assert rubric["rubric_version"] == "civil_llm_rubric_q0_q7_v1.0"
-    assert rubric["judge_prompt_version"] == "judge_prompt_2026_09_17_q4_structured"
+    assert rubric["judge_prompt_version"] == "judge_prompt_2026_09_29_citation_claims"
     assert set(rubric["llm_rubric_raw"].keys()) == {
         "q0",
         "q1",
@@ -1260,3 +1260,15 @@ def test_qa_returns_response_schema_mismatch_when_unified_payload_is_incomplete(
     assert body["success"] is False
     assert body["error"]["code"] == "RESPONSE_SCHEMA_MISMATCH"
     assert "structured_output" in body["error"]["details"]["missing_fields"]
+
+
+def test_reply_formatter_removes_trailing_generic_closing_only():
+    from app.generation.validators.qa_response_validator import format_civil_reply_answer
+
+    substantive = "담당부서와 접수 방법은 제공 자료에서 확인되지 않습니다."
+    answer = substantive + " 답변 내용에 대해 추가 설명이 필요하시거나 궁금한 점이 있으시면 담당 부서로 문의해 주시기 바랍니다. 감사합니다."
+    result = format_civil_reply_answer(answer, [])
+    assert substantive in result
+    assert result.count("감사합니다.") == 1
+    assert "궁금한 점이 있으시면" not in result
+    assert format_civil_reply_answer(result, []) == result

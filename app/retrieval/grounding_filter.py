@@ -106,6 +106,7 @@ async def score_relevance(
     payload = {
         "model": model or settings.OLLAMA_MODEL,
         "prompt": build_prompt(query_text, doc_text, max_chars),
+        "think": False,
         "stream": False,
         "format": "json",
         "options": {"temperature": 0.0, "num_predict": 24, "num_ctx": 2048},
@@ -154,6 +155,7 @@ async def score_relevance_batch(
     payload = {
         "model": model or settings.OLLAMA_MODEL,
         "prompt": build_batch_prompt(query_text, docs, max_chars),
+        "think": False,
         "stream": False,
         "format": response_schema,
         "options": {

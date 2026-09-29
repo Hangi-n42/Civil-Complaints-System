@@ -19,6 +19,9 @@ def test_model_call_preserves_existing_recipe_thinking(monkeypatch):
     run = {'recipe': {'model': 'retained-model', 'num_predict': 4096, 'num_ctx': 32768}}
     asyncio.run(extraction.model_call('frozen input', {}, run))
     assert calls[0]['model'] == 'retained-model' and calls[0]['think'] is None
+    run['recipe'] = extraction.recipe()
+    asyncio.run(extraction.model_call('new input', {}, run))
+    assert calls[1]['think'] is False
 
 
 def definitions():

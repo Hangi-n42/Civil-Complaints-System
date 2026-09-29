@@ -34,6 +34,7 @@ def request(**kwargs):
 async def fake_model(self,prompt,**kwargs):
     payload=json.loads(prompt.split('INPUT:\n')[1]);group=payload['knowledge']['groups'][0]
     assert kwargs['num_predict']==1536 and kwargs['return_metadata']
+    assert kwargs['think'] is False
     return dict(done=True,done_reason='stop',text=json.dumps(dict(selected_group_ids=[group['group_id']])))
 
 
