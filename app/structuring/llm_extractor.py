@@ -68,6 +68,7 @@ class LLMSemanticExtractor:
                 {"role": "user", "content": f"민원 텍스트:\n{text[: self.max_text_len]}"},
             ],
             "stream": False,
+            "think": False,
             "format": "json",
             "options": {
                 "temperature": temperature,

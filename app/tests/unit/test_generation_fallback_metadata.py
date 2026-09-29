@@ -48,9 +48,9 @@ def _assert_metadata_contains(actual: dict, expected: dict) -> None:
         assert actual.get(key) == value
 
 
-def test_generation_ollama_budget_matches_week6_benchmark_defaults():
-    assert settings.GENERATION_NUM_PREDICT == 640
-    assert settings.GENERATION_NUM_CTX == 2048
+def test_generation_ollama_budget_matches_selected_model_profile():
+    assert settings.GENERATION_NUM_PREDICT == 1536
+    assert settings.GENERATION_NUM_CTX == 8192
 
 
 @pytest.mark.asyncio

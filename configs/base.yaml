@@ -6,8 +6,8 @@ LOG_LEVEL: INFO
 
 # Ollama 설정
 OLLAMA_BASE_URL: http://localhost:11434
-OLLAMA_MODEL: exaone3.5:7.8b
-OLLAMA_TIMEOUT: 120
+OLLAMA_MODEL: gemma4:31b-it-q4_K_M
+OLLAMA_TIMEOUT: 180
 
 # 벡터DB 설정
 CHROMA_DB_PATH: ./data/chroma_db

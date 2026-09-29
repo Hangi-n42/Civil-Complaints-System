@@ -788,6 +788,7 @@ def _call_llm(*, prompt: str, llm_call: LLMCall | None, num_predict: int | None 
         "model": settings.REQUEST_SEGMENT_LLM_MODEL,
         "prompt": prompt,
         "stream": False,
+        "think": False,
         "format": "json",
         "options": {"temperature": 0.0, "num_predict": num_predict or settings.REQUEST_SEGMENT_LLM_NUM_PREDICT, "num_ctx": 4096},
     }

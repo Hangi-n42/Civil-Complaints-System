@@ -42,8 +42,18 @@ npm --prefix frontend ci
 API_HOST=127.0.0.1
 API_PORT=8001
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=exaone3.5:7.8b
-CIVIL_LLM_RUBRIC_MODEL=qwen3.5:4b
+OLLAMA_MODEL=gemma4:31b-it-q4_K_M
+STRUCTURING_MODEL=gemma4:31b-it-q4_K_M
+CIVIL_STRUCTURING_MODEL=gemma4:31b-it-q4_K_M
+CIVIL_LLM_RUBRIC_MODEL=gemma4:31b-it-q4_K_M
+KNOWLEDGE_SEARCH_MODEL=gemma4:31b-it-q4_K_M
+GROUNDING_FILTER_MODEL=gemma4:31b-it-q4_K_M
+PROMETHEUS_FEEDBACK_MODEL=qwen3.8:27b-q4_K_M
+PROMETHEUS_REVISION_MODEL=gemma4:31b-it-q4_K_M
+OLLAMA_TIMEOUT=180
+KNOWLEDGE_DESIGN_TIMEOUT=360
+GENERATION_NUM_PREDICT=1536
+GENERATION_NUM_CTX=8192
 CHROMA_DB_PATH=./data/chroma_db
 DEFAULT_CHROMA_COLLECTION=civil_cases_v3
 EMBEDDING_MODEL=BAAI/bge-m3
@@ -75,11 +85,11 @@ Ollama 실행 프로그램을 설치·시작하고 다음 모델을 준비한다
 
 ```bash
 ollama list
-ollama pull exaone3.5:7.8b
-ollama pull qwen3.5:4b
+ollama pull gemma4:31b-it-q4_K_M
+ollama pull qwen3.8:27b-q4_K_M
 ```
 
-생성·재작성은 EXAONE, 운영 rubric 평가는 Qwen으로 분리되어 있다. 두 모델은 별도 자산이며 Python 패키지 설치에 포함되지 않는다. Ollama 앱이 이미 서버를 실행 중이면 `ollama serve`를 중복 실행하지 않는다.
+생성·구조화·평가·지식 작업은 Gemma, 피드백은 Qwen을 사용한다. 재작성의 최종 선택과 한계는 [두 모델 선정 보고서](llm_two_model_selection.md)를 확인한다. 두 모델은 별도 자산이며 Python 패키지 설치에 포함되지 않는다. Ollama 앱이 이미 서버를 실행 중이면 `ollama serve`를 중복 실행하지 않는다.
 
 ## 4. API와 프론트엔드 시작
 
@@ -141,3 +151,5 @@ PowerShell에서는 `Invoke-RestMethod http://127.0.0.1:8001/health`를 사용�
 관련 안내: [Chroma 인덱싱](local_chromadb_indexing.md), [replay 절차](complaint_intelligence_demo_replay.md), [현재 API 계약](../10_contracts/api/current_api_contract.md), [기술 스택](../00_overview/dev_stack.md).
 
 문서만 바꿀 때는 링크와 `git diff --check`를 확인한다. 코드 변경은 영향받는 경로에 한해 확인하며, 위 실행 명령을 문서 검증 명목으로 자동 실행하지 않는다.
+
+K3 반례 검토 모델은 `KNOWLEDGE_REVIEW_MODEL=qwen3.8:27b-q4_K_M`로 지정한다. 민원 평가의 `CIVIL_LLM_RUBRIC_MODEL`과 독립적이며 새 K3 실행부터 적용된다.

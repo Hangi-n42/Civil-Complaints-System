@@ -139,6 +139,7 @@ def make_ollama_verifier(ollama_url: str, model: str, timeout: float = 20.0) -> 
                 {"role": "user", "content": f"[원문]\n{raw_text[:2000]}\n\n[{field_name} 후보]\n{field_text}"},
             ],
             "stream": False,
+            "think": False,
             "format": _VERIFY_SCHEMA,
             "options": {"temperature": 0.0, "num_predict": 256},
         }

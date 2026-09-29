@@ -73,6 +73,7 @@ class GenerationService:
         num_predict: int | None = None,
         num_ctx: int | None = None,
         think: bool | None = False,
+        timeout: float | None = None,
         return_metadata: bool = False,
     ) -> str | Dict[str, Any]:
         """
@@ -95,6 +96,7 @@ class GenerationService:
         from app.core.logging import log_ollama_call, log_ollama_error
         
         model = model or self.model
+        request_timeout = self.timeout if timeout is None else timeout
         endpoint = "/api/generate"
         stage = "init"
         
@@ -105,7 +107,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 temperature=temperature,
             )
             
@@ -127,7 +129,7 @@ class GenerationService:
             url = f"{self.ollama_url.rstrip('/')}{endpoint}"
             
             stage = "connect"
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=request_timeout) as client:
                 stage = "request"
                 response = await client.post(url, json=payload)
                 
@@ -165,7 +167,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 stage=stage,
                 upstream_status=None,
                 error_code="MODEL_NOT_READY",
@@ -190,7 +192,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 stage=stage,
                 upstream_status=None,
                 error_code="MODEL_NOT_READY",
@@ -204,7 +206,7 @@ class GenerationService:
                 details={
                     "stage": stage,
                     "error_type": "ConnectTimeout",
-                    "timeout": self.timeout,
+                    "timeout": request_timeout,
                 },
                 upstream_status=None,
             ) from e
@@ -216,7 +218,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 stage=stage,
                 upstream_status=None,
                 error_code="MODEL_TIMEOUT",
@@ -230,7 +232,7 @@ class GenerationService:
                 details={
                     "stage": stage,
                     "error_type": "ReadTimeout",
-                    "timeout": self.timeout,
+                    "timeout": request_timeout,
                 },
                 upstream_status=None,
             ) from e
@@ -246,7 +248,7 @@ class GenerationService:
                     endpoint=endpoint,
                     model=model,
                     ollama_base_url=self.ollama_url,
-                    timeout=self.timeout,
+                    timeout=request_timeout,
                     stage=stage,
                     upstream_status=upstream_status,
                     error_code="MODEL_NOT_FOUND",
@@ -273,7 +275,7 @@ class GenerationService:
                     endpoint=endpoint,
                     model=model,
                     ollama_base_url=self.ollama_url,
-                    timeout=self.timeout,
+                    timeout=request_timeout,
                     stage=stage,
                     upstream_status=upstream_status,
                     error_code="MODEL_NOT_READY",
@@ -299,7 +301,7 @@ class GenerationService:
                     endpoint=endpoint,
                     model=model,
                     ollama_base_url=self.ollama_url,
-                    timeout=self.timeout,
+                    timeout=request_timeout,
                     stage=stage,
                     upstream_status=upstream_status,
                     error_code="PROCESSING_ERROR",
@@ -325,7 +327,7 @@ class GenerationService:
                     endpoint=endpoint,
                     model=model,
                     ollama_base_url=self.ollama_url,
-                    timeout=self.timeout,
+                    timeout=request_timeout,
                     stage=stage,
                     upstream_status=upstream_status,
                     error_code="BAD_REQUEST",
@@ -350,7 +352,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 stage=stage,
                 upstream_status=None,
                 error_code="PROCESSING_ERROR",
@@ -378,7 +380,7 @@ class GenerationService:
                 endpoint=endpoint,
                 model=model,
                 ollama_base_url=self.ollama_url,
-                timeout=self.timeout,
+                timeout=request_timeout,
                 stage=stage,
                 upstream_status=None,
                 error_code="PROCESSING_ERROR",
@@ -898,7 +900,7 @@ class GenerationService:
                 "answer": "...",
                 "confidence": 0.85,
                 "citations": [...],
-                "model": "exaone3.5:7.8b"
+                "model": "선택된 모델 태그"
             }
         """
         try:

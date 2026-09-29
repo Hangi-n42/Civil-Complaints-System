@@ -54,12 +54,12 @@ RUBRIC_OPTIONS: dict[str, dict[str, Any]] = {
     },
     "q3": {
         "name": "핵심 주장 인용 포함성",
-        "question": "답변의 핵심 주장에 구조화된 citation이 충분히 붙어 있는가?",
+        "question": "답변의 핵심 주장을 다루는 인용문을 답변의 구조화 citation 목록에서 충분히 찾을 수 있는가? 본문 인용 표시는 평가하지 않는다.",
         "options": {
             1: "핵심 주장 대부분에 citation이 없다.",
             2: "citation은 있으나 핵심 주장 대비 부족하다.",
-            3: "주요 주장 대부분에 citation이 붙어 있다.",
-            4: "핵심 주장마다 필요한 citation이 명확하게 붙어 있다.",
+            3: "주요 주장 대부분을 다루는 인용문이 citation 목록에 있다.",
+            4: "핵심 주장마다 필요한 인용문을 citation 목록에서 명확하게 찾을 수 있다.",
         },
     },
     "q4": {
@@ -533,8 +533,18 @@ class CivilComplaintRubricEvaluator:
             )
         schema = {"type": "object", "additionalProperties": False,
                   "properties": properties, "required": list(group)}
+        final_guidance = (
+            "\n\n[최종 판정 규칙]\n"
+            "구조화 citation 목록은 답변의 인용이다. 본문에 [C1] 표기가 없다는 이유로 감점하지 않는다. "
+            "실제 주장과 목록의 인용문을 대조한다. 인용이 존재해도 현재 조치 약속을 뒷받침하지 않으면 그 약속을 문제 문장으로 지적한다. "
+            "근거 없는 부서 구분이나 확인 후 조치 약속도 사실·이행 주장이다. "
+            "'확인이 필요하다'는 정보 부족 안내와 '확인 후 조치하겠다'는 이행 약속을 구분한다. "
+            "정보가 없다고 유보하는 말 자체에 확정 정보의 근거를 요구하지 않는다. "
+            "Q4의 reason과 support는 같은 문제 문장의 근거 관계를 일관되게 설명해야 한다."
+            if evidence_group else ""
+        )
         text = await llm_call(
-            instructions + "[Input]\n" + inputs + "\n\n" + "\n\n".join(questions),
+            instructions + "[Input]\n" + inputs + "\n\n" + "\n\n".join(questions) + final_guidance,
             temperature=self.temperature, response_schema=schema,
         )
         payload = json.loads(text)
@@ -700,6 +710,8 @@ class CivilComplaintRubricEvaluator:
                 "Only report metadata leakage when an actual internal identifier, debug field or model log "
                 "is visible in the answer; quote the offending text in the reason. Ordinary instructions "
                 "and statements of an unconfirmed status are not internal metadata.\n"
+                "문의 안내·감사 인사를 여러 항목에서 불필요하게 되풀이하는지도 확인한다. "
+                "서로 다른 요청에 각각 답하는 것은 반복으로 감점하지 않는다.\n"
             )
         return (
             "You are evaluating a Korean public-sector civil complaint response.\n"
