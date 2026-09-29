@@ -1,5 +1,6 @@
 """Focused K4 checks with real LinkML/alignment and no model inference."""
 import json
+import asyncio
 
 from jsonschema import Draft202012Validator
 
@@ -7,6 +8,17 @@ from app.knowledge import extraction, ontology_schema
 from app.knowledge.schemas import Candidate, RunRequest, SourceRegistration
 from app.knowledge.service import KnowledgeService, encode
 from app.tests.unit.test_knowledge_service import finished
+
+
+def test_model_call_preserves_existing_recipe_thinking(monkeypatch):
+    calls = []
+    async def call(self, prompt, **kwargs):
+        calls.append(kwargs)
+        return {'text': '{}'}
+    monkeypatch.setattr(extraction.GenerationService, 'call_ollama', call)
+    run = {'recipe': {'model': 'retained-model', 'num_predict': 4096, 'num_ctx': 32768}}
+    asyncio.run(extraction.model_call('frozen input', {}, run))
+    assert calls[0]['model'] == 'retained-model' and calls[0]['think'] is None
 
 
 def definitions():

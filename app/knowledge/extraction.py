@@ -221,7 +221,7 @@ def prompt_for(run, unit):
 
 async def model_call(prompt,schema,run):
     return await GenerationService().call_ollama(prompt,temperature=0,response_schema=schema,model=run['recipe']['model'],
-                                                num_predict=run['recipe']['num_predict'],num_ctx=run['recipe']['num_ctx'],return_metadata=True)
+                                                num_predict=run['recipe']['num_predict'],num_ctx=run['recipe']['num_ctx'],think=None,return_metadata=True)
 
 
 def materialize(run,unit,records):

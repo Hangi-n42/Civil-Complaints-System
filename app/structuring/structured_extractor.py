@@ -74,6 +74,7 @@ class StructuredExtractor:
                 {"role": "user", "content": f"민원 원문:\n{text[: self.max_text_len]}"},
             ],
             "stream": False,
+            "think": False,
             "format": llm_output_json_schema(),   # ← 자유 JSON이 아닌 '스키마' 제약
             "options": {"temperature": temperature, "num_predict": 512, "num_ctx": 4096},
         }

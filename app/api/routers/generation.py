@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from functools import partial
 from time import perf_counter
 from typing import Awaitable, Callable
 
@@ -713,7 +714,10 @@ async def _maybe_apply_prometheus_revision(
             if isinstance(unified_payload.get("citations"), list)
             else [],
             rubric_result=initial_rubric,
-            llm_call=llm_call,
+            llm_call=(
+                partial(llm_call, model=settings.PROMETHEUS_FEEDBACK_MODEL)
+                if settings.PROMETHEUS_FEEDBACK_MODEL else llm_call
+            ),
         )
         if not prometheus_feedback.get("triggered"):
             return None
@@ -728,7 +732,11 @@ async def _maybe_apply_prometheus_revision(
             prometheus_feedback=prometheus_feedback,
         )
         revision_start = perf_counter()
-        response_text = await llm_call(
+        revision_call = (
+            partial(llm_call, model=settings.PROMETHEUS_REVISION_MODEL)
+            if settings.PROMETHEUS_REVISION_MODEL else llm_call
+        )
+        response_text = await revision_call(
             revision_prompt,
             temperature=settings.PROMETHEUS_RUBRIC_TEMPERATURE,
             response_schema=engine.revision_schema(),
@@ -821,7 +829,7 @@ async def _maybe_apply_prometheus_revision(
         {
             "applied": True,
             "feedback_source": prometheus_feedback.get("source"),
-            "revision_model": str(getattr(generation_service, "model", "") or ""),
+            "revision_model": settings.PROMETHEUS_REVISION_MODEL or str(getattr(generation_service, "model", "") or ""),
         }
     )
     next_generation_metadata["prometheus_revision"] = revision_summary

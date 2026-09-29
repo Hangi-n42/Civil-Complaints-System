@@ -271,3 +271,4 @@ reports/retrieval/v3/_cache_*.json
 data/knowledge/raw/
 data/knowledge/evaluations/
 data/knowledge/knowledge.db*
+data/model_role_comparison_20260929/

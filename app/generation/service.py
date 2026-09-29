@@ -72,7 +72,7 @@ class GenerationService:
         model: str | None = None,
         num_predict: int | None = None,
         num_ctx: int | None = None,
-        think: bool | None = None,
+        think: bool | None = False,
         return_metadata: bool = False,
     ) -> str | Dict[str, Any]:
         """

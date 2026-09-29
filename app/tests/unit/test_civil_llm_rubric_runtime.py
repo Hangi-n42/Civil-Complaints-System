@@ -265,7 +265,7 @@ async def test_rubric_transport_separates_model_and_disables_thinking(monkeypatc
     assert [p['options']['num_predict'] for p in payloads[:3]] == [192, 1536, 640]
     assert all(p['model'] == settings.CIVIL_LLM_RUBRIC_MODEL and p['think'] is False for p in payloads[:3])
     assert payloads[3]['model'] == settings.OLLAMA_MODEL
-    assert 'think' not in payloads[3]
+    assert payloads[3]['think'] is False
     assert payloads[3]['options']['num_predict'] == settings.GENERATION_NUM_PREDICT
 
 

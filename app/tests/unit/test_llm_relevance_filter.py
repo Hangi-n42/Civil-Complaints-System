@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from app.core.config import settings
 
 from app.evaluation.datasets import EvalQuery
 from app.retrieval.pipeline.base import RetrievedDoc, StageInput
@@ -10,6 +11,15 @@ from app.retrieval.pipeline.stages.llm_relevance_filter import (
     LLMRelevanceFilterStage,
     _extract_score,
 )
+
+
+def test_filter_model_does_not_follow_generation_override(monkeypatch):
+    monkeypatch.setattr(settings, 'OLLAMA_MODEL', 'new-generation')
+    monkeypatch.setattr(settings, 'GROUNDING_FILTER_MODEL', 'retained-filter')
+    assert LLMRelevanceFilterStage().model == 'retained-filter'
+    assert LLMRelevanceFilterStage(model='explicit-filter').model == 'explicit-filter'
+    monkeypatch.setattr(settings, 'GROUNDING_FILTER_MODEL', '')
+    assert LLMRelevanceFilterStage().model == 'new-generation'
 
 
 def _docs(*docids: str) -> list[RetrievedDoc]:

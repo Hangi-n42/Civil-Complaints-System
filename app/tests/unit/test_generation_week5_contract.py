@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+import pytest
 
 from app.api.main import app
 
@@ -132,6 +133,7 @@ class _PrometheusRevisionGenerationService:
     def __init__(self):
         self.prometheus_calls = 0
         self.revision_calls = 0
+        self.call_models = []
 
     async def generate_qa(self, query, context, routing_trace=None, query_signals=None):
         first = context[0]
@@ -159,9 +161,10 @@ class _PrometheusRevisionGenerationService:
             },
         }
 
-    async def call_ollama(self, prompt, temperature=0.0, response_schema=None):
+    async def call_ollama(self, prompt, temperature=0.0, response_schema=None, *, model=None):
         import json
 
+        self.call_models.append(model or self.model)
         if "[PROMETHEUS REVISION TASK]" in prompt:
             self.revision_calls += 1
             return json.dumps(
@@ -1020,9 +1023,14 @@ def test_qa_marks_api_fallback_when_generation_answer_is_empty(monkeypatch):
     assert any("API 안전 폴백" in item for item in data["limitations"])
 
 
-def test_qa_runs_prometheus_feedback_and_revises_low_score_answer(monkeypatch):
+@pytest.mark.parametrize("feedback_model,revision_model", [
+    ("", ""), ("retained-feedback-model", "retained-revision-model"),
+])
+def test_qa_runs_prometheus_feedback_and_revises_low_score_answer(monkeypatch, feedback_model, revision_model):
     from app.api.routers import generation as generation_router
 
+    monkeypatch.setattr(generation_router.settings, "PROMETHEUS_REVISION_MODEL", revision_model)
+    monkeypatch.setattr(generation_router.settings, "PROMETHEUS_FEEDBACK_MODEL", feedback_model)
     retrieval_service = _TrackingRetrievalService(
         [
             {
@@ -1087,10 +1095,14 @@ def test_qa_runs_prometheus_feedback_and_revises_low_score_answer(monkeypatch):
     assert "도로 파손 상태와 통행 안전 위험" in data["answer"]
     assert generation_service.prometheus_calls == 1
     assert generation_service.revision_calls == 1
+    assert generation_service.call_models == [
+        feedback_model or generation_service.model, revision_model or generation_service.model,
+    ]
 
     revision = data["generation_metadata"]["prometheus_revision"]
     assert revision["attempted"] is True
     assert revision["applied"] is True
+    assert revision["revision_model"] == (revision_model or generation_service.model)
     assert revision["trigger_threshold_1_4"] == 2.0
     assert any(item["qid"] == "q7" for item in revision["initial_low_score_items"])
 
