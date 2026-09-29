@@ -56,7 +56,7 @@ def normalize(raw, definition):
 def table_key(block):
     loc = block['locator']
     return (block.get('source_version_id'), block.get('parse_run_id', block.get('run_id')),
-            loc.get('physical_page'), loc.get('side'), loc.get('table'))
+            loc.get('physical_page'), loc.get('side'), loc.get('table'), loc.get('element_path'))
 
 
 def reference(block):
@@ -114,8 +114,19 @@ def text_units(run, unit):
     groups = {}
     for b in run['frozen_blocks']:
         if b['id'] in unit['block_ids']:
-            groups.setdefault((b['source_version_id'], b['locator'].get('official_code') or b['id']), []).append(b)
-    return [dict(id=f't{i}', blocks=rows, code=rows[0]['locator'].get('official_code')) for i, rows in enumerate(groups.values())]
+            loc=b['locator']
+            key=(b['source_version_id'],loc.get('official_code') or b['id'])
+            if loc.get('format')=='html' and 'row' in loc:
+                key=(*table_key(b),loc['row'])
+            groups.setdefault(key, []).append(b)
+    result=[]
+    for rows in groups.values():
+        first=rows[0]
+        if first['locator'].get('format')=='html' and 'row' in first['locator']:
+            headers=[b for b in run['frozen_blocks'] if table_key(b)==table_key(first) and b['locator'].get('row')==0 and b not in rows]
+            rows=headers+rows
+        result.append(dict(id=f't{len(result)}',blocks=rows,code=first['locator'].get('official_code')))
+    return result
 
 
 def fact_definitions(run, unit=None):
@@ -128,14 +139,14 @@ def fact_definitions(run, unit=None):
 
 def schema(run, unit):
     refs = {b['id']: f'b{i}' for i, b in enumerate(run['frozen_blocks'])}
-    allowed = [refs[b] for b in unit['block_ids']]
+    allowed = list(dict.fromkeys(refs[b['id']] for g in text_units(run,unit) for b in g['blocks']))
     ev = dict(type='array', items=dict(type='object', properties={'block_id': {'type':'string','enum':allowed},
                'quote':{'type':'string','minLength':1}}, required=['block_id','quote'], additionalProperties=False))
     nonempty_ev = dict(ev, minItems=1)
     variants = []
     for d in fact_definitions(run,unit):
         props = dict(predicate_id={'type':'string','const':d['id']}, evidence=nonempty_ev,
-                     scope={'type':'string'}, scope_evidence=ev, unit={'type':['string','null'], 'enum':['세대','호',None]},
+                     scope={'type':'string'}, scope_evidence=ev, unit={'type':['string','null'], 'enum':['세대','호','개동','동',None]},
                      conditions={'type':'array','items':{'type':'string'}}, conditions_evidence=ev,
                      exceptions={'type':'array','items':{'type':'string'}}, exceptions_evidence=ev)
         if d['kind'] == 'relation':
@@ -232,5 +243,7 @@ def pdf_slot(run, block):
     for title,spec in PROFILE['pdf_columns'].items():
         h=headers[title]['locator']
         if h['column']<=col<h['column']+h.get('merged_span',{}).get('columns',1):
+            if spec.get('unit') and not re.fullmatch(r'[\d,]+\s*'+spec['unit'],block['text'].strip()):
+                return None
             return spec['slot']
     return None

@@ -74,6 +74,11 @@ def _link_errors(repo, db, link, run, schema):
         errors.append('entity_unresolved')
     elif entity.get('concept_id') != link.get('concept_id'):
         errors.append('entity_type_mismatch')
+    if entity and entity['namespace'].startswith('local:'):
+        frozen = next((e for e in run.get('entities', []) if e['id']==entity['id']), None)
+        if (not frozen or frozen != entity or entity.get('ontology_version_id') != run['ontology_version_id']
+                or entity.get('source_version_id') != link.get('scope', {}).get('source_version_id')):
+            errors.append('local_entity_not_in_frozen_scope')
     if entity and link.get('method') == 'official_id':
         quoted = ' '.join(((_optional(repo, db, 'evidence', identifier) or {}).get('quote', ''))
                           for identifier in link.get('evidence_ids', []))
@@ -539,3 +544,26 @@ def add_manual(service, changeset_id, request):
         repo.save(db,'changesets',change)
         _decision(db,change['id'],request.actor,'create_manual',request.reason,None,candidate,change['revision'])
         return _publish_result(repo,db,change)
+
+
+def register_local_entity(service, request):
+    """A source-scoped internal identity; only accepted links can enter snapshots."""
+    from .schemas import LocalEntityRequest
+    from .snapshots import _capture_evidence
+    request = LocalEntityRequest.model_validate(request)
+    with service.lock, service.repository.connect() as db:
+        ontology = service.repository.get(db, 'ontology_versions', request.ontology_version_id)
+        definitions = {d['id']: d for d in _from_schema(ontology['linkml_yaml'])}
+        if ontology['status'] != 'reviewed' or definitions.get(request.concept_id, {}).get('kind') != 'concept':
+            raise ValueError('검토된 온톨로지의 개념을 선택하세요.')
+        evidence = [_capture_evidence(service.repository, db, i) for i in request.evidence_ids]
+        if any(e['source_version_id'] != request.source_version_id for e in evidence):
+            raise ValueError('선택 문서 버전의 근거만 사용할 수 있습니다.')
+        if not any(re.sub(r'\s+', '', request.name) in re.sub(r'\s+', '', e['quote']) for e in evidence):
+            raise ValueError('개체명은 원문에 존재해야 합니다.')
+        entity = dict(id=uuid4().hex, namespace='local:'+request.source_version_id, official_id=None,
+                      concept_id=request.concept_id, name=request.name, evidence_ids=request.evidence_ids,
+                      source_version_id=request.source_version_id, ontology_version_id=request.ontology_version_id,
+                      actor=request.actor, reason=request.reason, created_at=_now())
+        db.execute('INSERT INTO entities VALUES(?,?,?,?)', (entity['id'], entity['namespace'], None, _encode(entity)))
+        return entity

@@ -108,6 +108,16 @@ Global 중간 요약은 P0에서 요청 안에서만 사용한다. 별도 영속
 
 검색은 내부 kind=search Run을 기록하되 별도 POST /runs로 재요청하지 않는다.
 
+### K6 구현 보충 (2026-09-28)
+
+- `POST /api/v1/knowledge/search` 구현. Global은 K7까지 422. `answered`는 선택 범위의 근거 표시 상태이며 의미 정확성·질문 완전성 평가 통과를 뜻하지 않는다.
+- 응답에 `run_id`, `answer_style=reviewed_facts`, `sentences:[{text,assertion_ids,evidence_ids,section:recommended|context}]`, `entities:[{id,name}]` 추가. `paths[].edges`에 `{assertion_id,subject_id,object_entity_id}`를 넣어 역방향 탐색과 실제 저장 관계 방향을 구분한다. `citations[].title`은 등록 자료 제목이다.
+- 모델 내부 출력은 우선 추천할 `selected_group_ids`만 받는다. 서버가 허용된 입력 안에서 추천 묶음과 나머지 조회 맥락을 구분하고 정본 값·단위·범위·조건·예외·날짜 전체와 실제 Evidence를 표시한다. 자유 사실/한계 문장 합성 및 모델의 부재 판정은 하지 않는다. 이는 자유 종합답변에서 근거 중심 표시로 좁힌 변경이다.
+- coverage에 `recommended_assertion_ids`, `context_assertion_ids`, `not_selected_assertion_ids` 추가. 앞의 둘은 실제 표시한 주장을 구분하고 마지막은 빈 추천 등으로 표시되지 않은 입력 주장이다. 예산 제외는 기존 `omitted_assertion_ids`로 분리한다. 인용·경로는 실제 표시한 두 영역과 일치하며 추천 여부는 신뢰도 등급이 아니다.
+- `POST /entities`: `ontology_version_id`, `concept_id`, `name`, `source_version_id`, `evidence_ids`, `actor`, `reason`으로 문서 범위 로컬 개체 등록. 공식 ID 없음. 기존 entity_link 수락/스냅샷 경계를 거쳐야 검색 지식에 포함된다. 추출 Run의 `local_entity_ids`는 해당 온톨로지/자료/고정 근거와 함께 보존하며 등록부는 기존 단지/공고 경로에서 계속 요구한다.
+- 실제 동작·품질 잔여는 [K6 결과](../../30_manuals/knowledge_k6_runbook.md)를 따른다.
+
+
 P1 `/knowledge/assist`는 [구현 계획 §1](implementation.md#1-제안-api-목록)의 경계만 유지하며 이번 계약에서 구현하지 않는다. 기존 `/search`·`/qa`·case_id·Q0~Q7 모델/평가를 변경하지 않는다.
 
 ## 5. 구현 시 필요한 확인만

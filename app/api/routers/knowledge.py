@@ -11,12 +11,14 @@ from pydantic import BaseModel, ValidationError
 
 from app.api.error_utils import error_response, make_request_id, now_iso
 from app.core.config import settings
+from app.core.exceptions import GenerationError
 from app.knowledge.schemas import DecisionRequest, ManualAssertionRequest, RunRequest, SourceRegistration
 from app.knowledge.schemas import SnapshotRequest, ActivateSnapshotRequest, AvailabilityRequest
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
 from app.knowledge import extraction_store
 from app.knowledge import snapshots
+from app.knowledge.schemas import SearchRequest, LocalEntityRequest
 
 
 class KnowledgeRoute(APIRoute):
@@ -28,6 +30,8 @@ class KnowledgeRoute(APIRoute):
                                       message='회사 지식 기능이 비활성화되어 있습니다.', status_code=503)
             try:
                 return await original(request)
+            except GenerationError as exc:
+                return error_response(request_id=make_request_id(), error_code=exc.code, message=str(exc))
             except KeyError:
                 return error_response(request_id=make_request_id(), error_code='NOT_FOUND', message='등록 항목을 찾을 수 없습니다.', status_code=404)
             except ontology_schema.VersionConflict as exc:
@@ -191,3 +195,14 @@ def set_availability(request: AvailabilityRequest, service=Depends(get_knowledge
 def export_snapshot(snapshot_id: str | None = None, format: str = 'json', entity_id: str | None = None,
                     as_of: date | None = None, service=Depends(get_knowledge_service)):
     return result(snapshots.export(service, snapshot_id, format, entity_id, as_of))
+
+
+@router.post('/search', response_model=KnowledgeResponse)
+def local_search(request: SearchRequest, service=Depends(get_knowledge_service)):
+    from app.knowledge.search import search
+    return result(search(service, request))
+
+
+@router.post('/entities', response_model=KnowledgeResponse)
+def register_entity(request: LocalEntityRequest, service=Depends(get_knowledge_service)):
+    return result(extraction_store.register_local_entity(service, request))
