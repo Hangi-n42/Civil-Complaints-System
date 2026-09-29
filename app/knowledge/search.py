@@ -390,7 +390,7 @@ def search(service, request, *, answer_variant="A", model=None, think=None):
     request=SearchRequest.model_validate(request)
     if answer_variant not in {'A','B','C','D'}:raise ValueError('Unknown answer variant')
     if request.mode!='local':raise ValueError('Global 검색은 K7에서 지원합니다.')
-    model=model or settings.OLLAMA_MODEL
+    model=model or settings.KNOWLEDGE_SEARCH_MODEL or settings.OLLAMA_MODEL
     if think is None and model.startswith('qwen'):think=False
     with service.lock,service.repository.connect() as db:
         if service.closed or any(json.loads(r['payload'])['status'] in {'queued','running','cancel_requested'} for r in db.execute('SELECT payload FROM runs')):

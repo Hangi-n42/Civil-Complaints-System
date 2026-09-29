@@ -2,6 +2,20 @@
 
 from app.structuring.structured_extractor import StructuredExtractor, SYSTEM_PROMPT
 from app.structuring.schemas import StructuredLLMOutput
+from app.structuring.service import StructuringService
+from app.core.config import settings
+from app.knowledge import ontology_run, extraction
+
+
+def test_civil_override_leaves_knowledge_and_legacy_models_unchanged(monkeypatch):
+    monkeypatch.setattr(settings, 'STRUCTURING_MODEL', 'retained-knowledge-model')
+    monkeypatch.setattr(settings, 'CIVIL_STRUCTURING_MODEL', '')
+    assert StructuringService()._structured_extractor.model == 'retained-knowledge-model'
+    monkeypatch.setattr(settings, 'CIVIL_STRUCTURING_MODEL', 'new-civil-model')
+    service = StructuringService()
+    assert service._structured_model == service._structured_extractor.model == 'new-civil-model'
+    assert service._llm_extractor.model == 'retained-knowledge-model'
+    assert ontology_run.recipe()['models']['draft'] == extraction.recipe()['model'] == 'retained-knowledge-model'
 
 
 def _ext():
@@ -16,6 +30,7 @@ def test_payload_uses_schema_format_not_free_json():
     assert fmt["properties"]["result_status"]["enum"] == ["present", "pending", "insufficient"]
     assert fmt["additionalProperties"] is False
     assert p["options"]["temperature"] == 0.1
+    assert p["think"] is False
     assert p["messages"][0]["role"] == "system" and p["messages"][1]["role"] == "user"
 
 

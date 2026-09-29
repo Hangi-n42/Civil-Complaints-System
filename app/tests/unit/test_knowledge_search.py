@@ -37,7 +37,10 @@ async def fake_model(self,prompt,**kwargs):
     return dict(done=True,done_reason='stop',text=json.dumps(dict(selected_group_ids=[group['group_id']])))
 
 
-def test_answer_run_and_no_inference_branches(service,monkeypatch):
+@pytest.mark.parametrize('search_model', ['', 'retained-search-model'])
+def test_answer_run_and_no_inference_branches(service,monkeypatch,search_model):
+    monkeypatch.setattr(local.settings, 'OLLAMA_MODEL', 'generation-model')
+    monkeypatch.setattr(local.settings, 'KNOWLEDGE_SEARCH_MODEL', search_model)
     monkeypatch.setattr(local.GenerationService,'call_ollama',fake_model)
     result=local.search(service,request())
     assert result['status']=='answered' and result['metrics']['llm_calls']==1
@@ -47,6 +50,7 @@ def test_answer_run_and_no_inference_branches(service,monkeypatch):
     with service.repository.connect() as db:
         run=service.repository.get(db,'runs',result['run_id'])
         assert run['status']=='succeeded' and run['kind']=='search' and run['input_version_ids']==['v1']
+        assert run['model'] == (search_model or 'generation-model')
     unknown=local.search(service,SearchRequest(query='알 수 없는 대상',mode='local'))
     assert unknown['status']=='insufficient' and unknown['metrics']['llm_calls']==0
     state(service,'evidence','code','blocked')

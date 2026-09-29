@@ -41,7 +41,7 @@ class LLMRelevanceFilterStage:
         max_concurrency: int = 4,
     ) -> None:
         self.name = name
-        self.model = model or settings.OLLAMA_MODEL
+        self.model = model or settings.GROUNDING_FILTER_MODEL or settings.OLLAMA_MODEL
         self.top_k = top_k
         self.min_score = min_score
         self.rerank_pool = rerank_pool

@@ -38,6 +38,7 @@ class Settings:
     # 회사 지식 파일럿은 기존 민원 저장소와 분리한다.
     KNOWLEDGE_ENABLED: bool = os.getenv("KNOWLEDGE_ENABLED", "false").lower() == "true"
     KNOWLEDGE_DB_PATH: str = str(PROJECT_ROOT / os.getenv("KNOWLEDGE_DB_PATH", "data/knowledge/knowledge.db"))
+    KNOWLEDGE_SEARCH_MODEL: str = os.getenv("KNOWLEDGE_SEARCH_MODEL", "")  # 빈 값이면 OLLAMA_MODEL
 
     # Ollama 설정
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -96,6 +97,7 @@ class Settings:
     # 구조화 전용 Ollama 설정 (QA 생성 모델과 분리)
     # exaone3:7.8b-instruct → Ollama 레지스트리 태그: exaone3.5:7.8b
     STRUCTURING_MODEL: str = os.getenv("STRUCTURING_MODEL", "exaone3.5:7.8b")
+    CIVIL_STRUCTURING_MODEL: str = os.getenv("CIVIL_STRUCTURING_MODEL", "")  # 활성 제약 구조화 전용; 빈 값이면 STRUCTURING_MODEL
     STRUCTURING_TIMEOUT: float = float(os.getenv("STRUCTURING_TIMEOUT", "90.0"))
     STRUCTURING_MAX_TEXT_LEN: int = int(os.getenv("STRUCTURING_MAX_TEXT_LEN", "2000"))
 
@@ -251,6 +253,9 @@ class Settings:
     PROMETHEUS_RUBRIC_TEMPERATURE: float = float(
         os.getenv("PROMETHEUS_RUBRIC_TEMPERATURE", "0.0")
     )
+    # 빈 값이면 생성 모델 사용. 피드백·재작성을 별도로 유지할 때 지정한다.
+    PROMETHEUS_FEEDBACK_MODEL: str = os.getenv("PROMETHEUS_FEEDBACK_MODEL", "")
+    PROMETHEUS_REVISION_MODEL: str = os.getenv("PROMETHEUS_REVISION_MODEL", "")
 
 
 def _resolve_project_path(value: str) -> str:

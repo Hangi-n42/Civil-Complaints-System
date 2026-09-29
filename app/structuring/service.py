@@ -143,9 +143,10 @@ class StructuringService:
         )
         self._merger = ResultMerger()
         # ① 제약 디코딩 추출기 (STRUCTURING_CONSTRAINED 플래그로 사용)
+        self._structured_model = settings.CIVIL_STRUCTURING_MODEL or settings.STRUCTURING_MODEL
         self._structured_extractor = StructuredExtractor(
             ollama_url=settings.OLLAMA_BASE_URL,
-            model=settings.STRUCTURING_MODEL,
+            model=self._structured_model,
             timeout=settings.STRUCTURING_TIMEOUT,
             max_text_len=settings.STRUCTURING_MAX_TEXT_LEN,
         )
@@ -895,7 +896,7 @@ class StructuringService:
                     )
                 merged = merge_structured(
                     raw_text=text, ner_result=ner_result, structured=structured,
-                    llm_latency_ms=llm_latency_ms, llm_model=settings.STRUCTURING_MODEL,
+                    llm_latency_ms=llm_latency_ms, llm_model=self._structured_model,
                     verify_fn=verify_fn,
                 )
             else:
