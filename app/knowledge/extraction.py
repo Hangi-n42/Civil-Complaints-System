@@ -34,7 +34,7 @@ def stable(*parts):
 
 
 def recipe():
-    return dict(version='k4-v3', model=settings.STRUCTURING_MODEL, mapping=contract.PROFILE,
+    return dict(version='k6-local-entities-v1', model=settings.STRUCTURING_MODEL, mapping=contract.PROFILE,
                 prompt_hash=sha256(PROMPT.encode()).hexdigest(),
                 contract_hash=sha256(Path(contract.__file__).read_bytes()).hexdigest(), alignment='langextract-1.7.0',
                 num_predict=4096, num_ctx=32768)
@@ -58,6 +58,8 @@ def plan_units(blocks):
         loc = b['locator']
         # ponytail: tables stay whole for this small pilot; larger tables use row batches with repeated headers.
         key = (b['source_version_id'], loc.get('physical_page'), loc.get('side'), loc.get('table')) if 'table' in loc else (b['id'],)
+        if loc.get('format')=='html' and 'row' in loc:
+            key=(*contract.table_key(b),loc['row'])
         if loc.get('official_code'):
             key = (b['source_version_id'], loc['official_code'])
         groups.setdefault(key, []).append(b)
@@ -97,7 +99,7 @@ def start(service, request):
             old = service.repository.get(db, 'runs', request.retry_of_run_id)
             if old['kind'] != 'extract' or old['status'] not in {'failed','partial','cancelled'}:
                 raise ValueError('실패/취소된 추출만 재시도할 수 있습니다.')
-            if request.source_version_ids or request.block_ids or request.ontology_version_id or request.registry_source_version_id or request.cqs or request.unit_ids:
+            if request.source_version_ids or request.block_ids or request.ontology_version_id or request.registry_source_version_id or request.cqs or request.unit_ids or request.local_entity_ids:
                 raise ValueError('재시도에는 입력을 바꿀 수 없습니다.')
             if encode(old['recipe']) != encode(recipe()):
                 raise ValueError('모델/프롬프트/매핑이 바뀌었습니다. 새 추출을 시작하세요.')
@@ -108,20 +110,22 @@ def start(service, request):
                 if u['status'] != 'succeeded':
                     u.update(status='queued',error=None)
         else:
-            if not request.ontology_version_id or not request.source_version_ids or not request.registry_source_version_id:
-                raise ValueError('검토된 온톨로지·자료·단지 등록부를 선택하세요.')
+            if not request.ontology_version_id or not request.source_version_ids:
+                raise ValueError('검토된 온톨로지·자료를 선택하세요.')
+            if not request.registry_source_version_id and not request.local_entity_ids:
+                raise ValueError('단지 등록부 또는 문서 내 로컬 개체를 선택하세요.')
             ontology = get_ontology(service, request.ontology_version_id)
             if ontology['status'] != 'reviewed':
                 raise ValueError('reviewed 온톨로지만 추출에 사용할 수 있습니다.')
             blocks, sources, versions = [], {}, {}
-            for vid in dict.fromkeys(request.source_version_ids + [request.registry_source_version_id]):
+            for vid in dict.fromkeys(request.source_version_ids + ([request.registry_source_version_id] if request.registry_source_version_id else [])):
                 v = service.repository.get(db,'versions',vid)
                 if v['processing_status'] != 'parsed':
                     raise ValueError('파싱 완료 자료만 선택하세요.')
                 versions[vid] = v
                 sources[vid] = service.repository.get(db,'sources',v['source_id'])
                 blocks.extend(service.blocks(v['source_id'],vid)['items'])
-            if request.registry_source_version_id not in versions or versions[request.registry_source_version_id]['format'] != 'csv':
+            if request.registry_source_version_id and versions[request.registry_source_version_id]['format'] != 'csv':
                 raise ValueError('선택한 CSV 자료를 단지 등록부로 지정하세요.')
             registry = [b for b in blocks if b['source_version_id']==request.registry_source_version_id]
             blocks = [b for b in blocks if b['source_version_id'] in request.source_version_ids]
@@ -135,8 +139,10 @@ def start(service, request):
                 excluded = []
             if not blocks:
                 raise ValueError('선택 블록이 없습니다.')
-            if not registry:
+            if request.registry_source_version_id and not registry:
                 raise ValueError('단지 등록부 행을 선택하세요.')
+            if not registry and any(mapped(b) for b in blocks):
+                raise ValueError('단지 CSV/공고 메타데이터에는 등록부가 필요합니다.')
             entities = []
             for b in registry:
                 row = fields(b); code = row.get('단지코드')
@@ -144,6 +150,15 @@ def start(service, request):
                     raise ValueError('등록부에 단지코드가 없습니다.')
                 existing = db.execute('SELECT payload FROM entities WHERE namespace=? AND official_id=?',('LH:complex',code)).fetchone()
                 entity = json.loads(existing['payload']) if existing else dict(id=stable('LH:complex',code),namespace='LH:complex',official_id=code,concept_id='CONCEPT_001',name=row.get('단지명',code),evidence_ids=[b['evidence_id']])
+                entities.append(entity)
+            for identifier in dict.fromkeys(request.local_entity_ids):
+                entity = service.repository.get(db,'entities',identifier)
+                if (not entity['namespace'].startswith('local:') or entity.get('ontology_version_id') != ontology['id']
+                        or entity.get('source_version_id') not in request.source_version_ids):
+                    raise ValueError('같은 온톨로지·문서 버전의 로컬 개체를 선택하세요.')
+                from .extraction_store import _evidence_errors
+                if _evidence_errors(service.repository,db,entity['evidence_ids'],{'frozen_blocks':blocks}):
+                    raise ValueError('선택 블록에 로컬 개체의 식별 근거를 포함하세요.')
                 entities.append(entity)
             for b in blocks:
                 pan = fields(b).get('panId') if b['locator'].get('script_array')=='sbdList' else None
@@ -156,7 +171,7 @@ def start(service, request):
                        json_schema=ontology['json_schema'], registry_source_version_id=request.registry_source_version_id,
                        input_version_ids=list(versions), frozen_blocks=blocks + [b for b in registry if b['id'] not in {x['id'] for x in blocks}], sources=sources,
                        parse_run_ids={k:v['latest_parse_run_id'] for k,v in versions.items()},
-                       cqs=[c.model_dump() for c in request.cqs], entities=entities, accepted_aliases=aliases,
+                       cqs=[c.model_dump() for c in request.cqs], entities=entities, accepted_aliases=aliases, local_entity_ids=request.local_entity_ids,
                        units=plan_units(blocks), excluded_blocks=excluded, recipe=recipe())
         run.update(id=uuid4().hex,status='queued',retry_of_run_id=request.retry_of_run_id,
                    started_at=None,finished_at=None,metrics=dict(llm_calls=0,model_total_s=0,elapsed_s=0))
@@ -195,10 +210,10 @@ def prompt_for(run, unit):
     groups = []
     for g in contract.text_units(run, unit):
         groups.append(dict(unit_id=g['id'], official_code=g['code'], concept_id='CONCEPT_001' if g['code'] else None,
-                           blocks=[dict(block_id=refs[b['id']],text=b['text']) for b in g['blocks']]))
+                           blocks=[dict(block_id=refs[b['id']],text=b['text'],caption=b['locator'].get('table_caption')) for b in g['blocks']]))
     definitions = [{k:d.get(k) for k in ('id','kind','name','definition','inclusion','exclusion','domain_id','range')}
                    for d in contract.fact_definitions(run,unit)]
-    prompt = PROMPT+'\nINPUT:\n'+json.dumps(dict(units=groups,definitions=definitions),ensure_ascii=False,separators=(',',':'))
+    prompt = PROMPT+'\nINPUT:\n'+json.dumps(dict(units=groups,definitions=definitions,local_entities=[dict(mention=e['name'],concept_id=e['concept_id']) for e in run.get('entities',[]) if e['namespace'].startswith('local:')]),ensure_ascii=False,separators=(',',':'))
     if len(prompt)>12000:
         raise ValueError(f'추출 프롬프트 {len(prompt)}자가 12,000자를 초과했습니다. 범위를 줄여 주세요.')
     return prompt
@@ -233,6 +248,10 @@ def materialize(run,unit,records):
             matches={a['target_entity_id'] for a in run['accepted_aliases'] if a.get('mention')==mention and a.get('concept_id')==concept
                      and a.get('scope',{}).get('source_version_id')==source_id and a.get('target_entity_id')}
             if len(matches)==1:target=next(iter(matches));method='accepted_alias'
+            if not target:
+                matches={e['id'] for e in run['entities'] if e['namespace'].startswith('local:') and e['name']==mention
+                         and e['concept_id']==concept and e.get('source_version_id')==source_id}
+                if len(matches)==1:target=next(iter(matches));method='manual'
         links[identifier]=dict(id=identifier,kind='entity_link',local_candidate_key='link:'+key,mention=mention,concept_id=concept,
                                official_id=code,target_entity_id=target,method=method,scope={'source_version_id':source_id},
                                evidence_ids=evs,candidate_entity_ids=[e['id'] for e in run['entities'] if e['concept_id']==concept])

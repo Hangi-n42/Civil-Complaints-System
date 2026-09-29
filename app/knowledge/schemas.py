@@ -1,4 +1,5 @@
 """K2 inputs; later knowledge workflows add their own contracts when implemented."""
+from datetime import date
 from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
@@ -78,6 +79,7 @@ class RunRequest(BaseModel):
     base_ontology_version_id: str | None = None
     ontology_version_id: str | None = None
     registry_source_version_id: str | None = None
+    local_entity_ids: list[str] = Field(default_factory=list)
     block_ids: list[str] = Field(default_factory=list)
 
 
@@ -125,3 +127,27 @@ class AvailabilityRequest(RecordedAction):
     targets: list[AvailabilityTarget] = Field(min_length=1)
     state: Literal['allowed', 'needs_review', 'blocked']
     expected_status_revision: int = Field(ge=0)
+
+
+class LocalEntityRequest(RecordedAction):
+    ontology_version_id: str
+    concept_id: str
+    name: str = Field(min_length=1)
+    source_version_id: str
+    evidence_ids: list[str] = Field(min_length=1)
+
+
+class SearchScope(BaseModel):
+    model_config = {'extra': 'forbid'}
+    entity_ids: list[str] = Field(default_factory=list)
+    text: str | None = None
+
+
+class SearchRequest(BaseModel):
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    query: str = Field(min_length=1, max_length=4000)
+    mode: Literal['local', 'global']
+    snapshot_id: str | None = None
+    source_ids: list[str] | None = Field(default=None, min_length=1)
+    scope: SearchScope | None = None
+    as_of: date | None = None

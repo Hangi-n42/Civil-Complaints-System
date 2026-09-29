@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import AppSidebar from "@/components/AppSidebar";
 import KnowledgeOntology from "@/components/KnowledgeOntology";
 import KnowledgeExtraction from "@/components/KnowledgeExtraction";
+import KnowledgeSearch from "@/components/KnowledgeSearch";
 import KnowledgeSnapshots from "@/components/KnowledgeSnapshots";
 import { API_BASE_URL } from "@/lib/api";
 
@@ -29,7 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function KnowledgePage() {
-  const [tab, setTab] = useState<"sources" | "ontology" | "extraction" | "snapshots">("sources");
+  const [tab, setTab] = useState<"sources" | "ontology" | "extraction" | "snapshots" | "search">("sources");
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [selected, setSelected] = useState<{ source: Source; version: Version } | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -131,7 +132,8 @@ export default function KnowledgePage() {
     <AppSidebar activeMenu="knowledge" />
     <main className="min-w-0 flex-1 space-y-5 p-6">
       <header><h1 className="text-2xl font-bold">회사 지식 워크벤치</h1><p className="mt-1 text-sm text-slate-600">원문과 추출 후보를 검토하고, 선택한 지식 버전을 활성화하여 조회합니다.</p></header>
-      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button><button aria-pressed={tab === "snapshots"} className={tab === "snapshots" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("snapshots")}>지식 버전</button></nav>
+      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button><button aria-pressed={tab === "snapshots"} className={tab === "snapshots" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("snapshots")}>지식 버전</button><button aria-pressed={tab === "search"} className={tab === "search" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("search")}>지식 검색</button></nav>
+      <div hidden={tab !== "search"}><KnowledgeSearch request={request} visible={tab === "search"} /></div>
       <div hidden={tab !== "snapshots"}><KnowledgeSnapshots request={request} visible={tab === "snapshots"} /></div>
       <div hidden={tab !== "extraction"}><KnowledgeExtraction request={request} sources={sources} /></div>
       <div hidden={tab !== "ontology"}><KnowledgeOntology request={request} sources={sources} /></div>
