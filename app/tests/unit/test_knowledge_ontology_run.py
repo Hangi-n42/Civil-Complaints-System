@@ -12,8 +12,11 @@ from app.tests.unit.test_knowledge_service import finished
 def test_draft_model_and_design_timeout_are_frozen_in_recipe(monkeypatch):
     monkeypatch.setattr(ontology_run.settings, 'KNOWLEDGE_DESIGN_TIMEOUT', 360)
     monkeypatch.setattr(ontology_run.settings, 'STRUCTURING_MODEL', 'draft-model')
+    monkeypatch.setattr(ontology_run.settings, 'KNOWLEDGE_REVIEW_MODEL', 'review-model')
+    monkeypatch.setattr(ontology_run.settings, 'CIVIL_LLM_RUBRIC_MODEL', 'civil-judge')
     run = {'recipe': ontology_run.recipe()}
     monkeypatch.setattr(ontology_run.settings, 'STRUCTURING_MODEL', 'changed-later')
+    monkeypatch.setattr(ontology_run.settings, 'KNOWLEDGE_REVIEW_MODEL', 'changed-later')
     calls = []
     async def call(self, prompt, **kwargs):
         calls.append(kwargs)
@@ -24,6 +27,10 @@ def test_draft_model_and_design_timeout_are_frozen_in_recipe(monkeypatch):
     assert [c['model'] for c in calls] == ['draft-model'] * 3
     assert [c['timeout'] for c in calls] == [None, 360, None]
     assert all(c['think'] is False for c in calls)
+    asyncio.run(ontology_run.model_call('input', {}, 'review', run))
+    assert calls[-1]['model'] == 'review-model'
+    assert calls[-1]['think'] is False
+    assert ontology_run.settings.CIVIL_LLM_RUBRIC_MODEL == 'civil-judge'
 
 
 def parsed_source(service, name='one'):

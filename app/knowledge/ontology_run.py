@@ -74,7 +74,7 @@ class Review(BaseModel):
 
 
 def recipe():
-    models = {'draft': settings.STRUCTURING_MODEL, 'review': settings.CIVIL_LLM_RUBRIC_MODEL}
+    models = {'draft': settings.STRUCTURING_MODEL, 'review': settings.KNOWLEDGE_REVIEW_MODEL}
     return dict(models=models, prompt_version=PROMPT_VERSION, budgets=BUDGETS,
                 think=False, timeouts={'design': settings.KNOWLEDGE_DESIGN_TIMEOUT},
                 prompt_hash=sha256((COMMON+ANALYZE+DESIGN+REVIEW).encode()).hexdigest())

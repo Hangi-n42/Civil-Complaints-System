@@ -151,3 +151,5 @@ PowerShell에서는 `Invoke-RestMethod http://127.0.0.1:8001/health`를 사용�
 관련 안내: [Chroma 인덱싱](local_chromadb_indexing.md), [replay 절차](complaint_intelligence_demo_replay.md), [현재 API 계약](../10_contracts/api/current_api_contract.md), [기술 스택](../00_overview/dev_stack.md).
 
 문서만 바꿀 때는 링크와 `git diff --check`를 확인한다. 코드 변경은 영향받는 경로에 한해 확인하며, 위 실행 명령을 문서 검증 명목으로 자동 실행하지 않는다.
+
+K3 반례 검토 모델은 `KNOWLEDGE_REVIEW_MODEL=qwen3.8:27b-q4_K_M`로 지정한다. 민원 평가의 `CIVIL_LLM_RUBRIC_MODEL`과 독립적이며 새 K3 실행부터 적용된다.

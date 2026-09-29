@@ -39,6 +39,7 @@ class Settings:
     KNOWLEDGE_ENABLED: bool = os.getenv("KNOWLEDGE_ENABLED", "false").lower() == "true"
     KNOWLEDGE_DB_PATH: str = str(PROJECT_ROOT / os.getenv("KNOWLEDGE_DB_PATH", "data/knowledge/knowledge.db"))
     KNOWLEDGE_SEARCH_MODEL: str = os.getenv("KNOWLEDGE_SEARCH_MODEL", "")  # 빈 값이면 OLLAMA_MODEL
+    KNOWLEDGE_REVIEW_MODEL: str = os.getenv("KNOWLEDGE_REVIEW_MODEL", "qwen3.8:27b-q4_K_M")
     KNOWLEDGE_DESIGN_TIMEOUT: float = float(os.getenv("KNOWLEDGE_DESIGN_TIMEOUT", "360"))
 
     # Ollama 설정
