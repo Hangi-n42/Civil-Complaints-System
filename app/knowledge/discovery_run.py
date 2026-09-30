@@ -43,6 +43,10 @@ def _freeze(service, request):
 
 
 def start(service, request):
+    if request.discovery_mode == 'analyze' or (request.retry_of_run_id and
+            service.run(request.retry_of_run_id).get('discovery_mode') == 'analyze'):
+        from .discovery_analysis import start as analyze
+        return analyze(service, request)
     allowed = {'kind', 'retry_of_run_id'} if request.retry_of_run_id else {
         'kind', 'bundle_id', 'manifest_hash', 'scope', 'step', 'file_ids'}
     if request.model_fields_set - allowed:
@@ -201,6 +205,9 @@ def search(service, run_id, query, scope=None, step=None, limit=20):
         raise ValueError('검색어와 1~50의 limit이 필요합니다.')
     with service.repository.connect() as db:
         run = _run(service, db, run_id, scope, step)
+        if run.get('discovery_mode') == 'analyze':
+            from .discovery_analysis import search_run
+            return search_run(service, run, query, limit)
         matches, statuses = [], _statuses(db)
         for item, unit in zip(run['frozen_input']['files'], run['units']):
             for index, block in enumerate(_blocks(service, db, item, unit)):

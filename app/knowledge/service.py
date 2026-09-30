@@ -37,8 +37,13 @@ class KnowledgeService:
             for row in db.execute('SELECT payload FROM runs').fetchall():
                 run = json.loads(row['payload'])
                 if run['status'] in {'queued', 'running', 'cancel_requested'}:
-                    for unit in run['units']:
+                    for unit in [*run['units'], *run.get('analysis_units', [])]:
                         if unit['status'] in {'queued', 'running'}:
+                            if unit['status'] == 'running' and unit.get('attempts'):
+                                attempt = unit['attempts'][-1]
+                                if attempt['outcome'] == 'started':
+                                    attempt['outcome'] = 'interrupted_before_result_commit'
+                                    run['metrics']['interrupted_time_reserve_s'] = run['metrics'].get('interrupted_time_reserve_s', 0) + attempt['timeout_s']
                             unit.update(status='failed', error='서버 재시작으로 중단됨')
                     run.update(status='failed', finished_at=utcnow())
                     self.repository.save(db, 'runs', run)
@@ -161,6 +166,9 @@ class KnowledgeService:
             run = self.repository.get(db, 'runs', run_id)
         run['counts'] = {status: sum(u['status'] == status for u in run['units'])
                          for status in ('queued', 'running', 'succeeded', 'failed', 'cancelled')}
+        if run.get('discovery_mode') == 'analyze':
+            run['analysis_counts'] = {s: sum(u['status']==s for u in run['analysis_units'])
+                                      for s in ('queued','running','succeeded','failed')}
         if run['kind'] == 'extract':
             run['processed_block_ids'] = list(dict.fromkeys(b for u in run['units']
                 if u['status'] == 'succeeded' for b in u['block_ids']))
