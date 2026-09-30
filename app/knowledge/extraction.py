@@ -172,8 +172,11 @@ def start(service, request):
                 if _evidence_errors(service.repository,db,entity['evidence_ids'],{'frozen_blocks':blocks}):
                     raise ValueError('선택 블록에 로컬 개체의 식별 근거를 포함하세요.')
                 entities.append(entity)
+            selection = dict(ontology_payload_version=ontology.get('payload_version', 1),
+                             consumer_contract=consumer_contract, ontology_candidates=definitions, predicate_ids=request.predicate_ids)
+            needs_notice = any(contract.mapped_slot(selection, slot) for slot in ('NoticeIdentifier', 'NoticeIncludesComplex'))
             for b in blocks:
-                pan = fields(b).get('panId') if b['locator'].get('script_array')=='sbdList' else None
+                pan = fields(b).get('panId') if needs_notice and b['locator'].get('script_array')=='sbdList' else None
                 if pan and ontology.get('payload_version') == 2 and 'LH:notice' not in consumer_contract['role_targets']:
                     raise ValueError('공고 메타데이터의 LH:notice 의미 대응 검토가 필요합니다.')
                 if pan and not any(e['namespace']=='LH:notice' and e['official_id']==pan for e in entities):

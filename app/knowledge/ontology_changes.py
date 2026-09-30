@@ -211,7 +211,18 @@ def _impact(repo, db, identifier, base_targets):
               for i,t in base_targets.items() if identifier in canonical.references(t) and not t.get('deprecated')]
     if identifier in PROFILE['definitions'] or _contains(PROFILE['definitions'], identifier):
         result.append(dict(id='mapping:'+PROFILE['version']+':'+identifier, kind='extraction_mapping', frozen=False))
-    entity_ids, link_ids = set(), set()
+    entities, link_ids = {}, set()
+    runs = {r['id']: json.loads(r['payload']) for r in db.execute("SELECT id,payload FROM runs WHERE json_extract(payload,'$.kind')='extract'")}
+
+    def entity_matches(entity_id, value):
+        # The official identity's global type cannot override a frozen v2 role.
+        entity = entities.get(entity_id, {})
+        run = runs.get(value.get('run_id'), {})
+        contract = run.get('consumer_contract', {})
+        if entity.get('namespace', '').startswith('LH:') and (contract or run.get('ontology_payload_version') == 2):
+            return identifier == contract.get('role_targets', {}).get(entity['namespace'])
+        return identifier == entity.get('concept_id')
+
     # ponytail: direct ID scan of the small ledger; index reference fields if the pilot grows.
     for table in ('entities','entity_links','assertions','snapshots','runs'):
         for row in db.execute(f'SELECT id,payload FROM {table}'):
@@ -223,15 +234,17 @@ def _impact(repo, db, identifier, base_targets):
             elif table=='runs':
                 linked = any(identifier in {d['id'], d.get('domain_id'), d.get('range')} for d in value.get('ontology_candidates', []))
             elif table=='entity_links':
-                linked = identifier==value.get('concept_id') or value.get('target_entity_id') in entity_ids
+                linked = (identifier==value['concept_id'] if value.get('concept_id')
+                          else entity_matches(value.get('target_entity_id'), value))
                 if linked: link_ids.add(row['id'])
             elif table=='assertions':
                 linked = (identifier==value.get('predicate_id')
                     or any(value.get(k) in link_ids for k in ('subject_link_id','object_link_id'))
-                    or any(value.get(k) in entity_ids for k in ('subject_id','object_entity_id')))
+                    or any(not value.get(link) and entity_matches(value.get(entity), value)
+                           for link, entity in (('subject_link_id','subject_id'),('object_link_id','object_entity_id'))))
             else:
+                entities[row['id']] = value
                 linked = identifier == value.get('concept_id')
-                if linked: entity_ids.add(row['id'])
             if linked:
                 result.append(dict(id=table+':'+row['id'], kind=table, frozen=table in {'snapshots','runs'}))
     for row in db.execute("SELECT id,payload FROM decisions WHERE json_extract(payload,'$.kind')='lh_consumer_mapping'"):

@@ -48,6 +48,15 @@
 - 프런트 관련 **13 passed**, TypeScript·변경 파일 ESLint 통과. 화면 확인은 실제 컴포넌트 정적 출력·요청 계약 검사이며 이번 작업에서 브라우저 상호작용 전체를 재수행하지 않았다.
 - 독립 AI 검수: 구현자 두 명의 상대 코드 검수와 작성에 참여하지 않은 세 번째 에이전트의 별도 검수. 반례 의존 누락, 공고 식별자 단독 부분 추출 누락, induced-slot 타입/enum 불일치, 조건부 별칭의 무조건 동의어 투영을 재현하여 수정했다. 수정 경계 재검수에서 추가 중요 결함은 확인되지 않았다. decimal 정규화와 저장 자료형의 불일치도 수정했다.
 
+### PR #532 등록 후 경계 보완
+
+- 조율 세션의 추가 검수에서 두 결함을 임시 DB로 재현했다. 단지 세대수만 선택해도 `panId` 때문에 미대응 공고 역할을 요구했고, 전역 공식 개체 유형의 변경이 다른 유형으로 검토된 사실까지 재검토 상태로 바꿨다.
+- 공고 개체 생성은 실제 선택·대응된 `NoticeIdentifier`/`NoticeIncludesComplex` 출력이 있을 때로 제한했다. 공고 역할이 보류돼도 단지 속성 부분 추출이 완료되며, 공고 슬롯의 주체 의미 대응 검사는 유지한다.
+- 직접 영향은 연결에 저장된 유형을 우선한다. 연결 정보가 없을 때는 실행에 고정된 의미 대응을 사용하며, v2 미대응 역할을 전역 개체 유형으로 대체하지 않는다. 기존 무계약 원장의 직접 참조는 유지한다.
+- 관련 소비·영향·추출 실행 테스트 36건 확인: 첫 실행 35건 통과, 신규 테스트 fixture의 실행 상태 누락을 보정한 뒤 해당 1건 재통과. 새 회귀는 미선택 공고, 공고 슬롯별 추출, 주체/대상 연결, 고정 대응·미대응·레거시 fallback과 과거 스냅샷/블록 불변을 확인한다.
+- 두 외부 재현에서도 시작 거절 해소와 별도 유형 사실의 `allowed` 유지 확인. 이 보완의 추가 모델 호출은 0회이며 전체 평가·프런트 재검증·A6는 수행하지 않았다.
+- 구현에 참여하지 않은 에이전트가 변경 부분과 외부 재현 두 건을 독립 재검수하고 소비·영향 테스트 29건을 재확인했다. 이 범위에서 추가 중요 결함은 발견되지 않았다.
+
 ```sh
 python -m pytest app/tests/unit/test_knowledge_consumer.py app/tests/unit/test_knowledge_a5_store.py app/tests/unit/test_knowledge_ontology_consumer_impact.py app/tests/unit/test_knowledge_ontology_changes.py app/tests/unit/test_knowledge_ontology_schema.py app/tests/unit/test_knowledge_extraction_run.py app/tests/unit/test_knowledge_extraction_quality.py app/tests/unit/test_knowledge_extraction_store.py app/tests/unit/test_knowledge_snapshots.py app/tests/unit/test_knowledge_api.py app/tests/unit/test_knowledge_search.py -q
 cd frontend

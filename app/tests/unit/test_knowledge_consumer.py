@@ -180,6 +180,39 @@ def test_notice_identifier_can_be_extracted_without_relation(tmp_path):
         service.shutdown()
 
 
+@pytest.mark.parametrize('slot,notice_mapping', [('ATTRIBUTE_003', False), ('ATTRIBUTE_003', True),
+                                               ('NoticeIdentifier', True), ('NoticeIncludesComplex', True)])
+def test_sbd_partial_extraction_only_registers_selected_mapped_notice(tmp_path, slot, notice_mapping):
+    service, vid, _, _, mapping = seeded(tmp_path, renamed=True)
+    try:
+        target_ids = {i: mapping[i] for i in ('CONCEPT_001', 'ATTRIBUTE_003')}
+        if notice_mapping:
+            target_ids.update({i: mapping[i] for i in ('Notice', 'NoticeIdentifier', 'NoticeIncludesComplex')})
+        decision = dict(actor='test', reason='선택 필드의 의미 대응', target_ids=target_ids,
+                        expected_review_id=None, expected_ontology_head_id='v2')
+        if slot.startswith('Notice'):
+            with pytest.raises(ValueError, match='주체'):
+                consumer.review(service, 'v2', dict(decision, target_ids={i: v for i, v in target_ids.items() if i != 'Notice'}))
+        consumer.review(service, 'v2', decision)
+        html = "<div id='sub_container'><section>공고</section><section>단지</section></div><script>sbdList.push({panId:'P001',sbdLgoNo:'C00001',sbdLgoNm:'행복단지',hshCnt:'100'});</script>"
+        registered = service.register('notice.html', html.encode(), SourceRegistration(title='합성 공고', publisher='test',
+            namespace='synthetic', selected_scope={'complex_codes': ['C00001']}))
+        parsed = finished(service, service.start(RunRequest(source_version_ids=[registered['source_version_id']]))['run_id'])
+        assert parsed['status'] == 'succeeded'
+        block = next(b for b in service.blocks(registered['source_id'], registered['source_version_id'])['items']
+                     if b['locator'].get('script_array') == 'sbdList')
+        run = finished(service, service.start(RunRequest(kind='extract', ontology_version_id='v2', registry_source_version_id=vid,
+            source_version_ids=[registered['source_version_id']], block_ids=[block['id']], predicate_ids=[mapping[slot]]))['run_id'])
+        assert run['status'] == 'succeeded', run['units']
+        assert run['metrics']['llm_calls'] == 0
+        assert any(e['namespace'] == 'LH:notice' for e in run['entities']) == slot.startswith('Notice')
+        rows = extraction_store.candidates(service, run['changeset_id'])['items']
+        assert all(not row['validation_errors'] for row in rows)
+        assert [row['predicate_id'] for row in rows if row['kind'] == 'assertion'] == [mapping[slot]]
+    finally:
+        service.shutdown()
+
+
 def test_decimal_normalization_and_store_agree():
     definition = dict(id='quantity', range='decimal')
     value, _ = contract.normalize('12.50', definition)

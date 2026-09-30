@@ -35,8 +35,7 @@ def next_change(service,base,ref,raw):
 def consumers(service,base,target):
     rows={
         'entities':[dict(id='entity',namespace='synthetic',official_id='one',concept_id=target)],
-        # The type reaches the assertion through an entity even if the link's own type differs.
-        'entity_links':[dict(id='link',concept_id='another_type',target_entity_id='entity')],
+        'entity_links':[dict(id='link',concept_id=target,target_entity_id='entity')],
         'assertions':[dict(id=i,predicate_id='another_predicate',subject_link_id='link') for i in ('fact','blocked')]
             +[dict(id='unrelated',predicate_id='another_predicate')],
         'runs':[dict(id='past_extract',kind='extract',status='succeeded',ontology_candidates=[dict(id=target)])],
@@ -176,6 +175,48 @@ def test_consumer_action_rejects_blanket_approval_without_changed_meaning(servic
     fresh=add(service,cid,[proposal(ref)])[0]
     with pytest.raises(ValueError,match='직접 참조가 있는 의미'):
         decide(service,cid,[dict(candidate_id=fresh['id'],action='accept',consumer_action='review_required')])
+
+
+def test_impact_uses_link_type_then_frozen_mapping_then_legacy_identity(service):
+    base, ref, rows = base_version(service)
+    target = rows[0]['target_id']
+    original = consumers(service, base, target)
+    with service.repository.connect() as db:
+        entity = original['entities'][0]
+        entity['namespace'] = 'LH:complex'
+        db.execute('UPDATE entities SET namespace=?,payload=? WHERE id=?', ('LH:complex', json.dumps(entity), entity['id']))
+        for identifier, roles in [('new-run', {'LH:complex': 'new-type'}), ('unmapped-run', {})]:
+            schema._insert(db, 'runs', dict(id=identifier, kind='extract', status='succeeded', ontology_payload_version=2,
+                consumer_contract={'role_targets': roles}, ontology_candidates=[dict(id='new-type')]))
+        for identifier, concept, run_id in [('new-link', 'new-type', 'new-run'), ('mapped-link', None, 'new-run'),
+                                           ('legacy-link', None, 'past_extract')]:
+            value = dict(id=identifier, concept_id=concept, run_id=run_id, target_entity_id='entity')
+            db.execute('INSERT INTO entity_links VALUES(?,?,?,?,?)', (identifier, run_id, 'u', identifier, json.dumps(value)))
+        facts = [dict(id='new-subject', subject_link_id='new-link', subject_id='entity'),
+                 dict(id='new-object', object_link_id='new-link', object_entity_id='entity'),
+                 dict(id='mapped-link-fact', subject_link_id='mapped-link', subject_id='entity'),
+                 dict(id='mapped-direct', subject_id='entity'),
+                 dict(id='unmapped-direct', subject_id='entity', run_id='unmapped-run'),
+                 dict(id='legacy-direct', subject_id='entity', run_id='past_extract'),
+                 dict(id='legacy-link-fact', subject_link_id='legacy-link', run_id='past_extract')]
+        for value in facts:
+            value.setdefault('run_id', 'new-run')
+            value['predicate_id'] = 'another_predicate'
+            db.execute('INSERT INTO assertions VALUES(?,?,?,?,?)', (value['id'], value['run_id'], 'u', value['id'], json.dumps(value)))
+        frozen = {table: {r['id']: r['payload'] for r in db.execute(f'SELECT id,payload FROM {table}')}
+                  for table in ('entities', 'entity_links', 'assertions', 'snapshots', 'blocks')}
+    cid, candidate = next_change(service, base, ref, proposal(ref, definition='원래 유형만 의미 변경') |
+                                  dict(operation='update', target_id=target))
+    affected = {'fact', 'blocked', 'legacy-direct', 'legacy-link-fact'}
+    assert set(candidate['consumer_impact']['affected_assertion_ids']) == affected
+    decide(service, cid, [dict(candidate_id=candidate['id'], action='accept', consumer_action='review_required')])
+    for fact in facts:
+        assert snapshots.availability(service, 'assertion', fact['id'])['state'] == ('needs_review' if fact['id'] in affected else 'allowed')
+    assert snapshots.availability(service, 'assertion', 'fact')['state'] == 'needs_review'
+    assert snapshots.availability(service, 'assertion', 'blocked')['state'] == 'blocked'
+    with service.repository.connect() as db:
+        for table, values in frozen.items():
+            assert {r['id']: r['payload'] for r in db.execute(f'SELECT id,payload FROM {table}')} == values
 
 
 @pytest.mark.parametrize('qualifiers', [{'scope':'한 업무에만 해당'}, {'time':'2024'}, {'negation':'negated'}])
