@@ -18,6 +18,7 @@ from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
 from app.knowledge import ontology_changes
 from app.knowledge.ontology_changes_models import AddOntologyChanges
+from app.knowledge import ontology_consumer
 from app.knowledge import extraction_store
 from app.knowledge import snapshots
 from app.knowledge.schemas import SearchRequest, LocalEntityRequest
@@ -142,6 +143,16 @@ def ontologies(service=Depends(get_knowledge_service)):
 @router.get('/ontologies/{ontology_id}', response_model=KnowledgeResponse)
 def ontology(ontology_id: str, service=Depends(get_knowledge_service)):
     return result(ontology_schema.get_ontology(service, ontology_id))
+
+
+@router.get('/ontologies/{ontology_id}/consumer', response_model=KnowledgeResponse)
+def ontology_consumer_contract(ontology_id: str, service=Depends(get_knowledge_service)):
+    return result(ontology_consumer.inspect(service, ontology_id))
+
+
+@router.post('/ontologies/{ontology_id}/consumer', response_model=KnowledgeResponse)
+def review_consumer_contract(ontology_id: str, request: ontology_consumer.MappingReview, service=Depends(get_knowledge_service)):
+    return result(ontology_consumer.review(service, ontology_id, request))
 
 
 @router.get('/candidates', response_model=KnowledgeResponse)

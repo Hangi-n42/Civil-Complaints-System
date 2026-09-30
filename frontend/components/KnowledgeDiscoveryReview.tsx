@@ -46,6 +46,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
   const [preview, setPreview] = useState<Ontology | null>(null);
   const [reviewed, setReviewed] = useState<Ontology | null>(null);
   const [batch, setBatch] = useState<string[]>([]);
+  const [reviewDependencies, setReviewDependencies] = useState(false);
   const selected = change?.candidates.find(c => c.id === selectedId);
   const dirty = !!selected && !!draft && pretty(draft) !== pretty(makeDraft(selected));
   const locked = busy || dirty || conflict;
@@ -62,7 +63,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
 
   function select(c?: Change) {
     setSelectedId(c?.id || ""); setDraft(c ? makeDraft(c) : null);
-    setReference({ counter: false, index: 0 }); setReason(""); setBatch([]);
+    setReference({ counter: false, index: 0 }); setReason(""); setBatch([]); setReviewDependencies(false);
   }
   async function getChange(id: string) {
     const response = await request<CandidateResponse>(`/candidates?changeset_id=${encodeURIComponent(id)}`);
@@ -102,7 +103,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
     setBusy(true); setError(""); setNotice("");
     try {
       if (ids.length > 1 && !bulkLabelChanges(change.candidates, ids).length) throw new Error("동일 영향 범위의 근거가 같은 표기 수정만 묶어 수락할 수 있습니다.");
-      await request(`/changes/${change.id}/decisions`, post(decisionBody(change, actor, reason, action, ids, draft)));
+      await request(`/changes/${change.id}/decisions`, post(decisionBody(change, actor, reason, action, ids, draft, ids.length === 1 && reviewDependencies)));
       await loadChange(change.id, selectedId);
       setNotice("결정과 전후 값·이력·검토된 버전을 다시 조회했습니다. 운영 활성화는 별도 절차입니다.");
     } catch (e) {
@@ -220,6 +221,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <p className="text-sm">미수락 의존 {selected.validation.unresolved_dependency_ids.length}개 · 자동 수락하지 않습니다.</p>
             <ul className="space-y-1 text-sm">{selected.dependency_ids.map(id => { const c = change.candidates.find(v => v.id === id); return <li key={id}>{c ? `${changeName(c)} · ${label(c.review_status)}` : id}</li>; })}</ul>
             <p className="text-sm">확인된 직접 참조 {selected.affected_reference_ids.length}개 · 간접 영향은 미탐색</p>
+            {selected.consumer_impact && <div className="rounded border p-2 text-sm"><p>소비자 작업: {{ display_refresh: "표시·검색 참조 갱신", partial_extract: "필요한 필드·자료만 추가 추출", semantic_review: "의미 대응·영향 사실 재검토", review_dependencies: "이전 ID 대응·직접 의존 검토" }[selected.consumer_impact.action] || selected.consumer_impact.action}</p><p>직접 영향 사실 {selected.consumer_impact.affected_assertion_ids.length}개 {selected.consumer_impact.new_required ? "· 새 필수값 호환성 확인 필요" : ""}</p></div>}
             <JsonDetail title="직접 참조 상세" value={selected.affected_references} />
             <JsonDetail title="미해결·보류할 쟁점" value={selected.unresolved_issues} />
             {selected.target_kind === "hierarchy" && <HierarchyReview value={record(selected.hierarchy_review)} a={targetName(record(selected.after).child_id)} b={targetName(record(selected.after).parent_id)} />}
@@ -234,7 +236,8 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
         <section className={panelClass}><h3 className="font-semibold">검토 결과 기록</h3>
           <p className="text-sm">근거 부족·예외 미확인 시 보류할 수 있습니다. 편집 저장은 미승인 상태이며, 보류·기각 항목도 편집 저장 후 다시 검토할 수 있습니다.</p>
           <div className="grid gap-3 md:grid-cols-2"><label className="text-sm">결정자<input className={inputClass} value={actor} disabled={busy} onChange={e => setActor(e.target.value)} /></label><label className="text-sm">판단 사유 · 범위·반례·보류 이유<input className={inputClass} value={reason} disabled={busy} onChange={e => setReason(e.target.value)} /></label></div>
-          <div className="flex flex-wrap gap-2">{([['edit','편집 저장 · 미승인'],['modify','수정 후 수락'],['accept','이 변경 수락'],['defer','보류'],['reject','기각']] as const).map(([action,title]) => <button key={action} className={buttonClass} disabled={busy || conflict || !actor.trim() || !reason.trim() || (action === 'accept' && (!selected.can_accept || dirty)) || (['defer','reject'].includes(action) && dirty) || (action === 'modify' && !dirty)} onClick={() => decide(action)}>{title}</button>)}
+          {selected.consumer_impact?.requires_resolution && <label className="my-2 block text-sm"><input type="checkbox" checked={reviewDependencies} disabled={busy || conflict} onChange={e => setReviewDependencies(e.target.checked)} /> 직접 영향 사실을 재검토 상태로 보류하고 이 온톨로지 변경 수락 · 과거 실행/스냅샷 보존, 새 버전에서 필요한 부분만 재추출</label>}
+          <div className="flex flex-wrap gap-2">{([['edit','편집 저장 · 미승인'],['modify','수정 후 수락'],['accept','이 변경 수락'],['defer','보류'],['reject','기각']] as const).map(([action,title]) => <button key={action} className={buttonClass} disabled={busy || conflict || !actor.trim() || !reason.trim() || (action === 'accept' && ((!selected.can_accept && !reviewDependencies) || dirty)) || (['defer','reject'].includes(action) && dirty) || (action === 'modify' && !dirty)} onClick={() => decide(action)}>{title}</button>)}
             <button className="rounded border px-3 py-2 text-sm" disabled={busy || conflict || !dirty} onClick={() => { setDraft(makeDraft(selected)); setError(""); }}>편집 취소 · 저장된 값 복원</button>
           </div>
           {!selected.can_accept && <p className="text-xs text-amber-900">현재 값은 바로 수락할 수 없습니다. 오류·의존을 확인해 편집하거나 보류하세요. 수정 후 수락도 서버 검사를 통과해야 합니다.</p>}

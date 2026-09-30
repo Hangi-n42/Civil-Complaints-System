@@ -102,6 +102,7 @@ def project(base, changes):
         for field in ('evidence_refs', 'counter_evidence_refs', 'qualifiers', 'cq_ids', 'scope_item_ids',
                       'rationale', 'support_type', 'hierarchy_review'):
             item[field] = deepcopy(c[field])
+        item['dependency_block_ids'] = sorted(set(item.get('dependency_block_ids', [])) | set(c.get('origin', {}).get('dependency_block_ids', [])))
         items[identifier] = item
     for item in items.values():
         if item.get('replaced_by'):
@@ -217,4 +218,4 @@ def read(version):
         for t in items.values() if not t.get('deprecated')]
     return dict(version, review_status=version['status'], candidates=candidates, targets=list(items.values()),
                 linkml_schema=yaml.safe_load(version['linkml_yaml']), json_schema=derived,
-                effective_class_slots=effective, consumer_support='A3 review only; K4/K5 v2 integration requires A5')
+                effective_class_slots=effective, consumer_support='LH K4/K5; version-bound semantic mapping required')

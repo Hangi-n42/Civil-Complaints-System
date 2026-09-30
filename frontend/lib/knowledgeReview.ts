@@ -7,6 +7,7 @@ export type Change = {
   evidence_refs: EvidenceRef[]; counter_evidence_refs: EvidenceRef[]; cq_ids: string[]; scope_item_ids: string[];
   unresolved_issues: unknown[]; hierarchy_review: RecordValue; origin: RecordValue; review_status: string;
   dependency_ids: string[]; affected_reference_ids: string[]; affected_references: RecordValue[]; can_accept: boolean;
+  consumer_impact?: { action: string; affected_assertion_ids: string[]; requires_resolution: boolean; new_required: boolean };
   validation: { structural_errors: string[]; semantic_review: string[]; unresolved_dependency_ids: string[] };
 };
 export type Decision = { id: string; revision: number; candidate_id: string; action: string; actor: string; reason: string; created_at: string; before: Change; after: Change; ontology_version_id?: string };
@@ -42,10 +43,10 @@ export function editPatch(draft: EditDraft) {
     counter_evidence_refs: JSON.parse(draft.counter_evidence_refs), unresolved_issues: JSON.parse(draft.unresolved_issues), hierarchy_review: JSON.parse(draft.hierarchy_review) };
 }
 
-export function decisionBody(change: Changeset, actor: string, reason: string, action: string, ids: string[], draft?: EditDraft) {
+export function decisionBody(change: Changeset, actor: string, reason: string, action: string, ids: string[], draft?: EditDraft, reviewDependencies = false) {
   if (!actor.trim() || !reason.trim()) throw new Error("결정자와 판단 사유가 필요합니다.");
   return { expected_changeset_revision: change.revision, expected_ontology_head_id: change.ontology_head_id, actor: actor.trim(),
-    decisions: ids.map(candidate_id => ({ candidate_id, action, reason: reason.trim(), ...((action === "edit" || action === "modify") && draft ? { patch: editPatch(draft) } : {}) })) };
+    decisions: ids.map(candidate_id => ({ candidate_id, action, reason: reason.trim(), ...(reviewDependencies && ["accept", "modify"].includes(action) ? { consumer_action: "review_required" } : {}), ...((action === "edit" || action === "modify") && draft ? { patch: editPatch(draft) } : {}) })) };
 }
 
 export function groupChanges(candidates: Change[]) {

@@ -10,6 +10,14 @@ function changeset(c = candidate()): Changeset {
 }
 
 describe("A4 검수 계약", () => {
+  it("A5 직접 의존 처리는 명시한 수락에만 보내고 편집·보류에는 넣지 않는다", () => {
+    const c = candidate(), draft = makeDraft(c);
+    for (const action of ["accept", "modify"]) {
+      expect(decisionBody(changeset(c), "검토자", "직접 영향 보류", action, [c.id], draft, true).decisions[0].consumer_action).toBe("review_required");
+      expect(decisionBody(changeset(c), "검토자", "일반 결정", action, [c.id], draft).decisions[0]).not.toHaveProperty("consumer_action");
+    }
+    expect(decisionBody(changeset(c), "검토자", "편집", "edit", [c.id], draft, true).decisions[0]).not.toHaveProperty("consumer_action");
+  });
   it("서버와 같은 코드포인트 구간으로 비 BMP 문자 전후를 강조한다", () => {
     expect(evidenceSpan("😀 국민임대", [2,6])).toEqual({ before: "😀 ", quote: "국민임대", after: "" });
     expect(evidenceSpan("앞😀뒤", [1,2])).toEqual({ before: "앞", quote: "😀", after: "뒤" });

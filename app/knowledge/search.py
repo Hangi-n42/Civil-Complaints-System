@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from app.core.config import settings
 from app.core.exceptions import GenerationError
 from app.generation.service import GenerationService
-from . import snapshots as ss, ontology_schema
+from . import snapshots as ss, ontology_consumer
 from .schemas import SearchRequest
 from .service import KnowledgeConflict, encode, utcnow
 
@@ -139,7 +139,7 @@ def fact_record(snapshot, a, definitions):
 
 
 def packet(snapshot, bundles):
-    definitions = {d['id']: d for d in ontology_schema._from_schema(snapshot['ontology']['linkml_yaml'])}
+    definitions = {d['id']: d for d in ontology_consumer.definitions(snapshot['ontology'], snapshot.get('consumer_contract'))}
     groups = {f'g{i+1}': sorted(ids) for i,ids in enumerate(bundles)}
     payload = []
     for ref,ids in groups.items():
@@ -163,7 +163,7 @@ def complete_bundle(ids, groups, assertions):
 
 def render_facts(snapshot, identifiers, *, compact=False):
     """Only reviewed values become factual text; the model cannot rewrite these fields."""
-    definitions={d['id']:d for d in ontology_schema._from_schema(snapshot['ontology']['linkml_yaml'])}
+    definitions={d['id']:d for d in ontology_consumer.definitions(snapshot['ontology'], snapshot.get('consumer_contract'))}
     def display(value):return value if isinstance(value,str) else encode(value)
     def dates(values):return '; '.join(f"{d.get('role')}: {d.get('value')}" for d in values)
     sentences=[]; grouped={}
