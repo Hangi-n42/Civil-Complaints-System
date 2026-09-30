@@ -31,6 +31,7 @@
 - add는 서버가 새 target을 부여한다. update/merge/deprecate는 해당 실행의 reviewed 기준에 존재하는 target을 지정한다. 같은 대상의 중복 변경은 새 후보 대신 기존 후보를 수정한다. 기존 대상의 종류는 바꿀 수 없다.
 - `edit`는 미승인 수정이며 `modify`는 수정 후 수락이다. 서버 ID·원제안·기준 버전은 patch 대상이 아니다. 전후 결정 이력과 actor/reason이 남는다. 수정을 이유로 LLM 재평가를 호출하지 않는다.
 - 오류 후보는 `can_accept=false`다. 참조하는 후보가 미수락이면 `unresolved_dependency_ids`를 보여준다. `can_accept_with_dependencies`는 함께 검수할 구조 후보를 찾는 보조값이며 최종 수락 집합 검사를 대신하지 않는다.
+- 기각·보류·오류 계층은 현재 검수 구조와 preview에 반영하지 않는다. 기존 계층의 잘못된 수정안은 기준 계층을 지우지 않으며, 기각/보류 결정과 원제안은 이력으로 보존한다.
 
 ```json
 {
@@ -49,14 +50,16 @@
 - 계층 끝점 종류·자기 참조·is_a 순환을 검사한다. is_a는 단일 부모 계약이며 추가 부모는 보류한다. instance_of는 개체 표본과 유형의 관계로 구별해 보존하며 개별 사실 수락은 K4 대상이다. 클래스 계층으로 변환하지 않는다.
 - Builder/기존 Critic의 양방향 supported/refuted/unknown·근거/반례를 보존한다. 양방향 지지는 `possible_equivalence`로 표시하며 자동 병합하지 않는다. unknown을 반증이나 비소속으로 해석하지 않는다. A2 Builder 계층은 검수 전 design_proposal이며 해당 끝점의 CQ/scope만 연결한다.
 - design_proposal은 출처와 이유가 필요하지만 정의 자체의 문자 그대로 인용을 강제하지 않는다. statement_type을 rule/instance로 표시해 원문 의무·사실로 포장하는 조합은 거절한다. 이는 법률적 진위 판정이 아니다. 구조 통과, 인용 일치, AI 검수는 의미 정확성의 증거가 아니다.
-- 병합은 old ID 삭제가 아닌 deprecated+replaced_by다. 폐기된 정의도 과거 근거와 함께 남긴다. 다른 폐기 대상이나 상호 병합을 최종 정본으로 수락할 수 없다.
+- 병합은 old ID 삭제가 아닌 deprecated+replaced_by다. A→B 뒤 B→C를 수락하면 새 버전의 A/B는 최종 정본 C를 가리키며 과거 버전의 대응은 바꾸지 않는다. 순환·누락·다른 종류·대체 없는 폐기 대상을 최종 정본으로 수락할 수 없다.
+- 폐기된 속성/관계의 정의·ID·원래 필수 조건은 이력에 보존하되 현재 클래스와 상속 슬롯 및 JSON Schema 필수 조건에서는 제외한다. 폐기 클래스의 root items 슬롯도 제거한다.
 - 클래스·슬롯·어휘와 추출 매핑·개체·사실·snapshot·추출 run의 직접 ID 참조를 보여준다. 정의 내부 참조는 함께 수정/폐기하여 닫힌 집합으로 수락 가능하다. 기존 운영 소비자의 미해결 참조가 있는 병합/폐기/의미 변경은 보류해야 한다. K8 전이 영향 분석이나 전체 재추출은 수행하지 않는다.
 - v2 수락 집합 변경은 SQLite `BEGIN IMMEDIATE` 안에서 revision/head 확인→새 불변 버전→결정→head를 함께 저장한다. 실패하면 모두 rollback한다. 다른 changeset이 head를 갱신하면 expected ID만 바꿔 우회할 수 없고 새 기준 run이 필요하다. 미수락 후보의 edit/defer/reject는 head를 바꾸지 않는다.
 - v1 기준은 선택된 ID를 계보의 초기 head로 등록한다. current/contrast 계보와 historical 계보는 A2가 고정한 lineage를 사용한다. K5 active snapshot과 별개다.
 
 ## 확인 결과 — 2026-09-30
 
-- Python 3.11.9/macOS. A3 집중 20개 포함 관련 회귀 **100 passed**. 근거·scope/버전, v1 조회, 상속, 어휘, 잘못된 후보 보존, 독립 수락, 폐기 동반 변경, 병합 정본, 두 별도 연결의 동시 결정, 결정 저장 실패 rollback, 기존 A1/A2/K3/K4/K5 API 경계를 확인했다.
+- Python 3.11.9/macOS. 초기 구현은 A3 집중 20개 포함 관련 회귀 **100 passed**. 근거·scope/버전, v1 조회, 상속, 어휘, 잘못된 후보 보존, 독립 수락, 폐기 동반 변경, 병합 정본, 두 별도 연결의 동시 결정, 결정 저장 실패 rollback, 기존 A1/A2/K3/K4/K5 API 경계를 확인했다.
+- PR #530 보완: 폐기 필수 슬롯/클래스 노출, 기각·보류·오류 계층, 연속 병합의 8개 재현이 `bb2d03b`에서 실패한 뒤 수정 후 통과했다. 병합 대상 오류 4개와 독립 AI 전문가 2명의 검수·후속 재현에서 확인한 기존 계층 수정의 기준 그래프 유실 3개(누락 참조·순환·의존 오류)를 추가했다. 검수 구조와 preview가 같은 후보·의존 제외 경로를 사용한다. A3 집중 **35개**, 같은 관련 회귀 **115 passed**. 검수자가 발견한 경로도 수정 후 재확인했다. 추가 LLM 호출·원본 DB 변경은 없으며 실제 업무 의미 검증을 뜻하지 않는다.
 
 ```sh
 python -m pytest app/tests/unit/test_knowledge_ontology_changes.py app/tests/unit/test_knowledge_ontology_schema.py app/tests/unit/test_knowledge_ontology_run.py app/tests/unit/test_knowledge_discovery_analysis.py app/tests/unit/test_knowledge_discovery_run.py app/tests/unit/test_knowledge_api.py app/tests/unit/test_knowledge_extraction_run.py app/tests/unit/test_knowledge_extraction_store.py app/tests/unit/test_knowledge_snapshots.py -q

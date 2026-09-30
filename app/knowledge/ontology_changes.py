@@ -249,6 +249,13 @@ def _evidence_errors(repo, db, references, blocks, statuses):
     return errors
 
 
+def _review_candidates(change):
+    selected={c['change_id']:c for c in change['candidates'] if c['review_status'] not in {'rejected','deferred'} and not c['validation']['structural_errors']}
+    while any(not set(c['dependency_ids']) <= selected.keys() for c in selected.values()):
+        selected={i:c for i,c in selected.items() if set(c['dependency_ids']) <= selected.keys()}
+    return selected
+
+
 def _validate(repo, db, change, run, base):
     from .snapshots import _statuses
     blocks, statuses, initial = _blocks(repo, db, run), _statuses(db), canonical.targets(base)
@@ -309,15 +316,17 @@ def _validate(repo, db, change, run, base):
         if c['target_kind']=='relation' and c['after'].get('name') in {'is_a','instance_of','broader','related','part_of'}:
             errors.append('계층 종류를 업무 관계 슬롯으로 저장할 수 없음')
         good.append(c)
-    # Resolve references against proposals for display; acceptance rechecks only the chosen closed set.
+    # Rejected/deferred/invalid proposals retain history, but do not alter review structure.
+    active = [c for c in good if c['review_status'] not in {'rejected','deferred'} and not c['validation']['structural_errors']]
     projected = dict(initial)
-    for c in good:
+    for c in active:
         if c['operation'] in {'add','update'}:
             projected[c['target_id']] = dict(initial.get(c['target_id'], {}), **c['after'])
             projected[c['target_id']].update(id=c['target_id'], kind=c['target_kind'], symbol=c['symbol'])
         elif c['target_id'] in initial:
-            projected[c['target_id']] = dict(initial[c['target_id']], deprecated=True)
-    by_target = {c['target_id']:c for c in good}
+            projected[c['target_id']] = dict(initial[c['target_id']], deprecated=True,
+                replaced_by=c['after'].get('canonical_id') if c['operation']=='merge' else None)
+    by_target = {c['target_id']:c for c in active}
     for c in good:
         errors=c['validation']['structural_errors']
         item=projected.get(c['target_id'], {})
@@ -372,10 +381,15 @@ def _validate(repo, db, change, run, base):
         if c['operation']=='merge':
             destination_id = c['after'].get('canonical_id')
             dst=projected.get(destination_id,{})
-            if not dst or dst['id']==c['target_id'] or dst['kind']!=kind or dst.get('deprecated'):
+            if not dst or dst['id']==c['target_id'] or dst['kind']!=kind:
                 errors.append('병합 정본 ID/종류 오류')
+            else:
+                try: canonical.replacement_id(projected, destination_id)
+                except ValueError as exc: errors.append(str(exc))
             if destination_id in by_target:
                 c['dependency_ids']=sorted(set(c['dependency_ids']+[by_target[destination_id]['change_id']]))
+        if c['operation']=='deprecate' and any(t.get('replaced_by')==c['target_id'] for t in initial.values()):
+            errors.append('이전 ID의 병합 정본은 대체 ID 없이 폐기할 수 없음')
         impact=_impact(repo,db,c['target_id'],initial) if c['operation']!='add' else []
         c['affected_references']=impact; c['affected_reference_ids']=[i['id'] for i in impact]
         if c['operation'] in {'merge','deprecate'}:
@@ -393,27 +407,37 @@ def _validate(repo, db, change, run, base):
             if any(not i['id'].startswith('ontology:') for i in impact):
                 errors.append('정의/조건 변경의 기존 소비자 직접 참조 미해결')
         c['diff']={k:dict(before=(c['before'] or {}).get(k),after=v) for k,v in after.items() if (c['before'] or {}).get(k)!=v}
-    edges=[t for t in projected.values() if t['kind']=='hierarchy' and t.get('relation')=='is_a' and not t.get('deprecated')]
-    parents={}
-    for edge in edges:
-        parents.setdefault(edge.get('child_id'),set()).add(edge.get('parent_id'))
-    for c in good:
-        if c['operation'] in {'add','update'} and c['target_kind']=='hierarchy' and c['after'].get('relation')=='is_a':
-            a,b=c['after'].get('child_id'),c['after'].get('parent_id')
-            seen=set(); todo=[b]
-            while todo:
-                i=todo.pop()
-                if i in seen: continue
-                seen.add(i);todo.extend(parents.get(i,set()))
-            if a in seen: c['validation']['structural_errors'].append('is_a 순환')
-            if len(parents.get(a,set()))>1: c['validation']['structural_errors'].append('is_a 단일 부모 계약; 추가 부모는 보류')
+    # Dropping an invalid update restores its base edge, which may expose another cycle.
+    while True:
+        hierarchy_targets = dict(initial)
+        for c in _review_candidates(change).values():
+            if c['target_kind']=='hierarchy':
+                hierarchy_targets[c['target_id']] = projected[c['target_id']]
+        parents={}
+        for edge in hierarchy_targets.values():
+            if edge['kind']=='hierarchy' and edge.get('relation')=='is_a' and not edge.get('deprecated'):
+                parents.setdefault(edge.get('child_id'),set()).add(edge.get('parent_id'))
+        invalidated=False
+        for c in good:
+            errors=c['validation']['structural_errors']
+            if not errors and c['operation'] in {'add','update'} and c['target_kind']=='hierarchy' and c['after'].get('relation')=='is_a':
+                a,b=c['after'].get('child_id'),c['after'].get('parent_id')
+                seen=set(); todo=[b]
+                while todo:
+                    i=todo.pop()
+                    if i in seen: continue
+                    seen.add(i);todo.extend(parents.get(i,set()))
+                if a in seen: errors.append('is_a 순환')
+                if len(parents.get(a,set()))>1: errors.append('is_a 단일 부모 계약; 추가 부모는 보류')
+                invalidated = invalidated or bool(errors)
+        if not invalidated: break
     ids={c['change_id']:c for c in proposals}
     accepted={c['change_id'] for c in proposals if c['review_status']=='accepted'}
     for c in proposals:
         errors=c['validation']['structural_errors']
         c['validation']['unresolved_dependency_ids']=[i for i in c['dependency_ids'] if i not in accepted]
         c['validation']['can_accept_with_dependencies']=not errors and all(not ids[i]['validation']['structural_errors'] for i in c['dependency_ids'])
-        c['validation']['can_accept']=c['validation']['can_accept_with_dependencies'] and not c['validation']['unresolved_dependency_ids']
+        c['validation']['can_accept']=c['validation']['can_accept_with_dependencies'] and not c['validation']['unresolved_dependency_ids'] and c['review_status'] not in {'rejected','deferred'}
     change['review_status']={c['change_id']:c['review_status'] for c in proposals}
     change['unresolved_count']=sum(c['review_status'] in {'unreviewed','deferred'} for c in proposals)
 
@@ -459,10 +483,6 @@ def _accepted_projection(repo,db,change,run,base):
     if errors: raise ValueError('수락 집합 오류: '+str(errors))
     items=canonical.project(base,chosen)
     for item in items.values():
-        if item.get('replaced_by'):
-            destination = items.get(item['replaced_by'], {})
-            if not destination or destination.get('deprecated') or destination['kind'] != item['kind']:
-                raise ValueError('병합 대상은 수락 후에도 같은 종류의 유효한 정본이어야 합니다.')
         if item.get('deprecated'): continue
         for identifier in canonical.references(item):
             if identifier not in items or items[identifier].get('deprecated'):
@@ -477,9 +497,7 @@ def preview(service, changeset_id):
         base=_base(service.repository,db,change)
         run=service.repository.get(db,'runs',change['run_id'])
         _validate(service.repository,db,change,run,base)
-        selected={c['change_id']:c for c in change['candidates'] if c['review_status']!='rejected' and not c['validation']['structural_errors']}
-        while any(not set(c['dependency_ids']) <= selected.keys() for c in selected.values()):
-            selected={i:c for i,c in selected.items() if set(c['dependency_ids']) <= selected.keys()}
+        selected=_review_candidates(change)
         try:
             compiled,derived,slots=canonical.build(base,canonical.project(base,list(selected.values())))
             return dict(changeset_id=changeset_id,changeset_revision=change['revision'],status='unreviewed_preview',

@@ -443,3 +443,135 @@ def test_supported_critic_keeps_full_dependency_availability(service):
     snapshots.set_availability(service,dict(actor='tester',reason='Critic 문맥 중단',targets=[dict(type='evidence',id=other)],state='blocked',expected_status_revision=0))
     after=next(c for c in listing(service,cid)['candidates'] if c['id']==before['id'])
     assert not after['can_accept'] and '파생 입력' in str(after['validation'])
+
+
+@pytest.mark.parametrize('kind',['attribute','relation'])
+def test_deprecated_required_slot_leaves_current_and_inherited_constraints(service,kind):
+    run,ref=analysis(service)
+    cid=a3.publish(service,run['id'])['changeset_id'];parent=listing(service,cid)['candidates'][0]
+    child=add(service,cid,[proposal(ref)])[0]
+    fields={'range':child['target_id'],'direction':'subject_to_object'} if kind=='relation' else {}
+    slot,edge=add(service,cid,[proposal(ref,kind,domain_id=parent['target_id'],required=True,**fields),
+        hierarchy(ref,child['target_id'],parent['target_id'])])
+    base=decide(service,cid,[dict(candidate_id=c['id'],action='accept') for c in (parent,child,slot,edge)])['ontology_head_id']
+    old=v1.get_ontology(service,base)
+    assert slot['symbol'] in old['json_schema']['$defs'][child['symbol']]['required']
+    run2,_=analysis(service,base=base,observations=[]);cid2=a3.publish(service,run2['id'])['changeset_id']
+    dep=add(service,cid2,[proposal(ref,kind)|dict(operation='deprecate',target_id=slot['target_id'],after={})])[0]
+    result=decide(service,cid2,[dict(candidate_id=dep['id'],action='accept')])
+    current=v1.get_ontology(service,result['ontology_head_id'])
+    for owner in (parent,child):
+        assert slot['symbol'] not in current['effective_class_slots'][owner['symbol']]
+        definition=current['json_schema']['$defs'][owner['symbol']]
+        assert slot['symbol'] not in definition.get('required',[])
+        assert slot['symbol'] not in definition.get('properties',{})
+    assert next(t for t in current['targets'] if t['id']==slot['target_id'])['deprecated']
+    assert current['linkml_schema']['slots'][slot['symbol']]['required']
+    assert v1.get_ontology(service,base)==old
+
+
+def test_deprecated_class_is_retained_without_root_item_exposure(service):
+    run,ref=analysis(service);cid=a3.publish(service,run['id'])['changeset_id']
+    cls=listing(service,cid)['candidates'][0]
+    base=decide(service,cid,[dict(candidate_id=cls['id'],action='accept')])['ontology_head_id']
+    old=v1.get_ontology(service,base)
+    run2,_=analysis(service,base=base,observations=[]);cid2=a3.publish(service,run2['id'])['changeset_id']
+    dep=add(service,cid2,[proposal(ref)|dict(operation='deprecate',target_id=cls['target_id'],after={})])[0]
+    result=decide(service,cid2,[dict(candidate_id=dep['id'],action='accept')])
+    current=v1.get_ontology(service,result['ontology_head_id']);item_slot='items_'+cls['symbol']
+    assert item_slot not in current['linkml_schema']['classes'][canonical.ROOT]['slots']
+    assert item_slot not in json.dumps(current['json_schema'])
+    assert current['linkml_schema']['classes'][cls['symbol']]['deprecated']
+    assert v1.get_ontology(service,base)==old
+
+
+@pytest.mark.parametrize('state',['reject','defer','invalid'])
+def test_inactive_or_invalid_hierarchy_does_not_block_review_structure(service,state):
+    run,ref=analysis(service);cid=a3.publish(service,run['id'])['changeset_id']
+    a=listing(service,cid)['candidates'][0];b=add(service,cid,[proposal(ref)])[0]
+    decide(service,cid,[dict(candidate_id=c['id'],action='accept') for c in (a,b)])
+    forward,reverse=add(service,cid,[hierarchy(ref,a['target_id'],b['target_id']),hierarchy(ref,b['target_id'],a['target_id'])])
+    assert not forward['can_accept'] and 'is_a 순환' in str(forward['validation'])
+    action=dict(candidate_id=reverse['id'],action=state if state!='invalid' else 'edit')
+    if state=='invalid':action['patch']={'evidence_refs':[]}
+    decided=decide(service,cid,[action]);current=listing(service,cid)
+    forward=next(c for c in current['candidates'] if c['id']==forward['id'])
+    assert forward['can_accept'] and 'is_a 순환' not in str(forward['validation'])
+    preview=a3.preview(service,cid)
+    assert preview['status']=='unreviewed_preview'
+    assert forward['id'] in preview['included_change_ids'] and reverse['id'] in preview['excluded_change_ids']
+    result=decide(service,cid,[dict(candidate_id=forward['id'],action='accept')])
+    version=v1.get_ontology(service,result['ontology_head_id'])
+    assert version['linkml_schema']['classes'][a['symbol']]['is_a']==b['symbol']
+    assert 'is_a' not in version['linkml_schema']['classes'][b['symbol']]
+    assert current['decisions'][-1]['candidate_id']==reverse['id']
+    assert decided['ontology_head_id']!=result['ontology_head_id']
+
+
+@pytest.mark.parametrize('kind',['class','vocabulary_concept'])
+def test_sequential_merges_resolve_all_previous_ids_to_live_target(service,kind):
+    run,ref=analysis(service,observations=[]);cid=a3.publish(service,run['id'])['changeset_id']
+    a,b,c=add(service,cid,[proposal(ref,kind) for _ in range(3)])
+    base=decide(service,cid,[dict(candidate_id=t['id'],action='accept') for t in (a,b,c)])['ontology_head_id']
+    originals={base:v1.get_ontology(service,base)}
+    for source,destination in ((a,b),(b,c)):
+        run2,_=analysis(service,base=base,observations=[]);cid2=a3.publish(service,run2['id'])['changeset_id']
+        merge=add(service,cid2,[proposal(ref,kind)|dict(operation='merge',target_id=source['target_id'],after={'canonical_id':destination['target_id']})])[0]
+        assert merge['can_accept']
+        preview=a3.preview(service,cid2)
+        assert preview['status']=='unreviewed_preview'
+        base=decide(service,cid2,[dict(candidate_id=merge['id'],action='accept')])['ontology_head_id']
+        new=v1.get_ontology(service,base)
+        assert preview['vocabulary_registry']['replaced_ids']==new['vocabulary_registry']['replaced_ids']
+        assert all(v1.get_ontology(service,i)==old for i,old in originals.items())
+        originals[base]=new
+    assert new['vocabulary_registry']['replaced_ids']=={t['target_id']:c['target_id'] for t in (a,b)}
+    assert {t['id']:t.get('replaced_by') for t in new['targets'] if t.get('replaced_by')}==new['vocabulary_registry']['replaced_ids']
+
+
+@pytest.mark.parametrize('destination',['missing','wrong_kind','cycle','deprecate'])
+def test_merged_id_cannot_resolve_to_invalid_or_retired_destination(service,destination):
+    run,ref=analysis(service);cid=a3.publish(service,run['id'])['changeset_id']
+    a=listing(service,cid)['candidates'][0];b,vocab=add(service,cid,[proposal(ref),proposal(ref,'vocabulary_concept')])
+    base=decide(service,cid,[dict(candidate_id=t['id'],action='accept') for t in (a,b,vocab)])['ontology_head_id']
+    run2,_=analysis(service,base=base,observations=[]);cid2=a3.publish(service,run2['id'])['changeset_id']
+    merge=add(service,cid2,[proposal(ref)|dict(operation='merge',target_id=a['target_id'],after={'canonical_id':b['target_id']})])[0]
+    base=decide(service,cid2,[dict(candidate_id=merge['id'],action='accept')])['ontology_head_id']
+    old=v1.get_ontology(service,base)
+    run3,_=analysis(service,base=base,observations=[]);cid3=a3.publish(service,run3['id'])['changeset_id']
+    target={'missing':'absent','wrong_kind':vocab['target_id'],'cycle':a['target_id']}.get(destination)
+    bad=add(service,cid3,[proposal(ref)|dict(target_id=b['target_id'],operation='merge' if target else 'deprecate',
+        after={'canonical_id':target} if target else {})])[0]
+    assert not bad['can_accept']
+    before=listing(service,cid3)
+    assert bad['id'] in a3.preview(service,cid3)['excluded_change_ids']
+    with pytest.raises(ValueError):decide(service,cid3,[dict(candidate_id=bad['id'],action='accept')])
+    assert listing(service,cid3)==before and v1.get_ontology(service,base)==old
+
+
+@pytest.mark.parametrize('error',['missing','cycle','dependency'])
+def test_invalid_hierarchy_update_keeps_base_edge_in_review_structure(service,error):
+    run,ref=analysis(service);cid=a3.publish(service,run['id'])['changeset_id']
+    a=listing(service,cid)['candidates'][0];b,c=add(service,cid,[proposal(ref),proposal(ref)])
+    edges=add(service,cid,[hierarchy(ref,a['target_id'],b['target_id'])]+(
+        [hierarchy(ref,c['target_id'],a['target_id'])] if error=='cycle' else []))
+    edge=edges[0]
+    base=decide(service,cid,[dict(candidate_id=t['id'],action='accept') for t in (a,b,c,*edges)])['ontology_head_id']
+    old=v1.get_ontology(service,base)
+    run2,_=analysis(service,base=base,observations=[]);cid2=a3.publish(service,run2['id'])['changeset_id']
+    if error=='dependency':
+        with service.repository.connect() as db:
+            db.execute('INSERT INTO entities VALUES(?,?,?,?)',('referencing','fixture','c',json.dumps(dict(id='referencing',concept_id=c['target_id']))))
+        add(service,cid2,[proposal(ref)|dict(operation='update',target_id=c['target_id'],after=dict(c['after'],definition='기존 소비자 참조가 있는 정의 변경'))])
+    invalid,reverse=add(service,cid2,[hierarchy(ref,a['target_id'],'missing' if error=='missing' else c['target_id'])|dict(operation='update',target_id=edge['target_id']),
+        hierarchy(ref,b['target_id'],a['target_id'])])
+    assert not invalid['can_accept'] and not reverse['can_accept']
+    assert 'is_a 순환' in str(reverse['validation'])
+    preview=a3.preview(service,cid2)
+    assert preview['status']=='unreviewed_preview' and preview['included_change_ids']==[]
+    import yaml
+    classes=yaml.safe_load(preview['linkml_yaml'])['classes']
+    assert classes[a['symbol']]['is_a']==b['symbol'] and 'is_a' not in classes[b['symbol']]
+    before=listing(service,cid2)
+    with pytest.raises(ValueError,match='is_a 순환'):decide(service,cid2,[dict(candidate_id=reverse['id'],action='accept')])
+    assert listing(service,cid2)==before and v1.get_ontology(service,base)==old

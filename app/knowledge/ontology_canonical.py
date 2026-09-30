@@ -72,6 +72,23 @@ def references(target):
     return {target[k] for k in keys if isinstance(target.get(k), str) and target[k]}
 
 
+def replacement_id(items, identifier):
+    """Resolve a retired ID to a live target of the same kind in this version."""
+    kind = items[identifier]['kind']
+    seen = set()
+    while True:
+        item = items.get(identifier)
+        if identifier in seen or not item or item['kind'] != kind:
+            raise ValueError('병합 정본 ID/종류 오류 또는 순환')
+        seen.add(identifier)
+        if item.get('replaced_by'):
+            identifier = item['replaced_by']
+        elif item.get('deprecated'):
+            raise ValueError('병합 대상은 수락 후에도 같은 종류의 유효한 정본이어야 합니다.')
+        else:
+            return identifier
+
+
 def project(base, changes):
     items = deepcopy(targets(base))
     for c in changes:
@@ -86,6 +103,9 @@ def project(base, changes):
                       'rationale', 'support_type', 'hierarchy_review'):
             item[field] = deepcopy(c[field])
         items[identifier] = item
+    for item in items.values():
+        if item.get('replaced_by'):
+            item['replaced_by'] = replacement_id(items, item['id'])
     return items
 
 
@@ -144,9 +164,14 @@ def build(base, items):
         if kind=='class':
             d.setdefault('slots', [])
             item_slot = 'items_' + symbol
-            slots[item_slot] = dict(range=symbol, multivalued=True, inlined_as_list=True)
-            if item_slot not in classes[ROOT]['slots']:
-                classes[ROOT]['slots'].append(item_slot)
+            if t.get('deprecated'):
+                if item_slot in classes[ROOT]['slots']:
+                    classes[ROOT]['slots'].remove(item_slot)
+                slots.pop(item_slot, None)
+            else:
+                slots[item_slot] = dict(range=symbol, multivalued=True, inlined_as_list=True)
+                if item_slot not in classes[ROOT]['slots']:
+                    classes[ROOT]['slots'].append(item_slot)
         else:
             for cls in classes.values():
                 if symbol in cls.get('slots', []):
@@ -160,7 +185,7 @@ def build(base, items):
                 d['inlined'] = True
         group[symbol] = d
     for t in items.values():
-        if t['kind'] in {'attribute','relation'}:
+        if t['kind'] in {'attribute','relation'} and not t.get('deprecated'):
             classes[symbols[t['domain_id']]].setdefault('slots', []).append(t['symbol'])
     for edge in links:
         if edge.get('deprecated'):
