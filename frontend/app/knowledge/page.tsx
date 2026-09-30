@@ -24,7 +24,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const result = await response.json();
   if (!response.ok || result.success === false) {
     if (result.error?.code === "KNOWLEDGE_DISABLED") throw new Error("회사 지식 기능이 꺼져 있습니다. 로컬 설정에서 KNOWLEDGE_ENABLED=true로 지정한 뒤 백엔드를 재시작하세요.");
-    throw new Error(result.error?.message || result.detail || `요청 실패 (${response.status})`);
+    throw Object.assign(new Error(result.error?.message || result.detail || `요청 실패 (${response.status})`), { status: response.status, code: result.error?.code });
   }
   return result.data as T;
 }

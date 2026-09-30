@@ -101,7 +101,10 @@ def blocks(source_id: str, version_id: str, service=Depends(get_knowledge_servic
 
 
 @router.get('/evidence/{evidence_id}', response_model=KnowledgeResponse)
-def evidence(evidence_id: str, service=Depends(get_knowledge_service)):
+def evidence(evidence_id: str, run_id: str | None = None, service=Depends(get_knowledge_service)):
+    if run_id:
+        from app.knowledge.discovery_run import evidence_context
+        return result(evidence_context(service, run_id, evidence_id))
     return result(service.evidence(evidence_id))
 
 
@@ -113,6 +116,12 @@ def start(request: RunRequest, service=Depends(get_knowledge_service)):
 @router.get('/runs/{run_id}', response_model=KnowledgeResponse)
 def run(run_id: str, service=Depends(get_knowledge_service)):
     return result(service.run(run_id))
+
+
+@router.get('/runs', response_model=KnowledgeResponse)
+def discovery_runs(limit: int = 30, before: int | None = None, service=Depends(get_knowledge_service)):
+    from app.knowledge.discovery_run import list_analysis_runs
+    return result(list_analysis_runs(service, limit, before))
 
 
 @router.post('/runs/{run_id}/cancel', response_model=KnowledgeResponse)

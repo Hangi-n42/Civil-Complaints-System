@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import KnowledgeDiscoveryReview from "./KnowledgeDiscoveryReview";
 
 type Request = <T>(path: string, init?: RequestInit) => Promise<T>;
 type SourceItem = { source: { id: string; title: string }; versions: { id: string; format: string; processing_status?: string }[] };
@@ -8,7 +9,7 @@ type CQ = { id: string; question: string };
 type Candidate = { id: string; kind: "concept" | "attribute" | "relation"; name: string; definition: string; inclusion: string; exclusion: string; domain_id?: string | null; range: string; required: boolean; multivalued: boolean; enum_values: string[]; evidence: { evidence_id: string; quote: string }[]; cq_ids: string[]; review_status?: string; issues?: unknown[] };
 type Changeset = { id: string; revision: number; ontology_version_id?: string; review?: unknown; original_candidates?: Candidate[]; reviewed_ontology_version_id?: string; decisions?: { id: string; candidate_id: string; action: string; actor: string; created_at: string; reason: string }[] };
 type Candidates = { items: Candidate[]; changeset_id?: string; changeset_revision?: number; unresolved_count?: number; changesets?: Changeset[] };
-type Ontology = { id: string; status: string; changeset_id: string; created_at: string; linkml_yaml?: string; json_schema?: unknown; candidates?: Candidate[] };
+type Ontology = { id: string; payload_version?: number; status: string; changeset_id: string; created_at: string; linkml_yaml?: string; json_schema?: unknown; candidates?: Candidate[] };
 type Run = { id: string; status: string; units: { id: string; stage?: string; status: string; error?: string; output?: unknown }[]; metrics?: { llm_calls?: number; model_total_s?: number; elapsed_s?: number }; changeset_id?: string; ontology_version_id?: string; review?: unknown };
 type Evidence = { evidence: { quote: string }; block: { text: string; locator: unknown }; source: { title: string } };
 const inputClass = "w-full rounded border border-slate-300 px-3 py-2 text-sm";
@@ -17,7 +18,16 @@ const active = (status: string) => ["queued", "running", "cancel_requested"].inc
 const labels: Record<string, string> = { queued: "대기", running: "처리 중", succeeded: "완료", failed: "실패", cancelled: "취소됨", cancel_requested: "취소 요청됨", concept: "개념", attribute: "속성", relation: "관계", pending: "검토 전", proposed: "검토 전", accepted: "수락", modified: "수정 후 수락", deferred: "보류", rejected: "기각", draft: "초안", reviewed: "검토됨", analyze: "자료 분석", analysis: "자료 분석", accept: "수락", modify: "수정 후 수락", defer: "보류", reject: "기각", design: "온톨로지 설계", review: "반례 검토", revise: "수정" };
 const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-export default function KnowledgeOntology({ request, sources }: { request: Request; sources: SourceItem[] }) {
+export default function KnowledgeOntology(props: { request: Request; sources: SourceItem[] }) {
+  const [mode, setMode] = useState<"discovery" | "manual">("discovery");
+  return <section className="space-y-4"><nav aria-label="온톨로지 작성 방식" className="flex gap-2">
+    <button className={buttonClass} aria-pressed={mode === "discovery"} onClick={() => setMode("discovery")}>저장된 탐색 초안 검수</button>
+    <button className={buttonClass} aria-pressed={mode === "manual"} onClick={() => setMode("manual")}>수동 자료 선택 · K3</button>
+  </nav><div hidden={mode !== "discovery"}><KnowledgeDiscoveryReview request={props.request} /></div>
+    <div hidden={mode !== "manual"}><ManualOntology {...props} /></div></section>;
+}
+
+function ManualOntology({ request, sources }: { request: Request; sources: SourceItem[] }) {
   const [versionIds, setVersionIds] = useState<string[] | null>(null);
   const [cqs, setCqs] = useState<CQ[]>([]);
   const [baseId, setBaseId] = useState("");
@@ -42,7 +52,7 @@ export default function KnowledgeOntology({ request, sources }: { request: Reque
   const original = changeset?.original_candidates?.find(c => c.id === draft?.id);
   const review = changeset?.review ?? run?.review ?? run?.units.find(u => u.stage === "review")?.output;
 
-  const refreshOntologies = useCallback(async () => setOntologies((await request<{ items: Ontology[] }>("/ontologies")).items), [request]);
+  const refreshOntologies = useCallback(async () => setOntologies((await request<{ items: Ontology[] }>("/ontologies")).items.filter(o => o.payload_version !== 2)), [request]);
   const loadCandidates = useCallback(async (id: string) => {
     const data = await request<Candidates>(`/candidates?changeset_id=${encodeURIComponent(id)}`);
     const currentVersion = data.changesets?.find(c => c.id === id)?.ontology_version_id;
@@ -53,7 +63,7 @@ export default function KnowledgeOntology({ request, sources }: { request: Reque
   useEffect(() => {
     let disposed = false;
     Promise.all([request<{ items: CQ[] }>("/ontology-cqs"), request<{ items: Ontology[] }>("/ontologies")]).then(([questions, versions]) => {
-      if (!disposed) { setCqs(questions.items); setOntologies(versions.items); }
+      if (!disposed) { setCqs(questions.items); setOntologies(versions.items.filter(o => o.payload_version !== 2)); }
     }).catch(e => { if (!disposed) setError(e.message); });
     return () => { disposed = true; };
   }, [request]);

@@ -151,6 +151,59 @@ def _metadata(run):
                 scope=frozen['scope'], step=frozen['step'])
 
 
+def list_analysis_runs(service, limit=30, before=None):
+    if not 1 <= limit <= 100 or (before is not None and before < 1):
+        raise ValueError('limit은 1~100, before는 양수여야 합니다.')
+    with service.repository.connect() as db:
+        rows = db.execute("""SELECT rowid, json_object(
+            'id', json_extract(payload,'$.id'), 'status', json_extract(payload,'$.status'),
+            'started_at', json_extract(payload,'$.started_at'), 'finished_at', json_extract(payload,'$.finished_at'),
+            'scope', json_extract(payload,'$.frozen_input.scope'), 'step', json_extract(payload,'$.frozen_input.step'),
+            'changeset_id', json_extract(payload,'$.changeset_id'),
+            'has_result', json_type(payload,'$.result')='object') AS summary
+            FROM runs WHERE json_extract(payload,'$.kind')='discovery'
+            AND json_extract(payload,'$.discovery_mode')='analyze' AND (? IS NULL OR rowid < ?)
+            ORDER BY rowid DESC LIMIT ?""", (before, before, limit+1)).fetchall()
+    return dict(items=[json.loads(r['summary']) for r in rows[:limit]],
+                next_before=rows[limit-1]['rowid'] if len(rows)>limit else None)
+
+
+def evidence_context(service, run_id, evidence_id):
+    """Read neighbouring stored blocks from this run's frozen parse, never the latest pointer."""
+    from .discovery_profile import contexts
+    from .snapshots import _statuses
+    value = service.evidence(evidence_id)
+    with service.repository.connect() as db:
+        run = _run(service, db, run_id, None, None)
+        pair = next(((f,u) for f,u in zip(run['frozen_input']['files'],run['units'])
+                     if u['status']=='succeeded' and value['block']['id'] in u['block_ids']), None)
+        if pair is None:
+            raise KeyError(evidence_id)
+        item, unit = pair
+        blocks = _blocks(service, db, item, unit)
+        index = next(i for i,b in enumerate(blocks) if b['id']==value['block']['id'])
+        context = contexts(blocks)[value['block']['id']]
+        ids = set(context['block_ids']) | {b['id'] for b in blocks[max(0,index-1):index+2]}
+        statuses = _statuses(db)
+        if not _available(item, value['block'], statuses):
+            raise ValueError('사용 중단 또는 재검토가 필요한 원문입니다.')
+        selected = [b for b in blocks if b['id'] in ids and _available(item,b,statuses)]
+        context['block_ids'] = [b['id'] for b in selected]
+        # Derived captions/headers may copy a blocked block even on an allowed row.
+        if any(not _available(item,b,statuses) for b in blocks):
+            derived = {'table_headers', 'column_names', 'table_caption', 'section'}
+            def redact_locator(block):
+                return dict(block, locator={k:v for k,v in block.get('locator',{}).items() if k not in derived})
+            selected = [redact_locator(b) for b in selected]
+            value = dict(value, block=redact_locator(value['block']), evidence=redact_locator(value['evidence']))
+            context.update(title=None, headers=[], status='unconfirmed')
+            context['notes'].append('사용 제한 자료의 문맥 유입을 막기 위해 파생 제목·표 헤더 생략; 문맥 확인 필요')
+    return dict(value, run_id=run_id, file_id=item['file_id'], source_role=item.get('role'),
+        frozen_parse_run_id=unit['parse_run_id'], context=dict(context, blocks=selected,
+        omitted_restricted_count=len(ids)-len(selected),
+        notes=[*context['notes'], '인접 구간 제공이며 문서 전체 문맥·조건 검토 완료를 뜻하지 않음']))
+
+
 def catalog(service, run_id, scope=None, step=None):
     with service.repository.connect() as db:
         run = _run(service, db, run_id, scope, step)
