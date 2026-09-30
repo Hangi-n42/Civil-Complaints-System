@@ -1,0 +1,2416 @@
+{
+  "status": "reviewable_proposal_candidates_not_approved_not_full_after_route",
+  "prepared_on": "2026-09-29",
+  "case_id": "dobong_1127_complaint_20260904",
+  "baseline_date": "2026-09-02",
+  "route_id": "100100143",
+  "route_name": "1127",
+  "citizen_submission_url": "https://ceo.dobong.go.kr/bbs.asp?bmode=D&code=10000662&intPage=11&pcode=12745939",
+  "source_files": [
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/dobong_1127_complaint_input.txt",
+      "sha256": "cc77710019c4f86ffa69f35b17c9992bcca3e4c178565c66dac91b9c60719a5c"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/IMG_0258.jpeg",
+      "sha256": "8b24bddf599814fc02e2e0c1bfe0124bea6d33a461ee810e6e023ad33d5a4362"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/IMG_0259.jpeg",
+      "sha256": "41e8e3a804f427f924be4c416782dd52a18fbf39dd5145374c612ec7f3efc732"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/IMG_0261.jpeg",
+      "sha256": "ba821f4c2be2a49ff5a2f21c98153634bda4167f002c7622476bbe7ff04dca44"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/IMG_0262.jpeg",
+      "sha256": "ba2de199b33df2f6fdc55a9045f19e4d8709c4e82847bd97291f428fdf07e7be"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/seoul_stops_20260902.xlsx",
+      "sha256": "73eb0a5f4fd0f6128237b5e23fa361fd1c6d8a31a83bcee2884e6a48481852bb"
+    },
+    {
+      "path": "data/knowledge/raw/demo_complaints_20260929/seoul_route_order_20260902.xlsx",
+      "sha256": "b54816e9b7e77bcf49dd7562b993db06a093daa666351f115ea4d1dd0dd8b1df"
+    }
+  ],
+  "coordinate_reference": "WGS84; authoritative coordinates from stop registry, not route sheet rounded coordinates",
+  "full_proposed_sequence": null,
+  "full_proposed_sequence_status": "Cannot fix uniquely from citizen text and four schematic maps",
+  "baseline_stops": [
+    {
+      "baseline_occurrence_id": "1127-20260902-01",
+      "baseline_order": 1,
+      "node_id": "109000068",
+      "ars_id": "10153",
+      "name": "도봉산입구",
+      "longitude": 127.0407179415,
+      "latitude": 37.6870828083,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000068"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-02",
+      "baseline_order": 2,
+      "node_id": "109000069",
+      "ars_id": "10154",
+      "name": "도봉산성당",
+      "longitude": 127.0441871881,
+      "latitude": 37.6873184373,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000069"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-03",
+      "baseline_order": 3,
+      "node_id": "109000023",
+      "ars_id": "10103",
+      "name": "도봉1동우체국",
+      "longitude": 127.0456109086,
+      "latitude": 37.6826140348,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000023"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-04",
+      "baseline_order": 4,
+      "node_id": "109000071",
+      "ars_id": "10156",
+      "name": "도봉역",
+      "longitude": 127.0466814888,
+      "latitude": 37.6803220296,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000071"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-05",
+      "baseline_order": 5,
+      "node_id": "109000073",
+      "ars_id": "10158",
+      "name": "노원교",
+      "longitude": 127.0490169573,
+      "latitude": 37.6794237641,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000073"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-06",
+      "baseline_order": 6,
+      "node_id": "109000075",
+      "ars_id": "10160",
+      "name": "성대야구장.노원교앞",
+      "longitude": 127.049212,
+      "latitude": 37.678442,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000075"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-07",
+      "baseline_order": 7,
+      "node_id": "109000045",
+      "ars_id": "10130",
+      "name": "서울북부지방법원.검찰청.성우아파트",
+      "longitude": 127.0477862346,
+      "latitude": 37.6758077674,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000045"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-08",
+      "baseline_order": 8,
+      "node_id": "109000047",
+      "ars_id": "10132",
+      "name": "법조타운공영주차장",
+      "longitude": 127.046582,
+      "latitude": 37.673315,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000047"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-09",
+      "baseline_order": 9,
+      "node_id": "109000049",
+      "ars_id": "10134",
+      "name": "도봉구청",
+      "longitude": 127.0460153661,
+      "latitude": 37.6688382917,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000049"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-10",
+      "baseline_order": 10,
+      "node_id": "109000051",
+      "ars_id": "10136",
+      "name": "방학1동삼성.대상타운현대아파트",
+      "longitude": 127.0460053525,
+      "latitude": 37.6663876289,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000051"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-11",
+      "baseline_order": 11,
+      "node_id": "109000112",
+      "ars_id": "10197",
+      "name": "서울문화고등학교",
+      "longitude": 127.046309519,
+      "latitude": 37.6628720833,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000112"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-12",
+      "baseline_order": 12,
+      "node_id": "109000033",
+      "ars_id": "10116",
+      "name": "방학사거리",
+      "longitude": 127.0421039333,
+      "latitude": 37.6622176747,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000033"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-13",
+      "baseline_order": 13,
+      "node_id": "109000011",
+      "ars_id": "10011",
+      "name": "도봉보건소",
+      "longitude": 127.0407623758,
+      "latitude": 37.6589364195,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000011"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-14",
+      "baseline_order": 14,
+      "node_id": "109000209",
+      "ars_id": "10297",
+      "name": "창5동현대아파트",
+      "longitude": 127.040400444,
+      "latitude": 37.6556229537,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000209"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-15",
+      "baseline_order": 15,
+      "node_id": "109000143",
+      "ars_id": "10229",
+      "name": "창동주공1단지아파트",
+      "longitude": 127.0408838385,
+      "latitude": 37.6536699078,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000143"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-16",
+      "baseline_order": 16,
+      "node_id": "109000293",
+      "ars_id": "10657",
+      "name": "창동고등학교.창북중학교",
+      "longitude": 127.0381460822,
+      "latitude": 37.6515935012,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000293"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-17",
+      "baseline_order": 17,
+      "node_id": "109000015",
+      "ars_id": "10015",
+      "name": "쌍문역",
+      "longitude": 127.0347686574,
+      "latitude": 37.6488174173,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000015"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-18",
+      "baseline_order": 18,
+      "node_id": "109000172",
+      "ars_id": "10258",
+      "name": "한신아파트101동앞",
+      "longitude": 127.034828,
+      "latitude": 37.646023,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000172"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-19",
+      "baseline_order": 19,
+      "node_id": "109000170",
+      "ars_id": "10256",
+      "name": "창2동한일아파트",
+      "longitude": 127.037265,
+      "latitude": 37.64619,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000170"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-20",
+      "baseline_order": 20,
+      "node_id": "109000175",
+      "ars_id": "10261",
+      "name": "창동청구빌라",
+      "longitude": 127.0395258217,
+      "latitude": 37.6461243931,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000175"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-21",
+      "baseline_order": 21,
+      "node_id": "109000177",
+      "ars_id": "10263",
+      "name": "창림초등학교후문.창동보건지소",
+      "longitude": 127.040407,
+      "latitude": 37.642856,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000177"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-22",
+      "baseline_order": 22,
+      "node_id": "109000163",
+      "ars_id": "10249",
+      "name": "국립현대미술관창동레지던시",
+      "longitude": 127.0395396001,
+      "latitude": 37.640398878,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000163"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-23",
+      "baseline_order": 23,
+      "node_id": "109000242",
+      "ars_id": "10331",
+      "name": "신창.창동시장",
+      "longitude": 127.0384574781,
+      "latitude": 37.6392573593,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000242"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-24",
+      "baseline_order": 24,
+      "node_id": "109000165",
+      "ars_id": "10251",
+      "name": "창동서울탁주앞",
+      "longitude": 127.036931039,
+      "latitude": 37.6375883927,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000165"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-25",
+      "baseline_order": 25,
+      "node_id": "109000225",
+      "ars_id": "10313",
+      "name": "금용아파트",
+      "longitude": 127.0351770744,
+      "latitude": 37.637736706,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000225"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-26",
+      "baseline_order": 26,
+      "node_id": "109000166",
+      "ars_id": "10252",
+      "name": "창2동건영캐스빌아파트",
+      "longitude": 127.0336397512,
+      "latitude": 37.6408990489,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000166"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-27",
+      "baseline_order": 27,
+      "node_id": "109000223",
+      "ars_id": "10311",
+      "name": "태영데시앙아파트",
+      "longitude": 127.0324449266,
+      "latitude": 37.642384365,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_loop_assumption",
+      "reason": "지도3에서 동측·남측 신창시장 경로를 따르는 선 확인. 정차 모두유지는 분석가정.",
+      "baseline_source_node_id": "109000223"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-28",
+      "baseline_order": 28,
+      "node_id": "108000158",
+      "ars_id": "09246",
+      "name": "수유3동우체국",
+      "longitude": 127.0275793554,
+      "latitude": 37.6400256713,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "remove_candidate",
+      "reason": "수유역 진입구간 삭제 요청과 지도 적색표시. 개별정차ID는 현행순번에 대응한 후보.",
+      "baseline_source_node_id": "108000158"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-29",
+      "baseline_order": 29,
+      "node_id": "108000184",
+      "ars_id": "09272",
+      "name": "수유역.강북구청",
+      "longitude": 127.0260514034,
+      "latitude": 37.6386311446,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "remove_candidate",
+      "reason": "수유역 진입구간 삭제 요청과 지도 적색표시. 개별정차ID는 현행순번에 대응한 후보.",
+      "baseline_source_node_id": "108000184"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-30",
+      "baseline_order": 30,
+      "node_id": "108000118",
+      "ars_id": "09206",
+      "name": "삼성화재강북지점",
+      "longitude": 127.0248073406,
+      "latitude": 37.6355100656,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "remove_candidate",
+      "reason": "수유역 진입구간 삭제 요청과 지도 적색표시. 개별정차ID는 현행순번에 대응한 후보.",
+      "baseline_source_node_id": "108000118"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-31",
+      "baseline_order": 31,
+      "node_id": "108000160",
+      "ars_id": "09248",
+      "name": "수유역.노스페이스문화센터",
+      "longitude": 127.026897397,
+      "latitude": 37.6389518521,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "remove_candidate",
+      "reason": "수유역 진입구간 삭제 요청과 지도 적색표시. 개별정차ID는 현행순번에 대응한 후보.",
+      "baseline_source_node_id": "108000160"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-32",
+      "baseline_order": 32,
+      "node_id": "108000159",
+      "ars_id": "09247",
+      "name": "수유3동우체국",
+      "longitude": 127.0281157885,
+      "latitude": 37.6400597793,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "remove_candidate",
+      "reason": "수유역 진입구간 삭제 요청과 지도 적색표시. 개별정차ID는 현행순번에 대응한 후보.",
+      "baseline_source_node_id": "108000159"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-33",
+      "baseline_order": 33,
+      "node_id": "109000399",
+      "ars_id": "10336",
+      "name": "태영데시앙아파트",
+      "longitude": 127.0317878535,
+      "latitude": 37.6426266528,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000399"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-34",
+      "baseline_order": 34,
+      "node_id": "109000167",
+      "ars_id": "10253",
+      "name": "창2동건영캐스빌아파트",
+      "longitude": 127.033467,
+      "latitude": 37.640778,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000167"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-35",
+      "baseline_order": 35,
+      "node_id": "109000226",
+      "ars_id": "10314",
+      "name": "창번2교앞",
+      "longitude": 127.034453,
+      "latitude": 37.63859,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000226"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-36",
+      "baseline_order": 36,
+      "node_id": "109000164",
+      "ars_id": "10250",
+      "name": "창동서울탁주앞",
+      "longitude": 127.0373826795,
+      "latitude": 37.637707889,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000164"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-37",
+      "baseline_order": 37,
+      "node_id": "109000241",
+      "ars_id": "10330",
+      "name": "창동.신창시장",
+      "longitude": 127.0384760994,
+      "latitude": 37.6388467098,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000241"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-38",
+      "baseline_order": 38,
+      "node_id": "109000162",
+      "ars_id": "10248",
+      "name": "국립현대미술관창동레지던시",
+      "longitude": 127.0394443113,
+      "latitude": 37.6398501948,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000162"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-39",
+      "baseline_order": 39,
+      "node_id": "109000176",
+      "ars_id": "10262",
+      "name": "창림초등학교후문",
+      "longitude": 127.040517,
+      "latitude": 37.643092,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000176"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-40",
+      "baseline_order": 40,
+      "node_id": "109000174",
+      "ars_id": "10260",
+      "name": "창동청구빌라",
+      "longitude": 127.039732,
+      "latitude": 37.64608,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000174"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-41",
+      "baseline_order": 41,
+      "node_id": "109000171",
+      "ars_id": "10257",
+      "name": "창1동제1공영주차장입구",
+      "longitude": 127.037607982,
+      "latitude": 37.6463797917,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000171"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-42",
+      "baseline_order": 42,
+      "node_id": "109000173",
+      "ars_id": "10259",
+      "name": "KT도봉지점",
+      "longitude": 127.0351240039,
+      "latitude": 37.6461924766,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "unresolved_return_loop",
+      "reason": "지도3의 남측 순환 방향에 따라 재방문/제외가 달라짐. 원문에 반환순서가 없어 삭제 확정불가.",
+      "baseline_source_node_id": "109000173"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-43",
+      "baseline_order": 43,
+      "node_id": "109000041",
+      "ars_id": "10126",
+      "name": "쌍문역.쌍리단길",
+      "longitude": 127.0342799955,
+      "latitude": 37.6475318122,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000041"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-44",
+      "baseline_order": 44,
+      "node_id": "109000217",
+      "ars_id": "10305",
+      "name": "창동고등학교.창북중학교",
+      "longitude": 127.0384575543,
+      "latitude": 37.6513664604,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000217"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-45",
+      "baseline_order": 45,
+      "node_id": "109000142",
+      "ars_id": "10228",
+      "name": "창동주공1단지",
+      "longitude": 127.0410046287,
+      "latitude": 37.6542705499,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000142"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-46",
+      "baseline_order": 46,
+      "node_id": "109000210",
+      "ars_id": "10298",
+      "name": "창5동현대1차아파트",
+      "longitude": 127.040602,
+      "latitude": 37.65587,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000210"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-47",
+      "baseline_order": 47,
+      "node_id": "109000034",
+      "ars_id": "10117",
+      "name": "도봉보건소",
+      "longitude": 127.0402286427,
+      "latitude": 37.6575128224,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000034"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-48",
+      "baseline_order": 48,
+      "node_id": "109000032",
+      "ars_id": "10115",
+      "name": "방학사거리.바로선병원",
+      "longitude": 127.0422791488,
+      "latitude": 37.6612173924,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "reconfigure_candidate",
+      "reason": "방학사거리~창동역~쌍문역 변경구간. 이름같은 기존정차도 진행방향·중복방문 조건 재검토.",
+      "baseline_source_node_id": "109000032"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-49",
+      "baseline_order": 49,
+      "node_id": "109000364",
+      "ars_id": "10740",
+      "name": "서울문화고등학교",
+      "longitude": 127.04668,
+      "latitude": 37.663889,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000364"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-50",
+      "baseline_order": 50,
+      "node_id": "109000050",
+      "ars_id": "10135",
+      "name": "방학1동대상타운현대.삼성아파트",
+      "longitude": 127.0464385387,
+      "latitude": 37.665833356,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000050"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-51",
+      "baseline_order": 51,
+      "node_id": "109000048",
+      "ars_id": "10133",
+      "name": "도봉구청",
+      "longitude": 127.0463337031,
+      "latitude": 37.6689552465,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000048"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-52",
+      "baseline_order": 52,
+      "node_id": "109000361",
+      "ars_id": "10735",
+      "name": "서원아파트",
+      "longitude": 127.0466777586,
+      "latitude": 37.6716952848,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000361"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-53",
+      "baseline_order": 53,
+      "node_id": "109000046",
+      "ars_id": "10131",
+      "name": "법조타운공영주차장",
+      "longitude": 127.047318,
+      "latitude": 37.674737,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000046"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-54",
+      "baseline_order": 54,
+      "node_id": "109000044",
+      "ars_id": "10129",
+      "name": "서울북부지방법원.검찰청.성우아파트",
+      "longitude": 127.048374262,
+      "latitude": 37.676134203,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000044"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-55",
+      "baseline_order": 55,
+      "node_id": "109000215",
+      "ars_id": "10303",
+      "name": "도봉동서광아파트",
+      "longitude": 127.0494617013,
+      "latitude": 37.6781990171,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000215"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-56",
+      "baseline_order": 56,
+      "node_id": "109000074",
+      "ars_id": "10159",
+      "name": "노원교",
+      "longitude": 127.0491191453,
+      "latitude": 37.6796543968,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000074"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-57",
+      "baseline_order": 57,
+      "node_id": "109000072",
+      "ars_id": "10157",
+      "name": "도봉역.도봉래미안아파트",
+      "longitude": 127.0470845566,
+      "latitude": 37.6803959104,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000072"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-58",
+      "baseline_order": 58,
+      "node_id": "109000024",
+      "ars_id": "10104",
+      "name": "도봉동한신아파트",
+      "longitude": 127.0459586654,
+      "latitude": 37.6821047926,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000024"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-59",
+      "baseline_order": 59,
+      "node_id": "109000070",
+      "ars_id": "10155",
+      "name": "김근태기념도서관",
+      "longitude": 127.0440286782,
+      "latitude": 37.6874938159,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000070"
+    },
+    {
+      "baseline_occurrence_id": "1127-20260902-60",
+      "baseline_order": 60,
+      "node_id": "109000228",
+      "ars_id": "10317",
+      "name": "도봉산입구",
+      "longitude": 127.0406896745,
+      "latitude": 37.6872224695,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance",
+      "proposal_status": "retain_assumption",
+      "reason": "시민 지도상 유지된 북측 경로. 모든 정차 유지의 명시목록은 없어 분석가정.",
+      "baseline_source_node_id": "109000228"
+    }
+  ],
+  "waypoint_matches": [
+    {
+      "waypoint_id": "banghak",
+      "citizen_waypoint": "방학사거리",
+      "candidate_stops": [
+        {
+          "node_id": "109000033",
+          "ars_id": "10116",
+          "name": "방학사거리",
+          "longitude": 127.0421039333,
+          "latitude": 37.6622176747,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000032",
+          "ars_id": "10115",
+          "name": "방학사거리.바로선병원",
+          "longitude": 127.0422791488,
+          "latitude": 37.6612173924,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000110",
+          "ars_id": "10195",
+          "name": "방학사거리",
+          "longitude": 127.0406167927,
+          "latitude": 37.6627158579,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000111",
+          "ars_id": "10196",
+          "name": "방학사거리",
+          "longitude": 127.0403874289,
+          "latitude": 37.6629772212,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "현재1127의10116/10115와 신한은행 방면10195/10196은 다른 정차지점. 지도상 서쪽 진행으로10196을 분석후보로 선정."
+    },
+    {
+      "waypoint_id": "bank",
+      "citizen_waypoint": "신한은행 방학지점",
+      "candidate_stops": [
+        {
+          "node_id": "109000097",
+          "ars_id": "10182",
+          "name": "신한은행방학동지점",
+          "longitude": 127.0372935845,
+          "latitude": 37.6634557599,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000098",
+          "ars_id": "10183",
+          "name": "신한은행방학동지점",
+          "longitude": 127.037197641,
+          "latitude": 37.6632312342,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000108",
+          "ars_id": "10193",
+          "name": "신한은행방학동지점",
+          "longitude": 127.037002395,
+          "latitude": 37.6626546059,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000109",
+          "ars_id": "10194",
+          "name": "신한은행방학동지점",
+          "longitude": 127.036807,
+          "latitude": 37.662933,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "동명4개. 방학로 동서방향10193/10194와 다른 도로10182/10183을 구분. 서진10194/동진10193은1119 순서로 확인."
+    },
+    {
+      "waypoint_id": "samik",
+      "citizen_waypoint": "방학삼익아파트",
+      "candidate_stops": [
+        {
+          "node_id": "109000090",
+          "ars_id": "10175",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.03493,
+          "latitude": 37.661672,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000091",
+          "ars_id": "10176",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.0346738125,
+          "latitude": 37.6617551365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "방학동삼익세라믹 정류장명·지도 삼익세라믹 위치를 대응. 출입구 좌표 아님. 남진10176/북진10175는1126 순서로 확인."
+    },
+    {
+      "waypoint_id": "cheonggu",
+      "citizen_waypoint": "도당로 쌍문청구아파트",
+      "candidate_stops": [
+        {
+          "node_id": "109000092",
+          "ars_id": "10177",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0350817617,
+          "latitude": 37.6597398904,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000093",
+          "ars_id": "10178",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0348107133,
+          "latitude": 37.6596243231,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "쌍문동청구아파트. 다른 방학동우성청구10207이나 청구10564와 합치지 않음."
+    },
+    {
+      "waypoint_id": "health",
+      "citizen_waypoint": "도봉보건소",
+      "candidate_stops": [
+        {
+          "node_id": "109000131",
+          "ars_id": "10216",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375306952,
+          "latitude": 37.6572458182,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000132",
+          "ars_id": "10217",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375891737,
+          "latitude": 37.6574389797,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109900090",
+          "ars_id": "10531",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0377806894,
+          "latitude": 37.6573821506,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109900113",
+          "ars_id": "10726",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0376989713,
+          "latitude": 37.6571578082,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000011",
+          "ars_id": "10011",
+          "name": "도봉보건소",
+          "longitude": 127.0407623758,
+          "latitude": 37.6589364195,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000012",
+          "ars_id": "10012",
+          "name": "도봉보건소.북한산아이파크아파트",
+          "longitude": 127.040517,
+          "latitude": 37.658205,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000034",
+          "ars_id": "10117",
+          "name": "도봉보건소",
+          "longitude": 127.0402286427,
+          "latitude": 37.6575128224,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "새 우회로는 도당로의 도봉구보건소앞10216/10217 후보. 현1127중앙10011과 가로변10117은 기존노선 검토대상으로 별도 유지."
+    },
+    {
+      "waypoint_id": "civic",
+      "citizen_waypoint": "보건소~정의여고 사이 중간 정차",
+      "candidate_stops": [
+        {
+          "node_id": "109000038",
+          "ars_id": "10121",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0382221679,
+          "latitude": 37.6541047846,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000039",
+          "ars_id": "10122",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0381420661,
+          "latitude": 37.6548202673,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000013",
+          "ars_id": "10013",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0381736668,
+          "latitude": 37.6545598452,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000014",
+          "ars_id": "10014",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.037977,
+          "latitude": 37.653968,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "지도상 도봉로 진행구간. 일반차로10121/10122와 중앙10013/10014 중 선택 필요. 분석용은 같은 우회 경로를 지나가는1126의 일반차로 후보 사용."
+    },
+    {
+      "waypoint_id": "jeongui",
+      "citizen_waypoint": "정의여고사거리",
+      "candidate_stops": [
+        {
+          "node_id": "109000036",
+          "ars_id": "10119",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0373872846,
+          "latitude": 37.6526308865,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000037",
+          "ars_id": "10120",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0365880712,
+          "latitude": 37.6521851028,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000218",
+          "ars_id": "10306",
+          "name": "정의여중고입구",
+          "longitude": 127.0331370812,
+          "latitude": 37.6510121866,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109900044",
+          "ars_id": "10775",
+          "name": "정의여중고",
+          "longitude": 127.0331242114,
+          "latitude": 37.6512012464,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "민원은 사거리·시설 지칭. 지도에서 도봉로와 창동고 방향 분기를 확인. 서쪽10306/10775를 무조건 대응하지 않음.10119/10120은 경로상 후보이나 실제 학교 출입구 별도."
+    },
+    {
+      "waypoint_id": "changdong_high",
+      "citizen_waypoint": "창동고",
+      "candidate_stops": [
+        {
+          "node_id": "109000217",
+          "ars_id": "10305",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0384575543,
+          "latitude": 37.6513664604,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000293",
+          "ars_id": "10657",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0381460822,
+          "latitude": 37.6515935012,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "동진10305/서진10657 후보. 현1127순번16은 서진10657,44는 동진10305. 변경 후 같은ID 재방문 가능하여 정차 occurrence 보존 필요."
+    },
+    {
+      "waypoint_id": "education",
+      "citizen_waypoint": "서울특별시 북부교육지원청",
+      "candidate_stops": [
+        {
+          "node_id": "109000145",
+          "ars_id": "10231",
+          "name": "서울북부지방법원등기국",
+          "longitude": 127.044525,
+          "latitude": 37.651106,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000146",
+          "ars_id": "10232",
+          "name": "서울북부지방법원등기국",
+          "longitude": 127.0445412495,
+          "latitude": 37.6514245604,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "민원은 기관을 경유지로 지칭. 인근 등기국10231/10232는 버스정차 후보일 뿐 기관 출입구나 동명 동일기관 아님."
+    },
+    {
+      "waypoint_id": "changdong_west",
+      "citizen_waypoint": "창동역 이마트 U턴",
+      "candidate_stops": [
+        {
+          "node_id": "109900135",
+          "ars_id": "10736",
+          "name": "창동이마트",
+          "longitude": 127.0461708888,
+          "latitude": 37.6513329248,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000148",
+          "ars_id": "10234",
+          "name": "창동역서측",
+          "longitude": 127.0461227769,
+          "latitude": 37.652335845,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109900173",
+          "ars_id": "10703",
+          "name": "창동역서측",
+          "longitude": 127.0463383955,
+          "latitude": 37.6523291893,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "지도4는 창동역 남서쪽 이마트 앞 U턴선.10736은 기존 마을버스 정류장,10234/10703은 역서측 다른위치. 승인된1127정차나 정확한U턴좌표로 확정하지 않음."
+    },
+    {
+      "waypoint_id": "ssangmun",
+      "citizen_waypoint": "쌍문역",
+      "candidate_stops": [
+        {
+          "node_id": "109000015",
+          "ars_id": "10015",
+          "name": "쌍문역",
+          "longitude": 127.0347686574,
+          "latitude": 37.6488174173,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000016",
+          "ars_id": "10016",
+          "name": "쌍문역",
+          "longitude": 127.0344600639,
+          "latitude": 37.6480714136,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000040",
+          "ars_id": "10124",
+          "name": "쌍문역.쌍문시장",
+          "longitude": 127.0340974005,
+          "latitude": 37.6480246628,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000041",
+          "ars_id": "10126",
+          "name": "쌍문역.쌍리단길",
+          "longitude": 127.0342799955,
+          "latitude": 37.6475318122,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "현1127은10015와10126. 도로·방향별 지점 구별."
+    },
+    {
+      "waypoint_id": "southern_connection",
+      "citizen_waypoint": "태영데시앙에서 쌍문역 직접 연결",
+      "candidate_stops": [
+        {
+          "node_id": "109000223",
+          "ars_id": "10311",
+          "name": "태영데시앙아파트",
+          "longitude": 127.0324449266,
+          "latitude": 37.642384365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000399",
+          "ars_id": "10336",
+          "name": "태영데시앙아파트",
+          "longitude": 127.0317878535,
+          "latitude": 37.6426266528,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000042",
+          "ars_id": "10127",
+          "name": "우이교앞",
+          "longitude": 127.0321793259,
+          "latitude": 37.643993768,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000041",
+          "ars_id": "10126",
+          "name": "쌍문역.쌍리단길",
+          "longitude": 127.0342799955,
+          "latitude": 37.6475318122,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "지도3의 새 선은 수유역을 생략하고 우이교 쪽으로 연결.1126기존순서10311→10127→10126은 연결후보의 참고이나 신규1127 운행승인을 뜻하지 않음."
+    },
+    {
+      "waypoint_id": "suyu_removed",
+      "citizen_waypoint": "수유역 진입 제외 검토",
+      "candidate_stops": [
+        {
+          "node_id": "108000158",
+          "ars_id": "09246",
+          "name": "수유3동우체국",
+          "longitude": 127.0275793554,
+          "latitude": 37.6400256713,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "108000184",
+          "ars_id": "09272",
+          "name": "수유역.강북구청",
+          "longitude": 127.0260514034,
+          "latitude": 37.6386311446,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "108000118",
+          "ars_id": "09206",
+          "name": "삼성화재강북지점",
+          "longitude": 127.0248073406,
+          "latitude": 37.6355100656,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "108000160",
+          "ars_id": "09248",
+          "name": "수유역.노스페이스문화센터",
+          "longitude": 127.026897397,
+          "latitude": 37.6389518521,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "108000159",
+          "ars_id": "09247",
+          "name": "수유3동우체국",
+          "longitude": 127.0281157885,
+          "latitude": 37.6400597793,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "reason": "지도1·3의 적색표시와 수유역·강북구청 진입단축 본문을 해당기존정차에 대응. 정확한경계확정 전 제외후보. 정류장 폐쇄가 아니라1127정차관계 삭제후보."
+    }
+  ],
+  "partial_analysis_segments": [
+    {
+      "segment_id": "P1_west_south_to_changdong",
+      "scope": "방학사거리부터 창동역 이마트 접근까지",
+      "status": "analysis_assumption_only",
+      "ordered_ars_ids": [
+        "10196",
+        "10194",
+        "10176",
+        "10178",
+        "10216",
+        "10122",
+        "10120",
+        "10305",
+        "10231",
+        "10736"
+      ],
+      "evidence": [
+        "complaint section2",
+        "IMG_0259.jpeg",
+        "IMG_0262.jpeg",
+        "1119 sequence44-45 for westbound bank",
+        "1126 sequence40-44 for southbound residential corridor",
+        "도봉01 sequence17-18 and22-23 for Changdong corridor"
+      ],
+      "uncertainties": [
+        "시민의경유표현을각지점정차로 해석한 분석가정",
+        "은행→삼익 연결의 실제회전조건 미확인",
+        "방학초등학교10192중간정차 포함여부 미확정",
+        "10216→10122 접속 가능성이 신규1127에도 허용되는지 미확인",
+        "10120→10305 연결 회전가능성 미확인",
+        "10231동진→10736서진 사이U턴위치/운행가능성 미확인",
+        "10736은 마을버스 승강장으로1127정차 적합성 미확인"
+      ],
+      "candidate_stops": [
+        {
+          "node_id": "109000111",
+          "ars_id": "10196",
+          "name": "방학사거리",
+          "longitude": 127.0403874289,
+          "latitude": 37.6629772212,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000109",
+          "ars_id": "10194",
+          "name": "신한은행방학동지점",
+          "longitude": 127.036807,
+          "latitude": 37.662933,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000091",
+          "ars_id": "10176",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.0346738125,
+          "latitude": 37.6617551365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000093",
+          "ars_id": "10178",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0348107133,
+          "latitude": 37.6596243231,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000131",
+          "ars_id": "10216",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375306952,
+          "latitude": 37.6572458182,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000039",
+          "ars_id": "10122",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0381420661,
+          "latitude": 37.6548202673,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000037",
+          "ars_id": "10120",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0365880712,
+          "latitude": 37.6521851028,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000217",
+          "ars_id": "10305",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0384575543,
+          "latitude": 37.6513664604,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000145",
+          "ars_id": "10231",
+          "name": "서울북부지방법원등기국",
+          "longitude": 127.044525,
+          "latitude": 37.651106,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109900135",
+          "ars_id": "10736",
+          "name": "창동이마트",
+          "longitude": 127.0461708888,
+          "latitude": 37.6513329248,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ]
+    },
+    {
+      "segment_id": "P2_changdong_to_ssangmun",
+      "scope": "이마트 회차 뒤 쌍문역 방향",
+      "status": "analysis_assumption_only",
+      "ordered_ars_ids": [
+        "10736",
+        "10657",
+        "10015"
+      ],
+      "evidence": [
+        "complaint section2",
+        "IMG_0262.jpeg",
+        "baseline1127 sequence16-17",
+        "도봉01 sequence22-23"
+      ],
+      "uncertainties": [
+        "같은도로상 중간정차10232추가여부 불명확",
+        "정확한U턴운행과정차허용 미확인"
+      ],
+      "candidate_stops": [
+        {
+          "node_id": "109900135",
+          "ars_id": "10736",
+          "name": "창동이마트",
+          "longitude": 127.0461708888,
+          "latitude": 37.6513329248,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000293",
+          "ars_id": "10657",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0381460822,
+          "latitude": 37.6515935012,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000015",
+          "ars_id": "10015",
+          "name": "쌍문역",
+          "longitude": 127.0347686574,
+          "latitude": 37.6488174173,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ]
+    },
+    {
+      "segment_id": "P3_southern_shortcut",
+      "scope": "태영데시앙에서 수유역 우회를 생략하는 연결",
+      "status": "analysis_assumption_only",
+      "ordered_ars_ids": [
+        "10311",
+        "10127",
+        "10126"
+      ],
+      "evidence": [
+        "complaint section2",
+        "IMG_0261.jpeg",
+        "1126 sequence21-23"
+      ],
+      "uncertainties": [
+        "남측루프를1방향으로돌지왕복할지 불명확",
+        "1127현행33-42중 어느정차를 유지할지 확정불가"
+      ],
+      "candidate_stops": [
+        {
+          "node_id": "109000223",
+          "ars_id": "10311",
+          "name": "태영데시앙아파트",
+          "longitude": 127.0324449266,
+          "latitude": 37.642384365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000042",
+          "ars_id": "10127",
+          "name": "우이교앞",
+          "longitude": 127.0321793259,
+          "latitude": 37.643993768,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000041",
+          "ars_id": "10126",
+          "name": "쌍문역.쌍리단길",
+          "longitude": 127.0342799955,
+          "latitude": 37.6475318122,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ]
+    },
+    {
+      "segment_id": "P4_return_to_north",
+      "scope": "창동역 방문 후 방학동·차고지 방향",
+      "status": "candidate_corridor_not_full_sequence",
+      "ordered_ars_ids": [
+        "10657",
+        "10119",
+        "10121",
+        "10217",
+        "10177",
+        "10175",
+        "10193",
+        "10195"
+      ],
+      "evidence": [
+        "complaint section2 return destination board",
+        "IMG_0259.jpeg",
+        "1126 sequence24-28",
+        "1119 sequence21-22"
+      ],
+      "uncertainties": [
+        "본문과지도에반환전체순서없음",
+        "10657→10119의회전및경유확인필요",
+        "10175→10193경로미확정",
+        "방학사거리이후기존북측노선접속미확정"
+      ],
+      "candidate_stops": [
+        {
+          "node_id": "109000293",
+          "ars_id": "10657",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0381460822,
+          "latitude": 37.6515935012,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000036",
+          "ars_id": "10119",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0373872846,
+          "latitude": 37.6526308865,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000038",
+          "ars_id": "10121",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0382221679,
+          "latitude": 37.6541047846,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000132",
+          "ars_id": "10217",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375891737,
+          "latitude": 37.6574389797,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000092",
+          "ars_id": "10177",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0350817617,
+          "latitude": 37.6597398904,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000090",
+          "ars_id": "10175",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.03493,
+          "latitude": 37.661672,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000108",
+          "ars_id": "10193",
+          "name": "신한은행방학동지점",
+          "longitude": 127.037002395,
+          "latitude": 37.6626546059,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000110",
+          "ars_id": "10195",
+          "name": "방학사거리",
+          "longitude": 127.0406167927,
+          "latitude": 37.6627158579,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ]
+    }
+  ],
+  "reference_routes": [
+    {
+      "route_name": "1127",
+      "route_ids": [
+        "100100143"
+      ],
+      "ordered_rows": 60,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "1126",
+      "route_ids": [
+        "100100142"
+      ],
+      "ordered_rows": 66,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "1119",
+      "route_ids": [
+        "100100137"
+      ],
+      "ordered_rows": 65,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "1120",
+      "route_ids": [
+        "100100138"
+      ],
+      "ordered_rows": 85,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "1138",
+      "route_ids": [
+        "100100153"
+      ],
+      "ordered_rows": 52,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "도봉01",
+      "route_ids": [
+        "109900001"
+      ],
+      "ordered_rows": 39,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "도봉06",
+      "route_ids": [
+        "109900003"
+      ],
+      "ordered_rows": 28,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "노원14",
+      "route_ids": [
+        "109900011"
+      ],
+      "ordered_rows": 66,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "노원15",
+      "route_ids": [
+        "109900010"
+      ],
+      "ordered_rows": 82,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "36",
+      "route_ids": [],
+      "ordered_rows": 0,
+      "status": "not_present_in_this_file_not_proven_nonexistent"
+    },
+    {
+      "route_name": "107",
+      "route_ids": [
+        "100100012"
+      ],
+      "ordered_rows": 120,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "118",
+      "route_ids": [],
+      "ordered_rows": 0,
+      "status": "not_present_in_this_file_not_proven_nonexistent"
+    },
+    {
+      "route_name": "140",
+      "route_ids": [
+        "100100019"
+      ],
+      "ordered_rows": 87,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "141",
+      "route_ids": [
+        "100100020"
+      ],
+      "ordered_rows": 105,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "142",
+      "route_ids": [
+        "100100021"
+      ],
+      "ordered_rows": 106,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "150",
+      "route_ids": [
+        "100100029"
+      ],
+      "ordered_rows": 123,
+      "status": "present_in_20260902_file"
+    },
+    {
+      "route_name": "160",
+      "route_ids": [
+        "100100033"
+      ],
+      "ordered_rows": 120,
+      "status": "present_in_20260902_file"
+    }
+  ],
+  "evidence_corrections": [
+    {
+      "claim": "기존1126번 창동고~창동역 동일정류소 양방향정차 사례",
+      "check": "20260902노선1126 66행에 창동고·창동역 정차가 없음. 같은 구간 예시라는 시민주장은 이 기준자료로 확인불가. 다른노선 번호를 추측해서 수정하지 않음."
+    },
+    {
+      "claim": "도봉로 대체36·118 포함",
+      "check": "현파일에서36·118 검색결과0행. 노선미존재결론 아님.107·140·141·142·150·160은 존재하나 동일목적지·방향·운영시간 대체성은 별도비교."
+    },
+    {
+      "claim": "도봉보건소는 동일정류장",
+      "check": "시설과정류장명만같아도 도당로10216/10217과중앙10011/10012및가로변10117은별개."
+    }
+  ],
+  "unresolved_decisions": [
+    "변경안 방향별 전체정차순서 및 동일정류장 재방문",
+    "창동역U턴의 도로위치·회전허용·승강장 적합성",
+    "남측신창시장루프 운행방향과 현재33-42 유지범위",
+    "중간정류장 추가·통과 선택과 학교/기관 실제출입구",
+    "북측 기존노선과 새 방학동경로 접속"
+  ],
+  "not_measured": [
+    "actual driving feasibility",
+    "running time or headway",
+    "demand change",
+    "budget or fleet requirement",
+    "new complaint probability"
+  ],
+  "separate_case_note": "2025 10118→10011은 별도 사건이며 이 민원의 변경안이나 시행결과로 사용하지 않음",
+  "fixed_reference_segments": [
+    {
+      "segment_id": "R1",
+      "direction_description": "서진 방학사거리~신한은행",
+      "source_route_name": "1119",
+      "source_route_id": "100100137",
+      "source_orders": [
+        44,
+        45
+      ],
+      "ordered_ars_ids": [
+        "10196",
+        "10194"
+      ],
+      "stops": [
+        {
+          "node_id": "109000111",
+          "ars_id": "10196",
+          "name": "방학사거리",
+          "longitude": 127.0403874289,
+          "latitude": 37.6629772212,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000109",
+          "ars_id": "10194",
+          "name": "신한은행방학동지점",
+          "longitude": 127.036807,
+          "latitude": 37.662933,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R2",
+      "direction_description": "남진 삼익~정의여중고",
+      "source_route_name": "1126",
+      "source_route_id": "100100142",
+      "source_orders": [
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "ordered_ars_ids": [
+        "10176",
+        "10178",
+        "10216",
+        "10122",
+        "10120"
+      ],
+      "stops": [
+        {
+          "node_id": "109000091",
+          "ars_id": "10176",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.0346738125,
+          "latitude": 37.6617551365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000093",
+          "ars_id": "10178",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0348107133,
+          "latitude": 37.6596243231,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000131",
+          "ars_id": "10216",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375306952,
+          "latitude": 37.6572458182,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000039",
+          "ars_id": "10122",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0381420661,
+          "latitude": 37.6548202673,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000037",
+          "ars_id": "10120",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0365880712,
+          "latitude": 37.6521851028,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R3",
+      "direction_description": "동진 창동고~등기국",
+      "source_route_name": "도봉01",
+      "source_route_id": "109900001",
+      "source_orders": [
+        17,
+        18
+      ],
+      "ordered_ars_ids": [
+        "10305",
+        "10231"
+      ],
+      "stops": [
+        {
+          "node_id": "109000217",
+          "ars_id": "10305",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0384575543,
+          "latitude": 37.6513664604,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000145",
+          "ars_id": "10231",
+          "name": "서울북부지방법원등기국",
+          "longitude": 127.044525,
+          "latitude": 37.651106,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R4",
+      "direction_description": "서진 이마트~창동고",
+      "source_route_name": "도봉01",
+      "source_route_id": "109900001",
+      "source_orders": [
+        22,
+        23
+      ],
+      "ordered_ars_ids": [
+        "10736",
+        "10657"
+      ],
+      "stops": [
+        {
+          "node_id": "109900135",
+          "ars_id": "10736",
+          "name": "창동이마트",
+          "longitude": 127.0461708888,
+          "latitude": 37.6513329248,
+          "stop_type": "마을버스",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000293",
+          "ars_id": "10657",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0381460822,
+          "latitude": 37.6515935012,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R5",
+      "direction_description": "창동고~쌍문역",
+      "source_route_name": "1127",
+      "source_route_id": "100100143",
+      "source_orders": [
+        16,
+        17
+      ],
+      "ordered_ars_ids": [
+        "10657",
+        "10015"
+      ],
+      "stops": [
+        {
+          "node_id": "109000293",
+          "ars_id": "10657",
+          "name": "창동고등학교.창북중학교",
+          "longitude": 127.0381460822,
+          "latitude": 37.6515935012,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000015",
+          "ars_id": "10015",
+          "name": "쌍문역",
+          "longitude": 127.0347686574,
+          "latitude": 37.6488174173,
+          "stop_type": "중앙차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R6",
+      "direction_description": "태영~우이교~쌍문역",
+      "source_route_name": "1126",
+      "source_route_id": "100100142",
+      "source_orders": [
+        21,
+        22,
+        23
+      ],
+      "ordered_ars_ids": [
+        "10311",
+        "10127",
+        "10126"
+      ],
+      "stops": [
+        {
+          "node_id": "109000223",
+          "ars_id": "10311",
+          "name": "태영데시앙아파트",
+          "longitude": 127.0324449266,
+          "latitude": 37.642384365,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000042",
+          "ars_id": "10127",
+          "name": "우이교앞",
+          "longitude": 127.0321793259,
+          "latitude": 37.643993768,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000041",
+          "ars_id": "10126",
+          "name": "쌍문역.쌍리단길",
+          "longitude": 127.0342799955,
+          "latitude": 37.6475318122,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R7",
+      "direction_description": "북진 정의여중고~삼익",
+      "source_route_name": "1126",
+      "source_route_id": "100100142",
+      "source_orders": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "ordered_ars_ids": [
+        "10119",
+        "10121",
+        "10217",
+        "10177",
+        "10175"
+      ],
+      "stops": [
+        {
+          "node_id": "109000036",
+          "ars_id": "10119",
+          "name": "함석헌기념관.정의여중고",
+          "longitude": 127.0373872846,
+          "latitude": 37.6526308865,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000038",
+          "ars_id": "10121",
+          "name": "도봉구민회관.도봉문화원",
+          "longitude": 127.0382221679,
+          "latitude": 37.6541047846,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000132",
+          "ars_id": "10217",
+          "name": "도봉구보건소앞",
+          "longitude": 127.0375891737,
+          "latitude": 37.6574389797,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000092",
+          "ars_id": "10177",
+          "name": "쌍문동청구아파트",
+          "longitude": 127.0350817617,
+          "latitude": 37.6597398904,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000090",
+          "ars_id": "10175",
+          "name": "방학동삼익세라믹",
+          "longitude": 127.03493,
+          "latitude": 37.661672,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    },
+    {
+      "segment_id": "R8",
+      "direction_description": "동진 신한은행~방학사거리",
+      "source_route_name": "1119",
+      "source_route_id": "100100137",
+      "source_orders": [
+        21,
+        22
+      ],
+      "ordered_ars_ids": [
+        "10193",
+        "10195"
+      ],
+      "stops": [
+        {
+          "node_id": "109000108",
+          "ars_id": "10193",
+          "name": "신한은행방학동지점",
+          "longitude": 127.037002395,
+          "latitude": 37.6626546059,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        },
+        {
+          "node_id": "109000110",
+          "ars_id": "10195",
+          "name": "방학사거리",
+          "longitude": 127.0406167927,
+          "latitude": 37.6627158579,
+          "stop_type": "일반차로",
+          "coordinate_source": "seoul_stops_20260902.xlsx",
+          "coordinate_role": "bus_stop_not_facility_entrance"
+        }
+      ],
+      "status": "confirmed_existing_order_20260902_not_new_route_approval"
+    }
+  ],
+  "minimum_scenario_choices": [
+    {
+      "id": "C1",
+      "question": "신창시장 남측 구간을 18~27→우이교→쌍문역의 단방향 순환으로 고정할지, 기존 반환33~42를 일부 유지할지",
+      "why_blocking": "2026지도상 순환선과본문만으로 반환정차를 유일하게결정못함",
+      "minimal_analysis_option": "단방향순환안을 별도분석가정으로명시하고 현재33~42의 연결상실도 평가. 시민원문확정안으로표시금지"
+    },
+    {
+      "id": "C2",
+      "question": "창동역 방문을 남행과북행에각각넣을지, 한 번만넣을지 및 이마트U턴의 정차지점을어디로둘지",
+      "why_blocking": "같은정류장양방향이라는본문은존재하지만 전체순서와U턴좌표·승강장허용정보없음",
+      "minimal_analysis_option": "창동역단일왕복분기부분안 P1/P2만별도비교. 전체운행시간·배차판단보류"
+    }
+  ]
+}

@@ -1,0 +1,466 @@
+{
+  "role": "bus_stop_candidate_coordinates_not_facility_entrances",
+  "source_date": "2026-09-02",
+  "points": [
+    {
+      "node_id": "109000033",
+      "ars_id": "10116",
+      "name": "방학사거리",
+      "longitude": 127.0421039333,
+      "latitude": 37.6622176747,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000032",
+      "ars_id": "10115",
+      "name": "방학사거리.바로선병원",
+      "longitude": 127.0422791488,
+      "latitude": 37.6612173924,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000110",
+      "ars_id": "10195",
+      "name": "방학사거리",
+      "longitude": 127.0406167927,
+      "latitude": 37.6627158579,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000111",
+      "ars_id": "10196",
+      "name": "방학사거리",
+      "longitude": 127.0403874289,
+      "latitude": 37.6629772212,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000097",
+      "ars_id": "10182",
+      "name": "신한은행방학동지점",
+      "longitude": 127.0372935845,
+      "latitude": 37.6634557599,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000098",
+      "ars_id": "10183",
+      "name": "신한은행방학동지점",
+      "longitude": 127.037197641,
+      "latitude": 37.6632312342,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000108",
+      "ars_id": "10193",
+      "name": "신한은행방학동지점",
+      "longitude": 127.037002395,
+      "latitude": 37.6626546059,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000109",
+      "ars_id": "10194",
+      "name": "신한은행방학동지점",
+      "longitude": 127.036807,
+      "latitude": 37.662933,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000090",
+      "ars_id": "10175",
+      "name": "방학동삼익세라믹",
+      "longitude": 127.03493,
+      "latitude": 37.661672,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000091",
+      "ars_id": "10176",
+      "name": "방학동삼익세라믹",
+      "longitude": 127.0346738125,
+      "latitude": 37.6617551365,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000092",
+      "ars_id": "10177",
+      "name": "쌍문동청구아파트",
+      "longitude": 127.0350817617,
+      "latitude": 37.6597398904,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000093",
+      "ars_id": "10178",
+      "name": "쌍문동청구아파트",
+      "longitude": 127.0348107133,
+      "latitude": 37.6596243231,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000131",
+      "ars_id": "10216",
+      "name": "도봉구보건소앞",
+      "longitude": 127.0375306952,
+      "latitude": 37.6572458182,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000132",
+      "ars_id": "10217",
+      "name": "도봉구보건소앞",
+      "longitude": 127.0375891737,
+      "latitude": 37.6574389797,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109900090",
+      "ars_id": "10531",
+      "name": "도봉구보건소앞",
+      "longitude": 127.0377806894,
+      "latitude": 37.6573821506,
+      "stop_type": "마을버스",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109900113",
+      "ars_id": "10726",
+      "name": "도봉구보건소앞",
+      "longitude": 127.0376989713,
+      "latitude": 37.6571578082,
+      "stop_type": "마을버스",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000011",
+      "ars_id": "10011",
+      "name": "도봉보건소",
+      "longitude": 127.0407623758,
+      "latitude": 37.6589364195,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000012",
+      "ars_id": "10012",
+      "name": "도봉보건소.북한산아이파크아파트",
+      "longitude": 127.040517,
+      "latitude": 37.658205,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000034",
+      "ars_id": "10117",
+      "name": "도봉보건소",
+      "longitude": 127.0402286427,
+      "latitude": 37.6575128224,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000038",
+      "ars_id": "10121",
+      "name": "도봉구민회관.도봉문화원",
+      "longitude": 127.0382221679,
+      "latitude": 37.6541047846,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000039",
+      "ars_id": "10122",
+      "name": "도봉구민회관.도봉문화원",
+      "longitude": 127.0381420661,
+      "latitude": 37.6548202673,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000013",
+      "ars_id": "10013",
+      "name": "도봉구민회관.도봉문화원",
+      "longitude": 127.0381736668,
+      "latitude": 37.6545598452,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000014",
+      "ars_id": "10014",
+      "name": "도봉구민회관.도봉문화원",
+      "longitude": 127.037977,
+      "latitude": 37.653968,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000036",
+      "ars_id": "10119",
+      "name": "함석헌기념관.정의여중고",
+      "longitude": 127.0373872846,
+      "latitude": 37.6526308865,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000037",
+      "ars_id": "10120",
+      "name": "함석헌기념관.정의여중고",
+      "longitude": 127.0365880712,
+      "latitude": 37.6521851028,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000218",
+      "ars_id": "10306",
+      "name": "정의여중고입구",
+      "longitude": 127.0331370812,
+      "latitude": 37.6510121866,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109900044",
+      "ars_id": "10775",
+      "name": "정의여중고",
+      "longitude": 127.0331242114,
+      "latitude": 37.6512012464,
+      "stop_type": "마을버스",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000217",
+      "ars_id": "10305",
+      "name": "창동고등학교.창북중학교",
+      "longitude": 127.0384575543,
+      "latitude": 37.6513664604,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000293",
+      "ars_id": "10657",
+      "name": "창동고등학교.창북중학교",
+      "longitude": 127.0381460822,
+      "latitude": 37.6515935012,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000145",
+      "ars_id": "10231",
+      "name": "서울북부지방법원등기국",
+      "longitude": 127.044525,
+      "latitude": 37.651106,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000146",
+      "ars_id": "10232",
+      "name": "서울북부지방법원등기국",
+      "longitude": 127.0445412495,
+      "latitude": 37.6514245604,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109900135",
+      "ars_id": "10736",
+      "name": "창동이마트",
+      "longitude": 127.0461708888,
+      "latitude": 37.6513329248,
+      "stop_type": "마을버스",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000148",
+      "ars_id": "10234",
+      "name": "창동역서측",
+      "longitude": 127.0461227769,
+      "latitude": 37.652335845,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109900173",
+      "ars_id": "10703",
+      "name": "창동역서측",
+      "longitude": 127.0463383955,
+      "latitude": 37.6523291893,
+      "stop_type": "마을버스",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000015",
+      "ars_id": "10015",
+      "name": "쌍문역",
+      "longitude": 127.0347686574,
+      "latitude": 37.6488174173,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000016",
+      "ars_id": "10016",
+      "name": "쌍문역",
+      "longitude": 127.0344600639,
+      "latitude": 37.6480714136,
+      "stop_type": "중앙차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000040",
+      "ars_id": "10124",
+      "name": "쌍문역.쌍문시장",
+      "longitude": 127.0340974005,
+      "latitude": 37.6480246628,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000041",
+      "ars_id": "10126",
+      "name": "쌍문역.쌍리단길",
+      "longitude": 127.0342799955,
+      "latitude": 37.6475318122,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000223",
+      "ars_id": "10311",
+      "name": "태영데시앙아파트",
+      "longitude": 127.0324449266,
+      "latitude": 37.642384365,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000399",
+      "ars_id": "10336",
+      "name": "태영데시앙아파트",
+      "longitude": 127.0317878535,
+      "latitude": 37.6426266528,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "109000042",
+      "ars_id": "10127",
+      "name": "우이교앞",
+      "longitude": 127.0321793259,
+      "latitude": 37.643993768,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "108000158",
+      "ars_id": "09246",
+      "name": "수유3동우체국",
+      "longitude": 127.0275793554,
+      "latitude": 37.6400256713,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "108000184",
+      "ars_id": "09272",
+      "name": "수유역.강북구청",
+      "longitude": 127.0260514034,
+      "latitude": 37.6386311446,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "108000118",
+      "ars_id": "09206",
+      "name": "삼성화재강북지점",
+      "longitude": 127.0248073406,
+      "latitude": 37.6355100656,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "108000160",
+      "ars_id": "09248",
+      "name": "수유역.노스페이스문화센터",
+      "longitude": 127.026897397,
+      "latitude": 37.6389518521,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    },
+    {
+      "node_id": "108000159",
+      "ars_id": "09247",
+      "name": "수유3동우체국",
+      "longitude": 127.0281157885,
+      "latitude": 37.6400597793,
+      "stop_type": "일반차로",
+      "coordinate_source": "seoul_stops_20260902.xlsx",
+      "coordinate_role": "bus_stop_not_facility_entrance"
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+{
+  "status": "research_acquired_not_imported",
+  "researched_on": "2026-09-29",
+  "lh_direct_verbatim_submission_obtained": false,
+  "lh_direct_access_result": {
+    "entry_url": "https://www.lh.or.kr/menu.es?mid=a10302010000",
+    "list_url": "https://www.lh.or.kr/user/minwonReq/list.do?mid=a10302010000",
+    "redirect_url": "https://www.lh.or.kr/ssm/comm/accountCustomer.do?mid=a10812000000",
+    "result": "본인인증 화면. 공개 열람 범위에서 직접 접수 원문 미확보"
+  },
+  "sources": [
+    {
+      "source_id": "IMG_0258.jpeg",
+      "source_url": "https://ceo.dobong.go.kr/WDB_common/include/download.asp?fcode=13601780&bcode=347",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/IMG_0258.jpeg",
+      "bytes": 491666,
+      "sha256": "8b24bddf599814fc02e2e0c1bfe0124bea6d33a461ee810e6e023ad33d5a4362",
+      "saved_at": "2026-09-29T12:10:20.677707+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "IMG_0259.jpeg",
+      "source_url": "https://ceo.dobong.go.kr/WDB_common/include/download.asp?fcode=13601781&bcode=347",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/IMG_0259.jpeg",
+      "bytes": 684567,
+      "sha256": "41e8e3a804f427f924be4c416782dd52a18fbf39dd5145374c612ec7f3efc732",
+      "saved_at": "2026-09-29T12:10:20.836632+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "IMG_0261.jpeg",
+      "source_url": "https://ceo.dobong.go.kr/WDB_common/include/download.asp?fcode=13601783&bcode=347",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/IMG_0261.jpeg",
+      "bytes": 691444,
+      "sha256": "ba821f4c2be2a49ff5a2f21c98153634bda4167f002c7622476bbe7ff04dca44",
+      "saved_at": "2026-09-29T12:10:20.799283+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "IMG_0262.jpeg",
+      "source_url": "https://ceo.dobong.go.kr/WDB_common/include/download.asp?fcode=13601782&bcode=347",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/IMG_0262.jpeg",
+      "bytes": 560040,
+      "sha256": "ba2de199b33df2f6fdc55a9045f19e4d8709c4e82847bd97291f428fdf07e7be",
+      "saved_at": "2026-09-29T12:10:20.687234+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "acrc_lh_continued_residence.html",
+      "source_url": "https://www.acrc.go.kr/board.es?act=view&bid=1010&list_no=27122&mid=a10504010000&nPage=101&tag=",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/acrc_lh_continued_residence.html",
+      "bytes": 127233,
+      "sha256": "16308bb3d4700c5dc5d564dd4db2a8006ae92a80b1081b803399cac78a7f7eb4",
+      "saved_at": "2026-09-29T12:09:32.066820+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "acrc_lh_unit_change.html",
+      "source_url": "https://www.acrc.go.kr/board.es?act=view&bid=1010&list_no=69656&mid=a10504010000",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/acrc_lh_unit_change.html",
+      "bytes": 118399,
+      "sha256": "7c14bd754cdb50bf0a9efda8f6ef18ea06137604bc241d8ae3d8557689affa2a",
+      "saved_at": "2026-09-29T12:11:28.558636+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "acrc_lh_unit_change.pdf",
+      "source_url": "https://www.acrc.go.kr/boardDownload.es?bid=1010&list_no=69656&seq=2",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/acrc_lh_unit_change.pdf",
+      "bytes": 300471,
+      "sha256": "5a0a3a219810c02ba4c1cab0acdd93d6ec440567391212dc9b712615bc65d7d1",
+      "saved_at": "2026-09-29T12:11:28.493049+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "changwon_bus_complaint.html",
+      "source_url": "https://www.changwon.go.kr/cwportal/depart/11064/13464/13575.web?amode=view&cpage=40&gcode=1265&idx=847076",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/changwon_bus_complaint.html",
+      "bytes": 235319,
+      "sha256": "6f0667cb532083829bcbbccc6504fcb0b0ac6e712a159880ec56d65d1aa31845",
+      "saved_at": "2026-09-29T12:11:29.375406+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "dobong_1127_complaint.html",
+      "source_url": "https://ceo.dobong.go.kr/bbs.asp?bmode=D&code=10000662&intPage=11&pcode=12745939",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/dobong_1127_complaint.html",
+      "bytes": 33600,
+      "sha256": "03e110273a59151be32e567f8727a8179fc87ffbb02ad79bfc26088de914babc",
+      "saved_at": "2026-09-29T12:09:32.749553+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "hanam_lh_single_household.html",
+      "source_url": "https://www.hanam.go.kr/sotong/selectCvplRceptWebView.do?cvplCode=MINWON5&key=9580&listTy=N&pageIndex=82&pageUnit=10&rceptNo=6740&searchCnd=all",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/hanam_lh_single_household.html",
+      "bytes": 102948,
+      "sha256": "453594bf0805373994d01cb6fd6ba99cd679643bbd9fc8714097ee9d0bd16779",
+      "saved_at": "2026-09-29T12:09:32.439253+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "jeju_lh_deposit_question.html",
+      "source_url": "https://jejuhwc.co.kr/community/qna.htm?act=view&page=11&seq=645",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/jeju_lh_deposit_question.html",
+      "bytes": 45303,
+      "sha256": "fc427b89e7dad0af618235deda8cd3ff5e47da5bfde72ca97dc76e9da251d8c7",
+      "saved_at": "2026-09-29T12:09:32.183255+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "lh_complaint_auth.html",
+      "source_url": "https://www.lh.or.kr/user/minwonReq/list.do?mid=a10302010000",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/lh_complaint_auth.html",
+      "bytes": 105723,
+      "sha256": "91cfb2541110b38a6b43bbd9425d0b653c2cf3d2ac276af65d462709707b81a8",
+      "saved_at": "2026-09-29T12:11:28.740234+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "lh_complaint_entry.html",
+      "source_url": "https://www.lh.or.kr/menu.es?mid=a10302010000",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/lh_complaint_entry.html",
+      "bytes": 91952,
+      "sha256": "0916eaa15e09441c4cd6e76e51ceba287549aa51568768007ac1988fa44dd6e6",
+      "saved_at": "2026-09-29T12:10:20.559530+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "lh_home.html",
+      "source_url": "https://www.lh.or.kr/",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/lh_home.html",
+      "bytes": 108751,
+      "sha256": "4a7f83fa709d8189cdd095fcda19b97c4a8c7b9f57caedf69797d2e44df24640",
+      "saved_at": "2026-09-29T12:09:31.933573+00:00",
+      "rights": "공개 페이지 확인. 시민 작성물과 첨부의 별도 재배포 허락 미확인. 원문은 로컬 보관, 공식 링크로 안내"
+    },
+    {
+      "source_id": "seoul_route_order_20260902.xlsx",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-1095",
+        "seq": "58",
+        "infSeq": "2"
+      },
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/seoul_route_order_20260902.xlsx",
+      "bytes": 3251120,
+      "sha256": "b54816e9b7e77bcf49dd7562b993db06a093daa666351f115ea4d1dd0dd8b1df",
+      "saved_at": "2026-09-29T12:12:46.323383+00:00",
+      "rights": "서울시 공공누리 1유형 출처 표시. 원문은 기존 Git 제외 경로 보관"
+    },
+    {
+      "source_id": "seoul_stops_20260902.xlsx",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-15067",
+        "seq": "58",
+        "infSeq": "1"
+      },
+      "local_path": "data/knowledge/raw/demo_complaints_20260929/seoul_stops_20260902.xlsx",
+      "bytes": 741052,
+      "sha256": "73eb0a5f4fd0f6128237b5e23fa361fd1c6d8a31a83bcee2884e6a48481852bb",
+      "saved_at": "2026-09-29T12:12:46.178147+00:00",
+      "rights": "서울시 공공누리 1유형 출처 표시. 원문은 기존 Git 제외 경로 보관"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "jeju_lh_deposit_question",
+      "record_type": "citizen_public_question_about_lh_not_lh_received",
+      "submitted_on": "2023-10-17",
+      "answered_on": "2023-10-20",
+      "source_url": "https://jejuhwc.co.kr/community/qna.htm?act=view&page=11&seq=645",
+      "input_path": "data/knowledge/raw/demo_complaints_20260929/jeju_lh_deposit_question_input.txt",
+      "input_sha256": "dd1d451e760643ab51f8bb3aa93280543b47d6d0f7e8e6d9c8a0361592b1acb2",
+      "reference_answer_path": "data/knowledge/raw/demo_complaints_20260929/jeju_lh_deposit_question_reference_answer.txt",
+      "extraction": "원문 본문 요소의 표시 텍스트 추출. 공백·줄바꿈 정규화, 문장 재작성 없음. 작성자 메타데이터 제외",
+      "official_answer_is_not_current_policy_or_evaluation_gold": true
+    },
+    {
+      "case_id": "hanam_lh_single_household",
+      "record_type": "citizen_public_complaint_about_lh_not_lh_received",
+      "submitted_on": "2024-10-16",
+      "answered_on": "2024-10-22",
+      "source_url": "https://www.hanam.go.kr/sotong/selectCvplRceptWebView.do?cvplCode=MINWON5&key=9580&listTy=N&pageIndex=82&pageUnit=10&rceptNo=6740&searchCnd=all",
+      "input_path": "data/knowledge/raw/demo_complaints_20260929/hanam_lh_single_household_input.txt",
+      "input_sha256": "53e10a1d56b004d410cc8b15ee8e4fffa6498bbfb7c0240b99293a575497f544",
+      "reference_answer_path": "data/knowledge/raw/demo_complaints_20260929/hanam_lh_single_household_reference_answer.txt",
+      "extraction": "원문 본문 요소의 표시 텍스트 추출. 공백·줄바꿈 정규화, 문장 재작성 없음. 작성자 메타데이터 제외",
+      "official_answer_is_not_current_policy_or_evaluation_gold": true
+    },
+    {
+      "case_id": "dobong_1127_complaint",
+      "record_type": "citizen_public_transport_complaint",
+      "submitted_on": "2026-09-04",
+      "answered_on": "2026-09-27",
+      "source_url": "https://ceo.dobong.go.kr/bbs.asp?bmode=D&code=10000662&intPage=11&pcode=12745939",
+      "input_path": "data/knowledge/raw/demo_complaints_20260929/dobong_1127_complaint_input.txt",
+      "input_sha256": "cc77710019c4f86ffa69f35b17c9992bcca3e4c178565c66dac91b9c60719a5c",
+      "reference_answer_path": "data/knowledge/raw/demo_complaints_20260929/dobong_1127_complaint_reference_answer.txt",
+      "extraction": "원문 본문 요소의 표시 텍스트 추출. 공백·줄바꿈 정규화, 문장 재작성 없음. 작성자 메타데이터 제외",
+      "official_answer_is_not_current_policy_or_evaluation_gold": true
+    },
+    {
+      "case_id": "acrc_lh_unit_change",
+      "record_type": "official_anonymized_decision_not_verbatim_citizen_submission",
+      "source_url": "https://www.acrc.go.kr/board.es?act=view&bid=1010&list_no=69656&mid=a10504010000",
+      "decision_date": "2024-02-26",
+      "respondent": "한국토지주택공사",
+      "local_pdf_path": "data/knowledge/raw/demo_complaints_20260929/acrc_lh_unit_change.pdf",
+      "request_pages": [
+        1,
+        2
+      ],
+      "respondent_argument_pages": [
+        2
+      ],
+      "facts_pages": [
+        2,
+        3
+      ],
+      "reasoning_and_disposition_pages": [
+        4
+      ],
+      "historical_rule_pages": [
+        5,
+        6,
+        7
+      ],
+      "citizen_verbatim_submission_obtained": false,
+      "outcome": "의견표명",
+      "compliance_or_execution_confirmed": false
+    }
+  ],
+  "bus_baseline": {
+    "date": "2026-09-02",
+    "route_id": "100100143",
+    "route_name": "1127",
+    "stop_sequence_rows": 60,
+    "derived_route_path": "data/knowledge/raw/demo_complaints_20260929/1127_baseline_20260902.json",
+    "proposed_stop_sequence_confirmed": false,
+    "walking_distances_computed": false,
+    "note": "2026 민원은 2025 정류장 변경과 별도 사건. 지도는 민원인이 제시한 개략안. 기존 보행망의 2020 기준은 별도 표시"
+  },
+  "related_existing_manifest": "configs/knowledge/demo_selection_20260929/sources.json"
+}

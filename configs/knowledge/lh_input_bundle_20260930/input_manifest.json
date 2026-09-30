@@ -1,0 +1,810 @@
+{
+  "bundle_id": "lh_autonomous_input_v1_20260930",
+  "status": "fixed_bounded_research_input_not_complete_internal_company_corpus",
+  "fixed_date": "2026-09-30",
+  "scope": "LH 공개 데이터와 그 임대업무에 직접 적용되는 법령으로 개념·속성·관계 후보 발견 및 역사적 의미 변경 검수 준비",
+  "selected_source_count": 15,
+  "selected_input_file_count": 19,
+  "held_source_count": 14,
+  "execution_policy": {
+    "ontology_created": false,
+    "model_calls": 0,
+    "database_registration_performed": false,
+    "existing_pilot_modified": false,
+    "meaning_of_selected": "자료선정 승인만 의미. 지식내용·온톨로지 승인 또는 운영활성화 아님",
+    "input_allowlist": "selected_sources[].input_files만 사용. raw 전체 폴더 glob 금지. 검토JSON/보고서/권리증거/평가기준은 생성입력 아님",
+    "raw_git_allowed": false,
+    "historical_separation": "historical_change 실행은 별도 빈 기준에서 시작. 2026 current_discovery 및 contrast를 함께 주지 않음. 단계별 입력은 runs 정의 참조",
+    "real_customer_data": "수집 안 함; 비개인 공개 문서·집계/단지 데이터만"
+  },
+  "runs": [
+    {
+      "id": "current_discovery",
+      "source_ids": [
+        "lh_15057999",
+        "lh_15058530",
+        "lh_15058476",
+        "lh_15080989",
+        "public_housing_act_art2",
+        "public_housing_decree_art2",
+        "public_housing_rule_art15",
+        "public_housing_rule_art17_2",
+        "rule_annex4_20260824"
+      ],
+      "reference_date": "2026-09-30; 자료별 명세/레코드 기준일 우선",
+      "purpose": "현행 법정 개념과 공개시스템 필드·단지 데이터 연결. 실제 자격판정 서비스 아님"
+    },
+    {
+      "id": "contrast_extension",
+      "base_run": "current_discovery",
+      "new_source_ids": [
+        "lh_15084922",
+        "lh_15139855"
+      ],
+      "purpose": "분양전환/5년임대 및 제공기관/임대사업자 차이를 발견. 국민임대 조건으로 병합 금지"
+    },
+    {
+      "id": "historical_change",
+      "initial_source_ids": [
+        "decree_art2_20200805"
+      ],
+      "updates": [
+        [
+          "decree_art2_20200908"
+        ],
+        [
+          "decree_art2_20201019",
+          "decree_art37_20201019"
+        ]
+      ],
+      "forbid_other_groups": true,
+      "purpose": "실제 과거 정의·분류 변경을 순서대로 검수; 현행 운영판정이나 비노출 벤치마크 아님",
+      "reference_boundary": "제2조에서 제37조로 추가 탐색 가능. 제37조에 열거한 용도명까지 확인; 건축법 시행령 별표1의 상세 용도 정의는 이번 입력 밖"
+    }
+  ],
+  "selected_sources": [
+    {
+      "source_id": "lh_15057999",
+      "title": "한국토지주택공사_분양임대공고별 상세정보 조회 서비스",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15057999/openapi.do",
+      "group": "current_discovery",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15057999_business_spec.md",
+          "sha256": "33bf46948b143806806461c48190e8a5710404438d570b16e3cf0de8e1c03091",
+          "role": "schema_and_code_reference"
+        }
+      ],
+      "original_files": [
+        {
+          "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003660258&fileDetailSn=1",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15057999_FILE_000000003660258.docx",
+          "sha256": "498defd3b3474610a797db2d50844c9460a1e16b5ef6bf9c5361597c5185355a",
+          "bytes": 445932
+        }
+      ],
+      "purpose": "공고의 유형 코드와 접수처·단지·첨부·공급일정 필드 연결. 국민임대 관련062 분기를 선택.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15057999_catalog.html",
+        "evidence_sha256": "c086f18ccb51c426ad82eda6b54972aae2f1ffbf7cfcc2e525f243e3d0a8bdfc",
+        "basis_type": "published_dataset_terms_and_narrow_official_field_excerpt",
+        "interpretation": "API 원가이드 전체의 별도 자유이용허락 확인 아님. 업무 필드·코드·짧은 설명만 선정",
+        "whole_manual_redistribution_approved": false
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": false,
+      "input_scope": "업무 필드/코드 명세",
+      "csv_encoding": null
+    },
+    {
+      "source_id": "lh_15058530",
+      "title": "한국토지주택공사_분양임대공고문 조회 서비스",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15058530/openapi.do",
+      "group": "current_discovery",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058530_business_spec.md",
+          "sha256": "e12706b04bd7c0839fc20fcf0bf5e1dd1f2c6cdaff9e2644799225e43172a1f9",
+          "role": "schema_and_code_reference"
+        }
+      ],
+      "original_files": [
+        {
+          "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003670683&fileDetailSn=1",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058530_FILE_000000003670683.docx",
+          "sha256": "3a204b4a144cd7de80bc35fefa0b2dcc4513ea25330bab28e759e0165bac4e62",
+          "bytes": 342304
+        }
+      ],
+      "purpose": "공고 검색기준, 공고유형·지역·진행상태 코드, 공고ID 및 상세서비스 연결 필드.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058530_catalog.html",
+        "evidence_sha256": "b61c6790c1bcdf92c222720fae69ab261bada73f4a526757a19cee05af9bf40e",
+        "basis_type": "published_dataset_terms_and_narrow_official_field_excerpt",
+        "interpretation": "API 원가이드 전체의 별도 자유이용허락 확인 아님. 업무 필드·코드·짧은 설명만 선정",
+        "whole_manual_redistribution_approved": false
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": false,
+      "input_scope": "업무 필드/코드 명세",
+      "csv_encoding": null
+    },
+    {
+      "source_id": "lh_15058476",
+      "title": "한국토지주택공사_공공임대주택 단지정보 조회 서비스",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15058476/openapi.do",
+      "group": "current_discovery",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_business_spec.md",
+          "sha256": "c5ab88128eeda42c825043a994e0a3fdf033ca8402f9f5bc7305e1573a3c6993",
+          "role": "schema_and_code_reference"
+        },
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_region_codes.md",
+          "sha256": "f2da59cab51a065db945d56e45181d4fcfa4af56ef674432b6683a0f24fb2d58",
+          "role": "official_code_dictionary"
+        }
+      ],
+      "original_files": [
+        {
+          "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003670662&fileDetailSn=1",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_FILE_000000003670662.zip",
+          "sha256": "d3d08bf94722df41734d91858b693518fa44688a0707c9e8bf35f85259ec53b8",
+          "bytes": 314061,
+          "members": [
+            {
+              "original_name": "OpenAPI활용가이드_한국토지주택공사_공공임대주택_단지정보_v1_3_최종.docx",
+              "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_guide_1.docx",
+              "sha256": "5eb3254dc185c187b7097bae5714b1123b99ea7dd5ffdd9564c0c249ff1812a3"
+            },
+            {
+              "original_name": "붙임1. 요청 파라미터 코드(공공임대주택 단지정보)_20260708.xlsx",
+              "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_guide_2.xlsx",
+              "sha256": "a731acff398a58cf4453dcd6de73af7de389168032c0cccf44b6c2a7eec78649"
+            }
+          ]
+        }
+      ],
+      "purpose": "단지 식별자·기관명·지역·임대유형·면적·보증금 필드와 지역 코드. 다른 시스템의 단지 식별자를 기존LH단지코드와 자동 동일시하지 않음.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15058476_catalog.html",
+        "evidence_sha256": "639eb422d0afa629beead86f053fdbd80ed4fd9049f3abbea51fcddd4ead4ed8",
+        "basis_type": "published_dataset_terms_and_narrow_official_field_excerpt",
+        "interpretation": "API 원가이드 전체의 별도 자유이용허락 확인 아님. 업무 필드·코드·짧은 설명만 선정",
+        "whole_manual_redistribution_approved": false
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": false,
+      "input_scope": "업무 필드/코드 명세",
+      "csv_encoding": null
+    },
+    {
+      "source_id": "lh_15084922",
+      "title": "한국토지주택공사_(5년임대)마이홈포털 기존임대주택 목록_20260413",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15084922/fileData.do",
+      "group": "contrast",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15084922_FILE_000000003640726.csv",
+          "sha256": "bb500b7ab11d16412e7cd036616b0eab96ffe9d833a025a23dc419b191787f4d",
+          "role": "separate_contrast_corpus"
+        },
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15084922_data_description.md",
+          "sha256": "c739688a229bdc955c366352c15de62b323b55a223c38215e205d935f08638ec",
+          "role": "official_data_description"
+        }
+      ],
+      "original_files": [
+        {
+          "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003640726&fileDetailSn=1",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15084922_FILE_000000003640726.csv",
+          "sha256": "bb500b7ab11d16412e7cd036616b0eab96ffe9d833a025a23dc419b191787f4d",
+          "bytes": 17137,
+          "encoding": "utf-8-sig",
+          "rows": 70,
+          "columns": [
+            "임대종류",
+            "광역시도",
+            "시군구",
+            "도로명주소",
+            "단지명",
+            "세대수",
+            "주택유형",
+            "임대사업자",
+            "준공일자",
+            "건물형태",
+            "난방방식",
+            "승강기설치여부",
+            "주차수",
+            "형명",
+            "공급면적(전용)",
+            "공급면적(공용)",
+            "임대보증금",
+            "월임대료",
+            "전환보증금"
+          ]
+        }
+      ],
+      "purpose": "5년임대 70행·19열. 데이터 제공기관과 실제 임대사업자를 구분해야 하는 대비 자료. 국민임대 조건으로 적용 금지.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15084922_catalog.html",
+        "evidence_sha256": "f120a507d70a4e954221d0a91d3e1949b1a1806472d3f00bb61c807aa755fbfe",
+        "basis_type": "published_dataset_terms",
+        "interpretation": "해당 공개 CSV 데이터 범위의 명시 이용허락",
+        "whole_manual_redistribution_approved": null
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": null,
+      "input_scope": "전체70행의 비개인 주택·사업자 속성. 국민임대와 분리.",
+      "csv_encoding": "utf-8-sig"
+    },
+    {
+      "source_id": "lh_15139855",
+      "title": "한국토지주택공사_분양전환임대주택 임대납부조건_20251212",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15139855/fileData.do",
+      "group": "contrast",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15139855_FILE_000000003562741.csv",
+          "sha256": "22da75bbe4d50d470bc4d449a2ac842afdd17d28afc97005e3bf90086805b7a0",
+          "role": "separate_contrast_corpus"
+        },
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15139855_data_description.md",
+          "sha256": "9c1330b238302ced085f50b5ebc73b772f9a22781512ff8c939ae9748ee64f38",
+          "role": "official_data_description"
+        }
+      ],
+      "original_files": [
+        {
+          "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003562741&fileDetailSn=1",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15139855_FILE_000000003562741.csv",
+          "sha256": "22da75bbe4d50d470bc4d449a2ac842afdd17d28afc97005e3bf90086805b7a0",
+          "bytes": 127537,
+          "encoding": "cp949",
+          "rows": 576,
+          "columns": [
+            "공고일자",
+            "공고명",
+            "사업지구명",
+            "블록명",
+            "주택형",
+            "세대수",
+            "주소",
+            "상세주소",
+            "공급면적",
+            "전용면적",
+            "임대보증금",
+            "계약금",
+            "중도금",
+            "잔금",
+            "월임대료"
+          ]
+        }
+      ],
+      "purpose": "분양전환임대 납부조건576행·15열. 공고·사업지구·블록·주택형·면적·보증금 구성 관계의 대비 자료. 국민임대 임대조건으로 적용 금지.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15139855_catalog.html",
+        "evidence_sha256": "85aa13ff9bca86ff4ada02941cc909cd5ed0c1558e4f3b35455e866ae16ecd56",
+        "basis_type": "published_dataset_terms",
+        "interpretation": "해당 공개 CSV 데이터 범위의 명시 이용허락",
+        "whole_manual_redistribution_approved": null
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": null,
+      "input_scope": "전체576행. 데이터기준2025-12-12; 국민임대와 분리.",
+      "csv_encoding": "cp949"
+    },
+    {
+      "source_id": "lh_15080989",
+      "title": "한국토지주택공사_전국 LH아파트 단지정보_20260810",
+      "publisher": "한국토지주택공사",
+      "source_url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "group": "current_discovery",
+      "input_files": [
+        {
+          "path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+          "sha256": "66063191dac736ccc7e977c4aee4248504c605868fdcfa23a247f060cb51469e",
+          "role": "registry_and_schema_discovery"
+        },
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15080989_data_description.md",
+          "sha256": "3df8422483cbf1157885aa46ee620175ea4a099970afa300d288bce114ca0522",
+          "role": "official_data_description"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+          "sha256": "66063191dac736ccc7e977c4aee4248504c605868fdcfa23a247f060cb51469e",
+          "acquisition": "reuse_existing_frozen_original"
+        }
+      ],
+      "purpose": "기존 전국LH단지 CSV 재사용. 공식ID와 동수/세대수, 임대유형/주택유형, 입주지정기간을 구분.",
+      "rights": {
+        "dataset_license": "이용허락범위 제한 없음",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/open_data/15080989_catalog.html",
+        "evidence_sha256": "2634d71fbad47d1b2d482585e5d45b20a7a02ca12ffadac458d1e1b658f6729d",
+        "basis_type": "published_dataset_terms",
+        "interpretation": "해당 공개 CSV 데이터 범위의 명시 이용허락",
+        "whole_manual_redistribution_approved": null
+      },
+      "source_review": "open_data_review.json",
+      "actual_api_response": null,
+      "input_scope": "전국6217행을 탐색 가능한 등록부로 사용; 전량을 한 프롬프트에 넣는 의미 아님",
+      "csv_encoding": "utf-8-sig"
+    },
+    {
+      "source_id": "public_housing_act_art2",
+      "title": "공공주택 특별법 제2조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289289&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+      "group": "current_discovery",
+      "stage": "current_support",
+      "version_header": "[시행 2026. 9. 8.] [법률 제21895호, 2026. 9. 8., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_act_art2.txt",
+          "sha256": "a588b5f95d744481e84c6443eb07e84bf5a6cb15b9d4c72c2690b65153aded2e",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_act_art2.html",
+          "sha256": "79f3adacb79eccf58b0b2c698fa5f5ad605be5a77d5513d66138d8ce685844a4"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "LH 임대업무의 법정 개념·범위·자격·예외 근거",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "public_housing_decree_art2",
+      "title": "공공주택 특별법 시행령 제2조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289503&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+      "group": "current_discovery",
+      "stage": "current_support",
+      "version_header": "[시행 2026. 9. 8.] [대통령령 제36659호, 2026. 9. 8., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_decree_art2.txt",
+          "sha256": "3452a8b0491157dd93ead0996f6c4a35a5c1d45e8338774bea5818b24a24f889",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_decree_art2.html",
+          "sha256": "9aa06ed2966d2532630773cd69816242c19ccd17b7925062e523ebe6c8e9d157"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "LH 임대업무의 법정 개념·범위·자격·예외 근거",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "public_housing_rule_art15",
+      "title": "공공주택 특별법 시행규칙 제15조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289013&joNo=0015&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+      "group": "current_discovery",
+      "stage": "current_support",
+      "version_header": "[시행 2026. 8. 24.] [국토교통부령 제1616호, 2026. 8. 24., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art15.txt",
+          "sha256": "d9a456835647f62b0ddc993d5ff1b7cb786653d374e2d28382bd24f71bb6d863",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art15.html",
+          "sha256": "19039184f72cd842e79180a87771a24f6e1a32f0573236405ee067909b8dedcf"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "LH 임대업무의 법정 개념·범위·자격·예외 근거",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "public_housing_rule_art17_2",
+      "title": "공공주택 특별법 시행규칙 제17조의2",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289013&joNo=0017&joBrNo=02&docCls=jo&urlMode=lsScJoRltInfoR",
+      "group": "current_discovery",
+      "stage": "contrast_support",
+      "version_header": "[시행 2026. 8. 24.] [국토교통부령 제1616호, 2026. 8. 24., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art17_2.txt",
+          "sha256": "60d342d3dd0d18999fe3d0594a37d543a4b3d74e0b49049445eaa3c879df828a",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art17_2.html",
+          "sha256": "ee0949dcd200d0490c0adab89dc01ef54a3bc366677f435454c790dd3019e087"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "LH 임대업무의 법정 개념·범위·자격·예외 근거",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "decree_art2_20200805",
+      "title": "공공주택 특별법 시행령 제2조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=220433&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR&efYd=20200805&chrClsCd=010202",
+      "group": "historical_change",
+      "stage": "historical_baseline",
+      "version_header": "[시행 2020. 8. 5.] [대통령령 제30893호, 2020. 8. 4., 타법개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20200805.txt",
+          "sha256": "a3f52336497923693621fc7c93e99aeb34c599ed3d7f991466efaeafbef006be",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20200805.html",
+          "sha256": "41b6eee232ef456185eeb0ed97c0a53b6a35af96bf36df019f03204ddcd2e408"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "역사적 유형·정의 변경 검수",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "decree_art2_20200908",
+      "title": "공공주택 특별법 시행령 제2조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=221449&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR&efYd=20200908&chrClsCd=010202",
+      "group": "historical_change",
+      "stage": "historical_update_1",
+      "version_header": "[시행 2020. 9. 8.] [대통령령 제31005호, 2020. 9. 8., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20200908.txt",
+          "sha256": "32ffa98743ca635ab570fd1f70ad560efde3602fafa09f3acd367c4d647a980d",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20200908.html",
+          "sha256": "030d20be3188eb783dcc52b7b9db58b03b8d4fb5cd61b7fae1c81308e5767206"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "역사적 유형·정의 변경 검수",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "decree_art2_20201019",
+      "title": "공공주택 특별법 시행령 제2조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=220721&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR&efYd=20201019&chrClsCd=010202",
+      "group": "historical_change",
+      "stage": "historical_update_2",
+      "version_header": "[시행 2020. 10. 19.] [대통령령 제31114호, 2020. 10. 19., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20201019.txt",
+          "sha256": "2c176dfccb0278989ed83e352a28475a1c612c89e5bd62341378cf154b96c4d6",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art2_20201019.html",
+          "sha256": "1b5ab5d641589ed1fb5f5f9e2675140f43bc4ec564ccc555d7b317edcbd48242"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "역사적 유형·정의 변경 검수",
+      "input_scope": "선정 조문 전체"
+    },
+    {
+      "source_id": "rule_annex4_20260824",
+      "title": "공공주택 특별법 시행규칙 별표4 국민임대주택 입주자 자격",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/flDownload.do?flSeq=168446009",
+      "group": "current_discovery",
+      "stage": "current_support",
+      "version_header": "시행규칙 시행2026-08-24, 별표4 자체 개정2026-06-22",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/rule_annex4_20260824.pdf",
+          "sha256": "90ca9723528cf5ee1cb8af57af4b0e8741c5590d9869c9b9edeba18391055a7d",
+          "role": "statutory_original"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/rule_annex4_20260824.pdf",
+          "sha256": "90ca9723528cf5ee1cb8af57af4b0e8741c5590d9869c9b9edeba18391055a7d"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 별표 원문",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "LH 임대업무의 법정 개념·범위·자격·예외 근거",
+      "input_scope": "별표4 전체13쪽. 표 열/조건 범위를 보존하여 파싱; 단순평문 정본 사용 금지"
+    },
+    {
+      "source_id": "decree_art37_20201019",
+      "title": "공공주택 특별법 시행령 제37조",
+      "publisher": "국가법령정보센터 / 국토교통부 법령",
+      "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=220721&joNo=0037&joBrNo=00&docCls=jo&efYd=20201019&chrClsCd=010202&urlMode=lsScJoRltInfoR",
+      "group": "historical_change",
+      "stage": "historical_update_2_reference",
+      "version_header": "[시행 2020. 10. 19.] [대통령령 제31114호, 2020. 10. 19., 일부개정]",
+      "input_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art37_20201019.txt",
+          "sha256": "7a80c52dbf1c4bc5d0023f6887f90fb283bcea8c607cec55970084b545797296",
+          "role": "article_body_excerpt"
+        }
+      ],
+      "original_files": [
+        {
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/decree_art37_20201019.html",
+          "sha256": "701aafb63283e6ba9015325e44da4c7199a03f1201a24eae181430fc2b05b6bf"
+        }
+      ],
+      "rights": {
+        "basis_type": "copyright_act_article7_1",
+        "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+        "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+        "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+        "exclusions": "법령 원문만. LH 사규·해설문 제외"
+      },
+      "source_review": "legal_review.json",
+      "purpose": "제2조에서 참조하는 매입대상 범위의 추가 탐색 근거",
+      "input_scope": "제37조 전체; 추가 참조하는 건축법 시행령의 상세 용도 정의는 확보하지 않음"
+    }
+  ],
+  "held_sources": [
+    {
+      "source_id": "notice_original_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020732 HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020732.html",
+      "sha256": "9da88e9040498fd5034b663d367dafb2c1768e66fdc9581abeb8ce600e91a14d",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020732&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "notice_correction1_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.html",
+      "sha256": "2a4183079601418ce219ac1e82ff1b3d625dec71af6f3fdda4fa0d122d56e3ce",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "notice_correction2_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 HTML",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.html",
+      "sha256": "c19c45ec3dca660f9425ce63c7af15da004cd21118c6d0094a6691fcafb85450",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "notice_correction1_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 PDF",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.pdf",
+      "sha256": "a20dfccd93599eed0f40df66d32ff1bf724ae4773832c96fd427cbb2ee868352",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68635562",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "notice_correction2_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 PDF",
+      "raw_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.pdf",
+      "sha256": "8e0d5cf4ba98b08c235563d37ac28302aac283fd56ec070161be5f4be35cf5f8",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68641696",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "title": "국민임대 임대절차",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1022.html",
+      "sha256": "58215000d878ed0c16264d50e4073900aa0d78d49215a910487914f2c937e0b4",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "title": "국민임대 입주자격",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1023.html",
+      "sha256": "c4e9a09487084933d2aadc9552cdbf0ca4ee08faff01f7f702ffe0b6eb77f5ed",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "title": "국민임대 제출서류",
+      "raw_path": "data/knowledge/pilot_v1/raw/guide_1025.html",
+      "sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "title": "2026 LH 유관민원 주요 Q&A",
+      "raw_path": "data/knowledge/pilot_v1/raw/qa_2026.hwpx",
+      "sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "LH-RULES-2015",
+      "title": "주택임대규정 시행세칙 (2015-01-08 개정본)",
+      "raw_path": "data/knowledge/pilot_v1/raw/rental_rules_2015.pdf",
+      "sha256": "a77e97440cd309b60fb4de6abcee83e73b1bfe7b97f47d3dcda96ee37d2cf83e",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=651428&seq=1",
+      "decision": "hold_from_this_bundle",
+      "reason": "예정된 로컬 분석·근거표시·발표 이용의 명시 허락 미확인. 불법 판정이 아님",
+      "review": "rights_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "lh_rental_regulation",
+      "title": "주택임대규정(2009-10-01 제정본, 2012-10-30 게시)",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_rental_regulation.pdf",
+      "sha256": "3fd068f87d323977f3ddbd06d89aec8a0197148aecaf21bcc00a89367ced0f4f",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=651388&seq=1",
+      "decision": "hold_from_this_bundle",
+      "reason": "권리 미확인, 현행성 미확인, 이미지 PDF. 추가 OCR 없이 보관만 함",
+      "review": "content_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "lh_organization_20260626",
+      "title": "직제규정(2026-06-26 규정 제355호)",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_organization_20260626.pdf",
+      "sha256": "9da8a7ff4318763a23bf3c3a2afae99ae5518108dd740e7a801de19c0c6fc11a",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=732947&seq=1",
+      "decision": "hold_from_this_bundle",
+      "reason": "권리 미확인. 본문·시행일 확인 후 보관",
+      "review": "content_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "lh_duties_20260120",
+      "title": "직제규정 시행세칙(2026-01-20 시행세칙 제279호)",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20260120.pdf",
+      "sha256": "b40c0a761a4f0f382b6a4cc224016ee3015bd34e299949cad62b5388d7ea0017",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=731290&seq=1",
+      "decision": "hold_from_this_bundle",
+      "reason": "내용상 최우선 보완 자료이나 권리 미확인으로 실사용 입력 보류",
+      "review": "content_review.json",
+      "runtime_state_changed": false
+    },
+    {
+      "source_id": "lh_duties_20251106",
+      "title": "직제규정 시행세칙(2025-11-06 시행세칙 제276호)",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20251106.pdf",
+      "sha256": "e83f8fc4725bbb9ae5d44d93ad4358dd2a28a881704993801d4d3a1dcb093fe8",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=730407&seq=1",
+      "decision": "hold_from_this_bundle",
+      "reason": "의미 변경 평가 참고 후보. 권리 미확인으로 보류",
+      "review": "content_review.json",
+      "runtime_state_changed": false
+    }
+  ],
+  "readiness": {
+    "usable_for_bounded_public_business_ontology_pilot": true,
+    "complete_for_internal_company_autonomous_ontology": false,
+    "missing": [
+      "LH 조직·업무분장 자료의 예정 이용 권리 확인",
+      "실제 공고·업무안내·Q&A 원문 권리 확인 또는 동등한 개방 자료",
+      "수집된 API 명세를 넘어선 실제 공고 API 응답(현재 미취득)",
+      "회사 내부 실무자의 의미 검수와 실측 검수시간; 이번에는 미실행"
+    ]
+  },
+  "review_records": [
+    "rights_review.json",
+    "content_review.json",
+    "open_data_review.json",
+    "legal_review.json"
+  ]
+}

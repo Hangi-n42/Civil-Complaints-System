@@ -1,0 +1,82 @@
+{
+  "sources": [
+    {
+      "id": "lh_registry_catalog",
+      "url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "resolved_url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_registry_catalog.html",
+      "bytes": 209236,
+      "sha256": "2634d71fbad47d1b2d482585e5d45b20a7a02ca12ffadac458d1e1b658f6729d",
+      "retrieved_at": "2026-09-29T14:05:45.766641+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "lh_notice_api_catalog",
+      "url": "https://www.data.go.kr/data/15057999/openapi.do",
+      "resolved_url": "https://www.data.go.kr/data/15057999/openapi.do",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_notice_api_catalog.html",
+      "bytes": 203221,
+      "sha256": "c086f18ccb51c426ad82eda6b54972aae2f1ffbf7cfcc2e525f243e3d0a8bdfc",
+      "retrieved_at": "2026-09-29T14:05:45.712825+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "lh_rules_catalog",
+      "url": "https://www.lh.or.kr/menu.es?mid=a10108020000",
+      "resolved_url": "https://www.lh.or.kr/board.es?mid=a10108020000&bid=0055",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_rules_catalog.html",
+      "bytes": 101741,
+      "sha256": "028a4e4919ef8fdc7959e91033d6d4f930783011ea5a648910505f771653a556",
+      "retrieved_at": "2026-09-29T14:05:45.781997+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "lh_organization",
+      "url": "https://www.lh.or.kr/menu.es?mid=a10704010000",
+      "resolved_url": "https://www.lh.or.kr/user/dept/view?mid=a10704010000",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_organization.html",
+      "bytes": 100747,
+      "sha256": "53a7a7f913e610447e46452894b44d80d9560b79db14399de178f0f07fde6a02",
+      "retrieved_at": "2026-09-29T14:05:45.733928+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "lh_qa_landing",
+      "url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "resolved_url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_qa_landing.html",
+      "bytes": 88761,
+      "sha256": "dd34685c7581e2592f590d4abbea35ab3e931fd729dfa677fa798770aecc71e6",
+      "retrieved_at": "2026-09-29T14:05:46.316485+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "kogl_license",
+      "url": "https://www.kogl.or.kr/info/license.do",
+      "resolved_url": "https://www.kogl.or.kr/info/license.do",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/kogl_license.html",
+      "bytes": 142380,
+      "sha256": "e39a8ad2be7ce3fb6ce23402fbf2bc866ff4ed41b612a22f164ebf1d8b9eb66f",
+      "retrieved_at": "2026-09-29T14:05:46.892005+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "kogl_public_guide",
+      "url": "https://www.kogl.or.kr/info/publicGuide.do",
+      "resolved_url": "https://www.kogl.or.kr/info/publicGuide.do",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/kogl_public_guide.html",
+      "bytes": 109814,
+      "sha256": "3d4e0f17d4729efdb5a3eea22f00751ffb26ff6d8c6425460d1e6d88564aca4b",
+      "retrieved_at": "2026-09-29T14:05:46.876027+00:00",
+      "role": "official_terms_or_availability_evidence_not_approved_model_input"
+    },
+    {
+      "id": "lh_public_data_policy",
+      "url": "https://www.lh.or.kr/menu.es?mid=a10110010000",
+      "path": "data/knowledge/raw/lh_autonomous_review_20260929/lh_public_data_policy.html",
+      "sha256": "cf68aa92e08f45eddd4c3f50c0da23d0bb88d266e0fb2314dd5a64e28464a8f1",
+      "retrieved_at": "2026-09-29T14:06:46.026872+00:00",
+      "role": "public_data_policy_not_blanket_license_for_all_pages"
+    }
+  ]
+}

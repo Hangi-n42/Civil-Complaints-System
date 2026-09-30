@@ -1,0 +1,15 @@
+{
+  "checked_on": "2026-09-30",
+  "selected_sources": 15,
+  "selected_input_files": 19,
+  "held_originals": 14,
+  "file_hash_references_checked": 63,
+  "unique_files_checked": 51,
+  "errors": [],
+  "json_and_local_links": "passed",
+  "model_calls": 0,
+  "actual_api_response_calls": 0,
+  "service_ingestion_tested": false,
+  "ontology_generated": false,
+  "notes": "파일존재·해시·입력범위 참조 확인. 법률적 무위험·전체파싱·모델품질 검증이 아님."
+}
