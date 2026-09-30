@@ -1,7 +1,7 @@
 # A4 저장된 탐색 초안 검수
 
 - 범위: 이슈 #523. 기존 `/knowledge`에 저장된 A2 결과 선택과 A3 변경 검수 연결.
-- 기반: main `c8910ea` 확인 후, 미병합 A3 PR #530의 검수 커밋 `d1b742e`에서 분기. A3가 선행 의존성이다.
+- 기반: main `c8910ea` 확인 후 당시 미병합 A3 PR #530의 검수 커밋 `d1b742e`에서 분기. 2026-10-01에 A3의 main `957c99f` 병합을 확인했다.
 - 기존 React 화면·A3 서비스·SQLite 결정을 재사용한다. 새 의존성, 모델 호출, 정본 생성기, 운영 활성화 경로를 추가하지 않는다.
 
 ## 실행과 사용
@@ -48,11 +48,19 @@
 ```sh
 python -m pytest app/tests/unit/test_knowledge_review_api.py app/tests/unit/test_knowledge_ontology_changes.py app/tests/unit/test_knowledge_discovery_run.py app/tests/unit/test_knowledge_api.py -q
 cd frontend
-npx vitest run __tests__/knowledgeReview.test.ts
+npx vitest run __tests__/knowledgeReview.test.ts __tests__/knowledgeReviewRender.test.ts
 npx tsc --noEmit
 npx eslint app/knowledge/page.tsx components/KnowledgeOntology.tsx components/KnowledgeDiscoveryReview.tsx components/KnowledgeReviewEvidence.tsx lib/knowledgeReview.ts __tests__/knowledgeReview.test.ts
 npx next build --webpack
 ```
+
+## 화면 보완 확인 — 2026-10-01
+
+- v1 기준은 `candidates`, v2 기준은 `targets`에서 동일한 대상 ID로 이름을 조회하도록 공통 표시부 수정. 별칭·관계·계층·병합에 적용하며, 없는 ID는 계속 확인 필요로 표시한다.
+- 기본 전후 카드에 적용 범위·조건, 시점, 부정 여부, 진술 성격 추가. 신규 제안의 이전 항목 부재와 저장된 변경안·미저장 편집을 구분한다. 정본·과거 버전·백엔드는 변경하지 않았다.
+- 임시 DB에서 생성된 실제 API 형식의 `legacy.json`·`scope.json`을 기존 컴포넌트에 넣어 정적 렌더링 전후 대조. `LegacyType`의 `기존기준유형` 표시와 `기존조건_2020년_입주자`/`새조건_2026년_입주자`, 2020년/2026년의 기본 비교 영역 출력을 확인했다.
+- 컴포넌트 출력 회귀 2개 추가, 관련 프런트 테스트 총 11개·TypeScript·변경 파일 ESLint 통과. 실제 없는 ID, 신규 항목, 네 가지 연결 표시, 조건 4항목 및 편집값 분리 포함.
+- 이번 보완은 정적 컴포넌트 출력 확인이며 브라우저 상호작용·Windows 실기를 재수행하지 않았다. 백엔드 테스트·전체 평가·LLM 호출·데이터 수집도 추가하지 않았다. 임시 재현 스크립트와 자료는 제품 코드에 포함하지 않는다.
 
 ## 남은 범위
 

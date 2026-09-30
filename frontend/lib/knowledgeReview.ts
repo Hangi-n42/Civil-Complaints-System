@@ -17,7 +17,7 @@ export type DiscoveryRun = { id: string; status: string; started_at?: string; fi
   frozen_input: { scope: string; step: number; files: { file_id: string; title: string; role?: string; source_version_id: string }[] };
   result?: RecordValue; metrics?: { llm_calls?: number; model_total_s?: number } };
 export type RunSummary = { id: string; status: string; started_at?: string; scope: string; step: number; has_result: boolean; changeset_id?: string };
-export type Ontology = { id?: string; status: string; linkml_yaml?: string; json_schema?: unknown; effective_class_slots?: Record<string, string[]>; vocabulary_registry?: RecordValue; targets?: RecordValue[]; error?: string; included_change_ids?: string[]; excluded_change_ids?: string[] };
+export type Ontology = { id?: string; status: string; linkml_yaml?: string; json_schema?: unknown; effective_class_slots?: Record<string, string[]>; vocabulary_registry?: RecordValue; targets?: RecordValue[]; candidates?: RecordValue[]; error?: string; included_change_ids?: string[]; excluded_change_ids?: string[] };
 export type EditDraft = { after: string; qualifiers: string; target_kind: string; support_type: string; rationale: string; evidence_refs: string; counter_evidence_refs: string; cq_ids: string[]; scope_item_ids: string[]; unresolved_issues: string; hierarchy_review: string };
 export const record = (v: unknown): RecordValue => v !== null && typeof v === "object" && !Array.isArray(v) ? v as RecordValue : {};
 export const records = (v: unknown): RecordValue[] => Array.isArray(v) ? v.map(record) : [];

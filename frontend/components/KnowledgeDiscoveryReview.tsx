@@ -125,7 +125,8 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
   const stat = (key: string) => result[key] == null ? "미기록" : Array.isArray(result[key]) ? (result[key] as unknown[]).length : display(result[key]);
   function targetName(id: unknown) {
     const candidate = change?.candidates.find(c => c.target_id === id);
-    return candidate ? changeName(candidate) : display(reviewed?.targets?.find(t => t.id === id)?.name ?? "연결 대상 확인 필요");
+    const target = (reviewed?.targets ?? reviewed?.candidates)?.find(t => t.id === id);
+    return candidate ? changeName(candidate) : display(target?.name ?? "연결 대상 확인 필요");
   }
   function connection(value: RecordValue) {
     if (value.canonical_id) return `같은 대상으로 통합할 대상: ${targetName(value.canonical_id)}`;
@@ -189,10 +190,16 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <p className="text-sm">{label(selected.support_type)} · {label(selected.operation)} · {selected.operation === "merge" ? "같은 대상이라는 판단을 개별 검수하세요." : "원문 명시와 설계 제안을 구분하세요."}</p>
             <p className="text-sm">{connection(record(selected.after))}</p>
             {connection(baseAfter) && <p className="text-xs text-slate-600">기존 연결: {connection(baseAfter)}</p>}
-            <div className="grid gap-2 text-sm sm:grid-cols-2"><div className="rounded bg-slate-50 p-3"><h4 className="font-semibold">변경 전</h4>{["name","definition","inclusion","exclusion"].map(k => <p className="mt-2 whitespace-pre-wrap" key={k}>{fieldLabels[k]}: {display(baseAfter[k])}</p>)}</div>
-              <div className="rounded bg-blue-50 p-3"><h4 className="font-semibold">변경안 · 저장된 값</h4>{["name","definition","inclusion","exclusion"].map(k => <p className="mt-2 whitespace-pre-wrap" key={k}>{fieldLabels[k]}: {display(record(selected.after)[k])}</p>)}</div></div>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">{[
+              { title: "변경 전", definition: selected.before, qualifiers: record(baseAfter.qualifiers), color: "bg-slate-50" },
+              { title: "변경안 · 저장된 값", definition: selected.after, qualifiers: selected.qualifiers, color: "bg-blue-50" },
+            ].map(side => <div key={side.title} className={`rounded p-3 ${side.color}`}><h4 className="font-semibold">{side.title}</h4>
+              {side.definition === null ? <p className="mt-2">이전 항목 없음 · 신규 제안</p> : <>
+                {["name","definition","inclusion","exclusion"].map(k => <p className="mt-2 whitespace-pre-wrap" key={k}>{fieldLabels[k]}: {display(record(side.definition)[k])}</p>)}
+                <dl className="mt-3 space-y-1">{["scope","time","negation","statement_type"].map(k => <div key={k}><dt className="font-medium">{fieldLabels[k]}</dt><dd className="whitespace-pre-wrap">{label(display(side.qualifiers[k]))}</dd></div>)}</dl>
+              </>}
+            </div>)}</div>
             <p className="whitespace-pre-wrap text-sm">변경 이유: {display(selected.rationale)}</p>
-            <dl className="space-y-1 text-sm">{["scope","time","negation","statement_type"].map(k => <div key={k}><dt className="font-medium">{fieldLabels[k]}</dt><dd>{label(display(record(selected.qualifiers)[k]))}</dd></div>)}</dl>
             <fieldset disabled={busy || conflict} className="space-y-3 border-t pt-3"><legend className="font-medium">검토자가 수정할 내용 · 아직 저장되지 않음</legend>
               {["add","update"].includes(selected.operation) && !["hierarchy"].includes(draft.target_kind) && ["name", ...(draft.target_kind === "alias" ? [] : ["definition","inclusion","exclusion"])].map(k => <label key={k} className="block text-sm">{fieldLabels[k]}<textarea className={inputClass} value={typeof after[k] === "string" ? after[k] as string : ""} onChange={e => changeText("after",k,e.target.value)} /></label>)}
               <label className="block text-sm">제안 성격<select className={inputClass} value={draft.support_type} onChange={e => setDraft({ ...draft, support_type: e.target.value })}><option value="explicit">원문 명시 제안</option><option value="design_proposal">설계 제안</option><option value="unresolved">판단 미정</option></select></label>
