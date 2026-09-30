@@ -1,6 +1,7 @@
 """Small format/scope checks, with the selected local corpus when available."""
 import json
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -8,6 +9,23 @@ from app.knowledge.parsers import parse_unit, plan_units
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "configs/knowledge/pilot_v1/sources.json"
+
+
+@pytest.mark.parametrize('separator', ['\n', '다음 표 설명\n'])
+def test_markdown_table_headers_reset_between_tables(tmp_path, separator):
+    path = tmp_path / 'tables.md'
+    text = ('# 자료\n| 단지 | 세대수 |\n| --- | --- |\n| A | 100 |\n'
+            + separator + '| 공고 | 접수일 |\n| --- | --- |\n| B | 2026-09-30 |\n')
+    path.write_text(text, encoding='utf-8')
+    blocks = parse_unit(path, 'md', plan_units(path, 'md')[0])
+    first = next(b for b in blocks if '| A |' in b['text'])
+    second = next(b for b in blocks if '| B |' in b['text'])
+    assert first['locator']['table_headers'] == ['| 단지 | 세대수 |']
+    assert second['locator']['table_headers'] == ['| 공고 | 접수일 |']
+    for block in blocks:
+        loc = block['locator']
+        assert loc['section'] == '# 자료'
+        assert text[loc['start_char']:loc['end_char']] == block['text']
 
 
 def test_html_table_positions_and_empty_body(tmp_path):
@@ -31,7 +49,37 @@ def test_csv_scope_and_missing_code(tmp_path):
     assert len(units) == 1 and blocks[0]["locator"]["physical_row"] == 3
     assert blocks[0]["locator"]["official_code"] == "C2"
     with pytest.raises(ValueError, match="선택 코드 누락"):
-        plan_units(path, "csv", {"knowledge_input_complex_codes": ["missing"]})
+        missing = plan_units(path, "csv", {"knowledge_input_complex_codes": ["missing"]})
+        parse_unit(path, "csv", missing[0])
+
+
+def test_csv_file_checkpoint_reads_rows_once(tmp_path, monkeypatch):
+    from app.knowledge import parsers
+    path = tmp_path / 'cp949.csv'
+    path.write_bytes('유형,이름\n국민임대,첫째\n분양전환,둘째\n'.encode('cp949'))
+    original, calls = parsers._csv_rows, []
+    def counted(*args):
+        calls.append(args)
+        yield from original(*args)
+    monkeypatch.setattr(parsers, '_csv_rows', counted)
+    units = plan_units(path, 'csv', {'encoding': 'cp949'})
+    blocks = [b for unit in units for b in parse_unit(path, 'csv', unit)]
+    assert len(calls) == 1 and len(units) == 1 and len(blocks) == 2
+    assert [b['locator']['physical_row'] for b in blocks] == [2, 3]
+
+
+def test_hwpx_registered_unit_preserves_member_and_paragraph(tmp_path):
+    path = tmp_path / 'example.hwpx'
+    with ZipFile(path, 'w') as archive:
+        archive.writestr('Contents/section0.xml',
+            '<hs:sec xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" '
+            'xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">'
+            '<hp:p><hp:run><hp:t>시험 근거</hp:t></hp:run></hp:p></hs:sec>')
+    unit = plan_units(path, 'hwpx')[0]
+    block = parse_unit(path, 'hwpx', unit)[0]
+    assert block['text'] == '시험 근거'
+    assert block['locator']['member'] == 'Contents/section0.xml'
+    assert block['locator']['xml_path'] == 'sec/p'
 
 
 @pytest.mark.skipif(not (ROOT / "data/knowledge/pilot_v1/raw/qa_2026.hwpx").exists(), reason="Local selected originals are not distributed in Git")
