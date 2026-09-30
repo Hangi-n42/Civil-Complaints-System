@@ -118,6 +118,8 @@ def start(service, request):
             if not request.registry_source_version_id and not request.local_entity_ids:
                 raise ValueError('단지 등록부 또는 문서 내 로컬 개체를 선택하세요.')
             ontology = get_ontology(service, request.ontology_version_id)
+            if ontology.get('payload_version') == 2:
+                raise ValueError('v2 온톨로지의 K4 매핑/상속 소비는 A5 연결 필요; 현재 추출 미지원')
             if ontology['status'] != 'reviewed':
                 raise ValueError('reviewed 온톨로지만 추출에 사용할 수 있습니다.')
             blocks, sources, versions = [], {}, {}

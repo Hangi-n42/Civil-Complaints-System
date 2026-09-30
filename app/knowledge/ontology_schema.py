@@ -132,6 +132,8 @@ def _base(service, run):
     if not base_id:
         return []
     version = get_ontology(service, base_id)
+    if version.get('payload_version') == 2:
+        raise ValueError('v2 기준 변경은 A3 변경 후보 경로를 사용해야 합니다.')
     if version['status'] != 'reviewed':
         raise ValueError('검토된 온톨로지 버전만 기준으로 사용할 수 있습니다.')
     return version['candidates']
@@ -158,9 +160,12 @@ def publish(service, run, candidates):
 def get_ontology(service, ontology_id):
     with service.repository.connect() as db:
         version = service.repository.get(db, 'ontology_versions', ontology_id)
+    if version.get('payload_version') == 2:
+        from .ontology_canonical import read
+        return read(version)
     values = _from_schema(version['linkml_yaml'])
     _, derived = build_schema(values)
-    return dict(version, review_status=version['status'], candidates=values,
+    return dict(version, payload_version=1, vocabulary_registry={}, review_status=version['status'], candidates=values,
                 linkml_schema=yaml.safe_load(version['linkml_yaml']), json_schema=derived)
 
 
@@ -185,6 +190,12 @@ def candidates(service, changeset_id=None, kind=None, review_status=None):
                 "SELECT payload FROM decisions WHERE json_extract(payload, '$.changeset_id')=? ORDER BY rowid", (change['id'],))]
     items = []
     for change in changes:
+        if change.get('payload_version') == 2:
+            from .ontology_changes import view
+            change.update(view(service, change))
+            items.extend(c for c in change['candidates'] if (not kind or c['kind'] == kind)
+                         and (not review_status or c['review_status'] == review_status))
+            continue
         current = get_ontology(service, change['ontology_version_id'])['candidates']
         change['candidates'] = [dict(c, review_status=change['review_status'][c['id']], changeset_id=change['id'])
                                 for c in current if c['id'] in change['review_status']]
@@ -199,7 +210,13 @@ def candidates(service, changeset_id=None, kind=None, review_status=None):
 def decide(service, changeset_id, request):
     request = DecisionRequest.model_validate(request)
     with service.repository.connect() as db:
-        kind = service.repository.get(db, 'changesets', changeset_id).get('kind', 'ontology')
+        change = service.repository.get(db, 'changesets', changeset_id)
+        kind = change.get('kind', 'ontology')
+    if change.get('payload_version') == 2:
+        from .ontology_changes import decide as decide_v2
+        return decide_v2(service, changeset_id, request)
+    if any(d.action == 'edit' for d in request.decisions):
+        raise ValueError('edit는 v2 변경 후보에만 지원합니다.')
     if kind == 'extraction':
         from .extraction_store import decide as decide_extraction
         return decide_extraction(service, changeset_id, request)

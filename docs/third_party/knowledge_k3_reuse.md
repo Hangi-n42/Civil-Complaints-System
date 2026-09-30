@@ -27,3 +27,9 @@ LinkML 정본의 candidate annotation에 정의·포함/제외·CQ·근거를 �
 - `lx.extract`·provider·원격 API를 사용하지 않는다. 패키지의 Google SDK 전이 의존성은 설치되지만 실행에는 사용하지 않는다.
 - 기존 Pydantic·protobuf·OpenTelemetry 제약을 유지하도록 google-genai 2.8.0, google-api-core 2.33.0, proto-plus 1.28.2를 함께 고정했다. 현재 Mac Python 3.11.9에서 pip check 통과. Windows 전체 설치는 미확인이다.
 - LinkML JSON Schema를 그대로 바탕으로 추출 슬롯 타입을 구성한다. 단지 현황 PDF 표의 명시 헤더 3개가 확인될 때는 단지명·수량·최초입주월 슬롯만 허용한다. OntoGPT의 표기/ID 연결 분리, SKOS식 별칭, PROV식 출처는 로컬 원장 필드로 반영하며 엔진·외부 온톨로지를 추가하지 않는다.
+
+## A3 적용 (2026-09-30)
+
+- 기존 LinkML/runtime 1.11.1의 `SchemaView`·`JsonSchemaGenerator`를 저장된 v2 YAML에 직접 호출한다. `class_slots`로 상속 슬롯을 조회하며 v1 후보 재구성으로 정본을 다시 만들지 않는다. 공개 API 호출이며 외부 코드 추가 이식·패키지 내부 변경은 없다.
+- `uuid`, `hashlib`, `sqlite3`, 기존 Pydantic을 사용한다. YAML은 클래스/슬롯/클래스 별칭·구조 링크, 같은 버전의 registry는 어휘/어휘 링크·별칭/대체 ID를 소유한다. diff는 ID별 필드 비교로 충분하여 별도 diff 패키지를 추가하지 않았다.
+- 선택형 `vocabulary-broader-v1`은 [SKOS 2009-08-18](https://www.w3.org/TR/2009/REC-skos-reference-20090818/)의 의미 참고를 로컬 메타데이터로 기록한다. W3C document license, 코드·정의 전문 복사 없음. 회사 정의를 공통 메타모델에 추가하거나 RDF 적합성을 주장하지 않는다.

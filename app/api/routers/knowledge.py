@@ -16,6 +16,8 @@ from app.knowledge.schemas import DecisionRequest, ManualAssertionRequest, RunRe
 from app.knowledge.schemas import SnapshotRequest, ActivateSnapshotRequest, AvailabilityRequest
 from app.knowledge.service import KnowledgeConflict, KnowledgeService
 from app.knowledge import ontology_schema
+from app.knowledge import ontology_changes
+from app.knowledge.ontology_changes_models import AddOntologyChanges
 from app.knowledge import extraction_store
 from app.knowledge import snapshots
 from app.knowledge.schemas import SearchRequest, LocalEntityRequest
@@ -142,6 +144,21 @@ def ontology_candidates(changeset_id: str | None = None, kind: str | None = None
 @router.post('/changes/{changeset_id}/decisions', response_model=KnowledgeResponse)
 def decisions(changeset_id: str, request: DecisionRequest, service=Depends(get_knowledge_service)):
     return result(ontology_schema.decide(service, changeset_id, request))
+
+
+@router.post('/runs/{run_id}/ontology-changes', response_model=KnowledgeResponse)
+def discovery_changes(run_id: str, service=Depends(get_knowledge_service)):
+    return result(ontology_changes.publish(service, run_id))
+
+
+@router.post('/changes/{changeset_id}/ontology-candidates', response_model=KnowledgeResponse)
+def add_ontology_candidates(changeset_id: str, request: AddOntologyChanges, service=Depends(get_knowledge_service)):
+    return result(ontology_changes.add(service, changeset_id, request))
+
+
+@router.get('/changes/{changeset_id}/schema-preview', response_model=KnowledgeResponse)
+def ontology_preview(changeset_id: str, service=Depends(get_knowledge_service)):
+    return result(ontology_changes.preview(service, changeset_id))
 
 
 @router.get('/entities', response_model=KnowledgeResponse)

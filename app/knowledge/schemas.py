@@ -59,13 +59,14 @@ class Candidate(BaseModel):
 class CandidateDecision(BaseModel):
     model_config = {'extra': 'forbid'}
     candidate_id: str
-    action: Literal['accept', 'modify', 'defer', 'reject', 'unlink']
+    action: Literal['accept', 'modify', 'edit', 'defer', 'reject', 'unlink']
     patch: dict[str, Any] | None = None
     reason: str = ''
 
 
 class DecisionRequest(BaseModel):
     expected_changeset_revision: int = Field(ge=0)
+    expected_ontology_head_id: str | None = None
     actor: str = Field(min_length=1)
     decisions: list[CandidateDecision] = Field(min_length=1)
 
