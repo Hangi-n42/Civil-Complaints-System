@@ -44,6 +44,7 @@ def test_registration_failure_retry_cancel_and_evidence(tmp_path, monkeypatch):
             service.register('../test.csv', b'bad', registration())
         run_id = service.start(RunRequest(source_version_ids=[vid]))['run_id']
         assert finished(service, run_id)['status'] == 'partial'
+        assert service.version(sid, vid)['version']['latest_parse_run_id'] is None
         block = service.blocks(sid, vid)['items'][0]
         evidence = service.evidence(block['evidence_id'])['evidence']
         assert evidence['quote'] == '한글 근거'
@@ -53,6 +54,8 @@ def test_registration_failure_retry_cancel_and_evidence(tmp_path, monkeypatch):
         assert finished(service, retry)['status'] == 'succeeded'
         assert len(service.blocks(sid, vid)['items']) == 2
         assert service.version(sid, vid)['version']['processing_status'] == 'parsed'
+        with service.repository.connect() as db:
+            assert service.find_parse(db, vid, parser.parser_info('csv'), {}) == retry
         parser.plan_units = lambda *args: [{'id': 'wait'}, {'id': 'never'}]
         cancel_run = service.start(RunRequest(source_version_ids=[vid]))['run_id']
         assert entered.wait(5)
@@ -63,7 +66,8 @@ def test_registration_failure_retry_cancel_and_evidence(tmp_path, monkeypatch):
         cancelled = finished(service, cancel_run)
         assert cancelled['status'] == 'cancelled'
         assert [u['status'] for u in cancelled['units']] == ['succeeded', 'cancelled']
-        assert len(service.blocks(sid, vid)['items']) == 1
+        assert len(service.blocks(sid, vid)['items']) == 2
+        assert service.version(sid, vid)['version']['latest_parse_run_id'] == retry
         assert service.evidence(block['evidence_id'])['evidence']['quote'] == '한글 근거'
     finally:
         release.set()

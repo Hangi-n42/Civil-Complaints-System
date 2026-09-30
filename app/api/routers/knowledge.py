@@ -209,19 +209,32 @@ def register_entity(request: LocalEntityRequest, service=Depends(get_knowledge_s
 
 
 @router.get('/discovery/sources', response_model=KnowledgeResponse)
-def discovery_sources(scope: str = 'current_discovery', step: int = 0):
+def discovery_sources(scope: str | None = None, step: int | None = None,
+                      run_id: str | None = None, service=Depends(get_knowledge_service)):
+    if run_id is not None:
+        from app.knowledge.discovery_run import catalog
+        return result(catalog(service, run_id, scope, step))
     from app.knowledge.discovery_inputs import catalog
-    return result(catalog(scope, step))
+    return result(catalog('current_discovery' if scope is None else scope, 0 if step is None else step))
 
 
 @router.get('/discovery/read', response_model=KnowledgeResponse)
-def discovery_read(file_id: str, scope: str = 'current_discovery', step: int = 0,
-                   offset: int = 0, limit: int = 20):
+def discovery_read(file_id: str, scope: str | None = None, step: int | None = None,
+                   offset: int = 0, limit: int = 20, run_id: str | None = None,
+                   service=Depends(get_knowledge_service)):
+    if run_id is not None:
+        from app.knowledge.discovery_run import read
+        return result(read(service, run_id, file_id, scope, step, offset, limit))
     from app.knowledge.discovery_inputs import read
-    return result(read(file_id, scope, step, offset, limit))
+    return result(read(file_id, 'current_discovery' if scope is None else scope,
+                       0 if step is None else step, offset, limit))
 
 
 @router.get('/discovery/search', response_model=KnowledgeResponse)
-def discovery_search(q: str, scope: str = 'current_discovery', step: int = 0, limit: int = 20):
+def discovery_search(q: str, scope: str | None = None, step: int | None = None, limit: int = 20,
+                     run_id: str | None = None, service=Depends(get_knowledge_service)):
+    if run_id is not None:
+        from app.knowledge.discovery_run import search
+        return result(search(service, run_id, q, scope, step, limit))
     from app.knowledge.discovery_inputs import search
-    return result(search(q, scope, step, limit))
+    return result(search(q, 'current_discovery' if scope is None else scope, 0 if step is None else step, limit))

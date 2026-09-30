@@ -71,7 +71,7 @@ class DecisionRequest(BaseModel):
 
 
 class RunRequest(BaseModel):
-    kind: Literal['parse', 'extract', 'ontology', 'change'] = 'parse'
+    kind: Literal['parse', 'extract', 'ontology', 'change', 'discovery'] = 'parse'
     source_version_ids: list[str] = Field(default_factory=list)
     retry_of_run_id: str | None = None
     unit_ids: list[str] | None = None
@@ -81,6 +81,12 @@ class RunRequest(BaseModel):
     registry_source_version_id: str | None = None
     local_entity_ids: list[str] = Field(default_factory=list)
     block_ids: list[str] = Field(default_factory=list)
+    parser_options: dict[str, Any] | None = None
+    bundle_id: str | None = None
+    manifest_hash: str | None = None
+    scope: Literal['current_discovery', 'contrast_extension', 'historical_change'] | None = None
+    step: int | None = Field(default=None, ge=0)
+    file_ids: list[str] | None = Field(default=None, min_length=1)
 
 
 class ManualAssertionRequest(BaseModel):

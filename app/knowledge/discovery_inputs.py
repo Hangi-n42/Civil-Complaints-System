@@ -1,5 +1,4 @@
 """Read/search the reviewed local corpus. No ontology generation or DB mutation."""
-import csv
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -10,7 +9,8 @@ MANIFEST = ROOT / 'configs/knowledge/lh_input_bundle_20260930/input_manifest.jso
 
 
 def catalog(scope='current_discovery', step=0):
-    manifest = json.loads(MANIFEST.read_text(encoding='utf-8'))
+    manifest_bytes = MANIFEST.read_bytes()
+    manifest = json.loads(manifest_bytes)
     runs = {r['id']: r for r in manifest['runs']}
     if scope not in runs:
         raise ValueError('등록된 탐색 범위를 선택하세요.')
@@ -32,11 +32,15 @@ def catalog(scope='current_discovery', step=0):
         for index, item in enumerate(source['input_files']):
             files.append(dict(file_id=f"{source['source_id']}:{index}",
                               source_id=source['source_id'], title=source['title'],
+                              publisher=source.get('publisher', ''),
                               source_url=source['source_url'], rights=source['rights'],
                               version=source.get('version_header'),
+                              group=source.get('group'), input_scope=source.get('input_scope'),
                               encoding=source.get('csv_encoding') or 'utf-8-sig',
                               **item))
-    return dict(bundle_id=manifest['bundle_id'], manifest_sha256=sha256(MANIFEST.read_bytes()).hexdigest(),
+    if set(ids) - {f['source_id'] for f in files}:
+        raise ValueError('허용 범위의 입력 파일이 누락되었습니다.')
+    return dict(bundle_id=manifest['bundle_id'], manifest_sha256=sha256(manifest_bytes).hexdigest(),
                 scope=scope, step=step, items=files)
 
 
@@ -51,36 +55,18 @@ def _path(item):
 
 def _blocks(item):
     path = _path(item)
-    if path.suffix == '.csv':
-        with path.open(encoding=item['encoding'], newline='') as stream:
-            reader = csv.DictReader(stream)
-            for row in reader:
-                if None in row or any(value is None for value in row.values()):
-                    raise ValueError('CSV 열 수 불일치')
-                yield dict(text='\n'.join(f'{k}: {v}' for k, v in row.items()),
-                           locator=dict(format='csv', physical_row=reader.line_num))
-    elif path.suffix == '.pdf':
-        from .parsers import plan_units, parse_unit
-        for unit in plan_units(path, 'pdf'):
-            yield from parse_unit(path, 'pdf', unit)
-    elif path.suffix in {'.txt', '.md'}:
-        text = path.read_text(encoding='utf-8-sig')
-        section, headers, offset = '', [], 0
-        for line_number, line in enumerate(text.splitlines(keepends=True), 1):
-            if line.startswith('#'):
-                section, headers = line.strip(), []
-            if line.startswith('|') and not headers:
-                headers = [line.strip()]
-            # ponytail: literal lines/spans preserve excerpts; no semantic chunking dependency.
-            for start in range(0, len(line), 2000):
-                part = line[start:start + 2000]
-                if part.strip():
-                    yield dict(text=part, locator=dict(format=path.suffix[1:], line=line_number,
-                               start_char=offset + start, end_char=offset + start + len(part),
-                               section=section, table_headers=headers if line.startswith('|') else []))
-            offset += len(line)
-    else:
-        raise ValueError('지원하지 않는 확정 입력 형식')
+    from .parsers import plan_units, parse_unit
+    format = path.suffix.lstrip('.').lower()
+    options = parser_options(item)
+    for unit in plan_units(path, format, options):
+        yield from parse_unit(path, format, unit)
+
+
+def parser_options(item):
+    options = dict(item.get('parser_options', {}))
+    if Path(item['path']).suffix.lower() == '.csv':
+        options['encoding'] = item['encoding']
+    return options
 
 
 def read(file_id, scope='current_discovery', step=0, offset=0, limit=20):

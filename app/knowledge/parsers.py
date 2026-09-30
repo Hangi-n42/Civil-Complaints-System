@@ -1,4 +1,4 @@
-"""Location-preserving adapters for the four K2 source formats.
+"""Location-preserving adapters for registered source formats.
 
 Units are serializable checkpoints; parsers read local registered originals only.
 No model calls, inferred facts, JavaScript execution, or OCR fallbacks.
@@ -15,19 +15,40 @@ from typing import Any
 def parser_info(format: str) -> dict:
     packages = {"pdf": "pdfplumber", "html": "beautifulsoup4", "hwpx": "python-hwpx"}
     if format == "csv":
-        return {"name": "stdlib.csv", "version": "1", "adapter_version": "1"}
+        return {"name": "stdlib.csv", "version": "1", "adapter_version": "2"}
+    if format in {"txt", "md"}:
+        return {"name": "stdlib.text", "version": "1", "adapter_version": "1"}
     if format not in packages:
         raise ValueError(f"지원하지 않는 형식: {format}")
     return {"name": packages[format], "version": version(packages[format]), "adapter_version": "1"}
 
 
-def _csv_rows(path: Path):
-    with path.open(encoding="utf-8-sig", newline="") as stream:
+def _csv_rows(path: Path, encoding="utf-8-sig"):
+    with path.open(encoding=encoding, newline="") as stream:
         reader = csv.DictReader(stream)
         for row in reader:
             if None in row or any(value is None for value in row.values()):
                 raise ValueError(f"CSV 열 수 불일치: 행 {reader.line_num}")
             yield reader.line_num, row
+
+
+def _text_blocks(path: Path, format: str):
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        text = stream.read()
+    section, headers, offset = '', [], 0
+    for line_number, line in enumerate(text.splitlines(keepends=True), 1):
+        if line.startswith('#'):
+            section, headers = line.strip(), []
+        if line.startswith('|') and not headers:
+            headers = [line.strip()]
+        # ponytail: literal spans preserve excerpts; semantic grouping belongs to discovery A2.
+        for start in range(0, len(line), 2000):
+            part = line[start:start + 2000]
+            if part.strip():
+                yield dict(text=part, locator=dict(format=format, line=line_number,
+                           start_char=offset + start, end_char=offset + start + len(part),
+                           section=section, table_headers=headers if line.startswith('|') else []))
+        offset += len(line)
 
 
 def _html(path: Path):
@@ -86,6 +107,8 @@ def plan_units(path: Path, format: str, scope: dict | str | None = None) -> list
         else:
             raise ValueError("구조화된 추출 범위를 입력하세요")
     scope = scope or {}
+    if format in {"txt", "md"}:
+        return [{"id": "text", "locator": {"format": format}}]
     if format == "pdf":
         import pdfplumber
         with pdfplumber.open(path) as document:
@@ -103,21 +126,8 @@ def plan_units(path: Path, format: str, scope: dict | str | None = None) -> list
                     units.append({"id": f"page-{page}-{side}", "locator": locator})
             return units
     if format == "csv":
-        codes = set(scope.get("knowledge_input_complex_codes", []))
-        column = scope.get("code_column", "단지코드")
-        units, found = [], set()
-        for physical_row, row in _csv_rows(path):
-            if codes and column not in row:
-                raise ValueError(f"CSV 코드 열 없음: {column}")
-            code = row.get(column)
-            if not codes or code in codes:
-                found.add(code)
-                units.append({"id": f"row-{physical_row}", "locator": {"format": format, "physical_row": physical_row}, "code_column": column})
-        if codes - found:
-            raise ValueError(f"CSV 선택 코드 누락: {sorted(codes - found)}")
-        if not units:
-            raise ValueError("CSV 선택 범위가 비어 있습니다")
-        return units
+        # One file checkpoint avoids reading the entire CSV once per row.
+        return [{"id": "csv", "locator": {"format": format}, "scope": scope}]
     if format == "html":
         soup = _html(path)
         codes = scope.get("complex_codes")
@@ -273,12 +283,25 @@ def parse_unit(path: Path, format: str, unit: dict) -> list[dict]:
     elif format == "html":
         blocks = _html_blocks(path, unit)
     elif format == "csv":
-        number = unit["locator"]["physical_row"]
-        matches = [(n, row) for n, row in _csv_rows(path) if n == number]
-        if not matches:
-            raise ValueError("CSV 선택 행 없음")
-        _, row = matches[0]
-        blocks = [{"text": "\n".join(f"{key}: {value}" for key, value in row.items()), "locator": {**unit["locator"], "column_names": list(row), "official_code": row.get(unit["code_column"])}}]
+        scope = unit.get("scope", {})
+        codes = set(scope.get("knowledge_input_complex_codes", []))
+        column = scope.get("code_column", unit.get("code_column", "단지코드"))
+        blocks, found = [], set()
+        for number, row in _csv_rows(path, scope.get("encoding", "utf-8-sig")):
+            if codes and column not in row:
+                raise ValueError(f"CSV 코드 열 없음: {column}")
+            if "physical_row" in unit["locator"] and number != unit["locator"]["physical_row"]:
+                continue  # Existing row checkpoints remain readable.
+            code = row.get(column)
+            if not codes or code in codes:
+                found.add(code)
+                blocks.append({"text": "\n".join(f"{key}: {value}" for key, value in row.items()),
+                               "locator": {**unit["locator"], "physical_row": number,
+                                           "column_names": list(row), "official_code": code}})
+        if codes - found:
+            raise ValueError(f"CSV 선택 코드 누락: {sorted(codes - found)}")
+    elif format in {"txt", "md"}:
+        blocks = list(_text_blocks(path, format))
     elif format == "hwpx":
         all_blocks = _hwpx_blocks(path)
         if "paragraphs" in unit:
