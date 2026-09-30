@@ -51,11 +51,12 @@
 ### PR #532 등록 후 경계 보완
 
 - 조율 세션의 추가 검수에서 두 결함을 임시 DB로 재현했다. 단지 세대수만 선택해도 `panId` 때문에 미대응 공고 역할을 요구했고, 전역 공식 개체 유형의 변경이 다른 유형으로 검토된 사실까지 재검토 상태로 바꿨다.
-- 공고 개체 생성은 실제 선택·대응된 `NoticeIdentifier`/`NoticeIncludesComplex` 출력이 있을 때로 제한했다. 공고 역할이 보류돼도 단지 속성 부분 추출이 완료되며, 공고 슬롯의 주체 의미 대응 검사는 유지한다.
+- 공고 개체 생성은 선택된 유효 지원 슬롯의 주체·관계 대상에 검토된 `LH:notice` 역할이 필요한 경우로 제한한다. 기존 `permits`의 상속 허용 타입을 사용하며 기본 공고 슬롯뿐 아니라 신규 공고 속성·관계도 처리한다. 공고 역할이 보류돼도 단지 속성 부분 추출이 완료되며 미대응 공고를 자동 연결·수락하지 않는다.
 - 직접 영향은 연결에 저장된 유형을 우선한다. 연결 정보가 없을 때는 실행에 고정된 의미 대응을 사용하며, v2 미대응 역할을 전역 개체 유형으로 대체하지 않는다. 기존 무계약 원장의 직접 참조는 유지한다.
 - 관련 소비·영향·추출 실행 테스트 36건 확인: 첫 실행 35건 통과, 신규 테스트 fixture의 실행 상태 누락을 보정한 뒤 해당 1건 재통과. 새 회귀는 미선택 공고, 공고 슬롯별 추출, 주체/대상 연결, 고정 대응·미대응·레거시 fallback과 과거 스냅샷/블록 불변을 확인한다.
 - 두 외부 재현에서도 시작 거절 해소와 별도 유형 사실의 `allowed` 유지 확인. 이 보완의 추가 모델 호출은 0회이며 전체 평가·프런트 재검증·A6는 수행하지 않았다.
 - 구현에 참여하지 않은 에이전트가 변경 부분과 외부 재현 두 건을 독립 재검수하고 소비·영향 테스트 29건을 재확인했다. 이 범위에서 추가 중요 결함은 발견되지 않았다.
+- 후속 검수에서 두 기본 공고 슬롯만 검사하던 guard가 신규 공고 슬롯의 공식 개체 연결을 누락하는 회귀를 재현했다. 유효 주체/대상 타입 판정으로 보완한 뒤 관련 10건 통과: 신규 속성·관계의 직접/상속 타입, 미대응 공고의 수락 차단, 기존 단지 부분 추출·공고 식별자. 고정 응답 재현에서도 공고 개체 1개·공식 ID 연결·연결/사실 검증 오류 없음 확인. 독립 검수자도 해당 10건과 외부 재현을 확인했으며 추가 중요 결함은 발견하지 못했다. 실제 모델 호출 0회.
 
 ```sh
 python -m pytest app/tests/unit/test_knowledge_consumer.py app/tests/unit/test_knowledge_a5_store.py app/tests/unit/test_knowledge_ontology_consumer_impact.py app/tests/unit/test_knowledge_ontology_changes.py app/tests/unit/test_knowledge_ontology_schema.py app/tests/unit/test_knowledge_extraction_run.py app/tests/unit/test_knowledge_extraction_quality.py app/tests/unit/test_knowledge_extraction_store.py app/tests/unit/test_knowledge_snapshots.py app/tests/unit/test_knowledge_api.py app/tests/unit/test_knowledge_search.py -q

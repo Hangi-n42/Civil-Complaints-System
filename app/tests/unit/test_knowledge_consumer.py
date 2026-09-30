@@ -213,6 +213,67 @@ def test_sbd_partial_extraction_only_registers_selected_mapped_notice(tmp_path, 
         service.shutdown()
 
 
+@pytest.mark.parametrize('relation,inherited,notice_mapping', [(False, False, True), (False, True, True),
+                                                            (True, False, True), (True, True, True), (False, False, False)])
+def test_custom_notice_slot_resolves_effective_subject_or_object(tmp_path, monkeypatch, relation, inherited, notice_mapping):
+    service, vid, _, version, mapping = seeded(tmp_path, renamed=True)
+    try:
+        targets = canonical.targets(version)
+        notice_domain = mapping['Notice']
+        if inherited:
+            notice_domain = 'ParentNotice'
+            targets[notice_domain] = dict(targets[mapping['Notice']], id=notice_domain, symbol=notice_domain)
+            targets['notice-edge'] = dict(id='notice-edge', symbol='notice_edge', kind='hierarchy',
+                child_id=mapping['Notice'], parent_id=notice_domain, relation='is_a')
+        slot = 'CustomNoticeSlot'
+        targets[slot] = dict(targets[mapping['ATTRIBUTE_002']], id=slot, symbol=slot, name='공고 신규 슬롯',
+            kind='relation' if relation else 'attribute', domain_id=mapping['CONCEPT_001'] if relation else notice_domain,
+            range=notice_domain if relation else 'string')
+        payload, _, _ = canonical.build(version, targets)
+        version.update(payload)
+        with service.repository.connect() as db:
+            db.execute('UPDATE ontology_versions SET payload=? WHERE id=?', (encode(version), 'v2'))
+        consumer.review(service, 'v2', dict(actor='test', reason='합성 공고 역할 대응',
+            target_ids=mapping if notice_mapping else {i: mapping[i] for i in ('CONCEPT_001', 'ATTRIBUTE_003')},
+            expected_review_id=None, expected_ontology_head_id='v2'))
+        html = "<div id='sub_container'><section>공고 P001의 신청 방식은 방문접수이며 단지 C00001에 해당합니다.</section><section>단지</section></div><script>sbdList.push({panId:'P001',sbdLgoNo:'C00001',sbdLgoNm:'행복단지',hshCnt:'100'});</script>"
+        registered = service.register('notice.html', html.encode(), SourceRegistration(title='합성 공고', publisher='test',
+            namespace='synthetic', selected_scope={'complex_codes': ['C00001']}))
+        finished(service, service.start(RunRequest(source_version_ids=[registered['source_version_id']]))['run_id'])
+        blocks = service.blocks(registered['source_id'], registered['source_version_id'])['items']
+        selected = [b['id'] for b in blocks if b['locator'].get('script_array') == 'sbdList' or '방문접수' in b['text']]
+        monkeypatch.setattr(service.executor, 'submit', lambda *args: None)
+        run = service.run(service.start(RunRequest(kind='extract', ontology_version_id='v2', registry_source_version_id=vid,
+            source_version_ids=[registered['source_version_id']], block_ids=selected, predicate_ids=[slot]))['run_id'])
+        unit = next(u for u in run['units'] if u['stage'] == 'llm')
+        assert [d['id'] for d in contract.fact_definitions(run, unit)] == [slot]
+        group = contract.text_units(run, unit)[0]
+        ref = 'b' + str(next(i for i, b in enumerate(run['frozen_blocks']) if b['id'] == group['blocks'][0]['id']))
+        notice = dict(mention='공고 P001', concept_id=mapping['Notice'], official_id='P001', evidence=[dict(block_id=ref, quote='공고 P001')])
+        subject = dict(mention='행복단지', concept_id=mapping['CONCEPT_001'], official_id='C00001',
+                       evidence=[dict(block_id=ref, quote='단지 C00001')]) if relation else notice
+        fact = dict(predicate_id=slot, evidence=[dict(block_id=ref, quote='공고 P001' if relation else '방문접수')],
+                    unit=None, scope='미확인', scope_evidence=[], conditions=[], conditions_evidence=[], exceptions=[], exceptions_evidence=[])
+        fact.update({'object': notice} if relation else {'raw_value': '방문접수'})
+        records, _, invalid = contract.adapt(run, unit, dict(units=[dict(unit_id=group['id'], subject=subject, facts=[fact], reason='')]))
+        assert not invalid and len(records) == 1
+        links, assertions, evidence = extraction.materialize(run, unit, records)
+        published = extraction_store.publish_unit(service, run, unit, links, assertions, evidence, run['entities'])
+        rows = extraction_store.candidates(service, published['changeset_id'])['items']
+        assert any(e['namespace'] == 'LH:notice' for e in run['entities']) == notice_mapping
+        assert run['metrics']['llm_calls'] == 0
+        if notice_mapping:
+            assert all(link['method'] == 'official_id' and link['target_entity_id'] for link in links)
+            assert all(not row['validation_errors'] for row in rows)
+        else:
+            assert any('entity_unresolved' in row['validation_errors'] for row in rows)
+            with pytest.raises(ValueError, match='entity_unresolved'):
+                extraction_store.decide(service, published['changeset_id'], dict(actor='test', expected_changeset_revision=1,
+                    decisions=[dict(candidate_id=row['id'], action='accept', reason='미대응 수락 불가') for row in rows]))
+    finally:
+        service.shutdown()
+
+
 def test_decimal_normalization_and_store_agree():
     definition = dict(id='quantity', range='decimal')
     value, _ = contract.normalize('12.50', definition)
