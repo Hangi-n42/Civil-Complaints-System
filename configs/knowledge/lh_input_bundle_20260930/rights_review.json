@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "reviewed_date": "2026-09-30",
+  "review_role": "공공데이터 이용조건 독립 검토",
+  "intended_use": ["로컬 저장 및 파싱", "검색 및 근거 탐색", "로컬 LLM의 온톨로지 후보 생성", "근거 발췌를 포함한 검수 화면", "출처를 표시한 연구 발표 및 시연"],
+  "excluded_use": ["모델 가중치 학습", "개인 민원 원문 및 직원 개인정보 수집", "원문 전체 재배포"],
+  "method": "공식 사이트 메뉴, 이용안내, 공공데이터 이용정책, 개별 게시면, 공공데이터포털 이용허락 표시 대조. 검색 결과에 없다는 사실만으로 정책 부재나 이용 금지를 단정하지 않음.",
+  "overall_finding": "기존 11개 중 CSV 1개는 데이터셋 이용허락 확인. 나머지 10개는 포괄·개별 이용허락 미확인 유지. 명시 개방 자료는 데이터셋 범위 안에서 보완 입력 가능.",
+  "evidence_index": "data/knowledge/raw/lh_input_bundle_20260930/rights/evidence_index.json",
+  "policies": [
+    {
+      "evidence_id": "lh_public_data_policy",
+      "url": "https://www.lh.or.kr/menu.es?mid=a10110010000",
+      "short_quote": "영리목적의 이용을 포함하여 자유롭게 활용할 수 있도록 개방 · 제공하는 제도",
+      "scope": "공표된 개방목록에 대응되는 공공데이터. 홈페이지 일반 게시물 전체의 이용허락으로 확대하지 않음."
+    },
+    {
+      "evidence_id": "kogl_type1",
+      "url": "https://www.kogl.or.kr/info/licenseType1.do",
+      "short_quote": "상업적 활용 여부에 관계없이 무료로 자유롭게",
+      "scope": "실제 제1유형이 부착된 저작물만. 출처표시, 가능 시 원문 링크, 후원·제휴 오인 방지, 저작인격권 조건 준수. LH 모든 게시물에 추정 적용하지 않음."
+    },
+    {
+      "evidence_ids": ["lh_home", "lh_apply_home", "lh_use_guide"],
+      "short_quote": null,
+      "finding": "확인한 메뉴와 이용안내에서 포괄적 저작물 자유이용허락을 확인하지 못함. Copyright 문구 역시 별도 개방데이터의 제한 없음 조건을 자동 취소하지 않음."
+    }
+  ],
+  "existing_source_decisions": [
+    {
+      "source_ids": ["complex_registry_csv"],
+      "evidence_id": "complex_catalog",
+      "url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "short_quote": "이용허락범위 제한 없음",
+      "decision": "permitted_within_published_dataset_scope",
+      "scope": "전국 LH아파트 단지정보 CSV와 해당 데이터의 필드 설명. 다른 공고·문서에 확대하지 않음."
+    },
+    {
+      "source_ids": ["notice_original_html", "notice_correction1_html", "notice_correction2_html", "notice_correction1_pdf", "notice_correction2_pdf"],
+      "evidence_ids": ["notice_20796", "lh_apply_home"],
+      "short_quote": null,
+      "decision": "hold_permission_not_confirmed",
+      "reason": "기존 원본 권리 기록과 최신 공고 대표 게시면·사이트 정책에서 예정 이용의 명시 허락을 확인하지 못함. API의 링크 제공을 공고 원문 전체의 허락으로 확대하지 않음."
+    },
+    {
+      "source_ids": ["LH-GUIDE-1022", "LH-GUIDE-1023", "LH-GUIDE-1025"],
+      "evidence_ids": ["guide_1023", "lh_apply_home"],
+      "short_quote": null,
+      "decision": "hold_permission_not_confirmed",
+      "reason": "기존 원본 권리 기록과 입주자격 대표 게시면·사이트 정책에서 예정 이용의 명시 허락을 확인하지 못함."
+    },
+    {
+      "source_ids": ["LH-QA-2026"],
+      "evidence_ids": ["qa_landing", "lh_public_data_policy"],
+      "short_quote": null,
+      "decision": "hold_permission_not_confirmed",
+      "reason": "개별 게시면의 재이용 허락 표시를 확인하지 못함."
+    },
+    {
+      "source_ids": ["LH-RULES-2015"],
+      "evidence_ids": ["rules_landing_valid", "lh_public_data_policy"],
+      "short_quote": null,
+      "decision": "hold_permission_not_confirmed",
+      "reason": "개별 게시면의 재이용 허락 표시를 확인하지 못함. 메뉴ID 없는 기존 landing URL은 경고창으로 응답하여 mid=a10108020000을 포함한 정상 게시면 확인."
+    }
+  ],
+  "additional_source_decisions": [
+    {
+      "source_id": "lh_notice_list_api",
+      "evidence_id": "notice_list_api_catalog",
+      "url": "https://www.data.go.kr/data/15058530/openapi.do",
+      "short_quote": "이용허락범위 제한 없음",
+      "decision": "permitted_within_published_dataset_scope",
+      "scope": "공식 서비스로 제공하는 공고목록 구조화 데이터와 공고 유형·상태·필드의 공개 명세",
+      "limit": "DTL_URL은 링크 대상 원문 전체의 라이선스까지 보증하지 않음. 실제 API 응답 취득에는 인증키와 활용신청 필요. 이번 검토에서는 미호출."
+    },
+    {
+      "source_id": "lh_notice_detail_api",
+      "evidence_id": "notice_detail_api_catalog",
+      "url": "https://www.data.go.kr/data/15057999/openapi.do",
+      "short_quote": "이용허락범위 제한 없음",
+      "decision": "permitted_within_published_dataset_scope",
+      "scope": "공식 서비스로 제공하는 공고별 단지·접수처·일정 등 구조화 데이터와 공개 필드 명세",
+      "limit": "공고PDF 전체, 주택 이미지, 제3자 자료를 일괄 허용한 근거로 확대하지 않음. 실제 API 응답 이번 검토에서는 미호출."
+    },
+    {
+      "source_id": "lh_movein_plan",
+      "evidence_id": "movein_plan_catalog",
+      "url": "https://www.data.go.kr/data/15084477/fileData.do",
+      "short_quote": "이용허락범위 제한 없음",
+      "decision": "permitted_if_acquired_document_matches_catalog_scope",
+      "scope": "카탈로그가 직접 지정한 LH 게시물654827의 신규입주계획 데이터. 원본 취득 시 해당 연간 입주계획 범위 일치 확인 필요.",
+      "limit": "같은 게시판의 다른 자료로 확대하지 않음. 이 검토자는 권리 근거만 확보했으며 계획 첨부 원문은 별도 수집 담당에서 확인."
+    }
+  ],
+  "limits": ["권리 미확인은 불법 판정이 아니라 이번 확정 입력에서 보류할 이유", "개별 이미지 표식과 문서 내 권리관계의 법률 감정은 수행하지 않음", "법적 분쟁 가능성 0을 보장하지 않음"],
+  "final_application_review": {
+    "reviewed_date": "2026-09-30",
+    "legal_text_decision": "selected_scope_supported_by_copyright_act_article7_1",
+    "legal_basis_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=283335&joNo=0007&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+    "legal_basis_quote": "헌법ㆍ법률ㆍ조약ㆍ명령ㆍ조례 및 규칙",
+    "legal_scope": "공공주택 특별법·시행령·시행규칙 조문과 법령 별표 원문. 역사 버전도 동일 기준. 법령 사이트 화면 디자인·해설·주석 및 LH 내부 사규로 확대하지 않음.",
+    "api_guide_decision": "accept_selected_business_fields_and_codes_based_on_published_open_dataset_and_linked_official_documentation",
+    "api_guide_reason": "해당 API 데이터셋의 이용허락범위 제한 없음 표시와 그 서비스를 활용하도록 공식 참고문서로 직접 제공된 명세를 함께 근거로 함. 업무 필드·코드·값의 의미와 짧은 설명만 입력하는 이번 범위에 대한 선정 판단.",
+    "api_guide_evidence_limit": "DOCX3개 텍스트에서 별도의 라이선스·무단복제금지 문구를 확인하지 못함. 이는 활용가이드 전체의 명시적 자유재배포 라이선스를 검증했다는 뜻이 아님.",
+    "api_guide_scope": "선정된 명세 표의 업무 필드명·코드·설명. 원문 가이드 전체, 이미지, 문서 디자인, 연결된 외부 공고첨부의 일괄 재배포는 이 판단에 포함하지 않음.",
+    "portal_policy_url": "https://www.data.go.kr/ugs/selectPortalPolicyView.do",
+    "portal_policy_scope": "공공데이터 이용허락범위 안내는 제3자 권리와 개별 이용허락을 구분. 명시 개방 데이터의 허용 표시를 관련 사이트 전체로 확대하지 않음.",
+    "implementation_change": false,
+    "legal_dispute_absence_guaranteed": false
+  },
+  "no_external_contact_or_application": true
+}

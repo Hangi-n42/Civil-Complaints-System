@@ -1,0 +1,619 @@
+{
+  "status": "research_selection_not_imported_or_activated",
+  "researched_date": "2026-09-29",
+  "raw_root": "data/knowledge/raw/demo_selection_20260929",
+  "sources": [
+    {
+      "source_id": "dobong_proposal",
+      "title": "제341회 도봉구의회 본회의 제2차 정류장 변경 제안",
+      "role": "bus_primary_reason",
+      "source_url": "https://council-dobong.seoul.kr/cast/viewer/record.do?key=c3215d136a981416af4d8b22c4e6e8b1882c7de8543180230c290f11a577de3e00a0dbce1db30eb2&pos=7854",
+      "landing_url": "https://council-dobong.seoul.kr/cast/viewer/record.do?key=c3215d136a981416af4d8b22c4e6e8b1882c7de8543180230c290f11a577de3e00a0dbce1db30eb2&pos=7854",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/dobong_proposal.html",
+      "bytes": 197530,
+      "sha256": "a60d209ad4a0ab38944c0c50683b0094254197ea0180ec742e4312730dd99917",
+      "saved_at": "2026-09-29T11:39:38.701600+00:00",
+      "reference_date": "2024-12",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "dobong_approved",
+      "title": "제342회 도봉구의회 본회의 제2차 변경 승인 및 시행 예정 발언",
+      "role": "bus_primary_decision",
+      "source_url": "https://council-dobong.seoul.kr/cast/viewer/record.do?key=db9aa42d90e7175a2753a33dacf7d3accc3e4a917a25f3dfa60fc9a32d088d309b81feddef172f08&pos=1129",
+      "landing_url": "https://council-dobong.seoul.kr/cast/viewer/record.do?key=db9aa42d90e7175a2753a33dacf7d3accc3e4a917a25f3dfa60fc9a32d088d309b81feddef172f08&pos=1129",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/dobong_approved.html",
+      "bytes": 101433,
+      "sha256": "cc49b91c4aa0d793b1ca2c96822eee09e128cf0a9057fdbe90dd6b0ae2cca578",
+      "saved_at": "2026-09-29T11:39:38.716473+00:00",
+      "reference_date": "2025-02-17",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "seoul_stops_20250513",
+      "title": "서울시 버스정류소 위치정보 20250513",
+      "role": "bus_primary_structured",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-15067/S/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-15067",
+        "seq": "41",
+        "infSeq": "1"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_stops_20250513.xlsx",
+      "bytes": 745568,
+      "sha256": "b75026e17043549ff88d6af2e82c92c0291cbc0f8db1465c148a90248554a5b9",
+      "saved_at": "2026-09-29T11:40:53.144937+00:00",
+      "reference_date": "2025-05-13",
+      "rights": "공공누리 1유형. 서울시 출처 표시. 원문은 저장소에서 제외"
+    },
+    {
+      "source_id": "seoul_stops_20250624",
+      "title": "서울시 버스정류소 위치정보 20250624",
+      "role": "bus_primary_structured",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-15067/S/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-15067",
+        "seq": "42",
+        "infSeq": "1"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_stops_20250624.xlsx",
+      "bytes": 747635,
+      "sha256": "01751ab5d657ce90070f8c95b7014a4ac44b764957de6bd445fb3d7be07a0273",
+      "saved_at": "2026-09-29T11:40:53.128065+00:00",
+      "reference_date": "2025-06-24",
+      "rights": "공공누리 1유형. 서울시 출처 표시. 원문은 저장소에서 제외"
+    },
+    {
+      "source_id": "seoul_route_order_20250513",
+      "title": "서울시 버스노선별 정류소정보 20250513",
+      "role": "bus_primary_structured",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-1095/L/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-1095",
+        "seq": "40",
+        "infSeq": "2"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_route_order_20250513.xlsx",
+      "bytes": 3694509,
+      "sha256": "72bb723f109ab977c3fb72221d2bb5a32f6b6348341ba86d82ce536da9b9237b",
+      "saved_at": "2026-09-29T11:45:33.383487+00:00",
+      "reference_date": "2025-05-13",
+      "rights": "공공누리 1유형. 서울시 출처 표시. 원문은 저장소에서 제외"
+    },
+    {
+      "source_id": "seoul_route_order_20250624",
+      "title": "서울시 버스노선별 정류소정보 20250624",
+      "role": "bus_primary_structured",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-1095/L/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-1095",
+        "seq": "41",
+        "infSeq": "2"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_route_order_20250624.xlsx",
+      "bytes": 3697411,
+      "sha256": "e605dbdf4caf0248630fff5ca1bfb729bd7e4c0eb45c2466d07b8deed7b28442",
+      "saved_at": "2026-09-29T11:45:33.607503+00:00",
+      "reference_date": "2025-06-24",
+      "rights": "공공누리 1유형. 서울시 출처 표시. 원문은 저장소에서 제외"
+    },
+    {
+      "source_id": "seoul_walk_codes",
+      "title": "도보네트워크 링크 노드 유형코드",
+      "role": "bus_primary_structured",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-21208/S/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "infId": "OA-21208",
+        "seq": "1",
+        "infSeq": "3"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_walk_codes.xlsx",
+      "bytes": 12510,
+      "sha256": "c718a21352d91b2a9be50e8c52ed886d92a495adb14070995b487b0ca5ab4e4f",
+      "saved_at": "2026-09-29T11:45:33.046247+00:00",
+      "reference_date": null,
+      "rights": "공공누리 1유형. 서울시 출처 표시. 원문은 저장소에서 제외"
+    },
+    {
+      "source_id": "seoul_walk_dobong",
+      "title": "서울시 자치구별 도보 네트워크 공간정보 도봉구 필터",
+      "role": "bus_primary_walking",
+      "source_url": "https://datafile.seoul.go.kr/bigfile/iot/sheet/json/download.do",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-21208/S/1/datasetView.do",
+      "request_method": "POST",
+      "request_parameters": {
+        "srvType": "S",
+        "infId": "OA-21208",
+        "serviceKind": "1",
+        "pageNo": "1",
+        "gridTotalCnt": "",
+        "ssUserId": "SAMPLE_VIEW",
+        "strWhere": "",
+        "strOrderby": "SGG_CD ASC",
+        "filterCol": "SGG_NM",
+        "txtFilter": "도봉구"
+      },
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_walk_dobong.json",
+      "bytes": 6819802,
+      "sha256": "06cd6e010bdfbcc1958f1d2548f61f552d1612ade4098df3f0f6e0a5f9d02b82",
+      "saved_at": "2026-09-29T11:42:49.936695+00:00",
+      "reference_date": null,
+      "rights": "공공누리 1유형. 설명은 2020년 기준. 수집일자와 현장 갱신일을 구분"
+    },
+    {
+      "source_id": "dobong_health_access",
+      "title": "도봉구보건소 오시는 길",
+      "role": "bus_primary_facility",
+      "source_url": "https://health.dobong.go.kr/Contents.asp?code=10005090",
+      "landing_url": "https://health.dobong.go.kr/Contents.asp?code=10005090",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/dobong_health_access.html",
+      "bytes": 61150,
+      "sha256": "d377730e6029aa2712f28b6d29c8083df479faac71baca0f19f7f0ec950166a1",
+      "saved_at": "2026-09-29T11:46:22.847750+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "acrc_808",
+      "title": "국민권익위 민원동향 808호",
+      "role": "bus_independent_complaint_context",
+      "source_url": "https://www.acrc.go.kr/boardDownload.es?bid=1009&list_no=87686&seq=1",
+      "landing_url": "https://www.acrc.go.kr/boardDownload.es?bid=1009&list_no=87686&seq=1",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/acrc_808.pdf",
+      "bytes": 399264,
+      "sha256": "a9cca54e6ba4125b05b884ae7ec40c13d5a50feadea23a599992943d5344aed4",
+      "saved_at": "2026-09-29T11:39:36.053266+00:00",
+      "reference_date": "2025-03-03/2025-03-09",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "acrc_dongjak_stop",
+      "title": "횡단보도에 인접한 마을버스 정류장 이전 요청 시정권고",
+      "role": "bus_alternative_complaint",
+      "source_url": "https://www.acrc.go.kr/boardDownload.es?bid=1024&list_no=75578&seq=1",
+      "landing_url": "https://www.acrc.go.kr/boardDownload.es?bid=1024&list_no=75578&seq=1",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/acrc_dongjak_stop.pdf",
+      "bytes": 83913,
+      "sha256": "df83385912a7e355f60eb6121e5b0debda63a4c0601780a75828fae1eed3b9c6",
+      "saved_at": "2026-09-29T11:46:23.483765+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "hanam_gambuk",
+      "title": "하남 2024 주민과의 대화 감북동 처리계획",
+      "role": "bus_alternative_complaint",
+      "source_url": "https://www.hanam.go.kr/jumin/downloadFormFile.do?fileName=cts11473_file_2024.pdf",
+      "landing_url": "https://www.hanam.go.kr/jumin/downloadFormFile.do?fileName=cts11473_file_2024.pdf",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/hanam_gambuk.pdf",
+      "bytes": 172892,
+      "sha256": "12332709e093a3ce3b59d44b40966ca4c47bc609bba4375fb0f6efc4a1febf3b",
+      "saved_at": "2026-09-29T11:46:23.088268+00:00",
+      "reference_date": "2024",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "jeju_notice",
+      "title": "서광로 BRT 개통에 따른 정류장 이용 안내",
+      "role": "bus_alternative",
+      "source_url": "https://bus.jeju.go.kr/notice/detail?noticeId=615",
+      "landing_url": "https://bus.jeju.go.kr/notice/detail?noticeId=615",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/jeju_notice.html",
+      "bytes": 31045,
+      "sha256": "cf44697ff04b38ee34c9d78ab435bd9192776d1d0e7f780361497a48ff770bce",
+      "saved_at": "2026-09-29T11:39:35.653701+00:00",
+      "reference_date": "2025-05-09 시행 / 2026-07-27 등록",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "tfl_map",
+      "title": "Cycleway 9 Sheet 8 Spring Grove to Honnor Gardens",
+      "role": "bus_english_alternative_map",
+      "source_url": "https://haveyoursay.tfl.gov.uk/51422/widgets/155689/documents/110742/download",
+      "landing_url": "https://haveyoursay.tfl.gov.uk/cycleway-9-west",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/tfl_map.pdf",
+      "bytes": 357152,
+      "sha256": "9d9a30222f7d083d45938210a1284aec0de8b0e5c068e7de4790ac8340e5c2ec",
+      "saved_at": "2026-09-29T11:42:49.591249+00:00",
+      "reference_date": "2026 consultation",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "tfl_eqia",
+      "title": "Cycleway 9 west phase 3 Equality Impact Assessment",
+      "role": "bus_english_reference_impact",
+      "source_url": "https://haveyoursay.tfl.gov.uk/51422/widgets/157626/documents/110925/download",
+      "landing_url": "https://haveyoursay.tfl.gov.uk/cycleway-9-west",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/tfl_eqia.pdf",
+      "bytes": 763125,
+      "sha256": "f5ac9c5c59df4325a49e10b77f8cd73098e379e67275ff64ce91e79480bd8b30",
+      "saved_at": "2026-09-29T11:42:48.888415+00:00",
+      "reference_date": "2026 consultation",
+      "rights": "공식 의견 수렴 페이지의 공개 다운로드. 문서 내부 TfL RESTRICTED 표기 존재. 별도 재배포 조건 미확인. 로컬 대조용 보관 및 공식 URL 인용"
+    },
+    {
+      "source_id": "busan_transfer",
+      "title": "부산 자가용 자동차 이전등록",
+      "role": "complaint_alternative",
+      "source_url": "https://www.busan.go.kr/car/crtransfercar",
+      "landing_url": "https://www.busan.go.kr/car/crtransfercar",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/busan_transfer.html",
+      "bytes": 52205,
+      "sha256": "2c20a45589ff718553057274fc446a9bb14517e3e5a5188299b9a8a082f3dde2",
+      "saved_at": "2026-09-29T11:46:22.842117+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "busan_departments",
+      "title": "부산 차량등록사업소 업무안내",
+      "role": "complaint_alternative",
+      "source_url": "https://www.busan.go.kr/car/deptinfo",
+      "landing_url": "https://www.busan.go.kr/car/deptinfo",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/busan_departments.html",
+      "bytes": 42329,
+      "sha256": "e21a61a03ac6dc2e5d3f6f12719665128f0601361acf827560e84af51f8651b2",
+      "saved_at": "2026-09-29T11:46:22.842230+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "acrc_housing_context",
+      "title": "공공임대주택 종류와 기준 혼동에 관한 국민권익위 민원 분석",
+      "role": "complaint_independent_problem_evidence",
+      "source_url": "https://www.acrc.go.kr/board.es?act=view&bid=4A&list_no=8912&mid=a10402010000&nPage=1&tag=",
+      "landing_url": "https://www.acrc.go.kr/board.es?act=view&bid=4A&list_no=8912&mid=a10402010000&nPage=1&tag=",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/acrc_housing_context.html",
+      "bytes": 123394,
+      "sha256": "434fc7064c5c46a89bb5fd0a72570e256c9f84287e417abe84bd43c2f7ab5740",
+      "saved_at": "2026-09-29T11:46:23.180337+00:00",
+      "reference_date": "2019-10-28",
+      "rights": "공공누리 1유형 출처명시. 과거 민원 분석이며 현재 비율로 사용하지 않음"
+    },
+    {
+      "source_id": "lh_qa_landing",
+      "title": "LH 민원 주요 Q&A 게시 페이지",
+      "role": "complaint_primary_catalog",
+      "source_url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/lh_qa_landing.html",
+      "bytes": 88761,
+      "sha256": "d593b887a972bd1e0082767b2befe38877172b25c9fe4e28b63d225b7da31e61",
+      "saved_at": "2026-09-29T11:46:22.988274+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "lh_guide_1025_current",
+      "title": "국민임대 제출서류 재조회",
+      "role": "complaint_primary_fresh_check",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/lh_guide_1025_current.html",
+      "bytes": 133844,
+      "sha256": "7349c8c5a65e53310ece565d086e1218bb1418dc02330dd038fc8e985582b318",
+      "saved_at": "2026-09-29T11:46:23.322243+00:00",
+      "reference_date": null,
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "lh_qa_2026_current",
+      "title": "2026 LH 유관민원 주요 Q&A 재취득",
+      "role": "complaint_primary_fresh_check",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "landing_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/lh_qa_2026_current.hwpx",
+      "bytes": 85547,
+      "sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "saved_at": "2026-09-29T11:46:23.073613+00:00",
+      "reference_date": "2026-03",
+      "rights": "개별 재배포 조건 미확인. 로컬 원문 대조용으로 보관"
+    },
+    {
+      "source_id": "seoul_stops",
+      "title": "seoul_stops.html",
+      "role": "bus_primary_catalog",
+      "source_url": "https://data.seoul.go.kr/dataList/OA-15067/S/1/datasetView.do",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-15067/S/1/datasetView.do",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_stops.html",
+      "bytes": 110478,
+      "sha256": "17fa30ae2ac54fda4c648dbe558663f6b8e778a3161cc17977a1d217c1d51680",
+      "saved_at": "2026-09-29T11:39:36.032073+00:00",
+      "reference_date": null,
+      "rights": "서울시 공개 데이터 카탈로그 및 공공누리 1유형 표시 확인용"
+    },
+    {
+      "source_id": "seoul_walk",
+      "title": "seoul_walk.html",
+      "role": "bus_primary_catalog",
+      "source_url": "https://data.seoul.go.kr/dataList/OA-21208/S/1/datasetView.do",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-21208/S/1/datasetView.do",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_walk.html",
+      "bytes": 96411,
+      "sha256": "a7e7f35bff6abeb8d585ddb97ef29d9a315753eee501b82010ef9cd7b8542b02",
+      "saved_at": "2026-09-29T11:40:53.107885+00:00",
+      "reference_date": null,
+      "rights": "서울시 공개 데이터 카탈로그 및 공공누리 1유형 표시 확인용"
+    },
+    {
+      "source_id": "seoul_route_order_catalog",
+      "title": "seoul_route_order_catalog.html",
+      "role": "bus_primary_catalog",
+      "source_url": "https://data.seoul.go.kr/dataList/OA-1095/L/1/datasetView.do",
+      "landing_url": "https://data.seoul.go.kr/dataList/OA-1095/L/1/datasetView.do",
+      "request_method": "GET",
+      "request_parameters": {},
+      "local_path": "data/knowledge/raw/demo_selection_20260929/seoul_route_order_catalog.html",
+      "bytes": 107822,
+      "sha256": "285d0848e1b6295cdd6c7f8a856c6fa6faccb206de7eb7acead7b6be497f97f8",
+      "saved_at": "2026-09-29T11:44:33.991243+00:00",
+      "reference_date": null,
+      "rights": "서울시 공개 데이터 카탈로그 및 공공누리 1유형 표시 확인용"
+    }
+  ],
+  "existing_sources": [
+    {
+      "source_id": "notice_original_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020732 HTML",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020732&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020732&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020732.html",
+      "sha256": "9da88e9040498fd5034b663d367dafb2c1768e66fdc9581abeb8ce600e91a14d",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction1_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 HTML",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.html",
+      "sha256": "2a4183079601418ce219ac1e82ff1b3d625dec71af6f3fdda4fa0d122d56e3ce",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction2_html",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 HTML",
+      "source_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.html",
+      "sha256": "c19c45ec3dca660f9425ce63c7af15da004cd21118c6d0094a6691fcafb85450",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction1_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020794 PDF",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68635562",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020794&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.pdf",
+      "sha256": "a20dfccd93599eed0f40df66d32ff1bf724ae4773832c96fd427cbb2ee868352",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "notice_correction2_pdf",
+      "title": "양산시 국민임대주택 예비입주자 완화 모집 2015122300020796 PDF",
+      "source_url": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=68641696",
+      "landing_url": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020796&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.pdf",
+      "sha256": "8e0d5cf4ba98b08c235563d37ac28302aac283fd56ec070161be5f4be35cf5f8",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "개별 공고의 이용허락 표시를 확인하지 못함. 공개 열람만으로 재배포 허락을 추론하지 않음. robots 별도 보존.",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "complex_registry_csv",
+      "title": "전국 LH아파트 단지정보 20260810",
+      "source_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000007630594&fileDetailSn=1&insertDataPrcus=N",
+      "landing_url": "https://www.data.go.kr/data/15080989/fileData.do",
+      "local_path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+      "sha256": "66063191dac736ccc7e977c4aee4248504c605868fdcfa23a247f060cb51469e",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "unrestricted_dataset_terms",
+        "redistribution_permission": "unrestricted_dataset_terms",
+        "git_raw_allowed": false,
+        "basis": "csv_catalog.html: 이용허락범위 제한 없음; JSON-LD license",
+        "local_scope": "선택된 로컬 파일럿 원문 대조 자료. 공개 서비스/재배포 권리 확인과 구분. 원문은 정책상 Git 제외."
+      }
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "title": "국민임대 임대절차",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1022&mi=1143",
+      "local_path": "data/knowledge/pilot_v1/raw/guide_1022.html",
+      "sha256": "58215000d878ed0c16264d50e4073900aa0d78d49215a910487914f2c937e0b4",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      }
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "title": "국민임대 입주자격",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1023&mi=1144",
+      "local_path": "data/knowledge/pilot_v1/raw/guide_1023.html",
+      "sha256": "c4e9a09487084933d2aadc9552cdbf0ca4ee08faff01f7f702ffe0b6eb77f5ed",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      }
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "title": "국민임대 제출서류",
+      "source_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "landing_url": "https://apply.lh.or.kr/lhapply/cm/cntnts/cntntsView.do?cntntsId=1025&mi=1146",
+      "local_path": "data/knowledge/pilot_v1/raw/guide_1025.html",
+      "sha256": "86d3dc0b380b2c3f69c9a08e452508a9091d57a7d58585b33e4a9041aebba6bf",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      }
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "title": "2026 LH 유관민원 주요 Q&A",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0007&list_no=654658&seq=21102",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0007&list_no=654658&mid=a10103010000",
+      "local_path": "data/knowledge/pilot_v1/raw/qa_2026.hwpx",
+      "sha256": "48adc8e5e0ce3763ac23f9e4b00ed3d3289a326061b8aeded1583bbeb07c3397",
+      "matches_pilot_manifest": true,
+      "role": "complaint_primary_reuse",
+      "rights": {
+        "public_access_verified": true,
+        "local_processing_permission": "not_individually_verified",
+        "redistribution_permission": "unknown",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 열람/다운로드를 확인했으나 개별 문서의 기계적 처리·재배포 허락을 확인하지 못함. 공개 접근과 이용허락을 동일시하지 않음"
+      }
+    }
+  ],
+  "observations": {
+    "checked_at": "2026-09-29T11:48:26.711294+00:00",
+    "route_id": 100100143,
+    "route_name": "1127",
+    "before_route_rows": 60,
+    "after_route_rows": 60,
+    "changed_stops": [
+      {
+        "sequence": 13,
+        "before_ars": "10118",
+        "after_ars": "10011",
+        "before_node_id": 109000035,
+        "after_node_id": 109000011,
+        "before_xy": [
+          127.04,
+          37.657913
+        ],
+        "after_xy": [
+          127.0407623758,
+          37.6589364195
+        ]
+      }
+    ],
+    "reverse_direction_control": {
+      "sequence": 47,
+      "ars_id_before": "10117",
+      "ars_id_after": "10117"
+    },
+    "walk_records": 14886,
+    "walk_record_types": {
+      "LINK": 8422,
+      "NODE": 6464
+    },
+    "walk_area_values": {
+      "도봉구": 14886
+    },
+    "walking_distances_not_computed": true,
+    "not_historical_2025_walk_reconstruction": true,
+    "primary_case_type": "Existing route boarding stop replacement; do not move coordinates of every route or reuse a single stop identity",
+    "qa_same_bytes_as_pilot": true,
+    "guide_main_text_same_as_pilot": true,
+    "tfl_discrepancy": "Web text H stop approximately 40m east, Sheet 8 says 45m east; not silently harmonized"
+  }
+}

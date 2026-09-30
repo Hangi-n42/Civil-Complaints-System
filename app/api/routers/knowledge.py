@@ -206,3 +206,22 @@ def local_search(request: SearchRequest, service=Depends(get_knowledge_service))
 @router.post('/entities', response_model=KnowledgeResponse)
 def register_entity(request: LocalEntityRequest, service=Depends(get_knowledge_service)):
     return result(extraction_store.register_local_entity(service, request))
+
+
+@router.get('/discovery/sources', response_model=KnowledgeResponse)
+def discovery_sources(scope: str = 'current_discovery', step: int = 0):
+    from app.knowledge.discovery_inputs import catalog
+    return result(catalog(scope, step))
+
+
+@router.get('/discovery/read', response_model=KnowledgeResponse)
+def discovery_read(file_id: str, scope: str = 'current_discovery', step: int = 0,
+                   offset: int = 0, limit: int = 20):
+    from app.knowledge.discovery_inputs import read
+    return result(read(file_id, scope, step, offset, limit))
+
+
+@router.get('/discovery/search', response_model=KnowledgeResponse)
+def discovery_search(q: str, scope: str = 'current_discovery', step: int = 0, limit: int = 20):
+    from app.knowledge.discovery_inputs import search
+    return result(search(q, scope, step, limit))

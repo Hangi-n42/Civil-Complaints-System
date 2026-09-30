@@ -1,0 +1,63 @@
+{
+  "sources": [
+    {
+      "source_id": "seoul_ridership_202608.csv",
+      "url": "https://datafile.seoul.go.kr/bigfile/iot/inf/nio_download.do?&useCache=false",
+      "method": "POST",
+      "parameters": {
+        "infId": "OA-12913",
+        "seq": "113",
+        "infSeq": "3"
+      },
+      "local_path": "data/knowledge/raw/demo_preparation_20260929/seoul_ridership_202608.csv",
+      "bytes": 15602085,
+      "sha256": "d7d7875cc88c5e70365cb72bce7b481707cacb64c92f948a6e776b032bccba1c",
+      "retrieved_at": "2026-09-29T12:52:06.606180+00:00",
+      "rights": "서울시 공공누리 1유형 출처표시; raw는 기존 Git 제외 경로 보관"
+    },
+    {
+      "source_id": "seoul_walk_gangbuk.json",
+      "url": "https://datafile.seoul.go.kr/bigfile/iot/sheet/json/download.do",
+      "method": "POST",
+      "parameters": {
+        "srvType": "S",
+        "infId": "OA-21208",
+        "serviceKind": "1",
+        "pageNo": "1",
+        "gridTotalCnt": "",
+        "ssUserId": "SAMPLE_VIEW",
+        "strWhere": "",
+        "strOrderby": "SGG_CD ASC",
+        "filterCol": "SGG_NM",
+        "txtFilter": "강북구"
+      },
+      "local_path": "data/knowledge/raw/demo_preparation_20260929/seoul_walk_gangbuk.json",
+      "bytes": 8714145,
+      "sha256": "13363ee58c0bee75f9a98314c3d8d6cfec76bfe0e96a35b55d7d3d7824d7c46e",
+      "retrieved_at": "2026-09-29T12:52:10.672973+00:00",
+      "rights": "서울시 공공누리 1유형 출처표시; raw는 기존 Git 제외 경로 보관"
+    },
+    {
+      "source_id": "seoul_walk_nowon.json",
+      "url": "https://datafile.seoul.go.kr/bigfile/iot/sheet/json/download.do",
+      "method": "POST",
+      "parameters": {
+        "srvType": "S",
+        "infId": "OA-21208",
+        "serviceKind": "1",
+        "pageNo": "1",
+        "gridTotalCnt": "",
+        "ssUserId": "SAMPLE_VIEW",
+        "strWhere": "",
+        "strOrderby": "SGG_CD ASC",
+        "filterCol": "SGG_NM",
+        "txtFilter": "노원구"
+      },
+      "local_path": "data/knowledge/raw/demo_preparation_20260929/seoul_walk_nowon.json",
+      "bytes": 11229900,
+      "sha256": "d160d0507917fa5944302d1ed1a46a2eef8670c5fa4a17293a4889ba1f196623",
+      "retrieved_at": "2026-09-29T12:52:10.793938+00:00",
+      "rights": "서울시 공공누리 1유형 출처표시; raw는 기존 Git 제외 경로 보관"
+    }
+  ]
+}

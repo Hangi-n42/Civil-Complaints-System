@@ -1,0 +1,23 @@
+{
+  "scope_file_counts": {
+    "current_discovery": 11,
+    "contrast_extension": 15,
+    "historical_change": 1,
+    "historical_change_step2": 4
+  },
+  "files_read": 19,
+  "current_search_hits": 3,
+  "historical_step0_hits": 0,
+  "historical_step1_hits": 1,
+  "seconds": 0.7,
+  "llm_calls": 0,
+  "unit_tests_passed": 1,
+  "api_checks": {
+    "sources": 200,
+    "read": 200,
+    "search": 200,
+    "unselected_file": 404,
+    "invalid_step": 422
+  },
+  "verification_scope": "In-process FastAPI TestClient and local corpus; production server restart and LLM generation not performed"
+}

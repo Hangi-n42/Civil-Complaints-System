@@ -1,0 +1,214 @@
+{
+  "reviewed_on": "2026-09-29",
+  "purpose": "attached autonomous ontology draft architecture dataset readiness review, no ontology generation",
+  "design_document": {
+    "name": "에이전트 기반 온톨로지 초안 구축.md",
+    "sha256": "4ffe7c1dc41e97f6a1fb8d609df2312b0956973b19b3bf23233c4ef2acb5014b"
+  },
+  "current_pilot_counts": {
+    "document_files": 10,
+    "csv_files": 1,
+    "total_raw_files": 11,
+    "logical_document_versions": 8,
+    "logical_notice_versions": 3,
+    "notice_html_pdf_alternate_formats_counted_once": true
+  },
+  "verdict": {
+    "domain_suitability": "suitable_for_bounded_public_rental_business",
+    "current_corpus_sufficiency": "insufficient_for_full_autonomous_discovery_and_changeset_evaluation",
+    "blanket_legal_clearance": "not_established",
+    "other_organization_dataset_search": "not_performed",
+    "recommendation": "retain_LH_as_candidate_close_content_and_rights_gaps_before_expansion"
+  },
+  "source_checks": [
+    {
+      "source_id": "notice_original_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020732.html",
+      "sha256_matches": true,
+      "existing_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "notice_correction1_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.html",
+      "sha256_matches": true,
+      "existing_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "notice_correction2_html",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.html",
+      "sha256_matches": true,
+      "existing_scope": {
+        "include": [
+          "공고 본문·제목·공고일·정정사유·버전 연결",
+          "6개 단지 sbdList 및 관련 표시 라벨·표·단지 설명"
+        ],
+        "complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "exclude": "사이트 공통 메뉴·스크립트·무관 이미지 설명. sbdList는 공개 근거 필드만 읽고 스크립트를 실행하지 않음"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "notice_correction1_pdf",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020794.pdf",
+      "sha256_matches": true,
+      "existing_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          1,
+          12
+        ],
+        "source_total_physical_pages": 21,
+        "page_layout": "물리 페이지 하나에 인쇄쪽 2면",
+        "exclude": "물리7~21쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "notice_correction2_pdf",
+      "path": "data/knowledge/pilot_v1/raw/lh_notice_2015122300020796.pdf",
+      "sha256_matches": true,
+      "existing_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          1,
+          12
+        ],
+        "source_total_physical_pages": 21,
+        "page_layout": "물리 페이지 하나에 인쇄쪽 2면",
+        "exclude": "물리7~21쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "complex_registry_csv",
+      "path": "data/knowledge/pilot_v1/raw/lh_complex_registry_20260810.csv",
+      "sha256_matches": true,
+      "existing_scope": {
+        "registry": "원본 6217행 11열을 ID 등록부로 보존",
+        "knowledge_input_complex_codes": [
+          "C00446",
+          "C01643",
+          "C01951",
+          "C01953",
+          "C02715",
+          "C02748"
+        ],
+        "knowledge_input_limit": "공고와 연결된 6개 코드 행만 사실 후보 입력",
+        "exclude": "실시간 공실·현 재고로 해석 금지"
+      },
+      "reuse_assessment": "explicit_dataset_license_verified",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "LH-GUIDE-1022",
+      "path": "data/knowledge/pilot_v1/raw/guide_1022.html",
+      "sha256_matches": true,
+      "existing_scope": "#cntntsView 본문",
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "LH-GUIDE-1023",
+      "path": "data/knowledge/pilot_v1/raw/guide_1023.html",
+      "sha256_matches": true,
+      "existing_scope": "#cntntsView 본문",
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "LH-GUIDE-1025",
+      "path": "data/knowledge/pilot_v1/raw/guide_1025.html",
+      "sha256_matches": true,
+      "existing_scope": "#cntntsView 본문",
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "LH-QA-2026",
+      "path": "data/knowledge/pilot_v1/raw/qa_2026.hwpx",
+      "sha256_matches": true,
+      "existing_scope": {
+        "include": "임대주택 Q1~Q16",
+        "exclude": "그 밖의 분야 Q&A",
+        "note": "원본 전체 보존; HWPX 문단/표/셀 근거 위치를 유지하여 임대 구간만 입력",
+        "metadata_include": {
+          "purpose": "표지 기준월 출처 메타데이터",
+          "hwpx_member": "Contents/section0.xml",
+          "quote": "2026.03 기준",
+          "note": "본문 지식 범위인 임대 Q1~Q16과 별개로 표지 기준월 메타데이터를 포함; 시행일 또는 최신성 보증으로 해석하지 않음",
+          "element_preorder_index_zero_based": 86,
+          "index_algorithm": "list(ElementTree.fromstring(section_xml).iter())[index]; node local-name p; paragraph ordinal 아님"
+        }
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    },
+    {
+      "source_id": "LH-RULES-2015",
+      "path": "data/knowledge/pilot_v1/raw/rental_rules_2015.pdf",
+      "sha256_matches": true,
+      "existing_scope": {
+        "physical_pages_inclusive": [
+          1,
+          6
+        ],
+        "printed_pages_inclusive": [
+          13,
+          18
+        ],
+        "source_total_physical_pages": 80,
+        "exclude": "그 밖의 쪽은 원본 보존만 하고 초기 추출/검색 입력에서 제외"
+      },
+      "reuse_assessment": "intended_reuse_permission_not_confirmed",
+      "note": "허락 미확인은 위법 판정이 아님. 확인된 사용 범위와 별도 구분."
+    }
+  ]
+}

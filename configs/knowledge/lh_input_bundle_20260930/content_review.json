@@ -1,0 +1,268 @@
+{
+  "review_date": "2026-09-30",
+  "reviewer_role": "LH 임대업무 자료 검토",
+  "scope": "LH 임대 모집·자격·서류·심사·입주 안내",
+  "no_ontology_created": true,
+  "sources": [
+    {
+      "source_id": "lh_rental_regulation",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0055&list_no=651388&mid=a10108020000",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=651388&seq=1",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_rental_regulation.pdf",
+      "sha256": "3fd068f87d323977f3ddbd06d89aec8a0197148aecaf21bcc00a89367ced0f4f",
+      "bytes": 519228,
+      "retrieved_at": "2026-09-29T15:10:17.019718+00:00",
+      "format": "PDF",
+      "landing_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_rental_regulation_landing.html",
+      "rights": {
+        "status": "unconfirmed_hold",
+        "public_access_verified": true,
+        "local_llm_input_allowed": false,
+        "redistribution_permission": "not_verified",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 PDF 취득. 게시면 및 PDF 텍스트에서 공공누리/개별 자유이용 표시를 확인하지 못함. 사이트 저작권 정책 판정은 별도 검수에 위임. 텍스트 미표시만으로 금지 단정하지 않음.",
+        "landing_evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_rental_regulation_landing.html"
+      },
+      "physical_pages": 2,
+      "publisher": "한국토지주택공사",
+      "text_extraction_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_rental_regulation_pages.json",
+      "landing_sha256": "a8498f1886815c2e98e146ae859836d8e1a5c1c5381c517a0b7157f628f170c6",
+      "validation": {
+        "pdf_magic_valid": true,
+        "sha256_computed": true,
+        "no_model_invocation": true
+      },
+      "title": "주택임대규정(2009-10-01 제정본, 2012-10-30 게시)",
+      "document_date": "2009-10-01",
+      "effective_date": "2009-10-01",
+      "published_at": "2012-10-30",
+      "date_basis": "PDF 물리1쪽 제정일, 물리2쪽 부칙; 게시일은 게시면",
+      "version_status": "historical_currentness_unverified",
+      "proposed_scope": {
+        "pages": [
+          1,
+          2
+        ],
+        "purpose": "용어 정의·입주자선정·동호수결정·재임대 관계의 역사 근거. 현행 2026 판단에는 사용하지 않음"
+      },
+      "content_review": {
+        "findings": [
+          "임대주택/전세주택/외국인 임대주택 정의, 입주자 선정·입주자 지위 취소·재임대 구조 존재",
+          "pypdf 텍스트가 2쪽 모두 비어 있으나 렌더 이미지 직접 읽기 완료. 실제 자동 입력은 OCR 필요"
+        ],
+        "visual_review_pages": [
+          1,
+          2
+        ],
+        "auto_input_ready": false
+      },
+      "selected": false,
+      "selection_reason": "권리 미확인, 현행성 미확인, 이미지 PDF. 추가 OCR 없이 보관만 함"
+    },
+    {
+      "source_id": "lh_organization_20260626",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0055&list_no=732947&mid=a10108020000",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=732947&seq=1",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_organization_20260626.pdf",
+      "sha256": "9da8a7ff4318763a23bf3c3a2afae99ae5518108dd740e7a801de19c0c6fc11a",
+      "bytes": 313424,
+      "retrieved_at": "2026-09-29T15:10:18.222135+00:00",
+      "format": "PDF",
+      "landing_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_organization_20260626_landing.html",
+      "rights": {
+        "status": "unconfirmed_hold",
+        "public_access_verified": true,
+        "local_llm_input_allowed": false,
+        "redistribution_permission": "not_verified",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 PDF 취득. 게시면 및 PDF 텍스트에서 공공누리/개별 자유이용 표시를 확인하지 못함. 사이트 저작권 정책 판정은 별도 검수에 위임. 텍스트 미표시만으로 금지 단정하지 않음.",
+        "landing_evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_organization_20260626_landing.html"
+      },
+      "physical_pages": 27,
+      "publisher": "한국토지주택공사",
+      "text_extraction_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_organization_20260626_pages.json",
+      "landing_sha256": "cde96dfd61deee5a131c114f1eea5793d259bd158fc08bb4886a15529cde1177",
+      "validation": {
+        "pdf_magic_valid": true,
+        "sha256_computed": true,
+        "no_model_invocation": true
+      },
+      "title": "직제규정(2026-06-26 규정 제355호)",
+      "document_date": "2026-06-26",
+      "effective_date": "2026-07-03",
+      "published_at": "2026-06-30",
+      "date_basis": "PDF 물리1쪽 확정/시행일; 정원표는 별도 2026-05-28 적용",
+      "version_status": "latest_observed_public_catalog",
+      "proposed_scope": {
+        "pages": [
+          1,
+          6,
+          8,
+          9,
+          24,
+          26
+        ],
+        "purpose": "본사·지역본부 구분과 주거복지본부 관장업무(물리24쪽), 지역본부 업무(26쪽). 세부 임대 담당 역할은 시행세칙 별표6 참조"
+      },
+      "content_review": {
+        "findings": [
+          "이번 개정은 정원표 변경. 온톨로지 개념 변경 사례로 세지 않음"
+        ],
+        "auto_input_ready": true
+      },
+      "selected": false,
+      "selection_reason": "권리 미확인. 본문·시행일 확인 후 보관"
+    },
+    {
+      "source_id": "lh_duties_20260120",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0055&list_no=731290&mid=a10108020000",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=731290&seq=1",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20260120.pdf",
+      "sha256": "b40c0a761a4f0f382b6a4cc224016ee3015bd34e299949cad62b5388d7ea0017",
+      "bytes": 2514650,
+      "retrieved_at": "2026-09-29T15:10:19.397635+00:00",
+      "format": "PDF",
+      "landing_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20260120_landing.html",
+      "rights": {
+        "status": "unconfirmed_hold",
+        "public_access_verified": true,
+        "local_llm_input_allowed": false,
+        "redistribution_permission": "not_verified",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 PDF 취득. 게시면 및 PDF 텍스트에서 공공누리/개별 자유이용 표시를 확인하지 못함. 사이트 저작권 정책 판정은 별도 검수에 위임. 텍스트 미표시만으로 금지 단정하지 않음.",
+        "landing_evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20260120_landing.html"
+      },
+      "physical_pages": 300,
+      "publisher": "한국토지주택공사",
+      "text_extraction_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20260120_pages.json",
+      "landing_sha256": "387c848d0cb885eae6746b05f9388e8da662c774c812063b200e695adecd0e9d",
+      "validation": {
+        "pdf_magic_valid": true,
+        "sha256_computed": true,
+        "no_model_invocation": true
+      },
+      "title": "직제규정 시행세칙(2026-01-20 시행세칙 제279호)",
+      "document_date": "2026-01-20",
+      "effective_date": "2026-01-22",
+      "published_at": "2026-03-17",
+      "date_basis": "PDF 물리1쪽 확정/시행일 및 물리7쪽 부칙. 표제에 일부개정(안)이 있으나 시행 공문과 개정전문 동봉",
+      "version_status": "latest_observed_public_catalog",
+      "proposed_scope": {
+        "page_ranges_inclusive": [
+          [
+            1,
+            7
+          ],
+          [
+            35,
+            38
+          ],
+          [
+            251,
+            252
+          ],
+          [
+            270,
+            271
+          ]
+        ],
+        "purpose": "업무 책임·공급유형 구분·신규/예비자/갱신 구분 및 지역 조직 관계 변경",
+        "exclusions": "임대상가, 자산관리, 건설사업, 직원 인사 등 선택 업무 밖 내용"
+      },
+      "content_review": {
+        "findings": [
+          "별표6 물리35~38쪽 건설임대사업처: 계획팀은 국민임대 등 공급·자격검색, 제도팀은 통합공공임대·유형전환·대기자시스템, 운영1팀은 갱신/입주민, 운영2팀은 예비입주자·공가 담당",
+          "물리251쪽 임대공급운영팀: 주택 유형과 계약률에 따른 담당 범위, 지사 미설치지역 임대운영 명시",
+          "물리270~271쪽 주거복지지사: 관할단지의 자격조회·예비자관리·입퇴거 업무",
+          "물리5쪽 울산권주거복지지사 소속이 울산사업본부에서 주거복지사업처로 이동. 양산공고의 변경으로 혼용 금지",
+          "조직 소속의 사실/관계 변경은 확인했으나 개념 클래스·정의 자체 변경으로 단정하지 않음"
+        ],
+        "visual_review_pages": [
+          1,
+          5,
+          35
+        ],
+        "auto_input_ready": true
+      },
+      "selected": false,
+      "selection_reason": "내용상 최우선 보완 자료이나 권리 미확인으로 실사용 입력 보류"
+    },
+    {
+      "source_id": "lh_duties_20251106",
+      "landing_url": "https://www.lh.or.kr/board.es?act=view&bid=0055&list_no=730407&mid=a10108020000",
+      "source_url": "https://www.lh.or.kr/boardDownload.es?bid=0055&list_no=730407&seq=1",
+      "raw_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20251106.pdf",
+      "sha256": "e83f8fc4725bbb9ae5d44d93ad4358dd2a28a881704993801d4d3a1dcb093fe8",
+      "bytes": 2434599,
+      "retrieved_at": "2026-09-29T15:10:20.596597+00:00",
+      "format": "PDF",
+      "landing_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20251106_landing.html",
+      "rights": {
+        "status": "unconfirmed_hold",
+        "public_access_verified": true,
+        "local_llm_input_allowed": false,
+        "redistribution_permission": "not_verified",
+        "git_raw_allowed": false,
+        "basis": "공식 공개 PDF 취득. 게시면 및 PDF 텍스트에서 공공누리/개별 자유이용 표시를 확인하지 못함. 사이트 저작권 정책 판정은 별도 검수에 위임. 텍스트 미표시만으로 금지 단정하지 않음.",
+        "landing_evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20251106_landing.html"
+      },
+      "physical_pages": 298,
+      "publisher": "한국토지주택공사",
+      "text_extraction_path": "data/knowledge/raw/lh_input_bundle_20260930/content/lh_duties_20251106_pages.json",
+      "landing_sha256": "7083a9ed17eb61d993a25be1a8bbd502203798a6d903822f734357ee3101da66",
+      "validation": {
+        "pdf_magic_valid": true,
+        "sha256_computed": true,
+        "no_model_invocation": true
+      },
+      "title": "직제규정 시행세칙(2025-11-06 시행세칙 제276호)",
+      "document_date": "2025-11-06",
+      "effective_date": "2025-11-10",
+      "published_at": "2026-01-12",
+      "date_basis": "PDF 물리1쪽 확정/시행일",
+      "version_status": "historical_prior_to_20260120",
+      "proposed_scope": {
+        "page_ranges_inclusive": [
+          [
+            1,
+            15
+          ],
+          [
+            36,
+            39
+          ],
+          [
+            250,
+            252
+          ],
+          [
+            269,
+            271
+          ]
+        ],
+        "purpose": "신구 조직 구조·업무분장 비교용. 현재 업무와 섞지 않음"
+      },
+      "content_review": {
+        "findings": [
+          "2026본의 직전 공개본 확보. 임대업무 건설임대계획팀 범위는 확인 부분에서 유지됨",
+          "조직 소속 변경은 2026본 신구대조표로 직접 확인 가능. 전체300쪽 변경 검증을 주장하지 않음"
+        ],
+        "auto_input_ready": true
+      },
+      "selected": false,
+      "selection_reason": "의미 변경 평가 참고 후보. 권리 미확인으로 보류"
+    }
+  ],
+  "content_verdict": "직제규정 시행세칙으로 업무주체·책임·조건부관계 보완 가능. 현재 명시 허락 확인 전에는 입력으로 승인하지 않음.",
+  "semantic_change_verdict": "실제 조직관계 변경 확보. 개념 정의/분류 변경 평가가 충족됐다고 주장하지 않음.",
+  "search_evidence": [
+    {
+      "path": "data/knowledge/raw/lh_input_bundle_20260930/content/rental_rules_search.html",
+      "finding": "제목 주택임대 검색에서 2009 규정(2012게시)과 기존2015시행세칙만 조회. 공개최신목록을 현행성 보증으로 해석하지 않음"
+    },
+    {
+      "path": "data/knowledge/raw/lh_input_bundle_20260930/content/organization_rules_search.html",
+      "finding": "2026 직제규정과 2026/2025 시행세칙 공개 다운로드 확인"
+    }
+  ]
+}

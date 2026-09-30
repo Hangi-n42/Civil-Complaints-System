@@ -1,0 +1,886 @@
+{
+  "status": "baseline_join_complete_proposal_pending",
+  "ridership_source_rows": 42578,
+  "route_reference_date": "2026-09-02",
+  "ridership_month": "2026-08",
+  "join_key": [
+    "route_name = 노선번호",
+    "NODE_ID = 표준버스정류장ID",
+    "중복은 역명 내 정차 순번이 유일하게 일치할 때만 구분"
+  ],
+  "target_route": "1127",
+  "target_rows": 60,
+  "target_exact_matches": 60,
+  "monthly_boardings": 118363,
+  "monthly_alightings": 116655,
+  "removal_candidates_current_usage": {
+    "ordered_stops": 5,
+    "monthly_boardings": 19467,
+    "monthly_alightings": 21208,
+    "meaning": "제외 후보 구간의 기존 이용 기록이며 피해 인원이나 변경 후 감소량이 아님"
+  },
+  "selected_routes": 40,
+  "selected_route_stop_rows": 2986,
+  "selected_stop_registry_matches": 2889,
+  "selected_ridership_status": {
+    "matched": 2738,
+    "ambiguous": 78,
+    "missing": 170
+  },
+  "matched_ars_discrepancies": [
+    {
+      "route_name": "107",
+      "node_id": "207000363",
+      "route_ars_id": "61128",
+      "ridership_ars_id": "08299"
+    }
+  ],
+  "shared_target_stop_rows": 157,
+  "shared_target_route_count": 37,
+  "shared_target_stop_registry_matches": 157,
+  "shared_target_ridership_status": {
+    "matched": 135,
+    "missing": 4,
+    "ambiguous": 18
+  },
+  "proposal_candidate_stop_count": 46,
+  "proposal_candidate_stops_with_route_rows": 46,
+  "proposal_candidate_stops_with_any_matched_ridership": 46,
+  "mentioned_routes_not_in_route_file": [
+    "118",
+    "36"
+  ],
+  "alternatives": [
+    {
+      "route_name": "101",
+      "route_id": 100100006,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 81,
+      "shared_1127_node_ids": [
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016",
+        "109000131",
+        "109000132"
+      ],
+      "stop_registry_matched_rows": 81,
+      "ridership_matched_rows": 75,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "102",
+      "route_id": 100100007,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 67,
+      "shared_1127_node_ids": [
+        "109000162",
+        "109000163",
+        "109000164",
+        "109000165",
+        "109000241",
+        "109000242"
+      ],
+      "proposed_candidate_node_ids": [],
+      "stop_registry_matched_rows": 67,
+      "ridership_matched_rows": 67,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "107",
+      "route_id": 100100012,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 120,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 53,
+      "ridership_matched_rows": 119,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1119",
+      "route_id": 100100137,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 65,
+      "shared_1127_node_ids": [
+        "109000112"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000108",
+        "109000109",
+        "109000110",
+        "109000111"
+      ],
+      "stop_registry_matched_rows": 65,
+      "ridership_matched_rows": 57,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1120",
+      "route_id": 100100138,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 85,
+      "shared_1127_node_ids": [
+        "109000142",
+        "109000143",
+        "109000209",
+        "109000210"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000131",
+        "109000132",
+        "109000145",
+        "109000146"
+      ],
+      "stop_registry_matched_rows": 85,
+      "ridership_matched_rows": 85,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1124",
+      "route_id": 100100139,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 37,
+      "shared_1127_node_ids": [
+        "108000118",
+        "108000160"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000118",
+        "108000160"
+      ],
+      "stop_registry_matched_rows": 37,
+      "ridership_matched_rows": 37,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1126",
+      "route_id": 100100142,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 66,
+      "shared_1127_node_ids": [
+        "108000158",
+        "108000159",
+        "109000015",
+        "109000041",
+        "109000162",
+        "109000164",
+        "109000166",
+        "109000167",
+        "109000176",
+        "109000223",
+        "109000226",
+        "109000241",
+        "109000399"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000158",
+        "108000159",
+        "109000015",
+        "109000036",
+        "109000037",
+        "109000038",
+        "109000039",
+        "109000041",
+        "109000042",
+        "109000090",
+        "109000091",
+        "109000092",
+        "109000093",
+        "109000131",
+        "109000132",
+        "109000223",
+        "109000399"
+      ],
+      "stop_registry_matched_rows": 66,
+      "ridership_matched_rows": 42,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1128",
+      "route_id": 100100144,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 81,
+      "shared_1127_node_ids": [
+        "108000184",
+        "109000023",
+        "109000068",
+        "109000069",
+        "109000070",
+        "109000228"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000184",
+        "109000097",
+        "109000098"
+      ],
+      "stop_registry_matched_rows": 81,
+      "ridership_matched_rows": 81,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1133",
+      "route_id": 100100149,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 48,
+      "shared_1127_node_ids": [
+        "108000160",
+        "109000165"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000160"
+      ],
+      "stop_registry_matched_rows": 48,
+      "ridership_matched_rows": 46,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1138",
+      "route_id": 100100153,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 52,
+      "shared_1127_node_ids": [
+        "108000118",
+        "108000159",
+        "108000160",
+        "109000162",
+        "109000163",
+        "109000164",
+        "109000165",
+        "109000166",
+        "109000167",
+        "109000223",
+        "109000225",
+        "109000226",
+        "109000241",
+        "109000242",
+        "109000399"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000118",
+        "108000159",
+        "108000160",
+        "109000145",
+        "109000146",
+        "109000223",
+        "109000399"
+      ],
+      "stop_registry_matched_rows": 52,
+      "ridership_matched_rows": 52,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1139",
+      "route_id": 100100154,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 72,
+      "shared_1127_node_ids": [
+        "109000071",
+        "109000072",
+        "109000073",
+        "109000074"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000090",
+        "109000092"
+      ],
+      "stop_registry_matched_rows": 72,
+      "ridership_matched_rows": 72,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1144",
+      "route_id": 100100159,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 61,
+      "shared_1127_node_ids": [],
+      "proposed_candidate_node_ids": [
+        "109000108",
+        "109000109",
+        "109000110",
+        "109000111"
+      ],
+      "stop_registry_matched_rows": 61,
+      "ridership_matched_rows": 61,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "1218",
+      "route_id": 100100177,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 85,
+      "shared_1127_node_ids": [
+        "108000160",
+        "108000184"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000160",
+        "108000184"
+      ],
+      "stop_registry_matched_rows": 85,
+      "ridership_matched_rows": 75,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "130",
+      "route_id": 100100018,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 87,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016",
+        "109000108",
+        "109000109",
+        "109000110",
+        "109000111"
+      ],
+      "stop_registry_matched_rows": 87,
+      "ridership_matched_rows": 87,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "140",
+      "route_id": 100100019,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 87,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 87,
+      "ridership_matched_rows": 85,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "141",
+      "route_id": 100100020,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 105,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015",
+        "109000032",
+        "109000033",
+        "109000068",
+        "109000069",
+        "109000070",
+        "109000228"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016",
+        "109000032",
+        "109000033"
+      ],
+      "stop_registry_matched_rows": 105,
+      "ridership_matched_rows": 105,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "142",
+      "route_id": 100100021,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 106,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015",
+        "109000068",
+        "109000069",
+        "109000070",
+        "109000228"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 106,
+      "ridership_matched_rows": 106,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "146",
+      "route_id": 100100025,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 135,
+      "shared_1127_node_ids": [
+        "109000044",
+        "109000045",
+        "109000046",
+        "109000047",
+        "109000048",
+        "109000049",
+        "109000050",
+        "109000051",
+        "109000075",
+        "109000215",
+        "109000361"
+      ],
+      "proposed_candidate_node_ids": [],
+      "stop_registry_matched_rows": 135,
+      "ridership_matched_rows": 135,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "148",
+      "route_id": 100100027,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 84,
+      "shared_1127_node_ids": [
+        "108000160"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000160"
+      ],
+      "stop_registry_matched_rows": 84,
+      "ridership_matched_rows": 84,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "150",
+      "route_id": 100100029,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 123,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 123,
+      "ridership_matched_rows": 115,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "160",
+      "route_id": 100100033,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 120,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 120,
+      "ridership_matched_rows": 115,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "6102",
+      "route_id": 122000002,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 42,
+      "shared_1127_node_ids": [
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000015",
+        "109000016",
+        "109000145"
+      ],
+      "stop_registry_matched_rows": 17,
+      "ridership_matched_rows": 0,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "8101",
+      "route_id": 110000005,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 55,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 55,
+      "ridership_matched_rows": 51,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "8146",
+      "route_id": 110000004,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 135,
+      "shared_1127_node_ids": [
+        "109000044",
+        "109000045",
+        "109000046",
+        "109000047",
+        "109000048",
+        "109000049",
+        "109000050",
+        "109000051",
+        "109000075",
+        "109000215",
+        "109000361"
+      ],
+      "proposed_candidate_node_ids": [],
+      "stop_registry_matched_rows": 135,
+      "ridership_matched_rows": 135,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "N15",
+      "route_id": 100100610,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 146,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016",
+        "109000108",
+        "109000109",
+        "109000110",
+        "109000111"
+      ],
+      "stop_registry_matched_rows": 145,
+      "ridership_matched_rows": 138,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "N16",
+      "route_id": 100100592,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 132,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 132,
+      "ridership_matched_rows": 132,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "강북01",
+      "route_id": 108900006,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 36,
+      "shared_1127_node_ids": [
+        "108000118"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000118"
+      ],
+      "stop_registry_matched_rows": 36,
+      "ridership_matched_rows": 36,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "강북09",
+      "route_id": 108900004,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 52,
+      "shared_1127_node_ids": [
+        "108000118"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000118"
+      ],
+      "stop_registry_matched_rows": 52,
+      "ridership_matched_rows": 52,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "강북11",
+      "route_id": 108900001,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 50,
+      "shared_1127_node_ids": [
+        "108000118"
+      ],
+      "proposed_candidate_node_ids": [
+        "108000118"
+      ],
+      "stop_registry_matched_rows": 50,
+      "ridership_matched_rows": 50,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "노원14",
+      "route_id": 109900011,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 66,
+      "shared_1127_node_ids": [
+        "109000142",
+        "109000162",
+        "109000163",
+        "109000164",
+        "109000165",
+        "109000210",
+        "109000217",
+        "109000241",
+        "109000242"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000132",
+        "109000148",
+        "109000217",
+        "109000218",
+        "109900173"
+      ],
+      "stop_registry_matched_rows": 66,
+      "ridership_matched_rows": 66,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "노원15",
+      "route_id": 109900010,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 82,
+      "shared_1127_node_ids": [],
+      "proposed_candidate_node_ids": [
+        "109000108",
+        "109000109",
+        "109000110",
+        "109000111"
+      ],
+      "stop_registry_matched_rows": 82,
+      "ridership_matched_rows": 82,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉01",
+      "route_id": 109900001,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 39,
+      "shared_1127_node_ids": [
+        "109000217",
+        "109000293"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000145",
+        "109000217",
+        "109000218",
+        "109000293",
+        "109900044",
+        "109900135"
+      ],
+      "stop_registry_matched_rows": 39,
+      "ridership_matched_rows": 39,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉05",
+      "route_id": 109900004,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 37,
+      "shared_1127_node_ids": [
+        "109000041"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000036",
+        "109000037",
+        "109000038",
+        "109000039",
+        "109000040",
+        "109000041",
+        "109000042",
+        "109900090",
+        "109900113"
+      ],
+      "stop_registry_matched_rows": 37,
+      "ridership_matched_rows": 37,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉06",
+      "route_id": 109900003,
+      "mentioned_candidate": true,
+      "ordered_stop_rows": 28,
+      "shared_1127_node_ids": [
+        "109000041"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000036",
+        "109000037",
+        "109000038",
+        "109000039",
+        "109000040",
+        "109000041",
+        "109000042",
+        "109900090",
+        "109900113"
+      ],
+      "stop_registry_matched_rows": 28,
+      "ridership_matched_rows": 28,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉07",
+      "route_id": 109900002,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 32,
+      "shared_1127_node_ids": [
+        "109000041",
+        "109000170",
+        "109000172",
+        "109000175",
+        "109000223"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000040",
+        "109000041",
+        "109000042",
+        "109000218",
+        "109000223",
+        "109900044"
+      ],
+      "stop_registry_matched_rows": 32,
+      "ridership_matched_rows": 32,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉08",
+      "route_id": 109900006,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 45,
+      "shared_1127_node_ids": [
+        "109000048",
+        "109000049",
+        "109000050",
+        "109000364"
+      ],
+      "proposed_candidate_node_ids": [],
+      "stop_registry_matched_rows": 45,
+      "ridership_matched_rows": 45,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "도봉09",
+      "route_id": 109900005,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 54,
+      "shared_1127_node_ids": [
+        "109000044",
+        "109000045",
+        "109000046",
+        "109000048",
+        "109000049",
+        "109000050",
+        "109000072",
+        "109000075",
+        "109000361",
+        "109000364"
+      ],
+      "proposed_candidate_node_ids": [],
+      "stop_registry_matched_rows": 50,
+      "ridership_matched_rows": 54,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "새벽A148",
+      "route_id": 101000009,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 41,
+      "shared_1127_node_ids": [
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 41,
+      "ridership_matched_rows": 0,
+      "status": "candidate_not_confirmed_alternative"
+    },
+    {
+      "route_name": "새벽A160",
+      "route_id": 100000024,
+      "mentioned_candidate": false,
+      "ordered_stop_rows": 87,
+      "shared_1127_node_ids": [
+        "109000011",
+        "109000015"
+      ],
+      "proposed_candidate_node_ids": [
+        "109000011",
+        "109000012",
+        "109000013",
+        "109000014",
+        "109000015",
+        "109000016"
+      ],
+      "stop_registry_matched_rows": 87,
+      "ridership_matched_rows": 0,
+      "status": "candidate_not_confirmed_alternative"
+    }
+  ],
+  "limits": [
+    "월간 교통카드 승하차 건수이며 고유 인원·피해 인원·변경 후 수요가 아님",
+    "8월 이용 기록과 9월 2일 노선 간 시점 차이 보존",
+    "동일 노선·정류장 복수 정차는 이용량을 중복 합산하지 말 것",
+    "같은 정류장 경유는 대체 가능성 후보이며 방향·목적지·시간 검토 전 확정하지 않음"
+  ],
+  "output_directory": "data/processed/knowledge_demo_preparation_20260929"
+}
