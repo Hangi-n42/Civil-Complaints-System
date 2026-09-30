@@ -11,6 +11,23 @@ ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "configs/knowledge/pilot_v1/sources.json"
 
 
+@pytest.mark.parametrize('separator', ['\n', '다음 표 설명\n'])
+def test_markdown_table_headers_reset_between_tables(tmp_path, separator):
+    path = tmp_path / 'tables.md'
+    text = ('# 자료\n| 단지 | 세대수 |\n| --- | --- |\n| A | 100 |\n'
+            + separator + '| 공고 | 접수일 |\n| --- | --- |\n| B | 2026-09-30 |\n')
+    path.write_text(text, encoding='utf-8')
+    blocks = parse_unit(path, 'md', plan_units(path, 'md')[0])
+    first = next(b for b in blocks if '| A |' in b['text'])
+    second = next(b for b in blocks if '| B |' in b['text'])
+    assert first['locator']['table_headers'] == ['| 단지 | 세대수 |']
+    assert second['locator']['table_headers'] == ['| 공고 | 접수일 |']
+    for block in blocks:
+        loc = block['locator']
+        assert loc['section'] == '# 자료'
+        assert text[loc['start_char']:loc['end_char']] == block['text']
+
+
 def test_html_table_positions_and_empty_body(tmp_path):
     path = tmp_path / "table.html"
     path.write_text('<body>outside<div id="content"><table><tr><th rowspan="2">유형</th><td>A</td></tr><tr><td>B</td></tr></table></div><script>wrong</script></body>')

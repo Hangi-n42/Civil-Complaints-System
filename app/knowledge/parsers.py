@@ -17,7 +17,7 @@ def parser_info(format: str) -> dict:
     if format == "csv":
         return {"name": "stdlib.csv", "version": "1", "adapter_version": "2"}
     if format in {"txt", "md"}:
-        return {"name": "stdlib.text", "version": "1", "adapter_version": "1"}
+        return {"name": "stdlib.text", "version": "1", "adapter_version": "2"}
     if format not in packages:
         raise ValueError(f"지원하지 않는 형식: {format}")
     return {"name": packages[format], "version": version(packages[format]), "adapter_version": "1"}
@@ -37,6 +37,8 @@ def _text_blocks(path: Path, format: str):
         text = stream.read()
     section, headers, offset = '', [], 0
     for line_number, line in enumerate(text.splitlines(keepends=True), 1):
+        if not line.startswith('|'):
+            headers = []
         if line.startswith('#'):
             section, headers = line.strip(), []
         if line.startswith('|') and not headers:
