@@ -92,6 +92,8 @@ class RunRequest(BaseModel):
     scope_items: list[CompetencyQuestion] = Field(default_factory=list)
     baseline_version: Literal['discovery-empty-v1'] = 'discovery-empty-v1'
     lineage_id: str | None = None
+    analysis_block_ids: list[str] | None = Field(default=None, min_length=1)
+    analysis_selection_reason: str = ''
     discovery_budgets: dict[str, int] = Field(default_factory=dict)
 
 

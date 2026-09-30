@@ -48,8 +48,10 @@ def response(prompt, stage):
         direction = dict(judgment='unknown', reason='정의 문맥 검수 필요', evidence_ids=[ev], counter_evidence_ids=[])
         return dict(hierarchies=[dict(child_ref=obs[0]['id'], parent_ref=obs[1]['id'], relation='is_a',
             a_to_b=direction, b_to_a=direction)], alias_proposals=[], gaps=[], actions=[])
+    if stage=='revision':
+        return dict(observations=[],relations=[],hierarchies=[],deferred=[dict(candidate_ref=i,reason='사람 검수로 명시 보류한다.') for i in data['target_ids']])
     hierarchy = [{k:h[k] for k in ('child_ref','parent_ref','relation','a_to_b','b_to_a')} for h in data['taxonomy']['hierarchies']]
-    return dict(issues=[], hierarchy_checks=hierarchy, gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
+    return dict(issues=[], hierarchy_checks=hierarchy, relation_checks=[dict(candidate_ref=c['id'],judgment='supported', evidence_id=c['evidence_ids'][0],quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.') for c in data['unapproved_relations']], gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
 
 
 @pytest.fixture(autouse=True)
@@ -72,7 +74,7 @@ def test_full_roles_frozen_evidence_and_no_publication(service, model, monkeypat
     assert run['status']=='review_ready', (run.get('error'),run['result']['failures'],run['frontier'])
     assert model==['scout','concept','relation','builder','critic']
     assert run['metrics']['llm_calls']==5 and run['metrics']['searches']==2
-    assert run['result']['mandatory_pending']==[] and run['result']['analysis_succeeded']==2
+    assert run['result']['mandatory_pending']==[] and run['result']['analysis_succeeded']==1
     candidate=run['result']['observations'][0]
     assert candidate['review_status']=='unreviewed' and candidate['cq_ids']==['cq1']
     ref=candidate['evidence_refs'][0]
@@ -318,6 +320,7 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
         valid=dict(empty,gaps=['주 분석 원문의 해석 미확인'])
         if stage=='critic':
             valid['hierarchy_checks']=response(prompt,stage)['hierarchy_checks']
+            valid['relation_checks']=response(prompt,stage)['relation_checks']
             assert all(v['properties']['hierarchy_checks']['minItems']==len(data['taxonomy']['hierarchies']) for v in schema['anyOf'])
             for variant, expected in zip(schema['$defs']['Hierarchy']['anyOf'],data['taxonomy']['hierarchies']):
                 assert all(variant['properties'][f]['const']==expected[f] for f in ('child_ref','parent_ref','relation'))
@@ -379,7 +382,8 @@ def test_explicit_gap_is_preserved_but_not_counted_as_grounded_analysis(service,
         return result
     monkeypatch.setattr(a2,'model_call',no_relation)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert run['status']=='partial' and run['result']['mandatory_pending']
+    assert run['status']=='partial' and run['result']['no_result_groups']
+    assert run['result']['processed_analysis_groups']==1
     assert run['result']['review_groups']==1 and run['result']['analysis_succeeded']==0
     assert run['result']['gaps'] and run['result']['failures']==[]
 
@@ -412,6 +416,283 @@ def test_exhausted_resume_preserves_successful_analysis_counts(service,monkeypat
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id'],discovery_budgets={'model_calls':5}))['run_id'])
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert run['result']['analysis_succeeded']==resumed['result']['analysis_succeeded']==2
+    assert run['result']['analysis_succeeded']==resumed['result']['analysis_succeeded']==1
     assert run['metrics']['llm_calls']==resumed['metrics']['llm_calls']==5
     assert resumed['status']=='partial' and resumed['result']['mandatory_pending']
+
+
+def test_real_reviewed_base_uses_evidence_block_version_and_term_lookup(service):
+    from app.knowledge import ontology_schema as ontology
+    source=prepare(service,file_ids=['current:0'])
+    block=discovery_run.read(service,source['id'],'current:0')['items'][0]
+    base_run=dict(source,id='reviewed_base_run',kind='ontology',cqs=[dict(id='cq1',question='임대 유형은?')],
+        frozen_blocks=[dict(evidence_id=block['evidence_id'],text=block['text'])])
+    with service.repository.connect() as db:
+        db.execute('INSERT INTO runs VALUES(?,?)',(base_run['id'],json.dumps(base_run)))
+        evidence=service.repository.get(db,'evidence',block['evidence_id'])
+        assert 'source_version_id' not in evidence and evidence['block_id']==block['id']
+    candidate=dict(id='Housing',kind='concept',name='국민임대',definition='현재 국민임대',inclusion='원문에 명시',exclusion='미확인',
+        evidence=[dict(evidence_id=block['evidence_id'],quote='국민임대')],cq_ids=['cq1'])
+    published=ontology.publish(service,base_run,[candidate])
+    decision=ontology.decide(service,published['changeset_id'],dict(expected_changeset_revision=0,actor='tester',decisions=[dict(candidate_id='Housing',action='accept')]))
+    run=done(service,service.start(request(source['id'],base_ontology_version_id=decision['reviewed_ontology_version_id']))['run_id'])
+    assert run['status']=='review_ready',run.get('error')
+    term=next(c for c in a2.terms(service,run['id'],'국민')['items'] if c['id']=='Housing')
+    assert term['review_status']=='reviewed'
+    assert term['evidence'][0]['evidence_id']==block['evidence_id']
+    other=prepare(service,file_ids=['web:0'])
+    with pytest.raises(ValueError,match='범위 밖'):
+        service.start(request(other['id'],base_ontology_version_id=decision['reviewed_ontology_version_id']))
+
+
+def test_selected_analysis_cross_document_synthesis_and_honest_coverage(service,model):
+    source=prepare(service,file_ids=['current:0','web:0'])
+    blocks=a2.load_blocks(service,source)
+    selected=[b['id'] for b in blocks if b['block_index']==0]
+    with pytest.raises(ValueError,match='선택 이유'):
+        service.start(request(source['id'],analysis_block_ids=selected))
+    with pytest.raises(ValueError,match='고정 블록'):
+        service.start(request(source['id'],analysis_block_ids=['outside'],analysis_selection_reason='작은 묶음'))
+    run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='정의와 비교 원문의 첫 블록'))['run_id'])
+    result=run['result']
+    assert result['analysis_groups']==result['processed_analysis_groups']==2
+    assert result['candidate_groups']==result['review_groups']==1
+    assert model==['scout','concept','relation','concept','relation','builder','critic']
+    group=run['candidate_groups'][0]
+    assert len(group['analysis_group_ids'])==2
+    assert len({c['evidence_ids'][0] for c in group['candidates']})==2
+    assert all(c['review_status']=='unreviewed' for c in group['candidates'])
+    assert result['analysis_succeeded']==2 and len(result['not_selected_block_ids'])==2
+    assert set(result['both_roles_evidence_block_ids'])==set(selected)
+    assert run['initial_full_analysis_groups']==2
+    assert 'g는 후보 조립' in run['synthesis_call_formula']
+
+
+def test_revision_corrects_classification_negation_and_preserves_ids_and_history(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def revise(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1])
+        response_value=await original(prompt,schema,stage,run,timeout)
+        value=json.loads(response_value['text'])
+        if stage=='relation':
+            value['relations'][0]['negation']='negated' # Saved v7 polarity failure shape.
+        if stage=='critic':
+            targets=[data['unapproved_observations'][0],data['unapproved_relations'][0],data['taxonomy']['hierarchies'][0]]
+            value['issues']=[dict(local_ref=f'i{n}',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1)]
+            value['needs_revision']=True
+        if stage=='revision':
+            assert len(prompt)<=12000
+            value=dict(observations=[],relations=[],hierarchies=[],deferred=[])
+            for c in data['targets']:
+                if 'classification' in c:
+                    item={k:c[k] for k in a2.models.Observation.model_fields if k!='local_ref'}
+                    value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary'))
+                elif 'negation' in c:
+                    item={k:c[k] for k in a2.models.Relation.model_fields if k!='local_ref'}
+                    value['relations'].append(dict(item,local_ref='r1',candidate_ref=c['id'],reason='제외 조건은 관계 전체의 부정이 아니다.',negation='affirmed'))
+                else:
+                    item={k:c[k] for k in a2.models.Hierarchy.model_fields}
+                    value['hierarchies'].append(dict(item,candidate_ref=c['id'],reason='계층은 미확인으로 유지한다.'))
+            import jsonschema
+            jsonschema.validate(value,schema)
+        response_value['text']=json.dumps(value,ensure_ascii=False)
+        return response_value
+    monkeypatch.setattr(a2,'model_call',revise)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert model.count('revision')==1,run['result']['failures']
+    assert len(run['result']['revision_history'])==3,run['result']['failures']
+    for history in run['result']['revision_history']:
+        assert history['before']['id']==history['after']['id']==history['candidate_id']
+    original_row=run['result']['original_observations'][0]
+    revised=next(c for c in run['result']['observations'] if c['id']==original_row['id'])
+    assert run['result']['original_relations'][0]['negation']=='negated'
+    assert run['result']['relations'][0]['negation']=='affirmed'
+    assert original_row['classification']=='type' and revised['classification']=='vocabulary'
+    assert next(c for c in a2.terms(service,run['id'],'국민')['items'] if c['id']==revised['id'])['classification']=='vocabulary'
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model.count('revision')==1 and again['result']['revision_history']==run['result']['revision_history']
+
+
+def test_revision_bounded_whole_sources_or_explicit_deferral(service,monkeypatch):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def issue(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            value=json.loads(result['text']);value['needs_revision']=True
+            value['gaps']=['검토 전체 이력 '*2000] # Prior overflowing context must not propagate wholesale.
+            result['text']=json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',issue)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    revision=next(u for u in run['analysis_units'] if u['stage']=='revision')
+    assert revision['status']=='succeeded' and revision['input_chars']<=12000
+    assert revision['output']['deferred'] and not revision['output']['history']
+    payload=json.loads(revision['prompt'].split('\nINPUT:\n')[1])
+    assert all(b['text'] in {b['text'] for b in a2.load_blocks(service,run)} for b in payload['blocks'])
+
+
+def test_relation_review_rejects_invented_quote_and_requires_every_relation(service,monkeypatch):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def bad_quote(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            value=json.loads(result['text']);value['relation_checks'][0]['quote']='원문에 없는 주택법상 법률 단정'
+            result['text']=json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',bad_quote)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']=='partial' and '인용' in run['result']['failures'][0]['error']
+
+
+def test_resume_adds_new_analysis_candidates_without_replacing_prior_review(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0','web:0']);original=a2.model_call;concept_calls=0
+    async def fail_second(prompt,schema,stage,run,timeout):
+        nonlocal concept_calls
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='concept':
+            concept_calls+=1
+            if concept_calls==2: result['text']='{'
+        return result
+    monkeypatch.setattr(a2,'model_call',fail_second)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']=='partial' and len(run['candidate_groups'])==1
+    before=deepcopy(run['candidate_groups'][0])
+    monkeypatch.setattr(a2,'model_call',original)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert again['status']=='review_ready',again['result']['failures']
+    assert len(again['candidate_groups'])==2 and again['candidate_groups'][0]==before
+    assert not again['result']['unreviewed_candidate_ids']
+    assert model.count('builder')==model.count('critic')==2
+
+
+def test_revision_inherits_full_critic_dependencies_and_blocks_revocation(service,model,monkeypatch):
+    from app.knowledge import discovery_synthesis as synthesis
+    source=prepare(service,file_ids=['current:0','web:0']); blocks=a2.load_blocks(service,source)
+    selected=[b['id'] for b in blocks if b['file_id']=='current:0']; revoked=next(b['id'] for b in blocks if b['file_id']=='web:0')
+    original=a2.model_call
+    async def needs_revision(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            ctx=json.loads(prompt.split('\nINPUT:\n')[1]); out=json.loads(result['text'])
+            out['issues']=[dict(local_ref='i1',candidate_ref=ctx['unapproved_observations'][0]['id'],reason='추가 읽은 원문을 바탕으로 판단했다.',evidence_ids=[ctx['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            out['needs_revision']=True; result['text']=json.dumps(out,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',needs_revision)
+    original_revise=synthesis.revise
+    def revoke_before_revise(service,run,group,review,taxonomy,by_id,contexts):
+        critic=next(u for u in run['analysis_units'] if u['id']=='critic:'+group['id'])
+        assert revoked in critic['dependency_ids']
+        assert all(revoked not in i['evidence_ids']+i['counter_evidence_ids'] for i in review['issues'])
+        snapshots.set_availability(service,dict(actor='test',reason='중단',expected_status_revision=0,targets=[dict(type='evidence',id=revoked)],state='blocked'))
+        return original_revise(service,run,group,review,taxonomy,by_id,contexts)
+    monkeypatch.setattr(synthesis,'revise',revoke_before_revise)
+    run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='원문 선택'))['run_id'])
+    revision=next(u for u in run['analysis_units'] if u['stage']=='revision')
+    assert revision['status']=='failed' and revoked in revision['dependency_ids'] and 'revision' not in model
+
+
+def test_completed_exact_budget_resume_needs_no_new_reservation(service,model):
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id'],discovery_budgets={'model_calls':5}))['run_id'])
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert again['status']==run['status']=='review_ready'
+    assert run['metrics']['llm_calls']==again['metrics']['llm_calls']==5 and len(model)==5
+
+
+def test_related_candidates_match_any_scope_link_and_previous_round(service):
+    from app.knowledge import discovery_synthesis as synthesis
+    source=prepare(service,file_ids=['current:0','web:0'])
+    run=done(service,service.start(request(source['id']))['run_id'])
+    blocks=a2.load_blocks(service,run); by_id={b['id']:b for b in blocks}
+    # One current-round candidate shares only its second CQ with a later discovery.
+    concept_units=[u for u in run['analysis_units'] if u['stage']=='concept']
+    for n,u in enumerate(concept_units):
+        u['output']['observations']=u['output']['observations'][:1]
+        u['output']['observations'][0]['cq_ids']=['cq1','cq2'] if n==0 else ['cq2']
+    run['analysis_units']=concept_units
+    run['candidate_groups']=[]
+    first=synthesis.assemble(run,0,by_id,profile.contexts(blocks),set(by_id))
+    assert all(len(g['candidates'])==2 for g in first)
+    run['candidate_groups']=[first[0]]
+    next(g for g in run['frontier'] if g['id']==concept_units[1]['group_id'])['round']=1
+    # Mark only the earlier observation as assigned, keeping it in the comparison pool.
+    run['candidate_groups'][0]['primary_candidate_ids']=[concept_units[0]['output']['observations'][0]['id']]
+    original_candidate=concept_units[0]['output']['observations'][0]
+    updated=dict(original_candidate,classification='vocabulary')
+    run['analysis_units'].append(dict(stage='revision',status='succeeded',dependency_ids=list(by_id),output=dict(history=[dict(candidate_id=updated['id'],after=updated)])))
+    second=synthesis.assemble(run,1,by_id,profile.contexts(blocks),set(by_id))
+    assert len(second)==1 and len(second[0]['candidates'])==2
+    compared=next(c for c in second[0]['candidates'] if c['id']==updated['id'])
+    assert compared['classification']=='vocabulary' and set(compared['origin_dependency_ids'])==set(by_id)
+    assert original_candidate['classification']=='type'
+
+
+def test_revision_combines_changed_and_unchanged_hierarchy_for_cycle_check():
+    direction=dict(judgment='unknown',reason='검수 필요',evidence_ids=[],counter_evidence_ids=[])
+    original=lambda a,b: dict(child_ref=a,parent_ref=b,relation='is_a',a_to_b=deepcopy(direction),b_to_a=deepcopy(direction))
+    supplied={i:dict(id=i,classification='type') for i in ('a','b','c')}
+    supplied.update(h1=dict(original('a','c'),id='h1'), h2=dict(original('b','a'),id='h2'))
+    revised=dict(original('a','b'),candidate_ref='h1',reason='방향 수정')
+    result=a2.normalize(dict(observations=[],relations=[],hierarchies=[revised],deferred=[]),'revision',
+        dict(cqs=[],scope_items=[]),[],{},supplied)
+    assert all('is_a 순환' in h['validation'] for h in result['effective_hierarchies'])
+    assert result['history'][0]['before']['parent_ref']=='c'
+    assert 'is_a 순환' in result['history'][0]['after']['validation']
+
+
+def test_provenance_dependencies_cannot_be_new_citations_without_original(service,model,monkeypatch):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def check(prompt,schema,stage,run,timeout):
+        if stage=='builder':
+            data=json.loads(prompt.split('\nINPUT:\n')[1])
+            assert set(schema['$defs']['Direction']['properties']['evidence_ids']['items']['enum'])==a2.raw_refs(data)
+            unit=next(u for u in run['analysis_units'] if u['stage']=='builder')
+            assert len(unit['dependency_ids'])>len(unit['provided_block_ids'])
+        return await original(prompt,schema,stage,run,timeout)
+    monkeypatch.setattr(a2,'model_call',check)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']=='review_ready',run['result']['failures']
+
+
+def test_critic_extra_original_reaches_revision_even_without_revision_flag(service,model,monkeypatch):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def request_more(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            value=json.loads(result['text']);value['actions']=[dict(action='search',query='국민임대',reason='추가 근거 확인')]
+            assert not value['needs_revision']
+            result['text']=json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',request_more)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert model[-1]=='revision' and run['result']['revisions'][0]['deferred']
+    assert not run['result']['unfulfilled_read_requests']
+
+
+def test_revision_cannot_overwrite_comparison_candidate_from_another_group(service,monkeypatch):
+    from app.knowledge import discovery_synthesis as synthesis
+    source=prepare(service,file_ids=['current:0']);run=done(service,service.start(request(source['id']))['run_id'])
+    group=deepcopy(run['candidate_groups'][0]);comparison=group['primary_candidate_ids'].pop()
+    review=dict(issues=[dict(candidate_ref=comparison,evidence_ids=[],counter_evidence_ids=[])],relation_checks=[])
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
+    monkeypatch.setattr(a2,'call',lambda *args,**kwargs:pytest.fail('다른 묶음 후보의 중복 수정'))
+    synthesis.revise(service,run,group,review,dict(hierarchies=[]),by_id,profile.contexts(blocks))
+    assert group['revision_deferrals'][0]['candidate_ref']==comparison
+
+
+def test_failed_revision_is_explicitly_deferred_without_second_attempt(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def broken_revision(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            value=json.loads(result['text']);value['needs_revision']=True;result['text']=json.dumps(value)
+        if stage=='revision': result['text']='{'
+        return result
+    monkeypatch.setattr(a2,'model_call',broken_revision)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']=='partial' and model.count('revision')==1 and run['result']['revision_deferrals']
+    failed=deepcopy(next(u for u in run['analysis_units'] if u['stage']=='revision'))
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model.count('revision')==1 and again['result']['revision_deferrals']
+    assert next(u for u in again['analysis_units'] if u['stage']=='revision')==failed
+    assert again['metrics']['llm_calls']==run['metrics']['llm_calls']==6

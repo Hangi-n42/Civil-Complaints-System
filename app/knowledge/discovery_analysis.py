@@ -12,7 +12,7 @@ from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v7'
+PROMPT_VERSION = 'discovery-a2-v8'
 
 
 def recipe(budgets):
@@ -82,7 +82,8 @@ def _base(service, request, frozen):
                 raise ValueError('기준 정의에 근거가 없습니다.')
             for ev in candidate['evidence']:
                 evidence = service.repository.get(db, 'evidence', ev['evidence_id'])
-                if evidence['source_version_id'] not in versions:
+                block = service.repository.get(db, 'blocks', evidence['block_id'])
+                if block['source_version_id'] not in versions:
                     raise ValueError('기준 온톨로지의 근거가 선택 입력 범위 밖입니다.')
     return {k: base[k] for k in ('id', 'linkml_yaml', 'status', 'run_id')}, base['candidates']
 
@@ -90,7 +91,7 @@ def _base(service, request, frozen):
 def start(service, request):
     allowed = {'kind', 'retry_of_run_id', 'discovery_mode'} if request.retry_of_run_id else {
         'kind', 'discovery_mode', 'input_run_id', 'cqs', 'scope_items', 'baseline_version',
-        'lineage_id', 'base_ontology_version_id', 'discovery_budgets'}
+        'lineage_id', 'base_ontology_version_id', 'discovery_budgets', 'analysis_block_ids', 'analysis_selection_reason'}
     if request.model_fields_set - allowed:
         raise ValueError('A2는 A1 input_run_id와 분석 설정 또는 변경 없는 재개만 받습니다.')
     with service.lock, service.repository.connect() as db:
@@ -107,7 +108,7 @@ def start(service, request):
                 raise ValueError('종료된 분석 실행만 재개할 수 있습니다.')
             run['reused_units'] = [u['id'] for u in run['analysis_units'] if u['status'] == 'succeeded']
             for unit in run['analysis_units']:
-                if unit['status'] != 'succeeded':
+                if unit['status'] != 'succeeded' and not (unit['stage']=='revision' and unit['attempts']):
                     unit.update(status='queued', error=None)
             run.pop('error', None)
         else:
@@ -127,9 +128,12 @@ def start(service, request):
             pinned = {i for u in source['units'] for i in u.get('block_ids', [])}
             if any(e['evidence_id'] not in pinned for c in candidates for e in c['evidence']):
                 raise ValueError('기준 근거는 A1에 고정된 parse/block을 사용해야 합니다.')
+            if request.analysis_block_ids is not None and (not set(request.analysis_block_ids) <= pinned or not request.analysis_selection_reason.strip()):
+                raise ValueError('분석 선택은 A1 고정 블록과 명시적인 선택 이유가 필요합니다.')
             run = dict(kind='discovery', discovery_mode='analyze', input_run_id=source['id'],
                 frozen_input=frozen, units=source['units'], input_version_ids=source['input_version_ids'],
                 cqs=cqs, scope_items=scope_items, baseline_version=request.baseline_version,
+                analysis_block_ids=request.analysis_block_ids, analysis_selection_reason=request.analysis_selection_reason,
                 lineage_id=request.lineage_id or frozen['bundle_id'] + ':' + ('historical' if frozen['scope']=='historical_change' else 'current'),
                 base_ontology_version_id=request.base_ontology_version_id, base_ontology=base, base_candidates=candidates,
                 recipe=recipe(models.Budgets.model_validate(request.discovery_budgets).model_dump()),
@@ -163,8 +167,16 @@ def lookup(service, run, label, term_type, blocks):
         ids = {e['evidence_id'] for e in candidate.get('evidence', [])} | set(candidate.get('evidence_ids', []))
         return bool(ids) and ids <= allowed
     candidates = [dict(c, review_status='reviewed') for c in run['base_candidates'] if usable(c)]
-    candidates += [dict(c, origin_dependency_ids=u['dependency_ids']) for u in run['analysis_units'] if u['status']=='succeeded' and set(u['dependency_ids']) <= allowed
-                   for c in u.get('output', {}).get('observations', []) if usable(c) and not c['validation'] and not c['outside_scope_reason']]
+    rows = {}
+    for u in run['analysis_units']:
+        if u['status']!='succeeded' or not set(u['dependency_ids']) <= allowed: continue
+        for c in u.get('output', {}).get('observations', []):
+            rows[c['id']] = dict(c, origin_dependency_ids=u['dependency_ids'])
+        for h in u.get('output', {}).get('history', []):
+            if 'classification' in h['after']:
+                rows[h['candidate_id']] = dict(h['after'], origin_dependency_ids=u['dependency_ids'])
+    blocked_revisions = {h['candidate_id'] for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= allowed for h in u.get('output', {}).get('history', [])}
+    candidates += [c for c in rows.values() if c['id'] not in blocked_revisions and usable(c) and not c['validation'] and not c['outside_scope_reason']]
     return [c for c in candidates if label.casefold() in (c.get('label') or c.get('name', '')).casefold()
             and (term_type=='any' or c.get('classification', {'concept':'type', 'attribute':'property_value'}.get(c.get('kind'))) == term_type)]
 
@@ -254,6 +266,42 @@ def normalize(output, stage, run, deps, by_id, supplied):
         elif isinstance(value, list):
             for child in value: refs(child)
     refs(output)
+    if stage == 'revision':
+        history = []
+        seen = set()
+        for field, role in [('observations','concept'), ('relations','relation'), ('hierarchies','builder')]:
+            for row in output[field]:
+                identifier = row.pop('candidate_ref'); reason = row.pop('reason')
+                if identifier in seen or identifier not in supplied:
+                    raise ValueError('수정 대상 중복 또는 범위 밖 후보')
+                original = supplied[identifier]
+                expected = 'classification' if field=='observations' else 'negation' if field=='relations' else 'child_ref'
+                if expected not in original:
+                    raise ValueError('수정 대상 종류 불일치')
+                replacement = normalize({field:[row]}, role, run, deps, by_id, supplied)[field][0]
+                replacement['id'] = identifier
+                replacement['revision_status'] = 'unreviewed_revision'
+                history.append(dict(candidate_id=identifier, before=original, after=deepcopy(replacement), reason=reason))
+                seen.add(identifier)
+        for item in output['deferred']:
+            if item['candidate_ref'] in seen or item['candidate_ref'] not in supplied:
+                raise ValueError('보류 대상 중복 또는 범위 밖 후보')
+            seen.add(item['candidate_ref'])
+        effective = dict(supplied)
+        effective.update({h['candidate_id']:h['after'] for h in history})
+        hierarchies = [deepcopy(c) for c in effective.values() if 'child_ref' in c]
+        identifiers = [h['id'] for h in hierarchies]
+        if hierarchies:
+            checked = normalize({'hierarchies':hierarchies}, 'builder', run, deps, by_id, effective)['hierarchies']
+            for identifier, row in zip(identifiers, checked):
+                row['id'] = identifier
+                effective[identifier] = row
+            for h in history:
+                h['after'] = effective[h['candidate_id']]
+            output['hierarchies'] = [effective[h['id']] for h in output['hierarchies']]
+            output['effective_hierarchies'] = checked
+        output['history'] = history
+        return output
     for name in ('observations', 'relations'):
         rows = output.get(name, [])
         if len({c['local_ref'] for c in rows}) != len(rows):
@@ -308,6 +356,8 @@ def normalize(output, stage, run, deps, by_id, supplied):
         raise ValueError('응답 내부 쟁점 local_ref 중복')
     issue_refs = {}
     for issue in issues:
+        if not issue['evidence_ids'] and not issue['counter_evidence_ids'] and not issue['defer_reason'].strip():
+            raise ValueError('근거 없는 쟁점에는 명시적 보류 사유 필요')
         if issue['candidate_ref'] and issue['candidate_ref'] not in supplied:
             raise ValueError('검토 대상 후보 참조 불일치')
         issue['id'] = 'di_' + uuid4().hex
@@ -318,6 +368,13 @@ def normalize(output, stage, run, deps, by_id, supplied):
             if identifier not in set(issue_refs.values()) | issue_ids(run):
                 raise ValueError('추가 근거 요청의 쟁점 참조 불일치')
             action['issue_id'] = identifier
+    for check in output.get('relation_checks', []):
+        if check['candidate_ref'] not in supplied or 'negation' not in supplied[check['candidate_ref']]:
+            raise ValueError('관계 검토 대상 불일치')
+        if check['judgment'] != 'unknown' and not check['quote']:
+            raise ValueError('관계 판단에는 원문 인용 필요')
+        if check['quote'] and (check['evidence_id'] not in deps or check['quote'] not in by_id[check['evidence_id']]['text']):
+            raise ValueError('관계 판단 인용이 제공 원문과 불일치')
     return output
 
 
@@ -333,6 +390,14 @@ async def model_call(prompt, schema, stage, run, timeout):
         timeout=timeout, return_metadata=True, local_only=True)
 
 
+def make_prompt(run, stage, context, deps, supplied):
+    mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
+    mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
+    payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
+    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(remap(compact(payload), mapping), ensure_ascii=False, separators=(',', ':'))
+    return mapping, prompt
+
+
 def call(service, run, stage, key, context, deps, by_id, supplied=None):
     supplied = supplied or {}
     uid = stage + ':' + key
@@ -340,13 +405,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     if unit is None:
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
-    mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
-    mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
-    payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
-    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(remap(compact(payload), mapping), ensure_ascii=False, separators=(',', ':'))
+    mapping, prompt = make_prompt(run, stage, context, deps, supplied)
     input_hash = profile.digest([prompt, run['recipe']])
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
+    citation_ids = unit['provided_block_ids']
     try:
         if not set(deps) <= allowed_ids(service, list(by_id.values())):
             raise ValueError('사용 중단/재검토 근거가 원문 또는 파생 입력에 포함됨')
@@ -404,7 +467,22 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         issue_schema = schema.get('$defs', {}).get('Issue')
         if issue_schema:
             issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-        hierarchy_schema = schema.get('$defs', {}).get('Hierarchy')
+        for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation')]:
+            definition = schema.get('$defs', {}).get(name)
+            if definition:
+                ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
+                if stage=='revision':
+                    ids = [mapping[i] for i in context['target_ids'] if field is None or field in supplied[i]]
+                definition['properties']['candidate_ref']['enum'] = ids or ['']
+                if name=='RelationCheck':
+                    definition['required'] = list(definition['properties'])
+                    schema['required'] = list(schema['properties'])
+                    definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
+                    schema['properties']['relation_checks'].update(minItems=len(context.get('unapproved_relations', [])), maxItems=len(context.get('unapproved_relations', [])))
+        if stage=='revision':
+            for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
+                schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
+        hierarchy_schema = schema.get('$defs', {}).get('Hierarchy') or schema.get('$defs', {}).get('HierarchyRevision')
         if hierarchy_schema:
             identifiers = [mapping[i] for i,c in supplied.items() if c.get('classification') in {'type','entity','vocabulary','unresolved'}]
             if not identifiers:
@@ -431,7 +509,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 definition['required'] = list(props)
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
-                    definition['properties'][name]['items']['enum'] = [mapping[i] for i in sorted(set(deps))]
+                    definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
         for definition in schema.get('$defs', {}).values():
             if 'cq_ids' in definition.get('properties', {}):
                 variants = []
@@ -466,7 +544,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
-            output = normalize(output, stage, run, deps, by_id, supplied)
+            output = normalize(output, stage, run, citation_ids, by_id, supplied)
             if stage in {'concept', 'relation'}:
                 rows = output['observations' if stage=='concept' else 'relations']
                 primary = raw_refs(context.get('blocks', []))
@@ -477,6 +555,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 actual = {(h['child_ref'],h['parent_ref'],h['relation']) for h in output['hierarchy_checks']}
                 if expected != actual:
                     raise ValueError('제안 계층의 양방향 반례 검토 누락/추가')
+                expected_relations = {c['id'] for c in context.get('unapproved_relations', [])}
+                checks = [c['candidate_ref'] for c in output['relation_checks']]
+                if len(checks)!=len(set(checks)) or set(checks)!=expected_relations:
+                    raise ValueError('제안 관계의 부정 범위 검토 누락/추가')
+            if stage=='revision':
+                covered = {h['candidate_id'] for h in output['history']} | {d['candidate_ref'] for d in output['deferred']}
+                if covered != set(context['target_ids']):
+                    raise ValueError('수정 대상의 수정 또는 명시적 보류 누락')
             unit.update(output=output, status='succeeded')
         finally:
             seconds = monotonic()-started
@@ -518,18 +604,23 @@ def base_context(run):
 
 def process_group(service, run, group, index, blocks, by_id, context_map):
     key = group['id']; base = base_context(run)
+    links = {c['id'] for c in run['cqs'] + run['scope_items']}
+    base = [c for c in base if links & set(c.get('cq_ids', [])) or c.get('name', '') in ' '.join(by_id[i]['text'] for i in group['block_ids'])]
     group.pop('error', None)
     group['analysis_grounded'] = grounded_analysis(run, group, allowed_ids(service, blocks))
     group['status'] = 'analysis_succeeded' if group['analysis_grounded'] else 'unvisited'
     raw = packet(group['block_ids'], by_id, context_map)
     deps = [b['ref'] for b in raw] + [e['evidence_id'] for c in base for e in c['evidence']]
-    common = dict(blocks=raw, reviewed_base=base, selection_reason=group['reason'])
+    base_raw = packet(list(dict.fromkeys(e['evidence_id'] for c in base for e in c['evidence'])), by_id, context_map)
+    deps += [b['ref'] for b in base_raw]
+    common = dict(blocks=raw, reviewed_base=base, tool_originals=[b for b in base_raw if b['ref'] not in {r['ref'] for r in raw}], selection_reason=group['reason'])
     scout_unit = next(u for u in run['analysis_units'] if u['id']=='scout:structure')
     common, deps, supplied_tools = with_tool_context(service, run, common, deps, [scout_unit], by_id, context_map)
     supplied = {c['id']:c for c in base}
     supplied.update(supplied_tools)
     needed = sum(not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])
-                 for stage in ('concept','relation','builder','critic'))
+                 for stage in ('concept','relation'))
+    if needed: needed += 2 # Reserve synthesis and independent review before another analysis group.
     if run['metrics']['llm_calls'] + needed > run['recipe']['budgets']['model_calls']:
         group['error'] = '분석 및 Builder/Critic 예약 호출 예산 부족'
         return
@@ -547,48 +638,6 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     apply_actions(service, run, index, blocks, 'relation', key, relations)
     group['analysis_grounded'] = grounded_analysis(run, group, allowed_ids(service, blocks))
     group['status'] = 'analysis_succeeded'
-    relation_unit = next(u for u in run['analysis_units'] if u['id']=='relation:'+key)
-    common, deps, related = with_tool_context(service, run, common, deps, [relation_unit], by_id, context_map)
-    supplied.update(related)
-    supplied.update({c['id']:c for c in relations['relations'] if not c['validation'] and not c['outside_scope_reason']})
-    context = dict(common, unapproved_observations=observations,
-                   unapproved_relations=[c for c in relations['relations'] if not c['validation'] and not c['outside_scope_reason']])
-    taxonomy = call(service, run, 'builder', key, context, deps, by_id, supplied)
-    if taxonomy is None: return
-    apply_actions(service, run, index, blocks, 'builder', key, taxonomy)
-    builder_unit = next(u for u in run['analysis_units'] if u['id']=='builder:'+key)
-    context, deps, related = with_tool_context(service, run, context, deps, [builder_unit], by_id, context_map)
-    supplied.update(related)
-    # Independent retrieval is mandatory for Critic, even when the proposer asks to finish.
-    try:
-        if 'critic_context_ids' not in group:
-            label = ' '.join(c['label'] for c in observations[:3]) or ' '.join(c['question'] for c in run['scope_items'] + run['cqs'])
-            support = search(service, run, index, blocks, label[:200], 'critic_related')
-            counter = search(service, run, index, blocks, (label[:100]+' 제외 다만 경우 변경')[:200], 'critic_counter')
-            group['critic_context_ids'] = list(dict.fromkeys(support+counter))
-            save(service, run)
-        extra_raw = packet(group['critic_context_ids'], by_id, context_map)
-        extra = [b for b in extra_raw if b['ref'] not in deps]
-        critique_context = dict(context, taxonomy=taxonomy, independently_retrieved=extra)
-        critique_deps = list(dict.fromkeys(deps + [b['ref'] for b in extra]))
-        supplied.update({h['id']: h for h in taxonomy['hierarchies']})
-        review = call(service, run, 'critic', key, critique_context, critique_deps, by_id, supplied)
-        if review is None: return
-        apply_actions(service, run, index, blocks, 'critic', key, review)
-        group['status'] = 'review_issues_generated'
-        critic_unit = next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
-        needs_context = any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
-        if (review['needs_revision'] or needs_context) and run['recipe']['budgets']['revisions']:
-            revision_key = key + ':revision1'
-            context = dict(critique_context, revision_request=review)
-            context, critique_deps, related = with_tool_context(service, run, context, critique_deps, [critic_unit], by_id, context_map)
-            supplied.update(related)
-            revised = call(service, run, 'builder', revision_key, context, critique_deps, by_id, supplied)
-            if revised is not None:
-                group['revision_unit_id'] = 'builder:' + revision_key
-                group['revision_review_status'] = '미검수 수정 제안; 사람이 재검수해야 함'
-    except ValueError as exc:
-        group['error'] = str(exc)
     save(service, run)
 
 
@@ -603,15 +652,39 @@ def grounded_analysis(run, group, available):
     return True
 
 
+def linked_blocks(run, group, stage, available):
+    field = 'observations' if stage=='concept' else 'relations'
+    unit = next((u for u in run['analysis_units'] if u['id']==stage+':'+group['id']), None)
+    if not unit or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available: return set()
+    return {i for c in unit['output'][field] if not c['validation'] and not c['outside_scope_reason']
+            for i in c['evidence_ids']} & set(group['block_ids'])
+
+
 def finish(run, blocks, available):
     for group in run.get('frontier', []):
         group['analysis_grounded'] = grounded_analysis(run, group, available)
     outputs = [u for u in run['analysis_units'] if u['status']=='succeeded' and set(u.get('dependency_ids', [])) <= available]
-    observations = [c for u in outputs for c in u['output'].get('observations', [])]
-    relations = [c for u in outputs for c in u['output'].get('relations', [])]
+    original_observations = [c for u in outputs if u['stage']=='concept' for c in u['output'].get('observations', [])]
+    original_relations = [c for u in outputs if u['stage']=='relation' for c in u['output'].get('relations', [])]
+    rows = {c['id']:c for c in original_observations+original_relations}
+    history = [h for u in outputs for h in u['output'].get('history', [])]
+    for h in history:
+        if h['candidate_id'] in rows: rows[h['candidate_id']] = h['after']
+    blocked_revisions = {h['candidate_id'] for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= available for h in u.get('output', {}).get('history', [])}
+    rows = {i:c for i,c in rows.items() if i not in blocked_revisions}
+    observations = [c for c in rows.values() if 'classification' in c]
+    relations = [c for c in rows.values() if 'negation' in c]
     candidates = observations + relations
-    reviewed = {g['id'] for g in run.get('frontier', []) if g['status']=='review_issues_generated'}
-    required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and (g['id'] not in reviewed or not g.get('analysis_grounded'))]
+    reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
+                and any(u['id']=='critic:'+g['id'] for u in outputs)}
+    processed = {g['id'] for g in run.get('frontier', []) if all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in ('concept','relation'))}
+    required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
+    required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
+    reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in reviewed for i in g['primary_candidate_ids']}
+    unreviewed_candidates = sorted(c['id'] for c in original_observations+original_relations if not c['validation'] and not c['outside_scope_reason'] and c['id'] not in reviewed_candidates)
+    no_result = [dict(group_id=g['id'], empty_roles=[stage for stage in ('concept','relation')
+                  if not linked_blocks(run,g,stage,available)]) for g in run.get('frontier', []) if g['id'] in processed]
+    no_result = [g for g in no_result if g['empty_roles']]
     failures = [dict(unit_id=u['id'], error=u.get('error')) for u in run['analysis_units'] if u['status']!='succeeded']
     gaps = [v for u in outputs for v in u['output'].get('gaps', [])]
     gaps.extend(r['gap'] for u in outputs for r in u.get('tool_results', []) if r.get('gap'))
@@ -622,12 +695,18 @@ def finish(run, blocks, available):
             coverage.append(dict(kind=kind, id=item['id'], candidate_ids=linked,
                 status='evidence_linked' if linked else 'gap', reason='연결 후보 존재; 의미 해결 미검증' if linked else '자료 필요 또는 후보 누락; 사람 검수 필요'))
     provided = {i for u in run['analysis_units'] if u.get('attempts') for i in u.get('provided_block_ids', [])}
-    analyzed = {i for g in run.get('frontier', []) if g.get('analysis_grounded') for i in g['block_ids']}
+    concept_linked = set().union(*(linked_blocks(run,g,'concept',available) for g in run.get('frontier', [])))
+    relation_linked = set().union(*(linked_blocks(run,g,'relation',available) for g in run.get('frontier', [])))
+    analyzed = concept_linked & relation_linked
+    selected = {i for g in run.get('frontier', []) for i in g['block_ids']}
     unfulfilled = sorted({i for r in run['extra_requests'] for i in r['block_ids']} - provided)
     titles = [f['title'] for f in run['frozen_input']['files']]
     reference_gaps = [dict(file_id=p['file_id'], reference=ref, status='자료 필요: 선택 목록 표제에서 참조 대상 미확인')
                       for p in run.get('profiles', []) for ref in p['reference_expressions'] if not any(ref in title for title in titles)]
-    run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v1', review_status='unreviewed',
+    run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
+        original_observations=original_observations, original_relations=original_relations, revision_history=history,
+        revisions=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='revision'],
+        revision_deferrals=[d for g in run.get('candidate_groups', []) for d in g.get('revision_deferrals', [])],
         observations=[c for c in observations if not c['outside_scope_reason']],
         relations=[c for c in relations if not c['outside_scope_reason']],
         outside_scope=[c for c in candidates if c['outside_scope_reason']],
@@ -637,13 +716,19 @@ def finish(run, blocks, available):
         coverage=coverage, gaps=gaps, failures=failures, mandatory_pending=required_pending,
         unavailable_block_ids=sorted({b['id'] for b in blocks}-available),
         structure_surveyed=len(blocks), raw_provided=len(provided), analysis_succeeded=len(analyzed),
+        analysis_groups=len(run.get('frontier', [])), processed_analysis_groups=len(processed),
+        candidate_groups=len(run.get('candidate_groups', [])), no_result_groups=no_result, unreviewed_candidate_ids=unreviewed_candidates,
+        selected_analysis_block_ids=sorted(selected), not_selected_block_ids=sorted({b['id'] for b in blocks}-selected),
+        concept_evidence_block_ids=sorted(concept_linked), relation_evidence_block_ids=sorted(relation_linked),
+        evidence_linked_block_ids=sorted(concept_linked | relation_linked), both_roles_evidence_block_ids=sorted(analyzed),
+        processed_without_linked_evidence_ids=sorted({i for g in run.get('frontier', []) if g['id'] in processed for i in g['block_ids']}-(concept_linked|relation_linked)),
         review_groups=len(reviewed), unvisited_block_ids=sorted({b['id'] for b in blocks}-provided),
         unanalysed_block_ids=sorted({b['id'] for b in blocks}-analyzed),
         incomplete_file_ids=[u['file_id'] for u in run['units'] if u['status']!='succeeded'],
         unprocessed_features=[dict(file_id=g['file_id'], features=g['features']) for g in run.get('frontier', [])
                               if not g.get('analysis_grounded') and g['features']])
-    has_errors = any(u.get('tool_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []))
-    incomplete = bool(required_pending or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
+    has_errors = any(u.get('tool_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
+    incomplete = bool(required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or
                       any(p.get('csv', {}).get('unresolved_block_ids') for p in run.get('profiles', [])))
     run['status'] = 'cancelled' if run['status']=='cancel_requested' else 'partial' if incomplete else 'review_ready'
@@ -666,9 +751,25 @@ def execute(service, run_id):
         if not blocks: raise ValueError('분석 가능한 완료 원문 블록 없음')
         if 'profiles' not in run:
             profiles, frontier, context_map = profile.survey(run['frozen_input']['files'], blocks)
-            run.update(profiles=profiles, frontier=frontier,
+            full_frontier = deepcopy(frontier)
+            if run.get('analysis_block_ids') is not None:
+                selected = set(run['analysis_block_ids'])
+                frontier = []
+                for group in full_frontier:
+                    ids = [i for i in group['block_ids'] if i in selected]
+                    if ids:
+                        frontier.append(dict(group, block_ids=ids, reason=group['reason']+'; '+run['analysis_selection_reason']))
+                assigned = {i for g in frontier for i in g['block_ids']}
+                for identifier in sorted(selected-assigned):
+                    b = by_id[identifier]
+                    frontier.append(dict(id='selected_'+identifier, file_id=b['file_id'], source_group=b['source_group'],
+                        block_ids=[identifier], features=[], priority=2, required=True, input_chars=len(b['text']),
+                        round=0, reason=run['analysis_selection_reason'], status='unvisited'))
+            run.update(profiles=profiles, frontier=frontier, full_frontier=full_frontier, candidate_groups=[],
+
                 scout_frontier=[{k:g[k] for k in ('id','file_id','priority','input_chars','reason')} for g in frontier],
-                expected_minimum_calls=1+4*len(frontier), reserved_builder_critic_calls=2*len(frontier))
+                expected_analysis_calls=1+2*len(frontier), reserved_builder_critic_calls=2,
+                initial_full_analysis_groups=len(full_frontier), synthesis_call_formula='1 + 2m + 2g + revisions; g는 후보 조립 후 확정')
         else:
             profiles = run['profiles']
             context_map = {}
@@ -693,7 +794,9 @@ def execute(service, run_id):
                 if cancelled(service, run): return
                 process_group(service, run, group, index, blocks, by_id, context_map)
                 save(service, run)
-            if round_number == run['recipe']['budgets']['additional_rounds']: break
+            from .discovery_synthesis import synthesize
+            synthesize(service, run, round_number, index, blocks, by_id, context_map)
+            if round_number == run['recipe']['budgets']['additional_rounds'] or run.get('analysis_block_ids') is not None: break
             assigned = {i for g in run['frontier'] for i in g['block_ids']}
             for request in run['extra_requests']:
                 ids = [i for i in request['block_ids'] if i not in assigned]
