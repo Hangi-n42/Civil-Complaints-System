@@ -87,6 +87,12 @@ class RunRequest(BaseModel):
     scope: Literal['current_discovery', 'contrast_extension', 'historical_change'] | None = None
     step: int | None = Field(default=None, ge=0)
     file_ids: list[str] | None = Field(default=None, min_length=1)
+    discovery_mode: Literal['inputs', 'analyze'] = 'inputs'
+    input_run_id: str | None = None
+    scope_items: list[CompetencyQuestion] = Field(default_factory=list)
+    baseline_version: Literal['discovery-empty-v1'] = 'discovery-empty-v1'
+    lineage_id: str | None = None
+    discovery_budgets: dict[str, int] = Field(default_factory=dict)
 
 
 class ManualAssertionRequest(BaseModel):

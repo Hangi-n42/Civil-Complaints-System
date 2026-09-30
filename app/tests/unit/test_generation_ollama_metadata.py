@@ -36,3 +36,24 @@ def test_call_ollama_string_and_metadata_with_non_thinking_payload(monkeypatch):
     assert asyncio.run(service.call_ollama('legacy explicit omission', think=None)) == plain
     assert 'think' not in payloads[2]
     assert timeouts == [service.timeout, 360, service.timeout]
+
+
+def test_discovery_local_call_disables_proxy_and_redirect(monkeypatch):
+    import pytest
+    from app.core.exceptions import GenerationError
+    options, hosts = [], []
+    def redirect(request):
+        hosts.append(request.url.host)
+        return httpx.Response(302, headers={'location': 'https://example.org/model'})
+    original = httpx.AsyncClient
+    def client(**kwargs):
+        options.append(kwargs)
+        return original(transport=httpx.MockTransport(redirect), **kwargs)
+    monkeypatch.setattr(httpx, 'AsyncClient', client)
+    monkeypatch.setenv('HTTP_PROXY', 'http://example.org:8080')
+    service = GenerationService()
+    service.ollama_url = 'http://localhost:11434'
+    with pytest.raises(GenerationError):
+        asyncio.run(service.call_ollama('local', local_only=True))
+    assert hosts == ['127.0.0.1']
+    assert options[0]['trust_env'] is False and options[0]['follow_redirects'] is False

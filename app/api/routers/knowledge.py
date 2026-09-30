@@ -238,3 +238,9 @@ def discovery_search(q: str, scope: str | None = None, step: int | None = None, 
         return result(search(service, run_id, q, scope, step, limit))
     from app.knowledge.discovery_inputs import search
     return result(search(q, 'current_discovery' if scope is None else scope, 0 if step is None else step, limit))
+
+
+@router.get('/discovery/terms', response_model=KnowledgeResponse)
+def discovery_terms(run_id: str, label: str, term_type: str = 'any', service=Depends(get_knowledge_service)):
+    from app.knowledge.discovery_analysis import terms
+    return result(terms(service, run_id, label, term_type))

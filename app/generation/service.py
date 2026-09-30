@@ -10,6 +10,8 @@ Week 1 기준선 구현:
 from __future__ import annotations
 
 import json
+from ipaddress import ip_address
+from urllib.parse import urlsplit
 from typing import Any, Dict, List
 
 import httpx
@@ -30,6 +32,18 @@ from app.generation.grounding_quality import (
     build_generation_quality_signals,
     sanitize_unsupported_commitments,
 )
+
+
+def local_ollama_url(url: str) -> str:
+    """Discovery permits loopback literals only; localhost cannot resolve externally."""
+    parsed = urlsplit(url)
+    host = parsed.hostname
+    if parsed.scheme != 'http' or parsed.username or parsed.password or parsed.path not in {'', '/'} or parsed.query or parsed.fragment:
+        raise ValueError('discovery 모델 주소는 loopback HTTP 기본 주소여야 합니다.')
+    host = '127.0.0.1' if host == 'localhost' else host
+    if not host or not ip_address(host).is_loopback:
+        raise ValueError('discovery 모델은 loopback에서만 호출할 수 있습니다.')
+    return f"http://{'['+host+']' if ':' in host else host}:{parsed.port or 80}"
 
 
 class GenerationService:
@@ -75,6 +89,7 @@ class GenerationService:
         think: bool | None = False,
         timeout: float | None = None,
         return_metadata: bool = False,
+        local_only: bool = False,
     ) -> str | Dict[str, Any]:
         """
         Ollama LLM 호출
@@ -126,10 +141,12 @@ class GenerationService:
             if think is not None:
                 payload["think"] = think
 
-            url = f"{self.ollama_url.rstrip('/')}{endpoint}"
+            base_url = local_ollama_url(self.ollama_url) if local_only else self.ollama_url.rstrip('/')
+            url = f"{base_url}{endpoint}"
             
             stage = "connect"
-            async with httpx.AsyncClient(timeout=request_timeout) as client:
+            async with httpx.AsyncClient(timeout=request_timeout, trust_env=not local_only,
+                                         follow_redirects=False) as client:
                 stage = "request"
                 response = await client.post(url, json=payload)
                 
