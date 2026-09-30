@@ -19,6 +19,8 @@ class KnowledgeRepository:
                     sha256 TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(source_id, sha256));
                 CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS ontology_versions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS ontology_heads (
+                    lineage_id TEXT PRIMARY KEY, reviewed_version_id TEXT REFERENCES ontology_versions(id));
                 CREATE TABLE IF NOT EXISTS changesets (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS decisions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS entities (

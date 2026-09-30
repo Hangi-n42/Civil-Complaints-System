@@ -85,7 +85,10 @@ def _base(service, request, frozen):
                 block = service.repository.get(db, 'blocks', evidence['block_id'])
                 if block['source_version_id'] not in versions:
                     raise ValueError('기준 온톨로지의 근거가 선택 입력 범위 밖입니다.')
-    return {k: base[k] for k in ('id', 'linkml_yaml', 'status', 'run_id')}, base['candidates']
+    frozen_base = {k: base[k] for k in ('id', 'linkml_yaml', 'status', 'run_id')}
+    if base.get('payload_version') == 2:
+        frozen_base.update(vocabulary_registry=base['vocabulary_registry'], version_hash=base['version_hash'])
+    return frozen_base, base['candidates']
 
 
 def start(service, request):
@@ -598,7 +601,8 @@ def apply_actions(service, run, index, blocks, stage, key, output):
 
 
 def base_context(run):
-    return [dict(c, review_status='reviewed', classification={'concept':'type', 'attribute':'property_value'}.get(c['kind'], 'unresolved'))
+    return [dict(c, review_status='reviewed', classification=c.get('classification') or
+                 {'concept':'type', 'attribute':'property_value', 'vocabulary_concept':'vocabulary'}.get(c['kind'], 'unresolved'))
             for c in run['base_candidates']]
 
 

@@ -553,6 +553,8 @@ def register_local_entity(service, request):
     request = LocalEntityRequest.model_validate(request)
     with service.lock, service.repository.connect() as db:
         ontology = service.repository.get(db, 'ontology_versions', request.ontology_version_id)
+        if ontology.get('payload_version') == 2:
+            raise ValueError('v2 온톨로지의 개체 등록은 A5 소비자 연결 필요')
         definitions = {d['id']: d for d in _from_schema(ontology['linkml_yaml'])}
         if ontology['status'] != 'reviewed' or definitions.get(request.concept_id, {}).get('kind') != 'concept':
             raise ValueError('검토된 온톨로지의 개념을 선택하세요.')
