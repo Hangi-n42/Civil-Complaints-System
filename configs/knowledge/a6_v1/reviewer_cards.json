@@ -1,0 +1,160 @@
+{
+  "id": "a6-reviewer-v1",
+  "input_to_generation": false,
+  "human_study_status": "not_performed",
+  "cards": [
+    {
+      "id": "R01",
+      "packet": "A",
+      "candidate": "공공건설임대주택은 공공주택사업자가 직접 건설하여 공급하는 공공임대주택의 하위 유형이다.",
+      "expected": "normal",
+      "file_ids": [
+        "public_housing_act_art2:0"
+      ],
+      "locator": "제2조 제1호의2",
+      "rationale": "직접 건설 및 공공임대 포함을 보존"
+    },
+    {
+      "id": "R02",
+      "packet": "A",
+      "candidate": "2020-08-05 시행본 제2조제1항제3호의2에는 통합공공임대주택 정의가 있다.",
+      "expected": "error",
+      "file_ids": [
+        "decree_art2_20200805:0",
+        "decree_art2_20200908:0"
+      ],
+      "locator": "각 시행본 제2조 목록 전체",
+      "rationale": "08 시행본에 해당 호가 없고 09 시행본에서 신설. 역사적 실재 전체가 아닌 조문 시점 오류"
+    },
+    {
+      "id": "R03",
+      "packet": "A",
+      "candidate": "LH가 국민임대를 건설·공급하면 장관이, 지방자치단체·지방공사가 건설·공급하면 시·도지사가 우선공급 대상·비율·선정 순위의 별도 기준을 정할 수 있다.",
+      "expected": "normal",
+      "file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "locator": "제15조 제3항 및 각 호",
+      "rationale": "조건별 기준 설정 주체와 가능성을 보존"
+    },
+    {
+      "id": "R04",
+      "packet": "A",
+      "candidate": "공공매입임대주택과 공공건설임대주택은 같은 유형으로 병합한다.",
+      "expected": "error",
+      "file_ids": [
+        "public_housing_act_art2:0"
+      ],
+      "locator": "제2조 제1호의2·의3",
+      "rationale": "직접 건설과 직접 건설하지 않고 취득하는 공급 방식 차이를 삭제"
+    },
+    {
+      "id": "R05",
+      "packet": "B",
+      "candidate": "선택 설명의 5년임대는 5년 후 그 시점 거주자에게 분양전환 기회를 부여하는 공급 유형이다.",
+      "expected": "normal",
+      "file_ids": [
+        "lh_15084922:1"
+      ],
+      "locator": "공식 설명",
+      "rationale": "기회이지 자동 소유권 취득은 아님"
+    },
+    {
+      "id": "R06",
+      "packet": "B",
+      "candidate": "이 자료의 제공기관은 LH이므로 수록된 모든 주택의 공급주체도 LH이다.",
+      "expected": "error",
+      "file_ids": [
+        "lh_15084922:1"
+      ],
+      "locator": "공식 설명 위탁관리 부분",
+      "rationale": "관리 위탁 자료의 제공기관을 공급주체로 치환. 실제 공급자명은 미제공"
+    },
+    {
+      "id": "R07",
+      "packet": "B",
+      "candidate": "국민임대 입주자는 잔여주택 여부와 관계없이 별표4 기준만으로 선정해야 한다.",
+      "expected": "error",
+      "file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "locator": "제15조 제1·2항",
+      "rationale": "선정 후 잔여주택이면 자격 일부 완화 또는 선착순 가능"
+    },
+    {
+      "id": "R08",
+      "packet": "B",
+      "candidate": "2020-10-19 제37조의 공동주택 매입 대상은 국민주택규모 이하로 제한된다.",
+      "expected": "normal",
+      "file_ids": [
+        "decree_art37_20201019:0"
+      ],
+      "locator": "제37조 제1항 제2호",
+      "rationale": "해당 공동주택 조건만 보존; 규모 수치는 미제공"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "M1",
+      "packet": "A",
+      "question": "국민임대 선정 후 남은 주택에 적용 가능한 방법은 무엇인가?",
+      "claimed_status": "미연결",
+      "candidate_ids": [],
+      "file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "locator": "제15조 제2항",
+      "rationale": "잔여주택 조건과 자격 일부 완화 또는 선착순을 함께 복구해야 해결"
+    },
+    {
+      "id": "M2",
+      "packet": "B",
+      "question": "지원받는 매입계획의 사전 승인 주체와 조건은 무엇인가?",
+      "claimed_status": "충족",
+      "candidate_ids": [
+        "R08"
+      ],
+      "file_ids": [
+        "decree_art37_20201019:0"
+      ],
+      "locator": "제37조 제2항",
+      "rationale": "R08 규모 정의는 무관. 법43조2항 지원 조건·매입계획·장관 사전 승인 및 개량시 추가 항목 조건 필요"
+    }
+  ],
+  "crossover": [
+    {
+      "participant": "P1",
+      "first": "baseline:A",
+      "second": "assisted:B"
+    },
+    {
+      "participant": "P2",
+      "first": "assisted:A",
+      "second": "baseline:B"
+    }
+  ],
+  "limitations": [
+    "두 묶음의 난이도 동등성 미검증",
+    "사전 노출된 개발 카드; 생성 품질 회귀와 분리",
+    "AI 에이전트는 사람 참가자 아님",
+    "1명은 사용성 확인만 가능"
+  ],
+  "scoring": {
+    "normal_cards": 4,
+    "error_cards": 4,
+    "missing_requirements": 2,
+    "metrics": [
+      "오류 발견/4",
+      "정상 후보 불필요 수정·거절/4",
+      "오류 해결/4",
+      "잘못 수정한 뒤 승인한 오류 수",
+      "미연결 누락 발견/1",
+      "잘못된 충족 주장 발견/1",
+      "최종 승인 중 핵심 오류 잔존 수",
+      "원문 열람·탐색 단계 수",
+      "준비/CQ/검수/수정 사람 시간"
+    ]
+  },
+  "baseline": "원문·검색·diff·메타데이터·요약·수동 관계표 사용 허용. 일부러 약한 비교군을 만들지 않음",
+  "assisted": "동일 카드와 원문에 후보 근거 위치·요구 연결·미연결/충족 주장 표시. 오프라인 카드 모의 도구이며 실제 A4 화면 효과로 일반화하지 않음"
+}
