@@ -24,24 +24,25 @@ def valid_ids(review, candidates=None):
     return valid
 
 
-def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
-    expected = {i:c for i,c in supplied.items() if c.get('review_status')!='reviewed'}
-    relations = {c['id'] for c in context.get('unapproved_relations', [])}
+def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs):
+    declared = set(context.get('review_target_ids', supplied))
+    expected = {i:c for i,c in supplied.items() if i in declared and c.get('review_status')!='reviewed'}
+    relations = {i for i,c in expected.items() if 'negation' in c}
+    observations = {i for i,c in expected.items() if 'classification' in c} if 'review_target_ids' in context else set()
     hierarchies = {(h['child_ref'],h['parent_ref'],h['relation']):h['id']
                    for h in context.get('taxonomy', {}).get('hierarchies', [])}
     provided = segments.originals(context)
     pending, errors, issue_ids = set(), [], {}
     local_refs = [i.get('local_ref') for i in output['issues'] if isinstance(i,dict) and i.get('local_ref')]
-    if len(local_refs)!=len(set(local_refs)):
-        raise ValueError('응답 내부 쟁점 local_ref 중복')
+    issue_counts = Counter(local_refs)
 
     def problem(section, index, raw, reason, targets):
         pending.update(set(targets) & expected.keys())
         errors.append(dict(section=section,index=index,record=deepcopy(raw),reason=reason,candidate_ids=sorted(targets)))
 
-    for section, model in [('issues',models.Issue), ('relation_checks',models.RelationCheck),
+    for section, model in [('issues',models.Issue), ('relation_checks',models.RelationCheck), ('observation_checks',models.RelationCheck),
                            ('hierarchy_checks',models.Hierarchy), ('missing_meanings',models.MissingMeaning)]:
-        records = output[section]
+        records = output.get(section, [])
         def key(record):
             fields = ('child_ref','parent_ref','relation') if section=='hierarchy_checks' else ('candidate_ref',)
             values = tuple(record.get(f) if isinstance(record.get(f),str) else None for f in fields)
@@ -55,9 +56,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
             try:
                 item = model.model_validate(raw).model_dump()
                 segments.restore(item, by_id, provided)
-                if section in {'relation_checks','hierarchy_checks'} and counts[target]!=1:
+                validate_refs(item)
+                if section in {'relation_checks','observation_checks','hierarchy_checks'} and counts[target]!=1:
                     raise ValueError('중복 검토 대상; 어느 판정도 선택하지 않음')
                 if section=='issues':
+                    if issue_counts[item['local_ref']]!=1: raise ValueError('응답 내부 쟁점 local_ref 중복')
                     if item['candidate_ref'] and item['candidate_ref'] not in supplied:
                         raise ValueError('검토 대상 후보 참조 불일치')
                     if item['target_ref'] and item['target_ref'] not in supplied:
@@ -75,11 +78,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
                         raise ValueError('근거 없는 쟁점에는 명시적 보류 사유 필요')
                     item['id']='di_'+uuid4().hex
                     issue_ids[item['local_ref']]=item['id']
-                elif section=='relation_checks':
-                    if item['candidate_ref'] not in relations:
-                        raise ValueError('이번 관계 검토 대상 밖 ID')
+                elif section in {'relation_checks','observation_checks'}:
+                    if item['candidate_ref'] not in (relations if section=='relation_checks' else observations):
+                        raise ValueError('이번 주검토 대상 밖 ID')
                     if item['judgment']!='unknown' and not (item['quote'] or item.get('evidence_refs')):
-                        raise ValueError('관계 판단에는 원문 인용 필요')
+                        raise ValueError('후보 판단에는 원문 인용 필요')
                     if item['quote'] and not item.get('source_refs'):
                         refs, problems = segments.references(dict(evidence_ids=[item['evidence_id']],
                             source_quotes=[dict(evidence_id=item['evidence_id'],quote=item['quote'])]), by_id, provided)
@@ -103,11 +106,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
             except (ValidationError, ValueError, KeyError, TypeError) as exc:
                 problem(section,index,raw,str(exc),targets)
         output[section]=accepted
-        if section in {'relation_checks','hierarchy_checks'}:
-            required = relations if section=='relation_checks' else set(hierarchies.values())
-            covered = {c['candidate_ref'] if section=='relation_checks' else c['id'] for c in accepted}
+        if section in {'relation_checks','observation_checks','hierarchy_checks'}:
+            required = relations if section=='relation_checks' else observations if section=='observation_checks' else set(hierarchies.values())
+            covered = {c['id'] if section=='hierarchy_checks' else c['candidate_ref'] for c in accepted}
             for identifier in sorted(required-covered-pending):
-                problem(section,None,None,'필수 관계/계층 검토 누락',{identifier})
+                problem(section,None,None,'필수 후보 검토 누락',{identifier})
     actions=[]
     previous={i['id'] for u in run.get('analysis_units', []) if u['status']=='succeeded' for i in u.get('output', {}).get('issues', [])}
     for index, action in enumerate(output['actions']):
@@ -121,10 +124,15 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
     # Conflicting/invalid judgments never drive a revision or recovery through another record.
     output['issues']=[i for i in output['issues'] if i['candidate_ref'] not in pending and not (pending and not i['candidate_ref'])]
     output['relation_checks']=[i for i in output['relation_checks'] if i['candidate_ref'] not in pending]
+    output['observation_checks']=[i for i in output['observation_checks'] if i['candidate_ref'] not in pending]
     output['hierarchy_checks']=[i for i in output['hierarchy_checks'] if i['id'] not in pending]
     valid_issue_ids={i['id'] for i in output['issues']} | previous
     output['actions']=[a for a in actions if a['action']!='request_evidence' or a['issue_id'] in valid_issue_ids]
     output['record_errors']=errors
     output['review_coverage']=dict(expected_candidate_ids=sorted(expected),valid_candidate_ids=sorted(expected.keys()-pending),
         pending_candidate_ids=sorted(pending),candidate_hashes={i:fingerprint(c) for i,c in expected.items()})
+    if 'review_target_ids' in context:
+        judgments = {i['candidate_ref']:i['judgment'] for field in ('observation_checks','relation_checks') for i in output[field]}
+        judgments.update({h['id']:'unknown' if any(h[d]['judgment']=='unknown' for d in ('a_to_b','b_to_a')) else h['a_to_b']['judgment'] for h in output['hierarchy_checks']})
+        output['review_outcomes']={j:sorted(i for i,v in judgments.items() if v==j) for j in ('supported','refuted','unknown')}
     return output

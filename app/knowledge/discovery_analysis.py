@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v20'
+PROMPT_VERSION = 'discovery-a2-v21'
 
 
 def recipe(budgets):
@@ -293,9 +293,9 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
                 refs(child)
         elif isinstance(value, list):
             for child in value: refs(child)
-    refs(output)
     if stage=='critic':
-        return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize)
+        return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize, refs)
+    refs(output)
     if stage == 'revision':
         history = []
         seen = set()
@@ -486,12 +486,19 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             raise ValueError('모델 호출/시간 예산 종료')
         timeout = min(remaining, run['recipe']['call_timeout'])
         schema = models.OUTPUTS[stage].model_json_schema()
+        if stage=='builder':
+            schema['$defs']['RelationBinding'] = schema['properties']['relation_bindings']['items']
+            schema['properties']['relation_bindings']['items'] = {'$ref':'#/$defs/RelationBinding'}
         if stage=='critic':
             # SkipValidation inlines record schemas; keep the existing enum/coverage constraints.
+            definitions = deepcopy(schema.get('$defs', {}))
             for field, name in [('issues','Issue'), ('hierarchy_checks','Hierarchy'),
-                                ('relation_checks','RelationCheck'), ('missing_meanings','MissingMeaning')]:
-                schema['$defs'][name] = schema['properties'][field]['items']
+                                ('relation_checks','RelationCheck'), ('observation_checks','ObservationCheck'), ('missing_meanings','MissingMeaning')]:
+                item = schema['properties'][field]['items']
+                schema['$defs'][name] = deepcopy(definitions[item['$ref'].split('/')[-1]] if '$ref' in item else item)
                 schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
+            schema['properties']['issues']['maxItems']=8
+            schema['properties']['missing_meanings']['maxItems']=2
         action_schema = schema.get('$defs', {}).get('Action')
         if action_schema:
             variants = []
@@ -526,29 +533,42 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if issue_schema:
             issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
             issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-        for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation')]:
+        for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
             definition = schema.get('$defs', {}).get(name)
             if definition:
                 ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
                 if stage=='revision':
                     ids = [mapping[i] for i in context['target_ids'] if field is None or field in supplied[i]]
                 definition['properties']['candidate_ref']['enum'] = ids or ['']
-                if name=='RelationCheck':
+                if name in {'RelationCheck','ObservationCheck'}:
+                    ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
+                    definition['properties']['candidate_ref']['enum'] = ids or ['']
                     definition['required'] = [p for p in definition['properties'] if p!='source_refs']
                     schema['required'] = list(schema['properties'])
                     definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
-                    schema['properties']['relation_checks'].update(minItems=len(context.get('unapproved_relations', [])), maxItems=len(context.get('unapproved_relations', [])))
+                    schema['properties']['relation_checks' if name=='RelationCheck' else 'observation_checks'].update(minItems=len(ids), maxItems=len(ids))
         if stage=='revision':
             for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
                 schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
         if stage=='builder':
             local_types = ['t'+str(n) for n in range(1,6)]
             relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
+            if len(relation_ids)>5: raise ValueError('Builder 주관계는 최대 5개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
             schema['$defs']['DesignedType']['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
             binding = schema['$defs']['RelationBinding']['properties']
             binding['relation_ref']['enum'] = relation_ids or ['']
             for field in ('subject_ref','object_ref'): binding[field]['enum'] = type_ids+local_types
+            binding_definition=schema['$defs']['RelationBinding']
+            variants=[]
+            for decision in ('bind','defer'):
+                fields=['relation_ref','decision','reason']+(['subject_ref','object_ref'] if decision=='bind' else [])
+                props={k:deepcopy(binding[k]) for k in fields}
+                props['decision']={'type':'string','const':decision}
+                variants.append(dict(type='object',properties=props,required=fields,additionalProperties=False))
+            binding_definition.clear(); binding_definition['anyOf']=variants
+            schema['properties']['relation_bindings'].update(minItems=len(relation_ids),maxItems=len(relation_ids))
+            schema['required']=list(schema['properties'])
             if not relation_ids:
                 schema['properties']['observations']['maxItems']=0
                 schema['properties']['relation_bindings']['maxItems']=0
@@ -613,6 +633,26 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         quote_schema = schema.get('$defs', {}).get('SourceQuote')
         if quote_schema:
             quote_schema['properties']['evidence_id']['enum'] = [mapping[i] for i in citation_ids] or ['']
+        # New generation uses one citation path; parsers still accept stored exact-quote records.
+        def source_only(node):
+            if isinstance(node,list):
+                for child in node: source_only(child)
+            elif isinstance(node,dict):
+                for child in list(node.values()): source_only(child)
+                props=node.get('properties', {})
+                if props.get('source_refs', {}).get('type')=='array':
+                    for name in ('evidence_ids','counter_evidence_ids','source_quotes','evidence_id','quote'):
+                        props.pop(name,None)
+                    node['required']=[k for k in node.get('required', []) if k in props]
+                    node['required']=list(dict.fromkeys(node['required']+['source_refs']))
+                    if 'cq_ids' in props: props['source_refs']['minItems']=1
+                    if 'judgment' in props:
+                        unknown=deepcopy(node);grounded=deepcopy(node)
+                        unknown['properties']['judgment']={'type':'string','const':'unknown'}
+                        grounded['properties']['judgment']={'type':'string','enum':['supported','refuted']}
+                        grounded['properties']['source_refs']['minItems']=1
+                        node.clear();node['anyOf']=[unknown,grounded]
+        source_only(schema)
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1
@@ -1050,7 +1090,11 @@ def finish(run, blocks, available):
             for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})})
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
+    bindings = [dict(unit_id=u['id'],**u['output']['binding_coverage']) for u in outputs if 'binding_coverage' in u['output']]
+    binding_pending = [i for b in bindings for i in b['pending_relation_ids']+b['deferred_relation_ids']]
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
+        design_binding_coverage=bindings, design_pending_relation_ids=sorted(set(binding_pending)),
+        review_outcomes=[dict(unit_id=u['id'],**u['output']['review_outcomes']) for u in outputs if 'review_outcomes' in u['output']],
         original_observations=original_observations, original_relations=original_relations, revision_history=history,
         revisions=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='revision'],
         revision_deferrals=[d for g in run.get('candidate_groups', []) for d in g.get('revision_deferrals', [])],
@@ -1085,8 +1129,8 @@ def finish(run, blocks, available):
         unprocessed_features=[dict(file_id=g['file_id'], features=g['features']) for g in run.get('frontier', [])
                               if not g.get('analysis_grounded') and g['features']])
     if identities.enabled(run): run['result']['candidate_identity'] = deepcopy(run['candidate_identity'])
-    has_errors = any(u.get('tool_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
-    incomplete = bool(deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
+    has_errors = any(u.get('tool_errors') or u['output'].get('binding_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
+    incomplete = bool(binding_pending or deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or
                       any(p.get('csv', {}).get('unresolved_block_ids') for p in run.get('profiles', [])))
     run['status'] = 'cancelled' if run['status']=='cancel_requested' else 'partial' if incomplete else 'review_ready'

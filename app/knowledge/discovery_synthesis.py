@@ -78,7 +78,7 @@ def assemble(run, round_number, by_id, context_map, available):
         for candidate in ordered:
             trial = current + [candidate]
             ctx, deps, supplied = context_for(trial, by_id, context_map)
-            if current and (len(trial)>12 or not fits(run,'builder',ctx,deps,supplied,reserve=3000)):
+            if current and (len(trial)>12 or sum(c.get('statement_type') in {'rule','definition'} for c in trial)>5 or not fits(run,'builder',ctx,deps,supplied,reserve=3000)):
                 groups.append(dict(anchor=anchor, candidates=current)); current=[]
             current.append(candidate)
         if current: groups.append(dict(anchor=anchor,candidates=current))
@@ -239,6 +239,9 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
         effective.update({c['id']:c for c in group['design_candidates']})
         context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
         supplied.update({h['id']:h for h in taxonomy['hierarchies']})
+        context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
+            [h['id'] for h in taxonomy['hierarchies']]))
+        context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
         # Resolved endpoints and reasons already appear on the modeled relations.
         context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
         try:

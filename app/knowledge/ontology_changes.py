@@ -225,6 +225,15 @@ def _convert(run, base, blocks):
             if related: current_reviews.append((critique,related))
         row['origin']['critiques'] = [deepcopy(i) for c,related in current_reviews for i in c.get('issues', []) if i.get('candidate_ref') in {'',*related}]
         row['origin']['relation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('relation_checks', []) if i.get('candidate_ref') in related]
+        row['origin']['observation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('observation_checks', []) if i.get('candidate_ref') in related]
+        unresolved = [i for c,related in current_reviews if 'review_outcomes' in c for field in ('relation_checks','observation_checks')
+            for i in c.get(field, []) if i.get('candidate_ref') in related and i['judgment']!='supported']
+        if unresolved:
+            row['review_status']='deferred'
+            row['unresolved_issues'].extend('Critic '+i['judgment']+': '+i['reason'] for i in unresolved)
+        if identifiers & set(result.get('design_pending_relation_ids', [])):
+            row['review_status']='deferred'
+            row['unresolved_issues'].append('Builder 유형 연결 미완료 또는 명시 보류')
         covered = set().union(*(reviews.valid_ids(c,current) or set() for c in result.get('critiques', [])))
         expected = {i for c in result.get('critiques', []) for i in c.get('review_coverage', {}).get('expected_candidate_ids', [])}
         expected.update(h['candidate_id'] for h in row['origin']['revision_history'])
@@ -246,7 +255,7 @@ def _convert(run, base, blocks):
                 row['counter_evidence_refs'].append(ref)
         review_units = {c['unit_id'] for c in result.get('critiques', []) if any(
             i in linked for field, linked in [('issues',row['origin']['critiques']),
-                ('relation_checks',row['origin']['relation_checks']),('hierarchy_checks',row['hierarchy_review'].get('critic',[]))]
+                ('relation_checks',row['origin']['relation_checks']),('observation_checks',row['origin']['observation_checks']),('hierarchy_checks',row['hierarchy_review'].get('critic',[]))]
             for i in c.get(field, []))}
         units = [u for u in run.get('analysis_units', [])
             if u['id'] in review_units or u['id']==row['origin'].get('unit_id')

@@ -47,11 +47,35 @@ def response(prompt, stage):
         obs = data['unapproved_observations']
         direction = dict(judgment='unknown', reason='정의 문맥 검수 필요', evidence_ids=[ev], counter_evidence_ids=[])
         return dict(hierarchies=[dict(child_ref=obs[0]['id'], parent_ref=obs[1]['id'], relation='is_a',
-            a_to_b=direction, b_to_a=direction)], alias_proposals=[], gaps=[], actions=[])
+            a_to_b=direction, b_to_a=direction)], alias_proposals=[], gaps=[], actions=[],
+            relation_bindings=[dict(relation_ref=i,subject_ref=obs[0]['id'],object_ref=obs[1]['id'],reason='제공 정의로 연결') for i in data.get('design_relation_ids', [])])
     if stage=='revision':
         return dict(observations=[],relations=[],hierarchies=[],deferred=[dict(candidate_ref=i,reason='사람 검수로 명시 보류한다.') for i in data['target_ids']])
     hierarchy = [{k:h[k] for k in ('child_ref','parent_ref','relation','a_to_b','b_to_a')} for h in data['taxonomy']['hierarchies']]
-    return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy, relation_checks=[dict(candidate_ref=c['id'],judgment='supported', evidence_id=c['evidence_ids'][0],quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.') for c in data['unapproved_relations']], gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
+    def checks(rows):
+        return [dict(candidate_ref=c['id'],judgment='supported',evidence_id=c['evidence_ids'][0],
+            quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.')
+            for c in rows if c['id'] in data.get('review_target_ids',[c['id']])]
+    return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy,
+        relation_checks=checks(data['unapproved_relations']), observation_checks=checks(data['unapproved_observations']),
+        gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
+
+
+def source_response(value, data):
+    """Express the legacy test double through the new generation-only citation schema."""
+    views=a2.segments.originals(data)
+    def convert(row):
+        if isinstance(row,list): return [convert(v) for v in row]
+        if not isinstance(row,dict): return row
+        result={k:convert(v) for k,v in row.items() if k not in {'evidence_ids','counter_evidence_ids','evidence_id','quote','source_quotes'}}
+        if any(k in row for k in ('evidence_ids','source_refs','evidence_id')):
+            ids=row.get('evidence_ids', [])+([row['evidence_id']] if row.get('evidence_id') else [])
+            result['source_refs']=list(dict.fromkeys(row.get('source_refs', [])+[v['source_ref'] for i in ids for v in views if v['ref']==i]))
+        if 'counter_evidence_ids' in row:
+            result['counter_source_refs']=[v['source_ref'] for i in row['counter_evidence_ids'] for v in views if v['ref']==i]
+        if 'relation_ref' in row: result.setdefault('decision','bind')
+        return result
+    return convert(value)
 
 
 @pytest.fixture(autouse=True)
@@ -350,19 +374,21 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
         if stage=='concept':
             # Ollama uses union branches directly: every branch must contain the full object.
             for variant in schema['$defs']['Observation']['anyOf']:
-                assert {'evidence_ids','label','classification','local_ref','definition'} <= set(variant['required'])
+                assert {'source_refs','label','classification','local_ref','definition'} <= set(variant['required'])
         import jsonschema
         empty={k:[] for k in response(prompt,stage) if k!='needs_revision'}
         if stage=='critic': empty['needs_revision']=False
         with pytest.raises(jsonschema.ValidationError): jsonschema.validate(empty,schema)
         valid=dict(empty,gaps=['주 분석 원문의 해석 미확인'])
+        if stage=='builder': valid.update(relation_bindings=response(prompt,stage)['relation_bindings'],observations=[])
         if stage=='critic':
             valid['hierarchy_checks']=response(prompt,stage)['hierarchy_checks']
             valid['relation_checks']=response(prompt,stage)['relation_checks']
+            valid['observation_checks']=response(prompt,stage)['observation_checks']
             assert all(v['properties']['hierarchy_checks']['minItems']==len(data['taxonomy']['hierarchies']) for v in schema['anyOf'])
             for variant, expected in zip(schema['$defs']['Hierarchy']['anyOf'],data['taxonomy']['hierarchies']):
                 assert all(variant['properties'][f]['const']==expected[f] for f in ('child_ref','parent_ref','relation'))
-        jsonschema.validate(valid,schema)
+        jsonschema.validate(source_response(valid,data),schema)
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
             assert all('local_ref' not in c for c in data['unapproved_observations'])
@@ -475,8 +501,8 @@ def test_real_reviewed_base_uses_evidence_block_version_and_term_lookup(service)
     published=ontology.publish(service,base_run,[candidate])
     decision=ontology.decide(service,published['changeset_id'],dict(expected_changeset_revision=0,actor='tester',decisions=[dict(candidate_id='Housing',action='accept')]))
     run=done(service,service.start(request(source['id'],base_ontology_version_id=decision['reviewed_ontology_version_id']))['run_id'])
-    assert run['status']=='partial',run.get('error')
-    assert any(r['cause']=='endpoint' and r['status']=='manual_review' for r in run['result']['unresolved_recovery_requests'])
+    assert run['status']=='review_ready',run.get('error')
+    assert not run['result']['design_pending_relation_ids']
     term=next(c for c in a2.terms(service,run['id'],'국민')['items'] if c['id']=='Housing')
     assert term['review_status']=='reviewed'
     assert term['evidence'][0]['evidence_id']==block['evidence_id']
@@ -537,7 +563,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
                     item={k:c[k] for k in a2.models.Hierarchy.model_fields}
                     value['hierarchies'].append(dict(item,candidate_ref=c['id'],reason='계층은 미확인으로 유지한다.'))
             import jsonschema
-            jsonschema.validate(value,schema)
+            jsonschema.validate(source_response(value,data),schema)
         response_value['text']=json.dumps(value,ensure_ascii=False)
         return response_value
     monkeypatch.setattr(a2,'model_call',revise)
@@ -718,11 +744,13 @@ def test_builder_bindings_only_use_supplied_valid_types(kind):
         supplied.pop('existing')
         supplied.update(one=dict(target,id='one',classification='type',label='existing'),two=dict(target,id='two',classification='type',label='existing'))
     output=dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='existing',object_ref='existing',reason='제공 정의의 범위 대조')])
-    design.bind(output,supplied,{}, {})
-    result=output['modeled_relations'][0]
-    assert result['source_relation']==source and source['statement_type']=='rule'
-    assert bool(result['validation'])==(kind!='type')
-    assert result['unresolved_endpoints']==([] if kind=='type' else ['subject','object'])
+    design.bind(output,supplied,{}, dict(design_relation_ids=['rule']))
+    if kind=='type':
+        result=output['modeled_relations'][0]
+        assert result['source_relation']==source and not result['unresolved_endpoints']
+    else:
+        assert not output['modeled_relations'] and output['binding_coverage']['pending_relation_ids']==['rule']
+    assert source['statement_type']=='rule'
 
 
 def test_builder_local_refs_do_not_collide_with_supplied_ids_or_bind_undeclared_types():
@@ -739,10 +767,11 @@ def test_builder_local_refs_do_not_collide_with_supplied_ids_or_bind_undeclared_
     assert output['modeled_relations'][0]['subject']=='new' and output['modeled_relations'][0]['object']=='t1'
     missing=dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='t2',object_ref='c1',reason='선언하지 않은 새 유형')])
     design.scope_local_refs(missing);missing=a2.remap(missing,{'c1':'t1'})
-    design.bind(missing,supplied,{}, {})
-    assert missing['modeled_relations'][0]['unresolved_endpoints']==['subject']
-    with pytest.raises(ValueError):
-        design.bind(dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='t1',object_ref='t1',reason='다른 묶음의 비교 관계')]),supplied,{},dict(design_relation_ids=[]))
+    design.bind(missing,supplied,{}, dict(design_relation_ids=['rule']))
+    assert not missing['modeled_relations'] and missing['binding_coverage']['pending_relation_ids']==['rule']
+    other=dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='t1',object_ref='t1',reason='다른 묶음의 비교 관계')])
+    design.bind(other,supplied,{},dict(design_relation_ids=[]))
+    assert not other['modeled_relations'] and other['binding_errors']
 
 
 @pytest.mark.parametrize('error', ['quote','missing','duplicate','judgment','unknown_id','direction','hierarchy_duplicate'])
@@ -812,7 +841,7 @@ def test_mixed_critic_validity_survives_resume_revision_and_a3(service,monkeypat
 
 
 @pytest.mark.parametrize('error', ['json','outside_evidence','duplicate_issue'])
-def test_critic_common_envelope_and_global_references_still_fail_whole_call(service,monkeypatch,error):
+def test_critic_envelope_failure_and_isolated_record_errors(service,monkeypatch,error):
     source=prepare(service,file_ids=['current:0']);original=a2.model_call
     async def invalid(prompt,schema,stage,run,timeout):
         result=await original(prompt,schema,stage,run,timeout)
@@ -827,12 +856,18 @@ def test_critic_common_envelope_and_global_references_still_fail_whole_call(serv
     monkeypatch.setattr(a2,'model_call',invalid)
     run=done(service,service.start(request(source['id']))['run_id'])
     critic=next(u for u in run['analysis_units'] if u['stage']=='critic')
-    assert run['status']=='partial' and critic['status']=='failed'
-    assert critic['raw_output'] and run['result']['failures'] and not run['result']['critiques']
+    assert run['status']=='partial' and critic['raw_output']
+    if error=='json':
+        assert critic['status']=='failed' and run['result']['failures'] and not run['result']['critiques']
+    else:
+        assert critic['status']=='succeeded' and critic['output']['record_errors']
+        if error=='outside_evidence': assert critic['output']['observation_checks']
     from app.knowledge import ontology_changes as a3
     from app.tests.unit.test_knowledge_ontology_changes import listing
     cid=a3.publish(service,run['id'])['changeset_id']
-    assert all(c['origin'].get('review_errors') and not c['can_accept'] for c in listing(service,cid)['candidates'])
+    candidates=listing(service,cid)['candidates']
+    assert any(c['origin'].get('review_errors') and not c['can_accept'] for c in candidates)
+    if error=='outside_evidence': assert any(c['origin'].get('observation_checks') and not c['origin'].get('review_errors') for c in candidates)
 
 
 def test_resume_adds_new_analysis_candidates_without_replacing_prior_review(service,monkeypatch,model):
@@ -936,7 +971,9 @@ def test_provenance_dependencies_cannot_be_new_citations_without_original(servic
     async def check(prompt,schema,stage,run,timeout):
         if stage=='builder':
             data=json.loads(prompt.split('\nINPUT:\n')[1])
-            assert set(schema['$defs']['Direction']['properties']['evidence_ids']['items']['enum'])==a2.raw_refs(data)
+            for variant in schema['$defs']['Direction']['anyOf']:
+                assert 'evidence_ids' not in variant['properties']
+                assert set(variant['properties']['source_refs']['items']['enum'])=={b['source_ref'] for b in a2.segments.originals(data)}
             unit=next(u for u in run['analysis_units'] if u['stage']=='builder')
             assert len(unit['dependency_ids'])>len(unit['provided_block_ids'])
         return await original(prompt,schema,stage,run,timeout)
@@ -1058,10 +1095,10 @@ def test_one_block_list_capacity_preserves_raw_success_and_resume(service, monke
 def test_role_scope_instructions_separate_primary_analysis_and_all_provided_review():
     from app.knowledge.discovery_models import COMMON, PROMPTS
     assert 'blocks가' not in COMMON
-    assert 'CQ 목록은 실행 전체 목표' in COMMON and '이번 호출 원문 미제공' in COMMON
+    assert 'CQ 목록은 전체 목표' in COMMON and '이번 호출 미제공' in COMMON
     for role in ('concept','relation'): assert '주 분석 대상' in PROMPTS[role]
-    for role in ('builder','critic','revision'):
-        assert 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문' in PROMPTS[role]
+    assert 'blocks·tool_originals·independently_retrieved의 실제 제공 packet' in COMMON
+    assert 'review_target_ids' in PROMPTS['critic'] and 'design_relation_ids' in PROMPTS['builder']
     assert 'candidate_ref는 빈 문자열' in PROMPTS['critic']
 
 
