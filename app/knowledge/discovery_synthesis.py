@@ -230,7 +230,8 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
         effective.update({c['id']:c for c in group['design_candidates']})
         context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
         supplied.update({h['id']:h for h in taxonomy['hierarchies']})
-        context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations'}}
+        # Resolved endpoints and reasons already appear on the modeled relations.
+        context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
         try:
             if 'critic_context_ids' not in group:
                 label=' '.join(c.get('label',c.get('subject','')) for c in group['candidates'][:3])

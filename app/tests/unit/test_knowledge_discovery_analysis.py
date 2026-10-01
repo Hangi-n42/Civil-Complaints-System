@@ -643,6 +643,7 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
                 relation_bindings=[dict(relation_ref=r['id'],subject_ref=f't{i}',object_ref='t3',reason='원문의 주체별 분기를 별도 역할과 대상의 관계로 표현') for i,r in enumerate(relations,1)])
         if stage=='critic':
             assert len([c for c in data['unapproved_observations'] if c['support_type']=='design_proposal'])==3
+            assert 'relation_bindings' not in data['taxonomy']
             assert all(c['source_relation']['statement_type']=='rule' and c['statement_type']=='design_proposal' for c in data['unapproved_relations'])
             if revise_design:
                 target=next(c for c in data['unapproved_observations'] if c['support_type']=='design_proposal')

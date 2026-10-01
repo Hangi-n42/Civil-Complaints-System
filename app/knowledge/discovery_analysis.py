@@ -12,7 +12,7 @@ from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews, discovery_design as design
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v18'
+PROMPT_VERSION = 'discovery-a2-v19'
 
 
 def recipe(budgets):
@@ -255,6 +255,7 @@ def compact(value, originals=None):
     if isinstance(value, dict):
         omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref',
                    'source_refs', 'counter_source_refs'}
+        omitted.update(k for k in ('validation','evidence_validation','unresolved_endpoints') if value.get(k)==[])
         # Model input only: omit a quote only if that evidence's original is also provided.
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
                 and value['quote'] in originals[value['evidence_id']]):
