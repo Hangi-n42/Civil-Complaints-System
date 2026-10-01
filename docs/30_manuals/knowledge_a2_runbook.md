@@ -46,16 +46,18 @@
 - Builder는 제공된 정의를 먼저 비교하고, 현재 묶음의 규범/정의 관계에 필요한 유형만 `observations`의 `design_proposal`로 제안한다. `source_relation_ids`·설계 이유와 `relation_bindings`를 저장하며 새 t1~t5는 서버 ID로 연결한다. 원문 관계는 보존하고 설계는 Critic·수정·A3 검수를 거친다. 설계 역할을 원문 명시 유형이나 슬롯 필수값으로 승격하지 않는다.
 - `design_relation_ids`는 묶음당 최대 5개다. 각 대상의 `relation_bindings`는 `decision=bind`와 실제 유형 끝점 또는 `decision=defer`와 구체 사유 중 정확히 하나다. 비교 전용 묶음은 대상 0개다. `binding_coverage`는 응답/연결/보류/미완료를 구분하며 보류·누락은 `design_pending_relation_ids`로 A3까지 유지한다.
 - 관계의 방향·부정·조건·시점·진술 성격을 저장. 계층은 제안된 쌍만 양방향 검토하고 is_a/instance_of/broader 대상 종류·자기 참조·is_a 순환·별칭 참조를 검사한다. 동치 자동 병합 없음.
+- 새 관계의 `endpoint_labels.subject/object`는 원문 표현이며 연결 ID와 독립적으로 보존한다. 모델 임시 ID와 같은 문자열이어도 원문 표현은 치환하지 않는다. Critic의 `semantic_checks`는 원문 끝점·조건/예외·진술 종류를 대조한다. 원문 supported와 유형 연결 완료는 별개이며 연결 오류/정의 미제공은 endpoint 쟁점·A3 보류로 남긴다. 원문 표현의 연속 문자열 일치를 의미 지지의 필수조건으로 사용하지 않는다.
 - 원문 묶음은 법령/설명 최대 3,200자, CSV 최대 1,600자의 직렬화 비용을 기준으로 분할한다. 한 블록 자체가 한도를 넘으면 원문을 자르지 않고 입력 한도 검사에서 보류한다.
 - Critic은 후보명과 예외/변경 질의로 동결 원문에서 별도 검색한 문맥을 받는다. 키워드 히트를 반증으로 간주하지 않는다. 도구 결과는 다음 역할 입력까지 연결하며 실제 제공 근거를 기록한다.
 - Critic의 `review_target_ids`는 주관측·주관계·새 설계·계층을 명시하고 `comparison_candidate_ids`와 분리한다. `observation_checks`/`relation_checks`/양방향 `hierarchy_checks`에 근거 있는 supported/refuted 또는 구체 이유가 있는 unknown을 요구한다. expected/coverage는 같은 주검토 집합이며 누락·중복·무효 판정만 미완료로 격리한다. `review_outcomes`는 유효 응답과 의미 판단을 구분한다. 새 생성 schema는 source_refs 경로를 사용하고 기존 exact quote·coverage·fingerprint 읽기는 유지한다. 인용 일치는 의미적 정당성의 증명이 아니다.
 - Critic 쟁점은 서버 `di_` ID로 저장하며 `request_evidence.issue_id`도 같은 ID로 연결한다. 모델의 응답 내 i1/i2 참조는 정규화 후 폐쇄된 원장 참조로 검증한다.
+- `review_scope`는 실제 제공 source_refs·주검토/비교 범위·미제공 후보를 표시하며 전체 원문 부재를 확정하지 않는다. 재개에서는 같은 검수 범위를 재사용한다. 누락 제안은 실제 `compared_candidate_ids`와 `comparison_reason`을 기록한다. 해당 CQ/scope의 주관측·관계가 있는데 그 종류의 비교 자체가 없으면 지역 미확인으로 보류한다. 모든 동일 블록 후보 ID를 의무 나열하지 않으며 ID 목록 자체를 의미 대조의 증거로 계산하지 않는다.
 - Pydantic 동작은 read/search/lookup_term/request_evidence/finish만 허용. 임의 URL·파일·shell·SQL·승인·활성화는 dispatch할 수 없다. 자료 밖 참조는 자료 필요로 남긴다.
 
 ## 저장·재개·종료
 
 - Run에 입력 A1 ID·frozen_input·CQ/범위·기준 YAML·모델명/digest/컨텍스트·프롬프트/스키마/프로파일 버전·예산을 고정한다.
-- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v21`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
+- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v22`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
 - `candidate_identity.raw_to_candidate`와 `discoveries`에 원관측→대표 후보·발견 unit/group을 저장한다. 성공 unit의 ID/output/input_hash와 original_observations/relations는 유지한다. 대표 뷰의 계약상 ID 필드만 연결하며 원문 문자열·원관계 사본은 치환하지 않는다. 재개에서 처음 등록한 대표 ID와 성공 호출을 재사용한다. 검수 fingerprint는 대표 뷰로 계산하고 발견 이력은 별도 관리하므로 발견 추가가 의미 검수 값을 바꾸지 않는다. 과거 원관측 fingerprint/검수는 변경된 대표 뷰를 승인하지 못한다.
 - 호출 전후와 재개에서 K5 상태 확인. 원문뿐 아니라 전체 생성 의존성을 가진 요약/관측/lookup 결과도 사용 중단 근거를 포함하면 후속 입력에서 보류한다.
 - endpoint는 loopback HTTP만 허용. localhost는 127.0.0.1로 고정하고 proxy·redirect를 사용하지 않는다. 설치 모델 digest와 선언 컨텍스트를 확인하며 실행 중 다운로드나 외부 모델 fallback 없음.

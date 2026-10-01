@@ -266,6 +266,12 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
             context,deps,supplied,term_omissions=add_terms(run,'critic',context,deps,supplied,builder_unit,by_id,context_map)
             group['omitted_critic_term_ids']=term_omissions
             group['omitted_critic_context_ids']=omitted
+            context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
+            if 'review_scope' not in group:
+                known={identities.identifier(run,c['id']) for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations') for c in u['output'].get(field, [])}
+                group['review_scope']=dict(extent='provided_only',whole_input_assessed=False,
+                    known_not_provided=len(known-supplied.keys()),omitted_comparison_ids=sorted(set(group.get('omitted_related_ids', [])+term_omissions)))
+            context['review_scope']=deepcopy(group['review_scope'])
             review=a2.call(service,run,'critic',key,context,deps,by_id,supplied)
             if review is None: continue
             a2.apply_actions(service,run,index,blocks,'critic',key,review)

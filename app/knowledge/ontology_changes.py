@@ -226,11 +226,17 @@ def _convert(run, base, blocks):
         row['origin']['critiques'] = [deepcopy(i) for c,related in current_reviews for i in c.get('issues', []) if i.get('candidate_ref') in {'',*related}]
         row['origin']['relation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('relation_checks', []) if i.get('candidate_ref') in related]
         row['origin']['observation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('observation_checks', []) if i.get('candidate_ref') in related]
+        row['origin']['review_scopes']=[dict(unit_id=c['unit_id'],**deepcopy(c['review_scope'])) for c,_ in current_reviews if c.get('review_scope')]
         unresolved = [i for c,related in current_reviews if 'review_outcomes' in c for field in ('relation_checks','observation_checks')
             for i in c.get(field, []) if i.get('candidate_ref') in related and i['judgment']!='supported']
         if unresolved:
             row['review_status']='deferred'
             row['unresolved_issues'].extend('Critic '+i['judgment']+': '+i['reason'] for i in unresolved)
+        binding_issues=[i['reason'] for i in row['origin']['critiques'] if i.get('cause')=='endpoint']
+        binding_issues += [reason for c in row['origin']['relation_checks'] for reason in c.get('binding_validation', [])]
+        if binding_issues:
+            row['review_status']='deferred'
+            row['unresolved_issues'].extend(binding_issues)
         if identifiers & set(result.get('design_pending_relation_ids', [])):
             row['review_status']='deferred'
             row['unresolved_issues'].append('Builder 유형 연결 미완료 또는 명시 보류')

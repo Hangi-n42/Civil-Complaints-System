@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v21'
+PROMPT_VERSION = 'discovery-a2-v22'
 
 
 def recipe(budgets):
@@ -273,7 +273,7 @@ def remap(value, mapping):
     if isinstance(value, list):
         return [remap(v, mapping) for v in value]
     if isinstance(value, dict):
-        return {k: remap(v, mapping) for k,v in value.items()}
+        return {k: deepcopy(v) if k=='endpoint_labels' else remap(v, mapping) for k,v in value.items()}
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
@@ -310,7 +310,7 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
                     raise ValueError('수정 대상 종류 불일치')
                 evidence_only = identifier in (context or {}).get('evidence_only_ids', [])
                 if evidence_only:
-                    before = {k:v for k,v in original.items() if k not in {'source_relation','endpoint_labels'}}
+                    before = {k:v for k,v in original.items() if k!='source_relation'}
                     if meaning_signature(row) != meaning_signature(before):
                         raise ValueError('근거 선택 보완은 기존 의미를 변경할 수 없음')
                 replacement = normalize({field:[row]}, role, run, deps, by_id, supplied)[field][0]
@@ -371,15 +371,16 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
         alignment['observation_ref'] = local[alignment['observation_ref']]
         alignment['review_status'] = 'unreviewed'
     for relation in output.get('relations', []):
-        relation['endpoint_labels'] = {}
+        relation.setdefault('endpoint_labels', {})
         relation['unresolved_endpoints'] = []
         for field in ('subject', 'object'):
             value = relation[field]
+            if field not in relation['endpoint_labels'] and value not in supplied:
+                relation['endpoint_labels'][field] = value  # Legacy name output, not an inferred phrase for an ID.
             # Never reinterpret an explicit entity/vocabulary ID as a class.
             matches = [supplied[value]] if value in supplied else [c for c in supplied.values() if (c.get('label') or c.get('name'))==value]
             if len(matches)==1 and matches[0].get('classification')=='type' and not (
                     matches[0].get('validation') or matches[0].get('outside_scope_reason')):
-                if value not in supplied: relation['endpoint_labels'][field] = value
                 relation[field] = matches[0]['id']
             else:
                 relation['unresolved_endpoints'].append(field)
@@ -436,6 +437,8 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
     context = segments.bind(context, source_scope or run.get('id'), stage+':'+key)
+    if 'review_scope' in context:
+        context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(remap(compact(payload), mapping), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
@@ -499,6 +502,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
             schema['properties']['issues']['maxItems']=8
             schema['properties']['missing_meanings']['maxItems']=2
+            checks=schema['$defs']['RelationCheck']['properties']
+            fields=['subject','object','conditions','statement_type']
+            checks['semantic_checks']=dict(type='object',properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=fields,additionalProperties=False)
+            schema['$defs']['ObservationCheck']['properties'].pop('semantic_checks',None)
+            comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
+            comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
+            comparisons['items']['enum']=comparable or ['']
+            comparisons['maxItems']=len(comparable)
         action_schema = schema.get('$defs', {}).get('Action')
         if action_schema:
             variants = []
@@ -594,6 +605,9 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     hierarchy_schema['anyOf'] = variants
         for definition in schema.get('$defs', {}).values():
             props = definition.get('properties', {})
+            if 'endpoint_labels' in props:
+                props['endpoint_labels']=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=100) for k in ('subject','object')},
+                    required=['subject','object'],additionalProperties=False)
             for field in ('source_refs','counter_source_refs'):
                 if field in props:
                     if unit['source_ref_map']: props[field]['items']['enum']=list(unit['source_ref_map'])
@@ -794,6 +808,8 @@ def queue_recovery(run, review, group, by_id=None):
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     primary = set(group.get('primary_candidate_ids', [])) | set(group.get('design_candidate_ids', []))
     issues = list(review.get('issues', []))
+    issues += [dict(candidate_ref=c['candidate_ref'],cause='endpoint',reason='; '.join(c['binding_validation']))
+               for c in review.get('relation_checks', []) if c.get('binding_validation')]
     for unit in run.get('analysis_units', []):
         if unit['status']!='succeeded': continue
         for alignment in unit.get('output', {}).get('alignments', []):
@@ -818,7 +834,8 @@ def queue_recovery(run, review, group, by_id=None):
         if cause=='alignment': target['definition_id']=issue.get('target_ref', '')
         role = 'revision' if cause in {'evidence_error','content_error'} else 'builder' if cause=='endpoint' else 'review'
         request = add(cause, role, target, dict(meaning=issue['reason'],candidate_ref=identifier,
-            target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', '')))
+            target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', ''),
+            assessment_scope=deepcopy(review.get('review_scope', {}))))
         if cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
             request.update(status='budget_exhausted' if cause=='budget_exhausted' else 'source_absent' if cause=='source_absent' else 'manual_review',
                 reason=('원문 관계 보존; 기존 Builder 연결 결과를 명시 검수' if cause=='endpoint' else

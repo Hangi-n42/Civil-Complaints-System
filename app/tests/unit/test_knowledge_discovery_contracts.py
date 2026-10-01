@@ -99,3 +99,66 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
         groups=synthesis.assemble(trial,0,by_id,a2.profile.contexts(blocks),set(by_id))
         counts=[sum(c['id'] in g['primary_candidate_ids'] and c.get('statement_type') in {'rule','definition'} for c in g['candidates']) for g in groups]
         assert sum(counts)==6 and max(counts)<=5
+
+
+def semantic_case():
+    text='시험 원문: 사업자는 입주자를 선정할 수 있다. 잔여주택이면 일부 완화 또는 선착순이며 제1항에도 불구하고 적용한다.'
+    block=dict(id='b',source_version_id='v',parse_run_id='p',locator={},text=text)
+    run=dict(cqs=[dict(id='q')],scope_items=[],analysis_units=[])
+    types={i:dict(id=i,label=label,classification='type',definition=label,validation=[],evidence_ids=['b'],
+        evidence_refs=[dict(evidence_id='b',block_id='b',span=[0,len(text)],quote=text)])
+           for i,label in [('actor','사업자'),('resident','입주자'),('housing','주택')]}
+    raw=dict(local_ref='r1',subject='actor',predicate='선정할 수 있다',object='resident',endpoint_labels=dict(subject='사업자',object='입주자'),
+        direction='subject_to_object',negation='affirmed',conditions='잔여주택이면 일부 완화 OR 선착순; 제1항에도 불구하고 적용',time='',
+        statement_type='rule',evidence_ids=['b'],cq_ids=['q'],scope_item_ids=[],outside_scope_reason='')
+    relation=a2.normalize(dict(relations=[deepcopy(raw)]),'relation',run,['b'],{'b':block},types)['relations'][0]
+    context=dict(blocks=[dict(ref='b',text=text,source_ref='s1')],unapproved_relations=[relation],taxonomy=dict(hierarchies=[]),
+        review_target_ids=[relation['id']],review_scope=dict(extent='provided_only',whole_input_assessed=False,known_not_provided=1))
+    review=dict(issues=[],hierarchy_checks=[],gaps=[],actions=[],needs_revision=False,
+        relation_checks=[dict(candidate_ref=relation['id'],judgment='supported',source_refs=['s1'],reason='끝점과 유형 정의·조건을 대조',
+            semantic_checks={k:'supported' for k in ('subject','object','conditions','statement_type')})])
+    return run,block,types,raw,relation,context,review
+
+
+@pytest.mark.parametrize('boundary',['valid','raw_unresolved','modeled_missing_type','composed_phrase','link_error','missing_checks','object','conditions','statement_type','legacy_id_only'])
+def test_relation_source_endpoints_and_qualifiers_need_explicit_review(boundary):
+    run,block,types,raw,relation,context,review=semantic_case()
+    original=deepcopy(relation)
+    if boundary=='missing_checks': review['relation_checks'][0].pop('semantic_checks')
+    elif boundary=='legacy_id_only': relation['endpoint_labels']={}
+    elif boundary=='raw_unresolved': relation.update(subject='사업자',object='입주자',unresolved_endpoints=['subject','object'])
+    elif boundary=='modeled_missing_type': relation.update(source_relation=original,object='missing_type')
+    elif boundary=='composed_phrase': relation['endpoint_labels']['object']='잔여주택 입주자'
+    elif boundary=='link_error':
+        relation['object']='housing'
+        review['issues']=[dict(local_ref='i1',candidate_ref=relation['id'],cause='endpoint',reason='원문 입주자 대신 적용 범위인 주택 타입 연결',defer_reason='',source_refs=['s1'])]
+    elif boundary!='valid':
+        review['relation_checks'][0]['semantic_checks'][boundary]='refuted'
+        if boundary=='object': relation.update(object='housing',endpoint_labels=dict(subject='사업자',object='주택'))
+        if boundary=='conditions': relation['conditions']='잔여주택이면 일부 완화'  # OR/priority exists only in quote.
+        if boundary=='statement_type': relation['statement_type']='instance'
+    supplied={**types,relation['id']:relation}
+    output=a2.normalize(a2.models.Critique.model_validate(review).model_dump(),'critic',run,['b'],{'b':block},supplied,context)
+    assert bool(output['review_coverage']['pending_candidate_ids'])==(boundary not in {'valid','raw_unresolved','modeled_missing_type','composed_phrase','link_error'})
+    if boundary=='modeled_missing_type': assert output['relation_checks'][0]['binding_validation']
+    if boundary=='link_error':
+        assert output['relation_checks'][0]['judgment']=='supported'
+        a2.queue_recovery(run,output,dict(id='g',primary_candidate_ids=[relation['id']],candidates=[relation]),{'b':block})
+        assert run['recovery_requests'][0]['cause']=='endpoint' and run['recovery_requests'][0]['status']=='manual_review'
+    if boundary=='valid':
+        assert relation==original and relation['endpoint_labels']==raw['endpoint_labels']
+        assert relation['object']=='resident' and relation['conditions']==raw['conditions']
+        assert a2.remap(dict(subject='c0',endpoint_labels=dict(subject='c0')),{'c0':'server-id'})==dict(subject='server-id',endpoint_labels=dict(subject='c0'))
+    assert not output['review_scope']['whole_input_assessed']
+
+
+def test_missing_concept_must_compare_existing_relation_before_reextraction():
+    run,block,types,raw,relation,context,review=semantic_case()
+    review['missing_meanings']=[dict(role='concept',meaning='선정 원칙과 잔여주택 예외',source_refs=['s1'],cq_ids=['q'],
+        compared_candidate_ids=list(types),comparison_reason='명칭의 concept가 없다는 이유만으로 누락 주장')]
+    output=a2.normalize(a2.models.Critique.model_validate(review).model_dump(),'critic',run,['b'],{'b':block},
+        {**types,relation['id']:relation},context)
+    assert not output['missing_meanings'] and output['relation_checks']
+    assert any(e['section']=='missing_meanings' for e in output['record_errors'])
+    a2.queue_recovery(run,output,dict(id='g'),{'b':block})
+    assert not run['recovery_requests']

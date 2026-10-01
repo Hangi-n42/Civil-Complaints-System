@@ -41,6 +41,7 @@ def response(prompt, stage):
         return dict(observations=rows, alignments=[], gaps=[], actions=[])
     if stage=='relation':
         return dict(relations=[dict(local_ref='r1', subject='국민임대', predicate='유형', object='임대',
+            endpoint_labels=dict(subject='국민임대',object='임대'),
             direction='subject_to_object', negation='affirmed', conditions='원문 범위', time='미확인',
             statement_type='definition', evidence_ids=[ev], cq_ids=['cq1'], scope_item_ids=[], outside_scope_reason='')], gaps=[], actions=[])
     if stage=='builder':
@@ -54,7 +55,8 @@ def response(prompt, stage):
     hierarchy = [{k:h[k] for k in ('child_ref','parent_ref','relation','a_to_b','b_to_a')} for h in data['taxonomy']['hierarchies']]
     def checks(rows):
         return [dict(candidate_ref=c['id'],judgment='supported',evidence_id=c['evidence_ids'][0],
-            quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.')
+            quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.',
+            **(dict(semantic_checks={k:'supported' for k in ('subject','object','conditions','statement_type')}) if 'negation' in c else {}))
             for c in rows if c['id'] in data.get('review_target_ids',[c['id']])]
     return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy,
         relation_checks=checks(data['unapproved_relations']), observation_checks=checks(data['unapproved_observations']),
@@ -1123,7 +1125,7 @@ def test_relation_endpoint_names_resolve_only_unique_provided_types_and_revision
     blocks={'b':dict(id='b',source_version_id='v',parse_run_id='p',locator={'line':1},text='원문')}
     result=a2.normalize({'relations':[deepcopy(raw)]},'relation',run,['b'],blocks,supplied)['relations'][0]
     assert result['subject']==('type1' if variant=='unique' else value)
-    assert result['endpoint_labels']==({'subject':'대상','object':'대상'} if variant=='unique' else {})
+    assert result['endpoint_labels']==({'subject':'대상','object':'대상'} if variant!='explicit_entity' else {})
     assert result['unresolved_endpoints']==([] if variant=='unique' else ['subject','object'])
     supplied['relation']=dict(result,id='relation')
     revision=dict(observations=[],relations=[dict(raw,candidate_ref='relation',reason='끝점 재검토')],hierarchies=[],deferred=[])
@@ -1182,6 +1184,8 @@ def test_critic_missing_meaning_separate_bounded_analysis(service,monkeypatch,mo
         if stage=='critic' and not sent:
             sent=True;b=data['blocks'][0]
             out['missing_meanings']=[dict(role=role,meaning='누락된 조건부 공급 의미',evidence_ids=[b['ref']],
+                compared_candidate_ids=[c['id'] for field in ('unapproved_observations','unapproved_relations','reviewed_base','comparison_terms') for c in data.get(field,[])],
+                comparison_reason='제공 관측과 관계 조건에 없는 별도 의미',
                 source_quotes=[dict(evidence_id=b['ref'],quote='입력 밖 인용' if invalid else b['text'])],
                 cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')]
             out['needs_revision']=True

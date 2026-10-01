@@ -30,11 +30,20 @@ def test_non_extraction_causes_preserve_relation_and_do_not_recall(service, monk
     assert model==['scout','concept','relation','builder','critic']
     pending=[r for r in run['result']['unresolved_recovery_requests'] if r['cause']==cause]
     assert len(pending)==1 and pending[0]['status']==('source_absent' if cause=='source_absent' else 'manual_review')
+    assert pending[0]['assessment_scope']['extent']=='provided_only'
+    assert not pending[0]['assessment_scope']['whole_input_assessed']
     assert run['metrics']['recovery_calls']==0 and run['metrics']['recovery_remaining_by_cause'][cause]==1
     before=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert len(model)==5 and again['analysis_units']==before
     assert again['result']['original_relations']==run['result']['original_relations']
+    if cause=='endpoint':
+        from app.knowledge import ontology_changes
+        cid=ontology_changes.publish(service,run['id'])['changeset_id']
+        with service.repository.connect() as db: rows=service.repository.get(db,'changesets',cid)['candidates']
+        relation=next(c for c in rows if c['target_kind']=='relation')
+        assert relation['origin']['relation_checks'][0]['judgment']=='supported'
+        assert relation['review_status']=='deferred'
 
 
 @pytest.mark.parametrize('mutate_meaning', [False,True])
@@ -79,7 +88,9 @@ def test_same_span_keeps_all_meanings_and_bounds_attempts(service,monkeypatch,mo
         data=json.loads(prompt.split('INPUT:\n')[1]);value=json.loads(result['text'])
         if stage=='critic':
             b=data['blocks'][0]
-            value['missing_meanings']=[dict(role='concept',meaning=m,evidence_ids=[],source_refs=[b['source_ref']],cq_ids=['cq1'])
+            value['missing_meanings']=[dict(role='concept',meaning=m,evidence_ids=[],source_refs=[b['source_ref']],cq_ids=['cq1'],
+                compared_candidate_ids=[c['id'] for field in ('unapproved_observations','unapproved_relations','reviewed_base','comparison_terms') for c in data.get(field,[])],
+                comparison_reason='기존 관측과 관계의 조건과 다른 누락 의미')
                 for m in ['서로 다른 첫째 누락','서로 다른 둘째 누락']]
             value['needs_revision']=True
         if data.get('recovery_meanings'):

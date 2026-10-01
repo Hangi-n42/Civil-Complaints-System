@@ -88,6 +88,15 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                             source_quotes=[dict(evidence_id=item['evidence_id'],quote=item['quote'])]), by_id, provided)
                         if problems: raise ValueError('; '.join(problems))
                         item['evidence_refs']=refs
+                    if section=='relation_checks' and 'review_scope' in context and item['judgment']=='supported':
+                        candidate=supplied[item['candidate_ref']]
+                        if set(item['semantic_checks'])!={'subject','object','conditions','statement_type'} or any(v!='supported' for v in item['semantic_checks'].values()):
+                            raise ValueError('지지 판정에는 원문 끝점·조건/예외·진술 종류의 각각의 대조 필요')
+                        for field in ('subject','object'):
+                            label=candidate.get('endpoint_labels', {}).get(field)
+                            if not label: raise ValueError('독립 대조할 원문 끝점 표현 미확인: '+field)
+                            if candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
+                                item.setdefault('binding_validation', []).append('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
                 elif section=='hierarchy_checks':
                     if target not in hierarchies: raise ValueError('제안하지 않은 계층 검토')
                     # The existing Builder validation checks kind/direction/evidence contracts.
@@ -102,6 +111,15 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                     if not set(item['cq_ids']) <= {q['id'] for q in run['cqs']} or not set(item['scope_item_ids']) <= {q['id'] for q in run['scope_items']}: problems.append('복구의 허용 질문/범위 밖 연결')
                     if problems: raise ValueError('; '.join(problems))
                     item.update(evidence_refs=refs,validation=[])
+                    if 'review_scope' in context:
+                        if not set(item['compared_candidate_ids']) <= supplied.keys(): raise ValueError('미제공 후보를 의미 대조했다고 주장할 수 없음')
+                        if not item['comparison_reason'].strip(): raise ValueError('미표현 의미와 실제 비교 범위의 사유 필요')
+                        for marker in ('classification','negation'):
+                            primary={i for i,c in expected.items() if marker in c and
+                                (set(item['cq_ids']) & set(c.get('cq_ids', [])) or set(item['scope_item_ids']) & set(c.get('scope_item_ids', [])))}
+                            if primary and not primary & set(item['compared_candidate_ids']):
+                                raise ValueError('주검토 관측/관계의 의미 대조 미확인; 누락 재추출 보류')
+                        item['assessment_scope']='provided_only'
                 accepted.append(item)
             except (ValidationError, ValueError, KeyError, TypeError) as exc:
                 problem(section,index,raw,str(exc),targets)
@@ -135,4 +153,6 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
         judgments = {i['candidate_ref']:i['judgment'] for field in ('observation_checks','relation_checks') for i in output[field]}
         judgments.update({h['id']:'unknown' if any(h[d]['judgment']=='unknown' for d in ('a_to_b','b_to_a')) else h['a_to_b']['judgment'] for h in output['hierarchy_checks']})
         output['review_outcomes']={j:sorted(i for i,v in judgments.items() if v==j) for j in ('supported','refuted','unknown')}
+    if 'review_scope' in context:
+        output['review_scope']=dict(context['review_scope'],provided_source_refs=[b['source_ref'] for b in provided if b.get('source_ref')])
     return output
