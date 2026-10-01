@@ -1,7 +1,7 @@
 """Bounded cross-document draft comparison and one revision per candidate group."""
 from copy import deepcopy
 
-from . import discovery_analysis as a2, discovery_profile as profile, discovery_segments as segments
+from . import discovery_analysis as a2, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews
 
 
 def evidence_ids(candidate):
@@ -139,8 +139,10 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates.update({c['id']:c for c in taxonomy['hierarchies']})
     target_ids = {i['candidate_ref'] for i in review['issues'] if i['candidate_ref']}
     target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported')
-    if not target_ids: target_ids=set(group['primary_candidate_ids'])
+    if not target_ids and not review.get('record_errors'): target_ids=set(group['primary_candidate_ids'])
     target_ids &= set(candidates)
+    valid = reviews.valid_ids(review,candidates)
+    if valid is not None: target_ids &= valid
     editable=set(group['primary_candidate_ids']) | {c['id'] for c in taxonomy['hierarchies']}
     group['revision_deferrals'] = [dict(candidate_ref=i,reason='비교 후보/검토 기준은 이 묶음에서 수정하지 않음; 담당 묶음 또는 사람 검수로 보류') for i in sorted(target_ids-editable)]
     target_ids &= editable
@@ -162,6 +164,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         issues=[i for i in review['issues'] if not i['candidate_ref'] or i['candidate_ref'] in required]
         checks=[i for i in review['relation_checks'] if i['candidate_ref'] in required]
         extra_ids=[e for i in issues for f in ('evidence_ids','counter_evidence_ids') for e in i[f]]
+        extra_ids += [e['evidence_id'] for i in checks for e in i.get('evidence_refs', [])]
         extra_ids += [i['evidence_id'] for i in checks if i['evidence_id']]
         extra=a2.packet(list(dict.fromkeys(extra_ids)),by_id,context_map)
         trial['blocks'] += [b for b in extra if b['ref'] not in a2.raw_refs(trial)]

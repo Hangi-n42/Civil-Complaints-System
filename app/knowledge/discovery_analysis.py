@@ -9,10 +9,10 @@ import httpx
 
 from app.core.config import settings
 from app.generation.service import GenerationService, local_ollama_url
-from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments
+from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v15'
+PROMPT_VERSION = 'discovery-a2-v16'
 
 
 def recipe(budgets):
@@ -252,7 +252,8 @@ def compact(value, originals=None):
     if isinstance(value, list):
         return [compact(v, originals) for v in value]
     if isinstance(value, dict):
-        omitted = {'evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref'}
+        omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref',
+                   'source_refs', 'counter_source_refs'}
         # Model input only: omit a quote only if that evidence's original is also provided.
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
                 and value['quote'] in originals[value['evidence_id']]):
@@ -269,7 +270,7 @@ def remap(value, mapping):
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
-def normalize(output, stage, run, deps, by_id, supplied):
+def normalize(output, stage, run, deps, by_id, supplied, context=None):
     if any(not text.strip() for field in ('findings','gaps') for text in output.get(field, [])):
         raise ValueError('조사 결과/미해결 사유는 빈 문자열일 수 없음')
     if not any(output.get(field) for field in models.RESULT_FIELDS[stage]):
@@ -278,12 +279,16 @@ def normalize(output, stage, run, deps, by_id, supplied):
     def refs(value):
         if isinstance(value, dict):
             for key, child in value.items():
-                if key in {'evidence_ids', 'counter_evidence_ids'} and not set(child) <= set(deps):
+                if key in {'evidence_ids', 'counter_evidence_ids'} and isinstance(child,list) and all(isinstance(i,str) for i in child) and not set(child) <= set(deps):
+                    raise ValueError('실제 모델 입력 밖 근거 ID')
+                if key=='evidence_id' and isinstance(child,str) and child and child not in deps:
                     raise ValueError('실제 모델 입력 밖 근거 ID')
                 refs(child)
         elif isinstance(value, list):
             for child in value: refs(child)
     refs(output)
+    if stage=='critic':
+        return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize)
     if stage == 'revision':
         history = []
         seen = set()
@@ -326,6 +331,7 @@ def normalize(output, stage, run, deps, by_id, supplied):
             raise ValueError('응답 내부 local_ref 중복')
         for candidate in rows:
             problems = []
+            if not candidate['evidence_ids']: problems.append('원문 또는 설계 출처 근거 필요')
             if not set(candidate['cq_ids']) <= cq_ids or not set(candidate['scope_item_ids']) <= scope_ids:
                 problems.append('허용 CQ/범위 밖 연결')
             if not candidate['cq_ids'] and not candidate['scope_item_ids'] and not candidate['outside_scope_reason']:
@@ -382,30 +388,9 @@ def normalize(output, stage, run, deps, by_id, supplied):
                 hierarchy['validation'].append('is_a 순환'); break
             if current not in seen:
                 seen.add(current); pending.extend(b for a,b in edges if a==current)
-    issues = output.get('issues', [])
-    if len({i['local_ref'] for i in issues}) != len(issues):
-        raise ValueError('응답 내부 쟁점 local_ref 중복')
-    issue_refs = {}
-    for issue in issues:
-        if not issue['evidence_ids'] and not issue['counter_evidence_ids'] and not issue['defer_reason'].strip():
-            raise ValueError('근거 없는 쟁점에는 명시적 보류 사유 필요')
-        if issue['candidate_ref'] and issue['candidate_ref'] not in supplied:
-            raise ValueError('검토 대상 후보 참조 불일치')
-        issue['id'] = 'di_' + uuid4().hex
-        issue_refs[issue['local_ref']] = issue['id']
     for action in output.get('actions', []):
-        if action['action'] == 'request_evidence':
-            identifier = issue_refs.get(action['issue_id'], action['issue_id'])
-            if identifier not in set(issue_refs.values()) | issue_ids(run):
-                raise ValueError('추가 근거 요청의 쟁점 참조 불일치')
-            action['issue_id'] = identifier
-    for check in output.get('relation_checks', []):
-        if check['candidate_ref'] not in supplied or 'negation' not in supplied[check['candidate_ref']]:
-            raise ValueError('관계 검토 대상 불일치')
-        if check['judgment'] != 'unknown' and not check['quote']:
-            raise ValueError('관계 판단에는 원문 인용 필요')
-        if check['quote'] and (check['evidence_id'] not in deps or check['quote'] not in by_id[check['evidence_id']]['text']):
-            raise ValueError('관계 판단 인용이 제공 원문과 불일치')
+        if action['action']=='request_evidence' and action['issue_id'] not in issue_ids(run):
+            raise ValueError('추가 근거 요청의 쟁점 참조 불일치')
     return output
 
 
@@ -421,9 +406,10 @@ async def model_call(prompt, schema, stage, run, timeout):
         timeout=timeout, return_metadata=True, local_only=True)
 
 
-def make_prompt(run, stage, context, deps, supplied):
+def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
+    context = segments.bind(context, source_scope or run.get('id'), stage+':'+key)
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(remap(compact(payload), mapping), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
@@ -436,11 +422,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     if unit is None:
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
-    mapping, prompt = make_prompt(run, stage, context, deps, supplied)
+    source_scope = unit.setdefault('source_ref_run_id', run['id'])
+    context = segments.bind(context, source_scope, uid)
+    mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
     input_hash = profile.digest([prompt, run['recipe']])
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
     citation_ids = unit['provided_block_ids']
+    unit['source_ref_map'] = {b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
+                              for b in segments.originals(context)}
     try:
         if not set(deps) <= allowed_ids(service, list(by_id.values())):
             raise ValueError('사용 중단/재검토 근거가 원문 또는 파생 입력에 포함됨')
@@ -465,6 +455,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             raise ValueError('모델 호출/시간 예산 종료')
         timeout = min(remaining, run['recipe']['call_timeout'])
         schema = models.OUTPUTS[stage].model_json_schema()
+        if stage=='critic':
+            # SkipValidation inlines record schemas; keep the existing enum/coverage constraints.
+            for field, name in [('issues','Issue'), ('hierarchy_checks','Hierarchy'),
+                                ('relation_checks','RelationCheck'), ('missing_meanings','MissingMeaning')]:
+                schema['$defs'][name] = schema['properties'][field]['items']
+                schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
         action_schema = schema.get('$defs', {}).get('Action')
         if action_schema:
             variants = []
@@ -506,7 +502,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     ids = [mapping[i] for i in context['target_ids'] if field is None or field in supplied[i]]
                 definition['properties']['candidate_ref']['enum'] = ids or ['']
                 if name=='RelationCheck':
-                    definition['required'] = list(definition['properties'])
+                    definition['required'] = [p for p in definition['properties'] if p!='source_refs']
                     schema['required'] = list(schema['properties'])
                     definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
                     schema['properties']['relation_checks'].update(minItems=len(context.get('unapproved_relations', [])), maxItems=len(context.get('unapproved_relations', [])))
@@ -534,6 +530,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     hierarchy_schema['anyOf'] = variants
         for definition in schema.get('$defs', {}).values():
             props = definition.get('properties', {})
+            for field in ('source_refs','counter_source_refs'):
+                if field in props:
+                    if unit['source_ref_map']: props[field]['items']['enum']=list(unit['source_ref_map'])
+                    else: props[field]['maxItems']=0
             if 'cq_ids' in props:
                 for field, values in [('cq_ids', run['cqs']), ('scope_item_ids', run['scope_items'])]:
                     if values:
@@ -541,7 +541,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     else:
                         # Ollama rejects enum=[] even on an optional array. Preserve the empty selection.
                         props[field]['maxItems'] = 0
-                definition['required'] = list(props)
+                definition['required'] = [p for p in props if p!='source_refs']
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
                     definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
@@ -580,11 +580,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 raise ValueError('모델 출력 절단')
             if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
-            output = models.OUTPUTS[stage].model_validate_json(metadata['text']).model_dump()
+            output = models.OUTPUTS[stage].model_validate_json(metadata['text']).model_dump(warnings=False)
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
-            output = normalize(output, stage, run, citation_ids, by_id, supplied)
+            if stage!='critic': segments.restore(output, by_id, segments.originals(context))
+            output = normalize(output, stage, run, citation_ids, by_id, supplied, context)
             if stage in {'concept', 'relation'}:
                 rows = output['observations' if stage=='concept' else 'relations']
                 group = next(g for g in run['frontier'] if g['id']==key)
@@ -597,25 +598,6 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 primary = raw_refs(context.get('blocks', []))
                 if rows and not any(primary & set(c['evidence_ids']) for c in rows) and not output['gaps']:
                     raise ValueError('주 분석 원문 근거 또는 해당 자료의 분석 공백 필요')
-            if stage == 'critic':
-                provided = segments.originals(context)
-                for check in output['relation_checks']:
-                    if check['quote'] and not any(b['ref']==check['evidence_id'] and check['quote'] in b['text'] for b in provided):
-                        raise ValueError('관계 판단 인용이 실제 제공 구간 밖')
-                for need in output.get('missing_meanings', []):
-                    refs, errors = segments.references(need, by_id, segments.originals(context))
-                    if not need['source_quotes']: errors.append('누락 복구의 정확한 원문 구절 필요')
-                    if not need['cq_ids'] and not need['scope_item_ids'] or need['outside_scope_reason']: errors.append('복구의 허용 질문/범위 연결 필요')
-                    if not set(need['cq_ids']) <= {q['id'] for q in run['cqs']} or not set(need['scope_item_ids']) <= {q['id'] for q in run['scope_items']}: errors.append('복구의 허용 질문/범위 밖 연결')
-                    need.update(evidence_refs=refs, validation=errors)
-                expected = {(h['child_ref'],h['parent_ref'],h['relation']) for h in context.get('taxonomy', {}).get('hierarchies', [])}
-                actual = {(h['child_ref'],h['parent_ref'],h['relation']) for h in output['hierarchy_checks']}
-                if expected != actual:
-                    raise ValueError('제안 계층의 양방향 반례 검토 누락/추가')
-                expected_relations = {c['id'] for c in context.get('unapproved_relations', [])}
-                checks = [c['candidate_ref'] for c in output['relation_checks']]
-                if len(checks)!=len(set(checks)) or set(checks)!=expected_relations:
-                    raise ValueError('제안 관계의 부정 범위 검토 누락/추가')
             if stage=='revision':
                 revised = output['observations'] + output['relations']
                 for candidate in revised:
@@ -854,12 +836,25 @@ def finish(run, blocks, available):
     observations = [c for c in rows.values() if 'classification' in c]
     relations = [c for c in rows.values() if 'negation' in c]
     candidates = observations + relations
+    current = {c['id']:c for g in run.get('candidate_groups', []) for c in g['candidates']}
+    current.update(rows)
+    for u in outputs:
+        if u['stage'] not in {'builder','revision'}: continue
+        for field in ('hierarchies','effective_hierarchies'):
+            current.update({h['id']:h for h in u['output'].get(field, [])})
+    review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
-                and any(u['id']=='critic:'+g['id'] for u in outputs)}
+                and g['id'] in review_units and not review_units[g['id']].get('record_errors')
+                and (reviews.valid_ids(review_units[g['id']],current) is None or
+                     set(review_units[g['id']]['review_coverage']['expected_candidate_ids']) <= reviews.valid_ids(review_units[g['id']],current))}
     processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in g.get('roles', ['concept','relation']))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
-    reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in reviewed for i in g['primary_candidate_ids']}
+    reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in review_units
+        for i in g['primary_candidate_ids'] if i in (reviews.valid_ids(review_units[g['id']],current)
+            if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']))}
+    reviewed_candidates -= {h['candidate_id'] for h in history
+        if not any(h['candidate_id'] in (reviews.valid_ids(r,current) or set()) for r in review_units.values())}
     unreviewed_candidates = sorted(c['id'] for c in original_observations+original_relations if not c['validation'] and not c['outside_scope_reason'] and c['id'] not in reviewed_candidates)
     no_result = [dict(group_id=g['id'], empty_roles=[stage for stage in g.get('roles', ['concept','relation'])
                   if not linked_blocks(run,g,stage,available)]) for g in run.get('frontier', []) if g['id'] in processed]
@@ -905,6 +900,9 @@ def finish(run, blocks, available):
         alignments=[a for u in outputs for a in u['output'].get('alignments', [])],
         taxonomy=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='builder'],
         critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
+        review_pending_candidate_ids=sorted({i for i,c in current.items() if c.get('review_status')!='reviewed'} - reviewed_candidates -
+            set().union(*(reviews.valid_ids(r,current) or set() for r in review_units.values()))),
+        review_record_errors=[dict(unit_id=u['id'],**error) for u in outputs if u['stage']=='critic' for error in u['output'].get('record_errors', [])],
         recovery_requests=run.get('recovery_requests', []), unresolved_recovery_requests=unresolved_recovery,
         deferred_comparison_ids=deferred_comparisons,
         capacity_pending=[dict(group_id=g['id'], reasons=g['capacity_pending'], **g['capacity'])

@@ -381,7 +381,7 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
     with TestClient(app) as client:
         started=client.post('/api/v1/knowledge/runs',json=request(source['id']).model_dump(exclude_unset=True))
         assert started.status_code==200
-        run=done(service,started.json()['data']['run_id']);assert run['status']=='review_ready'
+        run=done(service,started.json()['data']['run_id']);assert run['status']=='review_ready',run['result']['failures']
         result=client.get('/api/v1/knowledge/runs/'+run['id']).json()
         assert result['success'] and result['data']['analysis_counts']['succeeded']==5
         assert client.get('/api/v1/knowledge/discovery/terms',params=dict(run_id=run['id'],label='국민')).json()['data']['items']
@@ -524,12 +524,12 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
             value=dict(observations=[],relations=[],hierarchies=[],deferred=[])
             for c in data['targets']:
                 if 'classification' in c:
-                    item={k:c[k] for k in a2.models.Observation.model_fields if k!='local_ref'}
+                    item={k:c[k] for k in a2.models.Observation.model_fields if k!='local_ref' and k in c}
                     text=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0])
                     item['source_quotes']=[dict(evidence_id=c['evidence_ids'][0],quote=text[:2] if quote_valid else '이번 입력에 없는 인용')]
                     value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary'))
                 elif 'negation' in c:
-                    item={k:c[k] for k in a2.models.Relation.model_fields if k!='local_ref'}
+                    item={k:c[k] for k in a2.models.Relation.model_fields if k!='local_ref' and k in c}
                     value['relations'].append(dict(item,local_ref='r1',candidate_ref=c['id'],reason='제외 조건은 관계 전체의 부정이 아니다.',negation='affirmed'))
                 else:
                     item={k:c[k] for k in a2.models.Hierarchy.model_fields}
@@ -558,6 +558,17 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         assert not any(c['id']==revised['id'] for c in terms)
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert model.count('revision')==1 and again['result']['revision_history']==run['result']['revision_history']
+    assert run['status']==again['status']=='partial'
+    assert revised['id'] in again['result']['unreviewed_candidate_ids']
+    from app.knowledge import ontology_changes as a3
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    cid=a3.publish(service,again['id'])['changeset_id']
+    changed={h['candidate_id'] for h in run['result']['revision_history']}
+    candidates=[c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id') in changed]
+    assert candidates and all(c['origin'].get('review_errors') and not c['can_accept'] for c in candidates)
+    assert all(not c['origin']['relation_checks'] and not c['origin']['critiques'] for c in candidates)
+    assert all(not c['hierarchy_review'].get('critic') for c in candidates)
+
 
 
 def test_revision_bounded_whole_sources_or_explicit_deferral(service,monkeypatch):
@@ -588,7 +599,99 @@ def test_relation_review_rejects_invented_quote_and_requires_every_relation(serv
         return result
     monkeypatch.setattr(a2,'model_call',bad_quote)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert run['status']=='partial' and '인용' in run['result']['failures'][0]['error']
+    assert run['status']=='partial' and not run['result']['failures']
+    assert '인용' in run['result']['review_record_errors'][0]['reason']
+    assert run['result']['relations'][0]['id'] in run['result']['unreviewed_candidate_ids']
+
+
+@pytest.mark.parametrize('error', ['quote','missing','duplicate','judgment','unknown_id','direction','hierarchy_duplicate'])
+def test_mixed_critic_validity_survives_resume_revision_and_a3(service,monkeypatch,model,error):
+    from app.knowledge import ontology_changes as a3
+    from app.tests.unit.test_knowledge_ontology_changes import listing, decide
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def mixed(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage in {'concept','relation'}:
+            rows=value['observations' if stage=='concept' else 'relations']
+            if stage=='relation': rows.append(dict(rows[0],local_ref='r2',predicate='관련 유형'))
+            for row in rows:
+                row.update(evidence_ids=[],source_refs=[data['blocks'][0]['source_ref']])
+        if stage=='builder':
+            for h in value['hierarchies']:
+                for d in ('a_to_b','b_to_a'):
+                    h[d]=dict(h[d],evidence_ids=[],source_refs=[data['blocks'][0]['source_ref']])
+        if stage=='critic':
+            # The first judgment is independent and must survive a sibling's error.
+            value['relation_checks'][0].update(evidence_id='',quote='',source_refs=[data['blocks'][0]['source_ref']])
+            bad=value['relation_checks'][1]
+            if error=='quote': bad['quote']='존재하지 않는 원문'
+            elif error=='missing': value['relation_checks'].pop()
+            elif error=='duplicate': value['relation_checks'].append(dict(bad))
+            elif error=='judgment': bad['judgment']='probably'
+            elif error=='unknown_id': bad['candidate_ref']='unprovided-candidate'
+            elif error=='direction': value['hierarchy_checks'][0].pop('b_to_a')
+            else: value['hierarchy_checks'].append(deepcopy(value['hierarchy_checks'][0]))
+            value['needs_revision']=True
+            # Invalid judgments cannot trigger a revision via a valid-looking issue/action.
+            target=data['taxonomy']['hierarchies'][0]['id'] if error in {'direction','hierarchy_duplicate'} else bad['candidate_ref']
+            value['issues']=[dict(local_ref='i1',candidate_ref=target,reason='이 대상을 수정하라',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            value['actions']=[dict(action='request_evidence',issue_id='i1',query='추가 근거',reason='오류 대상 근거 요청')]
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',mixed)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']=='partial' and not run['result']['failures'],run['result']['failures']
+    critic=next(u for u in run['analysis_units'] if u['stage']=='critic')
+    assert critic['status']=='succeeded' and critic['output']['record_errors']
+    good,bad=run['result']['relations']
+    coverage=critic['output']['review_coverage']
+    assert good['id'] in coverage['valid_candidate_ids']
+    target=run['result']['taxonomy'][0]['hierarchies'][0]['id'] if error in {'direction','hierarchy_duplicate'} else bad['id']
+    assert target in coverage['pending_candidate_ids'] and target not in coverage['valid_candidate_ids']
+    assert run['result']['mandatory_pending'] and run['result']['review_groups']==0
+    assert not critic['output']['issues'] and not critic['output']['actions']
+    assert 'revision' not in model and not run['result']['recovery_requests']
+    check=next(c for c in critic['output']['relation_checks'] if c['candidate_ref']==good['id'])
+    ref=check['evidence_refs'][0]
+    assert ref['quote']==service.evidence(ref['evidence_id'])['block']['text'][slice(*ref['span'])]
+    before=list(model)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model==before and again['status']=='partial'
+    assert again['result']['critiques']==run['result']['critiques']
+    cid=a3.publish(service,again['id'])['changeset_id']
+    candidates=listing(service,cid)['candidates']
+    valid=next(c for c in candidates if c['origin'].get('candidate_id')==good['id'])
+    invalid=next(c for c in candidates if c['origin'].get('candidate_id')==target)
+    assert valid['origin']['relation_checks']==[check] and not valid['origin'].get('review_errors')
+    assert valid['validation']['can_accept_with_dependencies'],valid['validation']
+    assert invalid['review_status']=='deferred' and not invalid['can_accept']
+    assert invalid['origin']['review_errors'] and 'A2 검수 미완료' in str(invalid['validation'])
+    assert not invalid['origin']['relation_checks']
+    with pytest.raises(ValueError): decide(service,cid,[dict(candidate_id=invalid['id'],action='accept')])
+
+
+@pytest.mark.parametrize('error', ['json','outside_evidence','duplicate_issue'])
+def test_critic_common_envelope_and_global_references_still_fail_whole_call(service,monkeypatch,error):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def invalid(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            value=json.loads(result['text'])
+            if error=='outside_evidence': value['relation_checks'][0]['evidence_id']='unprovided-evidence'
+            if error=='duplicate_issue':
+                issue=dict(local_ref='i1',reason='중복 참조',evidence_ids=[],counter_evidence_ids=[],defer_reason='검토 필요')
+                value['issues']=[issue,dict(issue)]
+            result['text']='{' if error=='json' else json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',invalid)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    critic=next(u for u in run['analysis_units'] if u['stage']=='critic')
+    assert run['status']=='partial' and critic['status']=='failed'
+    assert critic['raw_output'] and run['result']['failures'] and not run['result']['critiques']
+    from app.knowledge import ontology_changes as a3
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    cid=a3.publish(service,run['id'])['changeset_id']
+    assert all(c['origin'].get('review_errors') and not c['can_accept'] for c in listing(service,cid)['candidates'])
 
 
 def test_resume_adds_new_analysis_candidates_without_replacing_prior_review(service,monkeypatch,model):
@@ -908,17 +1011,20 @@ def test_critic_missing_meaning_separate_bounded_analysis(service,monkeypatch,mo
     selected=[b['id'] for b in a2.load_blocks(service,source)]
     run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='작은 원문 선택',
         discovery_budgets=dict(additional_rounds=rounds)))['run_id'])
-    requests=run['result']['recovery_requests'];assert len(requests)==1
+    requests=run['result']['recovery_requests'];assert len(requests)==(0 if invalid else 1)
     recovery=[g for g in run['frontier'] if g.get('recovery_request_id')]
     if rounds and not invalid:
         assert len(recovery)==1 and requests[0]['status']=='proposals_created',run.get('error')
         assert recovery[0]['roles']==(['relation'] if role=='relation' else ['concept','relation'])
         assert requests[0]['proposal_ids'] and not any(u['stage']=='revision' for u in run['analysis_units'])
+    elif invalid:
+        assert not recovery and run['status']=='partial' and run['result']['review_record_errors']
+        assert not any(u['stage']=='revision' for u in run['analysis_units'])
     else:
         assert not recovery and run['status']=='partial' and run['result']['unresolved_recovery_requests']
     before=list(model)
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert before==model and len(resumed['result']['recovery_requests'])==1
+    assert before==model and resumed['result']['recovery_requests']==requests
 
 
 def test_final_prompt_allocation_keeps_primary_and_defers_comparison():

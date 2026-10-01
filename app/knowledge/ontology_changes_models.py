@@ -45,11 +45,16 @@ class Definition(Record):
     direction: Literal['subject_to_object', 'unresolved'] = 'unresolved'
 
 
+class GroundedDirection(Direction):
+    evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+    counter_evidence_refs: list[EvidenceRef] = Field(default_factory=list)
+
+
 class DirectionalReview(BaseModel):
     # Keep A2 IDs, validation and endpoint metadata alongside the typed judgments.
     model_config = {'extra': 'allow'}
-    a_to_b: Direction
-    b_to_a: Direction
+    a_to_b: GroundedDirection
+    b_to_a: GroundedDirection
 
 
 class HierarchyReview(Record):

@@ -106,6 +106,59 @@ def test_evidence_binding_scope_and_availability(service):
         decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
 
 
+def test_selected_hierarchy_and_counter_spans_survive_a3_conversion(service):
+    from copy import deepcopy
+    from app.knowledge import discovery_review as reviews
+    run,ref=analysis(service)
+    first=run['result']['observations'][0]
+    second=dict(deepcopy(first),id='dc_2',label='상위 임대유형')
+    selected=dict(ref,quote=ref['quote'][:2],span=[0,2])
+    counter=dict(ref,quote=ref['quote'][2:4],span=[2,4])
+    direction=dict(judgment='unknown',reason='양방향 별도 검수',evidence_ids=[ref['evidence_id']],
+        counter_evidence_ids=[ref['evidence_id']],source_refs=['selected'],counter_source_refs=['counter'],
+        evidence_refs=[selected],counter_evidence_refs=[counter])
+    hierarchy=dict(id='dh_1',child_ref=first['id'],parent_ref=second['id'],relation='is_a',
+        a_to_b=direction,b_to_a=deepcopy(direction),validation=[],review_status='unreviewed')
+    candidates=[first,second,hierarchy]
+    critique=dict(unit_id='critic:g',hierarchy_checks=[deepcopy(hierarchy)],relation_checks=[],
+        issues=[dict(candidate_ref=first['id'],evidence_ids=[],counter_evidence_ids=[ref['evidence_id']],
+                     counter_evidence_refs=[counter],reason='선택 구간 반례 확인')],record_errors=[],
+        review_coverage=dict(expected_candidate_ids=[c['id'] for c in candidates],valid_candidate_ids=[c['id'] for c in candidates],
+            pending_candidate_ids=[],candidate_hashes={c['id']:reviews.fingerprint(c) for c in candidates}))
+    run['result'].update(observations=[first,second],taxonomy=[dict(unit_id='builder:g',hierarchies=[hierarchy])],critiques=[critique])
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    rows=listing(service,cid)['candidates']
+    converted=next(c for c in rows if c['target_kind']=='hierarchy')
+    assert converted['evidence_refs']==[selected] and converted['counter_evidence_refs']==[counter]
+    assert not converted['origin'].get('review_errors') and 'contract:' not in str(converted['validation'])
+    assert next(c for c in rows if c['origin']['candidate_id']==first['id'])['counter_evidence_refs']==[counter]
+
+
+def test_merged_evidence_only_observations_preserve_separate_valid_critiques(service):
+    from app.knowledge import discovery_review as reviews
+    run,ref=analysis(service)
+    first=run['result']['observations'][0]
+    second=dict(first,id='dc_2')
+    unrelated=dict(first,id='dc_other',classification='entity')
+    base=dict(id='existing',kind='class',symbol='Existing',name=first['label'],definition=first['definition'])
+    run['result']['observations']=[first,second,unrelated]
+    run['result']['alignments']=[dict(observation_ref=c['id'],target_id=base['id'],meaning='same',reason='동일 정의의 추가 근거') for c in (first,second)]
+    for candidate in (first,second,unrelated):
+        identifier=candidate['id']
+        run['result']['critiques'].append(dict(unit_id='critic:'+identifier,
+            issues=[dict(candidate_ref=target,reason=identifier+':'+target,counter_evidence_ids=[]) for target in (identifier,'')],
+            review_coverage=dict(expected_candidate_ids=[identifier],valid_candidate_ids=[identifier],pending_candidate_ids=[],
+                candidate_hashes={identifier:reviews.fingerprint(candidate)})))
+    with service.repository.connect() as db: blocks=a3._blocks(service.repository,db,run)
+    rows,_,_=a3._convert(run,{base['id']:base},blocks)
+    assert len(rows)==1 and rows[0]['origin']['change_intent']=='evidence_only'
+    assert len(rows[0]['origin']['additional_observations'])==1
+    assert {i['reason'] for i in rows[0]['origin']['critiques']}=={
+        c['id']+':'+target for c in (first,second) for target in (c['id'],'')}
+    assert not rows[0]['origin'].get('review_errors')
+
+
 def test_entity_value_fact_samples_are_not_classes(service):
     run,ref=analysis(service)
     source=run['result']['observations'][0]

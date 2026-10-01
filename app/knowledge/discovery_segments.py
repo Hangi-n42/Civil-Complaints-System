@@ -76,11 +76,61 @@ def originals(value):
     return []
 
 
+def bind(context, run_id, unit_id):
+    """Address existing packet views in one call, without serializing another copy of the text."""
+    context = deepcopy(context)
+    for view in originals(context):
+        view['source_ref'] = 's' + profile.digest([run_id, unit_id, view['ref'],
+            view.get('span', [0, len(view['text'])]), view['text']])[:16]
+    return context
+
+
+def restore(value, by_id, provided):
+    """Resolve only this call's selected views. Legacy exact quotes remain untouched."""
+    if isinstance(value, list):
+        for child in value: restore(child, by_id, provided)
+    elif isinstance(value, dict):
+        for child in list(value.values()): restore(child, by_id, provided)
+        for selected, ids, refs in [('source_refs','evidence_ids','evidence_refs'),
+                                   ('counter_source_refs','counter_evidence_ids','counter_evidence_refs')]:
+            if not value.get(selected): continue
+            candidate = dict(source_refs=value[selected], evidence_ids=value.get(ids, []),
+                source_quotes=value.get('source_quotes', []) if selected=='source_refs' else [])
+            if selected=='source_refs' and value.get('quote'):
+                candidate['source_quotes'] = [dict(evidence_id=value.get('evidence_id', ''), quote=value['quote'])]
+            restored, errors = references(candidate, by_id, provided)
+            if selected=='source_refs' and value.get('evidence_id') and value['evidence_id'] not in {e['evidence_id'] for e in restored}:
+                errors.append('선택 구간과 근거 ID 불일치')
+            if errors: raise ValueError('; '.join(errors))
+            value[ids] = list(dict.fromkeys(e['evidence_id'] for e in restored))
+            value[refs] = restored
+            if selected=='source_refs' and 'evidence_id' in value:
+                value.update(evidence_id=restored[0]['evidence_id'], quote=restored[0]['quote'])
+
+
 def references(candidate, by_id, provided):
     """Ground exact quotes within actually provided views, retaining parent offsets."""
     result = []
     quotes = candidate.get('source_quotes', [])
     errors = []
+    if candidate.get('source_refs'):
+        views = {v['source_ref']:v for v in provided if v.get('source_ref')}
+        for identifier in candidate['source_refs']:
+            view = views.get(identifier)
+            if view is None:
+                errors.append('이번 호출에 제공되지 않은 source_ref'); continue
+            b = by_id[view['ref']]
+            start,end = view.get('span', [0,len(b['text'])])
+            if not 0 <= start < end <= len(b['text']) or b['text'][start:end]!=view['text']:
+                errors.append('선택 구간의 부모 원문 불일치'); continue
+            ref = dict(evidence_id=view['ref'],block_id=b['id'],source_version_id=b['source_version_id'],
+                parse_run_id=b['parse_run_id'],locator=deepcopy(b['locator']),span=[start,end],quote=view['text'])
+            if ref not in result: result.append(ref)
+        if candidate.get('evidence_ids') and set(candidate['evidence_ids'])!={r['evidence_id'] for r in result}:
+            errors.append('선택 구간과 근거 ID 목록 불일치')
+        if any(not any(q['evidence_id']==r['evidence_id'] and q['quote']==r['quote'] for r in result) for q in quotes):
+            errors.append('선택 구간과 legacy 인용 불일치')
+        return result, errors
     for identifier in candidate['evidence_ids']:
         b = by_id[identifier]
         views = [v for v in provided if v['ref']==identifier]
