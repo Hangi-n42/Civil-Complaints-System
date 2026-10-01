@@ -11,12 +11,13 @@ from app.core.config import settings
 from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews, discovery_design as design
 from .service import KnowledgeConflict, encode, utcnow
+from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v19'
+PROMPT_VERSION = 'discovery-a2-v20'
 
 
 def recipe(budgets):
-    return dict(profile_version='a2-survey-v5', prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=12000,
@@ -166,6 +167,7 @@ def cancelled(service, run):
 
 def lookup(service, run, label, term_type, blocks):
     allowed = allowed_ids(service, blocks)
+    identities.register(run)
     def usable(candidate):
         ids = {e['evidence_id'] for e in candidate.get('evidence', [])} | set(candidate.get('evidence_ids', []))
         return bool(ids) and ids <= allowed
@@ -174,11 +176,14 @@ def lookup(service, run, label, term_type, blocks):
     for u in run['analysis_units']:
         if u['status']!='succeeded' or not set(u['dependency_ids']) <= allowed: continue
         for c in u.get('output', {}).get('observations', []):
-            rows[c['id']] = dict(c, origin_dependency_ids=u['dependency_ids'])
+            if not identities.dependencies(run,c['id']) <= allowed: continue
+            candidate = identities.view(run,c)
+            rows.setdefault(candidate['id'], dict(candidate, origin_dependency_ids=sorted(set(u['dependency_ids']) | identities.dependencies(run,c['id']))))
         for h in u.get('output', {}).get('history', []):
             if 'classification' in h['after']:
-                rows[h['candidate_id']] = dict(h['after'], origin_dependency_ids=u['dependency_ids'])
-    blocked_revisions = {h['candidate_id'] for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= allowed for h in u.get('output', {}).get('history', [])}
+                candidate = identities.view(run,h['after'],revised=True)
+                rows[candidate['id']] = dict(candidate, origin_dependency_ids=u['dependency_ids'])
+    blocked_revisions = {identities.identifier(run,h['candidate_id']) for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= allowed for h in u.get('output', {}).get('history', [])}
     candidates += [c for c in rows.values() if c['id'] not in blocked_revisions and usable(c) and not c['validation'] and not c['outside_scope_reason']]
     return [c for c in candidates if label.casefold() in (c.get('label') or c.get('name', '')).casefold()
             and (term_type=='any' or c.get('classification', {'concept':'type', 'attribute':'property_value'}.get(c.get('kind'))) == term_type)]
@@ -254,7 +259,7 @@ def compact(value, originals=None):
         return [compact(v, originals) for v in value]
     if isinstance(value, dict):
         omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref',
-                   'source_refs', 'counter_source_refs'}
+                   'source_refs', 'counter_source_refs', 'candidate_view_version'}
         omitted.update(k for k in ('validation','evidence_validation','unresolved_endpoints') if value.get(k)==[])
         # Model input only: omit a quote only if that evidence's original is also provided.
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
@@ -654,6 +659,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 if covered != set(context['target_ids']):
                     raise ValueError('수정 대상의 수정 또는 명시적 보류 누락')
             unit.update(output=output, status='succeeded')
+            identities.register(run)
         finally:
             seconds = monotonic()-started
             unit['attempts'][-1].update(elapsed_s=round(seconds,3), outcome=unit['status'],
@@ -791,10 +797,10 @@ def recovery_groups(run, round_number, by_id):
             views.append(matching[0] if matching and matching[0]['span']==span else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION))
         if not views: continue
         ids = list(dict.fromkeys(v['block_id'] for v in views))
-        prior = [c for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations')
-                 for c in u['output'].get(field, []) if set(c['evidence_ids']) & set(ids)]
+        prior = identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations')
+                 for c in u['output'].get(field, []) if set(c['evidence_ids']) & set(ids)])
         identifier = 'recovery_' + request['id'][:20]
-        supplied = {c['id']:c for u in run['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations', [])}
+        supplied = {c['id']:c for c in identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations', [])])}
         groups.append(dict(id=identifier, file_id=by_id[ids[0]]['file_id'], source_group=by_id[ids[0]]['source_group'],
             block_ids=ids, segments=views, features=[], priority=2, required=True, input_chars=sum(v['span'][1]-v['span'][0] for v in views),
             round=round_number, reason='Critic이 특정한 원문 의미 누락: '+request['meaning'], status='unvisited',
@@ -871,7 +877,7 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         concepts = call(service, run, 'concept', key, common, deps, by_id, supplied)
         if concepts is None: return
         apply_actions(service, run, index, blocks, 'concept', key, concepts)
-        observations = [c for c in concepts['observations'] if not c['validation'] and not c['outside_scope_reason']]
+        observations = identities.rows(run, [c for c in concepts['observations'] if not c['validation'] and not c['outside_scope_reason']], allowed_ids(service,blocks))
         supplied.update({c['id']:c for c in observations})
         concept_unit = next(u for u in run['analysis_units'] if u['id']=='concept:'+key)
         common, deps, related = with_tool_context(service, run, common, deps, [concept_unit], by_id, context_map)
@@ -935,6 +941,7 @@ def linked_blocks(run, group, stage, available):
 
 
 def finish(run, blocks, available):
+    identities.register(run)
     by_id = {b['id']: b for b in blocks}
     for group in run.get('frontier', []):
         if set(group['block_ids']) <= by_id.keys():
@@ -943,12 +950,13 @@ def finish(run, blocks, available):
     outputs = [u for u in run['analysis_units'] if u['status']=='succeeded' and set(u.get('dependency_ids', [])) <= available]
     original_observations = [c for u in outputs if u['stage'] in {'concept','builder'} for c in u['output'].get('observations', [])]
     original_relations = [c for u in outputs if u['stage']=='relation' for c in u['output'].get('relations', [])]
-    rows = {c['id']:c for c in original_observations+original_relations}
-    rows.update({c['id']:c for u in outputs if u['stage']=='builder' for c in u['output'].get('modeled_relations', [])})
+    rows = {c['id']:c for c in identities.rows(run, original_observations+original_relations, available)}
+    rows.update({c['id']:c for c in identities.rows(run, [c for u in outputs if u['stage']=='builder' for c in u['output'].get('modeled_relations', [])], available)})
     history = [h for u in outputs for h in u['output'].get('history', [])]
     for h in history:
-        if h['candidate_id'] in rows: rows[h['candidate_id']] = h['after']
-    blocked_revisions = {h['candidate_id'] for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= available for h in u.get('output', {}).get('history', [])}
+        candidate = identities.view(run,h['after'],revised=True)
+        if candidate['id'] in rows: rows[candidate['id']] = candidate
+    blocked_revisions = {identities.identifier(run,h['candidate_id']) for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= available for h in u.get('output', {}).get('history', [])}
     rows = {i:c for i,c in rows.items() if i not in blocked_revisions}
     observations = [c for c in rows.values() if 'classification' in c]
     relations = [c for c in rows.values() if 'negation' in c]
@@ -958,12 +966,13 @@ def finish(run, blocks, available):
     for u in outputs:
         if u['stage'] not in {'builder','revision'}: continue
         for field in ('hierarchies','effective_hierarchies'):
-            current.update({h['id']:h for h in u['output'].get(field, [])})
+            current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
     review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
                 and g['id'] in review_units and not review_units[g['id']].get('record_errors')
                 and (reviews.valid_ids(review_units[g['id']],current) is None or
-                     set(review_units[g['id']]['review_coverage']['expected_candidate_ids']) <= reviews.valid_ids(review_units[g['id']],current))}
+                     set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids',
+                         g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']],current))}
     processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in g.get('roles', ['concept','relation']))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
@@ -972,7 +981,8 @@ def finish(run, blocks, available):
             if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']+g.get('design_candidate_ids', [])))}
     reviewed_candidates -= {h['candidate_id'] for h in history
         if not any(h['candidate_id'] in (reviews.valid_ids(r,current) or set()) for r in review_units.values())}
-    unreviewed_candidates = sorted(c['id'] for c in original_observations+original_relations if not c['validation'] and not c['outside_scope_reason'] and c['id'] not in reviewed_candidates)
+    unreviewed_candidates = sorted({identities.identifier(run,c['id']) for c in original_observations+original_relations
+        if not c['validation'] and not c['outside_scope_reason'] and identities.identifier(run,c['id']) not in reviewed_candidates})
     no_result = [dict(group_id=g['id'], empty_roles=[stage for stage in g.get('roles', ['concept','relation'])
                   if not linked_blocks(run,g,stage,available)]) for g in run.get('frontier', []) if g['id'] in processed]
     no_result = [g for g in no_result if g['empty_roles']]
@@ -1042,13 +1052,13 @@ def finish(run, blocks, available):
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
         original_observations=original_observations, original_relations=original_relations, revision_history=history,
-        revisions=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='revision'],
+        revisions=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='revision'],
         revision_deferrals=[d for g in run.get('candidate_groups', []) for d in g.get('revision_deferrals', [])],
         observations=[c for c in observations if not c['outside_scope_reason']],
         relations=[c for c in relations if not c['outside_scope_reason']],
         outside_scope=[c for c in candidates if c['outside_scope_reason']],
-        alignments=[a for u in outputs for a in u['output'].get('alignments', [])],
-        taxonomy=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='builder'],
+        alignments=[identities.alignment(run,a) for u in outputs for a in u['output'].get('alignments', [])],
+        taxonomy=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='builder'],
         critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
         review_pending_candidate_ids=sorted({i for i,c in current.items() if c.get('review_status')!='reviewed'} - reviewed_candidates -
             set().union(*(reviews.valid_ids(r,current) or set() for r in review_units.values()))),
@@ -1074,6 +1084,7 @@ def finish(run, blocks, available):
         incomplete_file_ids=[u['file_id'] for u in run['units'] if u['status']!='succeeded'],
         unprocessed_features=[dict(file_id=g['file_id'], features=g['features']) for g in run.get('frontier', [])
                               if not g.get('analysis_grounded') and g['features']])
+    if identities.enabled(run): run['result']['candidate_identity'] = deepcopy(run['candidate_identity'])
     has_errors = any(u.get('tool_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
     incomplete = bool(deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or

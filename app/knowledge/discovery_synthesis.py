@@ -2,6 +2,7 @@
 from copy import deepcopy
 
 from . import discovery_analysis as a2, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews
+from . import discovery_candidates as identities
 
 
 def evidence_ids(candidate):
@@ -39,24 +40,30 @@ def fits(run, stage, context, deps, supplied, reserve=0):
 
 def assemble(run, round_number, by_id, context_map, available):
     # ponytail: CQ/scope buckets plus stable source rotation, not semantic equivalence or all-pairs.
+    identities.register(run)
     buckets = {}; by_link = {}; revisions = {}
     for unit in run['analysis_units']:
         if unit['stage']!='revision' or unit['status']!='succeeded': continue
         for item in unit['output']['history']:
-            revisions[item['candidate_id']] = (item['after'], unit['dependency_ids'])
+            revisions[identities.identifier(run,item['candidate_id'])] = (identities.view(run,item['after'],revised=True), unit['dependency_ids'])
+    seen = set()
     for unit in run['analysis_units']:
         if unit['stage'] not in {'concept','relation','builder'} or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available:
             continue
         source_groups = run['candidate_groups'] if unit['stage']=='builder' else run['frontier']
         group = next(g for g in source_groups if g['id']==unit['group_id'])
         for row in unit['output'].get('observations', []) + unit['output'].get('relations', []) + unit['output'].get('modeled_relations', []):
+            origin = identities.dependencies(run,row['id'])
+            if not origin <= available: continue
+            row = identities.view(run,row)
             revised, revision_deps = revisions.get(row['id'], (row, []))
             if not set(revision_deps) <= available: continue
             row = revised
             if row['outside_scope_reason'] or (row['validation'] and row['validation']!=row.get('evidence_validation')): continue
             links = sorted(['cq:'+i for i in row['cq_ids']] + ['scope:'+i for i in row['scope_item_ids']])
-            candidate=dict(row, origin_dependency_ids=sorted(set(unit['dependency_ids']) | set(revision_deps)), analysis_group_id=group.get('analysis_group_ids',[group['id']])[0])
-            if group['round']==round_number: buckets.setdefault(links[0], []).append(candidate)
+            candidate=dict(row, origin_dependency_ids=sorted(set(unit['dependency_ids']) | set(revision_deps) | origin), analysis_group_id=group.get('analysis_group_ids',[group['id']])[0])
+            if group['round']==round_number and row['id'] not in seen: buckets.setdefault(links[0], []).append(candidate)
+            seen.add(row['id'])
             for link in links: by_link.setdefault(link, {})[candidate['id']]=candidate
     assigned={i for g in run['candidate_groups'] for i in g['primary_candidate_ids']+g.get('design_candidate_ids', [])}
     groups = []
@@ -223,9 +230,11 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)
+        new_design_ids = {c['id'] for c in taxonomy.get('observations', []) if identities.identifier(run,c['id'])==c['id']}
+        taxonomy = identities.output(run,taxonomy)
         # Preserve the original Builder input on resume; overlay designs only for downstream consumers.
         group['design_candidates'] = taxonomy.get('observations', []) + taxonomy.get('modeled_relations', [])
-        group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', [])]
+        group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', []) if c['id'] in new_design_ids]
         effective = {c['id']:c for c in group['candidates']}
         effective.update({c['id']:c for c in group['design_candidates']})
         context,deps,supplied=context_for(list(effective.values()),by_id,context_map)

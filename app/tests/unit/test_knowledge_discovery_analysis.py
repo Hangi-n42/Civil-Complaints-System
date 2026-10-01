@@ -961,10 +961,12 @@ def test_critic_extra_original_reaches_revision_even_without_revision_flag(servi
 
 
 def test_revision_cannot_overwrite_comparison_candidate_from_another_group(service,monkeypatch):
-    from app.knowledge import discovery_synthesis as synthesis
+    from app.knowledge import discovery_synthesis as synthesis, discovery_review as reviews
     source=prepare(service,file_ids=['current:0']);run=done(service,service.start(request(source['id']))['run_id'])
     group=deepcopy(run['candidate_groups'][0]);comparison=group['primary_candidate_ids'].pop()
-    review=dict(issues=[dict(candidate_ref=comparison,evidence_ids=[],counter_evidence_ids=[])],relation_checks=[])
+    review=dict(issues=[dict(candidate_ref=comparison,evidence_ids=[],counter_evidence_ids=[])],relation_checks=[],
+        review_coverage=dict(valid_candidate_ids=[comparison],candidate_hashes={comparison:reviews.fingerprint(
+            next(c for c in group['candidates'] if c['id']==comparison))}))
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
     monkeypatch.setattr(a2,'call',lambda *args,**kwargs:pytest.fail('다른 묶음 후보의 중복 수정'))
     synthesis.revise(service,run,group,review,dict(hierarchies=[]),by_id,profile.contexts(blocks))

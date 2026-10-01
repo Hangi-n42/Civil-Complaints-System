@@ -41,6 +41,7 @@
 - Schema Scout → 원문 분석 m묶음의 Concept/Relation → 문서 간 후보 g묶음의 Builder/Critic. 역할은 모두 기존 worker에서 직렬 호출한다.
 - 후보는 CQ/scope 역인덱스와 출처 순환으로 조립한다. 여러 연결 중 하나가 겹치는 다른 문서·이전 라운드 후보와 관련 reviewed 기준을 비교 입력으로 제공하며, 한도 밖 비교 대상은 ID를 남긴다. 전 개념 쌍을 비교하거나 미승인 후보를 정답으로 취급하지 않는다. 기본 호출식은 `1 + 2m + 2g + 수정 호출`이고 g는 실제 후보 조립 후 확정한다.
 - 개념은 type/vocabulary/entity/property_value/unresolved, 명시적 정의/사례 제안, 추상화 수준·검토 신호를 저장. 문서 관측과 기존 개념 대응은 분리하며 먼저 생성한 후보를 정답으로 사용하지 않는다.
+- 새 실행의 `candidate_version=a2-candidates-v1`은 유효 근거의 version/parse/block/span/quote와 이름·종류·정의·조건/예외·시점·범위·근거 성격·설계 출처가 정확히 같은 관측만 실행 내부 대표 ID로 연결한다. 분류 이유·추상화·검토 신호도 보수적으로 구분한다. Relation 입력부터 Builder/Critic·A3까지 대표 뷰를 사용하고, 이름만 같거나 표현·근거가 다른 후보와 승인 정본을 자동 병합하지 않는다.
 - 후보는 근거와 CQ 또는 범위 연결을 검사한다. 범위 밖 발견, 검증 오류 후보를 보존·구분한다. 빈도/고유명사/사례 수로 클래스를 자동 승격·거절하지 않는다.
 - Builder는 제공된 정의를 먼저 비교하고, 현재 묶음의 규범/정의 관계에 필요한 유형만 `observations`의 `design_proposal`로 제안한다. `source_relation_ids`·설계 이유와 `relation_bindings`를 저장하며 새 t1~t5는 서버 ID로 연결한다. 원문 관계는 보존하고 설계는 Critic·수정·A3 검수를 거친다. 설계 역할을 원문 명시 유형이나 슬롯 필수값으로 승격하지 않는다.
 - 관계의 방향·부정·조건·시점·진술 성격을 저장. 계층은 제안된 쌍만 양방향 검토하고 is_a/instance_of/broader 대상 종류·자기 참조·is_a 순환·별칭 참조를 검사한다. 동치 자동 병합 없음.
@@ -53,7 +54,8 @@
 ## 저장·재개·종료
 
 - Run에 입력 A1 ID·frozen_input·CQ/범위·기준 YAML·모델명/digest/컨텍스트·프롬프트/스키마/프로파일 버전·예산을 고정한다.
-- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v19`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
+- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v20`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
+- `candidate_identity.raw_to_candidate`와 `discoveries`에 원관측→대표 후보·발견 unit/group을 저장한다. 성공 unit의 ID/output/input_hash와 original_observations/relations는 유지한다. 대표 뷰의 계약상 ID 필드만 연결하며 원문 문자열·원관계 사본은 치환하지 않는다. 재개에서 처음 등록한 대표 ID와 성공 호출을 재사용한다. 검수 fingerprint는 대표 뷰로 계산하고 발견 이력은 별도 관리하므로 발견 추가가 의미 검수 값을 바꾸지 않는다. 과거 원관측 fingerprint/검수는 변경된 대표 뷰를 승인하지 못한다.
 - 호출 전후와 재개에서 K5 상태 확인. 원문뿐 아니라 전체 생성 의존성을 가진 요약/관측/lookup 결과도 사용 중단 근거를 포함하면 후속 입력에서 보류한다.
 - endpoint는 loopback HTTP만 허용. localhost는 127.0.0.1로 고정하고 proxy·redirect를 사용하지 않는다. 설치 모델 digest와 선언 컨텍스트를 확인하며 실행 중 다운로드나 외부 모델 fallback 없음.
 - 기본 상한은 48회/검색 24회/추가 2라운드/묶음 수정 1회. 실패 호출도 포함. 신규 원문 분석 전에 Builder/Critic 호출을 예약한다. 이미 완료된 분석 재사용에는 새 예약을 요구하지 않는다. 연장·자동 예산 증액 없음.

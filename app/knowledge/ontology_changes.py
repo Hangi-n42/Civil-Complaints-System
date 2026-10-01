@@ -112,6 +112,8 @@ def _convert(run, base, blocks):
         matches = [a for a in alignments if a['observation_ref']==source['id']] if concept else []
         origin = dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
                       validation=source.get('validation', []), direction=source.get('direction'), alignments=deepcopy(matches))
+        discoveries = result.get('candidate_identity', {}).get('discoveries', {}).get(source['id'], [])
+        if discoveries: origin['discoveries'] = deepcopy(discoveries)
         if source.get('design_reason'):
             origin['design_reason']=source['design_reason']
             raw['rationale']=source['design_reason']
@@ -248,10 +250,14 @@ def _convert(run, base, blocks):
             for i in c.get(field, []))}
         units = [u for u in run.get('analysis_units', [])
             if u['id'] in review_units or u['id']==row['origin'].get('unit_id')
+            or u['id'] in {d['unit_id'] for d in row['origin'].get('discoveries', [])}
             or any(c.get('id') in identifiers for field in ('observations','relations','hierarchies','effective_hierarchies') for c in u.get('output', {}).get(field, []))
             or any(h.get('candidate_id') in identifiers for h in u.get('output', {}).get('history', []))]
         row['origin']['analysis_unit_ids'] = [u['id'] for u in units]
         row['origin']['dependency_block_ids'] = sorted({i for u in units for i in u.get('dependency_ids', [])})
+    for raw_id, representative in result.get('candidate_identity', {}).get('raw_to_candidate', {}).items():
+        if representative in mapping and raw_id not in mapping:
+            mapping[raw_id] = dict(mapping[representative], representative_candidate_id=representative)
     return rows, references, mapping
 
 

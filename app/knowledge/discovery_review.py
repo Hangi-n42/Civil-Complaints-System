@@ -14,7 +14,10 @@ def fingerprint(candidate):
 
 def valid_ids(review, candidates=None):
     coverage = review.get('review_coverage')
-    if coverage is None: return None  # Stored legacy reviews retain their original contract.
+    if coverage is None:
+        # A representative view needs its own review; legacy raw judgments cannot cover it.
+        if candidates and any(c.get('candidate_view_version') for c in candidates.values()): return set()
+        return None  # Stored legacy reviews retain their original contract.
     valid = set(coverage['valid_candidate_ids'])
     if candidates is not None:
         valid = {i for i in valid if i in candidates and coverage['candidate_hashes'].get(i)==fingerprint(candidates[i])}
