@@ -148,6 +148,56 @@ def test_successful_unit_hash_mismatch_never_overwrites_saved_unit(service,model
     assert unit==before and len(model)==5
 
 
+def test_recovery_span_selection_keeps_shared_context_endpoints_and_single_candidates():
+    from app.knowledge import discovery_segments as segments, discovery_synthesis as synthesis
+    text='공유 전제\n첫 구간의 관계\n독립된 둘째 구간\n다만 공통 예외'
+    start=text.index('첫'); end=text.index('독립'); exception=text.index('다만')
+    def block(identifier, value):
+        return dict(id=identifier,text=value,file_id='f',source_group='s',title='문서',role='current',locator={'format':'txt'})
+    by_id={b['id']:b for b in [block('b',text),block('type','직접 끝점의 유형 정의'),block('header','표 헤더')]}
+    contexts={i:dict(block_ids=[i]) for i in by_id}
+    view=dict(block_id='b',span=[start,end],shared_spans=[[0,start],[exception,len(text)]],recipe=segments.VERSION)
+    owner=dict(id='g',block_ids=['b'],segments=[view],context_block_ids=['header'])
+    def candidate(identifier, bid, span, **fields):
+        return dict(id=identifier,evidence_ids=[bid],evidence_refs=[dict(block_id=bid,evidence_id=bid,span=span)],**fields)
+    inside=candidate('inside','b',[start,end],classification='type',label='첫 구간')
+    outside=candidate('outside','b',[end,exception],classification='type',label='둘째 구간')
+    endpoint=candidate('endpoint','type',[0,len(by_id['type']['text'])],classification='type',label='직접 유형')
+    legacy=dict(id='legacy',evidence_ids=['b'],evidence_refs=[dict(block_id='b')],classification='type')
+    reviewed=dict(id='base',kind='concept',name='승인 유형',evidence=[dict(evidence_id='type')])
+    relation=candidate('relation','b',[start,end],negation='affirmed',subject='base',object='endpoint')
+    units=[dict(status='succeeded',output=dict(observations=[inside,outside,endpoint,legacy],relations=[relation]))]
+    run=dict(frontier=[owner],analysis_units=units,recipe=a2.recipe({}),cqs=[],scope_items=[],base_candidates=[reviewed])
+    before=deepcopy(units)
+    need=dict(role='relation',meaning='첫 구간 누락 관계',evidence_refs=[dict(block_id='b',span=[start,start+2])],validation=[])
+    a2.queue_recovery(run,dict(missing_meanings=[need]),owner,by_id)
+    group=a2.recovery_groups(run,1,by_id)[0]
+    assert {c['id'] for c in group['previous_observations']}=={'inside','endpoint','base'}
+    assert set(group['required_endpoint_ids'])=={'endpoint','base'}
+    assert [c['id'] for c in group['previous_relations']]==['relation']
+    assert {c['candidate_id'] for c in group['omitted_recovery_candidates']}=={'outside','legacy'}
+    assert 'legacy span' in group['omitted_recovery_candidates'][1]['reason']
+    raw=segments.packet(group,by_id,contexts,a2.packet)
+    required,_,_=synthesis.context_for([endpoint],by_id,contexts)
+    context=dict(blocks=raw,tool_originals=raw+required['blocks'],reviewed_base=[reviewed],previous_observations=group['previous_observations'],
+        unapproved_observations=group['previous_observations'],previous_relations=[relation],previous_candidate_ids=['inside','endpoint','relation'])
+    supplied={c['id']:c for c in [inside,endpoint,relation,reviewed]}
+    context,deps,supplied=a2.analysis_context(run,'relation',context,supplied,group)
+    values=[c['id'] for f in ('previous_observations','unapproved_observations','previous_relations') for c in context[f]]
+    assert sorted(values)==['endpoint','inside','relation']
+    originals=segments.originals(context)
+    assert len(originals)==len({(b['ref'],tuple(b.get('span', [])),b['text']) for b in originals})
+    assert {b['text'] for b in originals}=={text[start:end],text[:start],text[exception:],'직접 끝점의 유형 정의','표 헤더'}
+    assert units==before and not a2.recovery_groups(run,2,by_id)
+    # Optional comparison is removed before the mandatory endpoint definition and its source.
+    run['recipe']['input_chars']=1
+    context,_,supplied=a2.analysis_context(run,'relation',context,supplied,group)
+    assert {c['id'] for c in context['unapproved_observations']}=={'endpoint'}
+    assert context['reviewed_base']==[reviewed]
+    assert any(b['ref']=='type' for b in context['tool_originals'])
+    assert '필수 원문' in group['input_allocation']['relation']['pending_reason']
+
+
 def test_comparison_search_never_becomes_new_extraction(service,monkeypatch,model):
     source=prepare(service,file_ids=['current:0','web:0'])
     survey=profile.survey;original=a2.model_call

@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v22'
+PROMPT_VERSION = 'discovery-a2-v23'
 
 
 def recipe(budgets):
@@ -750,7 +750,7 @@ def apply_actions(service, run, index, blocks, stage, key, output):
 def base_context(run):
     return [dict(c, review_status='reviewed', classification=c.get('classification') or
                  {'concept':'type', 'attribute':'property_value', 'vocabulary_concept':'vocabulary'}.get(c['kind'], 'unresolved'))
-            for c in run['base_candidates']]
+            for c in run.get('base_candidates', [])]
 
 
 def meaning_signature(candidate, supplied=None):
@@ -803,7 +803,9 @@ def queue_recovery(run, review, group, by_id=None):
             view = views[0] if views else ref
             target = [view['block_id'], view['span']]
             if target not in targets: targets.append(target)
-        add('extraction_missing', need['role'], sorted(targets), need, validation)
+        request = add('extraction_missing', need['role'], sorted(targets), need, validation)
+        if not validation and not request.get('group_id'):
+            request['owner_group_ids'] = [g['id'] for g in owners]
     candidates = {c['id']:c for c in group.get('candidates', [])}
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     primary = set(group.get('primary_candidate_ids', [])) | set(group.get('design_candidate_ids', []))
@@ -846,24 +848,39 @@ def recovery_groups(run, round_number, by_id):
     groups = []
     for request in run.get('recovery_requests', []):
         if request.get('cause','extraction_missing')!='extraction_missing' or request['status']!='pending' or request['validation']: continue
+        owners = [g for g in run.get('frontier', []) if g['id'] in request.get('owner_group_ids', [])]
         views = []
-        for block_id, span in request.get('target', [(e['block_id'],e['span']) for e in request['evidence_refs']]):
+        targets = request.get('target', [(e['block_id'],e['span']) for e in request['evidence_refs']])
+        for block_id, span in targets:
             ref = dict(block_id=block_id,span=span)
             b = by_id[ref['block_id']]
-            matching = [v for v in segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
-            views.append(matching[0] if matching and matching[0]['span']==span else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION))
+            owned = [v for g in owners for v in g.get('segments', []) if v['block_id']==block_id]
+            matching = [v for v in owned or segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
+            view = deepcopy(matching[0]) if matching else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION)
+            if view not in views: views.append(view)
         if not views: continue
         ids = list(dict.fromkeys(v['block_id'] for v in views))
-        prior = identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations')
-                 for c in u['output'].get(field, []) if set(c['evidence_ids']) & set(ids)])
+        known = identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations')
+                 for c in u['output'].get(field, [])])
+        known += base_context(run)
+        prior = [c for c in known if any(e['block_id']==bid and e.get('span') and
+                 e['span'][0]<span[1] and span[0]<e['span'][1] for e in c.get('evidence_refs', []) for bid,span in targets)]
+        endpoints = {c[k] for c in prior for k in ('subject','object') if c.get(k)}
+        required = [c for c in known if c['id'] in endpoints and 'classification' in c]
+        prior += [c for c in required if c not in prior]
+        omissions = [dict(candidate_id=c['id'],reason='요청 구간과 불일치' if any(e.get('span') for e in c.get('evidence_refs', [])) else 'legacy span 미확인; 비교 보류')
+                     for c in known if set(c.get('evidence_ids', [])) & set(ids) and c not in prior]
         identifier = 'recovery_' + request['id'][:20]
         supplied = {c['id']:c for c in identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations', [])])}
         groups.append(dict(id=identifier, file_id=by_id[ids[0]]['file_id'], source_group=by_id[ids[0]]['source_group'],
             block_ids=ids, segments=views, features=[], priority=2, required=True, input_chars=sum(v['span'][1]-v['span'][0] for v in views),
             round=round_number, reason='Critic이 특정한 원문 의미 누락: '+request['meaning'], status='unvisited',
             recovery_request_id=request['id'], recovery_meaning=request['meaning'], recovery_meanings=deepcopy(request['meanings']),
+            context_block_ids=list(dict.fromkeys(i for g in owners for i in g.get('context_block_ids', []))),
+            required_endpoint_ids=[c['id'] for c in required], omitted_recovery_candidates=omissions,
             previous_observations=[c for c in prior if 'classification' in c],
-            previous_signatures=[meaning_signature(c,supplied) for c in prior], roles=[request['role']]))
+            previous_relations=[c for c in prior if 'negation' in c],
+            previous_signatures=[meaning_signature(c,supplied) for c in known if set(c.get('evidence_ids', [])) & set(ids)], roles=[request['role']]))
         request.update(status='scheduled', group_id=identifier, submitted_meanings=deepcopy(request['meanings']))
     return groups
 
@@ -871,20 +888,49 @@ def recovery_groups(run, round_number, by_id):
 def analysis_context(run, stage, context, supplied, group, reserve=0):
     context = deepcopy(context)
     omitted = group.setdefault('omitted_comparison_ids', [])
+    fields = ('reviewed_base','unapproved_observations','previous_observations','previous_relations','comparison_terms')
+    seen = set()
+    for field in fields:
+        rows = []
+        for c in context.get(field, []):
+            if c['id'] not in seen: rows.append(c); seen.add(c['id'])
+        if field in context: context[field] = rows
+    seen = set()
+    for field in ('blocks','tool_originals'):
+        rows = []
+        for b in context.get(field, []):
+            key = (b['ref'],tuple(b.get('span', [0,len(b['text'])])),b['text'])
+            if key not in seen: rows.append(b); seen.add(key)
+        if field in context: context[field] = rows
+    required = set(group.get('required_endpoint_ids', []))
+    mandatory_raw = set(group.get('required_endpoint_block_ids', [])) | {i for c in supplied.values() if c['id'] in required
+        for i in c.get('evidence_ids', []) + [e['evidence_id'] for e in c.get('evidence', [])]}
     def retained():
-        values = [c for field in ('reviewed_base','comparison_terms','unapproved_observations','previous_observations') for c in context.get(field, [])]
+        values = [c for field in fields for c in context.get(field, [])]
         selected = {c['id']:supplied[c['id']] for c in values if c['id'] in supplied}
+        if 'previous_candidate_ids' in context:
+            context['previous_candidate_ids'] = [i for i in context['previous_candidate_ids'] if i in selected]
         deps = raw_refs(context) | {i for c in selected.values() for i in c.get('origin_dependency_ids', [])}
         return sorted(deps), selected
+    before = None
     while True:
         deps, selected = retained()
         _, prompt = make_prompt(run, stage, context, deps, selected)
+        if before is None: before = len(prompt)
+        group.setdefault('input_allocation', {})[stage] = dict(before_chars=before,input_chars=len(prompt),reserve_chars=reserve,
+            char_margin=run['recipe']['input_chars']-len(prompt)-reserve,
+            context_margin=run['recipe']['num_ctx']-len(prompt.encode())-reserve*3-run['recipe']['num_predict'])
         if len(prompt)+reserve <= run['recipe']['input_chars'] and len(prompt.encode())+reserve*3+run['recipe']['num_predict'] <= run['recipe']['num_ctx']:
             return context, deps, selected
         # Comparison material can be reviewed in the later candidate groups; primary text cannot be cut.
-        field = next((f for f in ('comparison_terms','reviewed_base','tool_originals') if context.get(f)), None)
-        if field is None: return context, deps, selected
-        removed = context[field].pop()
+        removable = [(f,c) for f in ('comparison_terms','reviewed_base','previous_relations','previous_observations',
+                     *(['unapproved_observations'] if group.get('roles')==['relation'] else []),'tool_originals')
+                     for c in reversed(context.get(f, [])) if c.get('id') not in required and c.get('ref') not in mandatory_raw]
+        if not removable:
+            group['input_allocation'][stage]['pending_reason'] = '필수 원문·공유조건·직접 끝점 정의와 예약 여유가 배정 한도 초과; 원문 무절단'
+            return context, deps, selected
+        field, removed = removable[0]
+        context[field].remove(removed)
         identifier = removed.get('id', removed.get('ref'))
         if identifier not in omitted: omitted.append(identifier)
         if field=='tool_originals':
@@ -894,8 +940,8 @@ def analysis_context(run, stage, context, supplied, group, reserve=0):
                 omitted.extend(c['id'] for c in removed_terms if c['id'] not in omitted)
                 context[kind] = [c for c in context.get(kind, []) if c not in removed_terms]
         else:
-            needed = {e['evidence_id'] for c in context.get('reviewed_base', []) for e in c.get('evidence', [])}
-            needed |= {i for c in context.get('comparison_terms', []) for i in c.get('evidence_ids', [])}
+            needed = mandatory_raw | {e['evidence_id'] for c in context.get('reviewed_base', []) for e in c.get('evidence', [])}
+            needed |= {i for f in fields for c in context.get(f, []) for i in c.get('evidence_ids', [])}
             context['tool_originals'] = [b for b in context.get('tool_originals', []) if b['ref'] in needed]
 
 
@@ -917,8 +963,17 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     supplied.update(supplied_tools)
     previous = group.get('previous_observations', [])
     if group.get('recovery_request_id'):
-        common.update(recovery_meaning=group['recovery_meaning'], recovery_meanings=group['recovery_meanings'], previous_observations=previous)
-        supplied.update({c['id']:c for c in previous})
+        from .discovery_synthesis import context_for
+        prior = previous + group.get('previous_relations', [])
+        common.update(recovery_meaning=group['recovery_meaning'], recovery_meanings=group['recovery_meanings'],
+            previous_observations=previous, previous_relations=group.get('previous_relations', []),
+            previous_candidate_ids=[c['id'] for c in prior])
+        common['reviewed_base'].extend(c for c in previous if c.get('review_status')=='reviewed' and c not in common['reviewed_base'])
+        required = [c for c in previous if c['id'] in group.get('required_endpoint_ids', [])]
+        endpoint_context, _, _ = context_for(required, by_id, context_map)
+        group['required_endpoint_block_ids'] = sorted(raw_refs(endpoint_context['blocks']))
+        common['tool_originals'].extend(endpoint_context['blocks'])
+        supplied.update({c['id']:c for c in prior})
     roles = group.get('roles', ['concept','relation'])
     needed = sum(not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])
                  for stage in roles)
