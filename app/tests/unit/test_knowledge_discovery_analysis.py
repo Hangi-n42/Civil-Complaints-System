@@ -94,6 +94,44 @@ def test_full_roles_frozen_evidence_and_no_publication(service, model, monkeypat
     assert again['result']['observations'][0]['id']==candidate['id']
 
 
+@pytest.mark.parametrize('scope_only', [False, True])
+def test_empty_cq_or_scope_selection_has_no_empty_ollama_enum(service, monkeypatch, scope_only):
+    source = prepare(service, file_ids=['current:0'])
+    original = a2.model_call
+    seen = []
+    async def check(prompt, schema, stage, run, timeout):
+        def walk(value):
+            if isinstance(value, dict):
+                assert value.get('enum') != []  # Ollama rejects this even when JSON Schema accepts it.
+                for child in value.values(): walk(child)
+            elif isinstance(value, list):
+                for child in value: walk(child)
+        walk(schema)
+        if stage == 'concept':
+            seen.append(stage)
+            empty = 'cq_ids' if scope_only else 'scope_item_ids'
+            for variant in schema['$defs']['Observation']['anyOf']:
+                assert variant['properties'][empty]['maxItems'] == 0
+                assert not variant['properties'][empty].get('minItems')
+        result = await original(prompt, schema, stage, run, timeout)
+        if scope_only:
+            value = json.loads(result['text'])
+            def swap(row):
+                if isinstance(row, dict):
+                    if 'cq_ids' in row: row.update(cq_ids=[], scope_item_ids=['scope1'])
+                    for child in row.values(): swap(child)
+                elif isinstance(row, list):
+                    for child in row: swap(child)
+            swap(value)
+            result['text'] = json.dumps(value, ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2, 'model_call', check)
+    field = 'scope_items' if scope_only else 'cqs'
+    run = done(service, service.start(RunRequest(kind='discovery', discovery_mode='analyze', input_run_id=source['id'],
+        **{field: [dict(id='scope1' if scope_only else 'cq1', question='유형과 조건은?')]}))['run_id'])
+    assert seen and run['status']=='review_ready', run['result']['failures']
+
+
 def test_cancel_commits_current_call_and_resume_success_units(service, monkeypatch, model):
     source=prepare(service,file_ids=['current:0']); entered,release=Event(),Event()
     original=a2.model_call

@@ -507,8 +507,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         for definition in schema.get('$defs', {}).values():
             props = definition.get('properties', {})
             if 'cq_ids' in props:
-                props['cq_ids']['items']['enum'] = [c['id'] for c in run['cqs']]
-                props['scope_item_ids']['items']['enum'] = [c['id'] for c in run['scope_items']]
+                for field, values in [('cq_ids', run['cqs']), ('scope_item_ids', run['scope_items'])]:
+                    if values:
+                        props[field]['items']['enum'] = [c['id'] for c in values]
+                    else:
+                        # Ollama rejects enum=[] even on an optional array. Preserve the empty selection.
+                        props[field]['maxItems'] = 0
                 definition['required'] = list(props)
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
@@ -517,6 +521,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if 'cq_ids' in definition.get('properties', {}):
                 variants = []
                 for field in ('cq_ids', 'scope_item_ids', 'outside_scope_reason'):
+                    if definition['properties'][field].get('maxItems') == 0:
+                        continue
                     variant = deepcopy(definition)
                     variant['properties'][field]['minLength' if field=='outside_scope_reason' else 'minItems'] = 1
                     variants.append(variant)
