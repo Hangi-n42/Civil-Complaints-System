@@ -1,0 +1,51 @@
+{
+  "id": "a6-freeze-v2-schema-fix",
+  "frozen_at": "2026-10-01T03:19:04.860936+00:00",
+  "base_sha": "4979f5b91663cd20f9d7496fddc6fa2bdd538cb7",
+  "python": "3.11.9",
+  "packages": {
+    "pydantic": "2.11.7",
+    "httpx": "0.28.1",
+    "fastapi": "0.115.12",
+    "linkml-runtime": "1.11.1"
+  },
+  "sha256": {
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "1702698d273a1f1c6c3cabdf7eb6666877d4e2d8487d1884eaae8373fbac4347",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "0e503ff2ad99a48ed6f981593b163ba8a8cf7d0d5ce14f7af562cb4deb2afb8a",
+    "app/knowledge/discovery_profile.py": "1c6d260587ecb58c71ecd7e2136ff9dabb32538273f274cafcb5c8a3411f5271",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_synthesis.py": "3c0a2326f8843aa3cdad539e81590462acdb85965161f13eff16f096d964ed64",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "d578ee9af830365924e738854a8026d6bd46e3165550cf68036b8fc5ee8f387d",
+    "app/knowledge/ontology_changes.py": "b2544502b5f11001068fba201f853c4bb41df5c37fc6285685326ea4291f253d",
+    "app/knowledge/ontology_changes_models.py": "7d5c33f11a3a88734bbd078b98fa5109dbbc89086c4fb984d047737ff55524a5",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "configs/knowledge/a6_v1/assessor.json": "cb118a2c416841e9c00bdfb70f82e2191a745669248fe889c27b452d3cca73c1",
+    "configs/knowledge/a6_v1/generation.json": "f6b3ed0ea5d5ba6b9190e9fed91dd94c87537a07ca1e70655689cf6737f3ca06",
+    "configs/knowledge/a6_v1/reviewer_cards.json": "f7d431da8efe42fd7097f86eb5be6423f9752860fa84a55643c05d5d5e556730",
+    "configs/knowledge/lh_input_bundle_20260930/input_manifest.json": "eb1379a48588ba7bf6c2be3dc109a797f9da1740ac5599aca85b33bdea315cdf",
+    "scripts/run_knowledge_a6.py": "8f2524fb578a95baad974f85ce6511ba9aca130ed14f193b83ddbc8d35193b96"
+  },
+  "review_before_generation": [
+    "실험/누출/한도 경계 독립 AI 검수; 실제 주 분석 순서와 제공 집합 구분 반영",
+    "의미/원문 독립 AI 검수; 역사0/1 가용 정보 누락 기준 보완"
+  ],
+  "human_participants": 0,
+  "source_commit": "bb31c5538fa05b32bc7100ff75d9986f15b24dc4",
+  "prior_freeze_sha256": "2d00ee3c6ac6768b0eaba29b3263221a9365a9e50b4621db7260b161c65c9072",
+  "correction": "빈 CQ/scope enum의 Ollama HTTP400 수정. 입력·CQ·판정표·모델·예산 동일. 초기 실패 별도 보존. 수동 경로 구현 및 모델 호출 래퍼 미변경이므로 최초 수동 결과 재사용."
+}

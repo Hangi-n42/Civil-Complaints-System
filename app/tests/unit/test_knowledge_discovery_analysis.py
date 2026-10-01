@@ -94,6 +94,44 @@ def test_full_roles_frozen_evidence_and_no_publication(service, model, monkeypat
     assert again['result']['observations'][0]['id']==candidate['id']
 
 
+@pytest.mark.parametrize('scope_only', [False, True])
+def test_empty_cq_or_scope_selection_has_no_empty_ollama_enum(service, monkeypatch, scope_only):
+    source = prepare(service, file_ids=['current:0'])
+    original = a2.model_call
+    seen = []
+    async def check(prompt, schema, stage, run, timeout):
+        def walk(value):
+            if isinstance(value, dict):
+                assert value.get('enum') != []  # Ollama rejects this even when JSON Schema accepts it.
+                for child in value.values(): walk(child)
+            elif isinstance(value, list):
+                for child in value: walk(child)
+        walk(schema)
+        if stage == 'concept':
+            seen.append(stage)
+            empty = 'cq_ids' if scope_only else 'scope_item_ids'
+            for variant in schema['$defs']['Observation']['anyOf']:
+                assert variant['properties'][empty]['maxItems'] == 0
+                assert not variant['properties'][empty].get('minItems')
+        result = await original(prompt, schema, stage, run, timeout)
+        if scope_only:
+            value = json.loads(result['text'])
+            def swap(row):
+                if isinstance(row, dict):
+                    if 'cq_ids' in row: row.update(cq_ids=[], scope_item_ids=['scope1'])
+                    for child in row.values(): swap(child)
+                elif isinstance(row, list):
+                    for child in row: swap(child)
+            swap(value)
+            result['text'] = json.dumps(value, ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2, 'model_call', check)
+    field = 'scope_items' if scope_only else 'cqs'
+    run = done(service, service.start(RunRequest(kind='discovery', discovery_mode='analyze', input_run_id=source['id'],
+        **{field: [dict(id='scope1' if scope_only else 'cq1', question='유형과 조건은?')]}))['run_id'])
+    assert seen and run['status']=='review_ready', run['result']['failures']
+
+
 def test_cancel_commits_current_call_and_resume_success_units(service, monkeypatch, model):
     source=prepare(service,file_ids=['current:0']); entered,release=Event(),Event()
     original=a2.model_call
@@ -696,3 +734,94 @@ def test_failed_revision_is_explicitly_deferred_without_second_attempt(service,m
     assert model.count('revision')==1 and again['result']['revision_deferrals']
     assert next(u for u in again['analysis_units'] if u['stage']=='revision')==failed
     assert again['metrics']['llm_calls']==run['metrics']['llm_calls']==6
+
+
+def test_compaction_only_omits_quotes_with_the_same_provided_original():
+    raw = dict(ref='b1', text='조건을 포함한 원문 전체', locator={'page': 1})
+    evidence = [dict(evidence_id='b1', quote='원문 전체', start=7, end=12),
+                dict(evidence_id='b2', quote='원문 전체'), dict(evidence_id='b1', quote='다른 문장')]
+    payload = dict(blocks=[raw], reviewed_base=[dict(evidence=evidence)])
+    before = deepcopy(payload)
+    compact = a2.compact(payload)
+    assert payload == before and compact['blocks'] == [raw]
+    assert compact['reviewed_base'][0]['evidence'] == [dict(evidence_id='b1', start=7, end=12), *evidence[1:]]
+
+
+@pytest.mark.parametrize('search_budget', [0, 1])
+def test_search_budget_does_not_skip_available_critic_review(service, model, search_budget):
+    source = prepare(service, file_ids=['current:0'])
+    run = done(service, service.start(request(source['id'], discovery_budgets=dict(searches=search_budget)))['run_id'])
+    assert model == ['scout','concept','relation','builder','critic']
+    assert run['status']=='partial' and run['result']['review_groups']==1
+    assert len(run['result']['incomplete_review_searches'])==2-search_budget
+    assert run['metrics']['searches']==search_budget
+    resumed = done(service, service.start(RunRequest(kind='discovery', retry_of_run_id=run['id']))['run_id'])
+    assert resumed['status']=='partial' and model == ['scout','concept','relation','builder','critic']
+    assert resumed['metrics']['searches']==search_budget
+
+
+@pytest.mark.parametrize('required', [True, False])
+def test_one_block_list_capacity_preserves_raw_success_and_resume(service, monkeypatch, model, required):
+    survey = profile.survey
+    def optional(*args):
+        profiles, frontier, contexts = survey(*args)
+        for group in frontier: group['required'] = required
+        return profiles, frontier, contexts
+    monkeypatch.setattr(profile, 'survey', optional)
+    source = prepare(service, file_ids=['current:0'])
+    load = a2.load_blocks
+    text = '2020. 9. 8. 시행. 3.14 수치. ' + ' '.join(f'{i}. 유형명 조건과 제외 사항' for i in range(1,8))
+    def listed(*args):
+        blocks=load(*args)
+        blocks[0]['text']=text
+        return blocks
+    monkeypatch.setattr(a2, 'load_blocks', listed)
+    original = a2.model_call
+    async def four(prompt, schema, stage, run, timeout):
+        result = await original(prompt, schema, stage, run, timeout)
+        if stage=='concept':
+            assert json.loads(prompt.split('INPUT:\n')[1])['blocks'][0]['text']==text
+            value=json.loads(result['text'])
+            value['observations'] += [dict(value['observations'][0], local_ref='o3'),dict(value['observations'][0], local_ref='o4')]
+            result['text']=json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2, 'model_call', four)
+    run = done(service, service.start(request(source['id']))['run_id'])
+    pending=run['result']['capacity_pending'][0]
+    assert len(pending['numbered_items'])==7 and pending['roles']['concept']==dict(limit=5, output_count=4)
+    assert run['status']=='partial' and run['result']['processed_analysis_groups']==0
+    assert run['result']['analysis_succeeded']==0 and len(run['result']['both_roles_evidence_block_ids'])==1
+    assert all(u['status']=='succeeded' for u in run['analysis_units'])
+    before=list(model)
+    resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model==before and resumed['result']['capacity_pending']==run['result']['capacity_pending']
+    assert not profile.numbered_items([dict(id='b',text='2020. 9. 8. 시행 1. 20명 2. 30명 3.14 수치')])
+
+
+def test_role_scope_instructions_separate_primary_analysis_and_all_provided_review():
+    from app.knowledge.discovery_models import COMMON, PROMPTS
+    assert 'blocks가' not in COMMON
+    assert 'CQ 목록은 실행 전체 목표' in COMMON and '이번 호출 원문 미제공' in COMMON
+    for role in ('concept','relation'): assert '주 분석 대상' in PROMPTS[role]
+    for role in ('builder','critic','revision'):
+        assert 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문' in PROMPTS[role]
+    assert 'candidate_ref는 빈 문자열' in PROMPTS['critic']
+
+
+@pytest.mark.parametrize('model_searches', [1, 2])
+def test_same_two_search_budget_allows_critic_after_model_searches(service, monkeypatch, model, model_searches):
+    source = prepare(service, file_ids=['current:0'])
+    original = a2.model_call
+    async def search_first(prompt, schema, stage, run, timeout):
+        result = await original(prompt, schema, stage, run, timeout)
+        if stage=='scout':
+            output=json.loads(result['text'])
+            output['actions']=[dict(action='search', query=q, reason='모델의 선행 탐색')
+                               for q in ['국민임대','공급 조건'][:model_searches]]
+            result['text']=json.dumps(output,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2, 'model_call', search_first)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(searches=2)))['run_id'])
+    assert run['metrics']['searches']==2 and model.count('critic')==1
+    assert run['status']=='partial' and len(run['result']['incomplete_review_searches'])==model_searches
+    assert all(u['status']=='succeeded' for u in run['analysis_units'])

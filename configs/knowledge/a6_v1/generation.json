@@ -1,0 +1,174 @@
+{
+  "id": "a6-development-v1",
+  "exposure": "개발자와 AI에 사전 노출된 제한 개발 평가; 독립 비노출 검증셋 아님",
+  "manifest_sha256": "eb1379a48588ba7bf6c2be3dc109a797f9da1740ac5599aca85b33bdea315cdf",
+  "models": {
+    "draft": "gemma4:31b-it-q4_K_M",
+    "review": "qwen3.8:27b-q4_K_M"
+  },
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "common_options": {
+    "temperature": 0,
+    "think": false,
+    "num_ctx": 32768,
+    "num_predict": 4096
+  },
+  "budgets": {
+    "model_calls": 20,
+    "model_seconds": 1800,
+    "searches": 2,
+    "additional_rounds": 0,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "required_outputs": [
+    "CQ 연결 후보의 정의·근거·관계 방향·조건과 예외",
+    "충족 주장과 미해결/자료 부족을 구분"
+  ],
+  "cqs": {
+    "C1": {
+      "id": "C1",
+      "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+    },
+    "C2": {
+      "id": "C2",
+      "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+    },
+    "X1": {
+      "id": "X1",
+      "question": "선택한 5년임대 자료의 분양전환 의미와 자료 제공기관, 관리 역할, 공급주체를 어떻게 구분하는가?"
+    },
+    "H1": {
+      "id": "H1",
+      "question": "이번 시행 시점의 공공임대 유형과 정의는 무엇이며 이전 단계와 무엇이 달라졌는가?"
+    },
+    "H2": {
+      "id": "H2",
+      "question": "이번 단계 자료에서 확인되는 매입 대상 범위와 적용 조건 및 지원받는 매입계획의 사전 승인 조건은 무엇인가?"
+    }
+  },
+  "cases": [
+    {
+      "id": "manual_current",
+      "method": "manual",
+      "scope": "current_discovery",
+      "step": 0,
+      "file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cq_ids": [
+        "C1",
+        "C2"
+      ],
+      "lineage": "a6:manual_current"
+    },
+    {
+      "id": "auto_current",
+      "method": "autonomous",
+      "scope": "current_discovery",
+      "step": 0,
+      "file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cq_ids": [
+        "C1",
+        "C2"
+      ],
+      "lineage": "a6:auto_current",
+      "file_order": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ]
+    },
+    {
+      "id": "auto_reverse",
+      "method": "autonomous",
+      "scope": "current_discovery",
+      "step": 0,
+      "file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cq_ids": [
+        "C1",
+        "C2"
+      ],
+      "lineage": "a6:auto_reverse",
+      "file_order": [
+        "public_housing_rule_art15:0",
+        "public_housing_act_art2:0"
+      ]
+    },
+    {
+      "id": "contrast",
+      "method": "autonomous",
+      "scope": "contrast_extension",
+      "step": 0,
+      "file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0",
+        "lh_15084922:1"
+      ],
+      "cq_ids": [
+        "C1",
+        "C2",
+        "X1"
+      ],
+      "lineage": "a6:auto_current",
+      "base_case": "auto_current"
+    },
+    {
+      "id": "history0",
+      "method": "autonomous",
+      "scope": "historical_change",
+      "step": 0,
+      "file_ids": [
+        "decree_art2_20200805:0"
+      ],
+      "cq_ids": [
+        "H1",
+        "H2"
+      ],
+      "lineage": "a6:historical"
+    },
+    {
+      "id": "history1",
+      "method": "autonomous",
+      "scope": "historical_change",
+      "step": 1,
+      "file_ids": [
+        "decree_art2_20200805:0",
+        "decree_art2_20200908:0"
+      ],
+      "cq_ids": [
+        "H1",
+        "H2"
+      ],
+      "lineage": "a6:historical",
+      "base_case": "history0"
+    },
+    {
+      "id": "history2",
+      "method": "autonomous",
+      "scope": "historical_change",
+      "step": 2,
+      "file_ids": [
+        "decree_art2_20200805:0",
+        "decree_art2_20200908:0",
+        "decree_art2_20201019:0",
+        "decree_art37_20201019:0"
+      ],
+      "cq_ids": [
+        "H1",
+        "H2"
+      ],
+      "lineage": "a6:historical",
+      "base_case": "history1"
+    }
+  ]
+}

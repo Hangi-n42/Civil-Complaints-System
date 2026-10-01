@@ -12,11 +12,11 @@ from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v8'
+PROMPT_VERSION = 'discovery-a2-v9'
 
 
 def recipe(budgets):
-    return dict(profile_version='a2-survey-v3', prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(profile_version='a2-survey-v4', prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=12000,
@@ -238,11 +238,26 @@ def packet(ids, by_id, context_map):
                  source_role=by_id[i]['role'], table_context={k:v for k,v in context_map[i].items() if k!='block_ids'}) for i in complete]
 
 
-def compact(value):
+def compact(value, originals=None):
+    if originals is None:
+        originals = {}
+        pending = [value]
+        while pending:
+            item = pending.pop()
+            if isinstance(item, list): pending.extend(item)
+            elif isinstance(item, dict):
+                if isinstance(item.get('ref'), str) and isinstance(item.get('text'), str):
+                    originals[item['ref']] = item['text']
+                pending.extend(item.values())
     if isinstance(value, list):
-        return [compact(v) for v in value]
+        return [compact(v, originals) for v in value]
     if isinstance(value, dict):
-        return {k: compact(v) for k,v in value.items() if k not in {'evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref'}}
+        omitted = {'evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref'}
+        # Model input only: omit a quote only if that evidence's original is also provided.
+        if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
+                and value['quote'] in originals[value['evidence_id']]):
+            omitted.add('quote')
+        return {k: compact(v, originals) for k,v in value.items() if k not in omitted}
     return value
 
 
@@ -507,8 +522,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         for definition in schema.get('$defs', {}).values():
             props = definition.get('properties', {})
             if 'cq_ids' in props:
-                props['cq_ids']['items']['enum'] = [c['id'] for c in run['cqs']]
-                props['scope_item_ids']['items']['enum'] = [c['id'] for c in run['scope_items']]
+                for field, values in [('cq_ids', run['cqs']), ('scope_item_ids', run['scope_items'])]:
+                    if values:
+                        props[field]['items']['enum'] = [c['id'] for c in values]
+                    else:
+                        # Ollama rejects enum=[] even on an optional array. Preserve the empty selection.
+                        props[field]['maxItems'] = 0
                 definition['required'] = list(props)
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
@@ -517,6 +536,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if 'cq_ids' in definition.get('properties', {}):
                 variants = []
                 for field in ('cq_ids', 'scope_item_ids', 'outside_scope_reason'):
+                    if definition['properties'][field].get('maxItems') == 0:
+                        continue
                     variant = deepcopy(definition)
                     variant['properties'][field]['minLength' if field=='outside_scope_reason' else 'minItems'] = 1
                     variants.append(variant)
@@ -638,6 +659,7 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     common, deps, related = with_tool_context(service, run, common, deps, [concept_unit], by_id, context_map)
     supplied.update(related)
     relations = call(service, run, 'relation', key, dict(common, unapproved_observations=observations), deps, by_id, supplied)
+    capacity_status(run, group, by_id)
     if relations is None: return
     apply_actions(service, run, index, blocks, 'relation', key, relations)
     group['analysis_grounded'] = grounded_analysis(run, group, allowed_ids(service, blocks))
@@ -645,7 +667,26 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     save(service, run)
 
 
+def capacity_status(run, group, by_id):
+    markers = profile.numbered_items([by_id[i] for i in group['block_ids']])
+    roles = {}
+    pending = []
+    for stage, field in (('concept', 'observations'), ('relation', 'relations')):
+        limit = models.OUTPUTS[stage].model_json_schema()['properties'][field]['maxItems']
+        unit = next((u for u in run['analysis_units'] if u['id'] == stage + ':' + group['id']), None)
+        count = len(unit['output'][field]) if unit and unit['status'] == 'succeeded' else None
+        roles[stage] = dict(limit=limit, output_count=count)
+        if count == limit:
+            pending.append(stage + ': 출력 상한 도달; 추가 누락 여부 미확인')
+    if len(markers) > roles['concept']['limit']:
+        pending.append('인식한 번호 목록이 관측 상한을 초과; 목록 수는 필요한 후보 수의 확정값이 아님')
+    group['capacity'] = dict(roles=roles, numbered_items=markers,
+                             semantic_completeness='미검증; 목록 신호가 없어도 완전성 보장 아님')
+    group['capacity_pending'] = pending
+
+
 def grounded_analysis(run, group, available):
+    if group.get('capacity_pending'): return False
     for stage, field in (('concept','observations'), ('relation','relations')):
         unit = next((u for u in run['analysis_units'] if u['id']==stage+':'+group['id']), None)
         if not unit or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available:
@@ -665,7 +706,10 @@ def linked_blocks(run, group, stage, available):
 
 
 def finish(run, blocks, available):
+    by_id = {b['id']: b for b in blocks}
     for group in run.get('frontier', []):
+        if set(group['block_ids']) <= by_id.keys():
+            capacity_status(run, group, by_id)
         group['analysis_grounded'] = grounded_analysis(run, group, available)
     outputs = [u for u in run['analysis_units'] if u['status']=='succeeded' and set(u.get('dependency_ids', [])) <= available]
     original_observations = [c for u in outputs if u['stage']=='concept' for c in u['output'].get('observations', [])]
@@ -681,7 +725,7 @@ def finish(run, blocks, available):
     candidates = observations + relations
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
                 and any(u['id']=='critic:'+g['id'] for u in outputs)}
-    processed = {g['id'] for g in run.get('frontier', []) if all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in ('concept','relation'))}
+    processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in ('concept','relation'))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
     reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in reviewed for i in g['primary_candidate_ids']}
@@ -701,7 +745,9 @@ def finish(run, blocks, available):
     provided = {i for u in run['analysis_units'] if u.get('attempts') for i in u.get('provided_block_ids', [])}
     concept_linked = set().union(*(linked_blocks(run,g,'concept',available) for g in run.get('frontier', [])))
     relation_linked = set().union(*(linked_blocks(run,g,'relation',available) for g in run.get('frontier', [])))
-    analyzed = concept_linked & relation_linked
+    both_linked = concept_linked & relation_linked
+    capacity_pending_ids = {i for g in run.get('frontier', []) if g.get('capacity_pending') for i in g['block_ids']}
+    analyzed = both_linked - capacity_pending_ids
     selected = {i for g in run.get('frontier', []) for i in g['block_ids']}
     unfulfilled = sorted({i for r in run['extra_requests'] for i in r['block_ids']} - provided)
     titles = [f['title'] for f in run['frozen_input']['files']]
@@ -717,6 +763,10 @@ def finish(run, blocks, available):
         alignments=[a for u in outputs for a in u['output'].get('alignments', [])],
         taxonomy=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='builder'],
         critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
+        capacity_pending=[dict(group_id=g['id'], reasons=g['capacity_pending'], **g['capacity'])
+                          for g in run.get('frontier', []) if g.get('capacity_pending')],
+        incomplete_review_searches=[dict(group_id=g['id'], **search) for g in run.get('candidate_groups', [])
+                                   for search in g.get('critic_searches', []) if search['status']!='succeeded'],
         coverage=coverage, gaps=gaps, failures=failures, mandatory_pending=required_pending,
         unavailable_block_ids=sorted({b['id'] for b in blocks}-available),
         structure_surveyed=len(blocks), raw_provided=len(provided), analysis_succeeded=len(analyzed),
@@ -724,7 +774,7 @@ def finish(run, blocks, available):
         candidate_groups=len(run.get('candidate_groups', [])), no_result_groups=no_result, unreviewed_candidate_ids=unreviewed_candidates,
         selected_analysis_block_ids=sorted(selected), not_selected_block_ids=sorted({b['id'] for b in blocks}-selected),
         concept_evidence_block_ids=sorted(concept_linked), relation_evidence_block_ids=sorted(relation_linked),
-        evidence_linked_block_ids=sorted(concept_linked | relation_linked), both_roles_evidence_block_ids=sorted(analyzed),
+        evidence_linked_block_ids=sorted(concept_linked | relation_linked), both_roles_evidence_block_ids=sorted(both_linked),
         processed_without_linked_evidence_ids=sorted({i for g in run.get('frontier', []) if g['id'] in processed for i in g['block_ids']}-(concept_linked|relation_linked)),
         review_groups=len(reviewed), unvisited_block_ids=sorted({b['id'] for b in blocks}-provided),
         unanalysed_block_ids=sorted({b['id'] for b in blocks}-analyzed),
@@ -732,7 +782,7 @@ def finish(run, blocks, available):
         unprocessed_features=[dict(file_id=g['file_id'], features=g['features']) for g in run.get('frontier', [])
                               if not g.get('analysis_grounded') and g['features']])
     has_errors = any(u.get('tool_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
-    incomplete = bool(required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
+    incomplete = bool(run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or
                       any(p.get('csv', {}).get('unresolved_block_ids') for p in run.get('profiles', [])))
     run['status'] = 'cancelled' if run['status']=='cancel_requested' else 'partial' if incomplete else 'review_ready'

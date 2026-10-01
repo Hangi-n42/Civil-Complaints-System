@@ -1,0 +1,38 @@
+{
+  "id": "a6-correction-v1",
+  "frozen_at": "2026-10-01T04:50:51.075508+00:00",
+  "baseline_commit": "24f7acd2bd7fb1b95f885c491ac56c84d06dddce",
+  "purpose": "조율 검수의 여섯 결함에 대한 코드·무모델 재현 버전; 기존 비교 평가를 교체하지 않음",
+  "generation_http_limit": 0,
+  "actual_human_participants": 0,
+  "prompt_version": "discovery-a2-v9",
+  "prompt_sha256": "098d28a117068935875fd3832eaefe9b99bba3dfd09d84a5d9957c5de4909c54",
+  "schema_sha256": "1ef66250a2d32f4581980ed7e5aae5f45a2b272f09fa793a82a989071077898e",
+  "sha256": {
+    "app/knowledge/discovery_analysis.py": "62b8cbf21a11b8db168e51ebe8bf32a07d5a38fd31a4caa6e039ee82082863fc",
+    "app/knowledge/discovery_models.py": "d37eb8c9770783fb43aa87889610ef8b8423c592f1e7728e7873d9720ec324b4",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_synthesis.py": "7112a46e6a5cd5ee3854d3f40544b59fbbdc057d35a36101d89938a6000c8b3c",
+    "scripts/prepare_knowledge_a6_review.py": "f77d20d6aa1d755ed0b9018d7fdd34e81e93792f82c6fe0fcd629b9a42266e12",
+    "scripts/replay_knowledge_a6_correction.py": "9a364dd198999784ca4f981fc85ba850754fc39baea83e94e24fa9bd4f72c4b0",
+    "app/tests/unit/test_knowledge_a6.py": "6fe7f03d4983f52c4407121057bdcd833876ef72ebe8a0020b35f9cfb6195f59",
+    "app/tests/unit/test_knowledge_discovery_analysis.py": "e8378706b32d45cf39ae286c2073f2f5fa3656dfbd63f9c246e25b956d0cb141"
+  },
+  "preserved_freezes": {
+    "configs/knowledge/a6_v1/freeze.initial.json": "2d00ee3c6ac6768b0eaba29b3263221a9365a9e50b4621db7260b161c65c9072",
+    "configs/knowledge/a6_v1/freeze.json": "1f672a2a27798918c06f85e54fa0f3e0134c5e66d394860d69da7a30062734bf"
+  },
+  "checks": [
+    "참가자·조건·수정문·명세 변경과 기존 독립 판정의 결합 거절",
+    "오류 카드 통과 0/2와 요구 허위 승인 1건·전체 잔존 오류 1건 구분",
+    "저장 contrast/history2 입력 초과 7건 길이 비교 및 원문·위치·참조 보존",
+    "검색 2회에서 모델 선행 검색 1/2회 후 Critic 실행 및 미완료 검색 partial",
+    "history0 단일 블록 7목록·4관측의 완전성 미확인 및 재개 무재호출",
+    "주 분석 책임과 검수의 전체 제공 근거 범위·전체 CQ 목표 구분"
+  ],
+  "limitations": [
+    "무모델 fixture/replay는 생성 품질 개선·사람 감독 효용을 입증하지 않음",
+    "contrast Concept 입력 1건은 상한 초과 잔여; 상한 확대/원문 절단 없음",
+    "번호 목록 탐지는 한정적 구조 신호이며 필요 후보 수·의미 완전성 판정 아님"
+  ]
+}

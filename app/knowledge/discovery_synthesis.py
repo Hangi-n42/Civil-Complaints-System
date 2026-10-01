@@ -183,9 +183,19 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
         try:
             if 'critic_context_ids' not in group:
                 label=' '.join(c.get('label',c.get('subject','')) for c in group['candidates'][:3])
-                support=a2.search(service,run,index,blocks,label[:200],'critic_related')
-                counter=a2.search(service,run,index,blocks,(label[:100]+' 제외 다만 경우 변경')[:200],'critic_counter')
-                group['critic_context_ids']=list(dict.fromkeys(support+counter));a2.save(service,run)
+                searches=[]; retrieved=[]
+                for purpose,query in [('critic_related',label[:200]),
+                                      ('critic_counter',(label[:100]+' 제외 다만 경우 변경')[:200])]:
+                    try:
+                        ids=a2.search(service,run,index,blocks,query,purpose)
+                        retrieved.extend(ids)
+                        searches.append(dict(purpose=purpose,status='succeeded',block_ids=ids))
+                    except ValueError as exc:
+                        searches.append(dict(purpose=purpose,status='incomplete',reason=str(exc)))
+                group['critic_searches']=searches
+                group['critic_context_ids']=list(dict.fromkeys(retrieved));a2.save(service,run)
+            context['review_search_status']=[{k:v for k,v in item.items() if k!='block_ids'}
+                                             for item in group.get('critic_searches', [])]
             builder_unit=next(u for u in run['analysis_units'] if u['id']=='builder:'+key)
             requested=[i for r in builder_unit.get('tool_results', []) for i in r.get('block_ids', [])]
             context,deps,omitted=add_retrieved(run,'critic',context,deps,supplied,group['critic_context_ids']+requested,by_id,context_map)
