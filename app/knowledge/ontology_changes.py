@@ -128,7 +128,6 @@ def _convert(run, base, blocks):
                 raw['cq_ids'] = list(dict.fromkeys(raw['cq_ids'] + [i for i in target.get('cq_ids', []) if i in {q['id'] for q in run['cqs']}]))
                 raw['rationale'] += '; 기존 정의 대응: ' + match['reason']
             elif meaning!='distinct':
-                raw['support_type']='unresolved'
                 raw['unresolved_issues']=[*raw['unresolved_issues'], '기존 정의와 명칭·대상 동일성 및 의미 변경 여부 확인 필요']
                 origin['change_intent']='alignment_pending'
         row = _make(raw, base, origin)
@@ -156,7 +155,6 @@ def _convert(run, base, blocks):
                 if endpoint not in pending: row['after'][field] = target(row['after'][field])
             if pending or any(row['after'][field] not in classes for field in ('domain_id','range')):
                 row['review_status'] = 'deferred'
-                row['support_type'] = 'unresolved'
                 row['unresolved_issues'].append('관계 끝점의 유형 연결 미해결; 원문 주체·대상과 조건을 검토하고 연결 필요')
     hierarchies = {h['id']:h for t in result.get('taxonomy', []) for h in t.get('hierarchies', [])}
     for revision in result.get('revisions', []):
@@ -391,6 +389,10 @@ def _validate(repo, db, change, run, base):
         except ValidationError as exc:
             errors.append('contract: '+str(exc)); continue
         target = initial.get(c['target_id'])
+        if c['origin'].get('change_intent')=='alignment_pending' and not c['origin'].get('human_edited'):
+            errors.append('기존 정의 대응 미해결; 새 제안의 정의·근거·사유를 명시 검토 후 수정 필요')
+        if c['target_kind']=='relation' and c['origin'].get('unresolved_endpoints'):
+            errors.append('관계 끝점 연결 미해결: '+', '.join(c['origin']['unresolved_endpoints']))
         if c['operation']=='update' and target and any(
                 a.get('meaning') in {'same','changed'} and not _same_alignment_name(observations.get(a['observation_ref'], {}), target)
                 for a in c['origin'].get('alignments', [])):
@@ -658,6 +660,10 @@ def decide(service, changeset_id, request):
                 if d.action not in {'modify','edit'} or not set(d.patch)<=EDITABLE:
                     raise ValueError('수정 필드/작업 오류; 서버 ID는 수정 불가')
                 c.update(deepcopy(d.patch));c['origin']['human_edited']=True
+                # Explicit endpoint edits resolve binding only; class/evidence validation still runs below.
+                if c['target_kind']=='relation' and 'after' in d.patch:
+                    c['origin']['unresolved_endpoints']=[key for key in c['origin'].get('unresolved_endpoints', [])
+                        if {'subject':'domain_id','object':'range'}[key] not in d.patch['after']]
             c['review_status']={'accept':'accepted','modify':'accepted','edit':'unreviewed','defer':'deferred','reject':'rejected'}[d.action]
         _validate(repo,db,change,run,base)
         for d in request.decisions:

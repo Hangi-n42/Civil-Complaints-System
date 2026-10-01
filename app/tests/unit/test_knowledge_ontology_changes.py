@@ -630,6 +630,9 @@ def test_different_named_alignment_is_deferred_without_replacing_base(service, m
     row=listing(service,a3.publish(service,run['id'])['changeset_id'])['candidates'][0]
     assert row['operation']=='add' and row['target_id']!=first['target_id']
     assert row['review_status']=='deferred' and not row['can_accept']
+    assert row['support_type']==observation['support_type']=='explicit'
+    with pytest.raises(ValueError,match='기존 정의 대응 미해결'):
+        decide(service,row['changeset_id'],[dict(candidate_id=row['id'],action='accept')])
     assert row['after']['definition']==observation['definition'] and row['evidence_refs']==observation['evidence_refs']
     assert v1.get_ontology(service,base['id'])==base
 
@@ -683,7 +686,7 @@ def test_conditional_relation_keeps_permission_choice_and_evidence_when_endpoint
         target=next(c for c in v1.get_ontology(service,accepted['reviewed_ontology_version_id'])['targets'] if c['id']==row['target_id'])
         assert target['qualifiers']['scope']==relation['conditions'] and target['name']==relation['predicate']
     else:
-        assert not row['can_accept'] and row['review_status']=='deferred' and row['support_type']=='unresolved'
+        assert not row['can_accept'] and row['review_status']=='deferred' and row['support_type']=='explicit'
         assert row['after']['domain_id']==result['id_mapping'].get('actor', {}).get('target_id', 'actor')
         assert len([c for c in result['candidates'] if c['target_kind']=='class'])==1
 
@@ -701,7 +704,93 @@ def test_unprovided_relation_id_cannot_bind_to_another_groups_class(service):
     with service.repository.connect() as db: service.repository.save(db,'runs',run)
     result=listing(service,a3.publish(service,run['id'])['changeset_id'])
     row=next(c for c in result['candidates'] if c['target_kind']=='relation')
-    assert row['after']['domain_id']==source['id'] and row['support_type']=='unresolved'
+    assert row['after']['domain_id']==source['id'] and row['support_type']=='explicit'
     assert row['review_status']=='deferred' and not row['validation']['can_accept_with_dependencies']
     with pytest.raises(ValueError,match='수락 집합 오류'):
         decide(service,result['id'],[dict(candidate_id=c['id'],action='accept') for c in result['candidates']])
+
+
+@pytest.mark.parametrize('statement,support,problem,expected_error', [
+    ('rule', None, None, None),
+    ('design_proposal', None, None, None),
+    ('rule', 'unresolved', None, '제안 방식과 이유 미해결'),
+    ('unresolved', None, None, '제안 방식과 이유 미해결'),
+    ('rule', None, 'quote', 'evidence:'),
+    ('rule', None, 'missing_evidence', '출처 근거 필요'),
+    ('rule', None, 'negated', '부정된 관계'),
+])
+def test_endpoint_edit_resolves_only_binding_not_support_or_other_errors(service, statement, support, problem, expected_error):
+    run,ref=analysis(service)
+    relation=dict(id='dc_relation',local_ref='r1',subject='미연결 주체',object=run['result']['observations'][0]['id'],
+        predicate='선택할 수 있다',direction='subject_to_object',negation='negated' if problem=='negated' else 'affirmed',
+        conditions='잔여 대상에 일부 완화 또는 선착순 허용',time='해당 시행 시점',statement_type=statement,
+        evidence_refs=[] if problem=='missing_evidence' else [dict(ref,quote='원문과 다른 인용') if problem=='quote' else ref],
+        cq_ids=['cq'],scope_item_ids=[],validation=[],unresolved_endpoints=['subject'])
+    if support: relation['support_type']=support
+    run['result']['relations']=[relation]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    before=listing(service,cid)
+    kind=next(c for c in before['candidates'] if c['target_kind']=='class')
+    row=next(c for c in before['candidates'] if c['target_kind']=='relation')
+    expected_support=support or ('explicit' if statement=='rule' else statement)
+    assert row['support_type']==expected_support and not row['can_accept']
+    assert row['evidence_refs']==relation['evidence_refs']
+    assert row['qualifiers']['scope']==relation['conditions']
+    assert '관계 끝점 연결 미해결' in str(row['validation'])
+    decide(service,cid,[dict(candidate_id=kind['id'],action='accept')])
+    decide(service,cid,[dict(candidate_id=row['id'],action='edit',patch={
+        'after':dict(row['after'],domain_id=kind['target_id'])})])
+    after=listing(service,cid)
+    edited=next(c for c in after['candidates'] if c['id']==row['id'])
+    assert edited['support_type']==expected_support and edited['origin']['unresolved_endpoints']==[]
+    assert edited['evidence_refs']==row['evidence_refs'] and edited['qualifiers']==row['qualifiers']
+    assert edited['target_id']==row['target_id']
+    assert after['analysis_result']==run['result'] and after['original_candidates']==before['original_candidates']
+    assert '끝점 연결 미해결' not in str(edited['validation']) and 'class ID 필요' not in str(edited['validation'])
+    if expected_error:
+        assert not edited['can_accept'] and expected_error in str(edited['validation'])
+        with pytest.raises(ValueError,match=expected_error):
+            decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+    else:
+        assert edited['can_accept']
+        result=decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+        target=next(c for c in v1.get_ontology(service,result['reviewed_ontology_version_id'])['targets'] if c['id']==row['target_id'])
+        assert target['qualifiers']==row['qualifiers'] and target['evidence_refs']==row['evidence_refs']
+
+
+def test_unprovided_existing_class_ids_need_explicit_endpoint_edit(service):
+    seed,_=analysis(service)
+    first=a3.publish(service,seed['id'])['changeset_id']
+    kind=listing(service,first)['candidates'][0]
+    base=decide(service,first,[dict(candidate_id=kind['id'],action='accept')])['reviewed_ontology_version_id']
+    run,ref=analysis(service,base=base)
+    run['result']['relations']=[dict(id='r1',subject=kind['target_id'],object=kind['target_id'],predicate='관련 역할',
+        direction='subject_to_object',negation='affirmed',conditions='한정 범위',time='',statement_type='rule',
+        evidence_refs=[ref],cq_ids=['cq'],scope_item_ids=[],validation=[],unresolved_endpoints=['subject','object'])]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['target_kind']=='relation')
+    assert row['support_type']=='explicit'
+    decide(service,cid,[dict(candidate_id=row['id'],action='edit',patch={'rationale':'이유만 수정'})])
+    with pytest.raises(ValueError,match='끝점 연결 미해결'):
+        decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+    decide(service,cid,[dict(candidate_id=row['id'],action='modify',patch={'after':row['after']})])
+    assert next(c for c in listing(service,cid)['candidates'] if c['id']==row['id'])['review_status']=='accepted'
+
+
+def test_legacy_unresolved_support_is_not_inferred_or_written_on_read(service):
+    run,_=analysis(service)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    with service.repository.connect() as db:
+        stored_run=service.repository.get(db,'runs',run['id'])
+        legacy=service.repository.get(db,'changesets',cid)
+        legacy['candidates'][0]['support_type']='unresolved'
+        legacy['original_candidates'][0]['support_type']='unresolved'
+        service.repository.save(db,'changesets',legacy)
+    read=listing(service,cid)
+    assert read['candidates'][0]['support_type']=='unresolved' and not read['candidates'][0]['can_accept']
+    assert read['original_candidates']==legacy['original_candidates']
+    with service.repository.connect() as db:
+        assert service.repository.get(db,'changesets',cid)==legacy
+        assert service.repository.get(db,'runs',run['id'])==stored_run
