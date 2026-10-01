@@ -57,6 +57,17 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy):
                 if section=='issues':
                     if item['candidate_ref'] and item['candidate_ref'] not in supplied:
                         raise ValueError('검토 대상 후보 참조 불일치')
+                    if item['target_ref'] and item['target_ref'] not in supplied:
+                        raise ValueError('대응 정의가 실제 제공 범위 밖')
+                    if item['cause'] in {'evidence_error','endpoint','alignment'} and not item['candidate_ref']:
+                        raise ValueError('원인별 보완은 실제 대상 후보 필요')
+                    if item['cause'] in {'source_absent','budget_exhausted'} and not item['defer_reason']:
+                        raise ValueError('자료 미제공/예산 종료의 구체 보류 사유 필요')
+                    if item['cause']=='budget_exhausted':
+                        budget, metrics = run['recipe']['budgets'], run['metrics']
+                        if (metrics['llm_calls']<budget['model_calls'] and metrics['model_total_s']+metrics.get('interrupted_time_reserve_s',0)<budget['model_seconds']
+                                and (not item['candidate_ref'] or budget['revisions'])):
+                            raise ValueError('서버 잔여량으로 확인되지 않은 예산 종료 판단')
                     if not item['evidence_ids'] and not item['counter_evidence_ids'] and not item['defer_reason'].strip():
                         raise ValueError('근거 없는 쟁점에는 명시적 보류 사유 필요')
                     item['id']='di_'+uuid4().hex

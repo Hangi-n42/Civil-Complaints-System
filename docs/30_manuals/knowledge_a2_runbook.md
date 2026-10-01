@@ -53,7 +53,7 @@
 ## 저장·재개·종료
 
 - Run에 입력 A1 ID·frozen_input·CQ/범위·기준 YAML·모델명/digest/컨텍스트·프롬프트/스키마/프로파일 버전·예산을 고정한다.
-- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 프롬프트 `discovery-a2-v8`. 기존 v7 실행 원장은 수정하지 않으며 레시피가 달라 재개 대신 새 실행이 필요하다.
+- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v18`. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
 - 호출 전후와 재개에서 K5 상태 확인. 원문뿐 아니라 전체 생성 의존성을 가진 요약/관측/lookup 결과도 사용 중단 근거를 포함하면 후속 입력에서 보류한다.
 - endpoint는 loopback HTTP만 허용. localhost는 127.0.0.1로 고정하고 proxy·redirect를 사용하지 않는다. 설치 모델 digest와 선언 컨텍스트를 확인하며 실행 중 다운로드나 외부 모델 fallback 없음.
 - 기본 상한은 48회/검색 24회/추가 2라운드/묶음 수정 1회. 실패 호출도 포함. 신규 원문 분석 전에 Builder/Critic 호출을 예약한다. 이미 완료된 분석 재사용에는 새 예약을 요구하지 않는다. 연장·자동 예산 증액 없음.
@@ -94,6 +94,10 @@
 - 이번 실패 호출 비용 69.655초를 포함한다. 이전 개발 실패·취소 실행 40회/2,625.987초와 이전 v7 확인 9회/501.436초까지 포함한 누계는 **59회/3,719.880초**다. 재사용은 실제 호출로 더하지 않았다. 원장·원출력·확인 파일은 로컬 `data/knowledge/a2_smoke_20260930/knowledge.db` 및 `data/knowledge/a2_fix_20260930/{request,result,result_resume_attempt,result_resumed,verification}.json`에 보존하고 커밋하지 않았다.
 
 ## A3 연결과 한계
+
+- D4 복구는 기존 `recovery_requests`에서 원인·실제 대상·역할·허용 범위로 구분한다. `extraction_missing`만 담당 원문 구간의 해당 Concept 또는 Relation에 보낸다. 같은 구간의 여러 누락은 `meanings`에 보존하고, 실행에 제출한 목록은 따로 고정한다. 문구가 달라져도 같은 작업을 반복 호출하지 않으며 뒤늦은 추가 누락은 `unattempted_meanings`에 남긴다.
+- `evidence_error`는 기존 revision에서 후보 ID·의미를 유지하고 근거 선택만 보완한다. `endpoint`는 기존 Builder 연결 결과/명시 검수, `alignment`는 해당 기존 정의와 명시 대응 검수로 남긴다. `source_absent`는 부족한 원문·확인 범위, `budget_exhausted`는 실제 종료 사유를 기록한다. 기존 의미 오류는 `content_error`로 기존 수정 한도 안에서 처리한다. 자동 예산 증액은 없다.
+- `proposals_created`도 의미 충족·사람 검수 완료가 아니며 `unresolved_recovery_requests`에 남는다. `semantic_status`와 `proposal_review_status`는 `unverified`다. `metrics.recovery_calls/recovery_model_s/recovery_attempted_tasks/recovery_remaining_by_cause`로 복구 호출·시간·실행된 작업·원인별 잔여를 조회한다. 성공 unit은 해시가 달라도 덮어쓰지 않으며 실패한 동일 복구 추출은 재개 시 반복 호출하지 않는다. 비교용 검색 결과는 추가 원문 분석으로 자동 승격하지 않는다.
 
 - A3는 `GET /runs/{id}`의 result v2와 revision_history/effective_hierarchies/명시 보류를 함께 읽어야 한다. 관측·관계 최신값만으로 이전 Critic 판단을 수정 후 검수 완료로 간주하지 않는다. 기존 result 관측·관계·계층·별칭·양방향 판단·Critic 쟁점·공백·서버 후보 ID 및 기존 evidence/parse/version 참조를 소비한다. `unreviewed`, `validation`, 범위 밖 목록과 미처리 목록을 유지해야 한다.
 - 다음 작업은 A3 변경 모델/의존 묶음/정본 변환. reviewed 버전 발행, 계보 head 승인 충돌, 검수 UI, K4/K5 소비자 갱신, A6 사람 시험은 후속 범위다.

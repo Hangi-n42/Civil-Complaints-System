@@ -381,7 +381,8 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
     with TestClient(app) as client:
         started=client.post('/api/v1/knowledge/runs',json=request(source['id']).model_dump(exclude_unset=True))
         assert started.status_code==200
-        run=done(service,started.json()['data']['run_id']);assert run['status']=='review_ready',run['result']['failures']
+        run=done(service,started.json()['data']['run_id']);assert run['status']=='partial',run['result']['failures']
+        assert run['result']['unresolved_recovery_requests'][0]['cause']=='content_error'
         result=client.get('/api/v1/knowledge/runs/'+run['id']).json()
         assert result['success'] and result['data']['analysis_counts']['succeeded']==5
         assert client.get('/api/v1/knowledge/discovery/terms',params=dict(run_id=run['id'],label='국민')).json()['data']['items']
@@ -474,7 +475,8 @@ def test_real_reviewed_base_uses_evidence_block_version_and_term_lookup(service)
     published=ontology.publish(service,base_run,[candidate])
     decision=ontology.decide(service,published['changeset_id'],dict(expected_changeset_revision=0,actor='tester',decisions=[dict(candidate_id='Housing',action='accept')]))
     run=done(service,service.start(request(source['id'],base_ontology_version_id=decision['reviewed_ontology_version_id']))['run_id'])
-    assert run['status']=='review_ready',run.get('error')
+    assert run['status']=='partial',run.get('error')
+    assert any(r['cause']=='endpoint' and r['status']=='manual_review' for r in run['result']['unresolved_recovery_requests'])
     term=next(c for c in a2.terms(service,run['id'],'국민')['items'] if c['id']=='Housing')
     assert term['review_status']=='reviewed'
     assert term['evidence'][0]['evidence_id']==block['evidence_id']
@@ -1153,8 +1155,10 @@ def test_critic_missing_meaning_separate_bounded_analysis(service,monkeypatch,mo
     recovery=[g for g in run['frontier'] if g.get('recovery_request_id')]
     if rounds and not invalid:
         assert len(recovery)==1 and requests[0]['status']=='proposals_created',run.get('error')
-        assert recovery[0]['roles']==(['relation'] if role=='relation' else ['concept','relation'])
+        assert recovery[0]['roles']==[role]
         assert requests[0]['proposal_ids'] and not any(u['stage']=='revision' for u in run['analysis_units'])
+        assert requests[0] in run['result']['unresolved_recovery_requests'] and requests[0]['semantic_status']=='unverified'
+        assert model.count('relation' if role=='concept' else 'concept')==1
     elif invalid:
         assert not recovery and run['status']=='partial' and run['result']['review_record_errors']
         assert not any(u['stage']=='revision' for u in run['analysis_units'])

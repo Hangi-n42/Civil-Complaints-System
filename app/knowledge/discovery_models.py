@@ -153,6 +153,8 @@ class Taxonomy(Record):
 class Issue(Record):
     local_ref: str = Field(pattern=r'^i[1-8]$')
     candidate_ref: str = ''
+    cause: Literal['content_error', 'evidence_error', 'endpoint', 'alignment', 'source_absent', 'budget_exhausted'] = 'content_error'
+    target_ref: str = ''
     reason: str = Field(min_length=1, max_length=600)
     evidence_ids: list[str] = Field(max_length=8)
     counter_evidence_ids: list[str] = Field(max_length=8)
@@ -227,6 +229,9 @@ Critic 쟁점의 local_ref는 i1,i2처럼 고유하게 기록한다. request_evi
 CQ 목록은 실행 전체 목표이며 각 묶음의 필수 답변 목록이 아니다. 공백은 '이번 호출 원문 미제공', '제공 원문 대비 산출 누락', '동결 입력 내 원문 부재/미확인'을 구분한다. 이번 호출의 미제공만으로 부재나 반증을 단정하지 않는다. table_context의 미확인은 검수 쟁점이다.
 도구는 read(unit_id), search(query), lookup_term(label,term_type), request_evidence(issue_id,query), finish(reason)만 가능하다.
 이미 제공된 원문 반복 읽기보다 미방문·예외·반례를 요청한다. 도구 요청은 actions에 쓰며 없는 ID/외부 경로를 만들지 않는다.
+recovery_meanings는 이번 역할이 보완할 누락 목록이다. 각 항목을 확인하되 이미 추출한 의미를 이름만 바꿔 재생성하지 않는다. 새 후보가 생겨도 모든 누락이 해결됐다는 뜻은 아니다.
+Critic issues.cause는 기존 의미 오류 content_error, 동일 의미의 인용/근거 선택 오류 evidence_error, 유형 끝점 연결 endpoint, 기존 정의 대응 alignment, 실제 미제공 원문 source_absent로 구분한다. budget_exhausted는 실제 실행 예산 종료일 때만 쓴다. endpoint/alignment는 해당 candidate_ref와 실제 제공 target_ref(알면)를 지정하며 원문 재추출을 요청하지 않는다. source_absent는 부족한 문서/조항과 확인 범위를 defer_reason에 기록한다. 비교용 원문에서 새 분석 누락을 만들지 않는다.
+revision의 evidence_only_ids는 의미·분류·조건·시점·관계 끝점을 보존한 채 source_refs/source_quotes 근거 선택만 보완한다. 같은 의미를 지지하는 제공 원문이 없으면 deferred로 남긴다.
 '''
 PROMPTS = {
     'scout': '전체 구조 프로파일과 frontier를 보고 자료 역할·필수 절·대표/예외 행·CQ 공백을 조사한다. 우선 필요한 unit을 read하거나 근거를 search한다. finish는 필수 분석을 면제하지 않는다.',

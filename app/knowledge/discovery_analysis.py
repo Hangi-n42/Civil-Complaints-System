@@ -12,7 +12,7 @@ from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews, discovery_design as design
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v17'
+PROMPT_VERSION = 'discovery-a2-v18'
 
 
 def recipe(budgets):
@@ -111,7 +111,7 @@ def start(service, request):
                 raise ValueError('종료된 분석 실행만 재개할 수 있습니다.')
             run['reused_units'] = [u['id'] for u in run['analysis_units'] if u['status'] == 'succeeded']
             for unit in run['analysis_units']:
-                if unit['status'] != 'succeeded' and not (unit['stage']=='revision' and unit['attempts']):
+                if unit['status'] != 'succeeded' and not (unit['attempts'] and (unit['stage']=='revision' or ':recovery_' in unit['id'])):
                     unit.update(status='queued', error=None)
             run.pop('error', None)
         else:
@@ -204,7 +204,7 @@ def search(service, run, index, blocks, query, purpose):
     return [h['block_id'] for h in hits]
 
 
-def dispatch(service, run, index, blocks, action):
+def dispatch(service, run, index, blocks, action, analysis_request=False):
     action = models.Action.model_validate(action)
     if action.action == 'read':
         group = next((g for g in run['frontier'] if g['id']==action.unit_id), None)
@@ -227,7 +227,8 @@ def dispatch(service, run, index, blocks, action):
         result = dict(reason=action.reason, block_ids=[])
     run['tool_events'].append(dict(**action.model_dump(), result=result, at=utcnow()))
     if result.get('block_ids'):
-        run['extra_requests'].append(dict(block_ids=result['block_ids'], reason=action.reason))
+        run['extra_requests'].append(dict(block_ids=result['block_ids'], reason=action.reason,
+            purpose='analysis' if analysis_request else 'comparison'))
     save(service, run)
     return result
 
@@ -301,7 +302,18 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
                 expected = 'classification' if field=='observations' else 'negation' if field=='relations' else 'child_ref'
                 if expected not in original:
                     raise ValueError('수정 대상 종류 불일치')
+                evidence_only = identifier in (context or {}).get('evidence_only_ids', [])
+                if evidence_only:
+                    before = {k:v for k,v in original.items() if k not in {'source_relation','endpoint_labels'}}
+                    if meaning_signature(row) != meaning_signature(before):
+                        raise ValueError('근거 선택 보완은 기존 의미를 변경할 수 없음')
                 replacement = normalize({field:[row]}, role, run, deps, by_id, supplied)[field][0]
+                if evidence_only:
+                    repaired = deepcopy(original)
+                    for key in ('evidence_ids','source_refs','source_quotes','evidence_refs','validation'):
+                        if key in replacement: repaired[key]=replacement[key]
+                    replacement.clear()
+                    replacement.update(repaired)
                 for key in ('source_relation','source_relation_ids','design_reason'):
                     if key in original: replacement[key]=deepcopy(original[key])
                 if original.get('source_relation_ids'):
@@ -434,6 +446,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     context = segments.bind(context, source_scope, uid)
     mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
     input_hash = profile.digest([prompt, run['recipe']])
+    # A resumed successful unit is immutable, even when its newly built input is wrong.
+    if unit['status'] == 'succeeded':
+        if not set(deps) <= allowed_ids(service, list(by_id.values())):
+            raise ValueError('사용 중단/재검토 근거가 성공 단위에 포함됨')
+        if unit['input_hash'] != input_hash:
+            raise ValueError('성공 단위의 입력 해시 변경: 새 실행 필요')
+        return unit['output']
+    if ':recovery_' in uid and unit['attempts']:
+        return None  # One attempt per cause/target; resume cannot reset a failed recovery.
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
     citation_ids = unit['provided_block_ids']
@@ -442,10 +463,6 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     try:
         if not set(deps) <= allowed_ids(service, list(by_id.values())):
             raise ValueError('사용 중단/재검토 근거가 원문 또는 파생 입력에 포함됨')
-        if unit['status'] == 'succeeded':
-            if unit['input_hash'] != input_hash:
-                raise ValueError('성공 단위의 입력 해시 변경: 새 실행 필요')
-            return unit['output']
         if cancelled(service, run):
             return None
         if len(prompt) > run['recipe']['input_chars']:
@@ -502,6 +519,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         issue_schema = schema.get('$defs', {}).get('Issue')
         if issue_schema:
             issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
+            issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
         for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation')]:
             definition = schema.get('$defs', {}).get(name)
             if definition:
@@ -612,10 +630,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 rows = output['observations' if stage=='concept' else 'relations']
                 group = next(g for g in run['frontier'] if g['id']==key)
                 for candidate in rows:
-                    if meaning_signature(candidate) in group.get('previous_signatures', []):
+                    if meaning_signature(candidate, supplied) in group.get('previous_signatures', []):
                         candidate['validation'].append('누락 복구에서 기존 의미 산출 반복; 새 복구 결과 아님')
                     refs, errors = segments.references(candidate, by_id, segments.originals(context))
                     candidate['evidence_refs'] = refs
+                    candidate['evidence_validation'] = errors
                     candidate['validation'].extend(errors)
                 primary = raw_refs(context.get('blocks', []))
                 if rows and not any(primary & set(c['evidence_ids']) for c in rows) and not output['gaps']:
@@ -625,6 +644,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 for candidate in revised:
                     refs, errors = segments.references(candidate, by_id, segments.originals(context))
                     candidate['evidence_refs'] = refs
+                    candidate['evidence_validation'] = errors
                     candidate['validation'].extend(errors)
                 for history in output['history']:
                     replacement = next((c for c in revised if c['id']==history['candidate_id']), None)
@@ -653,7 +673,7 @@ def apply_actions(service, run, index, blocks, stage, key, output):
     unit['tool_errors'] = []
     for action in output.get('actions', []):
         try:
-            result = dispatch(service, run, index, blocks, action)
+            result = dispatch(service, run, index, blocks, action, analysis_request=stage=='scout')
             if stage == 'scout' and action['action'] == 'read':
                 for group in run['frontier']:
                     if group['id'] == action['unit_id']:
@@ -672,44 +692,115 @@ def base_context(run):
             for c in run['base_candidates']]
 
 
-def meaning_signature(candidate):
+def meaning_signature(candidate, supplied=None):
+    supplied = supplied or {}
+    candidate = candidate.get('source_relation') or candidate
     fields = ('label','classification','definition','conditions','exceptions','time') if 'classification' in candidate else (
         'subject','predicate','object','direction','negation','conditions','time','statement_type')
-    return profile.digest({k:candidate.get(k, '') for k in fields})
+    values = {k:candidate.get(k, '') for k in fields}
+    for key in ('subject','object'):
+        if key not in values: continue
+        target = supplied.get(values[key], {})
+        values[key] = candidate.get('endpoint_labels', {}).get(key) or target.get('label') or target.get('name') or values[key]
+    return profile.digest({k:' '.join(str(v).split()) for k,v in values.items()})
 
 
-def queue_recovery(run, review, group):
+def queue_recovery(run, review, group, by_id=None):
+    by_id = by_id or {}
+    requests = run.setdefault('recovery_requests', [])
+    scope = [run.get('frozen_input', {}).get(k) for k in ('bundle_id','scope','step')]
+    scope += [run.get('analysis_block_ids'), run.get('cqs', []), run.get('scope_items', [])]
+    def add(cause, role, target, need, validation=()):
+        key = profile.digest([cause, target, role, scope])
+        request = next((r for r in requests if r['id']==key), None)
+        if request is None:
+            request = dict(deepcopy(need), id=key, cause=cause, role=role, target=target,
+                validation=list(validation), critic_group_id=group['id'], meanings=[], status='pending',
+                semantic_status='unverified')
+            requests.append(request)
+        elif request['validation'] and not validation and not request.get('group_id'):
+            # A rejected comparison request must not consume the actual owner's one attempt.
+            request.update(validation=[],status='pending',critic_group_id=group['id'])
+        meaning = {k:deepcopy(v) for k,v in need.items() if k not in {'validation','id'}}
+        def identity(m):
+            return [' '.join(m.get('meaning','').split()), sorted(m.get('cq_ids', [])), sorted(m.get('scope_item_ids', [])),
+                    sorted((e['block_id'],e['span']) for e in m.get('evidence_refs', []))]
+        if not any(identity(m)==identity(meaning) for m in request['meanings']): request['meanings'].append(meaning)
+        return request
+    owners = [g for g in run.get('frontier', []) if g['id'] in group.get('analysis_group_ids', [group['id']])]
+    owned = [v for g in owners for i in g['block_ids'] for v in
+             (g.get('segments') or ([dict(block_id=i,span=[0,len(by_id[i]['text'])])] if i in by_id else [])) if v['block_id']==i]
     for need in review.get('missing_meanings', []):
-        key = profile.digest([need['role'], sorted((e['block_id'], e['span']) for e in need['evidence_refs'])])
-        requests = run.setdefault('recovery_requests', [])
-        if any(r['id']==key for r in requests): continue
         validation = list(need['validation'])
         selected = run.get('analysis_block_ids')
         if selected is not None and any(e['block_id'] not in selected for e in need['evidence_refs']):
             validation.append('선택 분석 블록 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
-        requests.append(dict(need, validation=validation, id=key, critic_group_id=group['id'], status='pending'))
+        targets = []
+        for ref in need['evidence_refs']:
+            views = [v for v in owned if v['block_id']==ref['block_id'] and v['span'][0]<=ref['span'][0] and ref['span'][1]<=v['span'][1]]
+            if owners and not views: validation.append('담당 분석 구간 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
+            view = views[0] if views else ref
+            target = [view['block_id'], view['span']]
+            if target not in targets: targets.append(target)
+        add('extraction_missing', need['role'], sorted(targets), need, validation)
+    candidates = {c['id']:c for c in group.get('candidates', [])}
+    candidates.update({c['id']:c for c in group.get('design_candidates', [])})
+    primary = set(group.get('primary_candidate_ids', [])) | set(group.get('design_candidate_ids', []))
+    issues = list(review.get('issues', []))
+    for unit in run.get('analysis_units', []):
+        if unit['status']!='succeeded': continue
+        for alignment in unit.get('output', {}).get('alignments', []):
+            identifier = alignment['observation_ref']
+            if identifier not in primary: continue
+            target = candidates.get(alignment['target_id'], {})
+            name = candidates[identifier].get('label')
+            if alignment.get('meaning')=='uncertain' or (alignment.get('meaning') in {'same','changed'} and name!=(target.get('name') or target.get('label'))):
+                issues.append(dict(candidate_ref=identifier,cause='alignment',target_ref=alignment['target_id'],reason=alignment['reason']))
+    for identifier in sorted(primary & candidates.keys()):
+        c = candidates[identifier]
+        for cause, reason in [('endpoint', '미연결 끝점: '+', '.join(c.get('unresolved_endpoints', []))),
+                              ('evidence_error', '; '.join(c.get('evidence_validation', [])))]:
+            if cause=='endpoint' and not c.get('unresolved_endpoints') or cause=='evidence_error' and not c.get('evidence_validation'): continue
+            issues.append(dict(candidate_ref=identifier,cause=cause,reason=reason))
+    for issue in issues:
+        cause = issue.get('cause', 'content_error')
+        identifier = issue.get('candidate_ref', '')
+        c = candidates.get(identifier, {})
+        target = dict(candidate_id=identifier) if identifier else dict(group_id=group['id'])
+        if cause=='endpoint': target['endpoints']=c.get('unresolved_endpoints') or ['subject','object']
+        if cause=='alignment': target['definition_id']=issue.get('target_ref', '')
+        role = 'revision' if cause in {'evidence_error','content_error'} else 'builder' if cause=='endpoint' else 'review'
+        request = add(cause, role, target, dict(meaning=issue['reason'],candidate_ref=identifier,
+            target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', '')))
+        if cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
+            request.update(status='budget_exhausted' if cause=='budget_exhausted' else 'source_absent' if cause=='source_absent' else 'manual_review',
+                reason=('원문 관계 보존; 기존 Builder 연결 결과를 명시 검수' if cause=='endpoint' else
+                        '관련 기존 정의와 명시 대응 검수' if cause=='alignment' else issue.get('defer_reason') or issue['reason']))
 
 
 def recovery_groups(run, round_number, by_id):
     groups = []
     for request in run.get('recovery_requests', []):
-        if request['status']!='pending' or request['validation']: continue
+        if request.get('cause','extraction_missing')!='extraction_missing' or request['status']!='pending' or request['validation']: continue
         views = []
-        for ref in request['evidence_refs']:
+        for block_id, span in request.get('target', [(e['block_id'],e['span']) for e in request['evidence_refs']]):
+            ref = dict(block_id=block_id,span=span)
             b = by_id[ref['block_id']]
             matching = [v for v in segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
-            views.append(matching[0] if matching else dict(block_id=b['id'],span=[0,len(b['text'])],shared_spans=[],recipe=segments.VERSION))
+            views.append(matching[0] if matching and matching[0]['span']==span else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION))
         if not views: continue
         ids = list(dict.fromkeys(v['block_id'] for v in views))
         prior = [c for u in run['analysis_units'] if u['status']=='succeeded' for field in ('observations','relations')
                  for c in u['output'].get(field, []) if set(c['evidence_ids']) & set(ids)]
         identifier = 'recovery_' + request['id'][:20]
+        supplied = {c['id']:c for u in run['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations', [])}
         groups.append(dict(id=identifier, file_id=by_id[ids[0]]['file_id'], source_group=by_id[ids[0]]['source_group'],
             block_ids=ids, segments=views, features=[], priority=2, required=True, input_chars=sum(v['span'][1]-v['span'][0] for v in views),
             round=round_number, reason='Critic이 특정한 원문 의미 누락: '+request['meaning'], status='unvisited',
-            recovery_request_id=request['id'], recovery_meaning=request['meaning'], previous_observations=[c for c in prior if 'classification' in c],
-            previous_signatures=[meaning_signature(c) for c in prior], roles=['relation'] if request['role']=='relation' else ['concept','relation']))
-        request.update(status='scheduled', group_id=identifier)
+            recovery_request_id=request['id'], recovery_meaning=request['meaning'], recovery_meanings=deepcopy(request['meanings']),
+            previous_observations=[c for c in prior if 'classification' in c],
+            previous_signatures=[meaning_signature(c,supplied) for c in prior], roles=[request['role']]))
+        request.update(status='scheduled', group_id=identifier, submitted_meanings=deepcopy(request['meanings']))
     return groups
 
 
@@ -762,7 +853,7 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     supplied.update(supplied_tools)
     previous = group.get('previous_observations', [])
     if group.get('recovery_request_id'):
-        common.update(recovery_meaning=group['recovery_meaning'], previous_observations=previous)
+        common.update(recovery_meaning=group['recovery_meaning'], recovery_meanings=group['recovery_meanings'], previous_observations=previous)
         supplied.update({c['id']:c for c in previous})
     roles = group.get('roles', ['concept','relation'])
     needed = sum(not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])
@@ -770,6 +861,7 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     if needed: needed += 2 # Reserve synthesis and independent review before another analysis group.
     if run['metrics']['llm_calls'] + needed > run['recipe']['budgets']['model_calls']:
         group['error'] = '분석 및 Builder/Critic 예약 호출 예산 부족'
+        queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=group['error'],defer_reason=group['error'])]}, group)
         return
     group['status'] = 'raw_provided'
     observations = previous
@@ -783,11 +875,12 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         concept_unit = next(u for u in run['analysis_units'] if u['id']=='concept:'+key)
         common, deps, related = with_tool_context(service, run, common, deps, [concept_unit], by_id, context_map)
         supplied.update(related)
-    common, deps, supplied = analysis_context(run, 'relation', dict(common, unapproved_observations=observations), supplied, group)
-    relations = call(service, run, 'relation', key, common, deps, by_id, supplied)
+    if 'relation' in roles:
+        common, deps, supplied = analysis_context(run, 'relation', dict(common, unapproved_observations=observations), supplied, group)
+        relations = call(service, run, 'relation', key, common, deps, by_id, supplied)
+        if relations is None: return
+        apply_actions(service, run, index, blocks, 'relation', key, relations)
     capacity_status(run, group, by_id)
-    if relations is None: return
-    apply_actions(service, run, index, blocks, 'relation', key, relations)
     group['analysis_grounded'] = grounded_analysis(run, group, allowed_ids(service, blocks))
     group['status'] = 'analysis_succeeded'
     save(service, run)
@@ -816,7 +909,7 @@ def capacity_status(run, group, by_id):
         for stage in group.get('roles', ['concept','relation']):
             if roles[stage]['output_count'] != roles[stage]['limit']: continue
             refs = [dict(evidence_id=v['block_id'], block_id=v['block_id'], span=v['span']) for v in views]
-            queue_recovery(run, {'missing_meanings':[dict(role=stage, meaning='출력 상한 이후 아직 제안하지 않은 의미만 확인; 기존 의미 반복 금지', evidence_refs=refs, validation=[], trigger='output_capacity')]}, group)
+            queue_recovery(run, {'missing_meanings':[dict(role=stage, meaning='출력 상한 이후 아직 제안하지 않은 의미만 확인; 기존 의미 반복 금지', evidence_refs=refs, validation=[], trigger='output_capacity')]}, group, by_id)
 
 
 def grounded_analysis(run, group, available):
@@ -903,14 +996,47 @@ def finish(run, blocks, available):
     titles = [f['title'] for f in run['frozen_input']['files']]
     reference_gaps = [dict(file_id=p['file_id'], reference=ref, status='자료 필요: 선택 목록 표제에서 참조 대상 미확인')
                       for p in run.get('profiles', []) for ref in p['reference_expressions'] if not any(ref in title for title in titles)]
+    for unit in run['analysis_units']:
+        if unit['status']!='succeeded' and '예산' in (unit.get('error') or ''):
+            queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=unit['error'],defer_reason=unit['error'])]}, dict(id=unit['id']))
     for request in run.get('recovery_requests', []):
+        request['semantic_status']='unverified'
         group = next((g for g in run.get('frontier', []) if g['id']==request.get('group_id')), None)
         units = [u for u in outputs if group and u['group_id']==group['id']]
+        unit = next((u for u in run['analysis_units'] if u['id']==request.get('unit_id')), None)
         created = [c['id'] for u in units for field in ('observations','relations') for c in u['output'].get(field, []) if not c['validation'] and not c['outside_scope_reason']]
+        if unit and unit['status']=='succeeded':
+            created += [h['candidate_id'] for h in unit['output'].get('history', []) if h['candidate_id']==request.get('candidate_ref') and not h['after']['validation']
+                        and (meaning_signature(h['before'])!=meaning_signature(h['after']) or h['before'].get('evidence_refs')!=h['after'].get('evidence_refs'))]
         request['proposal_ids'] = created
-        if group:
-            request['status'] = 'proposals_created' if created and group['id'] in processed else 'unresolved'
-    unresolved_recovery = [r for r in run.get('recovery_requests', []) if r['status']!='proposals_created']
+        if request['validation']:
+            request.update(status='invalid',reason='; '.join(request['validation']))
+        elif group or unit:
+            error = (unit or {}).get('error') or (group or {}).get('error') or ''
+            if created:
+                request.update(status='proposals_created',reason='제안 생성; 요청 의미 충족과 사람 검수 완료는 미확인')
+            elif '예산' in error:
+                request.update(status='budget_exhausted',stop_cause='budget_exhausted',reason=error)
+            else:
+                deferred = [d['reason'] for d in (unit or {}).get('output', {}).get('deferred', []) if d['candidate_ref']==request.get('candidate_ref')]
+                request.update(status='unresolved',reason=error or '; '.join(deferred) or '새 유효 제안 없음 또는 기존 의미 반복; 동일 대상 자동 재시도 없음')
+        elif request['status']=='pending':
+            if run['status']=='cancel_requested': request['reason']='취소로 미실행; 같은 입력으로 재개 가능'
+            elif request['role'] in {'concept','relation'}:
+                request.update(status='budget_exhausted',stop_cause='budget_exhausted',reason='추가 round 예산 종료; 자동 증액 없음')
+            else:
+                request.update(status='manual_review',reason='자동 수정 미선택 또는 유효 검토 부족; 대상 후보 명시 검수 필요')
+        request['unattempted_meanings'] = [m for m in request.get('meanings', []) if m not in request.get('submitted_meanings', request.get('meanings', []))]
+        request['proposal_review_status'] = 'unverified'  # A Critic output is not human acceptance.
+    unresolved_recovery = list(run.get('recovery_requests', []))
+    recovery_groups_ids = {r['group_id'] for r in unresolved_recovery if r.get('group_id')}
+    recovery_groups_ids.update(g['id'] for g in run.get('candidate_groups', []) if recovery_groups_ids & set(g['analysis_group_ids']))
+    recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in {r.get('unit_id') for r in unresolved_recovery}]
+    attempts = [a for u in recovery_units for a in u['attempts']]
+    run['metrics'].update(recovery_calls=len(attempts), recovery_model_s=round(sum(a.get('elapsed_s',0) for a in attempts),3),
+        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in unresolved_recovery),
+        recovery_remaining_by_cause={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
+            for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})})
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
@@ -1021,6 +1147,7 @@ def execute(service, run_id):
             run['frontier'].extend(recovery_groups(run, round_number+1, by_id))
             assigned = {i for g in run['frontier'] for i in g['block_ids']}
             for request in run['extra_requests']:
+                if request.get('purpose')!='analysis': continue
                 ids = [i for i in request['block_ids'] if i not in assigned and (run.get('analysis_block_ids') is None or i in run['analysis_block_ids'])]
                 if ids:
                     group = dict(id='x_'+profile.digest(ids)[:20], file_id=by_id[ids[0]]['file_id'],

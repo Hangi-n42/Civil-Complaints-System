@@ -53,7 +53,7 @@ def assemble(run, round_number, by_id, context_map, available):
             revised, revision_deps = revisions.get(row['id'], (row, []))
             if not set(revision_deps) <= available: continue
             row = revised
-            if row['validation'] or row['outside_scope_reason']: continue
+            if row['outside_scope_reason'] or (row['validation'] and row['validation']!=row.get('evidence_validation')): continue
             links = sorted(['cq:'+i for i in row['cq_ids']] + ['scope:'+i for i in row['scope_item_ids']])
             candidate=dict(row, origin_dependency_ids=sorted(set(unit['dependency_ids']) | set(revision_deps)), analysis_group_id=group.get('analysis_group_ids',[group['id']])[0])
             if group['round']==round_number: buckets.setdefault(links[0], []).append(candidate)
@@ -139,15 +139,28 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates = {c['id']:c for c in group['candidates']}
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     candidates.update({c['id']:c for c in taxonomy['hierarchies']})
-    target_ids = {i['candidate_ref'] for i in review['issues'] if i['candidate_ref']}
-    target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported')
-    if not target_ids and not review.get('record_errors'): target_ids=set(group['primary_candidate_ids'])
+    issues = review['issues']
+    routed = {i['candidate_ref'] for i in issues if i.get('cause') in {'endpoint','alignment','source_absent','budget_exhausted'}}
+    target_ids = {i['candidate_ref'] for i in issues if i['candidate_ref'] and i.get('cause','content_error') in {'content_error','evidence_error'}}
+    target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported' and i['candidate_ref'] not in routed)
+    evidence_only = {i['candidate_ref'] for i in issues if i.get('cause')=='evidence_error'}
+    evidence_only.update(i for i,c in candidates.items() if c.get('evidence_validation'))
+    evidence_only -= {i['candidate_ref'] for i in issues if i.get('cause','content_error')=='content_error'}
+    target_ids.update(evidence_only)
+    if not target_ids and not (issues or review.get('missing_meanings') or review.get('record_errors')):
+        target_ids=set(group['primary_candidate_ids'])
     target_ids &= set(candidates)
     valid = reviews.valid_ids(review,candidates)
     if valid is not None: target_ids &= valid
     editable=set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])) | {c['id'] for c in taxonomy['hierarchies']}
     group['revision_deferrals'] = [dict(candidate_ref=i,reason='비교 후보/검토 기준은 이 묶음에서 수정하지 않음; 담당 묶음 또는 사람 검수로 보류') for i in sorted(target_ids-editable)]
     target_ids &= editable
+    if not run['recipe']['budgets']['revisions']:
+        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 예산 0; 사람 검수로 보류') for i in sorted(target_ids))
+        for request in run.get('recovery_requests', []):
+            if request['role']=='revision' and request.get('candidate_ref') in target_ids:
+                request.update(status='budget_exhausted',stop_cause='budget_exhausted',reason='수정 예산 0; 자동 증액 없음')
+        return
     existing=next((u for u in run['analysis_units'] if u['id']=='revision:'+group['id']+':revision1'),None)
     if existing and existing['attempts'] and existing['status']!='succeeded':
         group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 1회 사용 후 실패/중단: '+str(existing.get('error') or '결과 저장 미완료')+'; 사람 검수로 보류') for i in sorted(target_ids))
@@ -172,7 +185,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         trial['blocks'] += [b for b in extra if b['ref'] not in a2.raw_refs(trial)]
         trial_deps=sorted(set(trial_deps) | {b['ref'] for b in extra})
         trial.pop('unapproved_observations'); trial.pop('unapproved_relations'); trial.pop('reviewed_base')
-        trial.update(target_ids=trial_ids, targets=[candidates[i] for i in trial_ids],
+        trial.update(target_ids=trial_ids, targets=[candidates[i] for i in trial_ids], evidence_only_ids=sorted(set(trial_ids)&evidence_only),
             comparison_candidates=[candidates[i] for i in sorted(required-set(trial_ids))], issues=issues, relation_checks=checks)
         if fits(run,'revision',trial,trial_deps,trial_supplied):
             selected=trial_ids;context,deps,supplied=trial,trial_deps,trial_supplied
@@ -186,6 +199,9 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     context,deps,supplied,term_omissions=add_terms(run,'revision',context,deps,supplied,unit,by_id,context_map)
     group['omitted_revision_term_ids']=term_omissions
     group['omitted_revision_context_ids']=omitted
+    for request in run.get('recovery_requests', []):
+        if request['role']=='revision' and request.get('candidate_ref') in selected and request['critic_group_id']==group['id']:
+            request['unit_id']='revision:'+group['id']+':revision1'
     result=a2.call(service,run,'revision',group['id']+':revision1',context,deps,by_id,supplied)
     if result is not None:
         group['revision_unit_id']='revision:'+group['id']+':revision1'
@@ -241,14 +257,12 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
             if review is None: continue
             a2.apply_actions(service,run,index,blocks,'critic',key,review)
             group['status']='review_issues_generated'
-            a2.queue_recovery(run, review, group)
+            a2.queue_recovery(run, review, group, by_id)
             critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
             candidate_revision = review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
-            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']):
-                if run['recipe']['budgets']['revisions']:
-                    revise(service,run,group,review,taxonomy,by_id,context_map)
-                else: group['revision_deferrals']=[dict(candidate_ref=i,reason='수정 예산 0; 사람 검수로 보류') for i in group['primary_candidate_ids']]
+            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in effective.values()):
+                revise(service,run,group,review,taxonomy,by_id,context_map)
         except ValueError as exc:
             group['error']=str(exc)
         a2.save(service,run)
