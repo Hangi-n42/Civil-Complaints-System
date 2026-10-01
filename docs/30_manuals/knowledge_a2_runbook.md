@@ -53,7 +53,7 @@
 ## 저장·재개·종료
 
 - Run에 입력 A1 ID·frozen_input·CQ/범위·기준 YAML·모델명/digest/컨텍스트·프롬프트/스키마/프로파일 버전·예산을 고정한다.
-- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v18`. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
+- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v19`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
 - 호출 전후와 재개에서 K5 상태 확인. 원문뿐 아니라 전체 생성 의존성을 가진 요약/관측/lookup 결과도 사용 중단 근거를 포함하면 후속 입력에서 보류한다.
 - endpoint는 loopback HTTP만 허용. localhost는 127.0.0.1로 고정하고 proxy·redirect를 사용하지 않는다. 설치 모델 digest와 선언 컨텍스트를 확인하며 실행 중 다운로드나 외부 모델 fallback 없음.
 - 기본 상한은 48회/검색 24회/추가 2라운드/묶음 수정 1회. 실패 호출도 포함. 신규 원문 분석 전에 Builder/Critic 호출을 예약한다. 이미 완료된 분석 재사용에는 새 예약을 요구하지 않는다. 연장·자동 예산 증액 없음.
