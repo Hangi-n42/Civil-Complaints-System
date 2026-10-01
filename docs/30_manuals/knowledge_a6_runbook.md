@@ -31,6 +31,8 @@
 
 ## 재현
 
+아래 최초 비교 생성 재현은 `24f7acd`의 코드와 당시 동결 파일에서 실행한다. 보완 코드로 과거 동결을 덮어쓰지 않는다. 현재 코드에서 과거 결과를 읽으려면 저장 JSON 또는 아래 읽기 전용 카드 준비/재현을 사용한다.
+
 Python 3.11.9와 기존 설치 의존성, 동결된 두 로컬 모델, manifest 해시와 일치하는 허용 원문이 필요하다. `--input-root`는 원문을 읽기만 한다. 아래 `<study>`는 새 출력 경로, `<source-root>`는 허용 파일이 있는 저장소 루트다. Mac 전용 경로를 코드에 넣지 않았다.
 
 ```sh
@@ -65,6 +67,9 @@ python scripts/run_knowledge_a6.py run --case history2 --base <history1-reviewed
 
 ```sh
 python scripts/prepare_knowledge_a6_review.py prepare --study <study> --output <new-review-directory>
+# record-template을 복사하여 실제 참가자 기록을 먼저 완료
+python scripts/prepare_knowledge_a6_review.py adjudicate --record <record.json> --output <new-adjudication.json>
+# 독립 판정자가 bound_record를 원문과 대조하고 rows·adjudicator를 작성
 python scripts/prepare_knowledge_a6_review.py score --record <record.json> --adjudication <independent-adjudication.json> --output <new-score.json>
 ```
 
@@ -73,9 +78,22 @@ python scripts/prepare_knowledge_a6_review.py score --record <record.json> --adj
 - P1: baseline A→assisted B, P2: assisted A→baseline B. 같은 카드를 같은 사람이 재학습하지 않도록 교차 배치한다. 준비 설명 뒤 실제 시각·조건·도구·결정/사유·수정문·열람/탐색 횟수를 기록한다. 실제 1명이면 사용성 확인으로만 보고한다.
 - 비교군도 원문·검색·diff·메타데이터·요약·수동 관계표를 사용할 수 있다. K9의 강한 B1 원칙을 유지하되 K9 전체 평가를 실행하지 않는다.
 - 제공 HTML은 동일 카드/원문의 **오프라인 모의 도구**다. assisted의 근거 위치와 요구 연결 강조는 실제 A4 화면 시험과 다르다. 실제 A4 UI 효과를 주장하려면 같은 카드를 격리 UI에 배치하고 별도로 사람 시험해야 한다.
+- 준비 도구는 카드/HTML/기록 양식 등 10개 파일을 생성한다. 독립 판정 양식은 완료 기록을 받은 뒤 `adjudicate`로 별도 생성한다. 참가자 기록 전체와 명세의 canonical SHA-256을 판정에 묶고 기록 사본을 함께 제공한다. 참가자·조건·결정·정확한 수정문·시간 등이 바뀌면 기존 판정을 거절한다. 채점 출력은 기록·판정·명세 식별자를 포함한다.
 - 참가자 기록과 독립 의미 판정을 분리한다. 오류 발견은 판정자의 `discovery_correct`까지 있어야 집계한다. 올바른 수정·오류 기각·오류 보류, 잘못 수정 후 승인, 최종 핵심 오류, 미연결 누락과 잘못된 충족 주장을 별도 집계한다. 정상 후보의 수정/거절 건수와 실제 훼손도 분리한다. 의미를 유지한 정상 수정은 훼손으로 세지 않는다.
+- 오류 카드 통과율은 `error_card_pass_rate`의 numerator/denominator를 사용한다. `counts.requirement_false_approval`은 요구 항목의 허위 승인, `normal_harmed`는 정상 카드 훼손, `remaining_core_error`는 전체 카드/요구의 승인된 최종 오류 합계다. 분모는 실제 packet 명세에서 계산한다.
 - 실제 사람 준비·CQ·검수·수정 시간은 측정 전 `null`. AI/도구 시간·모델 대기·총 경과와 합쳐 사람 비용이나 절감률을 만들지 않는다. AI 기록은 사람 시간 필드로 집계하지 않는다.
 
 ## 확인 결과
 
 실제 실행·의미 판정·실패·검수 보완·남은 범위는 [A6 결과 보고](../70_research/company_knowledge/a6_evaluation_20261001.md)에 기록한다. 자동 확인은 A6 도구와 기존 원장 연결 경계에 한정한다. 전체 민원 테스트, K9 12과제, 다중 모델 비교, Windows 실기는 완료 조건에 추가하지 않는다.
+
+
+## 조율 검수 보완의 읽기 전용 재현
+
+```sh
+python scripts/replay_knowledge_a6_correction.py --study <stored-schema-fix-study> --output <new-replay.json>
+```
+
+- `a6-correction-v1` 코드 해시를 확인한 후 contrast/history0/history2의 저장 문맥·원문 위치·참조·용량 표시를 재현한다. 실제 모델 HTTP는 0회이며 출력은 새 파일에만 쓴다.
+- 카드 준비/채점은 과거 동결의 평가 자료 해시를 검증하고 현재 생성 코드 변경 때문에 차단하지 않는다. 생성 실행기와 쓰기 가능한 `inspect`의 전체 코드 동결 검사는 유지한다.
+- 67개 관련 테스트, 입력 초과 7건 중 6건 해소, 남은 1건과 의미 품질의 미검증 범위는 [보완 보고](../70_research/company_knowledge/a6_correction_20261001.md)에 기록한다.

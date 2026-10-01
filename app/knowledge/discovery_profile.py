@@ -131,6 +131,19 @@ def contexts(blocks):
     return result
 
 
+def numbered_items(blocks):
+    """A bounded structural signal, not semantic segmentation or a completeness oracle."""
+    items = []
+    for block in blocks:
+        dates = [m.span() for m in re.finditer(r'\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.', block['text'])]
+        matches = [m for m in re.finditer(r'(?<!\S)([1-9]\d?)(?:의\d+)?[.)]\s+(?=[^\d\s])', block['text'])
+                   if not any(start <= m.start() < end for start, end in dates)]
+        # Require the beginning of a numbered sequence; isolated numeric prose is not a list.
+        if not {'1', '2'} <= {m[1] for m in matches}: continue
+        items.extend(dict(block_id=block['id'], marker=m[0], start=m.start(), end=m.end()) for m in matches)
+    return items
+
+
 def survey(files, blocks):
     profiles, frontier, context_map = [], [], {}
     for file in files:

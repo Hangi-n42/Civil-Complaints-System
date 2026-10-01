@@ -9,14 +9,32 @@ import sqlite3
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.run_knowledge_a6 import ASSETS, check_freeze, write
+from scripts.run_knowledge_a6 import ASSETS, ROOT, write
 from app.knowledge import discovery_inputs as inputs
 
 
+def canonical_hash(value):
+    return sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+                            separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+
+
+def review_freeze(study=None):
+    """Read-only postprocessing checks frozen data, not today's generation code."""
+    frozen = json.loads((ASSETS / 'freeze.json').read_text(encoding='utf-8'))
+    if study is not None:
+        recorded = json.loads((study / 'study.json').read_text(encoding='utf-8'))['freeze']
+        known = [json.loads(p.read_text(encoding='utf-8')) for p in ASSETS.glob('freeze*.json')]
+        if recorded not in known:
+            raise ValueError('다른 동결 조건의 평가 원장입니다.')
+        frozen = recorded
+    for name, expected in frozen['sha256'].items():
+        if name.startswith('configs/') and sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            raise ValueError('동결 평가 자료 불일치: ' + name)
+    return frozen
+
+
 def prepare(study, output):
-    frozen = check_freeze()
-    if json.loads((study/'study.json').read_text(encoding='utf-8'))['freeze'] != frozen:
-        raise ValueError('다른 동결 조건의 평가 원장입니다.')
+    frozen = review_freeze(study)
     spec = json.loads((ASSETS / 'reviewer_cards.json').read_text(encoding='utf-8'))
     manifest = json.loads(inputs.MANIFEST.read_text(encoding='utf-8'))
     allowed = {f'{s["source_id"]}:{n}':f['sha256'] for s in manifest['selected_sources']
@@ -83,43 +101,68 @@ def prepare(study, output):
             html.append('</html>')
             (output / f'{packet}-{condition}.html').write_text('\n'.join(html), encoding='utf-8')
         write(output / (packet + '-record-template.json'), dict(participant_id=None, participant_kind=None,
-            condition=None, packet=packet, preparation_s=None, cq_s=None, review_s=None, repair_s=None,
+            condition=None, packet=packet, spec_id=spec['id'], spec_sha256=canonical_hash(spec), preparation_s=None, cq_s=None, review_s=None, repair_s=None,
             rows=[dict(id=row['id'], decision=None, reason=None, corrected_text=None,
                        discovered=None, original_views=None, navigation_steps=None) for row in cards+requirements]))
-        write(output / (packet + '-adjudication-template.json'), dict(adjudicator=None,
-            rows=[dict(id=row['id'], discovery_correct=None, final_semantics=None, rationale=None) for row in cards+requirements]))
 
-
-def score(record, adjudication, spec):
-    """Human decisions and independent semantic grading are separate inputs."""
-    if record['participant_kind'] not in {'human', 'ai'} or not record['participant_id']:
+def validate_record(record, spec):
+    if record.get('spec_id') != spec['id'] or record.get('spec_sha256') != canonical_hash(spec):
+        raise ValueError('기록의 평가 명세 ID/해시 불일치')
+    if record['participant_kind'] not in {'human', 'ai'} or not isinstance(record['participant_id'], str) or not record['participant_id'].strip():
         raise ValueError('참가 종류와 익명 ID가 필요합니다.')
     if record['condition'] not in {'baseline', 'assisted'}:
         raise ValueError('시험 조건이 필요합니다.')
-    if record['packet'] not in {'A','B'}:
+    if record['packet'] not in {'A', 'B'}:
         raise ValueError('시험 묶음이 필요합니다.')
-    cards = {c['id']:c for c in spec['cards']+spec['requirements'] if c['packet'] == record['packet']}
-    rows = record['rows']; grades = {r['id']:r for r in adjudication['rows']}
-    if (len(rows) != len(cards) or {r['id'] for r in rows} != cards.keys() or
-            len(adjudication['rows']) != len(cards) or grades.keys() != cards.keys()):
-        raise ValueError('한 묶음 전체의 유일한 카드/요구 기록과 별도 판정이 필요합니다.')
-    if not adjudication['adjudicator']:
+    cards = {c['id']: c for c in spec['cards'] + spec['requirements'] if c['packet'] == record['packet']}
+    rows = record['rows']
+    if len(rows) != len(cards) or {r['id'] for r in rows} != cards.keys():
+        raise ValueError('한 묶음 전체의 유일한 카드/요구 기록이 필요합니다.')
+    for row in rows:
+        if row['decision'] not in {'approve', 'reject', 'modify_approve', 'defer'} or type(row['discovered']) is not bool:
+            raise ValueError('결정과 발견 여부를 모두 기록하세요.')
+        if not isinstance(row.get('reason'), str) or not row['reason'].strip():
+            raise ValueError('결정 이유를 기록하세요.')
+        if row['decision'] == 'modify_approve' and (not isinstance(row['corrected_text'], str) or not row['corrected_text'].strip()):
+            raise ValueError('수정 후 승인에는 실제 수정 문장이 필요합니다.')
+        for key in ('original_views', 'navigation_steps'):
+            if row[key] is not None and (type(row[key]) is not int or row[key] < 0):
+                raise ValueError('열람·탐색 횟수는 비음수 정수 또는 미측정 null이어야 합니다.')
+    times = {k: record[k] for k in ('preparation_s', 'cq_s', 'review_s', 'repair_s')}
+    if any(v is not None and (isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0) for v in times.values()):
+        raise ValueError('시간은 실제 비음수 초 또는 미측정 null이어야 합니다.')
+    return cards, times
+
+
+def adjudicate(record, spec):
+    """Bind a blank independent grading form to the exact completed record."""
+    validate_record(record, spec)
+    return dict(spec_id=spec['id'], spec_sha256=canonical_hash(spec), record_sha256=canonical_hash(record),
+        bound_record=json.loads(json.dumps(record, ensure_ascii=False, allow_nan=False)), adjudicator=None,
+        rows=[dict(id=r['id'], discovery_correct=None, final_semantics=None, rationale=None) for r in record['rows']])
+
+
+def score(record, adjudication, spec):
+    """Human decisions and independent semantic grading are separate, hash-bound inputs."""
+    cards, times = validate_record(record, spec)
+    record_hash = canonical_hash(record)
+    if (adjudication.get('record_sha256') != record_hash or
+            canonical_hash(adjudication.get('bound_record')) != record_hash or
+            adjudication.get('spec_id') != spec['id'] or adjudication.get('spec_sha256') != canonical_hash(spec)):
+        raise ValueError('독립 판정의 기록/명세 해시 불일치')
+    rows = record['rows']; grades = {r['id']: r for r in adjudication['rows']}
+    if len(adjudication['rows']) != len(cards) or grades.keys() != cards.keys():
+        raise ValueError('한 묶음 전체의 유일한 별도 판정이 필요합니다.')
+    if not isinstance(adjudication['adjudicator'], str) or not adjudication['adjudicator'].strip():
         raise ValueError('최종 의미 판정자를 기록하세요.')
     totals = dict(error_found=0, correct_repair=0, error_rejected=0, error_deferred=0,
                   normal_intervention=0, normal_harmed=0, wrong_edit_approved=0,
-                  remaining_core_error=0, unresolved_approval=0, unlinked_gap_found=0, false_fulfillment_found=0)
+                  error_card_passed=0, requirement_false_approval=0, remaining_core_error=0, unresolved_approval=0, unlinked_gap_found=0, false_fulfillment_found=0)
     for row in rows:
         truth = cards[row['id']]; grade = grades[row['id']]
-        if row['decision'] not in {'approve', 'reject', 'modify_approve', 'defer'} or type(row['discovered']) is not bool:
-            raise ValueError('결정과 발견 여부를 모두 기록하세요.')
         if (grade['final_semantics'] not in {'supported', 'refuted', 'unresolved'} or
-                not grade['rationale'] or type(grade['discovery_correct']) is not bool):
+                not isinstance(grade['rationale'], str) or not grade['rationale'].strip() or type(grade['discovery_correct']) is not bool):
             raise ValueError('최종 의미의 독립 판정과 근거가 필요합니다.')
-        if row['decision']=='modify_approve' and not row['corrected_text']:
-            raise ValueError('수정 후 승인에는 실제 수정 문장이 필요합니다.')
-        for key in ('original_views','navigation_steps'):
-            if row[key] is not None and (type(row[key]) is not int or row[key]<0):
-                raise ValueError('열람·탐색 횟수는 비음수 정수 또는 미측정 null이어야 합니다.')
         approved = row['decision'] in {'approve', 'modify_approve'}
         error = truth.get('expected') == 'error'
         found = row['discovered'] and grade['discovery_correct']
@@ -131,23 +174,29 @@ def score(record, adjudication, spec):
         totals['normal_harmed'] += int(truth.get('expected')=='normal' and
             (row['decision']=='reject' or row['decision']=='modify_approve' and grade['final_semantics']=='refuted'))
         totals['wrong_edit_approved'] += int(row['decision']=='modify_approve' and grade['final_semantics']=='refuted')
+        totals['error_card_passed'] += int(error and approved and grade['final_semantics']=='refuted')
+        totals['requirement_false_approval'] += int('expected' not in truth and approved and grade['final_semantics']=='refuted')
         totals['remaining_core_error'] += int(approved and grade['final_semantics']=='refuted')
         totals['unresolved_approval'] += int(approved and grade['final_semantics']=='unresolved')
         totals['unlinked_gap_found'] += int(row['id']=='M1' and found)
         totals['false_fulfillment_found'] += int(row['id']=='M2' and found)
-    times = {k:record[k] for k in ('preparation_s','cq_s','review_s','repair_s')}
-    if any(v is not None and (isinstance(v, bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<0) for v in times.values()):
-        raise ValueError('시간은 실제 비음수 초 또는 미측정 null이어야 합니다.')
     return dict(participant_id=record['participant_id'], participant_kind=record['participant_kind'],
         condition=record['condition'], packet=record['packet'], counts=totals,
-        denominators=dict(normal=2, error=2, missing=1), human_times=times if record['participant_kind']=='human' else None,
+        scoring_version='a6-review-correction-v1',
+        error_card_pass_rate=dict(numerator=totals['error_card_passed'],
+                                  denominator=sum(c.get('expected')=='error' for c in cards.values())),
+        record_sha256=record_hash, adjudication_sha256=canonical_hash(adjudication),
+        spec_id=spec['id'], spec_sha256=canonical_hash(spec),
+        denominators=dict(normal=sum(c.get('expected')=='normal' for c in cards.values()),
+                          error=sum(c.get('expected')=='error' for c in cards.values()),
+                          requirement=sum('expected' not in c for c in cards.values()), total=len(cards)), human_times=times if record['participant_kind']=='human' else None,
         reported_times=times, efficacy_claim='단일 기록은 비교 효과 입증 아님',
         original_views=[r['original_views'] for r in rows], navigation_steps=[r['navigation_steps'] for r in rows])
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['prepare','score'])
+    parser.add_argument('action', choices=['prepare','adjudicate','score'])
     parser.add_argument('--study', type=Path)
     parser.add_argument('--record', type=Path)
     parser.add_argument('--adjudication', type=Path)
@@ -157,10 +206,15 @@ def main():
         if not args.study: parser.error('--study 필요')
         prepare(args.study, args.output)
     else:
-        if not args.record or not args.adjudication: parser.error('--record와 --adjudication 필요')
-        check_freeze()
+        if not args.record: parser.error('--record 필요')
+        review_freeze()
         read = lambda p: json.loads(p.read_text(encoding='utf-8'))
-        write(args.output, score(read(args.record), read(args.adjudication), read(ASSETS/'reviewer_cards.json')))
+        record, spec = read(args.record), read(ASSETS / 'reviewer_cards.json')
+        if args.action == 'adjudicate':
+            write(args.output, adjudicate(record, spec))
+        else:
+            if not args.adjudication: parser.error('--adjudication 필요')
+            write(args.output, score(record, read(args.adjudication), spec))
 
 
 if __name__ == '__main__':

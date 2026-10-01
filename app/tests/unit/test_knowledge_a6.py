@@ -1,5 +1,6 @@
 """A6 instrumentation contracts; doubles do not count as model or human evidence."""
 import json
+from copy import deepcopy
 
 import pytest
 
@@ -65,17 +66,22 @@ def test_failed_first_attempt_is_preserved_without_gold_or_human_claim(corpus, m
 def test_review_scoring_keeps_wrong_repairs_false_fulfillment_and_ai_separate():
     spec = json.loads((a6.ASSETS / 'reviewer_cards.json').read_text(encoding='utf-8'))
     record = dict(participant_id='synthetic', participant_kind='ai', condition='assisted', packet='B',
+                  spec_id=spec['id'], spec_sha256=review.canonical_hash(spec),
                   preparation_s=None, cq_s=None, review_s=1, repair_s=None, rows=[])
     adjudication = dict(adjudicator='synthetic-independent', rows=[])
     for item in spec['cards'] + spec['requirements']:
         if item['packet'] != 'B': continue
         identifier = item['id']
         record['rows'].append(dict(id=identifier, decision='modify_approve' if identifier=='R06' else
-            'reject' if identifier=='R07' else 'approve', discovered=True, corrected_text='합성 잘못된 수정',
+            'reject' if identifier=='R07' else 'approve', discovered=True, reason='합성 결정 이유', corrected_text='합성 잘못된 수정',
             original_views=None, navigation_steps=None))
         adjudication['rows'].append(dict(id=identifier, discovery_correct=identifier=='R07',
             final_semantics='refuted' if identifier in {'R06','M2'} else 'supported', rationale='합성 판정'))
+    adjudication = dict(review.adjudicate(record, spec), **adjudication)
     result = review.score(record, adjudication, spec)
+    assert result['counts']['error_card_passed'] == 1
+    assert result['counts']['requirement_false_approval'] == 1
+    assert result['denominators'] == dict(normal=2, error=2, requirement=1, total=5)
     assert result['counts']['wrong_edit_approved'] == 1
     assert result['counts']['remaining_core_error'] == 2
     assert result['counts']['error_found'] == 1
@@ -87,6 +93,7 @@ def test_review_scoring_keeps_wrong_repairs_false_fulfillment_and_ai_separate():
         review.score(record, adjudication, spec)
     adjudication['rows'].pop()
     record['rows'][0]['decision'] = 'modify_approve'
+    adjudication.update(record_sha256=review.canonical_hash(record), bound_record=deepcopy(record))
     result = review.score(record, adjudication, spec)
     assert result['counts']['normal_intervention'] == 1 and result['counts']['normal_harmed'] == 0
     record['rows'][0]['id'] = 'R06'
@@ -95,7 +102,8 @@ def test_review_scoring_keeps_wrong_repairs_false_fulfillment_and_ai_separate():
 
 
 def test_review_packet_refuses_other_study_freeze(tmp_path, monkeypatch):
-    monkeypatch.setattr(review, 'check_freeze', lambda: {'sha256': {'frozen': 'new'}})
+    monkeypatch.setattr(review, 'ASSETS', tmp_path)
+    a6.write(tmp_path/'freeze.json', {'sha256': {'frozen': 'new'}})
     a6.write(tmp_path/'study.json', {'freeze': {'sha256': {'frozen': 'old'}}})
     with pytest.raises(ValueError, match='다른 동결'):
         review.prepare(tmp_path, tmp_path/'cards')
@@ -115,3 +123,58 @@ def test_inspection_reserves_writable_record_before_service_or_decisions(tmp_pat
     monkeypatch.setattr(inspection, 'KnowledgeService', forbidden_service)
     with pytest.raises(FileNotFoundError):
         inspection.inspect(tmp_path, 'case', tmp_path/'missing-parent'/'record.json')
+
+
+def synthetic_record():
+    spec = json.loads((a6.ASSETS / 'reviewer_cards.json').read_text(encoding='utf-8'))
+    record = dict(participant_id='P1-synthetic', participant_kind='ai', condition='assisted', packet='B',
+        spec_id=spec['id'], spec_sha256=review.canonical_hash(spec),
+        preparation_s=None, cq_s=None, review_s=None, repair_s=None,
+        rows=[dict(id=c['id'], decision='reject' if c.get('expected')=='error' else 'approve',
+            reason='합성 결정', discovered=False, corrected_text=None, original_views=None, navigation_steps=None)
+            for c in spec['cards']+spec['requirements'] if c['packet']=='B'])
+    grade = review.adjudicate(record, spec)
+    grade['adjudicator'] = 'synthetic-independent'
+    for row in grade['rows']:
+        row.update(discovery_correct=False, final_semantics='refuted' if row['id']=='M2' else 'supported', rationale='합성 판정')
+    return spec, record, grade
+
+
+@pytest.mark.parametrize('field,value', [('participant_id','P2'), ('participant_kind','human'),
+    ('condition','baseline'), ('packet','A'), ('decision','modify_approve'), ('corrected_text','공급자는 모두 LH이다.')])
+def test_adjudication_is_bound_to_exact_record(field, value):
+    spec, record, grade = synthetic_record()
+    original_hash = review.canonical_hash(record)
+    assert review.canonical_hash(json.loads(json.dumps(record, sort_keys=True, indent=2))) == original_hash
+    if field in {'decision','corrected_text'}:
+        record['rows'][1][field] = value
+        if field=='decision': record['rows'][1]['corrected_text']='합성 수정'
+    else: record[field]=value
+    with pytest.raises(ValueError): review.score(record, grade, spec)
+
+
+def test_error_card_denominator_excludes_false_requirement_approval():
+    spec, record, grade = synthetic_record()
+    result = review.score(record, grade, spec)
+    assert result['counts']['error_card_passed'] == 0 and result['denominators']['error'] == 2
+    assert result['error_card_pass_rate'] == dict(numerator=0, denominator=2)
+    assert result['counts']['normal_harmed'] == 0
+    assert result['counts']['requirement_false_approval'] == result['counts']['remaining_core_error'] == 1
+    assert result['record_sha256']==review.canonical_hash(record)
+    assert result['adjudication_sha256']==review.canonical_hash(grade)
+    assert result['human_times'] is None
+    spec['id']+='-changed'
+    with pytest.raises(ValueError, match='명세'): review.score(record, grade, spec)
+
+
+def test_read_only_postprocessing_accepts_old_code_but_rejects_changed_data(tmp_path, monkeypatch):
+    monkeypatch.setattr(review, 'ASSETS', tmp_path)
+    monkeypatch.setattr(review, 'ROOT', tmp_path)
+    (tmp_path/'configs').mkdir()
+    (tmp_path/'configs/cards.json').write_text('{}')
+    frozen = {'sha256': {'old/code.py': 'not-current', 'configs/cards.json': a6.digest(tmp_path/'configs/cards.json')}}
+    a6.write(tmp_path/'freeze.json', frozen)
+    a6.write(tmp_path/'study.json', {'freeze': frozen})
+    assert review.review_freeze(tmp_path)==frozen
+    (tmp_path/'configs/cards.json').write_text('{"changed":true}')
+    with pytest.raises(ValueError, match='자료 불일치'): review.review_freeze(tmp_path)
