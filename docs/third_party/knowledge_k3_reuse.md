@@ -33,3 +33,7 @@ LinkML 정본의 candidate annotation에 정의·포함/제외·CQ·근거를 �
 - 기존 LinkML/runtime 1.11.1의 `SchemaView`·`JsonSchemaGenerator`를 저장된 v2 YAML에 직접 호출한다. `class_slots`로 상속 슬롯을 조회하며 v1 후보 재구성으로 정본을 다시 만들지 않는다. 공개 API 호출이며 외부 코드 추가 이식·패키지 내부 변경은 없다.
 - `uuid`, `hashlib`, `sqlite3`, 기존 Pydantic을 사용한다. YAML은 클래스/슬롯/클래스 별칭·구조 링크, 같은 버전의 registry는 어휘/어휘 링크·별칭/대체 ID를 소유한다. diff는 ID별 필드 비교로 충분하여 별도 diff 패키지를 추가하지 않았다.
 - 선택형 `vocabulary-broader-v1`은 [SKOS 2009-08-18](https://www.w3.org/TR/2009/REC-skos-reference-20090818/)의 의미 참고를 로컬 메타데이터로 기록한다. W3C document license, 코드·정의 전문 복사 없음. 회사 정의를 공통 메타모델에 추가하거나 RDF 적합성을 주장하지 않는다.
+
+## A5 적용 (2026-10-01)
+
+- 같은 LinkML/runtime 1.11.1의 `class_slots`·`induced_slot`·`class_ancestors` 공개 API로 v2의 상속·현재 값 제약·허용 대상을 K4/K5와 기존 검색에 연결한다. 기존 LH 매핑·SQLite decisions·K5 availability를 재사용하며 신규 패키지·외부 코드 이식·패키지 내부 수정은 없다. 상세 경계와 실자료 확인은 [A5 실행서](../30_manuals/knowledge_a5_runbook.md)에 기록한다.

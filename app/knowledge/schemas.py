@@ -62,6 +62,7 @@ class CandidateDecision(BaseModel):
     action: Literal['accept', 'modify', 'edit', 'defer', 'reject', 'unlink']
     patch: dict[str, Any] | None = None
     reason: str = ''
+    consumer_action: Literal['review_required'] | None = None
 
 
 class DecisionRequest(BaseModel):
@@ -82,6 +83,7 @@ class RunRequest(BaseModel):
     registry_source_version_id: str | None = None
     local_entity_ids: list[str] = Field(default_factory=list)
     block_ids: list[str] = Field(default_factory=list)
+    predicate_ids: list[str] | None = Field(default=None, min_length=1)
     parser_options: dict[str, Any] | None = None
     bundle_id: str | None = None
     manifest_hash: str | None = None

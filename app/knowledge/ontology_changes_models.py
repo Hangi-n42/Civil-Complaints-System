@@ -69,6 +69,7 @@ class OntologyChangeV2(Record):
     after: dict[str, Any]
     dependency_ids: list[str] = Field(default_factory=list)
     affected_reference_ids: list[str] = Field(default_factory=list)
+    consumer_resolution: dict[str, Any] = Field(default_factory=dict)
     support_type: Literal['explicit', 'design_proposal', 'unresolved'] = 'unresolved'
     evidence_refs: list[EvidenceRef] = Field(default_factory=list)
     counter_evidence_refs: list[EvidenceRef] = Field(default_factory=list)

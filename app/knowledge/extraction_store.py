@@ -6,11 +6,12 @@ import json
 import re
 from uuid import uuid4
 
-from .ontology_schema import VersionConflict, _from_schema, _now
+from .ontology_schema import VersionConflict, _now
 from .schemas import DecisionRequest, ManualAssertionRequest
 from . import extraction_contract as contract
+from . import ontology_consumer as consumer
 
-LINK_FIELDS = {'target_entity_id', 'scope', 'mention', 'evidence_ids'}
+LINK_FIELDS = {'target_entity_id', 'scope', 'mention', 'evidence_ids', 'discovery_reference'}
 ASSERTION_FIELDS = {'value', 'raw_value', 'unit', 'scope', 'conditions', 'exceptions', 'dates',
                     'evidence_ids', 'field_evidence', 'subject_link_id', 'object_link_id'}
 
@@ -43,7 +44,13 @@ def _optional(repo, db, table, identifier):
 
 
 def _schema(repo, db, run):
-    return {c['id']: c for c in _from_schema(repo.get(db, 'ontology_versions', run['ontology_version_id'])['linkml_yaml'])}
+    return {c['id']: c for c in consumer.definitions(repo.get(db, 'ontology_versions', run['ontology_version_id']), run.get('consumer_contract'))}
+
+
+def _valid_discovery_reference(value):
+    return (isinstance(value, dict) and set(value)=={'category','reason'} and isinstance(value.get('category'), str)
+            and value.get('category') in {'existing_alias','ambiguity','new_subtype','new_concept','parse_error','insufficient_evidence'}
+            and isinstance(value.get('reason'), str) and bool(value['reason'].strip()))
 
 
 def _evidence_errors(repo, db, ids, run):
@@ -66,13 +73,15 @@ def _evidence_errors(repo, db, ids, run):
 
 def _link_errors(repo, db, link, run, schema):
     errors = _evidence_errors(repo, db, link.get('evidence_ids', []), run)
+    if link.get('discovery_reference') is not None and not _valid_discovery_reference(link['discovery_reference']):
+        errors.append('invalid_discovery_reference')
     concept = schema.get(link.get('concept_id'), {})
     if concept.get('kind') != 'concept':
         errors.append('unknown_concept')
     entity = _optional(repo, db, 'entities', link.get('target_entity_id'))
     if not entity:
         errors.append('entity_unresolved')
-    elif entity.get('concept_id') != link.get('concept_id'):
+    elif consumer.entity_type(entity, run.get('consumer_contract', {})) != link.get('concept_id'):
         errors.append('entity_type_mismatch')
     if entity and entity['namespace'].startswith('local:'):
         frozen = next((e for e in run.get('entities', []) if e['id']==entity['id']), None)
@@ -100,7 +109,7 @@ def _link_errors(repo, db, link, run, schema):
 def _scalar_valid(value, range_name):
     if range_name == 'integer':
         return type(value) is int
-    if range_name in {'float', 'double'}:
+    if range_name in {'float', 'double', 'decimal'}:
         return type(value) in {int, float}
     if range_name == 'boolean':
         return type(value) is bool
@@ -119,8 +128,11 @@ def _scalar_valid(value, range_name):
 def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
     errors = _evidence_errors(repo, db, assertion.get('evidence_ids', []), run)
     predicate = schema.get(assertion.get('predicate_id'), {})
+    profile_id = predicate.get('profile_id', assertion.get('predicate_id'))
     if predicate.get('kind') not in {'attribute', 'relation'}:
         errors.append('unknown_predicate')
+    if predicate.get('unsupported_reason'):
+        errors.append('unsupported_predicate_contract')
     dependencies = []
     for role in ('subject', 'object'):
         identifier = assertion.get(role + '_link_id')
@@ -135,8 +147,7 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
         if link.get('run_id') != run['id']:
             errors.append(role + '_link_not_in_run')
         entity = _optional(repo, db, 'entities', link.get('target_entity_id'))
-        expected = predicate.get('domain_id' if role == 'subject' else 'range')
-        if not entity or entity.get('concept_id') != expected:
+        if not entity or not consumer.permits(predicate, consumer.entity_type(entity, run.get('consumer_contract', {})), role):
             errors.append(role + '_type_or_target_unresolved')
         if require_accepted and link.get('review_status') != 'accepted':
             errors.append(role + '_link_not_accepted')
@@ -181,18 +192,18 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
                 units = {m.group(1) for quote in quotes for m in re.finditer(r'(?<![\d,])'+token+r'\s*(세대|호|개동|동)',quote)}
                 if len(units)==1 and assertion.get('unit') not in units:
                     errors.append('evidence_unit_mismatch')
-                if assertion.get('predicate_id')=='ATTRIBUTE_003' and units & {'개동','동'}:
+                if profile_id=='ATTRIBUTE_003' and units & {'개동','동'}:
                     errors.append('quantity_role_mismatch')
 
     if predicate.get('kind') == 'attribute' and not predicate.get('multivalued'):
-        if predicate.get('range') in {'integer','float','double','decimal','date'} or predicate.get('id') in contract.MONTHS:
+        if predicate.get('range') in {'integer','float','double','decimal','date'} or profile_id in contract.MONTHS:
             try:
                 normalized, raw_unit = contract.normalize(assertion.get('raw_value'), predicate)
                 if normalized != assertion.get('value'):
                     errors.append('literal_normalization_mismatch')
                 if raw_unit and raw_unit != assertion.get('unit'):
                     errors.append('literal_unit_mismatch')
-                if assertion.get('predicate_id')=='ATTRIBUTE_003' and (raw_unit or assertion.get('unit')) in {'개동','동'}:
+                if profile_id=='ATTRIBUTE_003' and (raw_unit or assertion.get('unit')) in {'개동','동'}:
                     errors.append('quantity_role_mismatch')
             except (ValueError,TypeError):
                 errors.append('literal_raw_invalid')
@@ -214,7 +225,7 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
             b = frozen.get(ev.get('block_id'))
             if b and b.get('locator',{}).get('format')=='pdf' and b['locator'].get('row',0)>0:
                 expected_slot = contract.pdf_slot(run,b)
-                if expected_slot and expected_slot != assertion.get('predicate_id'):
+                if expected_slot and expected_slot != profile_id:
                     errors.append('table_column_slot_mismatch')
         subject = _optional(repo,db,'entity_links',assertion.get('subject_link_id')) or {}
         subject_rows = pdf_rows(subject.get('evidence_ids',[]))
@@ -232,7 +243,7 @@ def _assertion_errors(repo, db, assertion, run, schema, require_accepted=False):
             validity_bounds(assertion)
         except (ValueError, TypeError, KeyError):
             errors.append('invalid_validity_period')
-        month_slot = assertion.get('predicate_id') in {'ATTRIBUTE_007', 'FirstOccupancyMonth'}
+        month_slot = profile_id in {'ATTRIBUTE_007', 'FirstOccupancyMonth'}
         value = assertion.get('value')
         if month_slot:
             match = re.fullmatch(r'(\d{4})-(\d{2})', value) if isinstance(value, str) else None
@@ -288,7 +299,7 @@ def publish_unit(service, run, unit, links, assertions, evidence, entities):
                 if (prior['namespace'], prior.get('official_id'), prior['concept_id']) != (entity['namespace'], entity.get('official_id'), entity['concept_id']):
                     raise ValueError('기존 개체 ID와 다른 식별 정보를 저장할 수 없습니다.')
                 continue
-            if schema.get(entity['concept_id'], {}).get('kind') != 'concept':
+            if schema.get(consumer.entity_type(entity, run.get('consumer_contract', {})), {}).get('kind') != 'concept':
                 raise ValueError('등록 개체의 concept_id가 검토된 스키마에 없습니다.')
             db.execute('INSERT INTO entities VALUES(?,?,?,?)', (entity['id'], entity['namespace'], entity.get('official_id'), _encode(entity)))
         for ev in evidence:
@@ -417,12 +428,14 @@ def decide(service, changeset_id, request):
             if decision.patch:
                 if decision.action != 'modify' or not set(decision.patch) <= fields:
                     raise ValueError('수정 가능한 필드만 modify로 전달해야 합니다.')
+                if is_link and 'discovery_reference' in decision.patch and not _valid_discovery_reference(decision.patch['discovery_reference']):
+                    raise ValueError('미연결 발견 분류와 판단 사유를 확인하세요.')
                 if is_link and 'target_entity_id' in decision.patch:
                     target = decision.patch['target_entity_id']
                     if target is None and value.get('target_entity_id'):
                         raise ValueError('연결 취소는 사유와 함께 unlink로 요청해야 합니다.')
                     entity = _optional(repo, db, 'entities', target)
-                    if target and (not entity or entity['concept_id'] != value['concept_id']):
+                    if target and (not entity or consumer.entity_type(entity, run.get('consumer_contract', {})) != value['concept_id']):
                         raise ValueError('동일한 개념 타입의 등록 개체를 선택해야 합니다.')
                 if 'scope' in decision.patch:
                     old_source = value.get('scope', {}).get('source_version_id')
@@ -432,9 +445,10 @@ def decide(service, changeset_id, request):
                 value.update(decision.patch)
                 if not is_link and 'value' in decision.patch and 'dates' not in decision.patch:
                     definition = schema.get(value.get('predicate_id'),{})
-                    if definition.get('range')=='date' or value.get('predicate_id') in contract.MONTHS:
+                    profile_id = definition.get('profile_id', value.get('predicate_id'))
+                    if definition.get('range')=='date' or profile_id in contract.MONTHS:
                         value['dates']=[dict(role=definition.get('name'), value=value['value'],
-                            precision='month' if value['predicate_id'] in contract.MONTHS else 'day')]
+                            precision='month' if profile_id in contract.MONTHS else 'day')]
 
                 if is_link and 'target_entity_id' in decision.patch:
                     value['method'] = 'manual' if value.get('target_entity_id') else 'unresolved'
@@ -445,6 +459,13 @@ def decide(service, changeset_id, request):
             accepting = decision.action in {'accept', 'modify'}
             errors = (_link_errors(repo, db, value, run, schema) if is_link else
                       _assertion_errors(repo, db, value, run, schema, require_accepted=accepting))
+            if accepting:
+                from .snapshots import current_restrictions
+                # Re-review does not re-allow a changed assertion or relax a blocked dependency.
+                restrictions = [r for r in current_restrictions(repo, db, value)
+                                if not (r['type']=='assertion' and r['id']==value['id'] and r['state']=='needs_review')]
+                if restrictions:
+                    errors.append('usage_dependency_unavailable')
             if not is_link and decision.action != 'modify':
                 errors = list(dict.fromkeys(errors + value.get('extraction_errors', [])))
             elif not is_link and decision.action == 'modify' and not errors:
@@ -530,7 +551,8 @@ def add_manual(service, changeset_id, request):
                 raise ValueError('같은 실행의 개체 연결을 선택하세요.')
         value, unit = (None,None) if definition['kind']=='relation' else contract.normalize(request.raw_value,definition)
         identifier = uuid4().hex
-        dates = [dict(role=definition.get('name'),value=value,precision='month' if request.predicate_id in contract.MONTHS else 'day')] if definition.get('range')=='date' or request.predicate_id in contract.MONTHS else []
+        profile_id = definition.get('profile_id', request.predicate_id)
+        dates = [dict(role=definition.get('name'),value=value,precision='month' if profile_id in contract.MONTHS else 'day')] if definition.get('range')=='date' or profile_id in contract.MONTHS else []
         candidate = dict(id=identifier,kind='assertion',run_id=run['id'],unit_id='manual',local_candidate_key='manual:'+identifier,
             changeset_id=change['id'],ontology_version_id=run['ontology_version_id'],origin='manual',revision=0,review_status='proposed',
             subject_link_id=request.subject_link_id,object_link_id=request.object_link_id,predicate_id=request.predicate_id,
@@ -549,15 +571,16 @@ def add_manual(service, changeset_id, request):
 def register_local_entity(service, request):
     """A source-scoped internal identity; only accepted links can enter snapshots."""
     from .schemas import LocalEntityRequest
-    from .snapshots import _capture_evidence
+    from .snapshots import _capture_evidence, current_restrictions
     request = LocalEntityRequest.model_validate(request)
     with service.lock, service.repository.connect() as db:
         ontology = service.repository.get(db, 'ontology_versions', request.ontology_version_id)
-        if ontology.get('payload_version') == 2:
-            raise ValueError('v2 온톨로지의 개체 등록은 A5 소비자 연결 필요')
-        definitions = {d['id']: d for d in _from_schema(ontology['linkml_yaml'])}
+        definitions = {d['id']: d for d in consumer.definitions(ontology)}
         if ontology['status'] != 'reviewed' or definitions.get(request.concept_id, {}).get('kind') != 'concept':
             raise ValueError('검토된 온톨로지의 개념을 선택하세요.')
+        if current_restrictions(service.repository, db, dict(id='local-registration',
+                ontology_version_id=ontology['id'], evidence_ids=request.evidence_ids)):
+            raise ValueError('사용 중단 또는 재검토가 필요한 근거로 개체를 등록할 수 없습니다.')
         evidence = [_capture_evidence(service.repository, db, i) for i in request.evidence_ids]
         if any(e['source_version_id'] != request.source_version_id for e in evidence):
             raise ValueError('선택 문서 버전의 근거만 사용할 수 있습니다.')

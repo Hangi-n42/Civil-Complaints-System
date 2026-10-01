@@ -6,7 +6,7 @@ import io
 import json
 from uuid import uuid4
 
-from . import extraction_store as store, ontology_schema
+from . import extraction_store as store, ontology_schema, ontology_consumer as consumer
 from .schemas import ActivateSnapshotRequest, AvailabilityRequest, SnapshotRequest
 from .service import encode, utcnow
 
@@ -77,7 +77,7 @@ def set_availability(service, request):
 
 def _evidence_ids(candidate):
     fields, dates = candidate.get('field_evidence'), candidate.get('dates')
-    groups = [candidate.get('evidence_ids')]
+    groups = [candidate.get('evidence_ids'), candidate.get('dependency_evidence_ids')]
     if isinstance(fields, dict):
         groups.extend(fields.values())
     if isinstance(dates, list):
@@ -89,6 +89,9 @@ def current_restrictions(repo, db, candidate, statuses=None):
     """Availability annotations for the existing review screen (not persisted)."""
     statuses = _statuses(db) if statuses is None else statuses
     ids = _evidence_ids(candidate)
+    ontology = store._optional(repo, db, 'ontology_versions', candidate.get('ontology_version_id'))
+    if ontology and ontology.get('payload_version') == 2:
+        ids.update(consumer.evidence_ids(ontology))
     links = [candidate] if candidate.get('kind') == 'entity_link' else []
     for key in ('subject_link_id', 'object_link_id'):
         link = store._optional(repo, db, 'entity_links', candidate.get(key))
@@ -111,6 +114,7 @@ def current_restrictions(repo, db, candidate, statuses=None):
 
 def _targets(snapshot, candidate):
     ids = _evidence_ids(candidate)
+    ids.update(snapshot.get('ontology_dependency_evidence_ids', []))
     links = [candidate] if candidate['kind'] == 'entity_link' else []
     for key in ('subject_link_id', 'object_link_id'):
         if candidate.get(key):
@@ -147,13 +151,14 @@ def _capture_evidence(repo, db, identifier):
 
 def _integrity(snapshot):
     """Check frozen references, never rebuild an old snapshot from live candidates."""
-    definitions = {c['id']: c for c in ontology_schema._from_schema(snapshot['ontology']['linkml_yaml'])}
+    contract = snapshot.get('consumer_contract', {})
+    definitions = {c['id']: c for c in consumer.definitions(snapshot['ontology'], contract)}
     for candidate in [*snapshot['links'].values(), *snapshot['assertions'].values()]:
         if candidate['review_status'] != 'accepted' or candidate.get('validation_errors'):
             raise ValueError('수락되지 않은 스냅샷 항목입니다.')
         if candidate['kind'] == 'entity_link':
             entity = snapshot['entities'].get(candidate['target_entity_id'])
-            if not entity or entity['concept_id'] != candidate['concept_id'] or candidate['concept_id'] not in definitions:
+            if not entity or consumer.entity_type(entity, contract) != candidate['concept_id'] or candidate['concept_id'] not in definitions:
                 raise ValueError('개체 참조가 일치하지 않습니다.')
         else:
             definition = definitions.get(candidate['predicate_id'], {})
@@ -162,9 +167,8 @@ def _integrity(snapshot):
                 if role == 'object' and definition.get('kind') != 'relation':
                     continue
                 link = snapshot['links'].get(link_id)
-                expected = definition.get('domain_id' if role == 'subject' else 'range')
                 resolved = candidate.get('subject_id' if role == 'subject' else 'object_entity_id')
-                if not link or link['concept_id'] != expected or link['target_entity_id'] != resolved:
+                if not link or not consumer.permits(definition, link['concept_id'], role) or link['target_entity_id'] != resolved:
                     raise ValueError('선택한 주장의 연결 참조가 일치하지 않습니다: ' + str(link_id))
                 if {'link_id': link_id, 'revision': link['revision']} not in candidate.get('link_dependencies', []):
                     raise ValueError('검토 당시 연결 버전이 아닙니다: ' + str(link_id))
@@ -173,6 +177,17 @@ def _integrity(snapshot):
     for ev in snapshot['evidence'].values():
         if ev['source_version_id'] not in snapshot['versions']:
             raise ValueError('스냅샷 원문 버전이 없습니다.')
+    if snapshot['ontology'].get('payload_version') == 2:
+        dependencies = set(snapshot.get('ontology_dependency_evidence_ids', []))
+        if dependencies != consumer.evidence_ids(snapshot['ontology']) or not dependencies <= snapshot['evidence'].keys():
+            raise ValueError('스냅샷 온톨로지의 파생 근거가 없습니다.')
+        for entity in snapshot['entities'].values():
+            kind = consumer.entity_type(entity, contract)
+            required = {d['id'] for d in definitions.values() if d['kind'] in {'attribute','relation'} and
+                        kind in d.get('required_domain_ids', [kind] if d.get('required') and consumer.permits(d, kind) else [])}
+            present = {a['predicate_id'] for a in snapshot['assertions'].values() if a.get('subject_id')==entity['id']}
+            if required - present:
+                raise ValueError('선택 개체의 필수 속성·관계가 없습니다: '+entity['id']+': '+', '.join(sorted(required-present)))
 
 
 def create(service, request):
@@ -185,7 +200,7 @@ def create(service, request):
             raise ontology_schema.VersionConflict('활성 버전이 변경되었습니다.')
         snapshot = dict(id=uuid4().hex, parent_id=state['active_snapshot_id'], created_at=utcnow(),
                         actor=request.actor, reason=request.reason, selections=[], links={}, assertions={},
-                        entities={}, evidence={}, versions={}, sources={})
+                        entities={}, evidence={}, versions={}, sources={}, run_scopes=[])
         seen_changes, seen_candidates = set(), set()
         ontology = None
         for selection in request.selections:
@@ -202,6 +217,14 @@ def create(service, request):
             if version.get('status') != 'reviewed' or (ontology and ontology['id'] != version['id']):
                 raise ValueError('동일한 검토된 온톨로지의 후보만 함께 선택하세요.')
             ontology = version
+            contract = run.get('consumer_contract', {})
+            if 'consumer_contract' in snapshot and snapshot['consumer_contract'] != contract:
+                raise ValueError('동일한 소비 계약의 후보만 함께 선택하세요.')
+            snapshot['consumer_contract'] = deepcopy(contract)
+            snapshot['run_scopes'].append(dict(run_id=run['id'], changeset_id=change['id'],
+                predicate_ids=deepcopy(run.get('predicate_ids')),
+                block_ids=sorted({b for u in run.get('units', []) for b in u.get('block_ids', [])}
+                                 if run.get('units') else {b['id'] for b in run['frozen_blocks']})))
             schema = store._schema(repo, db, run)
             items = {c['id']: c for c in store._items(repo, db, change)}
             for identifier in selection.candidate_ids:
@@ -234,8 +257,12 @@ def create(service, request):
         for candidate in [*snapshot['links'].values(), *snapshot['assertions'].values()]:
             evidence_ids.update(_evidence_ids(candidate))
         # Preserve schema provenance too, without treating its design text as factual evidence.
-        for definition in ontology_schema._from_schema(ontology['linkml_yaml']):
-            evidence_ids.update(e['evidence_id'] for e in definition.get('evidence', []))
+        if ontology.get('payload_version') == 2:
+            snapshot['ontology_dependency_evidence_ids'] = sorted(consumer.evidence_ids(ontology))
+            evidence_ids.update(snapshot['ontology_dependency_evidence_ids'])
+        else:
+            for definition in consumer.definitions(ontology):
+                evidence_ids.update(e['evidence_id'] for e in definition.get('evidence', []))
         for identifier in sorted(evidence_ids):
             ev = _capture_evidence(repo, db, identifier)
             snapshot['evidence'][identifier] = ev
@@ -298,8 +325,12 @@ def _view(snapshot, statuses, state, entity_id=None, as_of=None):
     source_ids = {snapshot['versions'][i]['source_id'] for i in version_ids}
     return dict(snapshot_id=snapshot['id'], parent_id=snapshot['parent_id'], **state, status_checked_at=utcnow(),
                 ontology_version_id=snapshot['ontology_version_id'], selections=snapshot['selections'],
-                definitions=[{k: c[k] for k in ('id', 'kind', 'name', 'definition', 'range')}
-                             for c in ontology_schema._from_schema(snapshot['ontology']['linkml_yaml'])],
+                consumer_contract=snapshot.get('consumer_contract', {}),
+                ontology_dependency_evidence_ids=snapshot.get('ontology_dependency_evidence_ids', []),
+                vocabulary_registry=snapshot['ontology'].get('vocabulary_registry', {}),
+                run_scopes=snapshot.get('run_scopes', []),
+                definitions=[{k: c.get(k) for k in ('id', 'kind', 'name', 'definition', 'range', 'aliases')}
+                             for c in consumer.definitions(snapshot['ontology'], snapshot.get('consumer_contract'))],
                 entities=[snapshot['entities'][i] for i in sorted(entity_ids)], links=links, assertions=assertions,
                 evidence=evidence, sources=[snapshot['sources'][i] for i in sorted(source_ids)],
                 versions=[{k: v for k, v in snapshot['versions'][i].items() if k != 'relative_raw_path'} for i in sorted(version_ids)],

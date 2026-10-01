@@ -160,7 +160,7 @@ def test_canonical_inheritance_vocabulary_alias_and_direct_yaml_read(service,mon
     assert vocab['symbol'] not in version['linkml_schema']['classes']
     assert canonical.digest(version['vocabulary_registry'])==version['registry_hash']
     assert canonical.digest([version['schema_hash'],version['registry_hash']])==version['version_hash']
-    with pytest.raises(ValueError,match='A5'):
+    with pytest.raises(ValueError,match='LH:complex 의미 대응'):
         service.start(RunRequest(kind='extract',source_version_ids=run['input_version_ids'],ontology_version_id=version['id'],registry_source_version_id=run['input_version_ids'][0]))
 
 
@@ -211,7 +211,7 @@ def test_v1_base_ids_rename_and_merge_deprecation_direct_impact(service):
     with service.repository.connect() as db:service.repository.save(db,'runs',run)
     cid=a3.publish(service,run['id'])['changeset_id']
     assert listing(service,cid)['ontology_head_id']==base
-    rename=add(service,cid,[proposal(ref)|dict(operation='update',target_id='CONCEPT_001',after={k:v for k,v in p.items() if k in {'name','definition','inclusion','exclusion'}})])[0]
+    rename=add(service,cid,[proposal(ref)|dict(support_type='explicit',qualifiers={},operation='update',target_id='CONCEPT_001',after={k:v for k,v in p.items() if k in {'name','definition','inclusion','exclusion'}})])[0]
     modified=decide(service,cid,[dict(candidate_id=rename['id'],action='modify',patch={'after':dict(rename['after'],name='표시명 수정')})])
     current=v1.get_ontology(service,modified['ontology_head_id'])
     assert current['targets'][0]['id']=='CONCEPT_001'

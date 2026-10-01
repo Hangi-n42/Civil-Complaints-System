@@ -4,7 +4,7 @@ from typing import Literal
 import re
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import ontology_schema, snapshots
+from . import ontology_consumer, snapshots
 from .extraction_contract import table_key
 from .service import encode
 
@@ -93,7 +93,7 @@ def context_key(snapshot, assertion):
 
 def build(snapshot, chosen, request, variant):
     from .search import fact_record
-    definitions={d['id']:d for d in ontology_schema._from_schema(snapshot['ontology']['linkml_yaml'])}
+    definitions={d['id']:d for d in ontology_consumer.definitions(snapshot['ontology'], snapshot.get('consumer_contract'))}
     refs={f'a{i+1}':a['id'] for i,a in enumerate(sorted(chosen,key=lambda a:a['id']))}
     grouped=defaultdict(list)
     for ref,identifier in refs.items():

@@ -6,7 +6,7 @@ from uuid import uuid4
 from pydantic import ValidationError
 
 from . import ontology_canonical as canonical
-from .ontology_changes_models import AddOntologyChanges, Definition, EvidenceRef, HierarchyReview, OntologyChangeV2
+from .ontology_changes_models import AddOntologyChanges, Definition, EvidenceRef, HierarchyReview, OntologyChangeV2, Qualifiers
 from .ontology_schema import SCALARS, VersionConflict, _insert, _now
 from .schemas import DecisionRequest
 
@@ -211,6 +211,18 @@ def _impact(repo, db, identifier, base_targets):
               for i,t in base_targets.items() if identifier in canonical.references(t) and not t.get('deprecated')]
     if identifier in PROFILE['definitions'] or _contains(PROFILE['definitions'], identifier):
         result.append(dict(id='mapping:'+PROFILE['version']+':'+identifier, kind='extraction_mapping', frozen=False))
+    entities, link_ids = {}, set()
+    runs = {r['id']: json.loads(r['payload']) for r in db.execute("SELECT id,payload FROM runs WHERE json_extract(payload,'$.kind')='extract'")}
+
+    def entity_matches(entity_id, value):
+        # The official identity's global type cannot override a frozen v2 role.
+        entity = entities.get(entity_id, {})
+        run = runs.get(value.get('run_id'), {})
+        contract = run.get('consumer_contract', {})
+        if entity.get('namespace', '').startswith('LH:') and (contract or run.get('ontology_payload_version') == 2):
+            return identifier == contract.get('role_targets', {}).get(entity['namespace'])
+        return identifier == entity.get('concept_id')
+
     # ponytail: direct ID scan of the small ledger; index reference fields if the pilot grows.
     for table in ('entities','entity_links','assertions','snapshots','runs'):
         for row in db.execute(f'SELECT id,payload FROM {table}'):
@@ -221,19 +233,67 @@ def _impact(repo, db, identifier, base_targets):
                 linked = identifier in canonical.targets(value.get('ontology'))
             elif table=='runs':
                 linked = any(identifier in {d['id'], d.get('domain_id'), d.get('range')} for d in value.get('ontology_candidates', []))
+            elif table=='entity_links':
+                linked = (identifier==value['concept_id'] if value.get('concept_id')
+                          else entity_matches(value.get('target_entity_id'), value))
+                if linked: link_ids.add(row['id'])
+            elif table=='assertions':
+                linked = (identifier==value.get('predicate_id')
+                    or any(value.get(k) in link_ids for k in ('subject_link_id','object_link_id'))
+                    or any(not value.get(link) and entity_matches(value.get(entity), value)
+                           for link, entity in (('subject_link_id','subject_id'),('object_link_id','object_entity_id'))))
             else:
-                linked = identifier == value.get('predicate_id' if table=='assertions' else 'concept_id')
+                entities[row['id']] = value
+                linked = identifier == value.get('concept_id')
             if linked:
                 result.append(dict(id=table+':'+row['id'], kind=table, frozen=table in {'snapshots','runs'}))
+    for row in db.execute("SELECT id,payload FROM decisions WHERE json_extract(payload,'$.kind')='lh_consumer_mapping'"):
+        value=json.loads(row['payload'])
+        if identifier in value.get('target_ids',{}).values():
+            result.append(dict(id='mapping_review:'+row['id'],kind='extraction_mapping',frozen=True))
     return result
 
 
+def _consumer_fingerprint(candidate):
+    return canonical.digest({k:candidate[k] for k in ('target_id','target_kind','operation','after','qualifiers')})
+
+
+def _consumer_impact(candidate, references):
+    before=candidate['before'] or {}
+    previous=Definition.model_validate({k:v for k,v in before.items() if k in Definition.model_fields}).model_dump()
+    updated=dict(previous,**candidate['after'])
+    qualifiers=Qualifiers.model_validate(before.get('qualifiers',{})).model_dump()
+    unchanged=all(previous[k]==updated[k] for k in previous if k!='name') and qualifiers==candidate['qualifiers']
+    operation,kind=candidate['operation'],candidate['target_kind']
+    if operation in {'merge','deprecate'}:
+        action='review_dependencies'
+    elif operation=='add' and kind in {'attribute','relation'}:
+        action='partial_extract'
+    elif (kind=='alias' and operation=='add' and not candidate['qualifiers'].get('scope')
+          and not candidate['qualifiers'].get('time') and candidate['qualifiers'].get('negation')!='negated') or (operation=='update' and unchanged):
+        action='display_refresh'
+    else:
+        action='semantic_review'
+    external=[r['id'] for r in references if not r['id'].startswith('ontology:')]
+    resolution=candidate.get('consumer_resolution',{})
+    resolved=(set(resolution.get('reference_ids',[])) if resolution.get('action')=='review_required'
+        and resolution.get('fingerprint')==_consumer_fingerprint(candidate) else set())
+    unresolved=sorted(set(external)-resolved) if action in {'semantic_review','review_dependencies'} else []
+    return dict(action=action,affected_assertion_ids=[r['id'].removeprefix('assertions:') for r in references if r['kind']=='assertions'],
+        preserved_run_ids=[r['id'].removeprefix('runs:') for r in references if r['kind']=='runs'],
+        preserved_snapshot_ids=[r['id'].removeprefix('snapshots:') for r in references if r['kind']=='snapshots'],
+        new_required=action=='partial_extract' and bool(candidate['after'].get('required')),
+        existing_records='preserved',new_facts='new_ontology_version_and_k4_review',
+        requires_resolution=bool(unresolved),unresolved_reference_ids=unresolved)
+
+
 def _evidence_errors(repo, db, references, blocks, statuses):
+    from .extraction_store import _optional
     errors = []
     for raw in references:
         try:
             e = EvidenceRef.model_validate(raw).model_dump()
-            evidence = repo.get(db, 'evidence', e['evidence_id'])
+            evidence = _optional(repo, db, 'evidence', e['evidence_id'])
             b = blocks[e['block_id']]
             start, end = e['span']
             if (evidence['block_id']!=b['id'] or e['source_version_id']!=b['source_version_id']
@@ -263,6 +323,7 @@ def _validate(repo, db, change, run, base):
     good = []
     for c in proposals:
         errors = []
+        c.pop('consumer_impact',None)
         c['validation'] = dict(structural_errors=errors, semantic_review=['의미 적합성은 사람 검수 대상'], can_accept=False)
         try:
             normalized = OntologyChangeV2.model_validate({k:v for k,v in c.items() if k in OntologyChangeV2.model_fields}).model_dump(mode='json')
@@ -309,6 +370,9 @@ def _validate(repo, db, change, run, base):
             errors.append('설계 제안을 원문 의무/사실로 표시할 수 없음')
         if c['qualifiers'].get('statement_type')=='instance':
             errors.append('개별 사실은 K4 검수 대상')
+        if c['target_kind']=='alias' and c['operation'] in {'add','update'} and (
+                c['qualifiers'].get('scope') or c['qualifiers'].get('time') or c['qualifiers'].get('negation')=='negated'):
+            errors.append('조건부/부정 별칭은 무조건 동의어로 투영할 수 없음; 의미 검토 후 보류')
         if c['target_kind']=='relation' and c['operation'] in {'add','update'} and c['after'].get('direction')!='subject_to_object':
             errors.append('A2 관계 방향 미해결')
         if c['target_kind'] in {'relation','hierarchy'} and c['qualifiers'].get('negation')=='negated':
@@ -391,11 +455,13 @@ def _validate(repo, db, change, run, base):
         if c['operation']=='deprecate' and any(t.get('replaced_by')==c['target_id'] for t in initial.values()):
             errors.append('이전 ID의 병합 정본은 대체 ID 없이 폐기할 수 없음')
         impact=_impact(repo,db,c['target_id'],initial) if c['operation']!='add' else []
+        if c['operation']=='add' and kind in {'attribute','relation'} and c['after'].get('domain_id') in initial:
+            impact=[r for r in _impact(repo,db,c['after']['domain_id'],initial) if not r['id'].startswith('ontology:')]
         c['affected_references']=impact; c['affected_reference_ids']=[i['id'] for i in impact]
+        c['consumer_impact']=_consumer_impact(c,impact)
         if c['operation'] in {'merge','deprecate'}:
-            external=[i for i in impact if not i['id'].startswith('ontology:')]
-            if external:
-                errors.append('기존 매핑/사실/snapshot 직접 참조 미해결: A5 처리 또는 이 변경 보류 필요')
+            if c['consumer_impact']['requires_resolution']:
+                errors.append('기존 매핑/사실/snapshot 직접 참조 미해결: 명시 소비자 재검토 처리 또는 보류 필요')
             for incoming in impact:
                 if incoming['id'].startswith('ontology:'):
                     referencing = projected[incoming['target_id']]
@@ -403,9 +469,8 @@ def _validate(repo, db, change, run, base):
                         errors.append('직접 정의 참조 미해결: '+incoming['id'])
                     elif incoming['target_id'] in by_target:
                         c['dependency_ids']=sorted(set(c['dependency_ids']+[by_target[incoming['target_id']]['change_id']]))
-        elif c['operation']=='update' and any(c['before'].get(k)!=after.get(k) for k in after if k!='name'):
-            if any(not i['id'].startswith('ontology:') for i in impact):
-                errors.append('정의/조건 변경의 기존 소비자 직접 참조 미해결')
+        elif c['consumer_impact']['requires_resolution']:
+            errors.append('정의/조건 변경의 기존 소비자 직접 참조 미해결')
         c['diff']={k:dict(before=(c['before'] or {}).get(k),after=v) for k,v in after.items() if (c['before'] or {}).get(k)!=v}
     # Dropping an invalid update restores its base edge, which may expose another cycle.
     while True:
@@ -515,6 +580,8 @@ def decide(service, changeset_id, request):
         raise ValueError('v2 결정은 사유가 필요하며 unlink는 지원하지 않습니다.')
     if len({d.candidate_id for d in request.decisions})!=len(request.decisions):
         raise ValueError('중복 후보 결정')
+    if any(d.consumer_action for d in request.decisions) and not request.actor.strip():
+        raise ValueError('소비자 재검토 처리자는 공백일 수 없습니다.')
     repo=service.repository
     with service.lock,repo.connect() as db:
         db.execute('BEGIN IMMEDIATE')
@@ -534,7 +601,20 @@ def decide(service, changeset_id, request):
                 c.update(deepcopy(d.patch));c['origin']['human_edited']=True
             c['review_status']={'accept':'accepted','modify':'accepted','edit':'unreviewed','defer':'deferred','reject':'rejected'}[d.action]
         _validate(repo,db,change,run,base)
-        accepted=lambda value:[{k:v for k,v in c.items() if k not in {'validation','diff','affected_references','affected_reference_ids'}}
+        for d in request.decisions:
+            if not d.consumer_action: continue
+            c=proposals[d.candidate_id]
+            impact=c.get('consumer_impact',{})
+            references=[r['id'] for r in c.get('affected_references',[]) if not r['id'].startswith('ontology:')]
+            if d.action not in {'accept','modify'} or impact.get('action') not in {'semantic_review','review_dependencies'} or not references:
+                raise ValueError('소비자 재검토는 직접 참조가 있는 의미/폐기/병합 변경의 수락에만 지정할 수 있습니다.')
+            c['consumer_resolution']=dict(action=d.consumer_action,fingerprint=_consumer_fingerprint(c),
+                actor=request.actor,reason=d.reason,reference_ids=references,assertion_ids=impact['affected_assertion_ids'],
+                preserved_run_ids=impact['preserved_run_ids'],preserved_snapshot_ids=impact['preserved_snapshot_ids'],
+                existing_records='preserved',new_facts='new_ontology_version_and_k4_review')
+        if any(d.consumer_action for d in request.decisions):
+            _validate(repo,db,change,run,base)
+        accepted=lambda value:[{k:v for k,v in c.items() if k not in {'validation','diff','affected_references','affected_reference_ids','consumer_impact'}}
             for c in value['candidates'] if c['review_status']=='accepted']
         if accepted(before)!=accepted(change):
             if head not in {change['base_ontology_version_id'],change['reviewed_ontology_version_id']}:
@@ -548,6 +628,15 @@ def decide(service, changeset_id, request):
             head=version['id']
             db.execute('UPDATE ontology_heads SET reviewed_version_id=? WHERE lineage_id=?',(head,change['lineage_id']))
             change['reviewed_ontology_version_id']=head;change['ontology_version_id']=head
+        from .snapshots import _statuses, mark_changed
+        for d in request.decisions:
+            if not d.consumer_action: continue
+            resolution=proposals[d.candidate_id]['consumer_resolution']
+            statuses=_statuses(db)
+            resolution['marked_assertion_ids']=[i for i in resolution['assertion_ids']
+                if statuses.get(('assertion',i),{}).get('state','allowed')=='allowed']
+            mark_changed(db,resolution['assertion_ids'],request.actor,d.reason)
+            resolution['ontology_version_id']=head
         change['revision']+=1
         for d in request.decisions:
             previous=next(c for c in before['candidates'] if c['change_id']==d.candidate_id)

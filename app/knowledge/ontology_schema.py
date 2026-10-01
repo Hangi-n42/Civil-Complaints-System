@@ -215,6 +215,8 @@ def decide(service, changeset_id, request):
     if change.get('payload_version') == 2:
         from .ontology_changes import decide as decide_v2
         return decide_v2(service, changeset_id, request)
+    if any(d.consumer_action for d in request.decisions):
+        raise ValueError('consumer_action은 v2 변경 후보에만 지원합니다.')
     if any(d.action == 'edit' for d in request.decisions):
         raise ValueError('edit는 v2 변경 후보에만 지원합니다.')
     if kind == 'extraction':

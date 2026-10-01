@@ -25,7 +25,7 @@ def compatible(definitions, slot):
 def normalize(raw, definition):
     """Only literal formatting; never infer missing date precision or quantity scope."""
     text = str(raw).strip()
-    slot, kind = definition['id'], definition.get('range', 'string')
+    slot, kind = definition.get('profile_id', definition['id']), definition.get('range', 'string')
     if definition.get('multivalued'):
         raise ValueError('다중값 슬롯은 이 추출 계약에서 지원하지 않습니다.')
     if slot in MONTHS:
@@ -53,6 +53,34 @@ def normalize(raw, definition):
     return text, None
 
 
+def mapped_slot(run, original):
+    """Only fixed LH mappings; no label matching or implicit merge substitution."""
+    if run.get('ontology_payload_version') == 2:
+        identifier = run['consumer_contract']['target_ids'].get(original)
+    else:
+        identifier = original if compatible(run['ontology_candidates'], original) else None
+    selected = run.get('predicate_ids')
+    return identifier if identifier and (selected is None or identifier in selected) else None
+
+
+def mapped_definition(run, original):
+    identifier = mapped_slot(run, original)
+    return next(d for d in run['ontology_candidates'] if d['id'] == identifier)
+
+
+def mapped_output(run, records):
+    mapping = run.get('consumer_contract', {}).get('target_ids', {}) if run.get('ontology_payload_version') == 2 else {}
+    for record in records:
+        record['concept_id'] = mapping.get(record['concept_id'], record['concept_id'])
+        for field in ('values', 'raw_values', 'field_evidence'):
+            if field in record:
+                record[field] = {mapping.get(k, k): v for k, v in record[field].items()}
+        for value in record['values'].values():
+            if isinstance(value, dict) and 'concept_id' in value:
+                value['concept_id'] = mapping.get(value['concept_id'], value['concept_id'])
+    return records
+
+
 def table_key(block):
     loc = block['locator']
     return (block.get('source_version_id'), block.get('parse_run_id', block.get('run_id')),
@@ -69,7 +97,6 @@ def pdf_records(run, unit):
     for b in blocks:
         groups.setdefault(table_key(b), []).append(b)
     records, coverage = [], []
-    definitions = {d['id']: d for d in run['ontology_candidates']}
     for key, cells in groups.items():
         headers = {b['text'].strip(): b for b in cells if b['locator'].get('row') == 0}
         supported = all(h in headers for h in PROFILE['pdf_columns'])
@@ -84,7 +111,7 @@ def pdf_records(run, unit):
             for title, spec in PROFILE['pdf_columns'].items():
                 status = dict(id=f'{key}:{row}:{spec["slot"]}', row=row, predicate_id=spec['slot'], status='needs_review', reason='')
                 coverage.append(status)
-                if not layout_ok or not compatible(run['ontology_candidates'], spec['slot']):
+                if not layout_ok or not mapped_slot(run, spec['slot']):
                     status.update(status='unsupported', reason='표 구조 또는 검토된 속성 정의가 매핑과 맞지 않습니다.')
                     continue
                 header = headers[title]
@@ -98,7 +125,7 @@ def pdf_records(run, unit):
                     continue
                 b = values[0]
                 try:
-                    value, unit_name = normalize(b['text'], definitions[spec['slot']])
+                    value, unit_name = normalize(b['text'], mapped_definition(run, spec['slot']))
                 except ValueError as exc:
                     status['reason'] = str(exc)
                     continue
@@ -107,7 +134,7 @@ def pdf_records(run, unit):
                     field_evidence={spec['slot']: [reference(b)], 'scope': [reference(header)]},
                     unit=unit_name, scope=f'PDF 단지 현황 표 · {title}', conditions=[], exceptions=[]))
                 status.update(status='extracted', block_id=b['id'])
-    return records, coverage
+    return mapped_output(run, records), coverage
 
 
 def text_units(run, unit):
@@ -133,8 +160,9 @@ def fact_definitions(run, unit=None):
     selected = [b for b in run['frozen_blocks'] if unit and b['id'] in unit['block_ids']]
     limited = selected and all(b['locator'].get('field')=='imgAhflDesc' for b in selected)
     return [d for d in run['ontology_candidates'] if d['kind'] in {'attribute', 'relation'} and (d['kind']=='relation' or not d.get('multivalued'))
-            and d['id'] not in {'ATTRIBUTE_001', 'ATTRIBUTE_002', 'NoticeIdentifier'}
-            and (not limited or d['id'] in PROFILE['html_description_slots'])]
+            and not d.get('unsupported_reason') and (run.get('predicate_ids') is None or d['id'] in run['predicate_ids'])
+            and d.get('profile_id', d['id']) not in {'ATTRIBUTE_001', 'ATTRIBUTE_002', 'NoticeIdentifier'}
+            and (not limited or d.get('profile_id', d['id']) in PROFILE['html_description_slots'])]
 
 
 def schema(run, unit):
@@ -150,7 +178,7 @@ def schema(run, unit):
                      conditions={'type':'array','items':{'type':'string'}}, conditions_evidence=ev,
                      exceptions={'type':'array','items':{'type':'string'}}, exceptions_evidence=ev)
         if d['kind'] == 'relation':
-            props['object'] = dict(type='object', properties=dict(mention={'type':'string'}, concept_id={'type':'string','const':d['range']},
+            props['object'] = dict(type='object', properties=dict(mention={'type':'string'}, concept_id={'type':'string','enum':d.get('allowed_range_ids', [d['range']])},
                                    official_id={'type':['string','null']}, evidence=nonempty_ev), required=['mention','concept_id','official_id','evidence'], additionalProperties=False)
         else:
             props['raw_value'] = {'type':'string','minLength':1}
@@ -197,7 +225,8 @@ def adapt(run, unit, decoded):
             entity = next((e for e in run['entities'] if e.get('official_id')==code), None)
             if not support or not entity:
                 invalid.append(dict(index=index,raw_record=output,validation_errors=['official_subject_context_missing']));continue
-            subject = dict(mention=entity['name'], concept_id=entity['concept_id'], official_id=code, evidence=[reference(support)])
+            from .ontology_consumer import entity_type
+            subject = dict(mention=entity['name'], concept_id=entity_type(entity, run.get('consumer_contract')), official_id=code, evidence=[reference(support)])
         else:
             try:check_evidence(subject['evidence'])
             except ValueError as exc:
@@ -212,7 +241,8 @@ def adapt(run, unit, decoded):
                 for field in ('evidence','scope_evidence','conditions_evidence','exceptions_evidence'):
                     check_evidence(fact[field])
                 definition = definitions[fact['predicate_id']]
-                if definition['domain_id'] != subject['concept_id']:
+                from .ontology_consumer import permits
+                if not permits(definition, subject['concept_id']):
                     raise ValueError('주체 유형과 속성 정의가 다릅니다.')
                 if fact['scope'] not in {'','미확인'} and not fact['scope_evidence']:
                     raise ValueError('범위 근거가 없습니다.')
