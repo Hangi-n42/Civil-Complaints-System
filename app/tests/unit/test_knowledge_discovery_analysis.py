@@ -51,7 +51,7 @@ def response(prompt, stage):
     if stage=='revision':
         return dict(observations=[],relations=[],hierarchies=[],deferred=[dict(candidate_ref=i,reason='사람 검수로 명시 보류한다.') for i in data['target_ids']])
     hierarchy = [{k:h[k] for k in ('child_ref','parent_ref','relation','a_to_b','b_to_a')} for h in data['taxonomy']['hierarchies']]
-    return dict(issues=[], hierarchy_checks=hierarchy, relation_checks=[dict(candidate_ref=c['id'],judgment='supported', evidence_id=c['evidence_ids'][0],quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.') for c in data['unapproved_relations']], gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
+    return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy, relation_checks=[dict(candidate_ref=c['id'],judgment='supported', evidence_id=c['evidence_ids'][0],quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.') for c in data['unapproved_relations']], gaps=['의미는 사람 검수 필요'], actions=[], needs_revision=False)
 
 
 @pytest.fixture(autouse=True)
@@ -506,7 +506,8 @@ def test_selected_analysis_cross_document_synthesis_and_honest_coverage(service,
     assert 'g는 후보 조립' in run['synthesis_call_formula']
 
 
-def test_revision_corrects_classification_negation_and_preserves_ids_and_history(service,monkeypatch,model):
+@pytest.mark.parametrize('quote_valid', [True, False])
+def test_revision_corrects_classification_negation_and_preserves_ids_and_history(service,monkeypatch,model,quote_valid):
     source=prepare(service,file_ids=['current:0']);original=a2.model_call
     async def revise(prompt,schema,stage,run,timeout):
         data=json.loads(prompt.split('\nINPUT:\n')[1])
@@ -524,6 +525,8 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
             for c in data['targets']:
                 if 'classification' in c:
                     item={k:c[k] for k in a2.models.Observation.model_fields if k!='local_ref'}
+                    text=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0])
+                    item['source_quotes']=[dict(evidence_id=c['evidence_ids'][0],quote=text[:2] if quote_valid else '이번 입력에 없는 인용')]
                     value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary'))
                 elif 'negation' in c:
                     item={k:c[k] for k in a2.models.Relation.model_fields if k!='local_ref'}
@@ -546,7 +549,13 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
     assert run['result']['original_relations'][0]['negation']=='negated'
     assert run['result']['relations'][0]['negation']=='affirmed'
     assert original_row['classification']=='type' and revised['classification']=='vocabulary'
-    assert next(c for c in a2.terms(service,run['id'],'국민')['items'] if c['id']==revised['id'])['classification']=='vocabulary'
+    terms=a2.terms(service,run['id'],'국민')['items']
+    if quote_valid:
+        assert next(c for c in terms if c['id']==revised['id'])['classification']=='vocabulary'
+        assert len(revised['evidence_refs'][0]['quote'])==2 and revised['evidence_refs'][0]['span']==[0,2]
+    else:
+        assert revised['validation'] and not revised['evidence_refs']
+        assert not any(c['id']==revised['id'] for c in terms)
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert model.count('revision')==1 and again['result']['revision_history']==run['result']['revision_history']
 
@@ -762,6 +771,8 @@ def test_search_budget_does_not_skip_available_critic_review(service, model, sea
 
 @pytest.mark.parametrize('required', [True, False])
 def test_one_block_list_capacity_preserves_raw_success_and_resume(service, monkeypatch, model, required):
+    # The legacy unsplit/unsplittable path must still flag capacity limits.
+    monkeypatch.setattr(a2.segments, 'expand', lambda frontier, blocks: frontier)
     survey = profile.survey
     def optional(*args):
         profiles, frontier, contexts = survey(*args)
@@ -825,3 +836,92 @@ def test_same_two_search_budget_allows_critic_after_model_searches(service, monk
     assert run['metrics']['searches']==2 and model.count('critic')==1
     assert run['status']=='partial' and len(run['result']['incomplete_review_searches'])==model_searches
     assert all(u['status']=='succeeded' for u in run['analysis_units'])
+
+
+def test_segmented_execution_keeps_parent_evidence_and_reuses_success(service, monkeypatch, model):
+    source=prepare(service,file_ids=['current:0'])
+    load=a2.load_blocks
+    text='공통 공급 조건. '+ ' '.join(f'{i}. 고유유형{i} 조건과 정의.' for i in range(1,8))
+    def listed(*args):
+        blocks=load(*args);blocks[0]['text']=text;return blocks
+    monkeypatch.setattr(a2,'load_blocks',listed)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert len(run['frontier'])==4
+    assert all(g.get('segments') for g in run['frontier'])
+    assert all(u['status']=='succeeded' for u in run['analysis_units']),run['result']['failures']
+    for row in run['result']['observations']:
+        for ref in row['evidence_refs']:
+            assert text[slice(*ref['span'])]==ref['quote'] and ref['block_id']==ref['evidence_id']
+    before=list(model)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model==before and again['result']['observations']==run['result']['observations']
+
+
+@pytest.mark.parametrize('role,rounds,invalid', [('concept',1,False),('relation',1,False),('concept',0,False),('concept',1,True)])
+def test_critic_missing_meaning_separate_bounded_analysis(service,monkeypatch,model,role,rounds,invalid):
+    source=prepare(service,file_ids=['current:0'])
+    original=a2.model_call
+    sent=False
+    async def missing(prompt,schema,stage,run,timeout):
+        nonlocal sent
+        value=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('INPUT:\n')[1]);out=json.loads(value['text'])
+        if stage=='critic' and not sent:
+            sent=True;b=data['blocks'][0]
+            out['missing_meanings']=[dict(role=role,meaning='누락된 조건부 공급 의미',evidence_ids=[b['ref']],
+                source_quotes=[dict(evidence_id=b['ref'],quote='입력 밖 인용' if invalid else b['text'])],
+                cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')]
+            out['needs_revision']=True
+        if data.get('recovery_meaning'):
+            if stage=='concept':
+                for c in out['observations']: c['definition']='추가로 확인한 별도 의미'
+            if stage=='relation': out['relations'][0]['conditions']='추가로 확인한 누락 조건'
+        value['text']=json.dumps(out,ensure_ascii=False);return value
+    monkeypatch.setattr(a2,'model_call',missing)
+    selected=[b['id'] for b in a2.load_blocks(service,source)]
+    run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='작은 원문 선택',
+        discovery_budgets=dict(additional_rounds=rounds)))['run_id'])
+    requests=run['result']['recovery_requests'];assert len(requests)==1
+    recovery=[g for g in run['frontier'] if g.get('recovery_request_id')]
+    if rounds and not invalid:
+        assert len(recovery)==1 and requests[0]['status']=='proposals_created',run.get('error')
+        assert recovery[0]['roles']==(['relation'] if role=='relation' else ['concept','relation'])
+        assert requests[0]['proposal_ids'] and not any(u['stage']=='revision' for u in run['analysis_units'])
+    else:
+        assert not recovery and run['status']=='partial' and run['result']['unresolved_recovery_requests']
+    before=list(model)
+    resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert before==model and len(resumed['result']['recovery_requests'])==1
+
+
+def test_final_prompt_allocation_keeps_primary_and_defers_comparison():
+    run=dict(cqs=[dict(id='q',question='정의')],scope_items=[],recipe=a2.recipe({}))
+    primary=dict(ref='primary',text='주 분석 원문 전체',locator={'row':1})
+    term=dict(id='base',name='기준',definition='비교 정의',evidence=[dict(evidence_id='extra',quote='가'*16000)])
+    group={}
+    context,deps,supplied=a2.analysis_context(run,'concept',dict(blocks=[primary],reviewed_base=[term],tool_originals=[dict(ref='extra',text='가'*16000)]),{'base':term},group,reserve=2000)
+    assert context['blocks']==[primary] and deps==['primary'] and not supplied
+    assert group['omitted_comparison_ids']==['base']
+    _,prompt=a2.make_prompt(run,'concept',context,deps,supplied)
+    assert len(prompt)+2000<=run['recipe']['input_chars']
+
+
+def test_output_capacity_queues_one_bounded_same_span_continuation():
+    b=dict(id='b',text='원문 조건',locator={})
+    group=dict(id='g',block_ids=['b'])
+    run=dict(analysis_units=[dict(id='concept:g',status='succeeded',output=dict(observations=[{}]*5))])
+    for _ in range(2):a2.capacity_status(run,group,{'b':b})
+    assert len(run['recovery_requests'])==1
+    r=run['recovery_requests'][0]
+    assert r['role']=='concept' and r['trigger']=='output_capacity' and r['status']=='pending'
+    assert r['evidence_refs']==[dict(evidence_id='b',block_id='b',span=[0,len(b['text'])])]
+
+
+def test_critic_recovery_does_not_promote_comparison_only_history_to_selected_analysis():
+    run=dict(analysis_block_ids=['selected-current'])
+    need=dict(role='concept',meaning='이전 시행본의 정의 보완',validation=[],
+              evidence_refs=[dict(block_id='comparison-history',span=[0,10])])
+    a2.queue_recovery(run,dict(missing_meanings=[need]),dict(id='review'))
+    assert run['recovery_requests'][0]['validation']
+    assert a2.recovery_groups(run,1,{})==[]
+    assert need['validation']==[]  # Preserve the original Critic judgment separately.

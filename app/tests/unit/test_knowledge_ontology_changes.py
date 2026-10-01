@@ -575,3 +575,41 @@ def test_invalid_hierarchy_update_keeps_base_edge_in_review_structure(service,er
     before=listing(service,cid2)
     with pytest.raises(ValueError,match='is_a 순환'):decide(service,cid2,[dict(candidate_id=reverse['id'],action='accept')])
     assert listing(service,cid2)==before and v1.get_ontology(service,base)==old
+
+
+@pytest.mark.parametrize('meaning', ['same','changed','distinct','uncertain'])
+def test_alignment_preserves_identity_only_for_explicit_meaning_match(service, meaning):
+    seed, ref = analysis(service)
+    cid = a3.publish(service,seed['id'])['changeset_id']
+    first = listing(service,cid)['candidates'][0]
+    accepted = decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
+    base = v1.get_ontology(service,accepted['reviewed_ontology_version_id'])
+    run, _ = analysis(service,base=base['id'])
+    observation = run['result']['observations'][0]
+    observation.update(label='동의 표현' if meaning=='same' else first['after']['name'],
+                       definition='새 범위의 정의', conditions='일부 대상만', time='새 시행 시점')
+    run['result']['alignments']=[dict(observation_ref=observation['id'],target_id=first['target_id'],
+                                     meaning=meaning,reason='원문의 범위·시점 대조')]
+    if meaning=='same':
+        run['result']['observations'].append(dict(observation,id='dc_repeat'))
+        run['result']['alignments'].append(dict(run['result']['alignments'][0],observation_ref='dc_repeat'))
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    change=listing(service,a3.publish(service,run['id'])['changeset_id'])
+    assert len(change['candidates'])==1
+    row=change['candidates'][0]
+    if meaning in {'same','changed'}:
+        assert row['operation']=='update' and row['target_id']==first['target_id'] and row['can_accept']
+        assert row['before']['definition']==first['after']['definition']
+        if meaning=='same':
+            assert row['after']==first['after'] and row['qualifiers']==first['qualifiers']
+            assert change['id_mapping']['dc_repeat']['target_id']==first['target_id']
+            assert len(row['evidence_refs'])==1
+        else:
+            assert row['after']['definition']=='새 범위의 정의'
+            assert row['qualifiers']['scope']=='일부 대상만' and row['qualifiers']['time']=='새 시행 시점'
+    else:
+        assert row['operation']=='add' and row['target_id']!=first['target_id']
+        if meaning=='uncertain': assert row['review_status']=='deferred' and not row['can_accept']
+        else: assert row['can_accept']  # Same spelling is not an identity rule.
+    assert change['analysis_result']['observations']==run['result']['observations']
+    assert v1.get_ontology(service,base['id'])==base

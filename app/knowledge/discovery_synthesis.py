@@ -1,7 +1,7 @@
 """Bounded cross-document draft comparison and one revision per candidate group."""
 from copy import deepcopy
 
-from . import discovery_analysis as a2, discovery_profile as profile
+from . import discovery_analysis as a2, discovery_profile as profile, discovery_segments as segments
 
 
 def evidence_ids(candidate):
@@ -11,7 +11,18 @@ def evidence_ids(candidate):
 
 
 def context_for(candidates, by_id, context_map):
-    raw = a2.packet(list(dict.fromkeys(i for c in candidates for i in evidence_ids(c))), by_id, context_map)
+    ids = list(dict.fromkeys(i for c in candidates for i in evidence_ids(c)))
+    full = {i for c in candidates if not c.get('evidence_refs') for i in evidence_ids(c)}
+    views = []
+    for c in candidates:
+        for ref in c.get('evidence_refs', []):
+            if ref['block_id'] in full: continue
+            b = by_id[ref['block_id']]
+            matching = [v for v in segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
+            view = matching[0] if matching else dict(block_id=b['id'],span=[0,len(b['text'])],shared_spans=[],recipe=segments.VERSION)
+            if view not in views: views.append(view)
+    views += [dict(block_id=i,span=[0,len(by_id[i]['text'])],shared_spans=[],recipe=segments.VERSION) for i in full]
+    raw = segments.packet(dict(block_ids=ids,segments=views), by_id, context_map, a2.packet)
     context = dict(blocks=raw,
         reviewed_base=[c for c in candidates if c.get('review_status')=='reviewed'],
         unapproved_observations=[c for c in candidates if c.get('review_status')!='reviewed' and 'classification' in c],
@@ -67,7 +78,8 @@ def assemble(run, round_number, by_id, context_map, available):
         own = group['candidates']; own_ids={c['id'] for c in own}
         # Reviewed definitions and related unapproved observations are comparison-only.
         links={link for c in own for link in ['cq:'+i for i in c['cq_ids']]+['scope:'+i for i in c['scope_item_ids']]}
-        related = [c for c in a2.base_context(run) if links & {'cq:'+i for i in c.get('cq_ids', [])}]
+        omitted_analysis = {i for g in run['frontier'] if g['id'] in {c['analysis_group_id'] for c in own} for i in g.get('omitted_comparison_ids', [])}
+        related = [c for c in a2.base_context(run) if c['id'] in omitted_analysis or links & {'cq:'+i for i in c.get('cq_ids', [])}]
         matches={i:c for link in sorted(links) for i,c in by_link.get(link, {}).items() if i not in own_ids}
         related += list(matches.values())
         group['omitted_related_ids'] = []
@@ -79,6 +91,17 @@ def assemble(run, round_number, by_id, context_map, available):
         group.update(id='cg_'+profile.digest([round_number,sorted(own_ids)])[:20], round=round_number,
             candidates=included, primary_candidate_ids=sorted(own_ids), status='pending',
             analysis_group_ids=sorted({c['analysis_group_id'] for c in own}))
+    # A compact pair preserves a deferred reviewed definition without enlarging a primary packet.
+    base = {c['id']:c for c in a2.base_context(run)}
+    for group in list(groups):
+        for identifier in group['omitted_related_ids']:
+            if identifier not in base: continue
+            primary = next(c for c in group['candidates'] if c['id'] in group['primary_candidate_ids'])
+            pair = [primary,base[identifier]]
+            ctx,deps,supplied = context_for(pair,by_id,context_map)
+            if fits(run,'builder',ctx,deps,supplied,reserve=3000):
+                groups.append(dict(group,id='compare_'+profile.digest([group['id'],identifier])[:20],
+                    candidates=pair,primary_candidate_ids=[primary['id']],omitted_related_ids=[],comparison_only=True))
     return groups
 
 
@@ -206,9 +229,11 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
             if review is None: continue
             a2.apply_actions(service,run,index,blocks,'critic',key,review)
             group['status']='review_issues_generated'
+            a2.queue_recovery(run, review, group)
             critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
-            if review['needs_revision'] or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']):
+            candidate_revision = review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
+            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']):
                 if run['recipe']['budgets']['revisions']:
                     revise(service,run,group,review,taxonomy,by_id,context_map)
                 else: group['revision_deferrals']=[dict(candidate_ref=i,reason='수정 예산 0; 사람 검수로 보류') for i in group['primary_candidate_ids']]

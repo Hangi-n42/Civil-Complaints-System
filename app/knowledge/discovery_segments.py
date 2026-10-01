@@ -1,0 +1,104 @@
+"""Analysis views over immutable blocks. IDs and offsets always point to the original."""
+from copy import deepcopy
+import re
+
+from . import discovery_profile as profile
+
+VERSION = 'source-spans-v2'
+
+
+def split(block):
+    text = block['text']
+    numbered = profile.numbered_items([block])
+    markers = sorted({m['start'] for m in numbered} | {m.start() for m in re.finditer('[①-⑳]', text)})
+    if len(markers) < 3:
+        markers = [m.start() for m in re.finditer(r'(?m)^\s*[-*•]\s+\S', text)]
+    if len(markers) < 3 and len(text) > 1600:
+        markers = [m.end() for m in re.finditer(r'\n\s*\n|(?<=[다요]\.)\s+|;\s+', text)]
+    if len(markers) < 3:
+        return [dict(block_id=block['id'], span=[0,len(text)], shared_spans=[], recipe=VERSION)]
+    if len(markers) <= 5 and len(text) <= 1600:
+        return [dict(block_id=block['id'], span=[0,len(text)], shared_spans=[], recipe=VERSION)]
+    boundaries = sorted({0, *markers, len(text)})
+    spans = [[a,b] for a,b in zip(boundaries,boundaries[1:]) if text[a:b].strip()]
+    prefix = [[0,markers[0]]] if markers[0] else []
+    # ponytail: preserve all explicit exception passages as shared context; unresolved oversized
+    # context stays partial. This is structural slicing, not a legal scope inference engine.
+    shared = prefix + [span for span in spans if re.search('다만|이 경우|제외|예외|다음 각|각 호.*경우', text[slice(*span)])]
+    focus = [span for span in spans if span not in prefix]
+    return [dict(block_id=block['id'], span=[part[0][0],part[-1][1]],
+                 shared_spans=[s for s in shared if not part[0][0] <= s[0] < part[-1][1]], recipe=VERSION)
+            for n in range(0,len(focus),2) if (part := focus[n:n+2])]
+
+
+def expand(frontier, by_id):
+    """Split only groups containing a block that exceeds a small semantic working set."""
+    expanded = []
+    for group in frontier:
+        views = [view for identifier in group['block_ids'] for view in split(by_id[identifier])]
+        if len(views)==len(group['block_ids']):
+            expanded.append(group)
+            continue
+        headers = [v['block_id'] for v in views if v['span']==[0,len(by_id[v['block_id']]['text'])] and len(by_id[v['block_id']]['text'])<256]
+        for view in views:
+            if view['block_id'] in headers: continue
+            expanded.append(dict(group, id='sg_'+profile.digest([group['id'],view])[:20],
+                parent_group_id=group['id'], block_ids=[view['block_id']], context_block_ids=headers, segments=[view],
+                input_chars=view['span'][1]-view['span'][0], reason=group['reason']+'; 원문 구간별 분석',
+                status='unvisited'))
+    return expanded
+
+
+def packet(group, by_id, context_map, whole_packet):
+    raw = whole_packet(list(dict.fromkeys(group['block_ids'] + group.get('context_block_ids', []))), by_id, context_map)
+    if not group.get('segments'): return raw
+    views = []
+    for block in raw:
+        segments = [s for s in group['segments'] if s['block_id']==block['ref']]
+        if not segments:
+            views.append(dict(block, context_only=True))
+            continue
+        seen = set()
+        for segment in segments:
+            for span in [segment['span'], *segment['shared_spans']]:
+                if tuple(span) in seen: continue
+                seen.add(tuple(span))
+                views.append(dict(block, text=block['text'][slice(*span)], span=span,
+                                  context_only=span!=segment['span'], segment_recipe=segment['recipe']))
+    return views
+
+
+def originals(value):
+    if isinstance(value, list): return [b for item in value for b in originals(item)]
+    if isinstance(value, dict):
+        if 'ref' in value and 'text' in value: return [value]
+        return [b for child in value.values() for b in originals(child)]
+    return []
+
+
+def references(candidate, by_id, provided):
+    """Ground exact quotes within actually provided views, retaining parent offsets."""
+    result = []
+    quotes = candidate.get('source_quotes', [])
+    errors = []
+    for identifier in candidate['evidence_ids']:
+        b = by_id[identifier]
+        views = [v for v in provided if v['ref']==identifier]
+        selected = [q['quote'] for q in quotes if q['evidence_id']==identifier]
+        if not selected:
+            selected = [v['text'] for v in views if not v.get('context_only')] or [v['text'] for v in views]
+        for quote in selected:
+            positions = {v.get('span',[0,len(b['text'])])[0]+m.start()
+                         for v in views for m in re.finditer(re.escape(quote),v['text'])} if quote else set()
+            if len(positions)!=1:
+                errors.append('원문 인용 구간 불명확 또는 이번 입력 밖')
+                continue
+            start = positions.pop(); end = start+len(quote)
+            if b['text'][start:end]!=quote:
+                errors.append('부모 원문 구간 불일치');continue
+            ref = dict(evidence_id=identifier,block_id=b['id'],source_version_id=b['source_version_id'],
+                       parse_run_id=b['parse_run_id'],locator=deepcopy(b['locator']),span=[start,end],quote=quote)
+            if ref not in result: result.append(ref)
+    if any(q['evidence_id'] not in candidate['evidence_ids'] for q in quotes):
+        errors.append('인용과 근거 ID 목록 불일치')
+    return result, errors

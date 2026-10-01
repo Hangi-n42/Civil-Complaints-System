@@ -8,6 +8,9 @@ const state = vi.hoisted(() => ({ values: [] as unknown[] }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useState: () => [state.values.shift(), vi.fn()], useEffect: vi.fn() }));
 vi.mock("@/lib/knowledgeReview", () => import("../lib/knowledgeReview"));
 vi.mock("../components/KnowledgeReviewEvidence", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeHumanCost", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeDiscoveryStart", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeMissingProposal", () => ({ default: () => null }));
 
 function candidate(): Change {
   return { id: "change", change_id: "change", target_id: "alias", symbol: "Alias", target_kind: "alias", operation: "add",

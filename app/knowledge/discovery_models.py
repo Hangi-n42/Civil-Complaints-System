@@ -46,11 +46,17 @@ class Scout(Record):
     gaps: list[str] = Field(max_length=8)
 
 
+class SourceQuote(Record):
+    evidence_id: str
+    quote: str = Field(min_length=1, max_length=700)
+
+
 class Grounded(Record):
     evidence_ids: list[str] = Field(min_length=1, max_length=8)
     cq_ids: list[str] = Field(default_factory=list)
     scope_item_ids: list[str] = Field(default_factory=list)
     outside_scope_reason: str = ''
+    source_quotes: list[SourceQuote] = Field(default_factory=list, max_length=8)
 
 
 class Observation(Grounded):
@@ -58,6 +64,10 @@ class Observation(Grounded):
     label: str = Field(min_length=1, max_length=80)
     classification: Literal['type', 'vocabulary', 'entity', 'property_value', 'unresolved']
     definition: str = Field(min_length=1, max_length=240)
+    classification_reason: str = Field(default='', max_length=200)
+    conditions: str = Field(default='', max_length=240)
+    exceptions: str = Field(default='', max_length=240)
+    time: str = Field(default='', max_length=120)
     support_type: Literal['explicit', 'instance_proposal', 'unresolved']
     abstraction_level: str = Field(min_length=1, max_length=100)
     review_signals: list[str] = Field(max_length=5)
@@ -69,9 +79,13 @@ class Alignment(Record):
     reason: str = Field(min_length=1, max_length=180)
 
 
+class ConceptAlignment(Alignment):
+    meaning: Literal['same', 'changed', 'distinct', 'uncertain'] = 'uncertain'
+
+
 class Concepts(Record):
     observations: list[Observation] = Field(max_length=5)
-    alignments: list[Alignment] = Field(max_length=5)
+    alignments: list[ConceptAlignment] = Field(max_length=5)
     gaps: list[str] = Field(max_length=5)
     actions: list[Action] = Field(max_length=2)
 
@@ -160,7 +174,13 @@ class Revision(Record):
     deferred: list[Deferred] = Field(max_length=15)
 
 
+class MissingMeaning(Grounded):
+    role: Literal['concept', 'relation']
+    meaning: str = Field(min_length=1, max_length=300)
+
+
 class Critique(Record):
+    missing_meanings: list[MissingMeaning] = Field(default_factory=list, max_length=2)
     issues: list[Issue] = Field(max_length=8)
     hierarchy_checks: list[Hierarchy] = Field(max_length=5)
     gaps: list[str] = Field(max_length=8)
@@ -184,13 +204,13 @@ CQ 목록은 실행 전체 목표이며 각 묶음의 필수 답변 목록이 �
 '''
 PROMPTS = {
     'scout': '전체 구조 프로파일과 frontier를 보고 자료 역할·필수 절·대표/예외 행·CQ 공백을 조사한다. 우선 필요한 unit을 read하거나 근거를 search한다. finish는 필수 분석을 면제하지 않는다.',
-    'concept': 'Concept Miner: blocks가 주 분석 대상이다. tool_originals는 비교 문맥이며 그 정의 반복으로 이번 분석을 대신하지 않는다. 자료 부족은 구체적인 gaps로 기록하며 actions만으로 분석을 대신하지 않는다. 명시적 정의/분류/필드에서 유형 발견과 개별 사례의 공통 유형 제안 두 경로를 검토한다. type/vocabulary/entity/property_value/unresolved, 목표 추상화 수준, 제안 방식과 검토 신호를 기록한다. 원문 관측 최대 5개. 포함/제외 조건은 definition에 보존한다. 열 이름은 속성의 어휘/설계 제안이고 셀 값은 실제 관측값이다. 열 이름 자체를 property_value로 분류하지 않는다. 유형이 모호하면 unresolved.',
-    'relation': 'Relation Miner: blocks가 주 분석 대상이며 보완 원문만 분석하지 않는다. 자료 부족은 gaps에 기록한다. 같은 원문에서 정의 또는 사실 표본을 최대 5개 기록한다. 주체/객체는 제공 후보 ref 또는 원문 표기. 방향·부정·조건·시점·진술 성격을 명시하며 문맥 없는 단어 연결은 unresolved. 미승인 개념의 정의를 확정 사실로 전제하지 않는다. negation은 오직 해당 주어-술어-목적어 주장 자체가 부정됐는지 판정한다. 정의에 제외/아니한다가 있어도 상위 유형 포함 주장이 긍정이면 affirmed이고 제외 내용은 conditions에 쓴다. 판단 근거가 불명확하면 unknown.',
+    'concept': 'Concept Miner: blocks가 주 분석 대상이다. tool_originals는 비교 문맥이며 그 정의 반복으로 이번 분석을 대신하지 않는다. 자료 부족은 구체적인 gaps로 기록하며 actions만으로 분석을 대신하지 않는다. 명시적 정의/분류/필드에서 유형 발견과 개별 사례의 공통 유형 제안 두 경로를 검토한다. type/vocabulary/entity/property_value/unresolved, 목표 추상화 수준, 제안 방식과 검토 신호를 기록한다. 원문 관측 최대 5개. focus_spans가 있으면 그 구간의 항목을 우선 분석하고 공유 문맥만 반복 산출하지 않는다. classification_reason에 유형/개체 구분 근거를 적고, source_quotes에 실제 제공된 정확한 원문 구절을 연결한다. 조건·예외·시점은 conditions/exceptions/time에 분리하여 일부·주체·대상 범위를 보존한다. 포함/제외 조건은 definition에 보존한다. 열 이름은 속성의 어휘/설계 제안이고 셀 값은 실제 관측값이다. 열 이름 자체를 property_value로 분류하지 않는다. 유형이 모호하면 unresolved. 기존 정의가 제공되면 관측과 대응 판단을 분리하여 alignments에 same(범위·조건·시점까지 같은 의미), changed(같은 대상의 의미 변경), distinct(별개), uncertain을 기록한다. 이름 일치만으로 same을 선택하지 않는다. 관측 정의는 원문대로 보존한다.',
+    'relation': 'Relation Miner: blocks가 주 분석 대상이며 보완 원문만 분석하지 않는다. 자료 부족은 gaps에 기록한다. 같은 원문에서 정의 또는 사실 표본을 최대 5개 기록한다. focus_spans의 항목을 우선 분석하며 source_quotes에 실제 원문 구절을 연결한다. 주체·대상은 제공된 유형 후보 ID를 우선 사용하고, 적합한 유형이 없으면 gaps에 명시한다. 주체/객체는 제공 후보 ref 또는 원문 표기. 방향·부정·조건·시점·진술 성격을 명시하며 문맥 없는 단어 연결은 unresolved. 미승인 개념의 정의를 확정 사실로 전제하지 않는다. negation은 오직 해당 주어-술어-목적어 주장 자체가 부정됐는지 판정한다. 정의에 제외/아니한다가 있어도 상위 유형 포함 주장이 긍정이면 affirmed이고 제외 내용은 conditions에 쓴다. 판단 근거가 불명확하면 unknown.',
     'builder': 'Taxonomy Builder: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 제공된 관련 후보만 비교한다. 필요한 is_a/instance_of/broader/part_of와 별칭만 제안한다. is_a는 type끼리, instance_of는 entity에서 type, broader는 vocabulary끼리다. 제안한 각 쌍마다 같은 범위·시점에서 모든 A는 B인가 / 모든 B는 A인가를 supported/refuted/unknown과 근거/반례로 판정한다. 실제 사례 일치로 보편 포함을 확정하지 않는다. 양방향 지지는 동치 검토 대상일 뿐 자동 병합하지 않는다. 양방향 부정은 무관/배타를 뜻하지 않는다. 누락값은 비소속 증거가 아니다. 수정 요청이면 지적된 묶음만 수정하고 미해결은 보존한다.',
     'revision': 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 지적된 후보 묶음을 한 번만 수정한다. targets 각각을 observations/relations/hierarchies 중 맞는 목록으로 전체 수정하거나 deferred로 명시 보류한다. candidate_ref는 기존 ID를 유지한다. 쟁점과 원문을 대조해 분류·부정·조건·방향을 고친다. 근거 없는 확정이나 새 후보 추가는 금지한다. 모든 target에 수정 또는 보류 한 건이 필요하다.',
-    'critic': 'Ontology Critic: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 후보와 대조한다. 미완료 review_search_status는 독립 반례 검색 완료를 뜻하지 않는다. 누락된 개념처럼 대응 후보가 없으면 candidate_ref는 빈 문자열로 두고 다른 후보에 억지 연결하지 않는다. 유형/개체 혼동·조건/시점 누락·근거 불일치·오병합·CQ 공백을 확인한다. 제안 계층은 모두 양방향 hierarchy_checks로 다시 판정한다. counter_evidence_ids는 실제 반례인 경우만, 검색 히트 자체는 반증이 아니다. 근거가 없으면 unknown과 defer_reason. 부족한 원문은 request_evidence/read, 수정 필요시 needs_revision. 후보에 대한 자신감/빈도를 정답 근거로 쓰지 않는다. 모든 unapproved_relations에 relation_checks를 남겨 주어-술어-목적어의 긍정/부정 범위를 원문과 별도로 대조한다. supported/refuted는 실제 원문 quote와 evidence_id를 포함하고 의미가 불명확하면 unknown이다. 제외 조건과 관계 전체의 부정을 혼동하지 않는다. 열 이름/셀 값 분류를 별도로 점검한다. 제공되지 않은 법률 규정을 단정하지 말고 자료 필요로 보류한다. reason은 1~2개의 짧고 완결된 문장으로 끝낸다. 예산 끝까지 문장을 늘리지 않는다.'}
+    'critic': 'Ontology Critic: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 후보와 대조한다. 미완료 review_search_status는 독립 반례 검색 완료를 뜻하지 않는다. 누락된 개념처럼 대응 후보가 없으면 candidate_ref는 빈 문자열로 두고 다른 후보에 억지 연결하지 않는다. 제공 원문에서 특정한 누락은 missing_meanings에 필요한 역할·의미·CQ와 정확한 source_quotes를 기록한다. 이미 존재하는 후보의 수정은 이 목록에 넣지 않는다. 원문 자체가 없으면 자료 필요로 보류한다. 유형/개체 혼동·조건/시점 누락·근거 불일치·오병합·CQ 공백을 확인한다. 제안 계층은 모두 양방향 hierarchy_checks로 다시 판정한다. counter_evidence_ids는 실제 반례인 경우만, 검색 히트 자체는 반증이 아니다. 근거가 없으면 unknown과 defer_reason. 부족한 원문은 request_evidence/read, 수정 필요시 needs_revision. 후보에 대한 자신감/빈도를 정답 근거로 쓰지 않는다. 모든 unapproved_relations에 relation_checks를 남겨 주어-술어-목적어의 긍정/부정 범위를 원문과 별도로 대조한다. supported/refuted는 실제 원문 quote와 evidence_id를 포함하고 의미가 불명확하면 unknown이다. 제외 조건과 관계 전체의 부정을 혼동하지 않는다. 열 이름/셀 값 분류를 별도로 점검한다. 제공되지 않은 법률 규정을 단정하지 말고 자료 필요로 보류한다. reason은 1~2개의 짧고 완결된 문장으로 끝낸다. 예산 끝까지 문장을 늘리지 않는다.'}
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','gaps'), 'builder': ('hierarchies','alias_proposals','gaps'),
-    'critic': ('issues','hierarchy_checks','relation_checks','gaps'),
+    'critic': ('issues','hierarchy_checks','relation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}

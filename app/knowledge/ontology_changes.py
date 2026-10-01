@@ -72,6 +72,7 @@ def _make(raw, base, origin=None):
 def _convert(run, base, blocks):
     result = run['result']
     rows, references, mapping = [], [], {}
+    alignments = result.get('alignments', [])
     observations = result.get('observations', [])
     relations = result.get('relations', [])
     for source in observations + relations:
@@ -84,7 +85,8 @@ def _convert(run, base, blocks):
         support = source.get('support_type', 'explicit' if source.get('statement_type') in {'definition','rule'} else source.get('statement_type'))
         support = 'design_proposal' if support=='instance_proposal' else support
         raw = dict(target_kind=kind, support_type=support or 'unresolved',
-            after=dict(name=source.get('label', source.get('predicate', '')), definition=source.get('definition', '')),
+            after=dict(name=source.get('label', source.get('predicate', '')), definition=source.get('definition', ''),
+                       inclusion=source.get('conditions', ''), exclusion=source.get('exceptions', '')),
             evidence_refs=[_ref(e, blocks) for e in source.get('evidence_refs', [])],
             cq_ids=source.get('cq_ids', []), scope_item_ids=source.get('scope_item_ids', []),
             rationale=source.get('abstraction_level', '') if concept else 'A2 관계 분석 제안; 사람 의미 검수 필요',
@@ -95,9 +97,45 @@ def _convert(run, base, blocks):
         if not concept:
             raw['after'].update(domain_id=source['subject'], range=source['object'], direction=source['direction'])
             raw['after']['definition'] = ' '.join(source[k] for k in ('subject','predicate','object'))
-        row = _make(raw, base, dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
-                    validation=source.get('validation', []), direction=source.get('direction')))
-        rows.append(row)
+        matches = [a for a in alignments if a['observation_ref']==source['id']] if concept else []
+        origin = dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
+                      validation=source.get('validation', []), direction=source.get('direction'), alignments=deepcopy(matches))
+        if matches:
+            match = matches[0]
+            target = base.get(match['target_id'])
+            meaning = match.get('meaning', 'uncertain') if len(matches)==1 else 'uncertain'
+            if meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated'):
+                raw.update(operation='update', target_id=target['id'])
+                before = {k:deepcopy(v) for k,v in target.items() if k in AFTER_FIELDS[kind]}
+                if meaning=='same':
+                    raw['after'] = before
+                    raw['qualifiers'] = deepcopy(target.get('qualifiers', {}))
+                    origin['change_intent'] = 'evidence_only'
+                else:
+                    raw['after'] = dict(before, definition=source['definition'], inclusion=source.get('conditions', ''), exclusion=source.get('exceptions', ''))
+                    origin['change_intent'] = 'meaning_change'
+                # Keep old evidence and the separate new observation; accepting remains a human decision.
+                prior_refs = [_ref(e, blocks) for e in target.get('evidence_refs', [])]
+                raw['evidence_refs'] = prior_refs + [e for e in raw['evidence_refs'] if e not in prior_refs]
+                raw['cq_ids'] = list(dict.fromkeys(raw['cq_ids'] + [i for i in target.get('cq_ids', []) if i in {q['id'] for q in run['cqs']}]))
+                raw['rationale'] += '; 기존 정의 대응: ' + match['reason']
+            elif meaning!='distinct':
+                raw['support_type']='unresolved'
+                raw['unresolved_issues']=[*raw['unresolved_issues'], '기존 정의와 동일/변경/별개인지 확인 필요']
+                origin['change_intent']='alignment_pending'
+        row = _make(raw, base, origin)
+        if origin.get('change_intent')=='alignment_pending': row['review_status']='deferred'
+        previous = next((c for c in rows if c['target_id']==row['target_id'] and
+            c['origin'].get('change_intent')==origin.get('change_intent')=='evidence_only'), None)
+        if previous:
+            previous['evidence_refs'] += [e for e in row['evidence_refs'] if e not in previous['evidence_refs']]
+            previous['origin'].setdefault('additional_observations', []).append(deepcopy(source))
+            previous['origin']['alignments'].extend(deepcopy(matches))
+            previous['cq_ids'] = list(dict.fromkeys(previous['cq_ids']+row['cq_ids']))
+            previous['scope_item_ids'] = list(dict.fromkeys(previous['scope_item_ids']+row['scope_item_ids']))
+            row = previous
+        else:
+            rows.append(row)
         mapping[source['id']] = dict(change_id=row['change_id'], target_id=row['target_id'], local_ref=source.get('local_ref'))
     def target(identifier):
         return mapping.get(identifier, {}).get('target_id', identifier)
@@ -141,15 +179,16 @@ def _convert(run, base, blocks):
             mapping[f"{taxonomy['unit_id']}:alias:{n}"] = dict(change_id=row['change_id'], target_id=row['target_id'])
     for row in rows:
         identifier = row['origin'].get('candidate_id')
+        identifiers = {identifier, *[c['id'] for c in row['origin'].get('additional_observations', [])]}
         deferrals = result.get('revision_deferrals', []) + [d for r in result.get('revisions', []) for d in r.get('deferred', [])]
         for deferred in deferrals:
-            if deferred['candidate_ref']==identifier:
+            if deferred['candidate_ref'] in identifiers:
                 row['review_status']='deferred'; row['unresolved_issues'].append(deepcopy(deferred))
-        row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id']==identifier]
-        row['origin']['critiques'] = [deepcopy(i) for c in result.get('critiques', []) for i in c.get('issues', []) if i.get('candidate_ref') in {'',identifier}]
+        row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id'] in identifiers]
+        row['origin']['critiques'] = [deepcopy(i) for c in result.get('critiques', []) for i in c.get('issues', []) if i.get('candidate_ref') in {'',*identifiers}]
         row['origin']['relation_checks'] = [deepcopy(i) for c in result.get('critiques', []) for i in c.get('relation_checks', []) if i.get('candidate_ref')==identifier]
         counter_refs = [_ref({'evidence_id':e}, blocks) for issue in row['origin']['critiques']
-                        if issue.get('candidate_ref')==identifier for e in issue.get('counter_evidence_ids', [])]
+                        if issue.get('candidate_ref') in identifiers for e in issue.get('counter_evidence_ids', [])]
         counter_refs += [_ref({'evidence_id':i['evidence_id'],'quote':i['quote']}, blocks)
                         for i in row['origin']['relation_checks'] if i['judgment']=='refuted' and i.get('quote')]
         for ref in counter_refs:
@@ -161,8 +200,8 @@ def _convert(run, base, blocks):
             for i in c.get(field, []))}
         units = [u for u in run.get('analysis_units', [])
             if u['id'] in review_units or u['id']==row['origin'].get('unit_id')
-            or any(c.get('id')==identifier for field in ('observations','relations','hierarchies','effective_hierarchies') for c in u.get('output', {}).get(field, []))
-            or any(h.get('candidate_id')==identifier for h in u.get('output', {}).get('history', []))]
+            or any(c.get('id') in identifiers for field in ('observations','relations','hierarchies','effective_hierarchies') for c in u.get('output', {}).get(field, []))
+            or any(h.get('candidate_id') in identifiers for h in u.get('output', {}).get('history', []))]
         row['origin']['analysis_unit_ids'] = [u['id'] for u in units]
         row['origin']['dependency_block_ids'] = sorted({i for u in units for i in u.get('dependency_ids', [])})
     return rows, references, mapping

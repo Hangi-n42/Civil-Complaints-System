@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import KnowledgeReviewEvidence from "./KnowledgeReviewEvidence";
+import KnowledgeHumanCost from "./KnowledgeHumanCost";
+import KnowledgeDiscoveryStart from "./KnowledgeDiscoveryStart";
+import KnowledgeMissingProposal from "./KnowledgeMissingProposal";
 import { bulkLabelChanges, canConvert, changeName, coverageRows, decisionBody, display, groupChanges, label, makeDraft, post, pretty, readableRefs, record, records, simpleLabelChange, strings,
   type CandidateResponse, type Change, type Changeset, type DiscoveryRun, type EditDraft, type KnowledgeRequest, type Ontology, type RecordValue, type RunSummary } from "@/lib/knowledgeReview";
 
@@ -19,6 +22,7 @@ function Schema({ title, value }: { title: string; value: Ontology | null }) {
   return <details className={panelClass}><summary className="cursor-pointer font-medium">{title}</summary>
     <p className="text-sm">{value.id ? `버전 ${value.id}` : "저장하지 않은 미승인 preview"}</p>
     {value.error ? <p role="alert">파생 확인 불가: {value.error}</p> : <>
+      <ul className="space-y-2 text-sm">{(value.targets||value.candidates||[]).map(t=><li key={String(t.id)}><strong>{String(t.name)}</strong> · {String(t.definition||"")}<p>포함: {String(t.inclusion||"미기록")} · 제외: {String(t.exclusion||"미기록")}</p><p>적용 조건: {String(record(t.qualifiers).scope||"미기록")} · 시점: {String(record(t.qualifiers).time||"미기록")}</p>{t.domain_id ? <p>관계: {String((value.targets||value.candidates||[]).find(v=>v.id===t.domain_id)?.name||"대상 미확인")} → {String((value.targets||value.candidates||[]).find(v=>v.id===t.range)?.name||t.range)} · {label(String(record(t.qualifiers).negation||"unknown"))}</p> : null}</li>)}</ul>
       <JsonDetail title="현재 적용 슬롯 · 상속 포함" value={value.effective_class_slots} />
       <JsonDetail title="어휘와 이전 ID → 최종 정본 대응" value={value.vocabulary_registry} />
       <details><summary>저장 LinkML</summary><pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all text-xs">{value.linkml_yaml}</pre></details>
@@ -86,6 +90,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
     setBusy(true); setError(""); setNotice(""); setRun(null); setChange(null); setPreview(null); setReviewed(null); setConflict(false); setLatest(null); select();
     try {
       const value = await request<DiscoveryRun>(`/runs/${encodeURIComponent(id)}`); setRun(value);
+      const refreshed = await request<{items:RunSummary[];next_before:number|null}>("/runs"); setRuns(refreshed.items);setNextBefore(refreshed.next_before);
       if (value.changeset_id) await loadChange(value.changeset_id);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
@@ -111,7 +116,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
       if ((e as { status?: number }).status === 409) { setConflict(true); setLatest(null); }
     } finally { setBusy(false); }
   }
-  function changeText(field: "after" | "qualifiers", key: string, value: string) {
+  function changeText(field: "after" | "qualifiers", key: string, value: unknown) {
     if (!draft) return;
     try { setDraft({ ...draft, [field]: pretty({ ...record(JSON.parse(draft[field])), [key]: value }) }); setError(""); }
     catch { setError("모델링 상세의 JSON 문법을 먼저 고쳐 주세요. 편집 입력은 유지됩니다."); }
@@ -137,7 +142,13 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
     return "";
   }
 
+  const targets = [...new Map([...(reviewed?.targets || reviewed?.candidates || []).map(t=>[String(t.id),t] as const), ...(change?.candidates || []).map(c=>[c.target_id,{id:c.target_id,kind:c.target_kind,...record(c.after)}] as const)]).values()];
+  function targetSelect(key: string, title: string, primitive=false) {
+    return <label className="block text-sm" key={key}>{title}<select className={inputClass} value={String(after[key] || "")} onChange={e=>changeText("after",key,e.target.value||null)}><option value="">대상 선택</option>{primitive && ["string","integer","float","boolean","date","datetime"].map(v=><option key={v} value={v}>{({string:"문자",integer:"정수",float:"실수",boolean:"참·거짓",date:"날짜",datetime:"날짜·시간"})[v]}</option>)}{targets.filter(t=>["class","concept","vocabulary_concept"].includes(String(t.kind))).map(t=><option key={String(t.id)} value={String(t.id)}>{String(t.name)} · {String(t.definition || "").slice(0,60)}</option>)}</select></label>;
+  }
   return <section className="space-y-4" aria-label="탐색 변경 검수">
+    <KnowledgeHumanCost run={run} change={change} />
+    <KnowledgeDiscoveryStart request={request} onReady={chooseRun} disabled={locked} />
     <div className={panelClass}><h2 className="text-lg font-semibold">탐색 초안의 의미와 근거 검수</h2>
       <p className="text-sm text-slate-600">저장된 분석 결과를 선택해 원문과 변경을 대조합니다. 수락은 검토된 온톨로지 버전을 만들며 운영 지식을 활성화하지 않습니다.</p>
       <label className="block text-sm">저장된 탐색 실행<select className={inputClass} value={run?.id || ""} disabled={locked} onChange={e => chooseRun(e.target.value)}>
@@ -154,7 +165,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
     {run && <section className={panelClass} aria-label="탐색 처리 범위">
       <h3 className="font-semibold">{label(run.status)} · {run.frozen_input.scope} / 단계 {run.frozen_input.step}</h3>
       <p className="text-sm">종료 사유: {run.stop_reason || run.error || "미기록"}</p>
-      <div className="grid gap-2 text-sm md:grid-cols-3"><p>구조 조사 {stat("structure_surveyed")}개 · 원문 제공 {stat("raw_provided")}개</p><p>양 역할 근거 연결 {stat("analysis_succeeded")}개 · 의미 해결과 구분</p><p>원문 미제공 {stat("unvisited_block_ids")}개 · 분석 근거 미연결 {stat("unanalysed_block_ids")}개</p><p>필수 미처리 {stat("mandatory_pending")}개 · 실패 {stat("failures")}개</p><p>모델 누적 {run.metrics?.llm_calls ?? "미기록"}회 · 검수 중 추가 호출 없음</p><p>변경 {change?.candidates.length ?? 0}개 · 보류 {change?.candidates.filter(c => c.review_status === "deferred").length ?? 0}개 · 미해결 {change?.unresolved_count ?? "미변환"}개</p></div>
+      <div className="grid gap-2 text-sm md:grid-cols-3"><p>구조 조사 {stat("structure_surveyed")}개 · 원문 제공 {stat("raw_provided")}개</p><p>양 역할 근거 연결 {stat("analysis_succeeded")}개 · 의미 해결과 구분</p><p>원문 미제공 {stat("unvisited_block_ids")}개 · 분석 근거 미연결 {stat("unanalysed_block_ids")}개</p><p>필수 미처리 {stat("mandatory_pending")}개 · 실패 {stat("failures")}개 · 미복구 의미 {stat("unresolved_recovery_requests")}개</p><p>모델 누적 {run.metrics?.llm_calls ?? "미기록"}회 · 검수 중 추가 호출 없음</p><p>변경 {change?.candidates.length ?? 0}개 · 보류 {change?.candidates.filter(c => c.review_status === "deferred").length ?? 0}개 · 미해결 {change?.unresolved_count ?? "미변환"}개</p></div>
       <ul className="space-y-1 text-sm">{run.frozen_input.files.map(f => <li key={f.file_id}>{f.title} · {f.role || "역할 미기록"}</li>)}</ul>
       <details className="text-xs"><summary>사용 자료 버전 · 실행 ID</summary><pre className="whitespace-pre-wrap break-all">{pretty({ run_id: run.id, files: run.frozen_input.files })}</pre></details>
       {!change && <><button disabled={busy || !canConvert({ status: run.status, has_result: !!run.result })} className={buttonClass} onClick={convert}>저장 결과를 변경안으로 변환</button><p className="text-xs">저장 결과가 있는 종료 실행만 변환합니다. 실패·취소·일부 처리 상태를 완료로 바꾸지 않습니다.</p></>}
@@ -185,7 +196,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
           <section className={panelClass}><h3 className="font-semibold">원문이 이 의미와 조건을 뒷받침합니까?</h3>
             <div className="flex flex-wrap gap-2 text-sm">{([false,true] as const).map(counter => <button key={String(counter)} className="rounded border px-2 py-1" aria-pressed={reference.counter === counter} onClick={() => setReference({ counter, index: 0 })}>{counter ? "반례 원문" : "제안 근거"} ({Array.isArray(counter ? selected.counter_evidence_refs : selected.evidence_refs) ? (counter ? selected.counter_evidence_refs : selected.evidence_refs).length : 0})</button>)}</div>
             {Array.isArray(refs) && refs.map((r,i) => <button className="block w-full rounded border p-2 text-left text-sm" key={`${r.evidence_id}-${i}`} aria-pressed={reference.index === i} onClick={() => setReference({ ...reference, index: i })}>{i+1}. {Array.from(r.quote).slice(0,120).join("")}{Array.from(r.quote).length > 120 ? "…" : ""}</button>)}
-            {currentRef ? <KnowledgeReviewEvidence key={`${currentRef.evidence_id}:${currentRef.quote}:${reference.counter}`} request={request} runId={run.id} reference={currentRef} /> : <p className="text-sm text-amber-900">{reference.counter ? "연결된 반례 원문이 없습니다. 반례가 없다는 판정은 아닙니다." : "근거 문맥 확인 필요 · 근거를 연결하거나 보류하세요."}</p>}
+            {currentRef ? <KnowledgeReviewEvidence key={`${currentRef.evidence_id}:${currentRef.quote}:${reference.counter}`} request={request} runId={run.id} reference={currentRef} onSelect={busy || conflict ? undefined : ref=>{ if (!draft) return; const key=reference.counter ? "counter_evidence_refs" : "evidence_refs"; setDraft({...draft,[key]:pretty([ref])}); setNotice("선택한 원문 구절을 편집 근거로 연결했습니다. 편집 저장 또는 수정 후 수락으로 기록하세요."); }} /> : <p className="text-sm text-amber-900">{reference.counter ? "연결된 반례 원문이 없습니다. 반례가 없다는 판정은 아닙니다." : "근거 문맥 확인 필요 · 근거를 연결하거나 보류하세요."}</p>}
           </section>
           <section className={panelClass}><h3 className="font-semibold">의미·범위·예외를 어떻게 바꿉니까?</h3>
             <p className="text-sm">{label(selected.support_type)} · {label(selected.operation)} · {selected.operation === "merge" ? "같은 대상이라는 판단을 개별 검수하세요." : "원문 명시와 설계 제안을 구분하세요."}</p>
@@ -203,9 +214,20 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <p className="whitespace-pre-wrap text-sm">변경 이유: {display(selected.rationale)}</p>
             <fieldset disabled={busy || conflict} className="space-y-3 border-t pt-3"><legend className="font-medium">검토자가 수정할 내용 · 아직 저장되지 않음</legend>
               {["add","update"].includes(selected.operation) && !["hierarchy"].includes(draft.target_kind) && ["name", ...(draft.target_kind === "alias" ? [] : ["definition","inclusion","exclusion"])].map(k => <label key={k} className="block text-sm">{fieldLabels[k]}<textarea className={inputClass} value={typeof after[k] === "string" ? after[k] as string : ""} onChange={e => changeText("after",k,e.target.value)} /></label>)}
+              <label className="block text-sm">항목 종류<select className={inputClass} value={draft.target_kind} onChange={e=>setDraft({...draft,target_kind:e.target.value})}>{["class","attribute","relation","vocabulary_concept","hierarchy","alias"].map(k=><option key={k} value={k}>{label(k)}</option>)}</select></label>
+              {["relation","attribute"].includes(draft.target_kind) && <>{targetSelect("domain_id","출발 유형 · 주체")}{targetSelect("range","도착 유형 · 대상 또는 값",draft.target_kind==="attribute")}
+                <label className="block text-sm">관계 방향<select className={inputClass} value={String(after.direction || "unresolved")} onChange={e=>changeText("after","direction",e.target.value)}><option value="unresolved">판단 미정</option><option value="subject_to_object">출발 유형에서 도착 유형으로</option></select></label>
+                {["required","multivalued"].map(k=><label className="block text-sm" key={k}><input type="checkbox" checked={after[k]===true} onChange={e=>changeText("after",k,e.target.checked)}/> {k==="required"?"필수값":"여러 값 허용"}</label>)}</>}
+              {draft.target_kind==="alias" && targetSelect("alias_of","같은 뜻의 정본 유형")}
+              {selected.operation==="merge" && targetSelect("canonical_id","통합 후 정본 유형")}
+              {draft.target_kind==="hierarchy" && <>{targetSelect("child_id","하위 · 부분 유형")}{targetSelect("parent_id","상위 · 전체 유형")}
+                <label className="block text-sm">포함 관계의 성격<select className={inputClass} value={String(after.relation || "")} onChange={e=>changeText("after","relation",e.target.value)}><option value="">선택</option>{Object.entries({is_a:"모든 대상 포함",part_of:"부분",instance_of:"개별 대상의 유형",broader:"더 넓은 용어",related:"관련 용어"}).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
+                {(["a_to_b","b_to_a"] as const).map(direction=>{let review:RecordValue={};try{review=record(JSON.parse(draft.hierarchy_review));}catch{} const builder=record(review.builder);const check=record(builder[direction]);return <div className="rounded border p-2" key={direction}><label className="block text-sm">{direction==="a_to_b"?"하위의 모든 대상이 상위에 포함됩니까?":"상위의 모든 대상이 하위에 포함됩니까?"}<select className={inputClass} value={String(check.judgment||"unknown")} onChange={e=>setDraft({...draft,hierarchy_review:pretty({...review,builder:{...builder,[direction]:{...check,judgment:e.target.value,evidence_ids:readableRefs(JSON.parse(draft.evidence_refs)).map(r=>r.evidence_id),counter_evidence_ids:readableRefs(JSON.parse(draft.counter_evidence_refs)).map(r=>r.evidence_id)}}})})}>{["supported","refuted","unknown"].map(j=><option key={j} value={j}>{label(j)}</option>)}</select></label><label className="block text-sm">이 방향의 판단 이유<textarea className={inputClass} value={String(check.reason||"")} onChange={e=>setDraft({...draft,hierarchy_review:pretty({...review,builder:{...builder,[direction]:{...check,judgment:check.judgment||"unknown",reason:e.target.value,evidence_ids:readableRefs(JSON.parse(draft.evidence_refs)).map(r=>r.evidence_id),counter_evidence_ids:readableRefs(JSON.parse(draft.counter_evidence_refs)).map(r=>r.evidence_id)}}})})}/></label></div>;})}</>}
+              {[["negation","부정 여부",["affirmed","negated","unknown"]],["statement_type","진술 성격",["definition","rule","instance","design_proposal","unresolved"]]].map(([key,title,values])=><label className="block text-sm" key={String(key)}>{String(title)}<select className={inputClass} value={String(qualifiers[String(key)]||"unknown")} onChange={e=>changeText("qualifiers",String(key),e.target.value)}>{(values as string[]).map(v=><option key={v} value={v}>{label(v)}</option>)}</select></label>)}
               <label className="block text-sm">제안 성격<select className={inputClass} value={draft.support_type} onChange={e => setDraft({ ...draft, support_type: e.target.value })}><option value="explicit">원문 명시 제안</option><option value="design_proposal">설계 제안</option><option value="unresolved">판단 미정</option></select></label>
               {["scope","time"].map(k => <label key={k} className="block text-sm">{fieldLabels[k]}<textarea className={inputClass} value={typeof qualifiers[k] === "string" ? qualifiers[k] as string : ""} onChange={e => changeText("qualifiers",k,e.target.value)} /></label>)}
               <label className="block text-sm">변경안의 이유<textarea className={inputClass} value={draft.rationale} onChange={e => setDraft({ ...draft, rationale: e.target.value })} /></label>
+              <label className="block text-sm">남은 검토 쟁점 · 해결한 항목은 삭제하고 판단 사유에 근거 기록<textarea className={inputClass} value={(()=>{try{return JSON.parse(draft.unresolved_issues).map((v:unknown)=>typeof v==="string"?v:display(record(v).reason||v)).join("\n");}catch{return "";}})()} onChange={e=>setDraft({...draft,unresolved_issues:pretty(e.target.value.split("\n").filter(Boolean))})}/></label>
               <details><summary className="cursor-pointer text-sm">모델링 상세 · 종류·참조·근거 수정</summary><p className="my-2 break-all text-xs">대상 ID {selected.target_id}<br />symbol {selected.symbol}<br />후보 ID {selected.id} · ID는 수정하지 않습니다.</p>
                 <label className="block text-sm">종류<select className={inputClass} value={draft.target_kind} onChange={e => setDraft({ ...draft, target_kind: e.target.value })}>{["class","attribute","relation","vocabulary_concept","hierarchy","alias"].map(k => <option key={k} value={k}>{label(k)}</option>)}</select></label>
                 <p className="my-2 text-xs">정의의 domain_id/range/child_id/parent_id/alias_of/canonical_id는 서버 대상 ID를 사용합니다. 근거의 버전·parse·span은 원문과 일치해야 하며 저장 시 서버가 검사합니다.</p>
@@ -245,7 +267,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
         </section>
       </>}
       <section className={panelClass}><h3 className="font-semibold">업무 질문·허용 범위에 남은 공백</h3><p className="text-sm">후보나 근거가 연결됐다는 사실은 질문 해결을 뜻하지 않습니다. 전체 미탐색·자료 부족 기록을 특정 질문에 임의 배정하지 않습니다.</p>
-        <div className="overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">질문·범위</th><th>저장된 조사 상태</th><th>현재 연결 후보·보류</th></tr></thead><tbody>{coverageRows(run,change).map(row => <tr key={`${row.kind}:${row.id}`} className="border-t"><td className="p-2">{row.question}</td><td className="p-2">{row.status}<p className="text-xs text-slate-600">{row.reason}</p></td><td className="p-2">후보 {row.candidates.length} · 보류 {row.deferred}<ul>{row.candidates.map(c => <li key={c.id}>{changeName(c)} · {label(c.review_status)}</li>)}</ul></td></tr>)}</tbody></table></div>
+        <div className="overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">질문·범위</th><th>저장된 조사 상태</th><th>현재 연결 후보·보류</th></tr></thead><tbody>{coverageRows(run,change).map(row => <tr key={`${row.kind}:${row.id}`} className="border-t"><td className="p-2">{row.question}</td><td className="p-2">{row.status}<p className="text-xs text-slate-600">{row.reason}</p></td><td className="p-2">후보 {row.candidates.length} · 보류 {row.deferred}<ul>{row.candidates.map(c => <li key={c.id}>{changeName(c)} · {label(c.review_status)}</li>)}</ul><KnowledgeMissingProposal request={request} run={run} change={change} question={row} onSaved={()=>loadChange(change.id)} disabled={locked}/></td></tr>)}</tbody></table></div>
         <ul className="list-inside list-disc text-sm text-amber-900">{strings(result.gaps).map((gap,i) => <li key={i}>{gap}</li>)}</ul>
         <JsonDetail title="자료 필요·후보 누락 의심·미탐색·실패의 저장 기록" value={{ reference_gaps: result.reference_gaps, unfulfilled_read_requests: result.unfulfilled_read_requests, mandatory_pending: result.mandatory_pending, unvisited_block_ids: result.unvisited_block_ids, unprocessed_features: result.unprocessed_features, failures: result.failures, revision_deferrals: result.revision_deferrals }} />
         <JsonDetail title="허용 범위 밖·불확실 발견 (수락 후보와 구분)" value={{ outside_scope: result.outside_scope, alignments: result.alignments }} />
