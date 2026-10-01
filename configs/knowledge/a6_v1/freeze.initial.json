@@ -1,6 +1,6 @@
 {
-  "id": "a6-freeze-v2-schema-fix",
-  "frozen_at": "2026-10-01T03:19:04.860936+00:00",
+  "id": "a6-freeze-v1",
+  "frozen_at": "2026-10-01T03:05:04.648618+00:00",
   "base_sha": "4979f5b91663cd20f9d7496fddc6fa2bdd538cb7",
   "python": "3.11.9",
   "packages": {
@@ -12,7 +12,7 @@
   "sha256": {
     "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
     "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
-    "app/knowledge/discovery_analysis.py": "1702698d273a1f1c6c3cabdf7eb6666877d4e2d8487d1884eaae8373fbac4347",
+    "app/knowledge/discovery_analysis.py": "2808589da1ff49ad034061fd2efe2a46f2e6c07afff6a6e42b6c602420510e6f",
     "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
     "app/knowledge/discovery_models.py": "0e503ff2ad99a48ed6f981593b163ba8a8cf7d0d5ce14f7af562cb4deb2afb8a",
     "app/knowledge/discovery_profile.py": "1c6d260587ecb58c71ecd7e2136ff9dabb32538273f274cafcb5c8a3411f5271",
@@ -44,8 +44,5 @@
     "실험/누출/한도 경계 독립 AI 검수; 실제 주 분석 순서와 제공 집합 구분 반영",
     "의미/원문 독립 AI 검수; 역사0/1 가용 정보 누락 기준 보완"
   ],
-  "human_participants": 0,
-  "source_commit": "bb31c5538fa05b32bc7100ff75d9986f15b24dc4",
-  "prior_freeze_sha256": "2d00ee3c6ac6768b0eaba29b3263221a9365a9e50b4621db7260b161c65c9072",
-  "correction": "빈 CQ/scope enum의 Ollama HTTP400 수정. 입력·CQ·판정표·모델·예산 동일. 초기 실패 별도 보존. 수동 경로 구현 및 모델 호출 래퍼 미변경이므로 최초 수동 결과 재사용."
+  "human_participants": 0
 }
