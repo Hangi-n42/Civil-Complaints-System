@@ -1,6 +1,7 @@
 # 온톨로지 생성 의미와 비개발자 검수 흐름 개선
 
 - 신규 추적: [#534](https://github.com/Hangi-n42/Civil-Complaints-System/issues/534)
+- 후속 보완: [유형 분류·개념 대응·조건부 관계 검수와 실행 기록](ontology_semantic_followup_20261001.md)
 - 기준: `26b28aa4f1b41426ed2d0b329e5d9f8c21a507ed` (A6 보완 병합 후 main). A5/A6 완료 기록·동결 자산은 수정하지 않음.
 - 범위: 기존 개념 대응, 최종 입력·출력 용량, 같은 블록의 누락 복구, 기존 UI 연결. 모델·DB·큐·에이전트 프레임워크 추가 없음.
 

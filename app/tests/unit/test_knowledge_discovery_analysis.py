@@ -819,6 +819,33 @@ def test_role_scope_instructions_separate_primary_analysis_and_all_provided_revi
     assert 'candidate_ref는 빈 문자열' in PROMPTS['critic']
 
 
+@pytest.mark.parametrize('variant', ['unique','duplicate_type','entity_collision','invalid','explicit_entity','unprovided'])
+def test_relation_endpoint_names_resolve_only_unique_provided_types_and_revision_keeps_ids(variant):
+    row=dict(id='type1',label='대상',classification='type',validation=[])
+    supplied={'type1':row}
+    value='대상'
+    if variant=='duplicate_type': supplied['type2']=dict(row,id='type2')
+    if variant in {'entity_collision','explicit_entity'}:
+        supplied['entity']=dict(row,id='entity',classification='entity')
+        if variant=='explicit_entity': value='entity'
+    if variant=='invalid': row['validation']=['원문 불일치']
+    if variant=='unprovided': supplied={}
+    raw=dict(local_ref='r1',subject=value,object=value,predicate='선정할 수 있다',
+        direction='subject_to_object',negation='affirmed',conditions='잔여 대상이면 완화 또는 선착순 선택',time='',
+        statement_type='rule',evidence_ids=['b'],cq_ids=['q'],scope_item_ids=[],outside_scope_reason='')
+    run=dict(cqs=[dict(id='q')],scope_items=[])
+    blocks={'b':dict(id='b',source_version_id='v',parse_run_id='p',locator={'line':1},text='원문')}
+    result=a2.normalize({'relations':[deepcopy(raw)]},'relation',run,['b'],blocks,supplied)['relations'][0]
+    assert result['subject']==('type1' if variant=='unique' else value)
+    assert result['endpoint_labels']==({'subject':'대상','object':'대상'} if variant=='unique' else {})
+    assert result['unresolved_endpoints']==([] if variant=='unique' else ['subject','object'])
+    supplied['relation']=dict(result,id='relation')
+    revision=dict(observations=[],relations=[dict(raw,candidate_ref='relation',reason='끝점 재검토')],hierarchies=[],deferred=[])
+    fixed=a2.normalize(revision,'revision',run,['b'],blocks,supplied)
+    assert fixed['relations'][0]['id']=='relation' and fixed['relations'][0]['subject']==result['subject']
+    assert fixed['history'][0]['before']['id']=='relation'
+
+
 @pytest.mark.parametrize('model_searches', [1, 2])
 def test_same_two_search_budget_allows_critic_after_model_searches(service, monkeypatch, model, model_searches):
     source = prepare(service, file_ids=['current:0'])

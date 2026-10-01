@@ -1,0 +1,41 @@
+{
+  "id": "ontology-conditional-followup-v15",
+  "frozen_at": "2026-10-01T10:45:29.301758+00:00",
+  "baseline_sha": "26b28aa4f1b41426ed2d0b329e5d9f8c21a507ed",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 5,
+    "model_seconds": 1800,
+    "searches": 4,
+    "additional_rounds": 0,
+    "revisions": 0
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "v14 실제 목적어/전제/예외/분기 인용 누락의 좁은 재확인; 규칙 제15조/C2, 기본 5역할 호출만 수행"
+    }
+  ],
+  "rules": [
+    "v13/v14 최초 결과 및 비용 보존; 전체 current 동등 조건 비교가 아님",
+    "원문·모델 digest·C2 정답 기준 유지; 생성기에 정답 미제공",
+    "5호출·추가 라운드0·revision0의 기본 분석/검수 경로만 확인; 미해결을 성공으로 변경하지 않음",
+    "극성·실제 목적어·상위전제·예외·각 분기 직접 인용을 별도 대조; 자동 승인·활성화 없음"
+  ],
+  "parent_config_sha256": "876b9091e68a8578b4c2f147db8c8d78f755aa2231e71efd6583e315bd579ebc"
+}

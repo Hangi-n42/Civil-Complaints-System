@@ -12,7 +12,7 @@ from app.generation.service import GenerationService, local_ollama_url
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v12'
+PROMPT_VERSION = 'discovery-a2-v15'
 
 
 def recipe(budgets):
@@ -340,6 +340,19 @@ def normalize(output, stage, run, deps, by_id, supplied):
             raise ValueError('관측/기준 개념 대응 참조 불일치')
         alignment['observation_ref'] = local[alignment['observation_ref']]
         alignment['review_status'] = 'unreviewed'
+    for relation in output.get('relations', []):
+        relation['endpoint_labels'] = {}
+        relation['unresolved_endpoints'] = []
+        for field in ('subject', 'object'):
+            value = relation[field]
+            # Never reinterpret an explicit entity/vocabulary ID as a class.
+            matches = [supplied[value]] if value in supplied else [c for c in supplied.values() if (c.get('label') or c.get('name'))==value]
+            if len(matches)==1 and matches[0].get('classification')=='type' and not (
+                    matches[0].get('validation') or matches[0].get('outside_scope_reason')):
+                if value not in supplied: relation['endpoint_labels'][field] = value
+                relation[field] = matches[0]['id']
+            else:
+                relation['unresolved_endpoints'].append(field)
     for alias in output.get('alias_proposals', []):
         alias.update(review_status='unreviewed', validation=[] if alias['observation_ref'] in supplied and alias['target_id'] in supplied else ['존재하지 않는 별칭 참조'])
     for hierarchy in [*output.get('hierarchies', []), *output.get('hierarchy_checks', [])]:

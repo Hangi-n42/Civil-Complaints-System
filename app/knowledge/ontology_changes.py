@@ -69,6 +69,11 @@ def _make(raw, base, origin=None):
     return values
 
 
+def _same_alignment_name(source, target):
+    # ponytail: spelling is only a conservative gate, not proof of identity; renamed terms need human review.
+    return bool(source.get('label') and source['label']==target.get('name'))
+
+
 def _convert(run, base, blocks):
     result = run['result']
     rows, references, mapping = [], [], {}
@@ -100,11 +105,14 @@ def _convert(run, base, blocks):
         matches = [a for a in alignments if a['observation_ref']==source['id']] if concept else []
         origin = dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
                       validation=source.get('validation', []), direction=source.get('direction'), alignments=deepcopy(matches))
+        if not concept:
+            origin['source_endpoints'] = {key:source.get('endpoint_labels', {}).get(key, source[key]) for key in ('subject','object')}
+            origin['unresolved_endpoints'] = source.get('unresolved_endpoints', [])
         if matches:
             match = matches[0]
             target = base.get(match['target_id'])
             meaning = match.get('meaning', 'uncertain') if len(matches)==1 else 'uncertain'
-            if meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated'):
+            if meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated') and _same_alignment_name(source, target):
                 raw.update(operation='update', target_id=target['id'])
                 before = {k:deepcopy(v) for k,v in target.items() if k in AFTER_FIELDS[kind]}
                 if meaning=='same':
@@ -121,7 +129,7 @@ def _convert(run, base, blocks):
                 raw['rationale'] += '; 기존 정의 대응: ' + match['reason']
             elif meaning!='distinct':
                 raw['support_type']='unresolved'
-                raw['unresolved_issues']=[*raw['unresolved_issues'], '기존 정의와 동일/변경/별개인지 확인 필요']
+                raw['unresolved_issues']=[*raw['unresolved_issues'], '기존 정의와 명칭·대상 동일성 및 의미 변경 여부 확인 필요']
                 origin['change_intent']='alignment_pending'
         row = _make(raw, base, origin)
         if origin.get('change_intent')=='alignment_pending': row['review_status']='deferred'
@@ -139,10 +147,17 @@ def _convert(run, base, blocks):
         mapping[source['id']] = dict(change_id=row['change_id'], target_id=row['target_id'], local_ref=source.get('local_ref'))
     def target(identifier):
         return mapping.get(identifier, {}).get('target_id', identifier)
+    classes = {i for i,c in base.items() if c['kind']=='class' and not c.get('deprecated')}
+    classes.update(c['target_id'] for c in rows if c['target_kind']=='class' and c['review_status']!='deferred' and not c['origin']['validation'])
     for row in rows:
         if row['target_kind']=='relation':
-            row['after']['domain_id'] = target(row['after']['domain_id'])
-            row['after']['range'] = target(row['after']['range'])
+            pending = row['origin']['unresolved_endpoints']
+            for field, endpoint in (('domain_id','subject'), ('range','object')):
+                if endpoint not in pending: row['after'][field] = target(row['after'][field])
+            if pending or any(row['after'][field] not in classes for field in ('domain_id','range')):
+                row['review_status'] = 'deferred'
+                row['support_type'] = 'unresolved'
+                row['unresolved_issues'].append('관계 끝점의 유형 연결 미해결; 원문 주체·대상과 조건을 검토하고 연결 필요')
     hierarchies = {h['id']:h for t in result.get('taxonomy', []) for h in t.get('hierarchies', [])}
     for revision in result.get('revisions', []):
         for h in revision.get('effective_hierarchies', []):
@@ -359,6 +374,7 @@ def _validate(repo, db, change, run, base):
     from .snapshots import _statuses
     blocks, statuses, initial = _blocks(repo, db, run), _statuses(db), canonical.targets(base)
     proposals = change['candidates']
+    observations = {c['id']:c for c in change.get('analysis_result', {}).get('observations', [])}
     good = []
     for c in proposals:
         errors = []
@@ -375,6 +391,10 @@ def _validate(repo, db, change, run, base):
         except ValidationError as exc:
             errors.append('contract: '+str(exc)); continue
         target = initial.get(c['target_id'])
+        if c['operation']=='update' and target and any(
+                a.get('meaning') in {'same','changed'} and not _same_alignment_name(observations.get(a['observation_ref'], {}), target)
+                for a in c['origin'].get('alignments', [])):
+            errors.append('기존 개념 대응의 명칭·대상 동일성 미확인; 다른 대상으로 재제안 필요')
         allowed_fields = ({'canonical_id'} if c['operation']=='merge' else set() if c['operation']=='deprecate' else AFTER_FIELDS[c['target_kind']])
         if set(c['after']) - allowed_fields:
             errors.append('변경 종류에 맞지 않는 정의 필드: '+str(sorted(set(c['after']) - allowed_fields)))
