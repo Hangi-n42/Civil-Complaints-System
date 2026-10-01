@@ -604,6 +604,144 @@ def test_relation_review_rejects_invented_quote_and_requires_every_relation(serv
     assert run['result']['relations'][0]['id'] in run['result']['unreviewed_candidate_ids']
 
 
+@pytest.mark.parametrize('revise_design', [False,True])
+def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(service,corpus,monkeypatch,model,revise_design):
+    from hashlib import sha256
+    from app.knowledge import ontology_changes as a3, ontology_schema as v1
+    from app.tests.unit.test_knowledge_ontology_changes import listing, decide
+    # Frozen LH input, rule Art.15 block 1e4c6a6dfc69410b923e15b9e748efa4 (excerpt).
+    # Deterministic modeling below tests the contract, not an LLM's legal interpretation.
+    text='다음 각 호의 어느 하나에 해당하는 경우에는 국토교통부장관(제1호에 해당하는 경우로 한정한다) 또는 시ㆍ도지사(제2호에 해당하는 경우로 한정한다)는 제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여 국민임대주택을 우선공급 받을 수 있는 대상자 및 그 공급비율과 입주자 선정 순위에 관한 기준을 별도로 정할 수 있다.'
+    text+=' 1. 한국토지주택공사가 국민임대주택을 건설하여 공급하는 경우 2. 지방자치단체 또는 지방공사( 「지방공기업법」 제49조 에 따라 주택사업을 목적으로 설립된 지방공사를 말한다. 이하 같다)가 국민임대주택을 건설하여 공급하는 경우'
+    path=corpus/'current.txt';path.write_text(text)
+    manifest=corpus/'manifest.json';data=json.loads(manifest.read_text())
+    data['selected_sources'][0]['input_files'][0]['sha256']=sha256(path.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(data))
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def design(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage=='concept':
+            value['observations'][0].update(label='선정 기준',classification='vocabulary',definition='원문에 사용된 기준의 명칭')
+            value['observations'][1].update(label='한국토지주택공사',classification='entity',definition='특정 기관')
+        if stage=='relation':
+            template=value['relations'][0]
+            value['relations']=[dict(template,local_ref=f'r{i}',subject=actor,object='별도 선정 기준',
+                predicate='별도로 정할 수 있다',statement_type='rule',time='선택 시행본',
+                conditions=f'{i}호의 경우에 한정; 제1항 및 제2항에도 불구하고 지역 실정 고려; 다른 주체와 OR')
+                for i,actor in enumerate(['국토교통부장관','시ㆍ도지사'],1)]
+        if stage=='builder':
+            relations=data['unapproved_relations'];ev=data['blocks'][0]
+            value.update(hierarchies=[],observations=[dict(local_ref=f't{i}',label=name,classification='type',
+                definition=f'선택 규범을 표현하기 위한 {name}',support_type='design_proposal',
+                abstraction_level='업무 역할·대상 설계',review_signals=[],evidence_ids=[],source_refs=[ev['source_ref']],
+                cq_ids=['cq1'],source_relation_ids=[r['id'] for r in relations],
+                design_reason='제공 용어와 개별 기관은 재사용 가능한 역할/대상 유형이 아니므로 한정하여 설계')
+                for i,name in enumerate(['제1호 기준 설정 역할','제2호 기준 설정 역할','별도 기준 대상'],1)],
+                relation_bindings=[dict(relation_ref=r['id'],subject_ref=f't{i}',object_ref='t3',reason='원문의 주체별 분기를 별도 역할과 대상의 관계로 표현') for i,r in enumerate(relations,1)])
+        if stage=='critic':
+            assert len([c for c in data['unapproved_observations'] if c['support_type']=='design_proposal'])==3
+            assert all(c['source_relation']['statement_type']=='rule' and c['statement_type']=='design_proposal' for c in data['unapproved_relations'])
+            if revise_design:
+                target=next(c for c in data['unapproved_observations'] if c['support_type']=='design_proposal')
+                value.update(needs_revision=True,issues=[dict(local_ref='i1',candidate_ref=target['id'],reason='설계 유형의 표현 점검',
+                    evidence_ids=target['evidence_ids'],counter_evidence_ids=[],defer_reason='')])
+        if stage=='revision':
+            value=dict(observations=[],relations=[],hierarchies=[],deferred=[])
+            for candidate in data['targets']:
+                item={k:candidate[k] for k in a2.models.Observation.model_fields if k in candidate}
+                value['observations'].append(dict(item,local_ref='o1',support_type='explicit',candidate_ref=candidate['id'],reason='잘못된 explicit 승격을 시도하는 회귀 출력'))
+
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',design)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert run['status']==('partial' if revise_design else 'review_ready'),run['result']['failures']
+    types=[c for c in run['result']['observations'] if c['classification']=='type']
+    assert len(types)==3 and all(c['support_type']=='design_proposal' for c in types)
+    assert all(r['statement_type']=='rule' for r in run['result']['original_relations'])
+    assert set(run['candidate_groups'][0]['design_candidate_ids'])=={c['id'] for c in types}
+    for relation in run['result']['relations']:
+        assert relation['subject'] in {c['id'] for c in types} and relation['object'] in {c['id'] for c in types}
+        for field in ('conditions','predicate','time','negation','evidence_refs'):
+            assert relation[field]==relation['source_relation'][field]
+    assert any(c['support_type']=='design_proposal' for c in a2.terms(service,run['id'],'역할')['items'])
+    before=list(model);again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert before==model and again['result']['relations']==run['result']['relations']
+    cid=a3.publish(service,again['id'])['changeset_id']
+    change=listing(service,cid);rows=[c for c in change['candidates'] if c['target_kind'] in {'class','relation'}]
+    relation=next(c for c in rows if c['target_kind']=='relation')
+    dependency=next(c for c in rows if c['target_kind']=='class')
+    decide(service,cid,[dict(candidate_id=dependency['id'],action='defer')])
+    assert a3.preview(service,cid,[relation['id']])['status']=='invalid_preview'
+    with pytest.raises(ValueError): decide(service,cid,[dict(candidate_id=relation['id'],action='accept')])
+    # Individual form edits are saved first and never copied to the other candidates.
+    for c in rows:
+        decide(service,cid,[dict(candidate_id=c['id'],action='edit',patch={'rationale':'사람의 개별 검토: '+c['after']['name']})])
+    ids=[c['id'] for c in rows]
+    preview=a3.preview(service,cid,ids)
+    assert preview['status']=='unreviewed_preview' and set(preview['included_change_ids'])==set(ids)
+    assert not any(c['review_status']=='accepted' for c in listing(service,cid)['candidates'])
+    accepted=decide(service,cid,[dict(candidate_id=i,action='accept') for i in ids])
+    version=v1.get_ontology(service,accepted['reviewed_ontology_version_id'])
+    targets=[c for c in version['targets'] if c['kind']=='relation']
+    assert len(targets)==2 and all(t['support_type']=='design_proposal' and not t.get('required') for t in targets)
+    for target in targets:
+        raw=target['modeling_origin']['source_relation']
+        assert raw['statement_type']=='rule' and raw['conditions']==target['qualifiers']['scope']
+        assert raw['evidence_refs']==target['evidence_refs'] and raw['time']==target['qualifiers']['time']
+    saved=listing(service,cid)
+    assert len(saved['decisions'])==len(ids)*2+1 and saved['analysis_result']==again['result']
+    assert all(d['actor']=='tester' for d in saved['decisions'])
+    assert '별표' not in ' '.join(c['definition'] for c in types)
+    with pytest.raises(ValueError,match='슬롯 필수값'):
+        decide(service,cid,[dict(candidate_id=relation['id'],action='modify',patch={'after':dict(relation['after'],required=True)})])
+    assert v1.get_ontology(service,version['id'])==version
+    role=next(c for c in rows if c['target_kind']=='class')
+    with pytest.raises(ValueError,match='원문 명시 정의로 승격'):
+        decide(service,cid,[dict(candidate_id=role['id'],action='modify',patch={
+            'support_type':'explicit','qualifiers':dict(role['qualifiers'],statement_type='definition')})])
+
+
+@pytest.mark.parametrize('kind', ['type','entity','vocabulary','property_value','missing','invalid','ambiguous'])
+def test_builder_bindings_only_use_supplied_valid_types(kind):
+    from app.knowledge import discovery_design as design
+    source=dict(id='rule',statement_type='rule',subject='원문 역할',object='원문 대상',conditions='조건 A 또는 B',
+        negation='affirmed',validation=[],evidence_ids=['b'])
+    target=dict(id='existing',classification=kind,definition='실제로 제공된 정의',review_status='reviewed')
+    supplied={'rule':source}
+    if kind!='missing': supplied['existing']=target
+    if kind=='invalid': target.update(classification='type',validation=['출처 정의 미제공'])
+    if kind=='ambiguous':
+        supplied.pop('existing')
+        supplied.update(one=dict(target,id='one',classification='type',label='existing'),two=dict(target,id='two',classification='type',label='existing'))
+    output=dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='existing',object_ref='existing',reason='제공 정의의 범위 대조')])
+    design.bind(output,supplied,{}, {})
+    result=output['modeled_relations'][0]
+    assert result['source_relation']==source and source['statement_type']=='rule'
+    assert bool(result['validation'])==(kind!='type')
+    assert result['unresolved_endpoints']==([] if kind=='type' else ['subject','object'])
+
+
+def test_builder_local_refs_do_not_collide_with_supplied_ids_or_bind_undeclared_types():
+    from app.knowledge import discovery_design as design
+    block=dict(id='b',text='제공된 규범',source_version_id='v',parse_run_id='p',locator={})
+    source=dict(id='rule',statement_type='rule',subject='원문 역할',object='원문 대상',validation=[],evidence_ids=['b'])
+    supplied={'rule':source,'t1':dict(id='t1',classification='type',definition='기존 정의'),
+              't2':dict(id='t2',classification='type',definition='다른 기존 정의')}
+    output=dict(observations=[dict(id='new',local_ref='t1',evidence_ids=['b'],source_relation_ids=['rule'],validation=[],classification='type')],
+        relation_bindings=[dict(relation_ref='rule',subject_ref='t1',object_ref='c1',reason='서로 다른 유형')])
+    design.scope_local_refs(output)
+    output=a2.remap(output,{'c1':'t1'})
+    design.bind(output,supplied,{'b':block},dict(blocks=[dict(ref='b',text=block['text'])]))
+    assert output['modeled_relations'][0]['subject']=='new' and output['modeled_relations'][0]['object']=='t1'
+    missing=dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='t2',object_ref='c1',reason='선언하지 않은 새 유형')])
+    design.scope_local_refs(missing);missing=a2.remap(missing,{'c1':'t1'})
+    design.bind(missing,supplied,{}, {})
+    assert missing['modeled_relations'][0]['unresolved_endpoints']==['subject']
+    with pytest.raises(ValueError):
+        design.bind(dict(observations=[],relation_bindings=[dict(relation_ref='rule',subject_ref='t1',object_ref='t1',reason='다른 묶음의 비교 관계')]),supplied,{},dict(design_relation_ids=[]))
+
+
 @pytest.mark.parametrize('error', ['quote','missing','duplicate','judgment','unknown_id','direction','hierarchy_duplicate'])
 def test_mixed_critic_validity_survives_resume_revision_and_a3(service,monkeypatch,model,error):
     from app.knowledge import ontology_changes as a3

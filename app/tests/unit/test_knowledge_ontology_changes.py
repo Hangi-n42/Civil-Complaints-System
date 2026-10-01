@@ -159,6 +159,26 @@ def test_merged_evidence_only_observations_preserve_separate_valid_critiques(ser
     assert not rows[0]['origin'].get('review_errors')
 
 
+def test_published_builder_type_keeps_design_provenance_on_later_manual_update(service):
+    run,ref=analysis(service)
+    run['result']['observations'][0].update(support_type='design_proposal',source_relation_ids=['rule'],design_reason='원문의 역할을 표현하는 유형 설계')
+    run['result']['original_relations']=[dict(id='rule',statement_type='rule',conditions='범위 한정',evidence_refs=[ref])]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    row=listing(service,cid)['candidates'][0]
+    base=decide(service,cid,[dict(candidate_id=row['id'],action='accept')])['reviewed_ontology_version_id']
+    version=v1.get_ontology(service,base)
+    assert version['targets'][0]['modeling_origin']['source_relations']==run['result']['original_relations']
+    following,new_ref=analysis(service,base=base)
+    next_id=a3.publish(service,following['id'])['changeset_id']
+    manual=add(service,next_id,[dict(proposal(new_ref),operation='update',target_id=row['target_id'],support_type='explicit',
+        qualifiers=dict(statement_type='definition'))])[0]
+    assert not manual['origin'].get('source_relations') and not manual['can_accept']
+    assert '원문 명시 정의로 승격' in str(manual['validation'])
+    with pytest.raises(ValueError,match='원문 명시 정의로 승격'):
+        decide(service,next_id,[dict(candidate_id=manual['id'],action='accept')])
+
+
 def test_entity_value_fact_samples_are_not_classes(service):
     run,ref=analysis(service)
     source=run['result']['observations'][0]
@@ -304,6 +324,12 @@ def test_api_envelope_invalid_candidate_and_expected_head(service,monkeypatch):
         assert response.status_code==200 and response.json()['success']
         cid=response.json()['data']['changeset_id']
         row=client.get('/api/v1/knowledge/candidates',params={'changeset_id':cid}).json()['data']['items'][0]
+        preview=client.get(f'/api/v1/knowledge/changes/{cid}/schema-preview',params=[('candidate_ids',row['id'])]).json()
+        assert preview['success'] and preview['data']['included_change_ids']==[row['id']]
+        invalid=client.get(f'/api/v1/knowledge/changes/{cid}/schema-preview',params=[('candidate_ids',row['id']),('candidate_ids','missing')]).json()
+        assert invalid['success'] and invalid['data']['status']=='invalid_preview'
+        assert listing(service,cid)['revision']==0 and listing(service,cid)['candidates'][0]['review_status']=='unreviewed'
+
         payload=dict(expected_changeset_revision=0,actor='tester',decisions=[dict(candidate_id=row['id'],action='accept',reason='검수')])
         assert client.post(f'/api/v1/knowledge/changes/{cid}/decisions',json=payload).status_code==422
         response=client.post(f'/api/v1/knowledge/changes/{cid}/decisions',json=payload|{'expected_ontology_head_id':None})
@@ -688,6 +714,21 @@ def test_different_named_alignment_is_deferred_without_replacing_base(service, m
         decide(service,row['changeset_id'],[dict(candidate_id=row['id'],action='accept')])
     assert row['after']['definition']==observation['definition'] and row['evidence_refs']==observation['evidence_refs']
     assert v1.get_ontology(service,base['id'])==base
+    # An explicit person's proposal uses the existing target ID without relaxing automatic matching.
+    target=next(t for t in base['targets'] if t['id']==first['target_id'])
+    after={k:target[k] for k in ('name','definition','inclusion','exclusion') if k in target} if meaning=='same' else row['after']
+    manual=add(service,row['changeset_id'],[dict(operation='update',target_id=first['target_id'],target_kind='class',
+        after=after,evidence_refs=row['evidence_refs'],support_type='explicit',qualifiers=dict(statement_type='definition'),
+        cq_ids=['cq'],rationale='사람이 원문과 기존 정의를 대조한 명시 대응')])[0]
+    assert manual['before']['name']==target['name'] and manual['origin']['actor']=='tester'
+    assert manual['target_id']==target['id'] and manual['origin']['raw_proposal']['after']==after
+    accepted=decide(service,row['changeset_id'],[dict(candidate_id=manual['id'],action='accept')])
+    saved=listing(service,row['changeset_id'])
+    assert next(c for c in saved['candidates'] if c['id']==row['id'])['review_status']=='deferred'
+    assert saved['decisions'][-1]['actor']=='tester' and saved['decisions'][-1]['before']['before']['name']==target['name']
+    assert next(t for t in v1.get_ontology(service,accepted['reviewed_ontology_version_id'])['targets'] if t['id']==target['id'])['name']==after['name']
+    assert v1.get_ontology(service,base['id'])==base
+
 
 
 def test_already_published_alignment_checks_all_merged_observations_without_rewriting(service, monkeypatch):
@@ -734,7 +775,10 @@ def test_conditional_relation_keeps_permission_choice_and_evidence_when_endpoint
     assert row['qualifiers']['time']==relation['time'] and row['evidence_refs']==[ref]
     assert row['origin']['source_endpoints']['subject']=='담당자'
     if endpoint_kind=='type':
-        assert row['validation']['can_accept_with_dependencies'] and row['after']['domain_id']==result['id_mapping']['actor']['target_id']
+        assert not row['validation']['can_accept_with_dependencies'] and row['after']['domain_id']==result['id_mapping']['actor']['target_id']
+        assert row['support_type']=='explicit' and row['origin']['source_relation']==relation
+        decide(service,result['id'],[dict(candidate_id=row['id'],action='edit',patch={
+            'support_type':'design_proposal','qualifiers':dict(row['qualifiers'],statement_type='design_proposal')})])
         accepted=decide(service,result['id'],[dict(candidate_id=c['id'],action='accept') for c in result['candidates']])
         target=next(c for c in v1.get_ontology(service,accepted['reviewed_ontology_version_id'])['targets'] if c['id']==row['target_id'])
         assert target['qualifiers']['scope']==relation['conditions'] and target['name']==relation['predicate']
@@ -764,7 +808,7 @@ def test_unprovided_relation_id_cannot_bind_to_another_groups_class(service):
 
 
 @pytest.mark.parametrize('statement,support,problem,expected_error', [
-    ('rule', None, None, None),
+    ('rule', None, None, '원문 규범과'),
     ('design_proposal', None, None, None),
     ('rule', 'unresolved', None, '제안 방식과 이유 미해결'),
     ('unresolved', None, None, '제안 방식과 이유 미해결'),
@@ -828,7 +872,8 @@ def test_unprovided_existing_class_ids_need_explicit_endpoint_edit(service):
     decide(service,cid,[dict(candidate_id=row['id'],action='edit',patch={'rationale':'이유만 수정'})])
     with pytest.raises(ValueError,match='끝점 연결 미해결'):
         decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
-    decide(service,cid,[dict(candidate_id=row['id'],action='modify',patch={'after':row['after']})])
+    decide(service,cid,[dict(candidate_id=row['id'],action='modify',patch={'after':row['after'],
+        'support_type':'design_proposal','qualifiers':dict(row['qualifiers'],statement_type='design_proposal')})])
     assert next(c for c in listing(service,cid)['candidates'] if c['id']==row['id'])['review_status']=='accepted'
 
 

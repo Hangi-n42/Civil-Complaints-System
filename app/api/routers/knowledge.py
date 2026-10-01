@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Any
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile, Query
 from fastapi.responses import FileResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
@@ -177,8 +177,8 @@ def add_ontology_candidates(changeset_id: str, request: AddOntologyChanges, serv
 
 
 @router.get('/changes/{changeset_id}/schema-preview', response_model=KnowledgeResponse)
-def ontology_preview(changeset_id: str, service=Depends(get_knowledge_service)):
-    return result(ontology_changes.preview(service, changeset_id))
+def ontology_preview(changeset_id: str, candidate_ids: list[str] | None = Query(default=None), service=Depends(get_knowledge_service)):
+    return result(ontology_changes.preview(service, changeset_id, candidate_ids))
 
 
 @router.get('/entities', response_model=KnowledgeResponse)

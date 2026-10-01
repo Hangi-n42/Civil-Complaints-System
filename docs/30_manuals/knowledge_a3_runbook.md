@@ -23,7 +23,7 @@
 | `GET /candidates?changeset_id=…` | 전후·근거·반례·의존·직접 참조·diff·오류·미해결·decisions·현재 head 조회 |
 | `POST /changes/{id}/ontology-candidates` | 검수자가 add/update/merge/deprecate 후보 추가. revision, actor, reason, candidates 필요 |
 | `POST /changes/{id}/decisions` | accept/modify/edit/defer/reject. v2는 expected revision과 expected head(null 포함), actor, 후보별 reason 필수 |
-| `GET /changes/{id}/schema-preview` | 오류와 의존을 제외한 미승인 파생 스키마 확인. 포함/제외 ID 표시, 버전 저장 없음 |
+| `GET /changes/{id}/schema-preview` | 기본은 오류와 의존을 제외한 미승인 파생 스키마. 반복 `candidate_ids` 쿼리로 명시 선택 묶음과 기존 수락 항목의 최종 의존 검증도 가능. 포함/제외 ID 표시, 버전 저장 없음 |
 | `GET /ontologies/{id}` | 불변 YAML, JSON Schema, 어휘 registry, 세 해시, 상속 유효 슬롯 조회 |
 | `GET /runs/{id}`, `GET /evidence/{id}` | 기존 A2 결과·근거 원문 재조회 |
 

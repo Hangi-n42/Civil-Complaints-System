@@ -45,19 +45,20 @@ def assemble(run, round_number, by_id, context_map, available):
         for item in unit['output']['history']:
             revisions[item['candidate_id']] = (item['after'], unit['dependency_ids'])
     for unit in run['analysis_units']:
-        if unit['stage'] not in {'concept','relation'} or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available:
+        if unit['stage'] not in {'concept','relation','builder'} or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available:
             continue
-        group = next(g for g in run['frontier'] if g['id']==unit['group_id'])
-        for row in unit['output'].get('observations', []) + unit['output'].get('relations', []):
+        source_groups = run['candidate_groups'] if unit['stage']=='builder' else run['frontier']
+        group = next(g for g in source_groups if g['id']==unit['group_id'])
+        for row in unit['output'].get('observations', []) + unit['output'].get('relations', []) + unit['output'].get('modeled_relations', []):
             revised, revision_deps = revisions.get(row['id'], (row, []))
             if not set(revision_deps) <= available: continue
             row = revised
             if row['validation'] or row['outside_scope_reason']: continue
             links = sorted(['cq:'+i for i in row['cq_ids']] + ['scope:'+i for i in row['scope_item_ids']])
-            candidate=dict(row, origin_dependency_ids=sorted(set(unit['dependency_ids']) | set(revision_deps)), analysis_group_id=group['id'])
+            candidate=dict(row, origin_dependency_ids=sorted(set(unit['dependency_ids']) | set(revision_deps)), analysis_group_id=group.get('analysis_group_ids',[group['id']])[0])
             if group['round']==round_number: buckets.setdefault(links[0], []).append(candidate)
             for link in links: by_link.setdefault(link, {})[candidate['id']]=candidate
-    assigned={i for g in run['candidate_groups'] for i in g['primary_candidate_ids']}
+    assigned={i for g in run['candidate_groups'] for i in g['primary_candidate_ids']+g.get('design_candidate_ids', [])}
     groups = []
     for anchor, rows in sorted(buckets.items()):
         sources = {}
@@ -136,6 +137,7 @@ def add_terms(run, stage, context, deps, supplied, unit, by_id, context_map):
 
 def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates = {c['id']:c for c in group['candidates']}
+    candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     candidates.update({c['id']:c for c in taxonomy['hierarchies']})
     target_ids = {i['candidate_ref'] for i in review['issues'] if i['candidate_ref']}
     target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported')
@@ -143,7 +145,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     target_ids &= set(candidates)
     valid = reviews.valid_ids(review,candidates)
     if valid is not None: target_ids &= valid
-    editable=set(group['primary_candidate_ids']) | {c['id'] for c in taxonomy['hierarchies']}
+    editable=set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])) | {c['id'] for c in taxonomy['hierarchies']}
     group['revision_deferrals'] = [dict(candidate_ref=i,reason='비교 후보/검토 기준은 이 묶음에서 수정하지 않음; 담당 묶음 또는 사람 검수로 보류') for i in sorted(target_ids-editable)]
     target_ids &= editable
     existing=next((u for u in run['analysis_units'] if u['id']=='revision:'+group['id']+':revision1'),None)
@@ -201,11 +203,18 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
         if a2.cancelled(service,run): return
         key=group['id'];group.pop('error',None)
         context,deps,supplied=context_for(group['candidates'],by_id,context_map)
+        context['design_relation_ids'] = [] if group.get('comparison_only') else [i for i in group['primary_candidate_ids'] if supplied[i].get('statement_type') in {'rule','definition'}]
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)
+        # Preserve the original Builder input on resume; overlay designs only for downstream consumers.
+        group['design_candidates'] = taxonomy.get('observations', []) + taxonomy.get('modeled_relations', [])
+        group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', [])]
+        effective = {c['id']:c for c in group['candidates']}
+        effective.update({c['id']:c for c in group['design_candidates']})
+        context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
         supplied.update({h['id']:h for h in taxonomy['hierarchies']})
-        context['taxonomy']=taxonomy
+        context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations'}}
         try:
             if 'critic_context_ids' not in group:
                 label=' '.join(c.get('label',c.get('subject','')) for c in group['candidates'][:3])

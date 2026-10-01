@@ -5,7 +5,7 @@ import KnowledgeReviewEvidence from "./KnowledgeReviewEvidence";
 import KnowledgeHumanCost from "./KnowledgeHumanCost";
 import KnowledgeDiscoveryStart from "./KnowledgeDiscoveryStart";
 import KnowledgeMissingProposal from "./KnowledgeMissingProposal";
-import { bulkLabelChanges, canConvert, changeName, coverageRows, decisionBody, display, groupChanges, label, makeDraft, post, pretty, readableRefs, record, records, simpleLabelChange, strings,
+import { canConvert, connectionTargets, manualAlignmentProposal, changeName, coverageRows, decisionBody, display, groupChanges, label, makeDraft, post, pretty, readableRefs, record, records, strings,
   type CandidateResponse, type Change, type Changeset, type DiscoveryRun, type EditDraft, type KnowledgeRequest, type Ontology, type RecordValue, type RunSummary } from "@/lib/knowledgeReview";
 
 const inputClass = "mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm";
@@ -51,6 +51,9 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
   const [reviewed, setReviewed] = useState<Ontology | null>(null);
   const [batch, setBatch] = useState<string[]>([]);
   const [reviewDependencies, setReviewDependencies] = useState(false);
+  const [bundlePreview, setBundlePreview] = useState<Ontology | null>(null);
+  const [alignmentTarget, setAlignmentTarget] = useState("");
+  const [preserveDefinition, setPreserveDefinition] = useState(true);
   const selected = change?.candidates.find(c => c.id === selectedId);
   const dirty = !!selected && !!draft && pretty(draft) !== pretty(makeDraft(selected));
   const locked = busy || dirty || conflict;
@@ -67,7 +70,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
 
   function select(c?: Change) {
     setSelectedId(c?.id || ""); setDraft(c ? makeDraft(c) : null);
-    setReference({ counter: false, index: 0 }); setReason(""); setBatch([]); setReviewDependencies(false);
+    setReference({ counter: false, index: 0 }); setReason(""); setReviewDependencies(false); setAlignmentTarget(""); setPreserveDefinition(true);
   }
   async function getChange(id: string) {
     const response = await request<CandidateResponse>(`/candidates?changeset_id=${encodeURIComponent(id)}`);
@@ -82,12 +85,12 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
   }
   async function loadChange(id: string, keepId?: string) {
     const value = await getChange(id);
-    setChange(value); select(value.candidates.find(c => c.id === keepId) || value.candidates[0]);
+    setBatch([]); setBundlePreview(null); setChange(value); select(value.candidates.find(c => c.id === keepId) || value.candidates[0]);
     await derived(value);
   }
   async function chooseRun(id: string) {
     if (!id) return;
-    setBusy(true); setError(""); setNotice(""); setRun(null); setChange(null); setPreview(null); setReviewed(null); setConflict(false); setLatest(null); select();
+    setBusy(true); setError(""); setNotice(""); setRun(null); setChange(null); setPreview(null); setReviewed(null); setConflict(false); setLatest(null); setBatch([]); setBundlePreview(null); select();
     try {
       const value = await request<DiscoveryRun>(`/runs/${encodeURIComponent(id)}`); setRun(value);
       const refreshed = await request<{items:RunSummary[];next_before:number|null}>("/runs"); setRuns(refreshed.items);setNextBefore(refreshed.next_before);
@@ -103,12 +106,12 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
       setNotice("저장된 분석 결과를 변경안으로 연결했습니다. 모델·파싱 재실행은 없습니다.");
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  async function decide(action: string, ids = selected ? [selected.id] : []) {
+  async function decide(action: string, ids = selected ? [selected.id] : [], fromBundle = false) {
     if (!change || !draft || !ids.length || conflict) return;
     setBusy(true); setError(""); setNotice("");
     try {
-      if (ids.length > 1 && !bulkLabelChanges(change.candidates, ids).length) throw new Error("동일 영향 범위의 근거가 같은 표기 수정만 묶어 수락할 수 있습니다.");
-      await request(`/changes/${change.id}/decisions`, post(decisionBody(change, actor, reason, action, ids, draft, ids.length === 1 && reviewDependencies)));
+      if (fromBundle && (dirty || bundlePreview?.changeset_revision !== change.revision || bundlePreview.error || !ids.every(id=>bundlePreview.included_change_ids?.includes(id)))) throw new Error("편집 저장 후 선택 묶음의 의존 미리보기를 확인하세요.");
+      await request(`/changes/${change.id}/decisions`, post(decisionBody(change, actor, reason, action, ids, draft, ids.length === 1 && !fromBundle && reviewDependencies)));
       await loadChange(change.id, selectedId);
       setNotice("결정과 전후 값·이력·검토된 버전을 다시 조회했습니다. 운영 활성화는 별도 절차입니다.");
     } catch (e) {
@@ -144,7 +147,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
 
   const targets = [...new Map([...(reviewed?.targets || reviewed?.candidates || []).map(t=>[String(t.id),t] as const), ...(change?.candidates || []).map(c=>[c.target_id,{id:c.target_id,kind:c.target_kind,...record(c.after)}] as const)]).values()];
   function targetSelect(key: string, title: string, primitive=false) {
-    return <label className="block text-sm" key={key}>{title}<select className={inputClass} value={String(after[key] || "")} onChange={e=>changeText("after",key,e.target.value||null)}><option value="">대상 선택</option>{primitive && ["string","integer","float","boolean","date","datetime"].map(v=><option key={v} value={v}>{({string:"문자",integer:"정수",float:"실수",boolean:"참·거짓",date:"날짜",datetime:"날짜·시간"})[v]}</option>)}{targets.filter(t=>["class","concept","vocabulary_concept"].includes(String(t.kind))).map(t=><option key={String(t.id)} value={String(t.id)}>{String(t.name)} · {String(t.definition || "").slice(0,60)}</option>)}</select></label>;
+    return <label className="block text-sm" key={key}>{title}<select className={inputClass} value={String(after[key] || "")} onChange={e=>changeText("after",key,e.target.value||null)}><option value="">대상 선택</option>{primitive && ["string","integer","float","boolean","date","datetime"].map(v=><option key={v} value={v}>{({string:"문자",integer:"정수",float:"실수",boolean:"참·거짓",date:"날짜",datetime:"날짜·시간"})[v]}</option>)}{connectionTargets(targets,key,draft?.target_kind || "").map(t=><option key={String(t.id)} value={String(t.id)}>{String(t.name)} · {String(t.definition || "").slice(0,60)}</option>)}</select></label>;
   }
   return <section className="space-y-4" aria-label="탐색 변경 검수">
     <KnowledgeHumanCost run={run} change={change} />
@@ -179,7 +182,7 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
         <div className="max-h-72 space-y-2 overflow-auto">{groupChanges(change.candidates).map(group => <div className="rounded border p-2" key={group[0].id}>
           {group.length > 1 && <p className="text-xs font-medium">같은 표기의 제안 {group.length}개 · 자동 병합 아님</p>}
           {group.map(c => <div key={c.id} className="flex items-center gap-2">
-            {simpleLabelChange(c) && <input type="checkbox" aria-label={`${changeName(c)} 표기 수정 묶음 선택`} disabled={locked} checked={batch.includes(c.id)} onChange={e => setBatch(e.target.checked ? [...batch,c.id] : batch.filter(i => i !== c.id))} />}
+            <input type="checkbox" aria-label={`${changeName(c)} 의존 묶음 선택`} disabled={locked} checked={batch.includes(c.id)} onChange={e => {setBatch(e.target.checked ? [...batch,c.id] : batch.filter(i => i !== c.id)); setBundlePreview(null);}} />
             <button disabled={locked} aria-pressed={selectedId === c.id} className={`w-full rounded p-2 text-left text-sm ${selectedId === c.id ? "bg-blue-50 font-semibold" : "hover:bg-slate-50"}`} onClick={() => select(c)}>{changeName(c)} · {label(c.operation)} · {label(c.review_status)}<span className="block text-xs font-normal text-slate-600">{c.validation.structural_errors.length ? "구조·근거 확인 필요" : "형식 검사 통과 · 의미 검수 필요"} · 근거 {Array.isArray(c.evidence_refs) ? c.evidence_refs.length : 0}개 · 후보 {c.id.slice(0,11)}</span></button>
           </div>)}
         </div>)}</div>
@@ -212,6 +215,9 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
               </>}
             </div>)}</div>
             <p className="whitespace-pre-wrap text-sm">변경 이유: {display(selected.rationale)}</p>
+            {(selected.origin.source_relation || selected.origin.source_relations) ? <div className="rounded border bg-amber-50 p-3 text-sm"><h4 className="font-semibold">설계의 출처인 원문 진술 · 조건 실행 규칙 아님</h4>
+              {[...records(selected.origin.source_relations),...(selected.origin.source_relation ? [record(selected.origin.source_relation)] : [])].map((rule,i)=><div className="mt-2" key={i}><p>{display(record(rule.endpoint_labels).subject || rule.subject)} · {display(rule.predicate)} · {display(record(rule.endpoint_labels).object || rule.object)}</p><p>{label(display(rule.statement_type))} · {label(display(rule.negation))}</p><p>조건·예외: {display(rule.conditions)}</p><p>시점: {display(rule.time)}</p></div>)}
+              <p>설계 관계의 존재는 실제 행위·법적 권한·조건 충족을 확인한 결과가 아닙니다.</p></div> : null}
             <fieldset disabled={busy || conflict} className="space-y-3 border-t pt-3"><legend className="font-medium">검토자가 수정할 내용 · 아직 저장되지 않음</legend>
               {["add","update"].includes(selected.operation) && !["hierarchy"].includes(draft.target_kind) && ["name", ...(draft.target_kind === "alias" ? [] : ["definition","inclusion","exclusion"])].map(k => <label key={k} className="block text-sm">{fieldLabels[k]}<textarea className={inputClass} value={typeof after[k] === "string" ? after[k] as string : ""} onChange={e => changeText("after",k,e.target.value)} /></label>)}
               <label className="block text-sm">항목 종류<select className={inputClass} value={draft.target_kind} onChange={e=>setDraft({...draft,target_kind:e.target.value})}>{["class","attribute","relation","vocabulary_concept","hierarchy","alias"].map(k=><option key={k} value={k}>{label(k)}</option>)}</select></label>
@@ -263,7 +269,18 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <button className="rounded border px-3 py-2 text-sm" disabled={busy || conflict || !dirty} onClick={() => { setDraft(makeDraft(selected)); setError(""); }}>편집 취소 · 저장된 값 복원</button>
           </div>
           {!selected.can_accept && <p className="text-xs text-amber-900">현재 값은 바로 수락할 수 없습니다. 오류·의존을 확인해 편집하거나 보류하세요. 수정 후 수락도 서버 검사를 통과해야 합니다.</p>}
-          {batch.length > 0 && <div className="space-y-2 border-t pt-3"><p className="text-sm">표기 수정 {batch.length}개 선택 · 동일 종류·근거·영향 범위만 허용</p><button className={buttonClass} disabled={locked || !actor.trim() || !reason.trim() || !bulkLabelChanges(change.candidates,batch).length} onClick={() => decide("accept",batch)}>선택한 표기 수정만 수락</button></div>}
+          {["class","vocabulary_concept"].includes(selected.target_kind) && <details className="space-y-2 border-t pt-3"><summary className="cursor-pointer text-sm">기존 대상으로 명시 대응 제안</summary>
+            <p className="text-sm">기존 이름과 정의를 대조하고 동일한 대상이라고 판단한 근거를 위 판단 사유에 기록하세요. 새 미승인 제안으로 저장됩니다.</p>
+            <select aria-label="명시 대응할 기존 대상" className={inputClass} value={alignmentTarget} disabled={locked} onChange={e=>setAlignmentTarget(e.target.value)}><option value="">기존 이름·정의 선택</option>{(reviewed?.targets||reviewed?.candidates||[]).filter(t=>!t.deprecated && (t.kind==="concept"?"class":t.kind)===selected.target_kind).map(t=><option key={String(t.id)} value={String(t.id)}>{String(t.name)} · {String(t.definition||"")}</option>)}</select>
+            <label className="block text-sm"><input type="checkbox" checked={preserveDefinition} disabled={locked} onChange={e=>setPreserveDefinition(e.target.checked)}/> 기존 이름·정의 유지, 근거 추가 · 해제하면 현재 후보의 정의로 변경 제안</label>
+            <button className={buttonClass} disabled={locked || !alignmentTarget || !actor.trim() || !reason.trim()} onClick={async()=>{setBusy(true);setError("");try{const target=(reviewed?.targets||reviewed?.candidates||[]).find(t=>t.id===alignmentTarget)!;await request(`/changes/${change.id}/ontology-candidates`,post({expected_changeset_revision:change.revision,actor,reason,candidates:[manualAlignmentProposal(selected,target,preserveDefinition,reason)]}));await loadChange(change.id);setNotice("사람의 명시 대응 제안을 저장했습니다. 원래 제안과 새 제안을 각각 검토하세요.");}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>근거·사유와 함께 명시 대응 저장</button>
+          </details>}
+          {batch.length > 0 && <div className="space-y-2 border-t pt-3"><p className="text-sm">선택한 의존 묶음 {batch.length}개 · 각 후보의 편집을 먼저 저장하세요. 필요한 유형도 직접 선택해야 합니다.</p>
+            <ul className="text-sm">{batch.map(id=>{const c=change.candidates.find(c=>c.id===id)!;return <li key={id}>{changeName(c)} · {label(c.target_kind)} · {label(c.review_status)}</li>;})}</ul>
+            <button className={buttonClass} disabled={locked} onClick={async()=>{setBusy(true);setError("");try{const query=new URLSearchParams();batch.forEach(id=>query.append("candidate_ids",id));setBundlePreview(await request<Ontology>(`/changes/${change.id}/schema-preview?${query}`));}catch(e){setError((e as Error).message);setBundlePreview(null);}finally{setBusy(false);}}}>선택 묶음 의존 미리보기</button>
+            <button className={buttonClass} disabled={locked || !actor.trim() || !reason.trim() || bundlePreview?.changeset_revision!==change.revision || !!bundlePreview?.error || !batch.every(id=>bundlePreview?.included_change_ids?.includes(id))} onClick={()=>decide("accept",batch,true)}>선택한 유형·관계 묶음 수락</button>
+            <Schema title="선택 묶음 미리보기 · 기존 수락 항목 포함" value={bundlePreview}/>
+          </div>}
         </section>
       </>}
       <section className={panelClass}><h3 className="font-semibold">업무 질문·허용 범위에 남은 공백</h3><p className="text-sm">후보나 근거가 연결됐다는 사실은 질문 해결을 뜻하지 않습니다. 전체 미탐색·자료 부족 기록을 특정 질문에 임의 배정하지 않습니다.</p>

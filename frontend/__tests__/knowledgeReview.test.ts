@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bulkLabelChanges, canConvert, coverageRows, decisionBody, editPatch, evidenceSpan, groupChanges, makeDraft, readableRefs, simpleLabelChange, type Change, type Changeset, type DiscoveryRun } from "../lib/knowledgeReview";
+import { canConvert, connectionTargets, manualAlignmentProposal, coverageRows, decisionBody, editPatch, evidenceSpan, groupChanges, makeDraft, readableRefs, type Change, type Changeset, type DiscoveryRun } from "../lib/knowledgeReview";
 
 function candidate(id = "change-1"): Change {
   const metadata = { evidence_refs: [{ evidence_id: "e1", block_id: "e1", source_version_id: "v1", parse_run_id: "p1", span: [0,2], quote: "원문", locator: {} }], counter_evidence_refs: [], qualifiers: { scope: "현재 업무", time: "", negation: "unknown", statement_type: "design_proposal" }, cq_ids: ["cq1"], scope_item_ids: [], support_type: "design_proposal", hierarchy_review: {} };
@@ -10,6 +10,40 @@ function changeset(c = candidate()): Changeset {
 }
 
 describe("A4 검수 계약", () => {
+  it("유형·관계 묶음은 명시 선택만 수락하고 한 후보의 편집을 복제하지 않는다", () => {
+    const type=candidate(), relation={...candidate("relation"),target_kind:"relation",dependency_ids:[type.id]}, omitted=candidate("unselected");
+    const change={...changeset(type),candidates:[type,relation,omitted]};
+    const draft=makeDraft(type);draft.after=JSON.stringify({...type.after,name:"이 유형만 수정"});
+    const edit=decisionBody(change,"검토자","유형을 개별 수정","edit",[type.id],draft);
+    expect(edit.decisions).toHaveLength(1);expect(edit.decisions[0].patch?.after.name).toBe("이 유형만 수정");
+    const bundle=decisionBody(change,"검토자","유형과 관계의 의존 대조","accept",[type.id,relation.id],draft);
+    expect(bundle.decisions.map(d=>d.candidate_id)).toEqual([type.id,relation.id]);
+    expect(bundle.decisions.every(d=>!("patch" in d))).toBe(true);
+    expect(()=>decisionBody(change,"검토자","일괄 수정 금지","modify",[type.id,relation.id],draft)).toThrow("따로 저장");
+    expect(()=>decisionBody(change,"검토자","선택 검수","accept",[type.id,"missing"])).toThrow();
+  });
+  it("관계 끝점은 유형만 선택하고 계층의 어휘 선택 계약은 유지한다", () => {
+    const targets=[{id:"type",kind:"class"},{id:"legacy",kind:"concept"},{id:"term",kind:"vocabulary_concept"},{id:"entity",kind:"entity"},{id:"old",kind:"class",deprecated:true}];
+    for(const key of ["domain_id","range"]) expect(connectionTargets(targets,key,"relation").map(t=>t.id)).toEqual(["type","legacy"]);
+    expect(connectionTargets(targets,"parent_id","hierarchy").map(t=>t.id)).toEqual(["type","legacy","term"]);
+  });
+  it("사람의 다른 이름 대응은 기존 ID·정의 유지 또는 변경을 명시한 수동 제안이다", () => {
+    const source=candidate(),target={id:"existing",kind:"class",name:"다른 기존 이름",definition:"기존 정의",qualifiers:{scope:"기존 범위"},support_type:"explicit",evidence_refs:source.evidence_refs};
+    const preserved=manualAlignmentProposal(source,target,true,"이름은 다르지만 같은 대상임을 원문에서 확인");
+    expect(preserved.operation).toBe("update");expect(preserved.target_id).toBe("existing");
+    expect(preserved.after.name).toBe("다른 기존 이름");expect(preserved.qualifiers).toEqual(target.qualifiers);
+    const changed=manualAlignmentProposal(source,target,false,"새 정의로 변경 제안");
+    expect(changed.after).toEqual(source.after);expect(changed.evidence_refs).toEqual(source.evidence_refs);
+    expect(source.after.name).toBe("표기 수정");
+    expect(()=>manualAlignmentProposal(source,{...target,kind:"vocabulary_concept"},true,"근거")).toThrow();
+  });
+  it("기존 정의에 근거를 추가할 때 기존 반례도 새 반례와 함께 보존한다", () => {
+    const source=candidate(),oldCounter={...source.evidence_refs[0],quote:"기존 반례"},newCounter={...oldCounter,quote:"새 반례"};
+    source.counter_evidence_refs=[newCounter,oldCounter];
+    const target={id:"existing",kind:"class",name:"기존 유형",definition:"정의",counter_evidence_refs:[oldCounter]};
+    expect(manualAlignmentProposal(source,target,true,"근거 추가").counter_evidence_refs).toEqual([oldCounter,newCounter]);
+    expect(target.counter_evidence_refs).toEqual([oldCounter]);
+  });
   it("A5 직접 의존 처리는 명시한 수락에만 보내고 편집·보류에는 넣지 않는다", () => {
     const c = candidate(), draft = makeDraft(c);
     for (const action of ["accept", "modify"]) {
@@ -53,15 +87,6 @@ describe("A4 검수 계약", () => {
     const groups = groupChanges([a,b]); expect(groups).toEqual([[a,b]]);
     expect(a.target_id).not.toBe(b.target_id); expect(b.review_status).toBe("deferred");
     expect(groupChanges([{ ...a, after: {}, before: null },{ ...b, after: {}, before: null }])).toHaveLength(2);
-  });
-  it("같은 영향 범위의 근거가 같은 표기 수정만 일괄 수락 대상이다", () => {
-    const a = candidate(), b = candidate("second");
-    expect(simpleLabelChange(a)).toBe(true); expect(bulkLabelChanges([a,b],[a.id,b.id])).toHaveLength(2);
-    for (const patch of [{ operation: "merge" }, { operation: "deprecate" }, { operation: "add" }, { target_kind: "hierarchy" },
-      { qualifiers: { scope: "다른 범위" } }, { can_accept: false }, { counter_evidence_refs: a.evidence_refs }, { unresolved_issues: ["충돌 검토"] },
-      { after: { ...a.after, definition: "의미 변경" } }]) expect(simpleLabelChange({ ...a,...patch })).toBe(false);
-    expect(bulkLabelChanges([a,{ ...b, affected_reference_ids: ["new-impact"] }],[a.id,b.id])).toEqual([]);
-    expect(bulkLabelChanges([a,b],[a.id,b.id,"missing"])).toEqual([]);
   });
   it("CQ 연결을 해결 판정으로 만들지 않고 미기록 상태와 보류를 구분한다", () => {
     const c = { ...candidate(), review_status: "deferred" }, change = changeset(c);

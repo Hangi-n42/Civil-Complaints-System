@@ -112,6 +112,13 @@ def _convert(run, base, blocks):
         matches = [a for a in alignments if a['observation_ref']==source['id']] if concept else []
         origin = dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
                       validation=source.get('validation', []), direction=source.get('direction'), alignments=deepcopy(matches))
+        if source.get('design_reason'):
+            origin['design_reason']=source['design_reason']
+            raw['rationale']=source['design_reason']
+        if source.get('source_relation_ids'):
+            origin['source_relations']=[deepcopy(r) for r in result.get('original_relations', []) if r['id'] in source['source_relation_ids']]
+        if source.get('source_relation') or source.get('statement_type')=='rule':
+            origin['source_relation']=deepcopy(source.get('source_relation') or source)
         if not concept:
             origin['source_endpoints'] = {key:source.get('endpoint_labels', {}).get(key, source[key]) for key in ('subject','object')}
             origin['unresolved_endpoints'] = source.get('unresolved_endpoints', [])
@@ -417,6 +424,15 @@ def _validate(repo, db, change, run, base):
         except ValidationError as exc:
             errors.append('contract: '+str(exc)); continue
         target = initial.get(c['target_id'])
+        source_designs = c['origin'].get('source_relations') or (target or {}).get('modeling_origin', {}).get('source_relations')
+        if source_designs and (c['support_type']!='design_proposal' or c['qualifiers'].get('statement_type')!='design_proposal'):
+            errors.append('Builder 설계 출처가 있는 유형을 원문 명시 정의로 승격할 수 없음')
+        source_rule = c['origin'].get('source_relation') or (target or {}).get('modeling_origin', {}).get('source_relation', {})
+        if source_rule.get('statement_type')=='rule':
+            if c['support_type']!='design_proposal' or c['qualifiers'].get('statement_type')!='design_proposal':
+                errors.append('원문 규범과 이를 표현하는 스키마 설계를 구분해야 함')
+            if c['after'].get('required'):
+                errors.append('원문 규범의 의무를 슬롯 필수값으로 승격할 수 없음')
         if c['origin'].get('review_errors') and not c['origin'].get('human_edited'):
             errors.append('A2 검수 미완료; 오류·누락 또는 수정 후 판단을 명시 검토 필요')
         if c['origin'].get('change_intent')=='alignment_pending' and not c['origin'].get('human_edited'):
@@ -646,16 +662,28 @@ def _accepted_projection(repo,db,change,run,base):
     return chosen,items
 
 
-def preview(service, changeset_id):
+def preview(service, changeset_id, candidate_ids=None):
     with service.repository.connect() as db:
         change=service.repository.get(db,'changesets',changeset_id)
         if change.get('payload_version')!=2: raise ValueError('v2 변경 묶음 필요')
         base=_base(service.repository,db,change)
         run=service.repository.get(db,'runs',change['run_id'])
         _validate(service.repository,db,change,run,base)
-        selected=_review_candidates(change)
+        selected={}
         try:
-            compiled,derived,slots=canonical.build(base,canonical.project(base,list(selected.values())))
+            if candidate_ids is None:
+                selected=_review_candidates(change)
+                items=canonical.project(base,list(selected.values()))
+            else:
+                requested=set(candidate_ids)
+                known={c['change_id'] for c in change['candidates']}
+                if not requested or len(requested)!=len(candidate_ids) or not requested <= known:
+                    raise ValueError('미리보기 대상이 비었거나 중복/범위 밖 후보가 있음')
+                for c in change['candidates']:
+                    if c['change_id'] in requested: c['review_status']='accepted'
+                chosen,items=_accepted_projection(service.repository,db,change,run,base)
+                selected={c['change_id']:c for c in chosen}
+            compiled,derived,slots=canonical.build(base,items)
             return dict(changeset_id=changeset_id,changeset_revision=change['revision'],status='unreviewed_preview',
                 included_change_ids=list(selected), excluded_change_ids=[c['change_id'] for c in change['candidates'] if c['change_id'] not in selected],
                 **compiled,json_schema=derived,effective_class_slots=slots)

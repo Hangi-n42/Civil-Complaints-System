@@ -69,7 +69,7 @@ class Observation(Grounded):
     conditions: str = Field(default='', max_length=240)
     exceptions: str = Field(default='', max_length=240)
     time: str = Field(default='', max_length=120)
-    support_type: Literal['explicit', 'instance_proposal', 'unresolved']
+    support_type: Literal['explicit', 'instance_proposal', 'design_proposal', 'unresolved']
     abstraction_level: str = Field(min_length=1, max_length=100)
     review_signals: list[str] = Field(max_length=5)
 
@@ -126,7 +126,24 @@ class Hierarchy(Record):
     b_to_a: Direction
 
 
+class DesignedType(Observation):
+    local_ref: str = Field(pattern=r'^t[1-5]$')
+    classification: Literal['type']
+    support_type: Literal['design_proposal']
+    source_relation_ids: list[str] = Field(min_length=1, max_length=5)
+    design_reason: str = Field(min_length=1, max_length=300)
+
+
+class RelationBinding(Record):
+    relation_ref: str
+    subject_ref: str
+    object_ref: str
+    reason: str = Field(min_length=1, max_length=300)
+
+
 class Taxonomy(Record):
+    observations: list[DesignedType] = Field(default_factory=list, max_length=5)
+    relation_bindings: list[RelationBinding] = Field(default_factory=list, max_length=5)
     hierarchies: list[Hierarchy] = Field(max_length=5)
     alias_proposals: list[Alignment] = Field(max_length=5)
     gaps: list[str] = Field(max_length=5)
@@ -224,11 +241,11 @@ alignments는 관측과 별도로 same(범위·조건·시점까지 동일), cha
 conditions에는 해당 조항의 상위 전제와 '다른 규정에도 불구하고' 같은 예외 우선성도 포함한다. 필드 한도 때문에 필요한 조건을 생략하지 않는다. 완전히 표현하지 못하면 그 관계를 unresolved로 두고 빠진 조건을 gaps에 적는다.
 negation은 해당 주어-술어-목적어 주장 자체의 극성이다. 원문이 그 주장을 지지하면 affirmed, 명시적으로 그 주장을 부정하면 negated, 판단 불가면 unknown이다. '포함된다', '하여야 한다', '할 수 있다'는 각각 긍정 포함·의무·허용이므로 affirmed이다. 문장 안에 '아니하고/제외/불구하고'가 있어도 포함 또는 허용 주장 자체가 긍정이면 affirmed이다. 제외·예외는 conditions에 쓰고 관계 전체를 negated로 뒤집지 않는다.
 source_refs로 해당 주장과 conditions의 모든 분기·전제·예외를 뒷받침하는 제공 구간들을 선택한다. 기존 source_quotes를 쓰면 실제 원문 구절들을 각각 그대로 복사한다. 본문의 '각 호/이 경우'가 가리키는 별도 구절을 조건으로 사용했다면 그 구절도 따로 인용한다. 별개 구절을 하나로 이어 쓰거나 말줄임하지 않는다. tool_originals의 반복으로 주 분석을 대신하지 않는다.''',
-    'builder': 'Taxonomy Builder: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 제공된 관련 후보만 비교한다. 필요한 is_a/instance_of/broader/part_of와 별칭만 제안한다. is_a는 type끼리, instance_of는 entity에서 type, broader는 vocabulary끼리다. 제안한 각 쌍마다 같은 범위·시점에서 모든 A는 B인가 / 모든 B는 A인가를 supported/refuted/unknown과 근거/반례로 판정한다. 실제 사례 일치로 보편 포함을 확정하지 않는다. 양방향 지지는 동치 검토 대상일 뿐 자동 병합하지 않는다. 양방향 부정은 무관/배타를 뜻하지 않는다. 누락값은 비소속 증거가 아니다. 수정 요청이면 지적된 묶음만 수정하고 미해결은 보존한다.',
+    'builder': 'Taxonomy Builder: 먼저 제공된 reviewed_base/unapproved_observations의 이름과 실제 정의를 검토하여 재사용한다. unapproved_relations에서 필요한 역할/대상 유형이 없으면 observations에 최대 5개 설계 유형을 작성한다. local_ref는 t1..t5, classification=type, support_type=design_proposal, source_relation_ids는 design_relation_ids에 있는 현재 묶음의 관계 ID, design_reason은 필요한 추상화와 기존 정의를 쓰지 않은 이유다. 원문 직접 정의나 개별 사실의 instance_proposal로 포장하지 않는다. 특정 기관 자체를 class로 올리지 않는다. 미제공 법정 정의·별표는 gaps로 남긴다. relation_bindings는 design_relation_ids에 있는 원래 relation_ref와 제공된 유형 ID 또는 새 t번호의 subject_ref/object_ref 및 설계 이유를 연결한다. 이 연결은 조건부 원문을 표현하는 스키마 제안이며 법적 사실·의무 실행·필수값을 의미하지 않는다. 원문의 주체별 의무/허용·OR·조건·예외·시점은 서버가 보존하므로 관계를 다시 쓰지 않는다. 추가 설계가 필요 없으면 두 목록은 비운다. Taxonomy Builder: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 제공된 관련 후보만 비교한다. 필요한 is_a/instance_of/broader/part_of와 별칭만 제안한다. is_a는 type끼리, instance_of는 entity에서 type, broader는 vocabulary끼리다. 제안한 각 쌍마다 같은 범위·시점에서 모든 A는 B인가 / 모든 B는 A인가를 supported/refuted/unknown과 근거/반례로 판정한다. 실제 사례 일치로 보편 포함을 확정하지 않는다. 양방향 지지는 동치 검토 대상일 뿐 자동 병합하지 않는다. 양방향 부정은 무관/배타를 뜻하지 않는다. 누락값은 비소속 증거가 아니다. 수정 요청이면 지적된 묶음만 수정하고 미해결은 보존한다.',
     'revision': 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 지적된 후보 묶음을 한 번만 수정한다. targets 각각을 observations/relations/hierarchies 중 맞는 목록으로 전체 수정하거나 deferred로 명시 보류한다. candidate_ref는 기존 ID를 유지한다. 쟁점과 원문을 대조해 분류·부정·조건·방향을 고친다. 근거 없는 확정이나 새 후보 추가는 금지한다. 모든 target에 수정 또는 보류 한 건이 필요하다.',
     'critic': 'Ontology Critic: blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 후보와 대조한다. 미완료 review_search_status는 독립 반례 검색 완료를 뜻하지 않는다. 누락된 개념처럼 대응 후보가 없으면 candidate_ref는 빈 문자열로 두고 다른 후보에 억지 연결하지 않는다. 제공 원문에서 특정한 누락은 missing_meanings에 필요한 역할·의미·CQ와 source_refs 또는 정확한 source_quotes를 기록한다. 이미 존재하는 후보의 수정은 이 목록에 넣지 않는다. 원문 자체가 없으면 자료 필요로 보류한다. 유형/개체 혼동·조건/시점 누락·근거 불일치·오병합·CQ 공백을 확인한다. 제안 계층은 모두 양방향 hierarchy_checks로 다시 판정한다. counter_evidence_ids는 실제 반례인 경우만, 검색 히트 자체는 반증이 아니다. 근거가 없으면 unknown과 defer_reason. 부족한 원문은 request_evidence/read, 수정 필요시 needs_revision. 후보에 대한 자신감/빈도를 정답 근거로 쓰지 않는다. 모든 unapproved_relations에 relation_checks를 남겨 주어-술어-목적어의 긍정/부정 범위를 원문과 별도로 대조한다. supported/refuted는 source_refs 또는 실제 원문 quote와 evidence_id를 포함하고 의미가 불명확하면 unknown이다. 제외 조건과 관계 전체의 부정을 혼동하지 않는다. 열 이름/셀 값 분류를 별도로 점검한다. 제공되지 않은 법률 규정을 단정하지 말고 자료 필요로 보류한다. 같은 조문 번호라도 법/시행령/시행규칙과 시점이 다르면 대체 근거가 아니다. missing_meanings에는 실제 제공 구절이 담은 의미 중 산출되지 않은 것만 넣는다. 참조만 있고 본문이 없는 별표/다른 조문/세부 기준은 자료 미제공 gaps이며 같은 원문을 다시 분석할 복구 요청이 아니다. reason은 1~2개의 짧고 완결된 문장으로 끝낸다. 예산 끝까지 문장을 늘리지 않는다.'}
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
-    'relation': ('relations','gaps'), 'builder': ('hierarchies','alias_proposals','gaps'),
+    'relation': ('relations','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}

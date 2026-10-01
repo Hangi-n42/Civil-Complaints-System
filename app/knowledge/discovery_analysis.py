@@ -9,10 +9,10 @@ import httpx
 
 from app.core.config import settings
 from app.generation.service import GenerationService, local_ollama_url
-from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews
+from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews, discovery_design as design
 from .service import KnowledgeConflict, encode, utcnow
 
-PROMPT_VERSION = 'discovery-a2-v16'
+PROMPT_VERSION = 'discovery-a2-v17'
 
 
 def recipe(budgets):
@@ -302,6 +302,12 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
                 if expected not in original:
                     raise ValueError('수정 대상 종류 불일치')
                 replacement = normalize({field:[row]}, role, run, deps, by_id, supplied)[field][0]
+                for key in ('source_relation','source_relation_ids','design_reason'):
+                    if key in original: replacement[key]=deepcopy(original[key])
+                if original.get('source_relation_ids'):
+                    replacement['support_type']='design_proposal'
+                if original.get('source_relation'):
+                    replacement.update(statement_type='design_proposal',support_type='design_proposal')
                 replacement['id'] = identifier
                 replacement['revision_status'] = 'unreviewed_revision'
                 history.append(dict(candidate_id=identifier, before=original, after=deepcopy(replacement), reason=reason))
@@ -359,6 +365,8 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
                 relation[field] = matches[0]['id']
             else:
                 relation['unresolved_endpoints'].append(field)
+    if stage=='builder' and ('observations' in output or 'relation_bindings' in output):
+        supplied = design.bind(output,supplied,by_id,context or {})
     for alias in output.get('alias_proposals', []):
         alias.update(review_status='unreviewed', validation=[] if alias['observation_ref'] in supplied and alias['target_id'] in supplied else ['존재하지 않는 별칭 참조'])
     for hierarchy in [*output.get('hierarchies', []), *output.get('hierarchy_checks', [])]:
@@ -509,9 +517,21 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if stage=='revision':
             for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
                 schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
+        if stage=='builder':
+            local_types = ['t'+str(n) for n in range(1,6)]
+            relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
+            type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
+            schema['$defs']['DesignedType']['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
+            binding = schema['$defs']['RelationBinding']['properties']
+            binding['relation_ref']['enum'] = relation_ids or ['']
+            for field in ('subject_ref','object_ref'): binding[field]['enum'] = type_ids+local_types
+            if not relation_ids:
+                schema['properties']['observations']['maxItems']=0
+                schema['properties']['relation_bindings']['maxItems']=0
         hierarchy_schema = schema.get('$defs', {}).get('Hierarchy') or schema.get('$defs', {}).get('HierarchyRevision')
         if hierarchy_schema:
             identifiers = [mapping[i] for i,c in supplied.items() if c.get('classification') in {'type','entity','vocabulary','unresolved'}]
+            if stage=='builder': identifiers += local_types
             if not identifiers:
                 schema['properties']['hierarchy_checks' if stage=='critic' else 'hierarchies']['maxItems'] = 0
             for name in ('child_ref','parent_ref'):
@@ -562,6 +582,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if root['properties'][field].get('maxItems') == 0:
                 continue
             variant = deepcopy(root)
+            variant['required'] = list(dict.fromkeys([*variant.get('required', []),field]))
             variant['properties'][field]['minItems'] = max(1, variant['properties'][field].get('minItems', 0))
             variants.append(variant)
         schema = {'$defs':schema.get('$defs', {}), 'anyOf':variants}
@@ -581,6 +602,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             output = models.OUTPUTS[stage].model_validate_json(metadata['text']).model_dump(warnings=False)
+            if stage=='builder': design.scope_local_refs(output)
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
@@ -825,9 +847,10 @@ def finish(run, blocks, available):
             capacity_status(run, group, by_id)
         group['analysis_grounded'] = grounded_analysis(run, group, available)
     outputs = [u for u in run['analysis_units'] if u['status']=='succeeded' and set(u.get('dependency_ids', [])) <= available]
-    original_observations = [c for u in outputs if u['stage']=='concept' for c in u['output'].get('observations', [])]
+    original_observations = [c for u in outputs if u['stage'] in {'concept','builder'} for c in u['output'].get('observations', [])]
     original_relations = [c for u in outputs if u['stage']=='relation' for c in u['output'].get('relations', [])]
     rows = {c['id']:c for c in original_observations+original_relations}
+    rows.update({c['id']:c for u in outputs if u['stage']=='builder' for c in u['output'].get('modeled_relations', [])})
     history = [h for u in outputs for h in u['output'].get('history', [])]
     for h in history:
         if h['candidate_id'] in rows: rows[h['candidate_id']] = h['after']
@@ -851,8 +874,8 @@ def finish(run, blocks, available):
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
     reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in review_units
-        for i in g['primary_candidate_ids'] if i in (reviews.valid_ids(review_units[g['id']],current)
-            if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']))}
+        for i in [*g['primary_candidate_ids'],*g.get('design_candidate_ids', [])] if i in (reviews.valid_ids(review_units[g['id']],current)
+            if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']+g.get('design_candidate_ids', [])))}
     reviewed_candidates -= {h['candidate_id'] for h in history
         if not any(h['candidate_id'] in (reviews.valid_ids(r,current) or set()) for r in review_units.values())}
     unreviewed_candidates = sorted(c['id'] for c in original_observations+original_relations if not c['validation'] and not c['outside_scope_reason'] and c['id'] not in reviewed_candidates)
