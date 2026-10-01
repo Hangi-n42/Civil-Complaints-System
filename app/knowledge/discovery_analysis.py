@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v23'
+PROMPT_VERSION = 'discovery-a2-v24'
 
 
 def recipe(budgets):
@@ -945,6 +945,46 @@ def analysis_context(run, stage, context, supplied, group, reserve=0):
             context['tool_originals'] = [b for b in context.get('tool_originals', []) if b['ref'] in needed]
 
 
+def ordered_groups(run, groups, phase):
+    """Keep saved order; rotate known anchors (or source groups before CQ extraction)."""
+    order = run.setdefault('execution_order', {}).setdefault(phase, [])
+    remaining = [g for g in groups if g['id'] not in order]
+    priorities = sorted({g.get('priority', 0) for g in remaining})
+    for priority in priorities:
+        buckets = {}
+        for g in remaining:
+            if g.get('priority', 0)!=priority: continue
+            anchor = g.get('anchor') or next(iter(g.get('cq_ids', [])), None) or g.get('source_group', '')
+            buckets.setdefault(anchor, []).append(g)
+        for values in buckets.values(): values.sort(key=lambda g: not g.get('requested_by_scout', False))
+        order.extend(values[n]['id'] for n in range(max(map(len,buckets.values()))) for values in buckets.values() if n<len(values))
+    by_id = {g['id']:g for g in groups}
+    return [by_id[i] for i in order if i in by_id]
+
+
+def review_reservation(run, round_number, by_id, context_map, available):
+    from .discovery_synthesis import assemble
+    # Preview on a copy: no successful unit, group assignment or representative ID changes.
+    groups = run.get('candidate_groups', []) + assemble(deepcopy(run), round_number, by_id, context_map, available)
+    succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+    pending = [dict(unit_id=stage+':'+g['id'],stage=stage,round=g.get('round',0)) for g in groups for stage in ('builder','critic') if stage+':'+g['id'] not in succeeded]
+    estimates = run.setdefault('role_time_estimates', {})
+    for stage in ('concept','relation','builder','critic','revision'):
+        observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
+        role = 'review' if stage=='critic' else 'draft'
+        estimate = estimates.setdefault(stage, dict(initial_s=run['recipe']['call_timeout'],estimate_s=run['recipe']['call_timeout'],
+            basis='미관측 역할: recipe 호출 제한시간',model_identity=deepcopy(run.get('model_identity', {}).get(role))))
+        if observed:
+            # First observation replaces the timeout prior; later estimates only rise.
+            estimate['estimate_s'] = max(estimate['estimate_s'] if estimate.get('observed_count') else 0, max(observed)*1.25)
+            estimate.update(basis='같은 실행·모델의 역할별 최대 실제 시간 × 1.25; 완료 보장 아님',observed_count=len(observed))
+    reservation = dict(group_ids=[g['id'] for g in groups],pending_units=pending,model_calls=len(pending),
+        estimated_model_s=round(sum(estimates[p['stage']]['estimate_s'] for p in pending),3))
+    run['reserved_builder_critic_calls'] = len(pending)
+    run['review_reservation'] = reservation
+    return reservation
+
+
 def process_group(service, run, group, index, blocks, by_id, context_map):
     key = group['id']; base = base_context(run)
     links = {c['id'] for c in run['cqs'] + run['scope_items']}
@@ -975,13 +1015,21 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         common['tool_originals'].extend(endpoint_context['blocks'])
         supplied.update({c['id']:c for c in prior})
     roles = group.get('roles', ['concept','relation'])
-    needed = sum(not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])
-                 for stage in roles)
-    if needed: needed += 2 # Reserve synthesis and independent review before another analysis group.
-    if run['metrics']['llm_calls'] + needed > run['recipe']['budgets']['model_calls']:
-        group['error'] = '분석 및 Builder/Critic 예약 호출 예산 부족'
-        queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=group['error'],defer_reason=group['error'])]}, group)
-        return
+    needed = [stage for stage in roles if not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])]
+    if needed:
+        reservation = review_reservation(run, group['round'], by_id, context_map, allowed_ids(service,blocks))
+        future = needed + ['builder','critic'] # Minimum one new group; actual count is recomputed after analysis.
+        budget = run['recipe']['budgets']; metrics = run['metrics']
+        remaining_calls = budget['model_calls']-metrics['llm_calls']
+        remaining_s = budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s', 0)
+        estimated_s = reservation['estimated_model_s']+sum(run['role_time_estimates'][stage]['estimate_s'] for stage in future)
+        proceed = remaining_calls >= reservation['model_calls']+len(future) and remaining_s >= estimated_s
+        group['budget_allocation'] = dict(used_calls=metrics['llm_calls'],used_model_s=metrics['model_total_s'],
+            remaining_calls=remaining_calls,remaining_model_s=remaining_s,pending_review_calls=reservation['model_calls'],
+            next_minimum_calls=len(future),reserved_estimated_s=round(estimated_s,3),decision='analyze' if proceed else 'review_existing')
+        if not proceed:
+            group['error'] = '분석 및 실제 Builder/Critic 묶음 예약 호출/시간 예산 부족; 기존 후보 검수로 전환'
+            return False
     group['status'] = 'raw_provided'
     observations = previous
     if 'concept' in roles:
@@ -1243,7 +1291,7 @@ def execute(service, run_id):
             run.update(profiles=profiles, frontier=frontier, full_frontier=full_frontier, candidate_groups=[],
 
                 scout_frontier=[{k:g[k] for k in ('id','file_id','priority','input_chars','reason')} for g in frontier],
-                expected_analysis_calls=1+2*len(frontier), reserved_builder_critic_calls=2,
+                expected_analysis_calls=1+2*len(frontier), reserved_builder_critic_calls=0,
                 initial_full_analysis_groups=len(full_frontier), synthesis_call_formula='1 + 2m + 2g + revisions; g는 후보 조립 후 확정')
         else:
             profiles = run['profiles']
@@ -1262,15 +1310,36 @@ def execute(service, run_id):
             list(by_id), by_id)
         if scout is None: return
         apply_actions(service, run, index, blocks, 'scout', 'structure', scout)
+        from .discovery_synthesis import synthesize
         for round_number in range(run['recipe']['budgets']['additional_rounds']+1):
-            pending = [g for g in run['frontier'] if g['round']==round_number]
-            pending.sort(key=lambda g: (g['priority'], not g.get('requested_by_scout', False)))
+            pending = ordered_groups(run, [g for g in run['frontier'] if g['round']==round_number], 'analysis:'+str(round_number))
+            review_blocked = False
             for group in pending:
-                if cancelled(service, run): return
-                process_group(service, run, group, index, blocks, by_id, context_map)
+                while True:
+                    if cancelled(service, run): return
+                    proceed = process_group(service, run, group, index, blocks, by_id, context_map)
+                    reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+                    save(service, run)
+                    if proceed is not False or not any(p['round']<=round_number for p in reservation['pending_units']): break
+                    successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+                    run.setdefault('budget_transitions', []).append(dict(group_id=group['id'],**group['budget_allocation']))
+                    synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=False)
+                    reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+                    review_blocked = (any(p['round']<=round_number for p in reservation['pending_units']) or
+                        not ({u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}-successful))
+                    if review_blocked: break
+                    # Review observations can release the conservative initial time reservation.
+                if proceed is False:
+                    queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=group['error'],defer_reason=group['error'])]}, group)
                 save(service, run)
-            from .discovery_synthesis import synthesize
-            synthesize(service, run, round_number, index, blocks, by_id, context_map)
+                if proceed is False: break
+            successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+            primary_pending = any(stage+':'+g['id'] not in successful for g in pending for stage in g.get('roles',['concept','relation']))
+            if not review_blocked:
+                synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=not primary_pending)
+            reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+            # Later saved rounds must remain reachable on resume; only earlier work blocks them.
+            if primary_pending or any(p['round']<=round_number for p in reservation['pending_units']): break
             if round_number == run['recipe']['budgets']['additional_rounds']: break
             run['frontier'].extend(recovery_groups(run, round_number+1, by_id))
             assigned = {i for g in run['frontier'] for i in g['block_ids']}

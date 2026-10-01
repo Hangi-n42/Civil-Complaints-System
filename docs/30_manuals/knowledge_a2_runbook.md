@@ -57,7 +57,7 @@
 ## 저장·재개·종료
 
 - Run에 입력 A1 ID·frozen_input·CQ/범위·기준 YAML·모델명/digest/컨텍스트·프롬프트/스키마/프로파일 버전·예산을 고정한다.
-- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v23`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
+- `analysis_units`: 입력 해시·실제 prompt·원출력·검증 결과·호출 시도·시간·의존 근거. `frontier/profiles/tool_events/result`가 탐색 및 A3 연결 자료다. 결과 포맷 `a2-analysis-v2`, 현재 프롬프트 `discovery-a2-v24`. Critic 입력에서 중복 설계 연결과 빈 파생 검증 배열을 생략하며 원문·원관계·조건과 검증 오류는 보존한다. 기존 실행 원장은 수정하지 않으며 레시피가 다르면 재개 대신 새 실행이 필요하다.
 - `candidate_identity.raw_to_candidate`와 `discoveries`에 원관측→대표 후보·발견 unit/group을 저장한다. 성공 unit의 ID/output/input_hash와 original_observations/relations는 유지한다. 대표 뷰의 계약상 ID 필드만 연결하며 원문 문자열·원관계 사본은 치환하지 않는다. 재개에서 처음 등록한 대표 ID와 성공 호출을 재사용한다. 검수 fingerprint는 대표 뷰로 계산하고 발견 이력은 별도 관리하므로 발견 추가가 의미 검수 값을 바꾸지 않는다. 과거 원관측 fingerprint/검수는 변경된 대표 뷰를 승인하지 못한다.
 - 호출 전후와 재개에서 K5 상태 확인. 원문뿐 아니라 전체 생성 의존성을 가진 요약/관측/lookup 결과도 사용 중단 근거를 포함하면 후속 입력에서 보류한다.
 - endpoint는 loopback HTTP만 허용. localhost는 127.0.0.1로 고정하고 proxy·redirect를 사용하지 않는다. 설치 모델 digest와 선언 컨텍스트를 확인하며 실행 중 다운로드나 외부 모델 fallback 없음.
@@ -102,6 +102,8 @@
 
 - D4 복구는 기존 `recovery_requests`에서 원인·실제 대상·역할·허용 범위로 구분한다. `extraction_missing`만 담당 원문 구간의 해당 Concept 또는 Relation에 보낸다. 같은 구간의 여러 누락은 `meanings`에 보존하고, 실행에 제출한 목록은 따로 고정한다. 문구가 달라져도 같은 작업을 반복 호출하지 않으며 뒤늦은 추가 누락은 `unattempted_meanings`에 남긴다.
 - E4 복구 비교는 target과 겹치는 근거 span 및 관계의 직접 끝점으로 좁힌다. 담당 원문의 공유 전제·예외·표 헤더와 기존 승인 유형을 포함한 끝점 정의/근거는 필수다. 같은 후보와 정확히 같은 원문 span만 한 번 전달하며 `previous_signatures`는 서버에 둔다. `omitted_recovery_candidates`는 구간 불일치와 legacy span 미확인을 구분하고, `input_allocation`은 축소 전후 길이·예약 여유·한도 초과 사유를 기록한다. 필수 원문을 잘라 맞추거나 입력/출력 한도·종합3000자 여유를 늘리지 않는다.
+- E5는 각 분석 뒤 기존 assemble을 복사본에서 실행해 실제 미완료 Builder/Critic 묶음을 `review_reservation`으로 예약한다. `role_time_estimates`는 미관측 역할의 recipe 호출 제한시간과 모델 identity, 관측 후 역할별 최대 elapsed×1.25 추정을 기록한다. 이후 추정은 상향하며 실제 누적 hardbudget과 구별한다. 다음 최소 분석과 예약을 감당할 수 없으면 기존 후보를 먼저 검수하고, 새 성공 unit이 있으면 갱신된 시간으로 같은 round의 남은 분석을 재판단한다. 미검수 또는 진전 없는 예산 거절은 partial로 종료한다. 주분석/검수가 수정·추가복구보다 앞선다.
+- `execution_order`는 명시 priority를 유지한 anchor/CQ 순환 순서를 고정한다. CQ를 아직 모르는 분석 frontier는 source_group을 사용하며 Scout 선택은 각 묶음 내부 순서에 반영한다. `budget_transitions`와 그룹 `budget_allocation`은 실제 사용량·예약 추정·검수 전환을 구별한다. 뒤 round의 미완료 검수가 앞 round 재사용을 막지는 않으며 성공 unit/입력 해시는 재사용한다. 순서 배분은 모든 CQ의 분석/의미 해결을 보장하지 않는다.
 - `evidence_error`는 기존 revision에서 후보 ID·의미를 유지하고 근거 선택만 보완한다. `endpoint`는 기존 Builder 연결 결과/명시 검수, `alignment`는 해당 기존 정의와 명시 대응 검수로 남긴다. `source_absent`는 부족한 원문·확인 범위, `budget_exhausted`는 실제 종료 사유를 기록한다. 기존 의미 오류는 `content_error`로 기존 수정 한도 안에서 처리한다. 자동 예산 증액은 없다.
 - `proposals_created`도 의미 충족·사람 검수 완료가 아니며 `unresolved_recovery_requests`에 남는다. `semantic_status`와 `proposal_review_status`는 `unverified`다. `metrics.recovery_calls/recovery_model_s/recovery_attempted_tasks/recovery_remaining_by_cause`로 복구 호출·시간·실행된 작업·원인별 잔여를 조회한다. 성공 unit은 해시가 달라도 덮어쓰지 않으며 실패한 동일 복구 추출은 재개 시 반복 호출하지 않는다. 비교용 검색 결과는 추가 원문 분석으로 자동 승격하지 않는다.
 

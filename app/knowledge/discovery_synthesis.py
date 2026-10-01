@@ -218,11 +218,12 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 결과 미확정: '+str(unit.get('error') or '취소/중단')+'; 사람 검수로 보류') for i in selected)
 
 
-def synthesize(service, run, round_number, index, blocks, by_id, context_map):
+def synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=True):
     if a2.cancelled(service,run): return
     run['candidate_groups'].extend(assemble(run,round_number,by_id,context_map,a2.allowed_ids(service,blocks)))
     a2.save(service,run)
-    for group in [g for g in run['candidate_groups'] if g['round']==round_number]:
+    revisions = []
+    for group in a2.ordered_groups(run, [g for g in run['candidate_groups'] if g['round']==round_number], 'review:'+str(round_number)):
         if a2.cancelled(service,run): return
         key=group['id'];group.pop('error',None)
         context,deps,supplied=context_for(group['candidates'],by_id,context_map)
@@ -281,7 +282,20 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map):
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
             candidate_revision = review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
             if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in effective.values()):
-                revise(service,run,group,review,taxonomy,by_id,context_map)
+                revisions.append((group,review,taxonomy))
         except ValueError as exc:
             group['error']=str(exc)
+        a2.save(service,run)
+    succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+    pending = [stage+':'+g['id'] for g in run['candidate_groups'] for stage in ('builder','critic') if stage+':'+g['id'] not in succeeded]
+    for group,review,taxonomy in revisions:
+        if a2.cancelled(service,run): return
+        if pending or not allow_revisions:
+            group['revision_deferred_reason'] = '미완료 주분석/미검수 Builder/Critic 묶음 우선; 수정 호출 보류'
+        else:
+            group.pop('revision_deferred_reason',None)
+            try:
+                revise(service,run,group,review,taxonomy,by_id,context_map)
+            except ValueError as exc:
+                group['error']=str(exc)
         a2.save(service,run)

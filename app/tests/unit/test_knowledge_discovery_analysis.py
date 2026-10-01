@@ -202,7 +202,8 @@ def test_budget_reserves_builder_critic_and_no_automatic_expansion(service,model
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id'],discovery_budgets={'model_calls':4}))['run_id'])
     assert run['status']=='partial' and model==['scout']
-    assert run['frontier'][0]['error'].endswith('부족')
+    assert '예산 부족' in run['frontier'][0]['error']
+    assert run['frontier'][0]['budget_allocation']['decision']=='review_existing'
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert resumed['metrics']['llm_calls']==1 and resumed['status']=='partial'
     with pytest.raises(ValueError):
