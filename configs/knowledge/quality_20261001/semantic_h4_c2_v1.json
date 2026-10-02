@@ -1,0 +1,40 @@
+{
+  "id": "ontology-semantic-h4-c2-v1",
+  "frozen_at": "2026-10-02T04:05:26.732110+00:00",
+  "issue": 560,
+  "product_sha": "dd752e6f7e54f642702cb8cf13c239b84f2ce31e",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 12,
+    "searches": 4,
+    "additional_rounds": 0,
+    "revisions": 1,
+    "model_seconds": 2400
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "H4 최종 조건의 전체 C2 한 번; 유형 선언·끝점·세부 조건·수정 재검수 확인"
+    }
+  ],
+  "rules": [
+    "사전 동결 후 한 번; C2 실패 시 current 미실행",
+    "평가 정답/상세 부록은 생성 입력에 미제공",
+    "다중 변경·예산 확대 제품 결과이며 동비용/단일 인과 비교 아님"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "ontology-semantic-h4-conditions-v1",
+  "frozen_at": "2026-10-02T04:05:26.732110+00:00",
+  "issue": 560,
+  "input_to_generation": false,
+  "basis": {
+    "existing_assessor": {
+      "path": "configs/knowledge/quality_20261001/assessor.json",
+      "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3",
+      "sections": [
+        "current.C1",
+        "current.C2"
+      ],
+      "input_to_generation": false
+    },
+    "existing_final_source_preservation": "G4 최종 원문 조건 보존 검수"
+  },
+  "interpretation": [
+    "표현·관계 개수·특정 조건 필드 배치가 아니라 최종 모델 산출의 의미 보존을 판정한다. 연결된 유형 정의에 보존된 유효한 한정도 인정한다.",
+    "인용에만 존재하고 후보 의미에 없는 한정은 누락이다. 이미 동등 의미가 표현돼 있으면 별도 노드/문구가 없다고 누락으로 요구하지 않는다.",
+    "원문 주체/직접 목적어, 의무/허용, OR, 예외, 분기와 세부 한정을 구분하여 판단한다. 정답 부록은 모델 생성 입력에서 제외한다."
+  ],
+  "items": [
+    {
+      "id": "C2.1",
+      "classification": "existing_assessor_clarification",
+      "meaning": "국민임대주택을 공급할 때 공공주택사업자가 입주자를 별표4에 따라 선정할 의무"
+    },
+    {
+      "id": "C2.2",
+      "classification": "existing_assessor_clarification",
+      "meaning": "제1항에 따라 선정 후 남은 주택이 있는 경우, 제1항에도 불구하고 입주자 자격 일부 완화 OR 선착순으로 입주자를 선정할 수 있음"
+    },
+    {
+      "id": "C2.3a",
+      "classification": "existing_assessor_clarification",
+      "meaning": "LH의 국민임대주택 건설·공급이면 국토교통부장관, 지자체 또는 해당 지방공사의 건설·공급이면 시도지사에게 별도 기준 설정 권한"
+    },
+    {
+      "id": "C2.3b",
+      "classification": "existing_final_source_preservation_clarification",
+      "meaning": "제1·2항에도 불구하고 지역실정을 고려하며, 기준은 우선공급 대상자·공급비율·입주자 선정순위에 관한 것"
+    },
+    {
+      "id": "C2.3c",
+      "classification": "existing_final_source_preservation_clarification",
+      "meaning": "지방공사는 지방공기업법 제49조에 따라 주택사업을 목적으로 설립된 지방공사로 한정"
+    },
+    {
+      "id": "H.revision",
+      "classification": "new_strengthened_execution_check",
+      "meaning": "실제 오류가 자연 발생해 수정 경로를 사용하면 수정 내용과 최신 Critic·최종 후보/preview의 일치를 판정. 오류가 없으면 실제 수정 경로 미시험이며 효과 입증 아님; G4는 revisions0이므로 미시험"
+    }
+  ],
+  "dimensions": [
+    "원관계 의미",
+    "유형 정의 및 근거",
+    "끝점 연결",
+    "최종 수정 의미",
+    "Critic 실제 오류 탐지와 거짓 누락",
+    "모델 생성물 전체 의존 preview",
+    "예산·추가 호출·입력/출력 token·종료사유",
+    "남은 미처리 및 의미 미검증"
+  ],
+  "gate": [
+    "C2.1~C2.3c 전체 의미와 유효 근거를 모델 생성물만으로 보존",
+    "해당 의미를 담당하는 생성 관계와 모든 필수 유형·연결을 함께 선택한 유효 preview",
+    "필수 산출의 명시 보류/미처리를 성공으로 계산하지 않음. preview 유효성과 can_accept/의미승인은 별개",
+    "독립 의미·실행 검수; 평가 작업 완료와 상위 품질 목표 완료 분리"
+  ],
+  "baseline_rule": "G4 저장 산출에 같은 상세 항목을 추가 비교하되 기존 결과/판정/원장 파일을 수정하지 않음",
+  "prohibited": [
+    "수동 유형/조건 보충으로 성공 처리",
+    "결과 이후 기준 완화",
+    "동일 비용 개선·개별 변경 인과효과 주장",
+    "자연 오류 없는 실행에서 수정효과 입증 주장"
+  ],
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}
