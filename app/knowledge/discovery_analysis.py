@@ -13,11 +13,11 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v44'
+PROMPT_VERSION = 'discovery-a2-v45'
 
 
 def recipe(budgets):
-    return dict(review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -112,7 +112,7 @@ def start(service, request):
                 raise ValueError('종료된 분석 실행만 재개할 수 있습니다.')
             run['reused_units'] = [u['id'] for u in run['analysis_units'] if u['status'] == 'succeeded']
             for unit in run['analysis_units']:
-                if unit['status'] != 'succeeded' and not (unit['attempts'] and (unit['stage']=='revision' or ':recovery_' in unit['id'])):
+                if unit['status'] != 'succeeded' and not (unit['attempts'] and (unit['stage']=='revision' or unit.get('parent_group_id') or ':recovery_' in unit['id'])):
                     unit.update(status='queued', error=None)
             run.pop('error', None)
         else:
@@ -477,6 +477,7 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         context['relation_bindings']=list(bindings.values())
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
+    context.pop('binding_before',None);context.pop('parent_group_id',None)
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     payload = compact(remap(payload, mapping))
     prompt_name='critic_'+context['review_focus'] if stage=='critic' and context.get('review_focus') else stage
@@ -491,6 +492,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     if unit is None:
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
+    if context.get('binding_before'): unit['parent_group_id']=context['parent_group_id']
     source_scope = unit.setdefault('source_ref_run_id', run['id'])
     context = segments.bind(context, source_scope, uid,
         stable=run['recipe'].get('reference_contract') == 'canonical-v1')
@@ -641,6 +643,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             binding_definition.clear(); binding_definition['anyOf']=variants
             schema['properties']['relation_bindings'].update(minItems=len(relation_ids),maxItems=len(relation_ids))
             schema['required']=list(schema['properties'])
+            if context.get('binding_before'):
+                for field in ('hierarchies','alias_proposals','actions'): schema['properties'][field]['maxItems']=0
             if not relation_ids:
                 schema['properties']['observations']['maxItems']=0
                 schema['properties']['relation_bindings']['maxItems']=0
@@ -776,6 +780,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
             output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
+            if stage=='builder' and context.get('binding_before'):
+                before=context['binding_before']
+                if output['hierarchies'] or output['alias_proposals'] or output['actions']:
+                    raise ValueError('연결 교정은 해당 관계와 필요한 유형만 변경 가능')
+                output['history']=[]
+                for after in output['modeled_relations']:
+                    if after['id']!=before['id'] or after['source_relation']!=before['source_relation']:
+                        raise ValueError('연결 교정의 관계 ID 또는 원명제 변경')
+                    output['history'].append(dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason']))
             if stage=='critic':
                 count = len(decoded.get('missing_meanings', []))
                 output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
@@ -1344,7 +1357,8 @@ def finish(run, blocks, available):
         created = [c['id'] for u in units for field in ('observations','relations') for c in u['output'].get(field, []) if not c['validation'] and not c['outside_scope_reason']]
         if unit and unit['status']=='succeeded':
             created += [h['candidate_id'] for h in unit['output'].get('history', []) if h['candidate_id']==request.get('candidate_ref') and not h['after']['validation']
-                        and (meaning_signature(h['before'])!=meaning_signature(h['after']) or h['before'].get('evidence_refs')!=h['after'].get('evidence_refs'))]
+                        and (meaning_signature(h['before'])!=meaning_signature(h['after']) or h['before'].get('evidence_refs')!=h['after'].get('evidence_refs')
+                            or any(h['before'].get(k)!=h['after'].get(k) for k in ('subject','object')))]
         request['proposal_ids'] = created
         if request['validation']:
             request.update(status='invalid',reason='; '.join(request['validation']))
@@ -1365,19 +1379,34 @@ def finish(run, blocks, available):
                 request.update(status='manual_review',reason='자동 수정 미선택 또는 유효 검토 부족; 대상 후보 명시 검수 필요')
         request['unattempted_meanings'] = [m for m in request.get('meanings', []) if m not in request.get('submitted_meanings', request.get('meanings', []))]
         request['proposal_review_status'] = 'unverified'  # A Critic output is not human acceptance.
-    unresolved_recovery = list(run.get('recovery_requests', []))
+        identifier=request.get('candidate_ref')
+        current_review=latest_reviews.get(identifier)
+        checks=[c for field in ('relation_checks','observation_checks') for c in (current_review or {}).get(field, []) if c['candidate_ref']==identifier]
+        if (request.get('proposal_ids') and unit and unit['status']=='succeeded'
+                and request.get('cause') in {'content_error','evidence_error','endpoint'} and current_review
+                and identifier in (reviews.valid_ids(current_review,current) or set())
+                and checks and all(c['judgment']=='supported' and not c.get('binding_validation') for c in checks)
+                and not any(i.get('candidate_ref') in {'',identifier} for i in current_review.get('issues', []))):
+            request.update(semantic_status='supported',proposal_review_status='current_critic_supported',
+                reason='현재 후보 지문의 AI 재검수 지지; 사람 수락 아님')
+    unresolved_recovery = [r for r in run.get('recovery_requests', []) if r['semantic_status']!='supported']
     recovery_groups_ids = {r['group_id'] for r in unresolved_recovery if r.get('group_id')}
     recovery_groups_ids.update(g['id'] for g in run.get('candidate_groups', []) if recovery_groups_ids & set(g['analysis_group_ids']))
-    recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in {r.get('unit_id') for r in unresolved_recovery}]
+    recovery_review_ids={i for g in run.get('candidate_groups', []) if g['id'] in recovery_groups_ids for i in review_ids(g)+review_ids(g,True)}
+    correction_ids={r.get('unit_id') for r in run.get('recovery_requests', [])}
+    recovery_review_ids.update(i for g in run.get('candidate_groups', [])
+        if any(p['stage']+':'+p['key'] in correction_ids for p in g.get('correction_plan', [])) for i in review_ids(g,True))
+    recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in recovery_review_ids | {r.get('unit_id') for r in run.get('recovery_requests', [])}]
     attempts = [a for u in recovery_units for a in u['attempts']]
     run['metrics'].update(recovery_calls=len(attempts), recovery_model_s=round(sum(a.get('elapsed_s',0) for a in attempts),3),
-        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in unresolved_recovery),
+        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in run.get('recovery_requests', [])),
         recovery_remaining_by_cause={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
             for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})})
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     bindings = [dict(unit_id=u['id'],**u['output']['binding_coverage']) for u in outputs if 'binding_coverage' in u['output']]
-    binding_pending = [i for b in bindings for i in b['pending_relation_ids']+b['deferred_relation_ids']]
+    latest_bindings={i:b for b in bindings for i in b['expected_relation_ids']}
+    binding_pending = [i for i,b in latest_bindings.items() if i in b['pending_relation_ids']+b['deferred_relation_ids']]
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
         design_binding_coverage=bindings, design_pending_relation_ids=sorted(set(binding_pending)),
         analysis_target_coverage=[dict(group_id=g['id'],**t) for g in run.get('frontier', []) for t in g.get('analysis_target_coverage', [])],

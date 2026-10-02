@@ -51,7 +51,7 @@ def response(prompt, stage):
                 relation_bindings=[dict(relation_ref=i,decision='defer',reason='유형 설계 미완료') for i in data.get('design_relation_ids', [])])
         direction = dict(judgment='unknown', reason='정의 문맥 검수 필요', evidence_ids=[ev], counter_evidence_ids=[])
         return dict(hierarchies=[dict(child_ref=obs[0]['id'], parent_ref=obs[1]['id'], relation='is_a',
-            a_to_b=direction, b_to_a=direction)], alias_proposals=[], gaps=[], actions=[],
+            a_to_b=direction, b_to_a=direction)] if len(obs)>1 else [], alias_proposals=[], gaps=[], actions=[],
             relation_bindings=[dict(relation_ref=i,subject_ref=obs[0]['id'],object_ref=obs[1]['id'],reason='제공 정의로 연결') for i in data.get('design_relation_ids', [])])
     if stage=='revision':
         return dict(observations=[],relations=[],hierarchies=[],deferred=[dict(candidate_ref=i,reason='사람 검수로 명시 보류한다.') for i in data['target_ids']])
@@ -588,7 +588,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         return response_value
     monkeypatch.setattr(a2,'model_call',revise)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert model.count('revision')==1,run['result']['failures']
+    assert model.count('revision')==3,run['result']['failures']
     assert len(run['result']['revision_history'])==3,run['result']['failures']
     for history in run['result']['revision_history']:
         assert history['before']['id']==history['after']['id']==history['candidate_id']
@@ -605,7 +605,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         assert revised['validation'] and not revised['evidence_refs']
         assert not any(c['id']==revised['id'] for c in terms)
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert model.count('revision')==1 and again['result']['revision_history']==run['result']['revision_history']
+    assert model.count('revision')==3 and again['result']['revision_history']==run['result']['revision_history']
     assert run['status']==again['status']=='partial'
     assert model.count('critic')==6 and revised['id'] not in again['result']['unreviewed_candidate_ids']
     from app.knowledge import ontology_changes as a3
