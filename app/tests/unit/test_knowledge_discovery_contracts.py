@@ -804,3 +804,64 @@ def test_comparison_review_keeps_group_completion_and_current_fingerprint(servic
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
     assert bool(row['origin'].get('review_errors'))==(mode in {'missing','contradiction'})
     if mode in {'missing','contradiction'}: assert not row['can_accept']
+
+
+def test_focused_review_batches_preserve_sources_targets_and_current_candidates(service,model,monkeypatch):
+    from app.knowledge import discovery_review as reviews,discovery_profile as profile
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert model==['scout','concept','relation','builder','critic']  # Default routing is unchanged before J2.
+    group=run['candidate_groups'][0];taxonomy=next(u['output'] for u in run['analysis_units'] if u['stage']=='builder')
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};contexts=profile.contexts(blocks)
+    context,deps,supplied=synthesis.review_context(run,group,taxonomy,by_id,contexts)
+    context['review_scope']=dict(extent='provided_only',whole_input_assessed=False)
+    relation=next(c for c in supplied.values() if 'negation' in c)
+    for c in supplied.values():
+        if 'classification' in c:c.update(source_relation_ids=[relation['id']],support_type='design_proposal')
+    original=deepcopy((context,deps,supplied));seen=[];call=a2.model_call
+    async def checked(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);role=data['review_focus'];seen.append(role)
+        absent='observation_checks' if role=='relations' else 'relation_checks'
+        assert all(v['properties'][absent]['maxItems']==0 for v in schema.get('anyOf',[schema]))
+        assert '원문이 요구하는 구절과 후보에 실제 적힌 구절' in prompt
+        return await call(prompt,schema,stage,run,timeout)
+    monkeypatch.setattr(a2,'model_call',checked)
+    batches=synthesis.review_batches(context,deps,supplied,by_id,contexts)
+    assert [i for b in batches for i in b['context']['review_target_ids']]==sorted(
+        [i for i in context['review_target_ids'] if 'negation' in supplied[i]])+sorted(
+        [i for i in context['review_target_ids'] if 'negation' not in supplied[i]])
+    assert len({b['key'] for b in batches})==len(batches)==3
+    for batch in batches:
+        ctx=batch['context'];terms=batch['supplied'];ids=set(ctx['review_target_ids'])
+        assert 1<=len(ids)<=2 and set(ctx['comparison_candidate_ids'])==terms.keys()-ids
+        assert batch['dependency_ids']==deps and ctx['review_scope']['whole_input_assessed'] is False
+        assert all(reviews.fingerprint(c)==reviews.fingerprint(supplied[i]) for i,c in terms.items())
+        assert all(v in a2.segments.originals(context) for v in a2.segments.originals(ctx))
+        assert synthesis.fits(run,'critic',ctx,deps,terms)
+        result=a2.call(service,run,'critic',group['id']+':'+batch['key'],ctx,deps,by_id,terms)
+        assert result is not None,run['analysis_units'][-1].get('error')
+        assert set(result['review_coverage']['expected_candidate_ids'])==ids
+        assert result['review_coverage']['pending_candidate_ids']==[] and not result['record_errors']
+    assert set(seen)=={'relations','observations'} and (context,deps,supplied)==original
+
+
+def test_focused_review_marks_unassessed_cross_kind_comparison_without_false_completion(service,model,monkeypatch):
+    from app.knowledge import discovery_profile as profile
+    source=prepare(service,file_ids=['current:0']);run=done(service,service.start(request(source['id']))['run_id'])
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};contexts=profile.contexts(blocks)
+    candidate=run['result']['original_relations'][0]
+    context,deps,supplied=synthesis.context_for([candidate],by_id,contexts)
+    context.update(review_target_ids=[candidate['id']],taxonomy=dict(hierarchies=[]))
+    batch=synthesis.review_batches(context,deps,supplied,by_id,contexts)[0];call=a2.model_call
+    async def invalid_missing(prompt,schema,stage,run,timeout):
+        assert all(v['properties']['missing_meanings']['maxItems']==0 for v in schema.get('anyOf',[schema]))
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);result=await call(prompt,schema,stage,run,timeout)
+        value=json.loads(result['text']);value['missing_meanings']=[dict(role='relation',meaning='비교하지 않은 누락 주장',
+            source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],compared_candidate_ids=data['review_target_ids'],comparison_reason='관계만 대조')]
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',invalid_missing)
+    output=a2.call(service,run,'critic','focused_unassessed',batch['context'],deps,by_id,batch['supplied'])
+    assert output is not None,run['analysis_units'][-1].get('error')
+    assert not output['missing_meanings'] and not output['capacity_pending']
+    assert output['review_scope']['missing_meanings_allowed'] is False
+    assert output['record_errors'] and not output['review_coverage']['pending_candidate_ids']

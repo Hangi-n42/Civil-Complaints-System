@@ -167,6 +167,45 @@ def review_context(run, group, taxonomy, by_id, context_map, history=()):
     return context,deps,supplied
 
 
+def review_batches(context, deps, supplied, by_id, context_map):
+    """Prepare focused calls without changing the default serial runner."""
+    result=[]
+    targets=set(context['review_target_ids'])
+    for role, marker in [('relations','negation'),('observations','classification')]:
+        ids=sorted(i for i in targets if marker in supplied[i] or role=='observations' and 'child_ref' in supplied[i])
+        for n in range(0,len(ids),2):
+            primary=ids[n:n+2];needed=set(primary)
+            pending=list(primary)
+            while pending:
+                candidate=supplied[pending.pop()]
+                links=list(candidate.get('source_relation_ids', []))
+                fields=('subject','object') if candidate.get('source_relation') else ('child_ref','parent_ref')
+                links += [candidate[k] for k in fields if k in candidate]
+                for identifier in links:
+                    if identifier in supplied and identifier not in needed:
+                        needed.add(identifier);pending.append(identifier)
+            terms={i:deepcopy(supplied[i]) for i in sorted(needed)}
+            required,_,_=context_for(list(terms.values()),by_id,context_map)
+            raw_ids=a2.raw_refs(required)
+            part=deepcopy(context)
+            for field in ('blocks','independently_retrieved','tool_originals'):
+                if field in part:part[field]=[v for v in part[field] if v['ref'] in raw_ids]
+            for field,kind in [('unapproved_relations','negation'),('unapproved_observations','classification')]:
+                part[field]=[terms[i] for i in primary if kind in terms[i]]
+            part['reviewed_base']=[]
+            part['comparison_terms']=[c for i,c in terms.items() if i not in primary]
+            part['taxonomy']=dict(hierarchies=[terms[i] for i in primary if 'child_ref' in terms[i]])
+            part['review_target_ids']=primary
+            part['comparison_candidate_ids']=sorted(needed-set(primary))
+            part['review_focus']=role
+            part['review_scope']=dict(part.get('review_scope', {}),extent='provided_only',whole_input_assessed=False,
+                omitted_comparison_ids=sorted(set(part.get('review_scope', {}).get('omitted_comparison_ids', [])) | (supplied.keys()-needed)),
+                omitted_block_ids=sorted(a2.raw_refs(context)-a2.raw_refs(part)),
+                missing_meanings_allowed=all(any(kind in c for c in terms.values()) for kind in ('classification','negation')))
+            result.append(dict(key=role+':'+profile.digest(primary)[:16],context=part,dependency_ids=list(deps),supplied=terms))
+    return result
+
+
 def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates = {c['id']:c for c in group['candidates']}
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})

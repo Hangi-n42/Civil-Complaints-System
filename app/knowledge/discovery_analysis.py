@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v40'
+PROMPT_VERSION = 'discovery-a2-v41'
 
 
 def recipe(budgets):
@@ -477,7 +477,8 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     payload = compact(remap(payload, mapping))
-    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
+    prompt_name='critic_'+context['review_focus'] if stage=='critic' and context.get('review_focus') else stage
+    prompt = models.COMMON + models.PROMPTS[prompt_name] + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
@@ -544,7 +545,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             schema['properties']['issues']['maxItems']=8
             primary_targets = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in context.get('blocks', [])
                                if v.get('analysis_target') and not v.get('context_only')}
-            missing_limit = max(2,min(5,len(primary_targets)))
+            missing_limit = 0 if context.get('review_scope', {}).get('missing_meanings_allowed') is False else max(2,min(5,len(primary_targets)))
             schema['properties']['missing_meanings']['maxItems']=missing_limit
             schema['$defs']['Issue']['required'].append('cause')
             for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
@@ -758,7 +759,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 count = len(decoded.get('missing_meanings', []))
                 output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
                     primary_analysis_targets=len(primary_targets),semantic_completeness='미검증; 상한 미도달도 전체 검수 완료가 아님')
-                output['capacity_pending'] = ['누락 의미 응답 상한 도달; 추가 미검수 의미 가능성'] if count>=missing_limit else []
+                output['capacity_pending'] = ['누락 의미 응답 상한 도달; 추가 미검수 의미 가능성'] if missing_limit and count>=missing_limit else []
             if stage in {'concept', 'relation'}:
                 rows = output['observations' if stage=='concept' else 'relations']
                 group = next(g for g in run['frontier'] if g['id']==key)
@@ -903,7 +904,10 @@ def queue_recovery(run, review, group, by_id=None):
         c = candidates[identifier]
         for cause, reason in [('endpoint', '미연결 끝점: '+', '.join(c.get('unresolved_endpoints', []))),
                               ('evidence_error', '; '.join(c.get('evidence_validation', [])))]:
-            if cause=='endpoint' and (group.get('comparison_only') or not c.get('unresolved_endpoints')) or cause=='evidence_error' and not c.get('evidence_validation'): continue
+            bound_elsewhere = group.get('comparison_only') and any(
+                row['id']==identifier and row.get('source_relation') and not row.get('unresolved_endpoints')
+                for owner in run.get('candidate_groups', []) if not owner.get('comparison_only') for row in owner.get('design_candidates', []))
+            if cause=='endpoint' and (bound_elsewhere or not c.get('unresolved_endpoints')) or cause=='evidence_error' and not c.get('evidence_validation'): continue
             issues.append(dict(candidate_ref=identifier,cause=cause,reason=reason))
     for issue in issues:
         cause = issue.get('cause', 'content_error')

@@ -263,6 +263,18 @@ PROMPTS['relation'] += ' 괄호·삽입구의 정의가 주체나 대상의 적�
 PROMPTS['critic'] += ' semantic_checks.conditions와 reason에서 원문의 상위 전제·예외·분기·괄호 정의 한정이 후보의 실제 conditions에 남아 있는지 대조한다. 핵심 적용 범위가 빠졌으면 supported로 판정하지 않는다. 이미 있는 관계의 한정 누락은 candidate_ref를 지정한 content_error와 needs_revision으로 수정 요청한다. 의미가 같은 조건은 별도 문구나 분리 표현이 없다는 이유만으로 missing_meanings가 아니다. 원문에 제공된 한정의 산출 누락은 외부 상세의 source_absent와 구별한다. analysis_target_coverage는 항별 응답 유무이며 정답 판정이 아니다. candidate_ids가 비거나 gaps가 있는 항의 제공 명제를 대조하고 실제 누락은 missing_meanings로 남긴다.'
 PROMPTS['critic'] += ' 관계는 자연어 원명제로 제공되며 relation_bindings의 유형 연결과 별도로 검수한다. 원명제의 supported와 연결 유형의 endpoint/alignment 적합성을 혼동하지 않는다. 연결 ID는 제공된 유형 정의와 대조한다. observation_checks.semantic_checks는 classification·definition 전체·conditions·exceptions를 각각 원문과 대조한다. 이름의 등장만으로 정의 전체를 supported로 판단하지 않는다. 근거에 있는 역할의 설계 추상화는 허용하되 원문 밖 사실적 세부 추가는 reason과 content_error로 특정한다. 정의·분류·조건·예외의 누락 또는 근거 밖 추가가 있으면 해당 항목과 전체 판단을 supported로 두지 않는다.'
 
+for focus, instruction in {
+    'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. 원문의 전제·OR 분기·예외·괄호 한정과 후보의 실제 conditions를 대조한다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 모든 항목을 지지할 때만 전체 supported다. relation_bindings의 끝점은 비교 유형 정의와 대조하되 원명제 오류(content_error)와 유형 연결 오류(endpoint)를 구별한다. 유형 미연결만으로 원명제를 refuted로 두지 않는다. observation_checks/hierarchy_checks는 비운다.',
+    'observations': '이번 주검수는 관측의 classification·definition 전체·conditions·exceptions와 지정 계층이다. 네 항목의 semantic_checks를 각각 작성하고 모든 항목을 지지할 때만 전체 supported다. 명칭 등장과 정의의 각 사실적 주장에 대한 근거를 구분한다. 원문 역할의 설계 추상화는 허용하고 근거 밖 사실적 세부 추가는 구체적으로 지적한다. 비교 관계는 설계의 출처 대조에만 쓴다. 지정 계층은 포함 여부와 역방향을 기존 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
+}.items():
+    PROMPTS['critic_'+focus]=('Ontology Critic: review_target_ids만 검수한다. 비교 후보는 필수 판정 대상이 아니다. '+instruction
+        +' 각 reason 400자 안에 원문이 요구하는 구절과 후보에 실제 적힌 구절을 짧게 인용하고 일치 또는 구체적 차이를 설명한다. 누락이라고 하기 전에 대상 필드 전체에서 동일 의미 표현을 확인한다.'
+        +' supported/refuted는 실제 제공 source_refs, unknown은 구체적 미확인 사유가 필요하다. 인용에만 있고 후보에 없는 의미는 산출 충족이 아니다.'
+        +' issues.cause는 content_error/evidence_error/endpoint/alignment/source_absent/서버 확인 budget_exhausted이며 실제 제공 candidate_ref/target_ref와 i1..i8을 쓴다. 후보 없는 쟁점은 candidate_ref를 비운다.'
+        +' 참조 자료의 미제공 상세는 source_absent와 defer_reason/gaps이며 제공 원문 재추출로 요청하지 않는다. 기존 후보 내용 오류는 candidate_ref와 content_error/needs_revision으로 수정 요청한다.'
+        +' missing_meanings는 제공 관측·관계 양쪽 산출과 대조해 양쪽에서 빠진 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 관계 의미는 role=relation, 일반 정의는 concept이다.'
+        +' review_scope.missing_meanings_allowed=false이면 missing_meanings를 비우고 비교 미실시 범위를 gaps에 명시한다. review_scope 밖 비교 범위를 자료 부재나 전체 의미 완성으로 단정하지 않는다.')
+
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),

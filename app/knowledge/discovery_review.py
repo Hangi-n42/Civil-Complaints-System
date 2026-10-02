@@ -119,6 +119,8 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                     item=checked
                     item['id']=identifier
                 else:
+                    if context.get('review_scope', {}).get('missing_meanings_allowed') is False:
+                        raise ValueError('양쪽 종류 비교 미실시 범위에서 누락 의미를 요청할 수 없음')
                     refs, problems = segments.references(item, by_id, provided)
                     if not item['source_quotes'] and not item['source_refs']: problems.append('누락 복구의 정확한 원문 구절 필요')
                     if not item['cq_ids'] and not item['scope_item_ids'] or item['outside_scope_reason']: problems.append('복구의 허용 질문/범위 연결 필요')
@@ -129,7 +131,8 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                         if not set(item['compared_candidate_ids']) <= supplied.keys(): raise ValueError('미제공 후보를 의미 대조했다고 주장할 수 없음')
                         if not item['comparison_reason'].strip(): raise ValueError('미표현 의미와 실제 비교 범위의 사유 필요')
                         for marker in ('classification','negation'):
-                            primary={i for i,c in expected.items() if marker in c and
+                            compared=supplied if context.get('review_focus') else expected
+                            primary={i for i,c in compared.items() if marker in c and
                                 (set(item['cq_ids']) & set(c.get('cq_ids', [])) or set(item['scope_item_ids']) & set(c.get('scope_item_ids', [])))}
                             if primary and not primary & set(item['compared_candidate_ids']):
                                 raise ValueError('주검토 관측/관계의 의미 대조 미확인; 누락 재추출 보류')
