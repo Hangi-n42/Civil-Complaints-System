@@ -106,6 +106,79 @@ def test_evidence_binding_scope_and_availability(service):
         decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
 
 
+def test_selected_hierarchy_and_counter_spans_survive_a3_conversion(service):
+    from copy import deepcopy
+    from app.knowledge import discovery_review as reviews
+    run,ref=analysis(service)
+    first=run['result']['observations'][0]
+    second=dict(deepcopy(first),id='dc_2',label='상위 임대유형')
+    selected=dict(ref,quote=ref['quote'][:2],span=[0,2])
+    counter=dict(ref,quote=ref['quote'][2:4],span=[2,4])
+    direction=dict(judgment='unknown',reason='양방향 별도 검수',evidence_ids=[ref['evidence_id']],
+        counter_evidence_ids=[ref['evidence_id']],source_refs=['selected'],counter_source_refs=['counter'],
+        evidence_refs=[selected],counter_evidence_refs=[counter])
+    hierarchy=dict(id='dh_1',child_ref=first['id'],parent_ref=second['id'],relation='is_a',
+        a_to_b=direction,b_to_a=deepcopy(direction),validation=[],review_status='unreviewed')
+    candidates=[first,second,hierarchy]
+    critique=dict(unit_id='critic:g',hierarchy_checks=[deepcopy(hierarchy)],relation_checks=[],
+        issues=[dict(candidate_ref=first['id'],evidence_ids=[],counter_evidence_ids=[ref['evidence_id']],
+                     counter_evidence_refs=[counter],reason='선택 구간 반례 확인')],record_errors=[],
+        review_coverage=dict(expected_candidate_ids=[c['id'] for c in candidates],valid_candidate_ids=[c['id'] for c in candidates],
+            pending_candidate_ids=[],candidate_hashes={c['id']:reviews.fingerprint(c) for c in candidates}))
+    run['result'].update(observations=[first,second],taxonomy=[dict(unit_id='builder:g',hierarchies=[hierarchy])],critiques=[critique])
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    rows=listing(service,cid)['candidates']
+    converted=next(c for c in rows if c['target_kind']=='hierarchy')
+    assert converted['evidence_refs']==[selected] and converted['counter_evidence_refs']==[counter]
+    assert not converted['origin'].get('review_errors') and 'contract:' not in str(converted['validation'])
+    assert next(c for c in rows if c['origin']['candidate_id']==first['id'])['counter_evidence_refs']==[counter]
+
+
+def test_merged_evidence_only_observations_preserve_separate_valid_critiques(service):
+    from app.knowledge import discovery_review as reviews
+    run,ref=analysis(service)
+    first=run['result']['observations'][0]
+    second=dict(first,id='dc_2')
+    unrelated=dict(first,id='dc_other',classification='entity')
+    base=dict(id='existing',kind='class',symbol='Existing',name=first['label'],definition=first['definition'])
+    run['result']['observations']=[first,second,unrelated]
+    run['result']['alignments']=[dict(observation_ref=c['id'],target_id=base['id'],meaning='same',reason='동일 정의의 추가 근거') for c in (first,second)]
+    for candidate in (first,second,unrelated):
+        identifier=candidate['id']
+        run['result']['critiques'].append(dict(unit_id='critic:'+identifier,
+            issues=[dict(candidate_ref=target,reason=identifier+':'+target,counter_evidence_ids=[]) for target in (identifier,'')],
+            review_coverage=dict(expected_candidate_ids=[identifier],valid_candidate_ids=[identifier],pending_candidate_ids=[],
+                candidate_hashes={identifier:reviews.fingerprint(candidate)})))
+    with service.repository.connect() as db: blocks=a3._blocks(service.repository,db,run)
+    rows,_,_=a3._convert(run,{base['id']:base},blocks)
+    assert len(rows)==1 and rows[0]['origin']['change_intent']=='evidence_only'
+    assert len(rows[0]['origin']['additional_observations'])==1
+    assert {i['reason'] for i in rows[0]['origin']['critiques']}=={
+        c['id']+':'+target for c in (first,second) for target in (c['id'],'')}
+    assert not rows[0]['origin'].get('review_errors')
+
+
+def test_published_builder_type_keeps_design_provenance_on_later_manual_update(service):
+    run,ref=analysis(service)
+    run['result']['observations'][0].update(support_type='design_proposal',source_relation_ids=['rule'],design_reason='원문의 역할을 표현하는 유형 설계')
+    run['result']['original_relations']=[dict(id='rule',statement_type='rule',conditions='범위 한정',evidence_refs=[ref])]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    row=listing(service,cid)['candidates'][0]
+    base=decide(service,cid,[dict(candidate_id=row['id'],action='accept')])['reviewed_ontology_version_id']
+    version=v1.get_ontology(service,base)
+    assert version['targets'][0]['modeling_origin']['source_relations']==run['result']['original_relations']
+    following,new_ref=analysis(service,base=base)
+    next_id=a3.publish(service,following['id'])['changeset_id']
+    manual=add(service,next_id,[dict(proposal(new_ref),operation='update',target_id=row['target_id'],support_type='explicit',
+        qualifiers=dict(statement_type='definition'))])[0]
+    assert not manual['origin'].get('source_relations') and not manual['can_accept']
+    assert '원문 명시 정의로 승격' in str(manual['validation'])
+    with pytest.raises(ValueError,match='원문 명시 정의로 승격'):
+        decide(service,next_id,[dict(candidate_id=manual['id'],action='accept')])
+
+
 def test_entity_value_fact_samples_are_not_classes(service):
     run,ref=analysis(service)
     source=run['result']['observations'][0]
@@ -251,6 +324,12 @@ def test_api_envelope_invalid_candidate_and_expected_head(service,monkeypatch):
         assert response.status_code==200 and response.json()['success']
         cid=response.json()['data']['changeset_id']
         row=client.get('/api/v1/knowledge/candidates',params={'changeset_id':cid}).json()['data']['items'][0]
+        preview=client.get(f'/api/v1/knowledge/changes/{cid}/schema-preview',params=[('candidate_ids',row['id'])]).json()
+        assert preview['success'] and preview['data']['included_change_ids']==[row['id']]
+        invalid=client.get(f'/api/v1/knowledge/changes/{cid}/schema-preview',params=[('candidate_ids',row['id']),('candidate_ids','missing')]).json()
+        assert invalid['success'] and invalid['data']['status']=='invalid_preview'
+        assert listing(service,cid)['revision']==0 and listing(service,cid)['candidates'][0]['review_status']=='unreviewed'
+
         payload=dict(expected_changeset_revision=0,actor='tester',decisions=[dict(candidate_id=row['id'],action='accept',reason='검수')])
         assert client.post(f'/api/v1/knowledge/changes/{cid}/decisions',json=payload).status_code==422
         response=client.post(f'/api/v1/knowledge/changes/{cid}/decisions',json=payload|{'expected_ontology_head_id':None})
@@ -575,3 +654,241 @@ def test_invalid_hierarchy_update_keeps_base_edge_in_review_structure(service,er
     before=listing(service,cid2)
     with pytest.raises(ValueError,match='is_a 순환'):decide(service,cid2,[dict(candidate_id=reverse['id'],action='accept')])
     assert listing(service,cid2)==before and v1.get_ontology(service,base)==old
+
+
+@pytest.mark.parametrize('meaning', ['same','changed','distinct','uncertain'])
+def test_alignment_preserves_identity_only_for_explicit_meaning_match(service, meaning):
+    seed, ref = analysis(service)
+    cid = a3.publish(service,seed['id'])['changeset_id']
+    first = listing(service,cid)['candidates'][0]
+    accepted = decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
+    base = v1.get_ontology(service,accepted['reviewed_ontology_version_id'])
+    run, _ = analysis(service,base=base['id'])
+    observation = run['result']['observations'][0]
+    observation.update(label=first['after']['name'],
+                       definition='새 범위의 정의', conditions='일부 대상만', time='새 시행 시점')
+    run['result']['alignments']=[dict(observation_ref=observation['id'],target_id=first['target_id'],
+                                     meaning=meaning,reason='원문의 범위·시점 대조')]
+    if meaning=='same':
+        run['result']['observations'].append(dict(observation,id='dc_repeat'))
+        run['result']['alignments'].append(dict(run['result']['alignments'][0],observation_ref='dc_repeat'))
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    change=listing(service,a3.publish(service,run['id'])['changeset_id'])
+    assert len(change['candidates'])==1
+    row=change['candidates'][0]
+    if meaning in {'same','changed'}:
+        assert row['operation']=='update' and row['target_id']==first['target_id'] and row['can_accept']
+        assert row['before']['definition']==first['after']['definition']
+        if meaning=='same':
+            assert row['after']==first['after'] and row['qualifiers']==first['qualifiers']
+            assert change['id_mapping']['dc_repeat']['target_id']==first['target_id']
+            assert len(row['evidence_refs'])==1
+        else:
+            assert row['after']['definition']=='새 범위의 정의'
+            assert row['qualifiers']['scope']=='일부 대상만' and row['qualifiers']['time']=='새 시행 시점'
+    else:
+        assert row['operation']=='add' and row['target_id']!=first['target_id']
+        if meaning=='uncertain': assert row['review_status']=='deferred' and not row['can_accept']
+        else: assert row['can_accept']  # Same spelling is not an identity rule.
+    assert change['analysis_result']['observations']==run['result']['observations']
+    assert v1.get_ontology(service,base['id'])==base
+
+
+@pytest.mark.parametrize('meaning', ['same','changed'])
+def test_different_named_alignment_is_deferred_without_replacing_base(service, meaning):
+    seed, _ = analysis(service)
+    cid = a3.publish(service,seed['id'])['changeset_id']
+    first = listing(service,cid)['candidates'][0]
+    accepted = decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
+    base = v1.get_ontology(service,accepted['reviewed_ontology_version_id'])
+    run, _ = analysis(service,base=base['id'])
+    observation = run['result']['observations'][0]
+    observation.update(label='분양전환주택',definition='일정 기간 임대 후 분양전환 목적으로 공급')
+    run['result']['alignments']=[dict(observation_ref=observation['id'],target_id=first['target_id'],meaning=meaning,reason='distinct')]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    row=listing(service,a3.publish(service,run['id'])['changeset_id'])['candidates'][0]
+    assert row['operation']=='add' and row['target_id']!=first['target_id']
+    assert row['review_status']=='deferred' and not row['can_accept']
+    assert row['support_type']==observation['support_type']=='explicit'
+    with pytest.raises(ValueError,match='기존 정의 대응 미해결'):
+        decide(service,row['changeset_id'],[dict(candidate_id=row['id'],action='accept')])
+    assert row['after']['definition']==observation['definition'] and row['evidence_refs']==observation['evidence_refs']
+    assert v1.get_ontology(service,base['id'])==base
+    # An explicit person's proposal uses the existing target ID without relaxing automatic matching.
+    target=next(t for t in base['targets'] if t['id']==first['target_id'])
+    after={k:target[k] for k in ('name','definition','inclusion','exclusion') if k in target} if meaning=='same' else row['after']
+    manual=add(service,row['changeset_id'],[dict(operation='update',target_id=first['target_id'],target_kind='class',
+        after=after,evidence_refs=row['evidence_refs'],support_type='explicit',qualifiers=dict(statement_type='definition'),
+        cq_ids=['cq'],rationale='사람이 원문과 기존 정의를 대조한 명시 대응')])[0]
+    assert manual['before']['name']==target['name'] and manual['origin']['actor']=='tester'
+    assert manual['target_id']==target['id'] and manual['origin']['raw_proposal']['after']==after
+    accepted=decide(service,row['changeset_id'],[dict(candidate_id=manual['id'],action='accept')])
+    saved=listing(service,row['changeset_id'])
+    assert next(c for c in saved['candidates'] if c['id']==row['id'])['review_status']=='deferred'
+    assert saved['decisions'][-1]['actor']=='tester' and saved['decisions'][-1]['before']['before']['name']==target['name']
+    assert next(t for t in v1.get_ontology(service,accepted['reviewed_ontology_version_id'])['targets'] if t['id']==target['id'])['name']==after['name']
+    assert v1.get_ontology(service,base['id'])==base
+
+
+
+def test_already_published_alignment_checks_all_merged_observations_without_rewriting(service, monkeypatch):
+    seed, _ = analysis(service)
+    cid = a3.publish(service,seed['id'])['changeset_id']
+    first = listing(service,cid)['candidates'][0]
+    accepted = decide(service,cid,[dict(candidate_id=first['id'],action='accept')])
+    base = v1.get_ontology(service,accepted['reviewed_ontology_version_id'])
+    run, _ = analysis(service,base=base['id'])
+    original = run['result']['observations'][0]
+    run['result']['observations'].append(dict(original,id='dc_other',label='별개 유형'))
+    run['result']['alignments']=[dict(observation_ref=c['id'],target_id=first['target_id'],meaning='same',reason='예전 잘못된 대응') for c in run['result']['observations']]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    # Reproduce the old publisher, including its same-target aggregation, without changing a stored version.
+    with monkeypatch.context() as old:
+        old.setattr(a3,'_same_alignment_name',lambda *_: True)
+        published=a3.publish(service,run['id'])['changeset_id']
+        assert listing(service,published)['candidates'][0]['can_accept']
+    with service.repository.connect() as db: before=service.repository.get(db,'changesets',published)
+    rows=listing(service,published)['candidates']
+    assert len(rows)==1 and rows[0]['origin']['candidate_id']==original['id']
+    assert not rows[0]['can_accept'] and '동일성 미확인' in str(rows[0]['validation'])
+    with pytest.raises(ValueError,match='동일성 미확인'):
+        decide(service,published,[dict(candidate_id=rows[0]['id'],action='accept')])
+    with service.repository.connect() as db: assert service.repository.get(db,'changesets',published)==before
+    assert v1.get_ontology(service,base['id'])==base
+
+
+@pytest.mark.parametrize('endpoint_kind', ['type','entity','vocabulary','missing'])
+def test_conditional_relation_keeps_permission_choice_and_evidence_when_endpoint_unresolved(service, endpoint_kind):
+    run, ref=analysis(service)
+    source=run['result']['observations'][0]
+    if endpoint_kind!='missing':
+        run['result']['observations'].append(dict(source,id='actor',local_ref='o2',label='담당자',classification=endpoint_kind))
+    relation=dict(id='dc_relation',local_ref='r1',subject='actor',predicate='선정할 수 있다',object=source['id'],
+        endpoint_labels={'subject':'담당자'},direction='subject_to_object',negation='affirmed',
+        conditions='원칙 적용 후 남은 대상이 있으면 자격 일부 완화 또는 선착순 중 선택',time='해당 시행 시점',
+        statement_type='rule',evidence_refs=[ref],cq_ids=['cq'],scope_item_ids=[],validation=[])
+    run['result']['relations']=[relation]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    result=listing(service,a3.publish(service,run['id'])['changeset_id'])
+    row=next(c for c in result['candidates'] if c['target_kind']=='relation')
+    assert row['after']['name']==relation['predicate'] and row['qualifiers']['scope']==relation['conditions']
+    assert row['qualifiers']['time']==relation['time'] and row['evidence_refs']==[ref]
+    assert row['origin']['source_endpoints']['subject']=='담당자'
+    if endpoint_kind=='type':
+        assert not row['validation']['can_accept_with_dependencies'] and row['after']['domain_id']==result['id_mapping']['actor']['target_id']
+        assert row['support_type']=='explicit' and row['origin']['source_relation']==relation
+        decide(service,result['id'],[dict(candidate_id=row['id'],action='edit',patch={
+            'support_type':'design_proposal','qualifiers':dict(row['qualifiers'],statement_type='design_proposal')})])
+        accepted=decide(service,result['id'],[dict(candidate_id=c['id'],action='accept') for c in result['candidates']])
+        target=next(c for c in v1.get_ontology(service,accepted['reviewed_ontology_version_id'])['targets'] if c['id']==row['target_id'])
+        assert target['qualifiers']['scope']==relation['conditions'] and target['name']==relation['predicate']
+    else:
+        assert not row['can_accept'] and row['review_status']=='deferred' and row['support_type']=='explicit'
+        assert row['after']['domain_id']==result['id_mapping'].get('actor', {}).get('target_id', 'actor')
+        assert len([c for c in result['candidates'] if c['target_kind']=='class'])==1
+
+
+def test_unprovided_relation_id_cannot_bind_to_another_groups_class(service):
+    from app.knowledge import discovery_analysis as a2
+    run,ref=analysis(service)
+    source=run['result']['observations'][0]
+    with service.repository.connect() as db: block=service.repository.get(db,'blocks',ref['block_id'])
+    relation=dict(local_ref='r1',subject=source['id'],object=source['id'],predicate='관련된다',
+        direction='subject_to_object',negation='affirmed',conditions='원문 조건',time='',statement_type='rule',
+        evidence_ids=[ref['evidence_id']],cq_ids=['cq'],scope_item_ids=[],outside_scope_reason='')
+    # The ID exists in this run but was never provided to this relation call.
+    run['result']['relations']=a2.normalize({'relations':[relation]},'relation',run,[block['id']],{block['id']:block},{})['relations']
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    result=listing(service,a3.publish(service,run['id'])['changeset_id'])
+    row=next(c for c in result['candidates'] if c['target_kind']=='relation')
+    assert row['after']['domain_id']==source['id'] and row['support_type']=='explicit'
+    assert row['review_status']=='deferred' and not row['validation']['can_accept_with_dependencies']
+    with pytest.raises(ValueError,match='수락 집합 오류'):
+        decide(service,result['id'],[dict(candidate_id=c['id'],action='accept') for c in result['candidates']])
+
+
+@pytest.mark.parametrize('statement,support,problem,expected_error', [
+    ('rule', None, None, '원문 규범과'),
+    ('design_proposal', None, None, None),
+    ('rule', 'unresolved', None, '제안 방식과 이유 미해결'),
+    ('unresolved', None, None, '제안 방식과 이유 미해결'),
+    ('rule', None, 'quote', 'evidence:'),
+    ('rule', None, 'missing_evidence', '출처 근거 필요'),
+    ('rule', None, 'negated', '부정된 관계'),
+])
+def test_endpoint_edit_resolves_only_binding_not_support_or_other_errors(service, statement, support, problem, expected_error):
+    run,ref=analysis(service)
+    relation=dict(id='dc_relation',local_ref='r1',subject='미연결 주체',object=run['result']['observations'][0]['id'],
+        predicate='선택할 수 있다',direction='subject_to_object',negation='negated' if problem=='negated' else 'affirmed',
+        conditions='잔여 대상에 일부 완화 또는 선착순 허용',time='해당 시행 시점',statement_type=statement,
+        evidence_refs=[] if problem=='missing_evidence' else [dict(ref,quote='원문과 다른 인용') if problem=='quote' else ref],
+        cq_ids=['cq'],scope_item_ids=[],validation=[],unresolved_endpoints=['subject'])
+    if support: relation['support_type']=support
+    run['result']['relations']=[relation]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    before=listing(service,cid)
+    kind=next(c for c in before['candidates'] if c['target_kind']=='class')
+    row=next(c for c in before['candidates'] if c['target_kind']=='relation')
+    expected_support=support or ('explicit' if statement=='rule' else statement)
+    assert row['support_type']==expected_support and not row['can_accept']
+    assert row['evidence_refs']==relation['evidence_refs']
+    assert row['qualifiers']['scope']==relation['conditions']
+    assert '관계 끝점 연결 미해결' in str(row['validation'])
+    decide(service,cid,[dict(candidate_id=kind['id'],action='accept')])
+    decide(service,cid,[dict(candidate_id=row['id'],action='edit',patch={
+        'after':dict(row['after'],domain_id=kind['target_id'])})])
+    after=listing(service,cid)
+    edited=next(c for c in after['candidates'] if c['id']==row['id'])
+    assert edited['support_type']==expected_support and edited['origin']['unresolved_endpoints']==[]
+    assert edited['evidence_refs']==row['evidence_refs'] and edited['qualifiers']==row['qualifiers']
+    assert edited['target_id']==row['target_id']
+    assert after['analysis_result']==run['result'] and after['original_candidates']==before['original_candidates']
+    assert '끝점 연결 미해결' not in str(edited['validation']) and 'class ID 필요' not in str(edited['validation'])
+    if expected_error:
+        assert not edited['can_accept'] and expected_error in str(edited['validation'])
+        with pytest.raises(ValueError,match=expected_error):
+            decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+    else:
+        assert edited['can_accept']
+        result=decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+        target=next(c for c in v1.get_ontology(service,result['reviewed_ontology_version_id'])['targets'] if c['id']==row['target_id'])
+        assert target['qualifiers']==row['qualifiers'] and target['evidence_refs']==row['evidence_refs']
+
+
+def test_unprovided_existing_class_ids_need_explicit_endpoint_edit(service):
+    seed,_=analysis(service)
+    first=a3.publish(service,seed['id'])['changeset_id']
+    kind=listing(service,first)['candidates'][0]
+    base=decide(service,first,[dict(candidate_id=kind['id'],action='accept')])['reviewed_ontology_version_id']
+    run,ref=analysis(service,base=base)
+    run['result']['relations']=[dict(id='r1',subject=kind['target_id'],object=kind['target_id'],predicate='관련 역할',
+        direction='subject_to_object',negation='affirmed',conditions='한정 범위',time='',statement_type='rule',
+        evidence_refs=[ref],cq_ids=['cq'],scope_item_ids=[],validation=[],unresolved_endpoints=['subject','object'])]
+    with service.repository.connect() as db: service.repository.save(db,'runs',run)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['target_kind']=='relation')
+    assert row['support_type']=='explicit'
+    decide(service,cid,[dict(candidate_id=row['id'],action='edit',patch={'rationale':'이유만 수정'})])
+    with pytest.raises(ValueError,match='끝점 연결 미해결'):
+        decide(service,cid,[dict(candidate_id=row['id'],action='accept')])
+    decide(service,cid,[dict(candidate_id=row['id'],action='modify',patch={'after':row['after'],
+        'support_type':'design_proposal','qualifiers':dict(row['qualifiers'],statement_type='design_proposal')})])
+    assert next(c for c in listing(service,cid)['candidates'] if c['id']==row['id'])['review_status']=='accepted'
+
+
+def test_legacy_unresolved_support_is_not_inferred_or_written_on_read(service):
+    run,_=analysis(service)
+    cid=a3.publish(service,run['id'])['changeset_id']
+    with service.repository.connect() as db:
+        stored_run=service.repository.get(db,'runs',run['id'])
+        legacy=service.repository.get(db,'changesets',cid)
+        legacy['candidates'][0]['support_type']='unresolved'
+        legacy['original_candidates'][0]['support_type']='unresolved'
+        service.repository.save(db,'changesets',legacy)
+    read=listing(service,cid)
+    assert read['candidates'][0]['support_type']=='unresolved' and not read['candidates'][0]['can_accept']
+    assert read['original_candidates']==legacy['original_candidates']
+    with service.repository.connect() as db:
+        assert service.repository.get(db,'changesets',cid)==legacy
+        assert service.repository.get(db,'runs',run['id'])==stored_run

@@ -8,7 +8,7 @@ type Block = { id: string; text: string; source_version_id: string; run_id: stri
 type Evidence = { block: Block; version: { id: string; sha256: string }; source: { id: string; title: string }; source_role?: string;
   context: { blocks: Block[]; status: string; title?: unknown; headers?: unknown; notes: string[]; omitted_restricted_count: number } };
 
-export default function KnowledgeReviewEvidence({ request, runId, reference }: { request: KnowledgeRequest; runId: string; reference: EvidenceRef }) {
+export default function KnowledgeReviewEvidence({ request, runId, reference, onSelect }: { request: KnowledgeRequest; runId: string; reference: EvidenceRef; onSelect?: (ref: EvidenceRef) => void }) {
   const [value, setValue] = useState<Evidence | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -32,7 +32,16 @@ export default function KnowledgeReviewEvidence({ request, runId, reference }: {
     <p>제목·절: {display(value.context.title)}<br />표 열: {display(value.context.headers)}</p>
     {value.context.blocks.map(b => <div key={b.id} className={`rounded border p-3 ${b.id === value.block.id ? "border-blue-500 bg-blue-50" : "bg-slate-50"}`}>
       <p className="mb-2 text-xs font-medium">{b.id === value.block.id ? "인용 원문" : "인접 구간 · 다른 행/대상일 수 있음"}</p>
-      <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words font-sans">{b.id === value.block.id && matched ? <>{parts.before}<mark className="bg-yellow-200">{parts.quote}</mark>{parts.after}</> : b.text}</pre>
+      <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words font-sans" onMouseUp={e=>{
+        const selection=window.getSelection(); if (!onSelect || !selection?.rangeCount || selection.isCollapsed) return;
+        const range=selection.getRangeAt(0); const node=e.currentTarget;
+        if (!node.contains(range.startContainer) || !node.contains(range.endContainer)) return;
+        const prefix=range.cloneRange(); prefix.selectNodeContents(node); prefix.setEnd(range.startContainer,range.startOffset);
+        const start=Array.from(prefix.toString()).length, quote=range.toString();
+        onSelect({evidence_id:b.id,block_id:b.id,source_version_id:b.source_version_id,parse_run_id:b.parse_run_id||b.run_id,
+          locator:b.locator,span:[start,start+Array.from(quote).length],quote});
+      }}>{b.id === value.block.id && matched ? <>{parts.before}<mark className="bg-yellow-200">{parts.quote}</mark>{parts.after}</> : b.text}</pre>
+      {onSelect && <p className="mt-2 text-xs">원문 구절을 드래그하면 편집 근거에 연결됩니다. <button className="underline" onClick={()=>onSelect({evidence_id:b.id,block_id:b.id,source_version_id:b.source_version_id,parse_run_id:b.parse_run_id||b.run_id,locator:b.locator,span:[0,Array.from(b.text).length],quote:b.text})}>이 구간 전체 연결</button></p>}
       <details className="mt-2 text-xs"><summary>페이지·행·표 위치</summary><pre className="whitespace-pre-wrap break-all">{JSON.stringify(b.locator,null,2)}</pre></details>
     </div>)}
     {strings(value.context.notes).map((note,i) => <p key={i} className="text-xs text-amber-900">{note}</p>)}

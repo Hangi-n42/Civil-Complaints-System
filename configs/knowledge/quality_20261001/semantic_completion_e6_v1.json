@@ -1,0 +1,358 @@
+{
+  "id": "ontology-semantic-completion-e6-v1",
+  "frozen_at": "2026-10-01T16:53:46.497642+00:00",
+  "issue": 545,
+  "frozen_before_product_change": 540,
+  "record_commit": "54dcb5b15c68b76f6e8087040862ca2c5c1bef7a",
+  "baseline_runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "98ebb5a701076c1c20496d4f8d21261de2e8aafabba592f31f18d3f9d195da91",
+    "app/knowledge/discovery_design.py": "7386894a97c364515be71f8447cb5e4d75faa34cb77bda68d01bf76faa4d3dd1",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "b239f4d0daa9fe4d3ade05f9ea649097be050bbb912ece73d4994a2302a2fc87",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "3677721894ead8720508735fd03d987a83a219a576365b333e835fa570d0ab42",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "a6e89e460087ac565b34b9ff51f6f70201efafe94ae732ec5fd73c18cbd7af8b",
+    "app/knowledge/discovery_synthesis.py": "c55a7f55ad049f17bde087916413510a93ff450f47c4adaa0aeae78844c40f41",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "9c96d8aed2e8392c06dbbf9e9f06c82b03175f56692e37fae516d9e5646a5a1b",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6"
+  },
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "qwen3.8:27b-q4_K_M",
+      "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+      "context_length": 262144
+    }
+  },
+  "model_options": {
+    "temperature": 0,
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "input_chars": 12000,
+    "actual_call_timeout_s": 300,
+    "recipe_call_timeout_s": 360.0
+  },
+  "source": {
+    "study": "data/knowledge/a6_eval_20261001_schema_fix",
+    "db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "case_sha256": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872",
+    "input_run_id": "ac193ea30504461481d5b7798cb95620",
+    "frozen_input": {
+      "bundle_id": "lh_autonomous_input_v1_20260930",
+      "manifest_hash": "eb1379a48588ba7bf6c2be3dc109a797f9da1740ac5599aca85b33bdea315cdf",
+      "scope": "current_discovery",
+      "step": 0,
+      "files": [
+        {
+          "file_id": "public_housing_act_art2:0",
+          "source_id": "337b4041246f491a883b62b54445fa8f",
+          "title": "공공주택 특별법 제2조",
+          "publisher": "국가법령정보센터 / 국토교통부 법령",
+          "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289289&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+          "rights": {
+            "basis_type": "copyright_act_article7_1",
+            "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+            "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+            "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+            "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+          },
+          "version": "[시행 2026. 9. 8.] [법률 제21895호, 2026. 9. 8., 일부개정]",
+          "group": "current_discovery",
+          "input_scope": "선정 조문 전체",
+          "encoding": "utf-8-sig",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_act_art2.txt",
+          "sha256": "a588b5f95d744481e84c6443eb07e84bf5a6cb15b9d4c72c2690b65153aded2e",
+          "role": "article_body_excerpt",
+          "parser": {
+            "name": "stdlib.text",
+            "version": "1",
+            "adapter_version": "2"
+          },
+          "parser_options": {},
+          "manifest_source_id": "public_housing_act_art2",
+          "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c"
+        },
+        {
+          "file_id": "public_housing_rule_art15:0",
+          "source_id": "a55957afa9c94b4ba57fe01c28809ff6",
+          "title": "공공주택 특별법 시행규칙 제15조",
+          "publisher": "국가법령정보센터 / 국토교통부 법령",
+          "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289013&joNo=0015&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+          "rights": {
+            "basis_type": "copyright_act_article7_1",
+            "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+            "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+            "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+            "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+          },
+          "version": "[시행 2026. 8. 24.] [국토교통부령 제1616호, 2026. 8. 24., 일부개정]",
+          "group": "current_discovery",
+          "input_scope": "선정 조문 전체",
+          "encoding": "utf-8-sig",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art15.txt",
+          "sha256": "d9a456835647f62b0ddc993d5ff1b7cb786653d374e2d28382bd24f71bb6d863",
+          "role": "article_body_excerpt",
+          "parser": {
+            "name": "stdlib.text",
+            "version": "1",
+            "adapter_version": "2"
+          },
+          "parser_options": {},
+          "manifest_source_id": "public_housing_rule_art15",
+          "source_version_id": "a4475cf8e17e4602abd59dde10063d24"
+        }
+      ]
+    },
+    "input_blocks": [
+      {
+        "id": "8ffb509e91a948028f0ab9ff6c889860",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "f8759bd67cd0d175f7bc3f1e7323966acc86f43793382ef2fbd209b8348bf7c0",
+        "locator": {
+          "format": "txt",
+          "line": 1,
+          "start_char": 0,
+          "end_char": 13,
+          "section": "",
+          "table_headers": [],
+          "block_order": 0
+        }
+      },
+      {
+        "id": "daf1c33e1074469d90b177ba0fac69d5",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "2843a711edd78eda2c88ddabb8dc123db366f72fb10bcc962961721cc62d02d5",
+        "locator": {
+          "format": "txt",
+          "line": 2,
+          "start_char": 13,
+          "end_char": 62,
+          "section": "",
+          "table_headers": [],
+          "block_order": 1
+        }
+      },
+      {
+        "id": "2641967317ad4690b7e90a099987e208",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "97b593af43fed5b8b8fdd5d3cd7185cf3f75420a3c838d6ab870931ab9df54e2",
+        "locator": {
+          "format": "txt",
+          "line": 4,
+          "start_char": 63,
+          "end_char": 2037,
+          "section": "",
+          "table_headers": [],
+          "block_order": 2
+        }
+      },
+      {
+        "id": "3cd8f01de599414799f4f4894fb7090b",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "94490be59097a72cc05b2525741dccf47bac341785eb529b303ef724c4d3d20f",
+        "locator": {
+          "format": "txt",
+          "line": 1,
+          "start_char": 0,
+          "end_char": 19,
+          "section": "",
+          "table_headers": [],
+          "block_order": 0
+        }
+      },
+      {
+        "id": "ef929cc0596d4a62bc568e13f93054a0",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "838961b2fb1a056e01384826bbad8425561ca5743b66899a3945c0a973726c44",
+        "locator": {
+          "format": "txt",
+          "line": 2,
+          "start_char": 19,
+          "end_char": 73,
+          "section": "",
+          "table_headers": [],
+          "block_order": 1
+        }
+      },
+      {
+        "id": "1e4c6a6dfc69410b923e15b9e748efa4",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "9732948071b7cd8f33ad2780a4de0cbfeeb35f77f97e33a3ffe67049d00ec14a",
+        "locator": {
+          "format": "txt",
+          "line": 4,
+          "start_char": 74,
+          "end_char": 613,
+          "section": "",
+          "table_headers": [],
+          "block_order": 2
+        }
+      }
+    ]
+  },
+  "runner": {
+    "path": "scripts/run_knowledge_quality.py",
+    "sha256": "4e36c67148d6c5e67bdebe05f4d77f0f7e222e2974d913a7a97a2d9c57e2ed08"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/assessor.json",
+    "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3",
+    "sections": [
+      "current.C1",
+      "current.C2"
+    ],
+    "input_to_generation": false
+  },
+  "scenarios": {
+    "c2": {
+      "execution_config": {
+        "path": "configs/knowledge/quality_20261001/semantic_construction_c2_v1.json",
+        "sha256": "248b2475d03473f36e4f92030e2402a7a72f26e71c77a6856dc5e130f7533bd3"
+      },
+      "case": {
+        "id": "current_conditionals",
+        "source_case": "auto_current",
+        "analysis_file_ids": [
+          "public_housing_rule_art15:0"
+        ],
+        "cqs": [
+          {
+            "id": "C2",
+            "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+          }
+        ],
+        "selection_reason": "v14 실제 목적어/전제/예외/분기 인용 누락의 좁은 재확인; 규칙 제15조/C2, 기본 5역할 호출만 수행"
+      },
+      "budgets": {
+        "model_calls": 5,
+        "model_seconds": 1800,
+        "searches": 4,
+        "additional_rounds": 0,
+        "revisions": 0
+      },
+      "baseline": {
+        "path": "data/knowledge/semantic_d5_20261001/c2_current_fixed/result.json",
+        "sha256": "d82a0ee502963f9d7dffa9d44d1e52e5c9346240e83a8b1dc4bca8747ef457ce",
+        "db_sha256": "e0a5cd172e23f98e6789593529ccc2523c56253d064072b58a3214c4530390f4",
+        "code_sha": "dc4ad67147a6f9dbf464e54ad61c802a8e656b71",
+        "run_id": "c24826720580403d9dc9fc4009494290",
+        "http_calls": 5,
+        "model_total_s": 274.038,
+        "elapsed_s": 278.705
+      },
+      "analysis_block_ids": [
+        "3cd8f01de599414799f4f4894fb7090b",
+        "ef929cc0596d4a62bc568e13f93054a0",
+        "1e4c6a6dfc69410b923e15b9e748efa4"
+      ],
+      "new_model_runs": 1
+    },
+    "current": {
+      "execution_config": {
+        "path": "configs/knowledge/quality_20261001/semantic_construction_current_v1.json",
+        "sha256": "b2e6db38ae0a2e0608347713bdad1f030fed877925ee4827bcaec257279e99a3"
+      },
+      "case": {
+        "id": "current",
+        "source_case": "auto_current",
+        "analysis_file_ids": [
+          "public_housing_act_art2:0",
+          "public_housing_rule_art15:0"
+        ],
+        "cqs": [
+          {
+            "id": "C1",
+            "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+          },
+          {
+            "id": "C2",
+            "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+          }
+        ],
+        "selection_reason": "정의 조문과 선정 기준 조문의 전체 블록"
+      },
+      "budgets": {
+        "model_calls": 24,
+        "model_seconds": 1800,
+        "searches": 4,
+        "additional_rounds": 1,
+        "revisions": 1
+      },
+      "baseline": {
+        "path": "data/knowledge/semantic_d5_20261001/current_changed/result.json",
+        "sha256": "35c92a543e037e866e4e3a3daab4c87602cd6af7ddd45235293e138cd09aebcb",
+        "db_sha256": "a744e244b0d702548843effa8ce481e842f1588f979306322041181b32d89b21",
+        "code_sha": "dc4ad67147a6f9dbf464e54ad61c802a8e656b71",
+        "run_id": "e46e8787d66e45d899c4cd9c29da56e2",
+        "http_calls": 24,
+        "model_total_s": 1799.834,
+        "elapsed_s": 1809.616
+      },
+      "analysis_block_ids": [
+        "8ffb509e91a948028f0ab9ff6c889860",
+        "daf1c33e1074469d90b177ba0fac69d5",
+        "2641967317ad4690b7e90a099987e208",
+        "3cd8f01de599414799f4f4894fb7090b",
+        "ef929cc0596d4a62bc568e13f93054a0",
+        "1e4c6a6dfc69410b923e15b9e748efa4"
+      ],
+      "new_model_runs": 1
+    }
+  },
+  "preflight": {
+    "recorded_runtime_hashes_match": true,
+    "source_and_config_hashes_match": true,
+    "installed_model_digests_match": true
+  },
+  "procedure": [
+    "E1–E5는 관련 작은 회귀와 저장 입력 재조립만 수행하며 실제 모델 호출0",
+    "D5의 dc4ad67 실제 출력 두 개를 비교 기준선으로 재사용하며 기존 code_sha/원장/출력 변경 및 기준선 재실행 금지",
+    "기존 실행 설정 파일의 오래된 baseline_sha 표기는 실행 조건이 아니며 비교 기준선은 이 파일의 scenarios.baseline로 고정",
+    "최종 코드 SHA·dirty·runtime 해시와 입력/모델/설정/assessor 불변을 확인한 뒤 C2 새 실행1회",
+    "C2 의미·인용·끝점 경계에 신규 중대한 회귀가 없고 다중CQ/복구예약이 변경된 경우만 current 새 실행1회",
+    "최소 생성 완결은 추가 생성·정의 수정·끝점 수동 교체 없이 모델 산출로 기존 preview의 유효 정본 구성이 가능한지로 판정",
+    "AI는 원문 대조·명시 선택·판단 사유만 수행; 필요시 격리 사본의 기존 API 사용; 제품 경로가 같으면 브라우저 E2E 반복 없음",
+    "의미·연결·유효 검수/명시 보류·미처리·복구 필요/호출/의미해결·전체 비용을 분리; 후보 수/can_accept를 품질 점수로 사용 금지"
+  ],
+  "stop_rules": [
+    "C2 명백한 회귀이면 current 중단 및 원인 보고",
+    "첫 결과·오류·수정 비용 보존, 성공할 때까지 동일 기준 반복 모델 호출 금지",
+    "비교 조건 불일치는 비교무효로 보고하고 기존 결과 덮어쓰기/예산·정답 완화 금지",
+    "자동 품질 미달이면 #539/#534의 품질 완료/종료 금지; E1–E5 코드 완료와 별도 판정"
+  ],
+  "participant_count": 0,
+  "human_total_s": null,
+  "out_of_scope": [
+    "전체 LH",
+    "types_purchase",
+    "19파일",
+    "다중 모델",
+    "Windows 실기",
+    "사람 효용 측정",
+    "운영 활성화",
+    "병합",
+    "배포"
+  ]
+}

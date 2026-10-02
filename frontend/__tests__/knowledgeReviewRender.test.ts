@@ -8,6 +8,9 @@ const state = vi.hoisted(() => ({ values: [] as unknown[] }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useState: () => [state.values.shift(), vi.fn()], useEffect: vi.fn() }));
 vi.mock("@/lib/knowledgeReview", () => import("../lib/knowledgeReview"));
 vi.mock("../components/KnowledgeReviewEvidence", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeHumanCost", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeDiscoveryStart", () => ({ default: () => null }));
+vi.mock("../components/KnowledgeMissingProposal", () => ({ default: () => null }));
 
 function candidate(): Change {
   return { id: "change", change_id: "change", target_id: "alias", symbol: "Alias", target_kind: "alias", operation: "add",
@@ -28,6 +31,12 @@ function render(c: Change, reviewed: Ontology, draft: EditDraft = makeDraft(c)) 
 }
 
 describe("A4 실제 컴포넌트 비교 출력", () => {
+  it("설계 제안과 출처인 원문 규범의 주체·조건·시점을 구분해 표시한다", () => {
+    const c={...candidate(),target_kind:"relation",origin:{source_relation:{subject:"규범의 주체",predicate:"정할 수 있다",object:"기준",
+      statement_type:"rule",negation:"affirmed",conditions:"첫 조건 또는 둘째 조건, 다만 예외",time:"선택 시행본"}}};
+    const html=render(c,{status:"reviewed",targets:[]});
+    for(const text of ["설계 제안","설계의 출처인 원문 진술","규칙 진술","규범의 주체","정할 수 있다","첫 조건 또는 둘째 조건, 다만 예외","선택 시행본"]) expect(html).toContain(text);
+  });
   it("v1 candidates와 v2 targets의 이름을 별칭·관계·계층·병합에서 공통 조회한다", () => {
     for (const reviewed of [{ status: "reviewed", candidates: [{ id: "LegacyType", name: "기존기준유형" }] },
       { status: "reviewed", targets: [{ id: "LegacyType", name: "기존기준유형" }] }]) {

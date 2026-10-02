@@ -1,0 +1,59 @@
+{
+  "id": "ontology-semantic-construction-current-v1",
+  "frozen_at": "2026-10-01T14:30:11.639868+00:00",
+  "baseline_sha": "e19bd8fac617ed7945acfb327355643481820cbd",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 24,
+    "model_seconds": 1800,
+    "searches": 4,
+    "additional_rounds": 1,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C1",
+          "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+        },
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "정의 조문과 선정 기준 조문의 전체 블록"
+    }
+  ],
+  "rules": [
+    "각 버전·사례 최초1회; 실패·추가수정은 별도 기록",
+    "기준선과 변경본을 같은 모델·선택 원문·기준 정의·예산으로 비교",
+    "평가 정답은 생성 입력에 제공하지 않음",
+    "조건·근거·의미 충족과 비용으로 판정하며 후보 수를 성능으로 간주하지 않음"
+  ],
+  "comparison_freeze": {
+    "issue": 539,
+    "current_sha": "dc4ad67147a6f9dbf464e54ad61c802a8e656b71",
+    "source_config_sha256": "9e8ad8131b67d698d9a8ee29507f2eac05db3248da94090ab46e87b3c966f160",
+    "required_gate": "C2 citation/endpoint/partial preservation contracts pass",
+    "assessor_path": "configs/knowledge/quality_20261001/assessor.json",
+    "assessor_sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3",
+    "participant_count": 0,
+    "human_total_s": null,
+    "budget_basis": "기존 generation.json current 예산 그대로; 기준선 e19와 변경본 동일",
+    "no_auto_budget_increase": true,
+    "runtime_fix_reason": "C2 최초 Critic 입력 12661자 초과; 중복 연결/빈 상태 제거, 원문·예산 유지",
+    "c2_initial_result": "data/knowledge/semantic_d5_20261001/c2_current/result.json"
+  }
+}

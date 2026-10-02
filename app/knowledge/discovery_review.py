@@ -1,0 +1,161 @@
+"""Per-record Critic validity shared by completion, revision and A3 conversion."""
+from collections import Counter
+from copy import deepcopy
+from uuid import uuid4
+
+from pydantic import ValidationError
+
+from . import discovery_models as models, discovery_profile as profile, discovery_segments as segments
+
+
+def fingerprint(candidate):
+    return profile.digest({k:v for k,v in candidate.items() if k not in {'origin_dependency_ids','analysis_group_id'}})
+
+
+def valid_ids(review, candidates=None):
+    coverage = review.get('review_coverage')
+    if coverage is None:
+        # A representative view needs its own review; legacy raw judgments cannot cover it.
+        if candidates and any(c.get('candidate_view_version') for c in candidates.values()): return set()
+        return None  # Stored legacy reviews retain their original contract.
+    valid = set(coverage['valid_candidate_ids'])
+    if candidates is not None:
+        valid = {i for i in valid if i in candidates and coverage['candidate_hashes'].get(i)==fingerprint(candidates[i])}
+    return valid
+
+
+def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
+    declared = set(context.get('review_target_ids', supplied))
+    expected = {i:c for i,c in supplied.items() if i in declared and c.get('review_status')!='reviewed'}
+    relations = {i for i,c in expected.items() if 'negation' in c}
+    observations = {i for i,c in expected.items() if 'classification' in c} if 'review_target_ids' in context else set()
+    hierarchies = {(h['child_ref'],h['parent_ref'],h['relation']):h['id']
+                   for h in context.get('taxonomy', {}).get('hierarchies', [])}
+    provided = segments.originals(context)
+    pending, errors, issue_ids = set(), [], {}
+    local_refs = [i.get('local_ref') for i in output['issues'] if isinstance(i,dict) and i.get('local_ref')]
+    issue_counts = Counter(local_refs)
+
+    def problem(section, index, raw, reason, targets):
+        pending.update(set(targets) & expected.keys())
+        errors.append(dict(section=section,index=index,record=deepcopy(raw),reason=reason,candidate_ids=sorted(targets)))
+
+    for section, model in [('issues',models.Issue), ('relation_checks',models.RelationCheck), ('observation_checks',models.RelationCheck),
+                           ('hierarchy_checks',models.Hierarchy), ('missing_meanings',models.MissingMeaning)]:
+        records = output.get(section, [])
+        def key(record):
+            fields = ('child_ref','parent_ref','relation') if section=='hierarchy_checks' else ('candidate_ref',)
+            values = tuple(record.get(f) if isinstance(record.get(f),str) else None for f in fields)
+            return values if section=='hierarchy_checks' else values[0]
+        counts = Counter(key(r) for r in records if isinstance(r,dict))
+        accepted = []
+        for index, raw in enumerate(records):
+            target = key(raw) if isinstance(raw,dict) else None
+            identifier = hierarchies.get(target) if section=='hierarchy_checks' else target
+            targets = {identifier} if identifier in expected else set(expected) if section=='issues' and not identifier else set()
+            try:
+                if section=='issues' and require_issue_cause and isinstance(raw,dict) and 'cause' not in raw:
+                    targets = {identifier} if identifier in expected else set()
+                    raise ValueError('새 쟁점의 명시적 cause 누락; 기본 원인으로 복구하지 않음')
+                item = model.model_validate(raw).model_dump()
+                segments.restore(item, by_id, provided)
+                validate_refs(item)
+                if section in {'relation_checks','observation_checks','hierarchy_checks'} and counts[target]!=1:
+                    raise ValueError('중복 검토 대상; 어느 판정도 선택하지 않음')
+                if section=='issues':
+                    if issue_counts[item['local_ref']]!=1: raise ValueError('응답 내부 쟁점 local_ref 중복')
+                    if item['candidate_ref'] and item['candidate_ref'] not in supplied:
+                        raise ValueError('검토 대상 후보 참조 불일치')
+                    if item['target_ref'] and item['target_ref'] not in supplied:
+                        raise ValueError('대응 정의가 실제 제공 범위 밖')
+                    if item['cause'] in {'evidence_error','endpoint','alignment'} and not item['candidate_ref']:
+                        raise ValueError('원인별 보완은 실제 대상 후보 필요')
+                    if item['cause'] in {'source_absent','budget_exhausted'} and not item['defer_reason']:
+                        raise ValueError('자료 미제공/예산 종료의 구체 보류 사유 필요')
+                    if item['cause']=='budget_exhausted':
+                        budget, metrics = run['recipe']['budgets'], run['metrics']
+                        if (metrics['llm_calls']<budget['model_calls'] and metrics['model_total_s']+metrics.get('interrupted_time_reserve_s',0)<budget['model_seconds']
+                                and (not item['candidate_ref'] or budget['revisions'])):
+                            raise ValueError('서버 잔여량으로 확인되지 않은 예산 종료 판단')
+                    if not item['evidence_ids'] and not item['counter_evidence_ids'] and not item['defer_reason'].strip():
+                        raise ValueError('근거 없는 쟁점에는 명시적 보류 사유 필요')
+                    item['id']='di_'+uuid4().hex
+                    issue_ids[item['local_ref']]=item['id']
+                elif section in {'relation_checks','observation_checks'}:
+                    if item['candidate_ref'] not in (relations if section=='relation_checks' else observations):
+                        raise ValueError('이번 주검토 대상 밖 ID')
+                    if item['judgment']!='unknown' and not (item['quote'] or item.get('evidence_refs')):
+                        raise ValueError('후보 판단에는 원문 인용 필요')
+                    if item['quote'] and not item.get('source_refs'):
+                        refs, problems = segments.references(dict(evidence_ids=[item['evidence_id']],
+                            source_quotes=[dict(evidence_id=item['evidence_id'],quote=item['quote'])]), by_id, provided)
+                        if problems: raise ValueError('; '.join(problems))
+                        item['evidence_refs']=refs
+                    if section=='relation_checks' and 'review_scope' in context and item['judgment']=='supported':
+                        candidate=supplied[item['candidate_ref']]
+                        if set(item['semantic_checks'])!={'subject','object','conditions','statement_type'} or any(v!='supported' for v in item['semantic_checks'].values()):
+                            raise ValueError('지지 판정에는 원문 끝점·조건/예외·진술 종류의 각각의 대조 필요')
+                        for field in ('subject','object'):
+                            label=candidate.get('endpoint_labels', {}).get(field)
+                            if not label: raise ValueError('독립 대조할 원문 끝점 표현 미확인: '+field)
+                            if candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
+                                item.setdefault('binding_validation', []).append('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
+                elif section=='hierarchy_checks':
+                    if target not in hierarchies: raise ValueError('제안하지 않은 계층 검토')
+                    # The existing Builder validation checks kind/direction/evidence contracts.
+                    checked=normalize_hierarchy({'hierarchies':[item]}, 'builder', run, deps, by_id, supplied)['hierarchies'][0]
+                    if checked['validation']: raise ValueError('; '.join(checked['validation']))
+                    item=checked
+                    item['id']=identifier
+                else:
+                    refs, problems = segments.references(item, by_id, provided)
+                    if not item['source_quotes'] and not item['source_refs']: problems.append('누락 복구의 정확한 원문 구절 필요')
+                    if not item['cq_ids'] and not item['scope_item_ids'] or item['outside_scope_reason']: problems.append('복구의 허용 질문/범위 연결 필요')
+                    if not set(item['cq_ids']) <= {q['id'] for q in run['cqs']} or not set(item['scope_item_ids']) <= {q['id'] for q in run['scope_items']}: problems.append('복구의 허용 질문/범위 밖 연결')
+                    if problems: raise ValueError('; '.join(problems))
+                    item.update(evidence_refs=refs,validation=[])
+                    if 'review_scope' in context:
+                        if not set(item['compared_candidate_ids']) <= supplied.keys(): raise ValueError('미제공 후보를 의미 대조했다고 주장할 수 없음')
+                        if not item['comparison_reason'].strip(): raise ValueError('미표현 의미와 실제 비교 범위의 사유 필요')
+                        for marker in ('classification','negation'):
+                            primary={i for i,c in expected.items() if marker in c and
+                                (set(item['cq_ids']) & set(c.get('cq_ids', [])) or set(item['scope_item_ids']) & set(c.get('scope_item_ids', [])))}
+                            if primary and not primary & set(item['compared_candidate_ids']):
+                                raise ValueError('주검토 관측/관계의 의미 대조 미확인; 누락 재추출 보류')
+                        item['assessment_scope']='provided_only'
+                accepted.append(item)
+            except (ValidationError, ValueError, KeyError, TypeError) as exc:
+                problem(section,index,raw,str(exc),targets)
+        output[section]=accepted
+        if section in {'relation_checks','observation_checks','hierarchy_checks'}:
+            required = relations if section=='relation_checks' else observations if section=='observation_checks' else set(hierarchies.values())
+            covered = {c['id'] if section=='hierarchy_checks' else c['candidate_ref'] for c in accepted}
+            for identifier in sorted(required-covered-pending):
+                problem(section,None,None,'필수 후보 검토 누락',{identifier})
+    actions=[]
+    previous={i['id'] for u in run.get('analysis_units', []) if u['status']=='succeeded' for i in u.get('output', {}).get('issues', [])}
+    for index, action in enumerate(output['actions']):
+        if action['action']=='request_evidence':
+            identifier=issue_ids.get(action['issue_id'],action['issue_id'])
+            if identifier not in set(issue_ids.values()) | previous:
+                problem('actions',index,action,'유효한 쟁점 없는 근거 요청',set())
+                continue
+            action['issue_id']=identifier
+        actions.append(action)
+    # Conflicting/invalid judgments never drive a revision or recovery through another record.
+    output['issues']=[i for i in output['issues'] if i['candidate_ref'] not in pending and not (pending and not i['candidate_ref'])]
+    output['relation_checks']=[i for i in output['relation_checks'] if i['candidate_ref'] not in pending]
+    output['observation_checks']=[i for i in output['observation_checks'] if i['candidate_ref'] not in pending]
+    output['hierarchy_checks']=[i for i in output['hierarchy_checks'] if i['id'] not in pending]
+    valid_issue_ids={i['id'] for i in output['issues']} | previous
+    output['actions']=[a for a in actions if a['action']!='request_evidence' or a['issue_id'] in valid_issue_ids]
+    output['record_errors']=errors
+    output['review_coverage']=dict(expected_candidate_ids=sorted(expected),valid_candidate_ids=sorted(expected.keys()-pending),
+        pending_candidate_ids=sorted(pending),candidate_hashes={i:fingerprint(c) for i,c in expected.items()})
+    if 'review_target_ids' in context:
+        judgments = {i['candidate_ref']:i['judgment'] for field in ('observation_checks','relation_checks') for i in output[field]}
+        judgments.update({h['id']:'unknown' if any(h[d]['judgment']=='unknown' for d in ('a_to_b','b_to_a')) else h['a_to_b']['judgment'] for h in output['hierarchy_checks']})
+        output['review_outcomes']={j:sorted(i for i,v in judgments.items() if v==j) for j in ('supported','refuted','unknown')}
+    if 'review_scope' in context:
+        output['review_scope']=dict(context['review_scope'],provided_source_refs=[b['source_ref'] for b in provided if b.get('source_ref')])
+    return output

@@ -1,0 +1,71 @@
+{
+  "id": "ontology-quality-assessor-v1",
+  "input_to_generation": false,
+  "current": {
+    "C1": {
+      "required": [
+        "건설임대→공공임대 포함 및 직접 건설 공급",
+        "매입임대→공공임대 포함 및 직접 건설하지 않고 매매 등 취득 공급"
+      ],
+      "alternatives": [
+        "유형 계층",
+        "동일 CQ를 표현하는 유형 어휘와 방식 속성"
+      ],
+      "forbidden": [
+        "건설과 매입 동치/병합",
+        "공공임대 전체를 건설 또는 매입의 하위로 역전"
+      ],
+      "missing_data": [
+        "제4조 사업자 자격 세부",
+        "실제 주택 개체"
+      ]
+    },
+    "C2": {
+      "required": [
+        "제15조1항 별표4 원칙",
+        "2항 선정 후 잔여주택이면 자격 일부 완화 또는 선착순 가능",
+        "3항 LH 건설공급은 장관, 지자체/지방공사는 시도지사의 별도 기준 설정 가능"
+      ],
+      "alternatives": [
+        "조건부 규칙 노드",
+        "조건/주체를 유지하는 관계"
+      ],
+      "forbidden": [
+        "항상 별표4만 적용",
+        "장관이 모든 개별 입주자를 선정"
+      ],
+      "missing_data": [
+        "별표4 자격 수치",
+        "실제 입주자 사실"
+      ]
+    }
+  },
+  "types_purchase": {
+    "required": [
+      "선택 시행본 제2조의 각 유형 정의와 포함·제외·지원·공급 조건 보존",
+      "제37조 열거 대상과 공동주택의 규모 제한",
+      "매입계획 사전 장관 승인과 개량 관련 조건",
+      "제공 기준의 국민임대·통합공공임대와 동일 의미이면 불필요 신규 ID 추가 방지"
+    ],
+    "alternatives": [
+      "조건부 대상 유형",
+      "조건이 붙은 매입/승인 관계"
+    ],
+    "forbidden": [
+      "제공되지 않은 규모 수치·용도 정의 보충",
+      "모든 건축물 무조건 허용",
+      "동명만으로 별개 유형·조건을 병합"
+    ],
+    "not_required": [
+      "과거 시행본 전체 변화 차분",
+      "새로운 실제 주택 개체 적재"
+    ]
+  },
+  "dimensions": [
+    "structure_expressible",
+    "source_data_present",
+    "query_conditions_exceptions_evidence_match"
+  ],
+  "human_participants": 0,
+  "human_total_s": null
+}

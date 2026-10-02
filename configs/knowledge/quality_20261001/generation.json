@@ -1,0 +1,60 @@
+{
+  "id": "ontology-quality-v1",
+  "frozen_at": "2026-10-01T08:15:52.361285+00:00",
+  "baseline_sha": "26b28aa4f1b41426ed2d0b329e5d9f8c21a507ed",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 24,
+    "model_seconds": 1800,
+    "searches": 4,
+    "additional_rounds": 1,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C1",
+          "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+        },
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "정의 조문과 선정 기준 조문의 전체 블록"
+    },
+    {
+      "id": "types_purchase",
+      "source_case": "history2",
+      "analysis_file_ids": [
+        "decree_art2_20201019:0",
+        "decree_art37_20201019:0"
+      ],
+      "cqs": [
+        {
+          "id": "Q2",
+          "question": "2020년 10월 시행본의 공공임대 유형과 기존주택등 매입 대상·절차의 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "선택 시점의 유형 정의와 매입 대상·절차 조문 전체; 이전 단계는 고정된 비교 자료"
+    }
+  ],
+  "rules": [
+    "각 버전·사례 최초1회; 실패·추가수정은 별도 기록",
+    "기준선과 변경본을 같은 모델·선택 원문·기준 정의·예산으로 비교",
+    "평가 정답은 생성 입력에 제공하지 않음",
+    "조건·근거·의미 충족과 비용으로 판정하며 후보 수를 성능으로 간주하지 않음"
+  ]
+}

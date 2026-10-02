@@ -1,0 +1,41 @@
+{
+  "id": "ontology-conditional-followup-v14",
+  "frozen_at": "2026-10-01T10:35:12.437674+00:00",
+  "baseline_sha": "26b28aa4f1b41426ed2d0b329e5d9f8c21a507ed",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 24,
+    "model_seconds": 1800,
+    "searches": 4,
+    "additional_rounds": 1,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "v13의 긍정·허용 극성 오류 후 규칙 제15조/C2의 실패 경로만 재확인; 다른 고정 자료는 비교용이며 전체 current 품질 비교가 아님"
+    }
+  ],
+  "rules": [
+    "v13 최초 중단 결과와 비용 보존; 이 좁은 실행은 전체 current 비교나 C1 혼입 해결의 증거가 아님",
+    "기존 모델 digest·원본 DB·호출/시간 상한 유지; 정답과 판정 기준은 생성기에 보내지 않음",
+    "C2의 기존 assessor를 적용하여 극성·조건·허용·OR·주체 분기를 별도 대조; 원문 인용 존재만으로 정확 판정하지 않음",
+    "자동 승인·활성화 없음; 첫 결과와 실패 보존"
+  ],
+  "parent_config_sha256": "9e8ad8131b67d698d9a8ee29507f2eac05db3248da94090ab46e87b3c966f160"
+}

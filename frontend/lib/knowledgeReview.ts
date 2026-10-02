@@ -18,7 +18,7 @@ export type DiscoveryRun = { id: string; status: string; started_at?: string; fi
   frozen_input: { scope: string; step: number; files: { file_id: string; title: string; role?: string; source_version_id: string }[] };
   result?: RecordValue; metrics?: { llm_calls?: number; model_total_s?: number } };
 export type RunSummary = { id: string; status: string; started_at?: string; scope: string; step: number; has_result: boolean; changeset_id?: string };
-export type Ontology = { id?: string; status: string; linkml_yaml?: string; json_schema?: unknown; effective_class_slots?: Record<string, string[]>; vocabulary_registry?: RecordValue; targets?: RecordValue[]; candidates?: RecordValue[]; error?: string; included_change_ids?: string[]; excluded_change_ids?: string[] };
+export type Ontology = { id?: string; changeset_revision?: number; status: string; linkml_yaml?: string; json_schema?: unknown; effective_class_slots?: Record<string, string[]>; vocabulary_registry?: RecordValue; targets?: RecordValue[]; candidates?: RecordValue[]; error?: string; included_change_ids?: string[]; excluded_change_ids?: string[] };
 export type EditDraft = { after: string; qualifiers: string; target_kind: string; support_type: string; rationale: string; evidence_refs: string; counter_evidence_refs: string; cq_ids: string[]; scope_item_ids: string[]; unresolved_issues: string; hierarchy_review: string };
 export const record = (v: unknown): RecordValue => v !== null && typeof v === "object" && !Array.isArray(v) ? v as RecordValue : {};
 export const records = (v: unknown): RecordValue[] => Array.isArray(v) ? v.map(record) : [];
@@ -45,8 +45,30 @@ export function editPatch(draft: EditDraft) {
 
 export function decisionBody(change: Changeset, actor: string, reason: string, action: string, ids: string[], draft?: EditDraft, reviewDependencies = false) {
   if (!actor.trim() || !reason.trim()) throw new Error("결정자와 판단 사유가 필요합니다.");
+  if (!ids.length || new Set(ids).size !== ids.length || ids.some(id => !change.candidates.some(c => c.id === id))) throw new Error("결정 대상 후보를 확인하세요.");
+  if (ids.length > 1 && ["edit", "modify"].includes(action)) throw new Error("각 후보의 편집을 따로 저장한 뒤 묶음을 수락하세요.");
   return { expected_changeset_revision: change.revision, expected_ontology_head_id: change.ontology_head_id, actor: actor.trim(),
     decisions: ids.map(candidate_id => ({ candidate_id, action, reason: reason.trim(), ...(reviewDependencies && ["accept", "modify"].includes(action) ? { consumer_action: "review_required" } : {}), ...((action === "edit" || action === "modify") && draft ? { patch: editPatch(draft) } : {}) })) };
+}
+
+export function connectionTargets(targets: RecordValue[], key: string, kind: string) {
+  const classesOnly = key === "domain_id" || (key === "range" && ["relation", "attribute"].includes(kind));
+  return targets.filter(t => !t.deprecated && (classesOnly ? ["class", "concept"] : ["class", "concept", "vocabulary_concept"]).includes(String(t.kind)));
+}
+
+export function manualAlignmentProposal(source: Change, target: RecordValue, preserveDefinition: boolean, reason: string) {
+  if (!reason.trim() || !target.id || !["class", "vocabulary_concept"].includes(source.target_kind) ||
+      (target.kind === "concept" ? "class" : target.kind) !== source.target_kind) throw new Error("같은 종류의 기존 대상과 대응 사유가 필요합니다.");
+  const definition = preserveDefinition ? target : source.after;
+  const after = Object.fromEntries(["name", "definition", "inclusion", "exclusion"].filter(k => k in definition).map(k => [k, definition[k]]));
+  const evidence = [...readableRefs(target.evidence_refs), ...source.evidence_refs];
+  const counters = [...(preserveDefinition ? readableRefs(target.counter_evidence_refs) : []), ...source.counter_evidence_refs];
+  return { operation: "update", target_id: target.id, target_kind: source.target_kind, after,
+    qualifiers: preserveDefinition ? record(target.qualifiers) : source.qualifiers,
+    support_type: preserveDefinition ? target.support_type || source.support_type : source.support_type,
+    evidence_refs: [...new Map(evidence.map(e => [JSON.stringify(e), e])).values()],
+    counter_evidence_refs: [...new Map(counters.map(e => [JSON.stringify(e), e])).values()], cq_ids: source.cq_ids, scope_item_ids: source.scope_item_ids,
+    rationale: reason.trim() };
 }
 
 export function groupChanges(candidates: Change[]) {
@@ -59,27 +81,10 @@ export function groupChanges(candidates: Change[]) {
   return [...groups.values()];
 }
 
-export function simpleLabelChange(c: Change) {
-  if (c.operation !== "update" || !c.before || c.before.kind !== c.target_kind || c.target_kind === "hierarchy" || !c.can_accept || c.review_status !== "unreviewed") return false;
-  if (c.counter_evidence_refs.length || c.unresolved_issues.length) return false;
-  const after = record(c.after);
-  if (typeof after.name !== "string" || after.name === c.before.name) return false;
-  if (Object.entries(after).some(([key, value]) => key !== "name" && JSON.stringify(value) !== JSON.stringify(c.before?.[key]))) return false;
-  return ["evidence_refs", "counter_evidence_refs", "qualifiers", "cq_ids", "scope_item_ids", "support_type", "hierarchy_review"].every(key =>
-    JSON.stringify(c[key as keyof Change]) === JSON.stringify(c.before?.[key]));
-}
-
 export function readableRefs(value: unknown): EvidenceRef[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is EvidenceRef => v && ["evidence_id","block_id","source_version_id","parse_run_id","quote"].every(k => typeof v[k] === "string") &&
     Array.isArray(v.span) && v.span.length === 2 && v.span.every(Number.isInteger));
-}
-
-export function bulkLabelChanges(candidates: Change[], ids: string[]) {
-  const rows = candidates.filter(c => ids.includes(c.id));
-  if (rows.length < 2 || rows.length !== ids.length || !rows.every(simpleLabelChange)) return [];
-  const scope = (c: Change) => JSON.stringify([c.target_kind, [...c.affected_reference_ids].sort(), c.qualifiers, c.cq_ids, c.scope_item_ids, c.before?.domain_id, c.before?.range]);
-  return rows.every(c => scope(c) === scope(rows[0])) ? rows : [];
 }
 
 export function coverageRows(run: DiscoveryRun, change: Changeset) {

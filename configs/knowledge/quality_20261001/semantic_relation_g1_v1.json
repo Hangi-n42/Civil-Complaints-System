@@ -1,0 +1,149 @@
+{
+  "id": "ontology-relation-g1-v1",
+  "issue": 553,
+  "frozen_at": "2026-10-02T02:16:29.092614+00:00",
+  "product_code_sha": "fdf01ca5436baed7e2cd6f3d8bce129f75256948",
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "a384c5a69bc36a84467a72475c9189ea6974ecdbdb62e5cea2e5b1177d483071",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "f09db316810a0bc655d16d4ef6fb960435a2ceae75fbcd2d0409f8e71a070a5d",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "fc0a79875ec71f22a88a8f003eb5bf3162d3e4dd69b4a15552d686193331d39f",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "78abea18705c3ff3809f3b4da0c6acd0dc6508ce9ad2a23247f6eb86aaea805b",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "2a5779a9690143aa99dc7e8340b5da6358dc93e4bb5b6feddc293df861ab8518",
+    "app/knowledge/discovery_synthesis.py": "262ac9be457616b55be49d7b38605a207bf155357bcf3bba1fb9c7d55cec6f35",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "26d15426050ef099616a6c0d6b5bb3c009e98399f7557aeffe089222ab11aeea",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6"
+  },
+  "source_hashes": {
+    "data/knowledge/semantic_f5_20261002/c2_once/result.json": "e0f5fd906032fdf7fda24ec93cfe8d08154be089e35fdc19df95f5777628587b",
+    "data/knowledge/semantic_f5_20261002/c2_once/knowledge.db": "38a3072757998bf1f5c769d0119b58169b8a6ed813b60cd124445a511d8831ea",
+    "data/knowledge/semantic_f5_20261002/c2_once/started.json": "7d57e8354533d3cf588290d60141915e9012af74a27fdf5a0e03c453a3a05489",
+    "data/knowledge/semantic_f5_20261002/c2_once/calls.jsonl": "9893041f31ff62813dc850676a9fee828f237690253507794ca2c70702813280",
+    "configs/knowledge/quality_20261001/semantic_repair_f5_v1.json": "e244cee085012cd594942e04dc4d5a04cafe69726c48eef80dde9f6c3f1a7df2",
+    "configs/knowledge/quality_20261001/assessor.json": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3"
+  },
+  "source_run_id": "60e574c3cf144bb39ec39116ac5c6129",
+  "source_relation_unit_id": "relation:g_70f72e53487b3944ef0c",
+  "source_ref_scope": "60e574c3cf144bb39ec39116ac5c6129",
+  "recipe": {
+    "profile_version": "a2-survey-v5",
+    "candidate_version": "a2-candidates-v1",
+    "prompt_version": "discovery-a2-v31",
+    "prompt_hash": "6b582a9edfb695cac55d69accd0dbbf2ad68500d8d152951204b3a1ef4e94fea",
+    "models": {
+      "draft": "gemma4:31b-it-q4_K_M",
+      "review": "qwen3.8:27b-q4_K_M"
+    },
+    "endpoint": "http://127.0.0.1:11434",
+    "budgets": {
+      "model_calls": 5,
+      "searches": 4,
+      "additional_rounds": 0,
+      "revisions": 0,
+      "model_seconds": 1800
+    },
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "input_chars": 12000,
+    "call_timeout": 360.0,
+    "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+  },
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "qwen3.8:27b-q4_K_M",
+      "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+      "context_length": 262144
+    }
+  },
+  "options": {
+    "temperature": 0,
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "timeout_s": 300,
+    "role_model": "gemma4:31b-it-q4_K_M"
+  },
+  "common_schema_sha256": "369ae8c496d4c7134e87e15a5f45fbebc55baafed28ca90825cfc07f9bf783c4",
+  "variants": {
+    "A": {
+      "input_path": "data/knowledge/semantic_g1_20261002/A_input.json",
+      "input_sha256": "2f94ea58656fe0b7d0b4b4f6f384c82c669f549aa79e2fd6398f6a934f389b54",
+      "prompt_sha256": "7ace9b341775cd8056443c47cccb67dc0882ab25a8a75906344e127dd60d4f3f",
+      "input_chars": 5704
+    },
+    "B": {
+      "input_path": "data/knowledge/semantic_g1_20261002/B_input.json",
+      "input_sha256": "64c443dc6e6561d81badd903534ad61e2bcc1e1336b1c143f6375e97ebd4815b",
+      "prompt_sha256": "c99268c9e872704706fae00cd5c9f4eb21cfb5989da715f21d1397ab00e3e792",
+      "input_chars": 5248
+    },
+    "C": {
+      "input_path": "data/knowledge/semantic_g1_20261002/C_input.json",
+      "input_sha256": "673664166183e3aee59240c3f9c1ab013829f02fa5a91ebe1a906d4057c57683",
+      "prompt_sha256": "537749d379e813e4d42262c3227c2dbf734dbe5d750c545d3613c083e06030d8",
+      "input_chars": 5349
+    }
+  },
+  "candidate_metadata_removed": [
+    "reviewed_base",
+    "unapproved_observations",
+    "comparison_terms",
+    "previous_observations"
+  ],
+  "a_b_originals_and_tool_originals_identical": true,
+  "a_b_c_schema_identical": true,
+  "a_b_c_source_refs_identical": true,
+  "paragraph_a": "subject/object는 원문 행위자와 실제 행위 대상의 자연어 표현이다. 유형 ID 선택은 Builder가 맡는다. 누가 무엇을 어떻게 해야/할 수 있는지 먼저 추출하고, 행위가 적용되는 공급 상황·대상 범위는 conditions로 구분한다. 명명된 유형이 없어도 원문 명제는 보존한다.",
+  "paragraph_c": "subject는 행위자, predicate는 행위와 의무·허용, object는 그 행위의 직접 대상이다. 행위 대상 표현을 predicate와 분리해 object에 적는다. 공급 상황·적용 범위는 conditions에 적는다. 유형 선택은 Builder가 맡으며, 명명된 유형이 없어도 원문 명제를 보존한다. 주체가 대상에 그 행위를 하는 방향이 원문에서 명확하면 direction=subject_to_object, 근거로 정할 수 없을 때만 unresolved로 적는다.",
+  "selection": [
+    "A/B each once",
+    "B passes -> B, skip C",
+    "B fails required meaning/object/conditions/direction -> C once",
+    "B fails and C passes -> C",
+    "B/C both fail -> stop generation, do not adopt; G3 independent code work only"
+  ],
+  "acceptance": [
+    "Existing assessor current.C2 required meanings, real action object, OR/permission, priority exceptions, actor branches, valid source refs",
+    "Type binding unresolved_endpoints, absent external annex detail/definition/time alone are not raw meaning failures",
+    "Independent AI semantic verdict; no candidate count/JSON proxy; each once is not causal/general performance evidence"
+  ],
+  "http_limits": {
+    "diagnostic": 3,
+    "c2": 5,
+    "current": 24,
+    "total": 32
+  },
+  "human_participants": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured",
+  "assessor_in_generation": false,
+  "runner": {
+    "path": "data/knowledge/semantic_g1_20261002/diagnostic.py",
+    "sha256": "cba951b3840dd14d671a4f7772ac003049b19eb548f1929456790ac729e73a8c"
+  }
+}

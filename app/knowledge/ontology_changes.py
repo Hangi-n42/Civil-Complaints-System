@@ -6,6 +6,8 @@ from uuid import uuid4
 from pydantic import ValidationError
 
 from . import ontology_canonical as canonical
+from . import discovery_review as reviews
+from . import discovery_candidates as identities
 from .ontology_changes_models import AddOntologyChanges, Definition, EvidenceRef, HierarchyReview, OntologyChangeV2, Qualifiers
 from .ontology_schema import SCALARS, VersionConflict, _insert, _now
 from .schemas import DecisionRequest
@@ -48,6 +50,12 @@ def _ref(raw, blocks):
         locator=raw.get('locator', b.get('locator', {})))
 
 
+def _judgment_refs(judgment, blocks, counter=False):
+    prefix = 'counter_' if counter else ''
+    return [_ref(e, blocks) for e in (judgment.get(prefix+'evidence_refs') or
+            [dict(evidence_id=i) for i in judgment.get(prefix+'evidence_ids', [])])]
+
+
 def _make(raw, base, origin=None):
     requested_id = raw.get('target_id')
     target = base.get(requested_id) if isinstance(requested_id, str) else None
@@ -69,9 +77,21 @@ def _make(raw, base, origin=None):
     return values
 
 
+def _same_alignment_name(source, target):
+    # ponytail: spelling is only a conservative gate, not proof of identity; renamed terms need human review.
+    return bool(source.get('label') and source['label']==target.get('name'))
+
+
+def _reuse_fingerprint(candidate):
+    values = {k:candidate.get(k) for k in ('after','target_kind','support_type','evidence_refs')}
+    values['qualifiers'] = Qualifiers.model_validate(candidate.get('qualifiers', {})).model_dump()
+    return canonical.digest(values)
+
+
 def _convert(run, base, blocks):
     result = run['result']
     rows, references, mapping = [], [], {}
+    alignments = result.get('alignments', [])
     observations = result.get('observations', [])
     relations = result.get('relations', [])
     for source in observations + relations:
@@ -84,7 +104,8 @@ def _convert(run, base, blocks):
         support = source.get('support_type', 'explicit' if source.get('statement_type') in {'definition','rule'} else source.get('statement_type'))
         support = 'design_proposal' if support=='instance_proposal' else support
         raw = dict(target_kind=kind, support_type=support or 'unresolved',
-            after=dict(name=source.get('label', source.get('predicate', '')), definition=source.get('definition', '')),
+            after=dict(name=source.get('label', source.get('predicate', '')), definition=source.get('definition', ''),
+                       inclusion=source.get('conditions', ''), exclusion=source.get('exceptions', '')),
             evidence_refs=[_ref(e, blocks) for e in source.get('evidence_refs', [])],
             cq_ids=source.get('cq_ids', []), scope_item_ids=source.get('scope_item_ids', []),
             rationale=source.get('abstraction_level', '') if concept else 'A2 관계 분석 제안; 사람 의미 검수 필요',
@@ -95,34 +116,100 @@ def _convert(run, base, blocks):
         if not concept:
             raw['after'].update(domain_id=source['subject'], range=source['object'], direction=source['direction'])
             raw['after']['definition'] = ' '.join(source[k] for k in ('subject','predicate','object'))
-        row = _make(raw, base, dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
-                    validation=source.get('validation', []), direction=source.get('direction')))
-        rows.append(row)
+        matches = [a for a in alignments if a['observation_ref']==source['id']] if concept else []
+        origin = dict(candidate_id=source['id'], local_ref=source.get('local_ref'),
+                      validation=source.get('validation', []), direction=source.get('direction'), alignments=deepcopy(matches))
+        discoveries = result.get('candidate_identity', {}).get('discoveries', {}).get(source['id'], [])
+        if discoveries: origin['discoveries'] = deepcopy(discoveries)
+        if source.get('design_reason'):
+            origin['design_reason']=source['design_reason']
+            raw['rationale']=source['design_reason']
+        if source.get('source_relation_ids'):
+            origin['source_relations']=[deepcopy(r) for r in result.get('original_relations', []) if r['id'] in source['source_relation_ids']]
+        if source.get('source_relation') or source.get('statement_type')=='rule':
+            origin['source_relation']=deepcopy(source.get('source_relation') or source)
+        if not concept:
+            origin['source_endpoints'] = {key:source.get('endpoint_labels', {}).get(key, source[key]) for key in ('subject','object')}
+            origin['unresolved_endpoints'] = source.get('unresolved_endpoints', [])
+        if matches:
+            match = matches[0]
+            target = base.get(match['target_id'])
+            meaning = match.get('meaning', 'uncertain') if len(matches)==1 else 'uncertain'
+            if match.get('target_scope')=='run_candidate':
+                prior = next((c for c in observations if c['id']==match['target_id']), {})
+                valid = bool(prior and match.get('target_fingerprint') and identities.exact_key(prior)==match['target_fingerprint'])
+                origin['reuse_proposal'] = dict(target_candidate_id=match['target_id'],meaning=meaning,reason=match['reason'],
+                    target_snapshot=deepcopy(match.get('target_snapshot', {})),status='proposed' if valid else 'stale')
+                if meaning!='distinct' or not valid:
+                    origin['change_intent']='alignment_pending'
+                    raw['unresolved_issues']=[*raw['unresolved_issues'], '미승인 후보 재사용 제안; 대상 정의·조건·근거 대조 필요' if valid else '미승인 대응 대상 변경/사용 불가; 이전 대응 재사용 금지']
+                raw['rationale'] += '; 실행 내부 미승인 대응: '+match['reason']
+            elif meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated') and _same_alignment_name(source, target):
+                raw.update(operation='update', target_id=target['id'])
+                before = {k:deepcopy(v) for k,v in target.items() if k in AFTER_FIELDS[kind]}
+                if meaning=='same':
+                    raw['after'] = before
+                    raw['qualifiers'] = deepcopy(target.get('qualifiers', {}))
+                    origin['change_intent'] = 'evidence_only'
+                else:
+                    raw['after'] = dict(before, definition=source['definition'], inclusion=source.get('conditions', ''), exclusion=source.get('exceptions', ''))
+                    origin['change_intent'] = 'meaning_change'
+                # Keep old evidence and the separate new observation; accepting remains a human decision.
+                prior_refs = [_ref(e, blocks) for e in target.get('evidence_refs', [])]
+                raw['evidence_refs'] = prior_refs + [e for e in raw['evidence_refs'] if e not in prior_refs]
+                raw['cq_ids'] = list(dict.fromkeys(raw['cq_ids'] + [i for i in target.get('cq_ids', []) if i in {q['id'] for q in run['cqs']}]))
+                raw['rationale'] += '; 기존 정의 대응: ' + match['reason']
+            elif meaning!='distinct':
+                raw['unresolved_issues']=[*raw['unresolved_issues'], '기존 정의와 명칭·대상 동일성 및 의미 변경 여부 확인 필요']
+                origin['change_intent']='alignment_pending'
+        row = _make(raw, base, origin)
+        if origin.get('change_intent')=='alignment_pending': row['review_status']='deferred'
+        previous = next((c for c in rows if c['target_id']==row['target_id'] and
+            c['origin'].get('change_intent')==origin.get('change_intent')=='evidence_only'), None)
+        if previous:
+            previous['evidence_refs'] += [e for e in row['evidence_refs'] if e not in previous['evidence_refs']]
+            previous['origin'].setdefault('additional_observations', []).append(deepcopy(source))
+            previous['origin']['alignments'].extend(deepcopy(matches))
+            previous['cq_ids'] = list(dict.fromkeys(previous['cq_ids']+row['cq_ids']))
+            previous['scope_item_ids'] = list(dict.fromkeys(previous['scope_item_ids']+row['scope_item_ids']))
+            row = previous
+        else:
+            rows.append(row)
         mapping[source['id']] = dict(change_id=row['change_id'], target_id=row['target_id'], local_ref=source.get('local_ref'))
     def target(identifier):
         return mapping.get(identifier, {}).get('target_id', identifier)
+    classes = {i for i,c in base.items() if c['kind']=='class' and not c.get('deprecated')}
+    classes.update(c['target_id'] for c in rows if c['target_kind']=='class' and c['review_status']!='deferred' and not c['origin']['validation'])
     for row in rows:
         if row['target_kind']=='relation':
-            row['after']['domain_id'] = target(row['after']['domain_id'])
-            row['after']['range'] = target(row['after']['range'])
+            pending = row['origin']['unresolved_endpoints']
+            for field, endpoint in (('domain_id','subject'), ('range','object')):
+                if endpoint not in pending: row['after'][field] = target(row['after'][field])
+            if pending or any(row['after'][field] not in classes for field in ('domain_id','range')):
+                row['review_status'] = 'deferred'
+                row['unresolved_issues'].append('관계 끝점의 유형 연결 미해결; 원문 주체·대상과 조건을 검토하고 연결 필요')
     hierarchies = {h['id']:h for t in result.get('taxonomy', []) for h in t.get('hierarchies', [])}
     for revision in result.get('revisions', []):
         for h in revision.get('effective_hierarchies', []):
             hierarchies[h['id']] = h
+    current = {c['id']:c for c in observations + relations + list(hierarchies.values())}
+    revised_ids = {h['candidate_id'] for h in result.get('revision_history', [])}
     for h in hierarchies.values():
         matches = [check for c in result.get('critiques', []) for check in c.get('hierarchy_checks', [])
-            if all(check.get(k)==h.get(k) for k in ('child_ref','parent_ref','relation'))]
+            if all(check.get(k)==h.get(k) for k in ('child_ref','parent_ref','relation'))
+            and (h['id'] not in revised_ids if reviews.valid_ids(c,current) is None else h['id'] in reviews.valid_ids(c,current))]
         review = dict(builder={k:deepcopy(h[k]) for k in ('a_to_b','b_to_a')}, critic=deepcopy(matches),
                       review_status='unreviewed', possible_equivalence=False)
-        evs, counters = set(), set()
+        evs, counters = [], []
         for check in [h, *matches]:
             for direction in ('a_to_b', 'b_to_a'):
-                evs.update(check[direction]['evidence_ids']); counters.update(check[direction]['counter_evidence_ids'])
+                for target_refs, counter in [(evs,False), (counters,True)]:
+                    for ref in _judgment_refs(check[direction],blocks,counter):
+                        if ref not in target_refs: target_refs.append(ref)
         endpoints = [c for c in rows if c['target_id'] in {target(h['child_ref']),target(h['parent_ref'])}]
         endpoint_values = endpoints + [base[i] for i in (h['child_ref'], h['parent_ref']) if i in base]
         row = _make(dict(target_kind='hierarchy', after=dict(child_id=target(h['child_ref']), parent_id=target(h['parent_ref']), relation=h['relation']),
-            evidence_refs=[_ref({'evidence_id':i}, blocks) for i in sorted(evs)],
-            counter_evidence_refs=[_ref({'evidence_id':i}, blocks) for i in sorted(counters)],
+            evidence_refs=evs, counter_evidence_refs=counters,
             support_type='design_proposal', cq_ids=sorted({q for c in endpoint_values for q in c.get('cq_ids', [])}),
             scope_item_ids=sorted({q for c in endpoint_values for q in c.get('scope_item_ids', [])}),
             qualifiers=dict(statement_type='design_proposal'), rationale='A2 Builder의 제안 계층; 명시적 포함 여부는 사람 검수 필요', hierarchy_review=review),
@@ -141,30 +228,74 @@ def _convert(run, base, blocks):
             mapping[f"{taxonomy['unit_id']}:alias:{n}"] = dict(change_id=row['change_id'], target_id=row['target_id'])
     for row in rows:
         identifier = row['origin'].get('candidate_id')
+        identifiers = {identifier, *[c['id'] for c in row['origin'].get('additional_observations', [])]}
         deferrals = result.get('revision_deferrals', []) + [d for r in result.get('revisions', []) for d in r.get('deferred', [])]
         for deferred in deferrals:
-            if deferred['candidate_ref']==identifier:
+            if deferred['candidate_ref'] in identifiers:
                 row['review_status']='deferred'; row['unresolved_issues'].append(deepcopy(deferred))
-        row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id']==identifier]
-        row['origin']['critiques'] = [deepcopy(i) for c in result.get('critiques', []) for i in c.get('issues', []) if i.get('candidate_ref') in {'',identifier}]
-        row['origin']['relation_checks'] = [deepcopy(i) for c in result.get('critiques', []) for i in c.get('relation_checks', []) if i.get('candidate_ref')==identifier]
-        counter_refs = [_ref({'evidence_id':e}, blocks) for issue in row['origin']['critiques']
-                        if issue.get('candidate_ref')==identifier for e in issue.get('counter_evidence_ids', [])]
-        counter_refs += [_ref({'evidence_id':i['evidence_id'],'quote':i['quote']}, blocks)
-                        for i in row['origin']['relation_checks'] if i['judgment']=='refuted' and i.get('quote')]
+        row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id'] in identifiers]
+        current_reviews = []
+        for critique in result.get('critiques', []):
+            valid = reviews.valid_ids(critique,current)
+            related = identifiers & (identifiers-revised_ids if valid is None else valid)
+            if related: current_reviews.append((critique,related))
+        row['origin']['critiques'] = [deepcopy(i) for c,related in current_reviews for i in c.get('issues', []) if i.get('candidate_ref') in {'',*related}]
+        row['origin']['relation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('relation_checks', []) if i.get('candidate_ref') in related]
+        row['origin']['observation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('observation_checks', []) if i.get('candidate_ref') in related]
+        row['origin']['review_scopes']=[dict(unit_id=c['unit_id'],**deepcopy(c['review_scope'])) for c,_ in current_reviews if c.get('review_scope')]
+        unresolved = [i for c,related in current_reviews if 'review_outcomes' in c for field in ('relation_checks','observation_checks')
+            for i in c.get(field, []) if i.get('candidate_ref') in related and i['judgment']!='supported']
+        if unresolved:
+            row['review_status']='deferred'
+            row['unresolved_issues'].extend('Critic '+i['judgment']+': '+i['reason'] for i in unresolved)
+        binding_issues=[i['reason'] for i in row['origin']['critiques'] if i.get('cause')=='endpoint']
+        binding_issues += [reason for c in row['origin']['relation_checks'] for reason in c.get('binding_validation', [])]
+        if binding_issues:
+            row['review_status']='deferred'
+            row['unresolved_issues'].extend(binding_issues)
+        if identifiers & set(result.get('design_pending_relation_ids', [])):
+            row['review_status']='deferred'
+            row['unresolved_issues'].append('Builder 유형 연결 미완료 또는 명시 보류')
+        covered = set().union(*(reviews.valid_ids(c,current) or set() for c in result.get('critiques', [])))
+        expected = {i for c in result.get('critiques', []) for i in c.get('review_coverage', {}).get('expected_candidate_ids', [])}
+        expected.update(h['candidate_id'] for h in row['origin']['revision_history'])
+        expected.update(result.get('review_pending_candidate_ids', []))
+        pending = identifiers & (expected-covered)
+        if pending:
+            row['origin']['review_errors'] = [deepcopy(e) for c in result.get('critiques', [])
+                for e in c.get('record_errors', []) if pending & set(e['candidate_ids'])]
+            row['origin']['review_errors'].append(dict(candidate_ids=sorted(pending),reason='현재 후보의 유효한 검수 누락 또는 수정 전 판정'))
+            row['review_status']='deferred'
+            row['unresolved_issues'].append('A2 검수 미완료; 개별 오류·누락 또는 수정 후 의미 재검수 필요')
+        counter_refs = [ref for issue in row['origin']['critiques']
+                        if issue.get('candidate_ref') in identifiers for ref in _judgment_refs(issue,blocks,True)]
+        counter_refs += [ref for i in row['origin']['relation_checks'] if i['judgment']=='refuted'
+            for ref in (deepcopy(i['evidence_refs']) if i.get('evidence_refs') else
+                        [_ref({'evidence_id':i['evidence_id'],'quote':i['quote']}, blocks)] if i.get('quote') else [])]
         for ref in counter_refs:
             if ref not in row['counter_evidence_refs']:
                 row['counter_evidence_refs'].append(ref)
         review_units = {c['unit_id'] for c in result.get('critiques', []) if any(
             i in linked for field, linked in [('issues',row['origin']['critiques']),
-                ('relation_checks',row['origin']['relation_checks']),('hierarchy_checks',row['hierarchy_review'].get('critic',[]))]
+                ('relation_checks',row['origin']['relation_checks']),('observation_checks',row['origin']['observation_checks']),('hierarchy_checks',row['hierarchy_review'].get('critic',[]))]
             for i in c.get(field, []))}
         units = [u for u in run.get('analysis_units', [])
             if u['id'] in review_units or u['id']==row['origin'].get('unit_id')
-            or any(c.get('id')==identifier for field in ('observations','relations','hierarchies','effective_hierarchies') for c in u.get('output', {}).get(field, []))
-            or any(h.get('candidate_id')==identifier for h in u.get('output', {}).get('history', []))]
+            or u['id'] in {d['unit_id'] for d in row['origin'].get('discoveries', [])}
+            or any(c.get('id') in identifiers for field in ('observations','relations','hierarchies','effective_hierarchies') for c in u.get('output', {}).get(field, []))
+            or any(h.get('candidate_id') in identifiers for h in u.get('output', {}).get('history', []))]
         row['origin']['analysis_unit_ids'] = [u['id'] for u in units]
         row['origin']['dependency_block_ids'] = sorted({i for u in units for i in u.get('dependency_ids', [])})
+    for raw_id, representative in result.get('candidate_identity', {}).get('raw_to_candidate', {}).items():
+        if representative in mapping and raw_id not in mapping:
+            mapping[raw_id] = dict(mapping[representative], representative_candidate_id=representative)
+    for row in rows:
+        proposal = row['origin'].get('reuse_proposal')
+        if not proposal: continue
+        target_id = mapping.get(proposal['target_candidate_id'], {}).get('change_id')
+        target = next((c for c in rows if c['change_id']==target_id), None)
+        if target:
+            proposal.update(target_change_id=target_id,target_change_fingerprint=_reuse_fingerprint(target))
     return rows, references, mapping
 
 
@@ -320,6 +451,7 @@ def _validate(repo, db, change, run, base):
     from .snapshots import _statuses
     blocks, statuses, initial = _blocks(repo, db, run), _statuses(db), canonical.targets(base)
     proposals = change['candidates']
+    observations = {c['id']:c for c in change.get('analysis_result', {}).get('observations', [])}
     good = []
     for c in proposals:
         errors = []
@@ -336,6 +468,32 @@ def _validate(repo, db, change, run, base):
         except ValidationError as exc:
             errors.append('contract: '+str(exc)); continue
         target = initial.get(c['target_id'])
+        reuse = c['origin'].get('reuse_proposal')
+        if reuse:
+            prior = next((p for p in proposals if p['change_id']==reuse.get('target_change_id')), None)
+            if (reuse['status']=='stale' or not prior or prior['review_status']=='rejected'
+                or _reuse_fingerprint(prior)!=reuse.get('target_change_fingerprint')
+                or _evidence_errors(repo,db,prior.get('evidence_refs', []),blocks,statuses)):
+                errors.append('미승인 대응 대상 내용·근거 변경/사용 중단; 이전 재사용 제안 재검토 필요')
+        source_designs = c['origin'].get('source_relations') or (target or {}).get('modeling_origin', {}).get('source_relations')
+        if source_designs and (c['support_type']!='design_proposal' or c['qualifiers'].get('statement_type')!='design_proposal'):
+            errors.append('Builder 설계 출처가 있는 유형을 원문 명시 정의로 승격할 수 없음')
+        source_rule = c['origin'].get('source_relation') or (target or {}).get('modeling_origin', {}).get('source_relation', {})
+        if source_rule.get('statement_type')=='rule':
+            if c['support_type']!='design_proposal' or c['qualifiers'].get('statement_type')!='design_proposal':
+                errors.append('원문 규범과 이를 표현하는 스키마 설계를 구분해야 함')
+            if c['after'].get('required'):
+                errors.append('원문 규범의 의무를 슬롯 필수값으로 승격할 수 없음')
+        if c['origin'].get('review_errors') and not c['origin'].get('human_edited'):
+            errors.append('A2 검수 미완료; 오류·누락 또는 수정 후 판단을 명시 검토 필요')
+        if c['origin'].get('change_intent')=='alignment_pending' and not c['origin'].get('human_edited'):
+            errors.append('기존 정의 대응 미해결; 새 제안의 정의·근거·사유를 명시 검토 후 수정 필요')
+        if c['target_kind']=='relation' and c['origin'].get('unresolved_endpoints'):
+            errors.append('관계 끝점 연결 미해결: '+', '.join(c['origin']['unresolved_endpoints']))
+        if c['operation']=='update' and target and any(
+                a.get('meaning') in {'same','changed'} and not _same_alignment_name(observations.get(a['observation_ref'], {}), target)
+                for a in c['origin'].get('alignments', [])):
+            errors.append('기존 개념 대응의 명칭·대상 동일성 미확인; 다른 대상으로 재제안 필요')
         allowed_fields = ({'canonical_id'} if c['operation']=='merge' else set() if c['operation']=='deprecate' else AFTER_FIELDS[c['target_kind']])
         if set(c['after']) - allowed_fields:
             errors.append('변경 종류에 맞지 않는 정의 필드: '+str(sorted(set(c['after']) - allowed_fields)))
@@ -555,16 +713,28 @@ def _accepted_projection(repo,db,change,run,base):
     return chosen,items
 
 
-def preview(service, changeset_id):
+def preview(service, changeset_id, candidate_ids=None):
     with service.repository.connect() as db:
         change=service.repository.get(db,'changesets',changeset_id)
         if change.get('payload_version')!=2: raise ValueError('v2 변경 묶음 필요')
         base=_base(service.repository,db,change)
         run=service.repository.get(db,'runs',change['run_id'])
         _validate(service.repository,db,change,run,base)
-        selected=_review_candidates(change)
+        selected={}
         try:
-            compiled,derived,slots=canonical.build(base,canonical.project(base,list(selected.values())))
+            if candidate_ids is None:
+                selected=_review_candidates(change)
+                items=canonical.project(base,list(selected.values()))
+            else:
+                requested=set(candidate_ids)
+                known={c['change_id'] for c in change['candidates']}
+                if not requested or len(requested)!=len(candidate_ids) or not requested <= known:
+                    raise ValueError('미리보기 대상이 비었거나 중복/범위 밖 후보가 있음')
+                for c in change['candidates']:
+                    if c['change_id'] in requested: c['review_status']='accepted'
+                chosen,items=_accepted_projection(service.repository,db,change,run,base)
+                selected={c['change_id']:c for c in chosen}
+            compiled,derived,slots=canonical.build(base,items)
             return dict(changeset_id=changeset_id,changeset_revision=change['revision'],status='unreviewed_preview',
                 included_change_ids=list(selected), excluded_change_ids=[c['change_id'] for c in change['candidates'] if c['change_id'] not in selected],
                 **compiled,json_schema=derived,effective_class_slots=slots)
@@ -599,6 +769,10 @@ def decide(service, changeset_id, request):
                 if d.action not in {'modify','edit'} or not set(d.patch)<=EDITABLE:
                     raise ValueError('수정 필드/작업 오류; 서버 ID는 수정 불가')
                 c.update(deepcopy(d.patch));c['origin']['human_edited']=True
+                # Explicit endpoint edits resolve binding only; class/evidence validation still runs below.
+                if c['target_kind']=='relation' and 'after' in d.patch:
+                    c['origin']['unresolved_endpoints']=[key for key in c['origin'].get('unresolved_endpoints', [])
+                        if {'subject':'domain_id','object':'range'}[key] not in d.patch['after']]
             c['review_status']={'accept':'accepted','modify':'accepted','edit':'unreviewed','defer':'deferred','reject':'rejected'}[d.action]
         _validate(repo,db,change,run,base)
         for d in request.decisions:
