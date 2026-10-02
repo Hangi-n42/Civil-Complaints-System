@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v35'
+PROMPT_VERSION = 'discovery-a2-v36'
 
 
 def recipe(budgets):
@@ -588,14 +588,16 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
                 schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
         if stage=='builder':
-            local_types = ['t'+str(n) for n in range(1,6)]
             relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
-            if len(relation_ids)>5: raise ValueError('Builder 주관계는 최대 5개; 묶음 분리 필요')
+            if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
+            schema['properties']['observations']['maxItems']=0
+            schema['$defs']['DesignedType']['properties'].pop('local_ref')
             schema['$defs']['DesignedType']['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
             binding = schema['$defs']['RelationBinding']['properties']
             binding['relation_ref']['enum'] = relation_ids or ['']
-            for field in ('subject_ref','object_ref'): binding[field]['enum'] = type_ids+local_types
+            for field in ('subject_ref','object_ref'):
+                binding[field] = {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/DesignedType'}]}
             binding_definition=schema['$defs']['RelationBinding']
             variants=[]
             for decision in ('bind','defer','source_error'):
@@ -611,8 +613,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 schema['properties']['relation_bindings']['maxItems']=0
         hierarchy_schema = schema.get('$defs', {}).get('Hierarchy') or schema.get('$defs', {}).get('HierarchyRevision')
         if hierarchy_schema:
+            # ponytail: new inline types can join hierarchies/aliases once supplied in a later group.
             identifiers = [mapping[i] for i,c in supplied.items() if c.get('classification') in {'type','entity','vocabulary','unresolved'}]
-            if stage=='builder': identifiers += local_types
             if not identifiers:
                 schema['properties']['hierarchy_checks' if stage=='critic' else 'hierarchies']['maxItems'] = 0
             for name in ('child_ref','parent_ref'):
@@ -709,6 +711,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             decoded = json.loads(metadata['text'])
+            if stage=='builder': design.inline_types(decoded)
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'

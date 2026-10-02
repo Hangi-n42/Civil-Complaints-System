@@ -7,6 +7,18 @@ from pydantic import ValidationError
 from . import discovery_segments as segments, discovery_models as models
 
 
+def inline_types(output):
+    """Adapt declared wire endpoints to the existing stored type/binding contract."""
+    observations = output.setdefault('observations', [])
+    for binding in output.get('relation_bindings', []):
+        if not isinstance(binding, dict): continue
+        for field in ('subject_ref','object_ref'):
+            if isinstance(binding.get(field), dict):
+                candidate = dict(binding[field], local_ref='t'+str(len(observations)+1))
+                observations.append(candidate)
+                binding[field] = candidate['local_ref']
+
+
 def scope_local_refs(output):
     # Separate model t1..t5 from a supplied canonical ID that happens to have that name.
     local = {'t'+str(n):'local_'+uuid4().hex for n in range(1,6)}

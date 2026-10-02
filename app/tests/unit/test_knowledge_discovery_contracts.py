@@ -110,7 +110,7 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
                 c.pop('local_ref')
         jsonschema.validate(value,schema)
         if stage=='builder':
-            assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=5 for v in schema['anyOf'])
+            assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=2 for v in schema['anyOf'])
         if stage=='critic':
             assert set(data['review_target_ids']).isdisjoint(data['comparison_candidate_ids'])
             if comparison_only:
@@ -131,7 +131,71 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
         blocks=a2.load_blocks(service,trial);by_id={b['id']:b for b in blocks}
         groups=synthesis.assemble(trial,0,by_id,a2.profile.contexts(blocks),set(by_id))
         counts=[sum(c['id'] in g['primary_candidate_ids'] and c.get('statement_type') in {'rule','definition'} for c in g['candidates']) for g in groups]
-        assert sum(counts)==6 and max(counts)<=5
+        assert sum(counts)==6 and max(counts)<=2
+
+
+@pytest.mark.parametrize('invalid_source',[False,True])
+def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(service,model,monkeypatch,invalid_source):
+    import jsonschema
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call;seen=[]
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=source_response(json.loads(result['text']),data)
+        if stage=='relation':
+            value['relations']=[dict(value['relations'][0],conditions='원문 조건 '+str(n)) for n in range(4)]
+        if stage=='builder':
+            if not seen:assert run['review_reservation']['model_calls']==4
+            prior=data.get('comparison_terms',[]);seen.append((len(data['design_relation_ids']),len(prior)))
+            value=dict(observations=[],relation_bindings=[],hierarchies=[],alias_proposals=[],gaps=[],actions=[])
+            for identifier in data['design_relation_ids']:
+                binding=dict(relation_ref=identifier,decision='bind',reason='원문 역할의 근거 정의')
+                for field in ('subject_ref','object_ref'):
+                    if prior:
+                        binding[field]=prior[0 if field=='subject_ref' else 1]['id']
+                    else:
+                        binding[field]=dict(label='주체' if field=='subject_ref' else '대상',classification='type',
+                            definition='선택 원문의 '+field,classification_reason='원문 역할을 표현하는 설계',
+                            conditions='원문 범위',exceptions='',time='',support_type='design_proposal',abstraction_level='업무 역할',review_signals=[],
+                            source_relation_ids=[identifier],design_reason='관계의 주체와 대상 표현',
+                            source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')
+                value['relation_bindings'].append(binding)
+            jsonschema.validate(value,schema)
+            if value['relation_bindings']:
+                bad=deepcopy(value);bad['relation_bindings'][0]['subject_ref']='t1'
+                with pytest.raises(jsonschema.ValidationError):jsonschema.validate(bad,schema)
+            hierarchy=schema['$defs']['Hierarchy']['properties']
+            assert 't1' not in hierarchy['child_ref']['enum']
+            assert 't1' not in schema['$defs']['Alignment']['properties']['target_id']['enum']
+            if prior:assert prior[0]['id'] in hierarchy['child_ref']['enum']
+            if invalid_source and not prior:
+                value['relation_bindings'][0]['subject_ref']['source_refs']=['not_provided']
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    builders=[u for u in run['analysis_units'] if u['stage']=='builder']
+    assert len(builders)==2 and all(n==2 for n,_ in seen)
+    if invalid_source:
+        assert all(u['status']=='failed' for u in builders)
+        assert not any(u.get('output',{}).get('modeled_relations') for u in builders)
+        return
+    assert seen==[(2,0),(2,4)],run.get('error')
+    assert all(u['status']=='succeeded' for u in builders),[u['error'] for u in builders]
+    assert [len(u['output']['observations']) for u in builders]==[4,0]
+    assert all(not json.loads(u['raw_output'])['observations'] for u in builders)
+    assert all(not u['output']['binding_errors'] for u in builders)
+    relations={c['id']:c for u in run['analysis_units'] if u['stage']=='relation' for c in u['output']['relations']}
+    for unit in builders:
+        for relation in unit['output']['modeled_relations']:
+            original_relation=relations[relation['id']]
+            assert {k:relation['source_relation'][k] for k in original_relation}==original_relation
+    critic=next(u for u in run['analysis_units'] if u['id']=='critic:'+builders[1]['group_id'])
+    assert critic['status']=='succeeded',critic['error']
+    context=json.loads(critic['prompt'].split('\nINPUT:\n')[1])
+    assert len(context['unapproved_observations'])>=4  # Includes the reused endpoint definitions.
+    print('H2 critic input:',[(u['input_chars'],len(u['prompt'].encode())) for u in run['analysis_units'] if u['stage']=='critic'])
+    before=deepcopy(run['analysis_units']);calls=len(model)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert len(model)==calls and again['analysis_units']==before
 
 
 @pytest.mark.parametrize('model_refs', ['missing','duplicate'])

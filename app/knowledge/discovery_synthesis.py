@@ -78,7 +78,7 @@ def assemble(run, round_number, by_id, context_map, available):
         for candidate in ordered:
             trial = current + [candidate]
             ctx, deps, supplied = context_for(trial, by_id, context_map)
-            if current and (len(trial)>12 or sum(c.get('statement_type') in {'rule','definition'} for c in trial)>5 or not fits(run,'builder',ctx,deps,supplied,reserve=3000)):
+            if current and (len(trial)>12 or sum(c.get('statement_type') in {'rule','definition'} for c in trial)>2 or not fits(run,'builder',ctx,deps,supplied,reserve=3000)):
                 groups.append(dict(anchor=anchor, candidates=current)); current=[]
             current.append(candidate)
         if current: groups.append(dict(anchor=anchor,candidates=current))
@@ -242,6 +242,12 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
             for unit in units:
                 trial,trial_deps,trial_supplied,missing = add_terms(run,'builder',trial,trial_deps,trial_supplied,unit,by_id,context_map)
                 term_omissions.extend(missing)
+            links = {i for c in group['candidates'] for i in c.get('cq_ids', [])+c.get('scope_item_ids', [])}
+            prior = [c for c in a2.lookup(service,run,'','type',blocks) if c.get('support_type')=='design_proposal'
+                     and c['id'] not in trial_supplied and links & set(c.get('cq_ids', [])+c.get('scope_item_ids', []))]
+            trial,trial_deps,trial_supplied,missing = add_terms(run,'builder',trial,trial_deps,trial_supplied,
+                dict(tool_results=[dict(terms=prior)]),by_id,context_map)
+            term_omissions.extend(missing)
             group['builder_tool_context'] = dict(context={k:trial[k] for k in ('independently_retrieved','tool_originals','comparison_terms') if k in trial},
                 dependency_ids=sorted(set(trial_deps)-set(deps)),terms={i:c for i,c in trial_supplied.items() if i not in supplied})
             group['omitted_builder_context_ids'],group['omitted_builder_term_ids'] = omitted,term_omissions
@@ -259,6 +265,9 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', []) if c['id'] in new_design_ids]
         effective = {c['id']:c for c in group['candidates']}
         effective.update({c['id']:c for c in group['design_candidates']})
+        endpoints = {r[k] for r in taxonomy.get('modeled_relations', []) for k in ('subject','object')}
+        endpoints.update(h[k] for h in taxonomy['hierarchies'] for k in ('child_ref','parent_ref'))
+        effective.update({i:c for i,c in extra['terms'].items() if i in endpoints})
         context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
         supplied.update({h['id']:h for h in taxonomy['hierarchies']})
         context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
