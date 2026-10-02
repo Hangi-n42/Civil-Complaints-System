@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v37'
+PROMPT_VERSION = 'discovery-a2-v38'
 
 
 def recipe(budgets):
@@ -462,6 +462,9 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
     context = segments.bind(context, source_scope or run.get('id'), stage+':'+key)
+    if stage=='revision':
+        context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
+                            for c in context['targets']]
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)

@@ -64,7 +64,9 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
                 if mode=='late_action': value['actions']=[dict(action='search',query='추가 근거',reason='추가 대조 필요')]
         if stage=='revision':
             assert data['source_change_ids']==data['target_ids']
-            target=data['targets'][0];raw=target['source_relation']
+            target=data['targets'][0];raw=target
+            assert 'source_relation' not in target and target['subject']=='국민임대' and target['object']=='임대'
+            assert target['statement_type']=='definition'
             row={k:raw[k] for k in a2.models.Relation.model_fields if k in raw}
             row.update(local_ref='r1',candidate_ref=target['id'],reason='제공 원문의 조건 한정 보완',conditions='수정된 적용 범위')
             if mode=='changed_endpoint': row['object']='다른 원문 대상'
