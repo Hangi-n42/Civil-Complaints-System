@@ -59,6 +59,7 @@ def response(prompt, stage):
     def checks(rows):
         return [dict(candidate_ref=c['id'],judgment='supported',evidence_id=c['evidence_ids'][0],
             quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.',
+            binding_checks={k:'supported' for k in ('subject','object')} if any(b['relation_ref']==c['id'] for b in data.get('relation_bindings', [])) else {},
             semantic_checks={k:'supported' for k in a2.models.SEMANTIC_FIELDS['relation_checks' if 'negation' in c else 'observation_checks']})
             for c in rows if c['id'] in data.get('review_target_ids',[c['id']])]
     return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy,
@@ -76,6 +77,9 @@ def source_response(value, data):
         if any(k in row for k in ('evidence_ids','source_refs','evidence_id')):
             ids=row.get('evidence_ids', [])+([row['evidence_id']] if row.get('evidence_id') else [])
             result['source_refs']=list(dict.fromkeys(row.get('source_refs', [])+[v['source_ref'] for i in ids for v in views if v['ref']==i]))
+        if 'semantic_checks' in row:
+            result.pop('judgment',None)
+            if 'classification' in row['semantic_checks']: result.pop('binding_checks',None)
         if 'counter_evidence_ids' in row:
             result['counter_source_refs']=[v['source_ref'] for i in row['counter_evidence_ids'] for v in views if v['ref']==i]
         if 'relation_ref' in row: result.setdefault('decision','bind')
@@ -403,7 +407,7 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
         if stage=='critic':
             assert all('local_ref' not in c for c in data['unapproved_observations'])
             hierarchy_id=data['taxonomy']['hierarchies'][0]['id']
-            refs=schema['$defs']['Issue']['properties']['candidate_ref']['enum']
+            refs=schema['$defs']['Issue']['anyOf'][0]['properties']['candidate_ref']['enum']
             assert hierarchy_id in refs and '' in refs
             value=json.loads(result['text'])
             value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=hierarchy_id,defer_reason='사람 검수 필요',reason='방향 재검수 필요',
@@ -559,7 +563,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
                 value[section][0]['judgment']='refuted'
                 value[section][0]['semantic_checks'][field]='refuted'
             targets=data['unapproved_observations'][:1]+data['unapproved_relations'][:1]+data['taxonomy']['hierarchies'][:1]
-            value['issues']=[dict(local_ref=f'i{n}',cause='content_error',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1)]
+            value['issues']=[dict(local_ref=f'i{n}',cause='content_error',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1) if 'child_ref' in c]
             value['needs_revision']=True
         if stage=='revision':
             assert len(prompt)<=12000
@@ -614,7 +618,11 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         if c['target_kind']=='hierarchy':
             assert c['origin']['review_errors'] and not c['hierarchy_review']['critic'] and not c['can_accept']
         else:
-            assert c['origin']['critiques'] and not c['origin'].get('review_errors')
+            if c['target_kind']=='relation':
+                assert any('연결 유형 정의가 이번 검수에 제공되지 않음' in e['reason'] for e in c['origin']['review_errors'])
+                assert not c['origin']['relation_checks']
+            else:
+                assert c['origin']['critiques'] and not c['origin'].get('review_errors')
             assert not c['can_accept']  # The follow-up Critic still refutes this fixture's candidates.
         if c['target_kind']=='relation':
             # Canonical IDs do not order the revised type before its neighbor.
@@ -628,6 +636,9 @@ def test_revision_bounded_whole_sources_or_explicit_deferral(service,monkeypatch
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
             value=json.loads(result['text']);value['needs_revision']=True
+            for check in value['relation_checks']:
+                check['semantic_checks']['conditions']='refuted'
+                check['judgment']='refuted'
             value['gaps']=['검토 전체 이력 '*2000] # Prior overflowing context must not propagate wholesale.
             result['text']=json.dumps(value,ensure_ascii=False)
         return result
@@ -924,7 +935,7 @@ def test_revision_inherits_full_critic_dependencies_and_blocks_revocation(servic
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic' and json.loads(result['text'])['observation_checks']:
             ctx=json.loads(prompt.split('\nINPUT:\n')[1]); out=json.loads(result['text'])
-            out['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=ctx['unapproved_observations'][0]['id'],reason='추가 읽은 원문을 바탕으로 판단했다.',evidence_ids=[ctx['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            out['issues']=[]
             out['observation_checks'][0]['judgment']='refuted'
             out['observation_checks'][0]['semantic_checks']['definition']='refuted'
             out['needs_revision']=True; result['text']=json.dumps(out,ensure_ascii=False)
@@ -1014,6 +1025,7 @@ def test_critic_extra_original_reaches_revision_even_without_revision_flag(servi
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
             value=json.loads(result['text']);value['actions']=[dict(action='search',query='국민임대',reason='추가 근거 확인')]
+            for check in value['relation_checks']: check['semantic_checks']['conditions']='refuted'
             assert not value['needs_revision']
             result['text']=json.dumps(value,ensure_ascii=False)
         return result
@@ -1044,7 +1056,10 @@ def test_failed_revision_is_explicitly_deferred_without_second_attempt(service,m
     async def broken_revision(prompt,schema,stage,run,timeout):
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
-            value=json.loads(result['text']);value['needs_revision']=True;result['text']=json.dumps(value)
+            value=json.loads(result['text']);value['needs_revision']=True
+            for check in value['relation_checks']:
+                check['semantic_checks']['conditions']='refuted'
+                check['judgment']='refuted';result['text']=json.dumps(value)
         if stage=='revision': result['text']='{'
         return result
     monkeypatch.setattr(a2,'model_call',broken_revision)

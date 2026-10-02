@@ -13,11 +13,11 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v43'
+PROMPT_VERSION = 'discovery-a2-v44'
 
 
 def recipe(budgets):
-    return dict(reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -551,6 +551,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             missing_limit = 0 if context.get('review_scope', {}).get('missing_meanings_allowed') is False else max(2,min(5,len(primary_targets)))
             schema['properties']['missing_meanings']['maxItems']=missing_limit
             schema['$defs']['Issue']['required'].append('cause')
+
             for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
                 fields=models.SEMANTIC_FIELDS[section]
                 schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
@@ -603,6 +604,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 if name in {'RelationCheck','ObservationCheck'}:
                     ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
                     definition['properties']['candidate_ref']['enum'] = ids or ['']
+                    if run['recipe'].get('review_contract') == 'checks-v1':
+                        definition['properties'].pop('judgment')
+                        if name=='RelationCheck':
+                            definition['properties']['binding_checks'] = dict(type='object',properties={
+                                k:dict(type='string',enum=['supported','refuted','unknown']) for k in ('subject','object')},
+                                additionalProperties=False)
+                            if all(supplied[i].get('source_relation') for i in context.get('review_target_ids',supplied) if 'negation' in supplied[i]):
+                                definition['properties']['binding_checks']['required'] = ['subject','object']
+                        else: definition['properties'].pop('binding_checks',None)
                     definition['required'] = [p for p in definition['properties'] if p!='source_refs']
                     schema['required'] = list(schema['properties'])
                     definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
@@ -720,6 +730,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                         grounded['properties']['judgment']={'type':'string','enum':['supported','refuted']}
                         grounded['properties']['source_refs']['minItems']=1
                         node.clear();node['anyOf']=[unknown,grounded]
+        if stage=='critic' and run['recipe'].get('review_contract') == 'checks-v1':
+            issue=schema['$defs']['Issue']
+            other=deepcopy(issue)
+            issue['properties']['cause']['enum']=['evidence_error','alignment','source_absent','budget_exhausted']
+            other['properties']['cause']['enum']=['content_error','endpoint']
+            checked={i for i in context.get('review_target_ids',supplied) if 'classification' in supplied[i] or 'negation' in supplied[i]}
+            other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
+            schema['$defs']['Issue']={'anyOf':[issue,other]}
         source_only(schema)
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))

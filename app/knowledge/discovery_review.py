@@ -32,6 +32,7 @@ def valid_ids(review, candidates=None, latest=None):
 
 
 def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
+    checks_contract = require_issue_cause and run.get('recipe', {}).get('review_contract') == 'checks-v1'
     declared = set(context.get('review_target_ids', supplied))
     expected = {i:c for i,c in supplied.items() if i in declared and c.get('review_status')!='reviewed'}
     relations = {i for i,c in expected.items() if 'negation' in c}
@@ -64,7 +65,16 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                 if section=='issues' and require_issue_cause and isinstance(raw,dict) and 'cause' not in raw:
                     targets = {identifier} if identifier in expected else set()
                     raise ValueError('새 쟁점의 명시적 cause 누락; 기본 원인으로 복구하지 않음')
-                item = model.model_validate(raw).model_dump()
+                if checks_contract and section=='issues' and isinstance(raw,dict) and identifier in relations | observations and raw.get('cause') in {'content_error','endpoint'}:
+                    raise ValueError('새 계약의 내용/연결 쟁점은 세부 판정에서만 도출')
+                parsed = raw
+                if checks_contract and section in models.SEMANTIC_FIELDS and isinstance(raw,dict):
+                    checks = raw.get('semantic_checks', {})
+                    if set(checks) != set(models.SEMANTIC_FIELDS[section]):
+                        raise ValueError('필수 의미 항목 판정 누락')
+                    judgment = 'refuted' if 'refuted' in checks.values() else 'unknown' if 'unknown' in checks.values() else 'supported'
+                    parsed = dict(raw,judgment=judgment)
+                item = model.model_validate(parsed).model_dump()
                 segments.restore(item, by_id, provided)
                 validate_refs(item)
                 if section in {'relation_checks','observation_checks','hierarchy_checks'} and counts[target]!=1:
@@ -107,6 +117,18 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                             if not label: raise ValueError('독립 대조할 원문 끝점 표현 미확인: '+field)
                             if candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
                                 item.setdefault('binding_validation', []).append('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
+                    if checks_contract and section=='relation_checks':
+                        candidate=supplied[item['candidate_ref']]
+                        if candidate.get('source_relation'):
+                            if set(item['binding_checks']) != {'subject','object'}:
+                                raise ValueError('유형 연결의 주체/목적어 판정 누락')
+                            for field,judgment in item['binding_checks'].items():
+                                if supplied.get(candidate[field], {}).get('classification')!='type':
+                                    raise ValueError('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
+                                if judgment!='supported':
+                                    item.setdefault('binding_validation', []).append('유형 연결 '+field+' '+judgment+': '+item['reason'])
+                        elif item['binding_checks']:
+                            raise ValueError('유형 연결 없는 원명제에 binding 판정을 추가할 수 없음')
                     if section=='observation_checks' and require_issue_cause and item['judgment']=='supported':
                         # Fresh generation only; stored Critic records keep their original contract.
                         if set(item['semantic_checks'])!=set(models.SEMANTIC_FIELDS[section]) or any(v!='supported' for v in item['semantic_checks'].values()):
@@ -166,6 +188,17 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
     output['relation_checks']=[i for i in output['relation_checks'] if i['candidate_ref'] not in pending]
     output['observation_checks']=[i for i in output['observation_checks'] if i['candidate_ref'] not in pending]
     output['hierarchy_checks']=[i for i in output['hierarchy_checks'] if i['id'] not in pending]
+    if checks_contract:
+        for field in ('relation_checks','observation_checks'):
+            for check in output[field]:
+                causes = (['content_error'] if check['judgment']=='refuted' else [])
+                if 'refuted' in check['binding_checks'].values(): causes.append('endpoint')
+                for cause in causes:
+                    if any(i['candidate_ref']==check['candidate_ref'] and i['cause']==cause for i in output['issues']): continue
+                    output['issues'].append(dict(id='di_'+uuid4().hex,candidate_ref=check['candidate_ref'],
+                        cause=cause,target_ref='',reason=check['reason'],evidence_ids=[r['evidence_id'] for r in check.get('evidence_refs', [])],
+                        evidence_refs=deepcopy(check.get('evidence_refs', [])),counter_evidence_ids=[],defer_reason='',derived_from=field))
+        output['needs_revision']=any(i['cause'] in {'content_error','evidence_error','endpoint'} for i in output['issues'])
     valid_issue_ids={i['id'] for i in output['issues']} | previous
     output['actions']=[a for a in actions if a['action']!='request_evidence' or a['issue_id'] in valid_issue_ids]
     output['record_errors']=errors

@@ -270,12 +270,12 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     issues = review['issues'] + source_issues
     routed = {i['candidate_ref'] for i in issues if i.get('cause') in {'endpoint','alignment','source_absent','budget_exhausted'}}
     target_ids = {i['candidate_ref'] for i in issues if i['candidate_ref'] and i.get('cause','content_error') in {'content_error','evidence_error'}}
-    target_ids.update(i['candidate_ref'] for field in ('relation_checks','observation_checks') for i in review.get(field, []) if i['judgment']!='supported' and i['candidate_ref'] not in routed)
+    target_ids.update(i['candidate_ref'] for field in ('relation_checks','observation_checks') for i in review.get(field, []) if (i['judgment']=='refuted' if run['recipe'].get('review_contract')=='checks-v1' else i['judgment']!='supported') and i['candidate_ref'] not in routed)
     evidence_only = {i['candidate_ref'] for i in issues if i.get('cause')=='evidence_error'}
     evidence_only.update(i for i,c in candidates.items() if c.get('evidence_validation'))
     evidence_only -= {i['candidate_ref'] for i in issues if i.get('cause','content_error')=='content_error'}
     target_ids.update(evidence_only)
-    if not target_ids and not (issues or review.get('missing_meanings') or review.get('record_errors')):
+    if run['recipe'].get('review_contract')!='checks-v1' and not target_ids and not (issues or review.get('missing_meanings') or review.get('record_errors')):
         target_ids=set(group['primary_candidate_ids'])
     target_ids &= set(candidates)
     valid = reviews.valid_ids(review,candidates)
@@ -447,7 +447,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
             group['status']='review_issues_generated'
             needs_context=any(r.get('block_ids') or r.get('terms') for u in run['analysis_units'] if u['id'] in review_ids(group) for r in u.get('tool_results', []))
             candidate_revision = bool(group.get('source_errors')) or review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
-            if candidate_revision or needs_context or any(c['judgment']!='supported' for field in ('relation_checks','observation_checks') for c in review.get(field, [])) or any(c.get('evidence_validation') for c in supplied.values()):
+            if candidate_revision or needs_context or any((c['judgment']=='refuted' if run['recipe'].get('review_contract')=='checks-v1' else c['judgment']!='supported') for field in ('relation_checks','observation_checks') for c in review.get(field, [])) or any(c.get('evidence_validation') for c in supplied.values()):
                 revisions.append((group,review,taxonomy))
         except ValueError as exc:
             group['error']=str(exc)

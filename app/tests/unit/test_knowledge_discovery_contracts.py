@@ -52,9 +52,6 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
                 check.update(judgment='refuted',reason='원문 적용 범위 한정 누락')
                 check['semantic_checks']['conditions']='refuted'
                 value['needs_revision']=True
-                if mode!='check_only':
-                    value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=check['candidate_ref'],
-                        reason='기존 관계의 한정 보완',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')]
             if followup:
                 current=data['unapproved_relations'][0]
                 definitions={c['id'] for c in data['comparison_terms'] if 'classification' in c}
@@ -163,7 +160,9 @@ def test_observation_judgments_preserve_valid_sibling_and_a3(service,model,monke
             elif bad=='outside': item['evidence_id']='outside'
             elif bad=='semantic_missing': item['semantic_checks'].pop('definition')
             elif bad=='semantic_refuted': item['semantic_checks']['definition']='refuted'
-            else: item.update(judgment='unknown',evidence_id='',quote='',reason='유형의 범위에 필요한 정의가 없음')
+            else:
+                item.update(judgment='unknown',evidence_id='',quote='',reason='유형의 범위에 필요한 정의가 없음')
+                item['semantic_checks']['definition']='unknown'
             result['text']=json.dumps(value,ensure_ascii=False)
         return result
     monkeypatch.setattr(a2,'model_call',review)
@@ -173,7 +172,7 @@ def test_observation_judgments_preserve_valid_sibling_and_a3(service,model,monke
     expected={first['id'],second['id']}
     assert set(review['review_coverage']['expected_candidate_ids'])==expected
     assert first['id'] in review['review_coverage']['valid_candidate_ids']
-    assert (second['id'] in review['review_coverage']['pending_candidate_ids'])==(bad!='unknown')
+    assert (second['id'] in review['review_coverage']['pending_candidate_ids'])==(bad not in {'unknown','semantic_refuted'})
     if bad=='unknown': assert review['review_outcomes']['unknown']
     cid=ontology_changes.publish(service,run['id'])['changeset_id']
     with service.repository.connect() as db: changes=service.repository.get(db,'changesets',cid)['candidates']
@@ -339,7 +338,7 @@ def test_critic_missing_capacity_uses_unique_primary_views(service,model,monkeyp
         if stage=='critic':
             limit=0 if data['review_scope']['missing_meanings_allowed'] is False else max(2,min(5,targets));seen.append(limit)
             assert all(v['properties']['missing_meanings']['maxItems']==limit for v in schema['anyOf'])
-            assert 'cause' in schema['$defs']['Issue']['required']
+            assert all('cause' in v['required'] for v in schema['$defs']['Issue']['anyOf'])
             if at_limit:
                 value['missing_meanings']=[dict(role='relation',meaning=f'검수 대기 의미 {n}',source_refs=[data['blocks'][0]['source_ref']],
                     cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='',compared_candidate_ids=data['review_target_ids'],
@@ -630,7 +629,8 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
             check['semantic_checks']['definition']=judgment
             assert value['issues']==[] and not value['needs_revision']
         if stage=='revision':
-            assert not data['issues'] and not data['relation_checks']
+            assert not data['relation_checks']
+            assert [i['cause'] for i in data['issues']]==(['content_error'] if judgment=='refuted' else [])
             check=data['observation_checks'][0];target=data['targets'][0]
             assert check['candidate_ref']==target['id'] and check['reason']=='정의에 원문 밖 세부 추가'
             assert check['semantic_checks']['definition']==judgment and check['evidence_id']
@@ -641,6 +641,12 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
     monkeypatch.setattr(a2,'model_call',generated)
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=9,additional_rounds=0,revisions=1)))['run_id'])
     assert not run['result']['failures'],run['result']['failures']
+    if judgment=='unknown':
+        assert 'revision' not in model and not run['result']['revision_history']
+        cid=ontology_changes.publish(service,run['id'])['changeset_id']
+        rows=listing(service,cid)['candidates']
+        assert any(c['review_status']=='deferred' and any(i['judgment']=='unknown' for i in c['origin'].get('observation_checks', [])) for c in rows)
+        return
     assert model==['scout','concept','relation','builder','critic','critic','revision','critic','critic']
     history=run['result']['revision_history'][0];identifier=history['candidate_id']
     candidate=next(c for c in run['result']['observations'] if c['id']==identifier)
@@ -674,7 +680,7 @@ def test_supported_and_content_error_conflict_only_blocks_same_candidate(service
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1)))['run_id'])
     assert 'revision' not in model and len(model)==6
     relation=run['result']['relations'][0];review=run['result']['critiques'][0]
-    if cause=='content_error':
+    if cause in {'content_error','endpoint'}:
         assert relation['id'] in review['review_coverage']['pending_candidate_ids']
         assert not review['issues'] and not review['relation_checks'] and not run['recovery_requests']
         assert relation['id'] in run['result']['review_pending_candidate_ids']
@@ -684,7 +690,7 @@ def test_supported_and_content_error_conflict_only_blocks_same_candidate(service
     assert all(any(c['id'] in r['review_coverage']['valid_candidate_ids'] for r in run['result']['critiques']) for c in run['result']['observations'])
     cid=ontology_changes.publish(service,run['id'])['changeset_id'];rows=listing(service,cid)['candidates']
     row=next(c for c in rows if c['origin'].get('candidate_id')==relation['id'])
-    if cause=='content_error': assert not row['can_accept'] and row['origin']['review_errors']
+    if cause in {'content_error','endpoint'}: assert not row['can_accept'] and row['origin']['review_errors']
     good=next(c for c in rows if c['origin'].get('candidate_id')==run['result']['observations'][0]['id'])
     assert not good['origin'].get('review_errors')
 
