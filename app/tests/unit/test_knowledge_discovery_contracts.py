@@ -36,6 +36,95 @@ def test_expanded_input_selects_comparison_and_keeps_byte_and_actual_token_guard
     assert len(model)==count+1 and '토큰' in run['analysis_units'][-1]['error']
 
 
+@pytest.mark.parametrize('mode',['issue','check_only','changed_endpoint','late_action','no_budget','equivalent','resume_review'])
+def test_revision_recritic_preserves_source_history_and_current_preview(service,model,monkeypatch,mode):
+    from app.knowledge import discovery_review as reviews
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage=='builder': value['hierarchies']=[]
+        if stage=='critic':
+            followup=any(u['stage']=='revision' and u['status']=='succeeded' for u in run['analysis_units'])
+            if not followup and mode!='equivalent':
+                check=value['relation_checks'][0]
+                check.update(judgment='refuted',reason='원문 적용 범위 한정 누락')
+                check['semantic_checks']['conditions']='refuted'
+                value['needs_revision']=True
+                if mode!='check_only':
+                    value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=check['candidate_ref'],
+                        reason='기존 관계의 한정 보완',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')]
+            if followup:
+                current=data['unapproved_relations'][0]
+                definitions={c['id'] for c in data['unapproved_observations']}
+                if mode!='changed_endpoint':
+                    assert {current['subject'],current['object']} <= definitions
+                    assert current['source_relation']['conditions']=='수정된 적용 범위'
+                if mode=='late_action': value['actions']=[dict(action='search',query='추가 근거',reason='추가 대조 필요')]
+        if stage=='revision':
+            assert data['source_change_ids']==data['target_ids']
+            target=data['targets'][0];raw=target['source_relation']
+            row={k:raw[k] for k in a2.models.Relation.model_fields if k in raw}
+            row.update(local_ref='r1',candidate_ref=target['id'],reason='제공 원문의 조건 한정 보완',conditions='수정된 적용 범위')
+            if mode=='changed_endpoint': row['object']='다른 원문 대상'
+            row['endpoint_labels']={k:row[k] for k in ('subject','object')}
+            value=dict(observations=[],relations=[row],hierarchies=[],deferred=[])
+            import jsonschema
+            jsonschema.validate(source_response(value,data),schema)
+            if mode=='resume_review': service.cancel(run['id'])
+        result['text']=json.dumps(source_response(value,data),ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(
+        model_calls=6 if mode=='no_budget' else 7,additional_rounds=0,revisions=1)))['run_id'])
+    if mode=='resume_review':
+        assert model==['scout','concept','relation','builder','critic','revision'] and run['status']=='cancelled'
+        saved=[deepcopy(u) for u in run['analysis_units'] if u['status']=='succeeded']
+        run=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+        assert run['candidate_groups'][0]['revision_reservation']['pending_stages']==['critic']
+        assert [u for u in run['analysis_units'] if u['id'] in {s['id'] for s in saved}]==saved
+    assert not run['result']['failures'],run['result']['failures']
+    if mode in {'no_budget','equivalent'}:
+        assert model==['scout','concept','relation','builder','critic']
+        assert bool(run['result']['revision_deferrals'])==(mode=='no_budget')
+        return
+    assert model==['scout','concept','relation','builder','critic','revision','critic'],(run['candidate_groups'],run['result']['review_record_errors'])
+    history=run['result']['revision_history'][0]
+    current=run['result']['relations'][0];rid=current['id']
+    assert history['before']['source_relation']['conditions']=='원문 범위'
+    assert history['after']['conditions']==current['conditions']=='수정된 적용 범위'
+    assert run['result']['original_relations'][0]['conditions']=='원문 범위'
+    initial=next(u for u in run['analysis_units'] if u['id']=='critic:'+run['candidate_groups'][0]['id'])
+    followup=next(u for u in run['analysis_units'] if u['id']==run['candidate_groups'][0]['revision_review_unit_id'])
+    revision=next(u for u in run['analysis_units'] if u['stage']=='revision')
+    assert set(revision['dependency_ids']) <= set(followup['dependency_ids'])
+    assert rid not in reviews.valid_ids(initial['output'],{rid:current})
+    assert rid in reviews.valid_ids(followup['output'],{rid:current})
+    assert rid not in run['result']['unreviewed_candidate_ids']
+    if mode=='changed_endpoint':
+        assert not current.get('source_relation') and current['unresolved_endpoints']==['subject','object']
+    else:
+        assert current['source_relation']['conditions']=='수정된 적용 범위'
+        assert current['source_relation']['evidence_refs']==current['evidence_refs']
+        assert current['subject']==history['before']['subject'] and current['object']==history['before']['object']
+    before=deepcopy(run['analysis_units'])
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert len(model)==7 and again['analysis_units']==before
+    assert again['result']['revision_history']==run['result']['revision_history']
+    cid=ontology_changes.publish(service,again['id'])['changeset_id']
+    rows=listing(service,cid)['candidates'];row=next(c for c in rows if c['origin'].get('candidate_id')==rid)
+    assert not row['origin'].get('review_errors')
+    assert [c['judgment'] for c in row['origin']['relation_checks']]==['supported']
+    preview=ontology_changes.preview(service,cid,[c['id'] for c in rows])
+    if mode=='changed_endpoint':
+        assert not row['can_accept'] and preview['status']=='invalid_preview'
+    elif mode=='late_action':
+        assert not row['can_accept'] and row['review_status']=='deferred'
+        assert any('추가 도구 요청 미처리' in str(i) for i in row['unresolved_issues'])
+    else:
+        assert row['review_status']!='deferred' and preview['status']=='unreviewed_preview',(row,preview)
+
+
 def test_builder_target_binding_defer_missing_and_duplicate_are_separate():
     types={i:dict(id=i,classification='type') for i in ('a','b')}
     rules={i:dict(id=i,statement_type='rule',subject='사업자',object='입주자',conditions='A 또는 B, 다만 C 제외',

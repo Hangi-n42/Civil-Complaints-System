@@ -567,7 +567,9 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
                     item['source_quotes']=[dict(evidence_id=c['evidence_ids'][0],quote=text[:2] if quote_valid else '이번 입력에 없는 인용')]
                     value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary'))
                 elif 'negation' in c:
-                    item={k:c[k] for k in a2.models.Relation.model_fields if k!='local_ref' and k in c}
+                    raw=c.get('source_relation',c)
+                    item={k:raw[k] for k in a2.models.Relation.model_fields if k!='local_ref' and k in raw}
+                    item['endpoint_labels']={k:raw[k] for k in ('subject','object')}
                     value['relations'].append(dict(item,local_ref='r1',candidate_ref=c['id'],reason='제외 조건은 관계 전체의 부정이 아니다.',negation='affirmed'))
                 else:
                     item={k:c[k] for k in a2.models.Hierarchy.model_fields}
@@ -597,15 +599,20 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert model.count('revision')==1 and again['result']['revision_history']==run['result']['revision_history']
     assert run['status']==again['status']=='partial'
-    assert revised['id'] in again['result']['unreviewed_candidate_ids']
+    assert model.count('critic')==2 and revised['id'] not in again['result']['unreviewed_candidate_ids']
     from app.knowledge import ontology_changes as a3
     from app.tests.unit.test_knowledge_ontology_changes import listing
     cid=a3.publish(service,again['id'])['changeset_id']
     changed={h['candidate_id'] for h in run['result']['revision_history']}
     candidates=[c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id') in changed]
-    assert candidates and all(c['origin'].get('review_errors') and not c['can_accept'] for c in candidates)
-    assert all(not c['origin']['relation_checks'] and not c['origin']['critiques'] for c in candidates)
-    assert all(not c['hierarchy_review'].get('critic') for c in candidates)
+    assert candidates
+    for c in candidates:
+        if c['target_kind']=='hierarchy':
+            assert c['origin']['review_errors'] and not c['hierarchy_review']['critic'] and not c['can_accept']
+        else:
+            assert c['origin']['critiques'] and not c['origin'].get('review_errors')
+            assert c['can_accept']==(quote_valid and c['target_kind']=='vocabulary_concept')
+        if c['target_kind']=='relation': assert 'domain은 class ID 필요' in c['validation']['structural_errors']
 
 
 

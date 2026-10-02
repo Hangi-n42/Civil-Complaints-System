@@ -142,6 +142,31 @@ def add_terms(run, stage, context, deps, supplied, unit, by_id, context_map):
     return context,deps,supplied,omitted
 
 
+def review_context(run, group, taxonomy, by_id, context_map, history=()):
+    effective = {c['id']:c for c in group['candidates']}
+    effective.update({c['id']:c for c in group['design_candidates']})
+    endpoints = {r[k] for r in taxonomy.get('modeled_relations', []) for k in ('subject','object')}
+    endpoints.update(h[k] for h in taxonomy['hierarchies'] for k in ('child_ref','parent_ref'))
+    effective.update({i:c for i,c in group['builder_tool_context']['terms'].items() if i in endpoints})
+    effective.update({h['candidate_id']:identities.view(run,h['after'],revised=True) for h in history})
+    context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
+    supplied.update({h['id']:h for h in taxonomy['hierarchies']})
+    context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
+        [h['id'] for h in taxonomy['hierarchies']]))
+    context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
+    primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
+    primary_views = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in primary['blocks']}
+    for view in context['blocks']:
+        if group.get('comparison_only') or (view['ref'],tuple(view.get('span',[0,len(view['text'])]))) not in primary_views:
+            view.update(analysis_target=False,context_only=True)
+    # Resolved endpoints and reasons already appear on the modeled relations.
+    context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
+    coverage = [t for g in run['frontier'] if g['id'] in group['analysis_group_ids'] for t in g.get('analysis_target_coverage', [])]
+    if coverage:
+        context['analysis_target_coverage'] = [{k:v for k,v in t.items() if k!='source_ref'} for t in coverage]
+    return context,deps,supplied
+
+
 def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates = {c['id']:c for c in group['candidates']}
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
@@ -195,12 +220,25 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         trial_deps=sorted(set(trial_deps) | {b['ref'] for b in extra})
         trial.pop('unapproved_observations'); trial.pop('unapproved_relations'); trial.pop('reviewed_base')
         trial.update(target_ids=trial_ids, targets=[candidates[i] for i in trial_ids], evidence_only_ids=sorted(set(trial_ids)&evidence_only),
+            source_change_ids=[i for i in trial_ids if candidates[i].get('source_relation') and i not in evidence_only],
             comparison_candidates=[candidates[i] for i in sorted(required-set(trial_ids))], issues=issues, relation_checks=checks)
         if fits(run,'revision',trial,trial_deps,trial_supplied):
             selected=trial_ids;context,deps,supplied=trial,trial_deps,trial_supplied
         else:
             group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='필수 원문 전체가 수정 입력 한도를 초과하여 보류'))
     if not selected: return
+    followup_id='critic:'+group['id']+':revision1:review'
+    succeeded={u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+    completed=existing and existing['status']=='succeeded'
+    pending=([] if completed else ['revision']) + (['critic'] if followup_id not in succeeded and (not completed or existing['output']['history']) else [])
+    estimates=run.get('role_time_estimates', {})
+    required_s=sum(estimates.get(stage, {}).get('estimate_s',run['recipe']['call_timeout']) for stage in pending)
+    budget=run['recipe']['budgets'];metrics=run['metrics']
+    remaining_s=budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s',0)
+    group['revision_reservation']=dict(pending_stages=pending,model_calls=len(pending),estimated_model_s=required_s)
+    if budget['model_calls']-metrics['llm_calls']<len(pending) or remaining_s<required_s:
+        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정과 필수 재검수의 호출/시간 예산 부족; 자동 증액 없음') for i in selected)
+        return
     unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+group['id'])
     requested=[i for r in unit.get('tool_results', []) for i in r.get('block_ids', [])]
     deps=sorted(set(deps) | set(unit['dependency_ids']))
@@ -215,6 +253,25 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     if result is not None:
         group['revision_unit_id']='revision:'+group['id']+':revision1'
         group['revision_review_status']='미검수 수정 제안; 사람이 재검수해야 함'
+        if result['history']:
+            revision_unit=next(u for u in run['analysis_units'] if u['id']==group['revision_unit_id'])
+            revised_taxonomy=deepcopy(taxonomy)
+            revised_taxonomy['hierarchies']=[identities.view(run,h) for h in result.get('effective_hierarchies',taxonomy['hierarchies'])]
+            context,deps,supplied=review_context(run,group,revised_taxonomy,by_id,context_map,result['history'])
+            deps=sorted(set(deps) | set(revision_unit['dependency_ids']))
+            context['review_scope']=deepcopy(group.get('review_scope',dict(extent='provided_only',whole_input_assessed=False)))
+            context['review_search_status']=[{k:v for k,v in item.items() if k!='block_ids'} for item in group.get('critic_searches', [])]
+            context,deps,omitted=add_retrieved(run,'critic',context,deps,supplied,revision_unit['provided_block_ids'],by_id,context_map)
+            group['omitted_revision_review_context_ids']=omitted
+            key=group['id']+':revision1:review'
+            group['revision_review_unit_id']=followup_id
+            followup=a2.call(service,run,'critic',key,context,deps,by_id,supplied)
+            if followup is not None:
+                group['revision_review_status']='수정 제안의 AI 재검수 저장; 사람 수락 아님'
+                a2.queue_recovery(run,followup,group,by_id)
+                if any(a['action']!='finish' for a in followup.get('actions', [])):
+                    # ponytail: one re-review; further evidence requests stay explicit human deferrals.
+                    group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 후 Critic의 추가 도구 요청 미처리; 사람 검수로 보류') for i in context['review_target_ids'])
     else:
         unit=next(u for u in run['analysis_units'] if u['id']=='revision:'+group['id']+':revision1')
         group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 결과 미확정: '+str(unit.get('error') or '취소/중단')+'; 사람 검수로 보류') for i in selected)
@@ -263,26 +320,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         group['design_candidates'] = taxonomy.get('observations', []) + taxonomy.get('modeled_relations', [])
         group['source_errors'] = taxonomy.get('source_errors', [])
         group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', []) if c['id'] in new_design_ids]
-        effective = {c['id']:c for c in group['candidates']}
-        effective.update({c['id']:c for c in group['design_candidates']})
-        endpoints = {r[k] for r in taxonomy.get('modeled_relations', []) for k in ('subject','object')}
-        endpoints.update(h[k] for h in taxonomy['hierarchies'] for k in ('child_ref','parent_ref'))
-        effective.update({i:c for i,c in extra['terms'].items() if i in endpoints})
-        context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
-        supplied.update({h['id']:h for h in taxonomy['hierarchies']})
-        context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
-            [h['id'] for h in taxonomy['hierarchies']]))
-        context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
-        primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
-        primary_views = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in primary['blocks']}
-        for view in context['blocks']:
-            if group.get('comparison_only') or (view['ref'],tuple(view.get('span',[0,len(view['text'])]))) not in primary_views:
-                view.update(analysis_target=False,context_only=True)
-        # Resolved endpoints and reasons already appear on the modeled relations.
-        context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
-        coverage = [t for g in run['frontier'] if g['id'] in group['analysis_group_ids'] for t in g.get('analysis_target_coverage', [])]
-        if coverage:
-            context['analysis_target_coverage'] = [{k:v for k,v in t.items() if k!='source_ref'} for t in coverage]
+        context,deps,supplied=review_context(run,group,taxonomy,by_id,context_map)
         try:
             if 'critic_context_ids' not in group:
                 label=' '.join(c.get('label',c.get('subject','')) for c in group['candidates'][:3])
@@ -319,7 +357,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
             critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
             candidate_revision = bool(group.get('source_errors')) or review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
-            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in effective.values()):
+            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in supplied.values()):
                 revisions.append((group,review,taxonomy))
         except ValueError as exc:
             group['error']=str(exc)

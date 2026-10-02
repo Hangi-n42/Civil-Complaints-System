@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v36'
+PROMPT_VERSION = 'discovery-a2-v37'
 
 
 def recipe(budgets):
@@ -328,11 +328,19 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                         if key in replacement: repaired[key]=replacement[key]
                     replacement.clear()
                     replacement.update(repaired)
+                source_change = identifier in (context or {}).get('source_change_ids', []) and not evidence_only
                 for key in ('source_relation','source_relation_ids','design_reason'):
+                    if source_change: continue
                     if key in original: replacement[key]=deepcopy(original[key])
                 if original.get('source_relation_ids'):
                     replacement['support_type']='design_proposal'
-                if original.get('source_relation'):
+                if source_change:
+                    raw = dict(deepcopy(replacement),id=identifier,revision_status='unreviewed_revision')
+                    if all(raw[k]==original['source_relation'][k] for k in ('subject','object')):
+                        replacement.update(subject=original['subject'],object=original['object'],source_relation=raw,
+                            unresolved_endpoints=[],statement_type='design_proposal',support_type='design_proposal',
+                            design_reason=original.get('design_reason',''))
+                elif original.get('source_relation'):
                     replacement.update(statement_type='design_proposal',support_type='design_proposal')
                 replacement['id'] = identifier
                 replacement['revision_status'] = 'unreviewed_revision'
@@ -718,8 +726,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             output = models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output)
             for row in output.get('relations', []):
-                original = supplied.get({v:k for k,v in mapping.items()}.get(row.get('candidate_ref')), {})
-                if stage=='relation' or (stage=='revision' and original.get('endpoint_mode')=='source_text' and not original.get('source_relation')):
+                identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
+                original = supplied.get(identifier, {})
+                source_change = identifier in context.get('source_change_ids', [])
+                if stage=='relation' or (stage=='revision' and (source_change or original.get('endpoint_mode')=='source_text' and not original.get('source_relation'))):
                     row['endpoint_mode']='source_text'
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
@@ -753,6 +763,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     candidate['evidence_refs'] = refs
                     candidate['evidence_validation'] = errors
                     candidate['validation'].extend(errors)
+                    if candidate.get('source_relation', {}).get('revision_status')=='unreviewed_revision':
+                        candidate['source_relation'].update(evidence_refs=deepcopy(refs),evidence_validation=list(errors),validation=list(candidate['validation']))
                 for history in output['history']:
                     replacement = next((c for c in revised if c['id']==history['candidate_id']), None)
                     if replacement is not None: history['after'] = deepcopy(replacement)
@@ -1229,6 +1241,9 @@ def finish(run, blocks, available):
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
     review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
+    for group in run.get('candidate_groups', []):
+        followup = next((u for u in outputs if u['id']==group.get('revision_review_unit_id')), None)
+        if followup: review_units[group['id']]=followup['output']
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
                 and g['id'] in review_units and not review_units[g['id']].get('record_errors')
                 and not review_units[g['id']].get('capacity_pending')
