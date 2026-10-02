@@ -1,0 +1,73 @@
+{
+  "id": "ontology-critic-j2-assessor-v1",
+  "frozen_at": "2026-10-02T07:37:16.863884+00:00",
+  "input_to_generation": false,
+  "issue": 567,
+  "source_unit": "critic:cg_a8f4458e1e98f06438cc",
+  "source_block_id": "1e4c6a6dfc69410b923e15b9e748efa4",
+  "source_span": [
+    211,
+    539
+  ],
+  "targets": [
+    {
+      "case": "R-A",
+      "candidate_id": "dc_0f18532252354b7384e4c348be63e9f0",
+      "model_ref": "c0",
+      "dimension": "conditions",
+      "truth": "valid",
+      "expected": "제1·2항 예외·지역실정·LH 국민임대 건설공급 전제를 보존하므로 supported, 같은 조건의 누락 재요구 없음"
+    },
+    {
+      "case": "R-A",
+      "candidate_id": "dc_183aff5c7d6743d686b1fce0f45c516b",
+      "model_ref": "c1",
+      "dimension": "conditions",
+      "truth": "valid",
+      "expected": "지자체 또는 지방공기업법49조 주택사업 목적 지방공사의 건설·공급 전제와 나머지 조건이 이미 보존됨. 조건 supported, 같은 조건의 누락 재요구 없음"
+    },
+    {
+      "case": "R-B",
+      "candidate_id": "dc_0f18532252354b7384e4c348be63e9f0",
+      "model_ref": "c0",
+      "dimension": "conditions",
+      "truth": "error",
+      "expected": "한국토지주택공사가 국민임대주택을 건설하여 공급하는 경우라는 제거 전제를 정확히 지목하고 원문 근거를 제시. conditions와 전체 supported 불가, 기존 명제 수정 요청"
+    },
+    {
+      "case": "R-B",
+      "candidate_id": "dc_183aff5c7d6743d686b1fce0f45c516b",
+      "model_ref": "c1",
+      "dimension": "conditions",
+      "truth": "valid",
+      "expected": "A와 동일한 정상 조건 supported, 누락 재요구 없음"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_53bb37fa68394b3aadf3b54d6416a2c6",
+      "model_ref": "c3",
+      "dimension": "definition",
+      "truth": "error",
+      "expected": "시ㆍ도지사라는 명칭 등장은 정의 전체의 근거가 아님. 특별시·광역시·특별자치시·도 또는 특별자치도의 지사라는 원문 밖 행정구분 추가를 구체적으로 지목하고 definition/전체 supported 불가, 정의 수정 또는 명시 보류"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_e694e6c5ff09405986b3a574a8919c3d",
+      "dimension": "definition",
+      "truth": "valid",
+      "expected": "국민임대주택 우선공급 대상자·공급비율·입주자 선정 순위에 관한 기준을 유형으로 제안한 정상 설계 추상화. 정의 전체 supported, 근거 없는 수정 요구 없음.",
+      "model_ref": "c4"
+    }
+  ],
+  "interpretation": [
+    "원문 역할의 설계 추상화 자체는 오류가 아니다. 근거 없는 사실적 세부와 구별한다.",
+    "원시 응답과 정규화/수정 대상·보류를 분리한다. 서버 격리만으로 모델의 올바른 탐지를 주장하지 않는다.",
+    "조건은 동등한 표현이면 인정한다. 인용 자체에만 남은 의미는 후보 표현 충족이 아니다."
+  ],
+  "counts": "대상별 TP/FP/FN/정상 유지/TN/보류 건수, 작은 표본의 정확도 백분율 금지",
+  "pass_gate": "6개 대상 모두 기대 판정과 근거 충족, 정상조건 오탐·오류 미탐·필수 판정 누락 없음",
+  "failure_action": "Qwen 실패 시 동결 Gemma 3회; 둘 다 실패 시 J3 미수행",
+  "participant_count": 0,
+  "human_total_s": null,
+  "denominator": "정상4/오류2; I3와 분모 상이"
+}

@@ -1,0 +1,176 @@
+{
+  "id": "ontology-semantic-j2-v1",
+  "issue": 567,
+  "frozen_at": "2026-10-02T07:37:16.871316+00:00",
+  "implementation_commit": "7b5b30ccafb8da3137ff96a01ce18ef8dd8eff5a",
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "f042b6c02440da98a377cd4c1a4b0139cf2a1995755ae9df1114bbed29f87445",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "e04b65a4121db3f2f1906e21612a6a19d77306e66624be9616970091b96eca78",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "d332967d85efc8f5ae02951b20ba00da0d61534da121448be5258168098a3173",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "73053190f076f3413ca2054ae85bec200aef8c92116a3e61e423ab5742f341d0",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "2a5779a9690143aa99dc7e8340b5da6358dc93e4bb5b6feddc293df861ab8518",
+    "app/knowledge/discovery_synthesis.py": "d70b643246c8a4534c67cf5279d005785fc401a36604952255e04137120b8dcb",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "ad5985bc52c426d59c6e3871181c07b6ed37a2a05206d528e15a526927602af8",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6"
+  },
+  "diagnostic_runner": {
+    "path": "scripts/run_knowledge_critic_diagnostic.py",
+    "sha256": "acd0af697152912988b218194d1a83d2bdc838497079b3142b4053767d1cba64"
+  },
+  "diagnostic_inputs": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_j2_preflight_20261002/diagnostic_inputs.json",
+    "sha256": "e35c43fbbfe4bd084641fd45829804193cbf6965615fa4243b9f1b212dd198fe"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_j2_preflight_20261002/preflight.json",
+    "sha256": "365552727e43f6f1b7e68995cb29a868deaf0b60e9645c41d5bbb98c9001287f"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_j2_diagnostic_assessor_v1.json",
+    "sha256": "967226aeaca9249f78dc522099cd49e11f030c2d59390836203517107647653a"
+  },
+  "original_hashes": {
+    "data/knowledge/semantic_h4_20261002/c2_once/result.json": "308baf152dca9b18c8951c3dfb00e3e3ff2f74786756a041e5081637beeb0c51",
+    "data/knowledge/semantic_h4_20261002/c2_once/knowledge.db": "4908adc15a7aa539ecbdb4ea8ef67c948a59dbb3c674f16f2a8a5ab6be6800ea",
+    "data/knowledge/semantic_h4_20261002/c2_once/started.json": "0e9b0472fe935747b27f8c607eb6ecd8bda39cac4ea568c43971c3dcd7c530f3",
+    "data/knowledge/semantic_h4_20261002/c2_once/calls.jsonl": "2fa768eec94218f6e7c44318fbdb5bfd4f16a29ad7db279d62d51a8ce4a45c9c",
+    "configs/knowledge/quality_20261001/semantic_completion_h4_v1.json": "af0f56edb489ecff69abb89c733150005e327be7877b13ea07bbad311068977c",
+    "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_i3_preflight_20261002/diagnostic_inputs.json": "ac280c40a5c4fc47ef10cc0fb0e4993db12dfac90004bc01325bf67840d27226",
+    "data/knowledge/semantic_i3_20261002/diagnostic_once/result.json": "bc52f12a5927b0c7521bcf78cdc0839769c21af76364a9354309d3d5ac5cca44"
+  },
+  "settings": {
+    "qwen": {
+      "model": "qwen3.8:27b-q4_K_M",
+      "recipe": {
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v41",
+        "prompt_hash": "c0a80e5bb16772e9504015a7094ae80595cea9d8b10d87d6e18376367a13b83b",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 900,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+      },
+      "model_options": {
+        "model": "qwen3.8:27b-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "http_calls": 3,
+      "model_seconds": 900
+    },
+    "gemma": {
+      "model": "gemma4:31b-it-q4_K_M",
+      "recipe": {
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v41",
+        "prompt_hash": "c0a80e5bb16772e9504015a7094ae80595cea9d8b10d87d6e18376367a13b83b",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 900,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+      },
+      "model_options": {
+        "model": "gemma4:31b-it-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "http_calls": 3,
+      "model_seconds": 900
+    }
+  },
+  "diagnostic_cases": [
+    {
+      "id": "R-A",
+      "key": "cg_a8f4458e1e98f06438cc:relations:d5e5a4a427a30150",
+      "prompt_sha256": "ff42d35ad4d45d722101b62917421fc0e150a071d4c80ef14fe991847f254d16",
+      "schema_sha256": "d0ece972914d843a89ae120ee1eec9761593ebc5ef26f20d8ef6bd5fb111a00c"
+    },
+    {
+      "id": "R-B",
+      "key": "cg_a8f4458e1e98f06438cc:relations:d5e5a4a427a30150",
+      "prompt_sha256": "79032c7e297b7207c18091251cf6fc5a4f08b0c0ca2f029b4e4e9b2db70b674b",
+      "schema_sha256": "d0ece972914d843a89ae120ee1eec9761593ebc5ef26f20d8ef6bd5fb111a00c"
+    },
+    {
+      "id": "D",
+      "key": "cg_a8f4458e1e98f06438cc:observations:60c7060f19be5994",
+      "prompt_sha256": "85adac11ac63be6b510b00b5df934e7e4bab393dc3459857cacfd955a0ecc7d5",
+      "schema_sha256": "c8a649693094e185b5d438db05a7436cbecb63e99aa023af4dddb96330c94350"
+    }
+  ],
+  "http_timeout_s": 300,
+  "total_http_calls": 6,
+  "total_model_seconds": 1800,
+  "procedure": [
+    "Qwen 각 입력1회; 독립6판정 전부 통과시 대안 생략",
+    "실패시 동일 입력/스키마/옵션 Gemma 각1회",
+    "둘 다 실패시 J3 미수행; 재튜닝/재호출 없음"
+  ],
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}
