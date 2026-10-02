@@ -4,7 +4,22 @@ import re
 
 from . import discovery_profile as profile
 
-VERSION = 'source-spans-v2'
+VERSION = 'source-spans-v3'
+
+
+def clause_views(views):
+    """Address circled paragraphs in the same packet, including their subordinate items."""
+    result = []
+    for view in views:
+        starts = [m.start() for m in re.finditer('[①-⑳]', view['text'])]
+        if view.get('context_only') or len(starts)<2:
+            result.append(view); continue
+        offset = view.get('span', [0])[0]
+        boundaries = sorted({0, *starts, len(view['text'])})
+        for a,b in zip(boundaries,boundaries[1:]):
+            result.append(dict(view, text=view['text'][a:b], span=[offset+a,offset+b],
+                context_only=a not in starts, analysis_target=a in starts))
+    return result
 
 
 def split(block):
@@ -51,7 +66,7 @@ def expand(frontier, by_id):
 
 def packet(group, by_id, context_map, whole_packet):
     raw = whole_packet(list(dict.fromkeys(group['block_ids'] + group.get('context_block_ids', []))), by_id, context_map)
-    if not group.get('segments'): return raw
+    if not group.get('segments'): return clause_views(raw)
     views = []
     for block in raw:
         segments = [s for s in group['segments'] if s['block_id']==block['ref']]
@@ -65,7 +80,23 @@ def packet(group, by_id, context_map, whole_packet):
                 seen.add(tuple(span))
                 views.append(dict(block, text=block['text'][slice(*span)], span=span,
                                   context_only=span!=segment['span'], segment_recipe=segment['recipe']))
-    return views
+    return clause_views(views)
+
+
+def target_coverage(output, provided):
+    """Response presence only; citations never certify semantic completeness."""
+    targets = {v['source_ref']:v for v in provided if v.get('analysis_target') and not v.get('context_only')}
+    gaps = {}
+    output['target_gap_errors'] = []
+    for gap in output.get('target_gaps', []):
+        if gap['source_ref'] not in targets:
+            output['target_gap_errors'].append(dict(gap,reason='미제공 분석 항의 공백 응답: '+gap['reason']))
+            continue
+        gaps.setdefault(gap['source_ref'], []).append(gap['reason'])
+    return [dict(block_id=v['ref'],span=v['span'],source_ref=ref,
+        candidate_ids=[c['id'] for c in output.get('relations', []) if ref in c.get('source_refs', [])
+                       and not c.get('validation') and not c.get('outside_scope_reason')],
+        gaps=gaps.get(ref, []), semantic_status='unverified') for ref,v in targets.items()]
 
 
 def originals(value):

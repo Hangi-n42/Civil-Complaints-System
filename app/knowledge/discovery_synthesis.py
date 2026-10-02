@@ -245,6 +245,9 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
         # Resolved endpoints and reasons already appear on the modeled relations.
         context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
+        coverage = [t for g in run['frontier'] if g['id'] in group['analysis_group_ids'] for t in g.get('analysis_target_coverage', [])]
+        if coverage:
+            context['analysis_target_coverage'] = [{k:v for k,v in t.items() if k!='source_ref'} for t in coverage]
         try:
             if 'critic_context_ids' not in group:
                 label=' '.join(c.get('label',c.get('subject','')) for c in group['candidates'][:3])

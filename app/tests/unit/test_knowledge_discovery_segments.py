@@ -42,6 +42,27 @@ def test_nested_article_preserves_governing_clause_for_later_numbered_item():
     assert '4. 지방공사 건설 공급.' in provided and '장관 또는 시ㆍ도지사가 별도 기준을 정한다.' in provided
 
 
+def test_short_clauses_keep_one_group_and_subitems_with_parent():
+    text='제15조 ① 별표에 따른 선정. ② 잔여주택이면 완화 또는 선착순. ③ 다음 각 호이면 별도 기준. 1. LH 공급. 2. 지방공사 공급.'
+    b=block(text);group=dict(id='g',block_ids=['b'])
+    assert segments.expand([group],{'b':b})==[group]
+    raw=segments.packet(group,{'b':b},{},lambda *args:[dict(ref='b',text=text)])
+    assert ''.join(v['text'] for v in raw)==text
+    assert raw[0]['context_only'] and sum(v['analysis_target'] for v in raw)==3
+    assert '1. LH' in raw[-1]['text'] and '2. 지방공사' in raw[-1]['text']
+    provided=segments.originals(segments.bind(dict(blocks=raw),'run','relation:g'))
+    output=dict(relations=[dict(id='r',source_refs=[provided[1]['source_ref']])],
+                target_gaps=[dict(source_ref=provided[3]['source_ref'],reason='참조 별표 상세 미제공')],gaps=['별표 부재'])
+    coverage=segments.target_coverage(output,provided)
+    assert [bool(t['candidate_ids']) for t in coverage]==[True,False,False]
+    assert not coverage[1]['gaps'] and coverage[2]['gaps']  # Missing vs deferred, neither is completed meaning.
+    output['target_gaps'].append(dict(source_ref='outside',reason='미제공 항'))
+    assert segments.target_coverage(output,provided)==coverage and output['target_gap_errors']
+    output['relations'][0]['source_refs']=['whole_block_quote']
+    assert all(not t['candidate_ids'] for t in segments.target_coverage(output,provided))
+    assert segments.clause_views([dict(ref='b',text='표지 없는 원문')])==[dict(ref='b',text='표지 없는 원문')]
+
+
 def test_selected_focus_and_shared_views_resolve_duplicate_text_and_parent_positions():
     b=block('공통. 반복. 반복. 미제공.')
     context=dict(blocks=[dict(ref='b',text=b['text'][a:z],span=[a,z],context_only=shared)

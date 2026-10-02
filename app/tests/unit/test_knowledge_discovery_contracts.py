@@ -6,6 +6,7 @@ import pytest
 
 from app.knowledge import discovery_analysis as a2, discovery_design as design, discovery_synthesis as synthesis
 from app.knowledge import ontology_changes
+from app.knowledge.schemas import RunRequest
 from app.tests.unit.test_knowledge_discovery_analysis import done, request, response, model, source_response
 from app.tests.unit.test_knowledge_discovery_run import corpus, service, prepare
 
@@ -162,3 +163,32 @@ def test_missing_concept_must_compare_existing_relation_before_reextraction():
     assert any(e['section']=='missing_meanings' for e in output['record_errors'])
     a2.queue_recovery(run,output,dict(id='g'),{'b':block})
     assert not run['recovery_requests']
+
+
+def test_clause_response_pending_survives_critic_and_resume(service,model,monkeypatch,corpus):
+    from hashlib import sha256
+    text='제15조 ① 국민임대 원칙. ② 남은 주택이면 완화 또는 선착순. ③ 각 호에 따른 별도 기준. 1. LH 공급. 2. 지방공사 공급.'
+    path=corpus/'current.txt';path.write_text(text,encoding='utf-8-sig')
+    manifest=corpus/'manifest.json';data=json.loads(manifest.read_text())
+    data['selected_sources'][0]['input_files'][0]['sha256']=sha256(path.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(data),encoding='utf-8')
+    source=prepare(service,file_ids=['current:0']);seen={}
+    async def generated(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=response(prompt,stage)
+        if stage=='relation':
+            targets=[v for v in data['blocks'] if v.get('analysis_target')]
+            value['relations'][0].update(evidence_ids=[],source_refs=[targets[0]['source_ref']])
+            value['target_gaps']=[dict(source_ref=targets[2]['source_ref'],reason='별표 상세 미제공')]
+        if stage=='critic': seen['coverage']=data['analysis_target_coverage']
+        return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=5,additional_rounds=0,revisions=0)))['run_id'])
+    assert run['metrics']['llm_calls']==5,run['result']['failures']
+    coverage=run['result']['analysis_target_coverage']
+    assert len(coverage)==3 and len(seen['coverage'])==3
+    assert [bool(t['candidate_ids']) for t in coverage]==[True,False,False]
+    missing=[r for r in run['result']['recovery_requests'] if r.get('trigger')=='target_response']
+    assert len(missing)==1 and missing[0]['target'][0][1]==coverage[1]['span']
+    assert run['status']=='partial' and not run['frontier'][0]['analysis_grounded']
+    resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert resumed['metrics']['llm_calls']==5 and resumed['result']['analysis_target_coverage']==coverage

@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v24'
+PROMPT_VERSION = 'discovery-a2-v25'
 
 
 def recipe(budgets):
@@ -489,6 +489,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             raise ValueError('모델 호출/시간 예산 종료')
         timeout = min(remaining, run['recipe']['call_timeout'])
         schema = models.OUTPUTS[stage].model_json_schema()
+        if stage=='relation':
+            targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
+            schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
+            schema['properties']['target_gaps']['maxItems'] = len(targets)
         if stage=='builder':
             schema['$defs']['RelationBinding'] = schema['properties']['relation_bindings']['items']
             schema['properties']['relation_bindings']['items'] = {'$ref':'#/$defs/RelationBinding'}
@@ -699,6 +703,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 primary = raw_refs(context.get('blocks', []))
                 if rows and not any(primary & set(c['evidence_ids']) for c in rows) and not output['gaps']:
                     raise ValueError('주 분석 원문 근거 또는 해당 자료의 분석 공백 필요')
+                if stage=='relation':
+                    output['target_coverage'] = segments.target_coverage(output, context.get('blocks', []))
             if stage=='revision':
                 revised = output['observations'] + output['relations']
                 for candidate in revised:
@@ -800,7 +806,7 @@ def queue_recovery(run, review, group, by_id=None):
         for ref in need['evidence_refs']:
             views = [v for v in owned if v['block_id']==ref['block_id'] and v['span'][0]<=ref['span'][0] and ref['span'][1]<=v['span'][1]]
             if owners and not views: validation.append('담당 분석 구간 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
-            view = views[0] if views else ref
+            view = views[0] if views and need.get('trigger')!='target_response' else ref
             target = [view['block_id'], view['span']]
             if target not in targets: targets.append(target)
         request = add('extraction_missing', need['role'], sorted(targets), need, validation)
@@ -1071,6 +1077,14 @@ def capacity_status(run, group, by_id):
     group['capacity'] = dict(roles=roles, numbered_items=markers,
                              semantic_completeness='미검증; 목록 신호가 없어도 완전성 보장 아님')
     group['capacity_pending'] = pending
+    unit = next((u for u in run['analysis_units'] if u['id']=='relation:'+group['id'] and u['status']=='succeeded'), None)
+    group['analysis_target_coverage'] = deepcopy((unit or {}).get('output', {}).get('target_coverage', []))
+    if not group.get('recovery_request_id'):
+        for target in group['analysis_target_coverage']:
+            if target['candidate_ids'] or target['gaps']: continue
+            ref = dict(evidence_id=target['block_id'],block_id=target['block_id'],span=target['span'])
+            queue_recovery(run, {'missing_meanings':[dict(role='relation',meaning='제공 항의 관계 응답 미제출; 원문과 기존 산출을 대조하여 미표현 의미만 분석',
+                evidence_refs=[ref],validation=[],trigger='target_response')]}, group, by_id)
     if pending and not group.get('recovery_request_id'):
         views = group.get('segments') or [dict(block_id=i,span=[0,len(by_id[i]['text'])]) for i in group['block_ids']]
         for stage in group.get('roles', ['concept','relation']):
@@ -1081,6 +1095,7 @@ def capacity_status(run, group, by_id):
 
 def grounded_analysis(run, group, available):
     if group.get('capacity_pending'): return False
+    if any(not t['candidate_ids'] or t['gaps'] for t in group.get('analysis_target_coverage', [])): return False
     for stage, field in (('concept','observations'), ('relation','relations')):
         if stage not in group.get('roles', ['concept','relation']): continue
         unit = next((u for u in run['analysis_units'] if u['id']==stage+':'+group['id']), None)
@@ -1214,6 +1229,7 @@ def finish(run, blocks, available):
     binding_pending = [i for b in bindings for i in b['pending_relation_ids']+b['deferred_relation_ids']]
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
         design_binding_coverage=bindings, design_pending_relation_ids=sorted(set(binding_pending)),
+        analysis_target_coverage=[dict(group_id=g['id'],**t) for g in run.get('frontier', []) for t in g.get('analysis_target_coverage', [])],
         review_outcomes=[dict(unit_id=u['id'],**u['output']['review_outcomes']) for u in outputs if 'review_outcomes' in u['output']],
         original_observations=original_observations, original_relations=original_relations, revision_history=history,
         revisions=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='revision'],

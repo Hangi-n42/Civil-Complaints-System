@@ -104,8 +104,14 @@ class Relation(Grounded):
     statement_type: Literal['definition', 'rule', 'instance', 'design_proposal', 'unresolved']
 
 
+class TargetGap(Record):
+    source_ref: str
+    reason: str = Field(min_length=1, max_length=240)
+
+
 class Relations(Record):
     relations: list[Relation] = Field(max_length=5)
+    target_gaps: list[TargetGap] = Field(default_factory=list)
     gaps: list[str] = Field(max_length=5)
     actions: list[Action] = Field(max_length=2)
 
@@ -248,9 +254,11 @@ source_refs로 해당 주장과 conditions의 모든 분기·전제·예외를 �
     'critic': 'Ontology Critic: review_target_ids의 관측/관계/계층마다 observation_checks/relation_checks/양방향 hierarchy_checks를 작성한다. 실제 원문 근거의 supported/refuted 또는 구체 이유의 unknown이며 비교 후보는 의무 판정 대상이 아니다. relation_checks.semantic_checks에서 원문 subject/object, conditions의 의무/허용·OR·상위 전제/예외 우선·시점, statement_type의 일반 유형 포함/개체 사실을 각각 대조한다. 인용에만 있고 산출에 없는 조건은 미충족이다. 원관계 의미는 유형 미연결이어도 supported일 수 있다. 연결 유형이 실제 목적어와 다르면 endpoint 쟁점이며 설계관계는 제공 타입 정의도 대조한다. issues.cause는 content_error/evidence_error/endpoint/alignment/source_absent/서버가 확인한 budget_exhausted다. 연결/대응 오류는 candidate_ref와 제공 target_ref를 쓰고 재추출로 우회하지 않는다. i1..i8과 request_evidence 쟁점 ID는 유효해야 한다. review_scope는 이번 제공 범위이며 미완료 검색·지역 공백으로 전체 부재를 단정하지 않는다. missing_meanings 전에 주검토 관측과 관계의 의미/조건을 함께 대조하고 실제 compared_candidate_ids 및 comparison_reason을 남긴다. 관계가 표현한 원칙/예외는 concept 부재만으로 재추출하지 않는다. 미제공 후보는 전체 미확인으로 보류한다. 실제 제공 구절의 미표현 의미에만 source_refs를 붙인다. 후보 없는 쟁점의 candidate_ref는 빈 문자열이다. 참조 조문/별표 본문 부재는 구체 defer_reason/gaps이며 그 적용 원칙의 부재나 같은 원문 재추출 사유가 아니다.'}
 
 PROMPTS['revision'] += ' evidence_only_ids는 의미·분류·조건·시점·끝점을 보존하고 source_refs만 보완한다. 제공 근거가 없으면 deferred로 남긴다.'
+PROMPTS['relation'] += ' analysis_target인 각 항을 source_refs로 관계에 연결하거나 target_gaps에 그 항의 구체 미해결 사유를 적는다. 한 항에 여러 관계 또는 관계 없음이 가능하다. 별표 상세 부재는 그 상세의 공백이며 제공된 항 전체의 처리 완료가 아니다.'
+PROMPTS['critic'] += ' analysis_target_coverage는 항별 응답 유무이며 정답 판정이 아니다. candidate_ids가 비거나 gaps가 있는 항의 제공 명제를 대조하고 실제 누락은 missing_meanings로 남긴다.'
 
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
-    'relation': ('relations','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
+    'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}
