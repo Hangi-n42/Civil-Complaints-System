@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v29'
+PROMPT_VERSION = 'discovery-a2-v30'
 
 
 def recipe(budgets):
@@ -628,6 +628,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             props = definition.get('properties', {})
             if stage=='relation' and 'endpoint_labels' in props:
                 props.pop('endpoint_labels')
+                props.pop('local_ref')
             if 'endpoint_labels' in props:
                 props['endpoint_labels']=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=100) for k in ('subject','object')},
                     required=['subject','object'],additionalProperties=False)
@@ -702,7 +703,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 raise ValueError('모델 출력 절단')
             if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
-            output = models.OUTPUTS[stage].model_validate_json(metadata['text']).model_dump(warnings=False)
+            decoded = json.loads(metadata['text'])
+            if stage=='relation':
+                for n, row in enumerate(decoded.get('relations', []), 1):
+                    row['local_ref'] = f'r{n}'
+            output = models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output)
             for row in output.get('relations', []):
                 original = supplied.get({v:k for k,v in mapping.items()}.get(row.get('candidate_ref')), {})

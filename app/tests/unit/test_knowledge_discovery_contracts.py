@@ -80,7 +80,9 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
             for c in value['observations']:
                 c.update(classification_reason='원문의 일반 유형',conditions='',exceptions='',time='')
         if stage=='relation':
-            for c in value['relations']: c.pop('endpoint_labels',None)
+            for c in value['relations']:
+                c.pop('endpoint_labels',None)
+                c.pop('local_ref')
         jsonschema.validate(value,schema)
         if stage=='builder':
             assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=5 for v in schema['anyOf'])
@@ -103,6 +105,37 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
         groups=synthesis.assemble(trial,0,by_id,a2.profile.contexts(blocks),set(by_id))
         counts=[sum(c['id'] in g['primary_candidate_ids'] and c.get('statement_type') in {'rule','definition'} for c in g['candidates']) for g in groups]
         assert sum(counts)==6 and max(counts)<=5
+
+
+@pytest.mark.parametrize('model_refs', ['missing','duplicate'])
+def test_fresh_relation_refs_are_server_assigned_at_call_boundary(service,model,monkeypatch,model_refs):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call;raw=[]
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='relation':
+            assert all('local_ref' not in v['properties'] and 'local_ref' not in v['required']
+                       for v in schema['$defs']['Relation']['anyOf'])
+            value=source_response(json.loads(result['text']),json.loads(prompt.split('\nINPUT:\n')[1]))
+            value['relations']*=2
+            for c in value['relations']:
+                c.pop('local_ref',None)
+                if model_refs=='duplicate': c['local_ref']='e0'
+                c.update(object='국민임대주택',direction='unresolved')
+            result['text']=json.dumps(value,ensure_ascii=False);raw.append(result['text'])
+        return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    unit=next(u for u in run['analysis_units'] if u['stage']=='relation')
+    assert unit['status']=='succeeded',unit['error']
+    rows=unit['output']['relations']
+    assert [r['local_ref'] for r in rows]==['r1','r2'] and len({r['id'] for r in rows})==2
+    assert unit['raw_output']==raw[0]
+    for before,after in zip(json.loads(raw[0])['relations'],rows):
+        for key in ('subject','predicate','object','conditions','time','direction','source_refs'):
+            assert after.get(key)==before.get(key)
+    legacy=a2.models.Relations.model_validate(dict(relations=[dict(r,local_ref='e0') for r in json.loads(raw[0])['relations']],gaps=[],actions=[])).model_dump()
+    with pytest.raises(ValueError,match='local_ref 중복'):
+        a2.normalize(legacy,'relation',run,unit['dependency_ids'],{}, {})
 
 
 def semantic_case():
