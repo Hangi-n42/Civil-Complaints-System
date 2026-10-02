@@ -399,7 +399,7 @@ def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
             refs=schema['$defs']['Issue']['properties']['candidate_ref']['enum']
             assert hierarchy_id in refs and '' in refs
             value=json.loads(result['text'])
-            value['issues']=[dict(local_ref='i1',candidate_ref=hierarchy_id,defer_reason='사람 검수 필요',reason='방향 재검수 필요',
+            value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=hierarchy_id,defer_reason='사람 검수 필요',reason='방향 재검수 필요',
                 evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[])]
             result['text']=json.dumps(value,ensure_ascii=False)
         return result
@@ -425,7 +425,7 @@ def test_request_evidence_resolves_real_issue_and_rejects_unknown(service,monkey
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
             value=json.loads(result['text'])
-            value['issues']=[dict(local_ref='i1',candidate_ref='',reason='공식 대응 자료 필요',
+            value['issues']=[dict(local_ref='i1',cause='source_absent',candidate_ref='',reason='공식 대응 자료 필요',
                 evidence_ids=[],counter_evidence_ids=[],defer_reason='자료 미제공')]
             value['actions']=[dict(action='request_evidence',issue_id='i1',query='존재하지않는자료',reason='공식 대응 확인')]
             result['text']=json.dumps(value,ensure_ascii=False)
@@ -548,7 +548,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
             value['relations'][0]['negation']='negated' # Saved v7 polarity failure shape.
         if stage=='critic':
             targets=[data['unapproved_observations'][0],data['unapproved_relations'][0],data['taxonomy']['hierarchies'][0]]
-            value['issues']=[dict(local_ref=f'i{n}',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1)]
+            value['issues']=[dict(local_ref=f'i{n}',cause='content_error',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1)]
             value['needs_revision']=True
         if stage=='revision':
             assert len(prompt)<=12000
@@ -676,7 +676,7 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
             assert all(c['source_relation']['statement_type']=='rule' and c['statement_type']=='design_proposal' for c in data['unapproved_relations'])
             if revise_design:
                 target=next(c for c in data['unapproved_observations'] if c['support_type']=='design_proposal')
-                value.update(needs_revision=True,issues=[dict(local_ref='i1',candidate_ref=target['id'],reason='설계 유형의 표현 점검',
+                value.update(needs_revision=True,issues=[dict(local_ref='i1',cause='content_error',candidate_ref=target['id'],reason='설계 유형의 표현 점검',
                     evidence_ids=target['evidence_ids'],counter_evidence_ids=[],defer_reason='')])
         if stage=='revision':
             value=dict(observations=[],relations=[],hierarchies=[],deferred=[])
@@ -808,7 +808,7 @@ def test_mixed_critic_validity_survives_resume_revision_and_a3(service,monkeypat
             value['needs_revision']=True
             # Invalid judgments cannot trigger a revision via a valid-looking issue/action.
             target=data['taxonomy']['hierarchies'][0]['id'] if error in {'direction','hierarchy_duplicate'} else bad['candidate_ref']
-            value['issues']=[dict(local_ref='i1',candidate_ref=target,reason='이 대상을 수정하라',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=target,reason='이 대상을 수정하라',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
             value['actions']=[dict(action='request_evidence',issue_id='i1',query='추가 근거',reason='오류 대상 근거 요청')]
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',mixed)
@@ -852,7 +852,7 @@ def test_critic_envelope_failure_and_isolated_record_errors(service,monkeypatch,
             value=json.loads(result['text'])
             if error=='outside_evidence': value['relation_checks'][0]['evidence_id']='unprovided-evidence'
             if error=='duplicate_issue':
-                issue=dict(local_ref='i1',reason='중복 참조',evidence_ids=[],counter_evidence_ids=[],defer_reason='검토 필요')
+                issue=dict(local_ref='i1',cause='content_error',reason='중복 참조',evidence_ids=[],counter_evidence_ids=[],defer_reason='검토 필요')
                 value['issues']=[issue,dict(issue)]
             result['text']='{' if error=='json' else json.dumps(value,ensure_ascii=False)
         return result
@@ -903,7 +903,7 @@ def test_revision_inherits_full_critic_dependencies_and_blocks_revocation(servic
         result=await original(prompt,schema,stage,run,timeout)
         if stage=='critic':
             ctx=json.loads(prompt.split('\nINPUT:\n')[1]); out=json.loads(result['text'])
-            out['issues']=[dict(local_ref='i1',candidate_ref=ctx['unapproved_observations'][0]['id'],reason='추가 읽은 원문을 바탕으로 판단했다.',evidence_ids=[ctx['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            out['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=ctx['unapproved_observations'][0]['id'],reason='추가 읽은 원문을 바탕으로 판단했다.',evidence_ids=[ctx['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
             out['needs_revision']=True; result['text']=json.dumps(out,ensure_ascii=False)
         return result
     monkeypatch.setattr(a2,'model_call',needs_revision)

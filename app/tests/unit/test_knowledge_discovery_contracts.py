@@ -88,6 +88,8 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
             assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=5 for v in schema['anyOf'])
         if stage=='critic':
             assert set(data['review_target_ids']).isdisjoint(data['comparison_candidate_ids'])
+            if comparison_only:
+                assert not any(v.get('analysis_target') and not v.get('context_only') for v in data['blocks'])
         seen[stage]=len(prompt)
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
     monkeypatch.setattr(a2,'model_call',generated)
@@ -136,6 +138,64 @@ def test_fresh_relation_refs_are_server_assigned_at_call_boundary(service,model,
     legacy=a2.models.Relations.model_validate(dict(relations=[dict(r,local_ref='e0') for r in json.loads(raw[0])['relations']],gaps=[],actions=[])).model_dump()
     with pytest.raises(ValueError,match='local_ref 중복'):
         a2.normalize(legacy,'relation',run,unit['dependency_ids'],{}, {})
+
+
+@pytest.mark.parametrize('targets,at_limit',[(0,False),(1,False),(3,False),(3,True),(6,True)])
+def test_critic_missing_capacity_uses_unique_primary_views(service,model,monkeypatch,targets,at_limit):
+    source=prepare(service,file_ids=['current:0']);original_call=a2.call;seen=[]
+    def call(service,run,stage,key,context,deps,by_id,supplied=None):
+        if stage=='critic':
+            context=deepcopy(context);base=context['blocks'][0];text=base['text']
+            views=[dict(base,text=text[n:n+1],span=[n,n+1],analysis_target=True,context_only=False) for n in range(targets)]
+            context['blocks']=[dict(base,analysis_target=False),*views,*deepcopy(views),
+                dict(base,span=[len(text)-1,len(text)],text=text[-1:],analysis_target=True,context_only=True)]
+            context['independently_retrieved']=[dict(base,analysis_target=True)]
+        return original_call(service,run,stage,key,context,deps,by_id,supplied)
+    async def generated(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=source_response(response(prompt,stage),data)
+        if stage=='critic':
+            limit=max(2,min(5,targets));seen.append(limit)
+            assert all(v['properties']['missing_meanings']['maxItems']==limit for v in schema['anyOf'])
+            assert 'cause' in schema['$defs']['Issue']['required']
+            if at_limit:
+                value['missing_meanings']=[dict(role='relation',meaning=f'검수 대기 의미 {n}',source_refs=[data['blocks'][0]['source_ref']],
+                    cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='',compared_candidate_ids=data['review_target_ids'],
+                    comparison_reason='제공 관측과 관계를 대조') for n in range(limit)]
+        return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
+    monkeypatch.setattr(a2,'call',call);monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=5,additional_rounds=0,revisions=0)))['run_id'])
+    unit=next(u for u in run['analysis_units'] if u['stage']=='critic')
+    assert unit['status']=='succeeded',unit['error']
+    output=unit['output'];assert seen==[max(2,min(5,targets))]
+    assert output['capacity']['primary_analysis_targets']==targets
+    assert bool(output['capacity_pending'])==at_limit
+    assert '전체 검수 완료가 아님' in output['capacity']['semantic_completeness']
+    assert any(p.get('stage')=='critic' for p in run['result']['capacity_pending'])==at_limit
+    if at_limit: assert unit['group_id'] in run['result']['mandatory_pending'] and run['status']=='partial'
+
+
+@pytest.mark.parametrize('bound',[False,True])
+def test_fresh_critic_missing_cause_isolated_before_default(service,model,monkeypatch,bound):
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call;raw_issues=[]
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='critic':
+            data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+            issue=dict(local_ref='i1',candidate_ref=data['unapproved_observations'][1]['id'] if bound else '',
+                reason='원인 필드를 생략한 쟁점',defer_reason='추가 판단 필요')
+            raw_issues.append(deepcopy(issue));value['issues']=[issue]
+            value['actions']=[dict(action='request_evidence',issue_id='i1',query='검토 근거',reason='쟁점 의존 요청')]
+            result['text']=json.dumps(value,ensure_ascii=False)
+        return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=5,additional_rounds=0,revisions=0)))['run_id'])
+    unit=next(u for u in run['analysis_units'] if u['stage']=='critic');assert unit['status']=='succeeded',unit['error']
+    output=unit['output'];assert not output['issues'] and not output['actions']
+    assert any(e['section']=='issues' and 'cause 누락' in e['reason'] for e in output['record_errors'])
+    assert len(output['observation_checks'])==(1 if bound else 2)
+    assert not any(r['cause']=='content_error' for r in run['result']['recovery_requests'])
+    assert not any(e['action']=='request_evidence' for e in run['tool_events'])
+    assert a2.models.Issue.model_validate(raw_issues[0]).cause=='content_error'  # Stored legacy default remains readable.
 
 
 def semantic_case():

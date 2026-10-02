@@ -250,6 +250,11 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
             [h['id'] for h in taxonomy['hierarchies']]))
         context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
+        primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
+        primary_views = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in primary['blocks']}
+        for view in context['blocks']:
+            if group.get('comparison_only') or (view['ref'],tuple(view.get('span',[0,len(view['text'])]))) not in primary_views:
+                view.update(analysis_target=False,context_only=True)
         # Resolved endpoints and reasons already appear on the modeled relations.
         context['taxonomy']={k:v for k,v in taxonomy.items() if k not in {'observations','modeled_relations','relation_bindings'}}
         coverage = [t for g in run['frontier'] if g['id'] in group['analysis_group_ids'] for t in g.get('analysis_target_coverage', [])]

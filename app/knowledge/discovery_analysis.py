@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v30'
+PROMPT_VERSION = 'discovery-a2-v31'
 
 
 def recipe(budgets):
@@ -284,7 +284,7 @@ def remap(value, mapping):
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
-def normalize(output, stage, run, deps, by_id, supplied, context=None):
+def normalize(output, stage, run, deps, by_id, supplied, context=None, require_issue_cause=False):
     if any(not text.strip() for field in ('findings','gaps') for text in output.get(field, [])):
         raise ValueError('조사 결과/미해결 사유는 빈 문자열일 수 없음')
     if not any(output.get(field) for field in models.RESULT_FIELDS[stage]):
@@ -301,7 +301,7 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
         elif isinstance(value, list):
             for child in value: refs(child)
     if stage=='critic':
-        return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize, refs)
+        return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize, refs, require_issue_cause)
     refs(output)
     if stage == 'revision':
         history = []
@@ -522,7 +522,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 schema['$defs'][name] = deepcopy(definitions[item['$ref'].split('/')[-1]] if '$ref' in item else item)
                 schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
             schema['properties']['issues']['maxItems']=8
-            schema['properties']['missing_meanings']['maxItems']=2
+            primary_targets = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in context.get('blocks', [])
+                               if v.get('analysis_target') and not v.get('context_only')}
+            missing_limit = max(2,min(5,len(primary_targets)))
+            schema['properties']['missing_meanings']['maxItems']=missing_limit
+            schema['$defs']['Issue']['required'].append('cause')
             checks=schema['$defs']['RelationCheck']['properties']
             fields=['subject','object','conditions','statement_type']
             checks['semantic_checks']=dict(type='object',properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=fields,additionalProperties=False)
@@ -717,7 +721,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
-            output = normalize(output, stage, run, citation_ids, by_id, supplied, context)
+            output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
+            if stage=='critic':
+                count = len(decoded.get('missing_meanings', []))
+                output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
+                    primary_analysis_targets=len(primary_targets),semantic_completeness='미검증; 상한 미도달도 전체 검수 완료가 아님')
+                output['capacity_pending'] = ['누락 의미 응답 상한 도달; 추가 미검수 의미 가능성'] if count>=missing_limit else []
             if stage in {'concept', 'relation'}:
                 rows = output['observations' if stage=='concept' else 'relations']
                 group = next(g for g in run['frontier'] if g['id']==key)
@@ -1196,6 +1205,7 @@ def finish(run, blocks, available):
     review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
                 and g['id'] in review_units and not review_units[g['id']].get('record_errors')
+                and not review_units[g['id']].get('capacity_pending')
                 and (reviews.valid_ids(review_units[g['id']],current) is None or
                      set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids',
                          g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']],current))}
@@ -1297,7 +1307,9 @@ def finish(run, blocks, available):
         recovery_requests=run.get('recovery_requests', []), unresolved_recovery_requests=unresolved_recovery,
         deferred_comparison_ids=deferred_comparisons,
         capacity_pending=[dict(group_id=g['id'], reasons=g['capacity_pending'], **g['capacity'])
-                          for g in run.get('frontier', []) if g.get('capacity_pending')],
+                          for g in run.get('frontier', []) if g.get('capacity_pending')]
+                         + [dict(group_id=i,stage='critic',reasons=r['capacity_pending'],**r['capacity'])
+                            for i,r in review_units.items() if r.get('capacity_pending')],
         incomplete_review_searches=[dict(group_id=g['id'], **search) for g in run.get('candidate_groups', [])
                                    for search in g.get('critic_searches', []) if search['status']!='succeeded'],
         coverage=coverage, gaps=gaps, failures=failures, mandatory_pending=required_pending,

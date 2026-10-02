@@ -24,7 +24,7 @@ def valid_ids(review, candidates=None):
     return valid
 
 
-def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs):
+def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
     declared = set(context.get('review_target_ids', supplied))
     expected = {i:c for i,c in supplied.items() if i in declared and c.get('review_status')!='reviewed'}
     relations = {i for i,c in expected.items() if 'negation' in c}
@@ -54,6 +54,9 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
             identifier = hierarchies.get(target) if section=='hierarchy_checks' else target
             targets = {identifier} if identifier in expected else set(expected) if section=='issues' and not identifier else set()
             try:
+                if section=='issues' and require_issue_cause and isinstance(raw,dict) and 'cause' not in raw:
+                    targets = {identifier} if identifier in expected else set()
+                    raise ValueError('새 쟁점의 명시적 cause 누락; 기본 원인으로 복구하지 않음')
                 item = model.model_validate(raw).model_dump()
                 segments.restore(item, by_id, provided)
                 validate_refs(item)
