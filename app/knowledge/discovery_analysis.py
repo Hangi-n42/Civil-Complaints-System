@@ -13,12 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v41'
+PROMPT_VERSION = 'discovery-a2-v42'
 
 
 def recipe(budgets):
     return dict(profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
-        models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_REVIEW_MODEL),
+        models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
@@ -917,10 +917,12 @@ def queue_recovery(run, review, group, by_id=None):
         if cause=='endpoint': target['endpoints']=c.get('unresolved_endpoints') or ['subject','object']
         if cause=='alignment': target['definition_id']=issue.get('target_ref', '')
         role = 'revision' if cause in {'evidence_error','content_error'} else 'builder' if cause=='endpoint' else 'review'
+        outside_review = identifier and 'review_coverage' in review and identifier not in review['review_coverage']['expected_candidate_ids']
+        if outside_review: role='review'
         request = add(cause, role, target, dict(meaning=issue['reason'],candidate_ref=identifier,
             target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', ''),
             assessment_scope=deepcopy(review.get('review_scope', {}))))
-        if cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
+        if outside_review or cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
             request.update(status='budget_exhausted' if cause=='budget_exhausted' else 'source_absent' if cause=='source_absent' else 'manual_review',
                 reason=('원문 관계 보존; 기존 Builder 연결 결과를 명시 검수' if cause=='endpoint' else
                         '관련 기존 정의와 명시 대응 검수' if cause=='alignment' else issue.get('defer_reason') or issue['reason']))
@@ -1058,11 +1060,12 @@ def ordered_groups(run, groups, phase):
 
 
 def review_reservation(run, round_number, by_id, context_map, available):
-    from .discovery_synthesis import assemble
+    from .discovery_synthesis import assemble, pending_review_units
     # Preview on a copy: no successful unit, group assignment or representative ID changes.
     groups = run.get('candidate_groups', []) + assemble(deepcopy(run), round_number, by_id, context_map, available)
     succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
-    pending = [dict(unit_id=stage+':'+g['id'],stage=stage,round=g.get('round',0)) for g in groups for stage in ('builder','critic') if stage+':'+g['id'] not in succeeded]
+    pending = [dict(unit_id=uid,stage=uid.split(':')[0],round=g.get('round',0)) for g in groups
+               for uid in (['builder:'+g['id']] if 'builder:'+g['id'] not in succeeded else []) + pending_review_units(run,g,by_id,context_map) if uid not in succeeded]
     estimates = run.setdefault('role_time_estimates', {})
     for stage in ('concept','relation','builder','critic','revision'):
         observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
@@ -1132,7 +1135,7 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     needed = [stage for stage in roles if not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])]
     if needed:
         reservation = review_reservation(run, group['round'], by_id, context_map, allowed_ids(service,blocks))
-        future = needed + ['builder','critic'] # Minimum one new group; actual count is recomputed after analysis.
+        future = needed + ['builder','critic','critic'] # Minimum relation and observation packets; recompute after analysis.
         budget = run['recipe']['budgets']; metrics = run['metrics']
         remaining_calls = budget['model_calls']-metrics['llm_calls']
         remaining_s = budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s', 0)
@@ -1236,6 +1239,7 @@ def linked_blocks(run, group, stage, available):
 
 
 def finish(run, blocks, available):
+    from .discovery_synthesis import review_ids
     identities.register(run)
     by_id = {b['id']: b for b in blocks}
     for group in run.get('frontier', []):
@@ -1263,20 +1267,20 @@ def finish(run, blocks, available):
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
     latest_reviews = reviews.latest_by_candidate([u['output'] for u in outputs if u['stage']=='critic'],current)
-    review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
-    for group in run.get('candidate_groups', []):
-        followup = next((u for u in outputs if u['id']==group.get('revision_review_unit_id')), None)
-        if followup: review_units[group['id']]=followup['output']
+    review_units = {u['id']:u['output'] for u in outputs if u['stage']=='critic'}
     reviewed_candidates = set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))
-    reviewed_candidates.update(i for g in run.get('candidate_groups', []) if g['id'] in review_units
-        and reviews.valid_ids(review_units[g['id']],current) is None for i in g['primary_candidate_ids']+g.get('design_candidate_ids', []))
-    reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
-                and g['id'] in review_units and not review_units[g['id']].get('record_errors')
-                and not review_units[g['id']].get('capacity_pending')
-                and (reviews.valid_ids(review_units[g['id']]) is None or
-                     set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids',
-                         g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']]))
-                and set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids', [])) <= reviewed_candidates}
+    reviewed=set()
+    for group in run.get('candidate_groups', []):
+        required=review_ids(group,True) or review_ids(group)
+        own=[review_units[i] for i in required if i in review_units]
+        for review in own:
+            if reviews.valid_ids(review,current) is None:
+                reviewed_candidates.update(group['primary_candidate_ids']+group.get('design_candidate_ids', []))
+        if group['status']!='review_issues_generated' or not required or len(own)!=len(required): continue
+        if all(not r.get('record_errors') and not r.get('capacity_pending') and
+               (reviews.valid_ids(r) is None or set(r['review_coverage']['expected_candidate_ids']) <= reviews.valid_ids(r)) and
+               set(r.get('review_coverage', {}).get('expected_candidate_ids', [])) <= reviewed_candidates for r in own):
+            reviewed.add(group['id'])
     processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in g.get('roles', ['concept','relation']))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]

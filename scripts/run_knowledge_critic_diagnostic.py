@@ -34,7 +34,7 @@ def main():
     if args.setting:
         from app.core.config import settings
         selected=frozen['settings'][args.setting]
-        settings.KNOWLEDGE_REVIEW_MODEL=selected['model']
+        settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL=selected['model']
         package['run']['recipe']=deepcopy(selected['recipe'])
     else: selected=dict(model_options=frozen['model_options'],model_digests=frozen['model_digests'],http_calls=2,model_seconds=600)
     identity=a2.model_identity(package['run']['recipe'])
