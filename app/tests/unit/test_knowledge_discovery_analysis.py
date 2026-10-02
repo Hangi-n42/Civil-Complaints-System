@@ -616,7 +616,9 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         else:
             assert c['origin']['critiques'] and not c['origin'].get('review_errors')
             assert not c['can_accept']  # The follow-up Critic still refutes this fixture's candidates.
-        if c['target_kind']=='relation': assert 'domain은 class ID 필요' in c['validation']['structural_errors']
+        if c['target_kind']=='relation':
+            # Canonical IDs do not order the revised type before its neighbor.
+            assert any('class ID 필요' in error for error in c['validation']['structural_errors'])
 
 
 

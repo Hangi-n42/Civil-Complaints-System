@@ -13,11 +13,11 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v42'
+PROMPT_VERSION = 'discovery-a2-v43'
 
 
 def recipe(budgets):
-    return dict(profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -461,7 +461,9 @@ async def model_call(prompt, schema, stage, run, timeout):
 def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
-    context = segments.bind(context, source_scope or run.get('id'), stage+':'+key)
+    stable = run.get('recipe', {}).get('reference_contract') == 'canonical-v1'
+    if stable: mapping = {i:i for i in mapping}
+    context = segments.bind(context, source_scope or run.get('id'), stage+':'+key, stable=stable)
     if stage=='revision':
         context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
                             for c in context['targets']]
@@ -490,7 +492,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
     source_scope = unit.setdefault('source_ref_run_id', run['id'])
-    context = segments.bind(context, source_scope, uid)
+    context = segments.bind(context, source_scope, uid,
+        stable=run['recipe'].get('reference_contract') == 'canonical-v1')
     mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
     input_hash = profile.digest([prompt, run['recipe']])
     # A resumed successful unit is immutable, even when its newly built input is wrong.
