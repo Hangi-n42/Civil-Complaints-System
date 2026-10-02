@@ -1,0 +1,40 @@
+{
+  "id": "ontology-semantic-j3-c2-v1",
+  "frozen_at": "2026-10-02T08:10:21.398829+00:00",
+  "issue": 568,
+  "product_sha": "4492c0c33295e48ac8284130f2c02f98ac3be1a1",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+  },
+  "budgets": {
+    "model_calls": 20,
+    "model_seconds": 3000,
+    "searches": 4,
+    "additional_rounds": 0,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "J3 집중 검수 통합의 C2 전체 단일 실행"
+    }
+  ],
+  "rules": [
+    "사전 동결 후 한 번; C2 실패 시 current 미실행",
+    "평가 정답/상세 부록은 생성 입력에 미제공",
+    "다중 변경·예산 확대 제품 결과이며 동비용/단일 인과 비교 아님"
+  ]
+}
