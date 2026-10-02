@@ -100,3 +100,29 @@ def test_source_ref_rejects_nonprovided_or_inconsistent_legacy_evidence(change):
     exact=dict(source_refs=[provided[0]['source_ref']],evidence_ids=['b'],source_quotes=[dict(evidence_id='b',quote='제공.')])
     segments.restore(exact,{'b':b},provided)
     assert exact['evidence_refs'][0]['span']==[0,3]
+
+
+def test_contained_body_shared_once_without_widening_citation_or_role():
+    from copy import deepcopy
+    b=block('머리. 첫 조건. 둘째 조건. 별도 조건.')
+    context=dict(blocks=[dict(ref='b',text=b['text'][4:9],span=[4,9],analysis_target=True,context_only=False)],
+        tool_originals=[dict(ref='b',text=b['text'][4:16],span=[4,16],context_only=True),
+                        dict(ref='b',text=b['text'][10:22],span=[10,22],context_only=True),
+                        dict(ref='b',text=b['text'][17:22],span=[17,22],context_only=True),
+                        dict(ref='b',text=b['text'][0:3],span=[0,3],context_only=True),
+                        dict(ref='other',text=b['text'][4:9],span=[4,9],context_only=True)])
+    bound=segments.bind(context,'run','relation:g');before=deepcopy(bound)
+    compact=segments.compact_text(bound)
+    small=compact['blocks'][0]
+    assert 'text' not in small and small['text_from']==bound['tool_originals'][0]['source_ref']
+    assert small['span']==[4,9] and small['analysis_target'] and not small['context_only']
+    assert 'text' in compact['tool_originals'][1]  # Partial overlap is not joined or removed.
+    assert 'text' in compact['tool_originals'][-2]  # Disjoint text remains independently provided.
+    assert 'text' in compact['tool_originals'][-1]  # Another block is not interchangeable.
+    recovered=segments.originals(compact)
+    assert [(v['source_ref'],v['text'],v.get('context_only')) for v in recovered]==[(v['source_ref'],v['text'],v.get('context_only')) for v in segments.originals(bound)]
+    refs,errors=segments.references(dict(source_refs=[small['source_ref']]),{'b':b},recovered)
+    assert not errors and refs[0]['span']==[4,9] and refs[0]['quote']==b['text'][4:9]
+    assert bound==before
+    compact['blocks'][0]['span']=[0,22]
+    with pytest.raises(ValueError,match='구간 밖'): segments.originals(compact)

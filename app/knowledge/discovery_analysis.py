@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v28'
+PROMPT_VERSION = 'discovery-a2-v29'
 
 
 def recipe(budgets):
@@ -265,6 +265,8 @@ def compact(value, originals=None):
             if value.get('endpoint_labels')=={k:value.get(k) for k in ('subject','object')}:
                 omitted.add('endpoint_labels')
         omitted.update(k for k in ('validation','evidence_validation','unresolved_endpoints') if value.get(k)==[])
+        omitted.update(k for k in ('source_errors','candidate_alignments','target_gap_errors') if value.get(k)==[])
+        if value.get('analysis_target') is False: omitted.add('analysis_target')
         # Model input only: omit a quote only if that evidence's original is also provided.
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
                 and value['quote'] in originals[value['evidence_id']]):
@@ -454,7 +456,8 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
-    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(compact(remap(payload, mapping)), ensure_ascii=False, separators=(',', ':'))
+    payload = compact(remap(payload, mapping))
+    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
@@ -930,7 +933,7 @@ def analysis_context(run, stage, context, supplied, group, reserve=0):
     for field in ('blocks','tool_originals'):
         rows = []
         for b in context.get(field, []):
-            key = (b['ref'],tuple(b.get('span', [0,len(b['text'])])),b['text'])
+            key = (b['ref'],tuple(b.get('span', [0,len(b['text'])])),b['text'],b.get('context_only',False),b.get('analysis_target',False))
             if key not in seen: rows.append(b); seen.add(key)
         if field in context: context[field] = rows
     required = set(group.get('required_endpoint_ids', []))

@@ -101,11 +101,45 @@ def target_coverage(output, provided):
 
 
 def originals(value):
-    if isinstance(value, list): return [b for item in value for b in originals(item)]
-    if isinstance(value, dict):
-        if 'ref' in value and 'text' in value: return [value]
-        return [b for child in value.values() for b in originals(child)]
-    return []
+    def collect(node):
+        if isinstance(node, list): return [b for item in node for b in collect(item)]
+        if isinstance(node, dict):
+            if 'ref' in node and ('text' in node or 'text_from' in node): return [node]
+            return [b for child in node.values() for b in collect(child)]
+        return []
+    views = collect(value)
+    full = {v['source_ref']:v for v in views if 'text' in v and v.get('source_ref')}
+    result = []
+    for view in views:
+        if 'text' in view:
+            result.append(view); continue
+        parent = full.get(view['text_from'])
+        a,z = view['span']
+        if not parent or parent['ref']!=view['ref']:
+            raise ValueError('본문 참조가 실제 제공된 같은 블록 밖')
+        p,q = parent.get('span', [0,len(parent['text'])])
+        if not p<=a<z<=q or q-p!=len(parent['text']):
+            raise ValueError('본문 참조가 제공 부모 구간 밖')
+        result.append(dict(view,text=parent['text'][a-p:z-p]))
+    return result
+
+
+def compact_text(context):
+    """Serialize a contained body once; retain each view's address and role."""
+    context = deepcopy(context)
+    views = originals(context)
+    # Snapshot parents first: a parent is always a full, larger view, never an alias chain.
+    parents = sorted((deepcopy(v) for v in views),key=lambda v:len(v['text']),reverse=True)
+    for view in views:
+        a,z = view.get('span', [0,len(view['text'])])
+        for parent in parents:
+            p,q = parent.get('span', [0,len(parent['text'])])
+            if (view['ref']==parent['ref'] and p<=a<z<=q and q-p>z-a and
+                parent['text'][a-p:z-p]==view['text'] and parent.get('source_ref')):
+                view['text_from']=parent['source_ref']
+                view.pop('text')
+                break
+    return context
 
 
 def bind(context, run_id, unit_id):
