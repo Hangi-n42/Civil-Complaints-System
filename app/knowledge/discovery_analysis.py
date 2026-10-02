@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v25'
+PROMPT_VERSION = 'discovery-a2-v26'
 
 
 def recipe(budgets):
@@ -259,7 +259,11 @@ def compact(value, originals=None):
         return [compact(v, originals) for v in value]
     if isinstance(value, dict):
         omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref',
-                   'source_refs', 'counter_source_refs', 'candidate_view_version'}
+                   'source_refs', 'counter_source_refs', 'candidate_view_version', 'endpoint_mode'}
+        if value.get('endpoint_mode')=='source_text' and not value.get('source_relation'):
+            omitted.add('unresolved_endpoints')  # Source statements intentionally have no type binding.
+            if value.get('endpoint_labels')=={k:value.get(k) for k in ('subject','object')}:
+                omitted.add('endpoint_labels')
         omitted.update(k for k in ('validation','evidence_validation','unresolved_endpoints') if value.get(k)==[])
         # Model input only: omit a quote only if that evidence's original is also provided.
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
@@ -273,7 +277,8 @@ def remap(value, mapping):
     if isinstance(value, list):
         return [remap(v, mapping) for v in value]
     if isinstance(value, dict):
-        return {k: deepcopy(v) if k=='endpoint_labels' else remap(v, mapping) for k,v in value.items()}
+        literal = {'endpoint_labels'} | ({'subject','object'} if value.get('endpoint_mode')=='source_text' and not value.get('source_relation') else set())
+        return {k: deepcopy(v) if k in literal else remap(v, mapping) for k,v in value.items()}
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
@@ -371,6 +376,10 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
         alignment['observation_ref'] = local[alignment['observation_ref']]
         alignment['review_status'] = 'unreviewed'
     for relation in output.get('relations', []):
+        if relation.get('endpoint_mode')=='source_text':
+            relation['endpoint_labels'] = {k:relation[k] for k in ('subject','object')}
+            relation['unresolved_endpoints'] = ['subject','object']
+            continue
         relation.setdefault('endpoint_labels', {})
         relation['unresolved_endpoints'] = []
         for field in ('subject', 'object'):
@@ -576,7 +585,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             for field in ('subject_ref','object_ref'): binding[field]['enum'] = type_ids+local_types
             binding_definition=schema['$defs']['RelationBinding']
             variants=[]
-            for decision in ('bind','defer'):
+            for decision in ('bind','defer','source_error'):
                 fields=['relation_ref','decision','reason']+(['subject_ref','object_ref'] if decision=='bind' else [])
                 props={k:deepcopy(binding[k]) for k in fields}
                 props['decision']={'type':'string','const':decision}
@@ -609,6 +618,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     hierarchy_schema['anyOf'] = variants
         for definition in schema.get('$defs', {}).values():
             props = definition.get('properties', {})
+            if stage=='relation' and 'endpoint_labels' in props:
+                props.pop('endpoint_labels')
             if 'endpoint_labels' in props:
                 props['endpoint_labels']=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=100) for k in ('subject','object')},
                     required=['subject','object'],additionalProperties=False)
@@ -685,6 +696,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             output = models.OUTPUTS[stage].model_validate_json(metadata['text']).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output)
+            for row in output.get('relations', []):
+                original = supplied.get({v:k for k,v in mapping.items()}.get(row.get('candidate_ref')), {})
+                if stage=='relation' or (stage=='revision' and original.get('endpoint_mode')=='source_text' and not original.get('source_relation')):
+                    row['endpoint_mode']='source_text'
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
@@ -816,6 +831,7 @@ def queue_recovery(run, review, group, by_id=None):
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     primary = set(group.get('primary_candidate_ids', [])) | set(group.get('design_candidate_ids', []))
     issues = list(review.get('issues', []))
+    issues += [dict(candidate_ref=e['relation_ref'],cause='content_error',reason=e['reason']) for e in group.get('source_errors', [])]
     issues += [dict(candidate_ref=c['candidate_ref'],cause='endpoint',reason='; '.join(c['binding_validation']))
                for c in review.get('relation_checks', []) if c.get('binding_validation')]
     for unit in run.get('analysis_units', []):

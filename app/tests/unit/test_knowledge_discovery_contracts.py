@@ -79,6 +79,8 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
         if stage=='concept':
             for c in value['observations']:
                 c.update(classification_reason='원문의 일반 유형',conditions='',exceptions='',time='')
+        if stage=='relation':
+            for c in value['relations']: c.pop('endpoint_labels',None)
         jsonschema.validate(value,schema)
         if stage=='builder':
             assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=5 for v in schema['anyOf'])
@@ -88,7 +90,8 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
     monkeypatch.setattr(a2,'model_call',generated)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert run['status']=='review_ready',run['result']['failures']
+    assert run['status']==('partial' if comparison_only else 'review_ready'),run['result']['failures']
+    assert not run['result']['failures']
     assert max(seen.values())<=run['recipe']['input_chars']
     print('E2 actual input chars:',seen)
     if not comparison_only:
@@ -192,3 +195,35 @@ def test_clause_response_pending_survives_critic_and_resume(service,model,monkey
     assert run['status']=='partial' and not run['frontier'][0]['analysis_grounded']
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert resumed['metrics']['llm_calls']==5 and resumed['result']['analysis_target_coverage']==coverage
+
+
+def test_source_text_endpoints_and_builder_source_error_do_not_rewrite_original():
+    run,block,types,raw,relation,context,review=semantic_case()
+    raw.update(subject='사업자',object='주택',endpoint_mode='source_text')
+    relation=a2.normalize(dict(relations=[deepcopy(raw)]),'relation',run,['b'],{'b':block},types)['relations'][0]
+    assert relation['subject']=='사업자' and relation['object']=='주택'
+    assert relation['endpoint_labels']==dict(subject='사업자',object='주택')
+    assert a2.remap(dict(subject='c0',object='c1',endpoint_mode='source_text'),{'c0':'id0','c1':'id1'})['object']=='c1'
+    output=dict(observations=[],relation_bindings=[dict(relation_ref=relation['id'],decision='source_error',reason='원문 선정 대상과 원관계 목적어 불일치')])
+    design.bind(output,{**types,relation['id']:relation},{'b':block},dict(design_relation_ids=[relation['id']]))
+    assert not output['modeled_relations'] and output['source_errors']
+    group=dict(id='g',primary_candidate_ids=[relation['id']],candidates=[relation],source_errors=output['source_errors'])
+    a2.queue_recovery(run,{},group,{'b':block})
+    assert any(r['cause']=='content_error' and r['role']=='revision' for r in run['recovery_requests'])
+    assert relation['object']=='주택'  # Preserve the wrong raw observation for explicit revision, never fix via binding.
+    output=dict(observations=[],relation_bindings=[dict(relation_ref=relation['id'],decision='bind',subject_ref='actor',object_ref='resident',reason='설계 연결')])
+    design.bind(output,{**types,relation['id']:relation},{'b':block},dict(design_relation_ids=[relation['id']]))
+    modeled=output['modeled_relations'][0]
+    assert modeled['source_relation']==relation and modeled['endpoint_labels']['object']=='주택'
+    assert modeled['object']=='resident'  # Critic still receives the erroneous source endpoint independently.
+
+
+def test_external_reference_gap_and_provided_rule_omission_route_separately():
+    run,block,types,raw,relation,context,review=semantic_case()
+    review['issues']=[dict(local_ref='i1',cause='source_absent',reason='참조 별표의 상세 수치 없음',defer_reason='별표 본문 필요')]
+    review['missing_meanings']=[dict(role='relation',meaning='제공 본문의 잔여주택이면 완화 OR 선착순 허용',source_refs=['s1'],cq_ids=['q'],
+        compared_candidate_ids=[relation['id'],*types],comparison_reason='기존 산출에 제공 조건의 일부가 없음')]
+    supplied={**types,relation['id']:relation}
+    output=a2.normalize(a2.models.Critique.model_validate(review).model_dump(warnings=False),'critic',run,['b'],{'b':block},supplied,context)
+    a2.queue_recovery(run,output,dict(id='g',candidates=[relation],primary_candidate_ids=[relation['id']]),{'b':block})
+    assert {(r['cause'],r['role']) for r in run['recovery_requests']}=={('source_absent','review'),('extraction_missing','relation')}

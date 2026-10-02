@@ -38,6 +38,7 @@ def bind(output, supplied, by_id, context):
     counts = Counter(b.get('relation_ref') for b in bindings if isinstance(b,dict) and isinstance(b.get('relation_ref'),str))
     answered, bound, deferred, pending, errors, accepted = set(), set(), set(), set(), [], []
     output['modeled_relations'] = []
+    output['source_errors'] = []
     for raw in bindings:
         identifier = raw.get('relation_ref') if isinstance(raw,dict) and isinstance(raw.get('relation_ref'),str) else None
         try:
@@ -45,9 +46,10 @@ def bind(output, supplied, by_id, context):
             source = supplied.get(identifier, {})
             if identifier not in editable or counts[identifier]!=1 or source.get('statement_type') not in {'rule','definition'}:
                 raise ValueError('중복 연결 또는 실제 제공된 규범/정의 관계 밖 참조')
-            if binding['decision']=='defer':
+            if binding['decision'] in {'defer','source_error'}:
                 if binding['subject_ref'] or binding['object_ref']: raise ValueError('보류에 확정 끝점 연결을 함께 제출할 수 없음')
                 answered.add(identifier); deferred.add(identifier); accepted.append(binding)
+                if binding['decision']=='source_error': output['source_errors'].append(binding)
                 continue
             for field in ('subject_ref','object_ref'):
                 binding[field] = local.get(binding[field],binding[field])

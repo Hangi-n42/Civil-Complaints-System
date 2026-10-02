@@ -146,7 +146,9 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     candidates = {c['id']:c for c in group['candidates']}
     candidates.update({c['id']:c for c in group.get('design_candidates', [])})
     candidates.update({c['id']:c for c in taxonomy['hierarchies']})
-    issues = review['issues']
+    source_issues = [dict(candidate_ref=e['relation_ref'],cause='content_error',reason=e['reason'],
+                         evidence_ids=[],counter_evidence_ids=[]) for e in group.get('source_errors', [])]
+    issues = review['issues'] + source_issues
     routed = {i['candidate_ref'] for i in issues if i.get('cause') in {'endpoint','alignment','source_absent','budget_exhausted'}}
     target_ids = {i['candidate_ref'] for i in issues if i['candidate_ref'] and i.get('cause','content_error') in {'content_error','evidence_error'}}
     target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported' and i['candidate_ref'] not in routed)
@@ -183,7 +185,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
             for key in ('child_ref','parent_ref'):
                 if candidates[i].get(key) in candidates: required.add(candidates[i][key])
         trial, trial_deps, trial_supplied = context_for([candidates[i] for i in sorted(required)],by_id,context_map)
-        issues=[i for i in review['issues'] if not i['candidate_ref'] or i['candidate_ref'] in required]
+        issues=[i for i in review['issues']+source_issues if not i['candidate_ref'] or i['candidate_ref'] in required]
         checks=[i for i in review['relation_checks'] if i['candidate_ref'] in required]
         extra_ids=[e for i in issues for f in ('evidence_ids','counter_evidence_ids') for e in i[f]]
         extra_ids += [e['evidence_id'] for i in checks for e in i.get('evidence_refs', [])]
@@ -235,6 +237,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         taxonomy = identities.output(run,taxonomy)
         # Preserve the original Builder input on resume; overlay designs only for downstream consumers.
         group['design_candidates'] = taxonomy.get('observations', []) + taxonomy.get('modeled_relations', [])
+        group['source_errors'] = taxonomy.get('source_errors', [])
         group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', []) if c['id'] in new_design_ids]
         effective = {c['id']:c for c in group['candidates']}
         effective.update({c['id']:c for c in group['design_candidates']})
@@ -283,7 +286,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
             a2.queue_recovery(run, review, group, by_id)
             critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
-            candidate_revision = review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
+            candidate_revision = bool(group.get('source_errors')) or review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
             if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in effective.values()):
                 revisions.append((group,review,taxonomy))
         except ValueError as exc:
