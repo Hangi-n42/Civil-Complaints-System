@@ -59,7 +59,7 @@ def response(prompt, stage):
     def checks(rows):
         return [dict(candidate_ref=c['id'],judgment='supported',evidence_id=c['evidence_ids'][0],
             quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.',
-            **(dict(semantic_checks={k:'supported' for k in ('subject','object','conditions','statement_type')}) if 'negation' in c else {}))
+            semantic_checks={k:'supported' for k in a2.models.SEMANTIC_FIELDS['relation_checks' if 'negation' in c else 'observation_checks']})
             for c in rows if c['id'] in data.get('review_target_ids',[c['id']])]
     return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy,
         relation_checks=checks(data['unapproved_relations']), observation_checks=checks(data['unapproved_observations']),
@@ -687,7 +687,8 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
         if stage=='critic':
             assert len([c for c in data['unapproved_observations'] if c['support_type']=='design_proposal'])==3
             assert 'relation_bindings' not in data['taxonomy']
-            assert all(c['source_relation']['statement_type']=='rule' and c['statement_type']=='design_proposal' for c in data['unapproved_relations'])
+            assert all('source_relation' not in c and c['statement_type']=='rule' for c in data['unapproved_relations'])
+            assert data['relation_bindings']
             if revise_design:
                 target=next(c for c in data['unapproved_observations'] if c['support_type']=='design_proposal')
                 value.update(needs_revision=True,issues=[dict(local_ref='i1',cause='content_error',candidate_ref=target['id'],reason='설계 유형의 표현 점검',

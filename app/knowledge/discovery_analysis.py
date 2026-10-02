@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v38'
+PROMPT_VERSION = 'discovery-a2-v39'
 
 
 def recipe(budgets):
@@ -465,6 +465,14 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     if stage=='revision':
         context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
                             for c in context['targets']]
+    if stage=='critic':
+        bindings={}
+        for field in ('unapproved_relations','reviewed_base','comparison_terms'):
+            for n,c in enumerate(context.get(field, [])):
+                if not c.get('source_relation'): continue
+                bindings[c['id']]=dict(relation_ref=c['id'],subject_ref=c['subject'],object_ref=c['object'],reason=c.get('design_reason',''))
+                context[field][n]=dict(c['source_relation'],id=c['id'])
+        context['relation_bindings']=list(bindings.values())
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
@@ -539,10 +547,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             missing_limit = max(2,min(5,len(primary_targets)))
             schema['properties']['missing_meanings']['maxItems']=missing_limit
             schema['$defs']['Issue']['required'].append('cause')
-            checks=schema['$defs']['RelationCheck']['properties']
-            fields=['subject','object','conditions','statement_type']
-            checks['semantic_checks']=dict(type='object',properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=fields,additionalProperties=False)
-            schema['$defs']['ObservationCheck']['properties'].pop('semantic_checks',None)
+            for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
+                fields=models.SEMANTIC_FIELDS[section]
+                schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
+                    properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=list(fields),additionalProperties=False)
             comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
             comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
             comparisons['items']['enum']=comparable or ['']

@@ -100,6 +100,10 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                             if not label: raise ValueError('독립 대조할 원문 끝점 표현 미확인: '+field)
                             if candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
                                 item.setdefault('binding_validation', []).append('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
+                    if section=='observation_checks' and require_issue_cause and item['judgment']=='supported':
+                        # Fresh generation only; stored Critic records keep their original contract.
+                        if set(item['semantic_checks'])!=set(models.SEMANTIC_FIELDS[section]) or any(v!='supported' for v in item['semantic_checks'].values()):
+                            raise ValueError('지지 판정에는 분류·정의 전체·조건·예외의 각각의 대조 필요')
                 elif section=='hierarchy_checks':
                     if target not in hierarchies: raise ValueError('제안하지 않은 계층 검토')
                     # The existing Builder validation checks kind/direction/evidence contracts.

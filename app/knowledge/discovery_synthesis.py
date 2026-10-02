@@ -176,7 +176,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     issues = review['issues'] + source_issues
     routed = {i['candidate_ref'] for i in issues if i.get('cause') in {'endpoint','alignment','source_absent','budget_exhausted'}}
     target_ids = {i['candidate_ref'] for i in issues if i['candidate_ref'] and i.get('cause','content_error') in {'content_error','evidence_error'}}
-    target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported' and i['candidate_ref'] not in routed)
+    target_ids.update(i['candidate_ref'] for field in ('relation_checks','observation_checks') for i in review.get(field, []) if i['judgment']!='supported' and i['candidate_ref'] not in routed)
     evidence_only = {i['candidate_ref'] for i in issues if i.get('cause')=='evidence_error'}
     evidence_only.update(i for i,c in candidates.items() if c.get('evidence_validation'))
     evidence_only -= {i['candidate_ref'] for i in issues if i.get('cause','content_error')=='content_error'}
@@ -211,7 +211,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
                 if candidates[i].get(key) in candidates: required.add(candidates[i][key])
         trial, trial_deps, trial_supplied = context_for([candidates[i] for i in sorted(required)],by_id,context_map)
         issues=[i for i in review['issues']+source_issues if not i['candidate_ref'] or i['candidate_ref'] in required]
-        checks=[i for i in review['relation_checks'] if i['candidate_ref'] in required]
+        checks=[i for field in ('relation_checks','observation_checks') for i in review.get(field, []) if i['candidate_ref'] in required]
         extra_ids=[e for i in issues for f in ('evidence_ids','counter_evidence_ids') for e in i[f]]
         extra_ids += [e['evidence_id'] for i in checks for e in i.get('evidence_refs', [])]
         extra_ids += [i['evidence_id'] for i in checks if i['evidence_id']]
@@ -221,7 +221,9 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         trial.pop('unapproved_observations'); trial.pop('unapproved_relations'); trial.pop('reviewed_base')
         trial.update(target_ids=trial_ids, targets=[candidates[i] for i in trial_ids], evidence_only_ids=sorted(set(trial_ids)&evidence_only),
             source_change_ids=[i for i in trial_ids if candidates[i].get('source_relation') and i not in evidence_only],
-            comparison_candidates=[candidates[i] for i in sorted(required-set(trial_ids))], issues=issues, relation_checks=checks)
+            comparison_candidates=[candidates[i] for i in sorted(required-set(trial_ids))], issues=issues,
+            relation_checks=[i for i in checks if 'negation' in candidates[i['candidate_ref']]],
+            observation_checks=[i for i in checks if 'classification' in candidates[i['candidate_ref']]])
         if fits(run,'revision',trial,trial_deps,trial_supplied):
             selected=trial_ids;context,deps,supplied=trial,trial_deps,trial_supplied
         else:
@@ -357,7 +359,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
             critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
             needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
             candidate_revision = bool(group.get('source_errors')) or review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
-            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in supplied.values()):
+            if candidate_revision or needs_context or any(c['judgment']!='supported' for field in ('relation_checks','observation_checks') for c in review.get(field, [])) or any(c.get('evidence_validation') for c in supplied.values()):
                 revisions.append((group,review,taxonomy))
         except ValueError as exc:
             group['error']=str(exc)
