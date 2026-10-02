@@ -234,11 +234,20 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         context['candidate_alignments'] = [{k:v for k,v in a.items() if k not in {'target_snapshot','target_fingerprint'}} for a in alignments
             if a['observation_ref'] in supplied and a['target_id'] in supplied
             and (a.get('target_scope')!='run_candidate' or a.get('target_fingerprint')==identities.exact_key(supplied[a['target_id']]))]
-        group.setdefault('builder_context_unit_ids', [u['id'] for u in run['analysis_units']
-            if u['stage']=='concept' and u['status']=='succeeded' and u['group_id'] in group['analysis_group_ids']])
-        context, deps, terms = a2.with_tool_context(service,run,context,deps,
-            [u for u in run['analysis_units'] if u['id'] in group['builder_context_unit_ids']],by_id,context_map)
-        supplied.update(terms)
+        if 'builder_tool_context' not in group:
+            units = [u for u in run['analysis_units'] if u['stage']=='concept' and u['status']=='succeeded' and u['group_id'] in group['analysis_group_ids']]
+            ids = [i for u in units for r in u.get('tool_results', []) for i in r.get('block_ids', [])]
+            trial, trial_deps, omitted = add_retrieved(run,'builder',context,deps,supplied,ids,by_id,context_map)
+            trial_supplied = dict(supplied); term_omissions = []
+            for unit in units:
+                trial,trial_deps,trial_supplied,missing = add_terms(run,'builder',trial,trial_deps,trial_supplied,unit,by_id,context_map)
+                term_omissions.extend(missing)
+            group['builder_tool_context'] = dict(context={k:trial[k] for k in ('independently_retrieved','tool_originals','comparison_terms') if k in trial},
+                dependency_ids=sorted(set(trial_deps)-set(deps)),terms={i:c for i,c in trial_supplied.items() if i not in supplied})
+            group['omitted_builder_context_ids'],group['omitted_builder_term_ids'] = omitted,term_omissions
+        extra = group['builder_tool_context']
+        context.update(deepcopy(extra['context']));deps=sorted(set(deps)|set(extra['dependency_ids']))
+        supplied.update(deepcopy(extra['terms']))
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)

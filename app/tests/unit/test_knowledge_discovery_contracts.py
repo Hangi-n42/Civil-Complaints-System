@@ -236,7 +236,14 @@ def test_relation_keeps_own_originals_without_concept_predictions(service,model,
         assert len(seen['relation'])==1 and reused['output']==relation['output'] and reused['source_ref_map']==relation['source_ref_map']
 
 
-def test_resumed_concept_new_original_goes_to_builder_not_completed_relation(service,model,monkeypatch):
+@pytest.mark.parametrize('oversized',[False,True])
+def test_resumed_concept_new_original_goes_to_builder_not_completed_relation(service,model,monkeypatch,corpus,oversized):
+    if oversized:
+        from hashlib import sha256
+        path=corpus/'web.html';path.write_text('<body><p>예외 '+('추가 설명 '*3000)+'</p></body>',encoding='utf-8-sig')
+        manifest=corpus/'manifest.json';data=json.loads(manifest.read_text())
+        next(s for s in data['selected_sources'] if s['source_id']=='web')['input_files'][0]['sha256']=sha256(path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(data),encoding='utf-8')
     source=prepare(service,file_ids=['current:0','web:0']);blocks=a2.load_blocks(service,source)
     selected=[b['id'] for b in blocks if b['file_id']=='current:0'];first=True;seen=[]
     async def generated(prompt,schema,stage,run,timeout):
@@ -255,9 +262,17 @@ def test_resumed_concept_new_original_goes_to_builder_not_completed_relation(ser
     assert sum(stage=='relation' for stage,_ in seen)==1
     builder=next(u for u in reversed(again['analysis_units']) if u['stage']=='builder')
     assert builder['status']=='succeeded',builder['error']
-    assert any('예외' in b['text'] for b in seen[-2][1]['tool_originals'])
-    assert set(builder['dependency_ids'])-set(relation['dependency_ids'])
+    provided=a2.segments.originals(json.loads(builder['prompt'].split('\nINPUT:\n')[1]))
+    assert any('예외' in b['text'] for b in provided)==(not oversized)
+    group=next(g for g in again['candidate_groups'] if g['id']==builder['group_id'])
+    assert bool(group['omitted_builder_context_ids'])==oversized
+    assert builder['input_chars']<=again['recipe']['input_chars']
+    if not oversized: assert set(builder['dependency_ids'])-set(relation['dependency_ids'])
     assert not any('입력 해시 변경' in str(u.get('error')) for u in again['analysis_units'])
+    before=len(seen)
+    resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=again['id']))['run_id'])
+    assert len(seen)==before
+    assert next(g for g in resumed['candidate_groups'] if g['id']==group['id'])['builder_tool_context']==group['builder_tool_context']
 
 
 def semantic_case():
