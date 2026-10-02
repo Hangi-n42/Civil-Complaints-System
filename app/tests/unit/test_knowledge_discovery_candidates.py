@@ -115,7 +115,8 @@ def test_relation_through_a3_and_resume_uses_representatives_without_rewriting_u
     assert len(raw)==(6 if repeat_group else 3) and len(representatives)==2
     first,duplicate=raw[0]['id'],raw[2]['id']
     assert run['candidate_identity']['raw_to_candidate'][duplicate]==first
-    assert all(r['subject']==first for r in run['result']['original_relations'])
+    assert all(r['subject']=='국민임대' for r in run['result']['original_relations'])
+    assert all(r['subject']==first for r in run['result']['relations'])
     saved=[(u['id'],deepcopy(u['output']),u['input_hash']) for u in run['analysis_units']]
     change_id=ontology_changes.publish(service,run['id'])['changeset_id']
     with service.repository.connect() as db:change=service.repository.get(db,'changesets',change_id)
@@ -136,3 +137,50 @@ def test_relation_through_a3_and_resume_uses_representatives_without_rewriting_u
     blocks=a2.load_blocks(service,legacy_review)
     a2.finish(legacy_review,blocks,{b['id'] for b in blocks})
     assert legacy_review['status']=='partial' and legacy_review['result']['review_groups']==0
+
+
+@pytest.mark.parametrize('meaning',['same','distinct'])
+def test_prior_unapproved_comparison_proposal_and_stale_target(service,model,monkeypatch,meaning):
+    source=prepare(service,file_ids=['current:0']);expand=a2.segments.expand
+    def repeated(frontier,blocks):
+        group=expand(frontier,blocks)[0]
+        return [dict(deepcopy(group),id=group['id']+suffix) for suffix in ('_a','_b')]
+    monkeypatch.setattr(a2.segments,'expand',repeated)
+    async def fake(prompt,schema,stage,run,timeout):
+        model.append(stage);data=json.loads(prompt.split('\nINPUT:\n')[1]);value=response(prompt,stage)
+        if stage=='concept' and data.get('comparison_terms'):
+            target=next(c for c in data['comparison_terms'] if c['label']=='국민임대')
+            row=value['observations'][0]
+            row['definition']='선택 문서에서 정의한 임대 종류의 재표현'
+            if meaning=='distinct': row['conditions']='별도의 공급 조건'
+            value['alignments']=[dict(observation_ref=row['local_ref'],target_id=target['id'],meaning=meaning,
+                                      reason='정의와 조건 대조 후 재사용 제안' if meaning=='same' else '명칭은 같지만 조건이 다른 대상')]
+        return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
+    monkeypatch.setattr(a2,'model_call',fake)
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert not run['result']['failures']
+    match=run['result']['alignments'][0]
+    assert match['target_scope']=='run_candidate' and match['target_fingerprint']
+    assert match['target_snapshot']['id']==match['target_id']
+    change_id=ontology_changes.publish(service,run['id'])['changeset_id']
+    with service.repository.connect() as db:
+        change=service.repository.get(db,'changesets',change_id)
+        row=next(c for c in change['candidates'] if c['origin'].get('reuse_proposal'))
+        target=next(c for c in change['candidates'] if c['origin']['candidate_id']==match['target_id'])
+        assert row['operation']=='add' and row['target_id']!=target['target_id']
+        assert row['origin']['reuse_proposal']['status']=='proposed'
+        assert row['origin'].get('change_intent')==('alignment_pending' if meaning=='same' else None)
+        assert not any('대상 내용·근거 변경' in e for e in row['validation']['structural_errors'])
+        definition=target['after']['definition']
+        target['after']['definition']='검수 중 바뀐 대상 정의'
+        ontology_changes._validate(service.repository,db,change,run,None)
+        assert any('대상 내용·근거 변경' in e for e in row['validation']['structural_errors'])
+        target['after']['definition']=definition
+        from app.knowledge import snapshots
+        with monkeypatch.context() as revoked:
+            revoked.setattr(snapshots,'_statuses',lambda db:{('evidence',target['evidence_refs'][0]['evidence_id']):dict(state='blocked')})
+            ontology_changes._validate(service.repository,db,change,run,None)
+            assert any('대상 내용·근거 변경' in e for e in row['validation']['structural_errors'])
+    before=deepcopy(run['analysis_units']);calls=list(model)
+    resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model==calls and resumed['analysis_units']==before

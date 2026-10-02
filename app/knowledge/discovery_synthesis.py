@@ -230,6 +230,10 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         key=group['id'];group.pop('error',None)
         context,deps,supplied=context_for(group['candidates'],by_id,context_map)
         context['design_relation_ids'] = [] if group.get('comparison_only') else [i for i in group['primary_candidate_ids'] if supplied[i].get('statement_type') in {'rule','definition'}]
+        alignments = [identities.alignment(run,a) for u in run['analysis_units'] if u['status']=='succeeded' for a in u['output'].get('alignments', [])]
+        context['candidate_alignments'] = [{k:v for k,v in a.items() if k not in {'target_snapshot','target_fingerprint'}} for a in alignments
+            if a['observation_ref'] in supplied and a['target_id'] in supplied
+            and (a.get('target_scope')!='run_candidate' or a.get('target_fingerprint')==identities.exact_key(supplied[a['target_id']]))]
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)

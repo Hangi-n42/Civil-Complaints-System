@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v27.1'
+PROMPT_VERSION = 'discovery-a2-v28'
 
 
 def recipe(budgets):
@@ -375,6 +375,11 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None):
             raise ValueError('관측/기준 개념 대응 참조 불일치')
         alignment['observation_ref'] = local[alignment['observation_ref']]
         alignment['review_status'] = 'unreviewed'
+        target = supplied[alignment['target_id']]
+        alignment['target_scope'] = 'reviewed' if target.get('review_status')=='reviewed' else 'run_candidate'
+        if alignment['target_scope']=='run_candidate':
+            alignment['target_fingerprint'] = identities.exact_key(target)
+            alignment['target_snapshot'] = deepcopy(target)
     for relation in output.get('relations', []):
         if relation.get('endpoint_mode')=='source_text':
             relation['endpoint_labels'] = {k:relation[k] for k in ('subject','object')}
@@ -1023,9 +1028,27 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     base_raw = packet(list(dict.fromkeys(e['evidence_id'] for c in base for e in c['evidence'])), by_id, context_map)
     deps += [b['ref'] for b in base_raw]
     common = dict(blocks=raw, focus_spans=group.get('segments', []), reviewed_base=base, tool_originals=[b for b in base_raw if b['ref'] not in {r['ref'] for r in raw}], selection_reason=group['reason'])
+    # Freeze the small comparison set before this group's first call; later results cannot alter resume input.
+    if 'prior_comparisons' not in group:
+        group['prior_comparisons'] = []
+        text = ' '.join(v['text'] for v in raw if not v.get('context_only'))
+        for candidate in lookup(service, run, '', 'any', blocks):
+            if candidate.get('review_status')=='reviewed': continue
+            same_span = any(e['block_id']==v['ref'] and e.get('span') and e['span'][0]<v.get('span',[0,len(v['text'])])[1]
+                and v.get('span',[0])[0]<e['span'][1] for e in candidate.get('evidence_refs', []) for v in raw)
+            if same_span or candidate.get('label') and candidate['label'] in text:
+                group['prior_comparisons'].append(deepcopy(candidate))
+            if len(group['prior_comparisons'])==5: break
+    common['comparison_terms'] = deepcopy(group['prior_comparisons'])
+    if group['prior_comparisons']:
+        from .discovery_synthesis import context_for
+        prior_context, prior_deps, _ = context_for(group['prior_comparisons'],by_id,context_map)
+        common['tool_originals'].extend(prior_context['blocks'])
+        deps += prior_deps
     scout_unit = next(u for u in run['analysis_units'] if u['id']=='scout:structure')
     common, deps, supplied_tools = with_tool_context(service, run, common, deps, [scout_unit], by_id, context_map)
     supplied = {c['id']:c for c in base}
+    supplied.update({c['id']:c for c in group['prior_comparisons']})
     supplied.update(supplied_tools)
     previous = group.get('previous_observations', [])
     if group.get('recovery_request_id'):

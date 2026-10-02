@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from . import ontology_canonical as canonical
 from . import discovery_review as reviews
+from . import discovery_candidates as identities
 from .ontology_changes_models import AddOntologyChanges, Definition, EvidenceRef, HierarchyReview, OntologyChangeV2, Qualifiers
 from .ontology_schema import SCALARS, VersionConflict, _insert, _now
 from .schemas import DecisionRequest
@@ -81,6 +82,12 @@ def _same_alignment_name(source, target):
     return bool(source.get('label') and source['label']==target.get('name'))
 
 
+def _reuse_fingerprint(candidate):
+    values = {k:candidate.get(k) for k in ('after','target_kind','support_type','evidence_refs')}
+    values['qualifiers'] = Qualifiers.model_validate(candidate.get('qualifiers', {})).model_dump()
+    return canonical.digest(values)
+
+
 def _convert(run, base, blocks):
     result = run['result']
     rows, references, mapping = [], [], {}
@@ -128,7 +135,16 @@ def _convert(run, base, blocks):
             match = matches[0]
             target = base.get(match['target_id'])
             meaning = match.get('meaning', 'uncertain') if len(matches)==1 else 'uncertain'
-            if meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated') and _same_alignment_name(source, target):
+            if match.get('target_scope')=='run_candidate':
+                prior = next((c for c in observations if c['id']==match['target_id']), {})
+                valid = bool(prior and match.get('target_fingerprint') and identities.exact_key(prior)==match['target_fingerprint'])
+                origin['reuse_proposal'] = dict(target_candidate_id=match['target_id'],meaning=meaning,reason=match['reason'],
+                    target_snapshot=deepcopy(match.get('target_snapshot', {})),status='proposed' if valid else 'stale')
+                if meaning!='distinct' or not valid:
+                    origin['change_intent']='alignment_pending'
+                    raw['unresolved_issues']=[*raw['unresolved_issues'], '미승인 후보 재사용 제안; 대상 정의·조건·근거 대조 필요' if valid else '미승인 대응 대상 변경/사용 불가; 이전 대응 재사용 금지']
+                raw['rationale'] += '; 실행 내부 미승인 대응: '+match['reason']
+            elif meaning in {'same', 'changed'} and target and target['kind']==kind and not target.get('deprecated') and _same_alignment_name(source, target):
                 raw.update(operation='update', target_id=target['id'])
                 before = {k:deepcopy(v) for k,v in target.items() if k in AFTER_FIELDS[kind]}
                 if meaning=='same':
@@ -273,6 +289,13 @@ def _convert(run, base, blocks):
     for raw_id, representative in result.get('candidate_identity', {}).get('raw_to_candidate', {}).items():
         if representative in mapping and raw_id not in mapping:
             mapping[raw_id] = dict(mapping[representative], representative_candidate_id=representative)
+    for row in rows:
+        proposal = row['origin'].get('reuse_proposal')
+        if not proposal: continue
+        target_id = mapping.get(proposal['target_candidate_id'], {}).get('change_id')
+        target = next((c for c in rows if c['change_id']==target_id), None)
+        if target:
+            proposal.update(target_change_id=target_id,target_change_fingerprint=_reuse_fingerprint(target))
     return rows, references, mapping
 
 
@@ -445,6 +468,13 @@ def _validate(repo, db, change, run, base):
         except ValidationError as exc:
             errors.append('contract: '+str(exc)); continue
         target = initial.get(c['target_id'])
+        reuse = c['origin'].get('reuse_proposal')
+        if reuse:
+            prior = next((p for p in proposals if p['change_id']==reuse.get('target_change_id')), None)
+            if (reuse['status']=='stale' or not prior or prior['review_status']=='rejected'
+                or _reuse_fingerprint(prior)!=reuse.get('target_change_fingerprint')
+                or _evidence_errors(repo,db,prior.get('evidence_refs', []),blocks,statuses)):
+                errors.append('미승인 대응 대상 내용·근거 변경/사용 중단; 이전 재사용 제안 재검토 필요')
         source_designs = c['origin'].get('source_relations') or (target or {}).get('modeling_origin', {}).get('source_relations')
         if source_designs and (c['support_type']!='design_proposal' or c['qualifiers'].get('statement_type')!='design_proposal'):
             errors.append('Builder 설계 출처가 있는 유형을 원문 명시 정의로 승격할 수 없음')

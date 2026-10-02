@@ -65,7 +65,7 @@ def view(run, row, revised=False):
             value = deepcopy(originals(run)[target][0])
         value['id'] = target
     # Resolve only ID-bearing fields of each contract, never prose or source_relation.
-    fields = ('subject','object') if 'negation' in row else ('child_ref','parent_ref') if 'child_ref' in row else ()
+    fields = ('subject','object') if 'negation' in row and (row.get('endpoint_mode')!='source_text' or row.get('source_relation')) else ('child_ref','parent_ref') if 'child_ref' in row else ()
     for field in fields: value[field] = identifier(run,value[field])
     if fields == ('child_ref','parent_ref') and value['child_ref']==value['parent_ref']:
         reason = '대표 후보 연결 후 자기 참조'
