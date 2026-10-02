@@ -11,6 +11,31 @@ from app.tests.unit.test_knowledge_discovery_analysis import done, request, resp
 from app.tests.unit.test_knowledge_discovery_run import corpus, service, prepare
 
 
+def test_expanded_input_selects_comparison_and_keeps_byte_and_actual_token_guards(service,model,monkeypatch):
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id']))['run_id'])
+    assert (run['recipe']['input_chars'],run['recipe']['num_ctx'],run['recipe']['num_predict'])==(24000,32768,4096)
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};bid=blocks[0]['id']
+    term=dict(id='comparison',classification='type',definition='x'*13000,evidence_ids=[bid])
+    context=dict(blocks=[dict(ref=bid,text=blocks[0]['text'])],comparison_terms=[term])
+    old=deepcopy(run);old['recipe']['input_chars']=12000
+    _,_,old_terms=a2.analysis_context(old,'scout',context,{term['id']:term},{})
+    selected,deps,terms=a2.analysis_context(run,'scout',context,{term['id']:term},{})
+    assert not old_terms and terms=={term['id']:term} and selected['blocks']==context['blocks']
+    assert synthesis.fits(run,'scout',selected,deps,terms) and not synthesis.fits(old,'scout',selected,deps,terms)
+    assert a2.call(service,run,'scout','expanded',selected,deps,by_id,terms) is not None
+    assert 12000<run['analysis_units'][-1]['input_chars']<24000
+    count=len(model)
+    assert a2.call(service,run,'scout','bytes',dict(blocks=context['blocks'],note='가'*11000),deps,by_id) is None
+    assert len(model)==count and '컨텍스트' in run['analysis_units'][-1]['error']
+    original=a2.model_call
+    async def overflow(*args,**kwargs):
+        result=await original(*args,**kwargs);result['prompt_eval_count']=30000;return result
+    monkeypatch.setattr(a2,'model_call',overflow)
+    assert a2.call(service,run,'scout','tokens',dict(blocks=context['blocks']),deps,by_id) is None
+    assert len(model)==count+1 and '토큰' in run['analysis_units'][-1]['error']
+
+
 def test_builder_target_binding_defer_missing_and_duplicate_are_separate():
     types={i:dict(id=i,classification='type') for i in ('a','b')}
     rules={i:dict(id=i,statement_type='rule',subject='사업자',object='입주자',conditions='A 또는 B, 다만 C 제외',

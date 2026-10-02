@@ -13,14 +13,14 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v34'
+PROMPT_VERSION = 'discovery-a2-v35'
 
 
 def recipe(budgets):
     return dict(profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
-        num_ctx=32768, num_predict=4096, think=False, input_chars=12000,
+        num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
         schema_hash=profile.digest({k: v.model_json_schema() for k, v in models.OUTPUTS.items()}))
 
