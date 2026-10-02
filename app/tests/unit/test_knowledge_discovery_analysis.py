@@ -1197,7 +1197,7 @@ def test_critic_missing_meaning_separate_bounded_analysis(service,monkeypatch,mo
                 source_quotes=[dict(evidence_id=b['ref'],quote='입력 밖 인용' if invalid else b['text'])],
                 cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')]
             out['needs_revision']=True
-        if data.get('recovery_meaning'):
+        if data.get('recovery_meanings'):
             if stage=='concept':
                 for c in out['observations']: c['definition']='추가로 확인한 별도 의미'
             if stage=='relation': out['relations'][0]['conditions']='추가로 확인한 누락 조건'

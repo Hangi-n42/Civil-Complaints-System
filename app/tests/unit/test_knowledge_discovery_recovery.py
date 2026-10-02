@@ -197,6 +197,36 @@ def test_recovery_span_selection_keeps_shared_context_endpoints_and_single_candi
     assert any(b['ref']=='type' for b in context['tool_originals'])
     assert '필수 원문' in group['input_allocation']['relation']['pending_reason']
 
+    # Concept's explicit comparison stays required; relation endpoint types are optional context.
+    concept_run=dict(run,recovery_requests=[],recipe=a2.recipe({}))
+    a2.queue_recovery(concept_run,dict(missing_meanings=[dict(need,role='concept',compared_candidate_ids=['inside'])]),owner,by_id)
+    concept_group=a2.recovery_groups(concept_run,1,by_id)[0]
+    assert not concept_group['required_endpoint_ids'] and concept_group['required_comparison_ids']==['inside']
+    assert {'inside','endpoint','base'}=={c['id'] for c in concept_group['previous_observations']}
+    concept_context=dict(blocks=raw,tool_originals=required['blocks'],reviewed_base=[reviewed],
+        previous_observations=concept_group['previous_observations'],previous_relations=concept_group['previous_relations'],
+        recovery_meaning=concept_group['recovery_meaning'],recovery_meanings=concept_group['recovery_meanings'])
+    stored=deepcopy(concept_context)
+    _,prompt=a2.make_prompt(concept_run,'concept',concept_context,list(by_id),supplied)
+    payload=json.loads(prompt.split('\nINPUT:\n')[1])
+    assert 'recovery_meaning' not in payload and payload['recovery_meanings'] and concept_context==stored
+    concept_run['recipe']['input_chars']=1
+    reduced,_,_=a2.analysis_context(concept_run,'concept',concept_context,supplied,concept_group,reserve=2000)
+    assert [c['id'] for c in reduced['previous_observations']]==['inside']
+    assert not reduced['previous_relations'] and not reduced['reviewed_base']
+    assert {'endpoint','base'}<=set(concept_group['omitted_comparison_ids'])
+    assert reduced['blocks']==raw and units==before
+
+    modeled=dict(relation,subject='inside',statement_type='design_proposal',source_relation=deepcopy(relation))
+    critic_group=dict(id='cg',analysis_group_ids=['g'],candidates=[relation],design_candidates=[modeled])
+    compared_run=dict(run,recovery_requests=[],candidate_groups=[critic_group],recipe=a2.recipe({}))
+    a2.queue_recovery(compared_run,dict(missing_meanings=[dict(need,role='concept',compared_candidate_ids=['relation'])]),critic_group,by_id)
+    compared_group=a2.recovery_groups(compared_run,1,by_id)[0]
+    assert compared_group['required_comparison_ids']==['relation']
+    assert compared_group['previous_relations']==[modeled]
+    assert compared_group['previous_relations'][0]['source_relation']==relation and units==before
+    assert 'relation' not in {c['candidate_id'] for c in compared_group['omitted_recovery_candidates']}
+
 
 def test_comparison_search_never_becomes_new_extraction(service,monkeypatch,model):
     source=prepare(service,file_ids=['current:0','web:0'])
