@@ -656,3 +656,151 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
     assert row['review_status']!='deferred' and not row['origin'].get('review_errors')
     assert [c['judgment'] for c in row['origin']['observation_checks']]==['supported']
+
+
+@pytest.mark.parametrize('cause',['content_error','endpoint','alignment'])
+def test_supported_and_content_error_conflict_only_blocks_same_candidate(service,model,monkeypatch,cause):
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout);value=json.loads(result['text'])
+        if stage=='builder': value['hierarchies']=[]
+        if stage=='critic':
+            check=value['relation_checks'][0]
+            value.update(needs_revision=True,issues=[dict(local_ref='i1',cause=cause,candidate_ref=check['candidate_ref'],
+                reason='원문 또는 유형 연결 검수 사유',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')])
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1)))['run_id'])
+    assert 'revision' not in model and len(model)==5
+    relation=run['result']['relations'][0];review=run['result']['critiques'][0]
+    if cause=='content_error':
+        assert relation['id'] in review['review_coverage']['pending_candidate_ids']
+        assert not review['issues'] and not review['relation_checks'] and not run['recovery_requests']
+        assert relation['id'] in run['result']['review_pending_candidate_ids']
+    else:
+        assert not review['record_errors'] and review['issues'][0]['cause']==cause
+        assert review['relation_checks'][0]['judgment']=='supported'
+    assert all(c['id'] in review['review_coverage']['valid_candidate_ids'] for c in run['result']['observations'])
+    cid=ontology_changes.publish(service,run['id'])['changeset_id'];rows=listing(service,cid)['candidates']
+    row=next(c for c in rows if c['origin'].get('candidate_id')==relation['id'])
+    if cause=='content_error': assert not row['can_accept'] and row['origin']['review_errors']
+    good=next(c for c in rows if c['origin'].get('candidate_id')==run['result']['observations'][0]['id'])
+    assert not good['origin'].get('review_errors')
+
+
+@pytest.mark.parametrize('violation',['type_id','type_alias','design_proposal','unchanged_natural_id'])
+def test_source_revision_rejects_type_copy_before_history_and_preserves_original(service,model,monkeypatch,violation):
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call;call=a2.call
+    def provide_types(*args,**kwargs):
+        if args[2]=='revision':
+            context,supplied=args[4],args[7]
+            types=[c for u in args[1]['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations',[])]
+            context['comparison_terms']=types;supplied.update({c['id']:c for c in types})
+        return call(*args,**kwargs)
+    monkeypatch.setattr(a2,'call',provide_types)
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage=='relation' and violation=='unchanged_natural_id':
+            value['relations'][0]['subject']=next(c['id'] for u in run['analysis_units'] if u['stage']=='concept' for c in u['output']['observations'])
+            value['relations'][0]['endpoint_labels']['subject']=value['relations'][0]['subject']
+        if stage=='builder': value['hierarchies']=[]
+        if stage=='critic' and not any(u['stage']=='revision' and u['status']=='succeeded' for u in run['analysis_units']):
+            check=value['relation_checks'][0];check.update(judgment='refuted',reason='적용 범위 보완 필요')
+            check['semantic_checks']['conditions']='refuted'
+        if stage=='revision':
+            target=data['targets'][0];row={k:target[k] for k in a2.models.Relation.model_fields if k in target}
+            row.update(local_ref='r1',candidate_ref=target['id'],reason='원명제 수정',conditions='보완된 범위')
+            if violation=='type_id': row['subject']=next(c['id'] for u in run['analysis_units'] if u['stage']=='concept' for c in u['output']['observations'])
+            elif violation=='type_alias': row['subject']=data['comparison_terms'][0]['id']
+            elif violation=='design_proposal': row['statement_type']='design_proposal'
+            value=dict(observations=[],relations=[row],hierarchies=[],deferred=[])
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=7)))['run_id'])
+    unit=next(u for u in run['analysis_units'] if u['stage']=='revision')
+    if violation=='unchanged_natural_id':
+        assert unit['status']=='succeeded',unit.get('error')
+        assert run['result']['revision_history'][0]['after']['source_relation']['subject']==run['result']['original_relations'][0]['subject']
+        return
+    assert unit['status']=='failed' and '원명제 수정' in unit['error']
+    assert unit['raw_output'] and unit['attempts'] and not unit.get('output')
+    assert not run['result']['revision_history'] and model==['scout','concept','relation','builder','critic','revision']
+    relation=run['result']['relations'][0];before=next(g['design_candidates'] for g in run['candidate_groups'] if any(c['id']==relation['id'] for c in g['design_candidates']))
+    assert relation['source_relation']==next(c['source_relation'] for c in before if c['id']==relation['id'])
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert len(model)==6 and not again['result']['revision_history']
+    cid=ontology_changes.publish(service,again['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==relation['id'])
+    assert not row['can_accept'] and row['review_status']=='deferred' and row['unresolved_issues']
+
+
+@pytest.mark.parametrize('invalid',['contradiction','missing_check'])
+def test_latest_invalid_recritic_cannot_inherit_unchanged_sibling_support(service,model,monkeypatch,invalid):
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage=='builder': value['hierarchies']=[]
+        if stage=='critic':
+            followup=any(u['stage']=='revision' and u['status']=='succeeded' for u in run['analysis_units'])
+            if not followup:
+                check=value['relation_checks'][0];check.update(judgment='refuted',reason='조건 보완 필요');check['semantic_checks']['conditions']='refuted'
+            else:
+                check=value['observation_checks'][0]
+                if invalid=='missing_check': value['observation_checks'].pop(0)
+                else:value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=check['candidate_ref'],reason='정의 내용 오류',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')]
+        if stage=='revision':
+            target=data['targets'][0];row={k:target[k] for k in a2.models.Relation.model_fields if k in target}
+            row.update(local_ref='r1',candidate_ref=target['id'],reason='원문 한정 보완',conditions='수정된 조건')
+            value=dict(observations=[],relations=[row],hierarchies=[],deferred=[])
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=7)))['run_id'])
+    assert len(model)==7 and not run['result']['failures']
+    old,new=run['result']['critiques'];identifier=old['observation_checks'][0]['candidate_ref']
+    assert old['review_coverage']['candidate_hashes'][identifier]==new['review_coverage']['candidate_hashes'][identifier]
+    assert identifier in run['result']['review_pending_candidate_ids'] and identifier in run['result']['unreviewed_candidate_ids']
+    assert not any(r.get('candidate_ref')==identifier for r in run['recovery_requests'])
+    cid=ontology_changes.publish(service,run['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
+    assert not row['can_accept'] and row['review_status']=='deferred' and row['origin']['review_errors']
+    assert not row['origin']['observation_checks'] and not row['origin']['critiques']
+
+
+@pytest.mark.parametrize('mode',['supported','missing','contradiction','other_fingerprint'])
+def test_comparison_review_keeps_group_completion_and_current_fingerprint(service,model,monkeypatch,mode):
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0']);original=a2.model_call;assemble=synthesis.assemble
+    def with_comparison(*args):
+        groups=assemble(*args)
+        if groups:
+            primary=next(c for c in groups[0]['candidates'] if ('negation' if mode=='other_fingerprint' else 'classification') in c)
+            groups.append(dict(deepcopy(groups[0]),id='compare_contract',primary_candidate_ids=[primary['id']],comparison_only=True))
+        return groups
+    monkeypatch.setattr(synthesis,'assemble',with_comparison)
+    async def generated(prompt,schema,stage,run,timeout):
+        result=await original(prompt,schema,stage,run,timeout)
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
+        if stage=='builder': value.update(hierarchies=[],gaps=['제공 비교 범위 검토'])
+        if stage=='critic' and run['analysis_units'][-1]['group_id']=='compare_contract' and mode in {'missing','contradiction'}:
+            check=value['observation_checks'][0]
+            if mode=='missing': value['observation_checks']=[]
+            else:value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=check['candidate_ref'],reason='정의 오류',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')]
+        result['text']=json.dumps(value,ensure_ascii=False);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=0,model_calls=7)))['run_id'])
+    assert len(model)==7 and not run['result']['failures'],run['result']['failures']
+    identifier=run['candidate_groups'][-1]['primary_candidate_ids'][0]
+    if mode in {'supported','other_fingerprint'}:
+        assert run['status']=='review_ready' and not run['result']['mandatory_pending'],{k:v for k,v in run['result'].items() if any(t in k for t in ('pending','errors','defer','unreviewed','incomplete'))}
+        assert identifier not in run['result']['review_pending_candidate_ids']
+    else:
+        assert run['status']=='partial' and identifier in run['result']['review_pending_candidate_ids']
+    cid=ontology_changes.publish(service,run['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
+    assert bool(row['origin'].get('review_errors'))==(mode in {'missing','contradiction'})
+    if mode in {'missing','contradiction'}: assert not row['can_accept']

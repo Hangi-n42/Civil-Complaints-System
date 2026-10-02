@@ -194,10 +194,11 @@ def _convert(run, base, blocks):
             hierarchies[h['id']] = h
     current = {c['id']:c for c in observations + relations + list(hierarchies.values())}
     revised_ids = {h['candidate_id'] for h in result.get('revision_history', [])}
+    latest_reviews = reviews.latest_by_candidate(result.get('critiques', []),current)
     for h in hierarchies.values():
         matches = [check for c in result.get('critiques', []) for check in c.get('hierarchy_checks', [])
             if all(check.get(k)==h.get(k) for k in ('child_ref','parent_ref','relation'))
-            and (h['id'] not in revised_ids if reviews.valid_ids(c,current) is None else h['id'] in reviews.valid_ids(c,current))]
+            and (h['id'] not in revised_ids if reviews.valid_ids(c,current,latest_reviews) is None else h['id'] in reviews.valid_ids(c,current,latest_reviews))]
         review = dict(builder={k:deepcopy(h[k]) for k in ('a_to_b','b_to_a')}, critic=deepcopy(matches),
                       review_status='unreviewed', possible_equivalence=False)
         evs, counters = [], []
@@ -236,7 +237,7 @@ def _convert(run, base, blocks):
         row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id'] in identifiers]
         current_reviews = []
         for critique in result.get('critiques', []):
-            valid = reviews.valid_ids(critique,current)
+            valid = reviews.valid_ids(critique,current,latest_reviews)
             related = identifiers & (identifiers-revised_ids if valid is None else valid)
             if related: current_reviews.append((critique,related))
         row['origin']['critiques'] = [deepcopy(i) for c,related in current_reviews for i in c.get('issues', []) if i.get('candidate_ref') in {'',*related}]
@@ -256,7 +257,7 @@ def _convert(run, base, blocks):
         if identifiers & set(result.get('design_pending_relation_ids', [])):
             row['review_status']='deferred'
             row['unresolved_issues'].append('Builder 유형 연결 미완료 또는 명시 보류')
-        covered = set().union(*(reviews.valid_ids(c,current) or set() for c in result.get('critiques', [])))
+        covered = set().union(*(reviews.valid_ids(c,current,latest_reviews) or set() for c in result.get('critiques', [])))
         expected = {i for c in result.get('critiques', []) for i in c.get('review_coverage', {}).get('expected_candidate_ids', [])}
         expected.update(h['candidate_id'] for h in row['origin']['revision_history'])
         expected.update(result.get('review_pending_candidate_ids', []))

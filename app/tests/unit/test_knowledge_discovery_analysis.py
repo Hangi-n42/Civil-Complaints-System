@@ -554,6 +554,9 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
         if stage=='relation':
             value['relations'][0]['negation']='negated' # Saved v7 polarity failure shape.
         if stage=='critic':
+            for section,field in [('observation_checks','classification'),('relation_checks','conditions')]:
+                value[section][0]['judgment']='refuted'
+                value[section][0]['semantic_checks'][field]='refuted'
             targets=[data['unapproved_observations'][0],data['unapproved_relations'][0],data['taxonomy']['hierarchies'][0]]
             value['issues']=[dict(local_ref=f'i{n}',cause='content_error',candidate_ref=c['id'],reason='원문과 분류·부정·방향을 다시 대조한다.',evidence_ids=[data['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='') for n,c in enumerate(targets,1)]
             value['needs_revision']=True
@@ -611,7 +614,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
             assert c['origin']['review_errors'] and not c['hierarchy_review']['critic'] and not c['can_accept']
         else:
             assert c['origin']['critiques'] and not c['origin'].get('review_errors')
-            assert c['can_accept']==(quote_valid and c['target_kind']=='vocabulary_concept')
+            assert not c['can_accept']  # The follow-up Critic still refutes this fixture's candidates.
         if c['target_kind']=='relation': assert 'domain은 class ID 필요' in c['validation']['structural_errors']
 
 
@@ -919,6 +922,8 @@ def test_revision_inherits_full_critic_dependencies_and_blocks_revocation(servic
         if stage=='critic':
             ctx=json.loads(prompt.split('\nINPUT:\n')[1]); out=json.loads(result['text'])
             out['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=ctx['unapproved_observations'][0]['id'],reason='추가 읽은 원문을 바탕으로 판단했다.',evidence_ids=[ctx['blocks'][0]['ref']],counter_evidence_ids=[],defer_reason='')]
+            out['observation_checks'][0]['judgment']='refuted'
+            out['observation_checks'][0]['semantic_checks']['definition']='refuted'
             out['needs_revision']=True; result['text']=json.dumps(out,ensure_ascii=False)
         return result
     monkeypatch.setattr(a2,'model_call',needs_revision)

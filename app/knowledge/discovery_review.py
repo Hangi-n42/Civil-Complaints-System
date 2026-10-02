@@ -12,13 +12,20 @@ def fingerprint(candidate):
     return profile.digest({k:v for k,v in candidate.items() if k not in {'origin_dependency_ids','analysis_group_id'}})
 
 
-def valid_ids(review, candidates=None):
+def latest_by_candidate(critiques, candidates):
+    hashes={i:fingerprint(c) for i,c in candidates.items()}
+    return {i:review for review in critiques for i,h in review.get('review_coverage', {}).get('candidate_hashes', {}).items()
+            if i in hashes and h==hashes[i]}
+
+
+def valid_ids(review, candidates=None, latest=None):
     coverage = review.get('review_coverage')
     if coverage is None:
         # A representative view needs its own review; legacy raw judgments cannot cover it.
         if candidates and any(c.get('candidate_view_version') for c in candidates.values()): return set()
         return None  # Stored legacy reviews retain their original contract.
     valid = set(coverage['valid_candidate_ids'])
+    if latest is not None: valid = {i for i in valid if latest.get(i) is review}
     if candidates is not None:
         valid = {i for i in valid if i in candidates and coverage['candidate_hashes'].get(i)==fingerprint(candidates[i])}
     return valid
@@ -136,6 +143,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
             covered = {c['id'] if section=='hierarchy_checks' else c['candidate_ref'] for c in accepted}
             for identifier in sorted(required-covered-pending):
                 problem(section,None,None,'필수 후보 검토 누락',{identifier})
+    supported = {i['candidate_ref'] for field in ('relation_checks','observation_checks')
+                 for i in output[field] if i['judgment']=='supported'}
+    for index, issue in enumerate(output['issues']):
+        if issue['cause']=='content_error' and issue['candidate_ref'] in supported:
+            problem('issues',index,issue,'동일 후보의 지지 판정과 내용 오류 쟁점 충돌',{issue['candidate_ref']})
     actions=[]
     previous={i['id'] for u in run.get('analysis_units', []) if u['status']=='succeeded' for i in u.get('output', {}).get('issues', [])}
     for index, action in enumerate(output['actions']):

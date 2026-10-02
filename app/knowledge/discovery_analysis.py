@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v39'
+PROMPT_VERSION = 'discovery-a2-v40'
 
 
 def recipe(budgets):
@@ -741,6 +741,13 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 original = supplied.get(identifier, {})
                 source_change = identifier in context.get('source_change_ids', [])
                 if stage=='relation' or (stage=='revision' and (source_change or original.get('endpoint_mode')=='source_text' and not original.get('source_relation'))):
+                    if stage=='revision':
+                        raw=original.get('source_relation',original)
+                        types={i for i,c in supplied.items() if c.get('classification')=='type'}
+                        if original.get('source_relation'): types.update(original[k] for k in ('subject','object'))
+                        type_refs=types | {mapping[i] for i in types if i in mapping}
+                        if row['statement_type']=='design_proposal' or any(row[k]!=raw[k] and row[k] in type_refs for k in ('subject','object')):
+                            raise ValueError('원명제 수정은 유형 ID/별칭 또는 design_proposal로 대체할 수 없음')
                     row['endpoint_mode']='source_text'
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
@@ -896,7 +903,7 @@ def queue_recovery(run, review, group, by_id=None):
         c = candidates[identifier]
         for cause, reason in [('endpoint', '미연결 끝점: '+', '.join(c.get('unresolved_endpoints', []))),
                               ('evidence_error', '; '.join(c.get('evidence_validation', [])))]:
-            if cause=='endpoint' and not c.get('unresolved_endpoints') or cause=='evidence_error' and not c.get('evidence_validation'): continue
+            if cause=='endpoint' and (group.get('comparison_only') or not c.get('unresolved_endpoints')) or cause=='evidence_error' and not c.get('evidence_validation'): continue
             issues.append(dict(candidate_ref=identifier,cause=cause,reason=reason))
     for issue in issues:
         cause = issue.get('cause', 'content_error')
@@ -1251,24 +1258,26 @@ def finish(run, blocks, available):
         if u['stage'] not in {'builder','revision'}: continue
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
+    latest_reviews = reviews.latest_by_candidate([u['output'] for u in outputs if u['stage']=='critic'],current)
     review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
     for group in run.get('candidate_groups', []):
         followup = next((u for u in outputs if u['id']==group.get('revision_review_unit_id')), None)
         if followup: review_units[group['id']]=followup['output']
+    reviewed_candidates = set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))
+    reviewed_candidates.update(i for g in run.get('candidate_groups', []) if g['id'] in review_units
+        and reviews.valid_ids(review_units[g['id']],current) is None for i in g['primary_candidate_ids']+g.get('design_candidate_ids', []))
     reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
                 and g['id'] in review_units and not review_units[g['id']].get('record_errors')
                 and not review_units[g['id']].get('capacity_pending')
-                and (reviews.valid_ids(review_units[g['id']],current) is None or
+                and (reviews.valid_ids(review_units[g['id']]) is None or
                      set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids',
-                         g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']],current))}
+                         g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']]))
+                and set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids', [])) <= reviewed_candidates}
     processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in g.get('roles', ['concept','relation']))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
-    reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in review_units
-        for i in [*g['primary_candidate_ids'],*g.get('design_candidate_ids', [])] if i in (reviews.valid_ids(review_units[g['id']],current)
-            if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']+g.get('design_candidate_ids', [])))}
     reviewed_candidates -= {h['candidate_id'] for h in history
-        if not any(h['candidate_id'] in (reviews.valid_ids(r,current) or set()) for r in review_units.values())}
+        if not any(h['candidate_id'] in (reviews.valid_ids(r,current,latest_reviews) or set()) for r in review_units.values())}
     unreviewed_candidates = sorted({identities.identifier(run,c['id']) for c in original_observations+original_relations
         if not c['validation'] and not c['outside_scope_reason'] and identities.identifier(run,c['id']) not in reviewed_candidates})
     no_result = [dict(group_id=g['id'], empty_roles=[stage for stage in g.get('roles', ['concept','relation'])
@@ -1354,7 +1363,7 @@ def finish(run, blocks, available):
         taxonomy=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='builder'],
         critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
         review_pending_candidate_ids=sorted({i for i,c in current.items() if c.get('review_status')!='reviewed'} - reviewed_candidates -
-            set().union(*(reviews.valid_ids(r,current) or set() for r in review_units.values()))),
+            set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))),
         review_record_errors=[dict(unit_id=u['id'],**error) for u in outputs if u['stage']=='critic' for error in u['output'].get('record_errors', [])],
         recovery_requests=run.get('recovery_requests', []), unresolved_recovery_requests=unresolved_recovery,
         deferred_comparison_ids=deferred_comparisons,
