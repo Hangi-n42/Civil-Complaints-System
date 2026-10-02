@@ -227,3 +227,13 @@ def test_external_reference_gap_and_provided_rule_omission_route_separately():
     output=a2.normalize(a2.models.Critique.model_validate(review).model_dump(warnings=False),'critic',run,['b'],{'b':block},supplied,context)
     a2.queue_recovery(run,output,dict(id='g',candidates=[relation],primary_candidate_ids=[relation['id']]),{'b':block})
     assert {(r['cause'],r['role']) for r in run['recovery_requests']}=={('source_absent','review'),('extraction_missing','relation')}
+
+
+def test_literal_endpoint_survives_actual_prompt_compaction():
+    raw=dict(id='rule',subject='actor',object='resident',endpoint_mode='source_text',
+             endpoint_labels=dict(subject='actor',object='resident'))
+    context=dict(unapproved_relations=[raw],reviewed_base=[dict(id='actor')])
+    _,prompt=a2.make_prompt(dict(id='run',cqs=[],scope_items=[]),'builder',context,[],{'actor':dict(id='actor')})
+    data=json.loads(prompt.split('\nINPUT:\n')[1])
+    assert data['unapproved_relations'][0]['subject']=='actor'
+    assert data['reviewed_base'][0]['id']=='c0' and 'endpoint_mode' not in data['unapproved_relations'][0]

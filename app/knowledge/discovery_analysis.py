@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v27'
+PROMPT_VERSION = 'discovery-a2-v27.1'
 
 
 def recipe(budgets):
@@ -449,7 +449,7 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
-    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(remap(compact(payload), mapping), ensure_ascii=False, separators=(',', ':'))
+    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(compact(remap(payload, mapping)), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
