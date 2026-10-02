@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v31'
+PROMPT_VERSION = 'discovery-a2-v32'
 
 
 def recipe(budgets):
@@ -1097,20 +1097,32 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
             group['error'] = '분석 및 실제 Builder/Critic 묶음 예약 호출/시간 예산 부족; 기존 후보 검수로 전환'
             return False
     group['status'] = 'raw_provided'
-    observations = previous
+    relation_context, relation_supplied = deepcopy(common), dict(supplied)
     if 'concept' in roles:
         common, deps, supplied = analysis_context(run, 'concept', common, supplied, group, reserve=2000)
         concepts = call(service, run, 'concept', key, common, deps, by_id, supplied)
-        if concepts is None: return
-        apply_actions(service, run, index, blocks, 'concept', key, concepts)
-        observations = identities.rows(run, [c for c in concepts['observations'] if not c['validation'] and not c['outside_scope_reason']], allowed_ids(service,blocks))
-        supplied.update({c['id']:c for c in observations})
-        concept_unit = next(u for u in run['analysis_units'] if u['id']=='concept:'+key)
-        common, deps, related = with_tool_context(service, run, common, deps, [concept_unit], by_id, context_map)
-        supplied.update(related)
+        if concepts is not None:
+            apply_actions(service, run, index, blocks, 'concept', key, concepts)
+            concept_unit = next(u for u in run['analysis_units'] if u['id']=='concept:'+key)
+            relation_context, _, related = with_tool_context(service, run, relation_context, [], [concept_unit], by_id, context_map)
+            relation_supplied.update(related)
+        elif 'relation' not in roles:
+            return
     if 'relation' in roles:
-        common, deps, supplied = analysis_context(run, 'relation', dict(common, unapproved_observations=observations), supplied, group)
-        relations = call(service, run, 'relation', key, common, deps, by_id, supplied)
+        completed = next((u for u in run['analysis_units'] if u['id']=='relation:'+key and u['status']=='succeeded'), None)
+        if completed:
+            if not set(completed['dependency_ids']) <= allowed_ids(service, blocks):
+                raise ValueError('사용 중단/재검토 근거가 성공 관계 단위에 포함됨')
+            relations = completed['output']
+        else:
+            # Source statements need originals, not Concept predictions. Keep legacy recovery endpoint definitions.
+            required = set(group.get('required_endpoint_ids', []))
+            for field in ('reviewed_base','comparison_terms','previous_observations','unapproved_observations'):
+                retained = [c for c in relation_context.get(field, []) if c['id'] in required]
+                if retained: relation_context[field] = retained
+                else: relation_context.pop(field, None)
+            relation_context, deps, relation_supplied = analysis_context(run, 'relation', relation_context, relation_supplied, group)
+            relations = call(service, run, 'relation', key, relation_context, deps, by_id, relation_supplied)
         if relations is None: return
         apply_actions(service, run, index, blocks, 'relation', key, relations)
     capacity_status(run, group, by_id)

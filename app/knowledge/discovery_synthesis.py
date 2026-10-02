@@ -234,6 +234,11 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         context['candidate_alignments'] = [{k:v for k,v in a.items() if k not in {'target_snapshot','target_fingerprint'}} for a in alignments
             if a['observation_ref'] in supplied and a['target_id'] in supplied
             and (a.get('target_scope')!='run_candidate' or a.get('target_fingerprint')==identities.exact_key(supplied[a['target_id']]))]
+        group.setdefault('builder_context_unit_ids', [u['id'] for u in run['analysis_units']
+            if u['stage']=='concept' and u['status']=='succeeded' and u['group_id'] in group['analysis_group_ids']])
+        context, deps, terms = a2.with_tool_context(service,run,context,deps,
+            [u for u in run['analysis_units'] if u['id'] in group['builder_context_unit_ids']],by_id,context_map)
+        supplied.update(terms)
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)

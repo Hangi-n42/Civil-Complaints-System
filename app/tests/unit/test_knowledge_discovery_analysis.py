@@ -46,6 +46,9 @@ def response(prompt, stage):
             statement_type='definition', evidence_ids=[ev], cq_ids=['cq1'], scope_item_ids=[], outside_scope_reason='')], gaps=[], actions=[])
     if stage=='builder':
         obs = data['unapproved_observations']
+        if not obs:
+            return dict(observations=[],hierarchies=[],alias_proposals=[],gaps=[],actions=[],
+                relation_bindings=[dict(relation_ref=i,decision='defer',reason='유형 설계 미완료') for i in data.get('design_relation_ids', [])])
         direction = dict(judgment='unknown', reason='정의 문맥 검수 필요', evidence_ids=[ev], counter_evidence_ids=[])
         return dict(hierarchies=[dict(child_ref=obs[0]['id'], parent_ref=obs[1]['id'], relation='is_a',
             a_to_b=direction, b_to_a=direction)], alias_proposals=[], gaps=[], actions=[],
@@ -190,12 +193,16 @@ def test_failure_not_empty_success_and_attempts_counted(service,monkeypatch,mode
     monkeypatch.setattr(a2,'model_call',broken)
     run=done(service,service.start(request(source['id']))['run_id'])
     assert run['status']=='partial' and run['result']['mandatory_pending']
-    assert run['metrics']['llm_calls']==2 and run['result']['observations']==[]
-    assert run['analysis_units'][-1]['attempts'][-1]['outcome']=='failed'
+    assert run['metrics']['llm_calls']==5 and run['result']['observations']==[]
+    concept=next(u for u in run['analysis_units'] if u['stage']=='concept')
+    relation=next(u for u in run['analysis_units'] if u['stage']=='relation')
+    assert concept['attempts'][-1]['outcome']=='failed' and relation['status']=='succeeded'
     monkeypatch.setattr(a2,'model_call',original)
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert resumed['status']=='review_ready',resumed['result']['failures']
-    assert resumed['metrics']['llm_calls']==6
+    assert resumed['status']=='partial' and resumed['result']['observations']  # The successful explicit Builder deferral stays frozen.
+    assert next(u for u in resumed['analysis_units'] if u['stage']=='concept')['status']=='succeeded'
+    assert next(u for u in resumed['analysis_units'] if u['stage']=='relation')['output']==relation['output']
+    assert model.count('relation')==1 and resumed['metrics']['llm_calls']==8
 
 
 def test_budget_reserves_builder_critic_and_no_automatic_expansion(service,model):

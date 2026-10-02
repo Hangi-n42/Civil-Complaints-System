@@ -198,6 +198,68 @@ def test_fresh_critic_missing_cause_isolated_before_default(service,model,monkey
     assert a2.models.Issue.model_validate(raw_issues[0]).cause=='content_error'  # Stored legacy default remains readable.
 
 
+@pytest.mark.parametrize('concept_result',['normal','empty','failed'])
+def test_relation_keeps_own_originals_without_concept_predictions(service,model,monkeypatch,concept_result):
+    source=prepare(service,file_ids=['current:0','web:0']);blocks=a2.load_blocks(service,source)
+    selected=[b['id'] for b in blocks if b['file_id']=='current:0'];seen={};allocate=a2.analysis_context
+    def trim(run,stage,context,supplied,group,reserve=0):
+        if stage=='concept':
+            assert context['tool_originals']
+            context=deepcopy(context);context['tool_originals']=[]
+        return allocate(run,stage,context,supplied,group,reserve)
+    async def generated(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);seen.setdefault(stage,[]).append(data)
+        if stage=='builder' and not data['unapproved_observations']:
+            value=dict(observations=[],relation_bindings=[dict(relation_ref=i,decision='defer',reason='유형 설계 미완료') for i in data['design_relation_ids']],
+                hierarchies=[],alias_proposals=[],gaps=[],actions=[])
+        else: value=response(prompt,stage)
+        if stage=='scout': value['actions']=[dict(action='search',query='예외',reason='예외 원문 확인')]
+        if stage=='concept' and concept_result=='empty': value=dict(observations=[],alignments=[],gaps=['이 원문에는 별도 일반 정의를 확정하지 못함'],actions=[])
+        if stage=='relation':
+            assert not any(k in data for k in ('unapproved_observations','reviewed_base','comparison_terms','previous_observations'))
+            assert any('예외' in b['text'] for b in data['tool_originals'])
+        return dict(text='{' if stage=='concept' and concept_result=='failed' else json.dumps(value,ensure_ascii=False),
+            done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
+    monkeypatch.setattr(a2,'analysis_context',trim);monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='주 분석 원문 선택',
+        discovery_budgets=dict(model_calls=5,additional_rounds=0,revisions=0)))['run_id'])
+    relation=next(u for u in run['analysis_units'] if u['stage']=='relation')
+    assert relation['status']=='succeeded',relation['error']
+    assert len(seen['relation'])==1 and seen['builder'][0]['unapproved_relations']
+    assert bool(seen['builder'][0]['unapproved_observations'])==(concept_result=='normal')
+    data=seen['relation'][0];assert len(relation['dependency_ids'])==len(a2.raw_refs(data))
+    if concept_result!='normal': assert run['status']=='partial'
+    if concept_result=='failed':
+        concept=next(u for u in run['analysis_units'] if u['stage']=='concept');assert concept['status']=='failed'
+        again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+        reused=next(u for u in again['analysis_units'] if u['stage']=='relation')
+        assert len(seen['relation'])==1 and reused['output']==relation['output'] and reused['source_ref_map']==relation['source_ref_map']
+
+
+def test_resumed_concept_new_original_goes_to_builder_not_completed_relation(service,model,monkeypatch):
+    source=prepare(service,file_ids=['current:0','web:0']);blocks=a2.load_blocks(service,source)
+    selected=[b['id'] for b in blocks if b['file_id']=='current:0'];first=True;seen=[]
+    async def generated(prompt,schema,stage,run,timeout):
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);seen.append((stage,data))
+        value=response(prompt,stage)
+        if stage=='concept' and not first: value['actions']=[dict(action='search',query='예외',reason='재개 후 추가 원문 확인')]
+        return dict(text='{' if stage=='concept' and first else json.dumps(value,ensure_ascii=False),
+            done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
+    monkeypatch.setattr(a2,'model_call',generated)
+    run=done(service,service.start(request(source['id'],analysis_block_ids=selected,analysis_selection_reason='주 분석 원문 선택',
+        discovery_budgets=dict(additional_rounds=0,revisions=0)))['run_id'])
+    relation=deepcopy(next(u for u in run['analysis_units'] if u['stage']=='relation'));first=False
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert next(u for u in again['analysis_units'] if u['stage']=='concept')['status']=='succeeded'
+    assert next(u for u in again['analysis_units'] if u['stage']=='relation')==relation
+    assert sum(stage=='relation' for stage,_ in seen)==1
+    builder=next(u for u in reversed(again['analysis_units']) if u['stage']=='builder')
+    assert builder['status']=='succeeded',builder['error']
+    assert any('예외' in b['text'] for b in seen[-2][1]['tool_originals'])
+    assert set(builder['dependency_ids'])-set(relation['dependency_ids'])
+    assert not any('입력 해시 변경' in str(u.get('error')) for u in again['analysis_units'])
+
+
 def semantic_case():
     text='시험 원문: 사업자는 입주자를 선정할 수 있다. 잔여주택이면 일부 완화 또는 선착순이며 제1항에도 불구하고 적용한다.'
     block=dict(id='b',source_version_id='v',parse_run_id='p',locator={},text=text)
