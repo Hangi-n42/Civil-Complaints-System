@@ -79,6 +79,7 @@ def packet(group, by_id, context_map, whole_packet):
                 if tuple(span) in seen: continue
                 seen.add(tuple(span))
                 views.append(dict(block, text=block['text'][slice(*span)], span=span,
+                                  analysis_target=span==segment['span'] and segment.get('analysis_target',False),
                                   context_only=span!=segment['span'], segment_recipe=segment['recipe']))
     return clause_views(views)
 

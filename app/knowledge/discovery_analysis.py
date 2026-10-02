@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v26'
+PROMPT_VERSION = 'discovery-a2-v27'
 
 
 def recipe(budgets):
@@ -879,6 +879,10 @@ def recovery_groups(run, round_number, by_id):
             owned = [v for g in owners for v in g.get('segments', []) if v['block_id']==block_id]
             matching = [v for v in owned or segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
             view = deepcopy(matching[0]) if matching else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION)
+            if request.get('trigger')=='target_response':
+                a,z = view['span']
+                view['shared_spans'] += [s for s in ([a,span[0]],[span[1],z]) if s[0]<s[1]]
+                view.update(span=span,analysis_target=True)
             if view not in views: views.append(view)
         if not views: continue
         ids = list(dict.fromkeys(v['block_id'] for v in views))

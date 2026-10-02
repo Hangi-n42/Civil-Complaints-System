@@ -217,3 +217,20 @@ def test_comparison_search_never_becomes_new_extraction(service,monkeypatch,mode
     assert run['extra_requests'] and all(r['purpose']=='comparison' for r in run['extra_requests'])
     assert len(run['frontier'])==1 and model.count('concept')==model.count('relation')==1
     assert not run.get('error'),run.get('error')
+
+
+def test_target_response_recovery_keeps_only_missing_clause_as_focus():
+    text='조문 ① 첫 원칙. ② 잔여 조건. ③ 각 호의 권한. 1. LH. 2. 지방공사.'
+    b=dict(id='b',text=text,file_id='f',source_group='s')
+    span=[text.index('②'),text.index('③')]
+    group=dict(id='g',block_ids=['b'])
+    run=dict(frontier=[group],analysis_units=[],analysis_block_ids=['b'])
+    need=dict(role='relation',meaning='② 무응답',trigger='target_response',
+              evidence_refs=[dict(block_id='b',span=span)],validation=[])
+    a2.queue_recovery(run,dict(missing_meanings=[need]),group,{'b':b})
+    recovery=a2.recovery_groups(run,1,{'b':b})[0]
+    raw=a2.segments.packet(recovery,{'b':b},{},lambda *args:[dict(ref='b',text=text)])
+    assert [v['span'] for v in raw if not v['context_only']]==[span]
+    assert sum(v.get('analysis_target',False) for v in raw)==1
+    assert ''.join(v['text'] for v in sorted(raw,key=lambda v:v['span']))==text
+    assert all(v['context_only'] for v in raw if '①' in v['text'] or '③' in v['text'])
