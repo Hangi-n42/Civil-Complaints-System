@@ -15,6 +15,8 @@ def fingerprint(candidate):
 def with_selected_base_types(candidates, run):
     from .discovery_analysis import base_context
     selected = {c.get(field) for c in candidates.values() if 'negation' in c for field in ('subject','object')}
+    selected.update(c[k] for c in candidates.values() for k in ('child_ref','parent_ref') if k in c)
+    selected.update(i for u in run.get('analysis_units',[]) if u.get('status')=='succeeded' for hashes in u.get('output',{}).get('meaning_dependency_hashes',{}).values() for i in hashes)
     return {**{c['id']:c for c in base_context(run) if c['id'] in selected}, **candidates}
 
 
@@ -30,6 +32,8 @@ def dependencies_current(review, identifier, candidates=None):
     if contract != 'selected-types-v1': return False
     recorded = review.get('binding_dependency_hashes', {}).get(identifier)
     if recorded is None or any(not h for h in recorded.values()): return False
+    selected=review.get('meaning_dependency_hashes', {}).get(identifier, {})
+    if candidates is not None and any(i not in candidates or fingerprint(candidates[i])!=h for i,h in selected.items()): return False
     roles=review.get('role_source_hashes', {}).get(identifier, {})
     if any(not h for h in roles.values()): return False
     return candidates is None or identifier in candidates and recorded==binding_fingerprints(candidates[identifier],candidates) and roles==design.role_fingerprints(candidates[identifier],candidates)
@@ -59,7 +63,9 @@ def valid_ids(review, candidates=None, latest=None):
 
 
 def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
-    from . import discovery_claims as claims
+    from . import discovery_claims as claims, discovery_scope as scope
+    scope_contract=run.get('recipe', {}).get('context_contract')=='scope-v1'
+    meaning_hashes={}
     claim_contract=run.get('recipe', {}).get('claim_review_contract')=='claims-v1'
     checks_contract = require_issue_cause and run.get('recipe', {}).get('review_contract') == 'checks-v1'
     binding_reasons = checks_contract and run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1'
@@ -101,17 +107,21 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                 claim_check=claim_contract and section=='observation_checks'
                 if claim_check:
                     if identifier not in observations: raise ValueError('이번 주검토 대상 밖 ID')
-                    parsed=claims.prepare(raw,supplied[identifier])
+                    parsed=claims.prepare(raw,supplied[identifier],models.ScopedObservationCheck if scope_contract else models.ClaimObservationCheck)
                 elif checks_contract and section in models.SEMANTIC_FIELDS and isinstance(raw,dict):
                     checks = raw.get('semantic_checks', {})
                     if set(checks) != set(models.SEMANTIC_FIELDS[section]):
                         raise ValueError('필수 의미 항목 판정 누락')
                     judgment = 'refuted' if 'refuted' in checks.values() else 'unknown' if 'unknown' in checks.values() else 'supported'
                     parsed = dict(raw,judgment=judgment)
-                item = (models.ClaimObservationCheck if claim_check else model).model_validate(parsed).model_dump()
+                item = (models.ScopedObservationCheck if claim_check and scope_contract else models.ClaimObservationCheck if claim_check else models.ScopedRelationCheck if scope_contract and section=='relation_checks' else model).model_validate(parsed).model_dump()
                 segments.restore(item, by_id, provided)
                 validate_refs(item)
-                if claim_check: claims.restore(item,supplied[identifier])
+                if claim_check:
+                    claims.restore(item,supplied[identifier])
+                    if scope_contract: meaning_hashes[identifier]=scope.restore(item,supplied)
+                if scope_contract and section in {'observation_checks','relation_checks'}:
+                    meaning_hashes.setdefault(identifier,{}).update(scope.preserve(item,context,supplied))
                 if section in {'relation_checks','observation_checks','hierarchy_checks'} and counts[target]!=1:
                     raise ValueError('중복 검토 대상; 어느 판정도 선택하지 않음')
                 if section=='issues':
@@ -253,6 +263,7 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
     output['record_errors']=errors
     output['review_dependency_contract']='selected-types-v1'
     output['binding_dependency_hashes']={i:binding_fingerprints(c,supplied) for i,c in expected.items()}
+    if scope_contract: output['meaning_dependency_hashes']=meaning_hashes
     output['role_source_hashes']={i:design.role_fingerprints(c,supplied) for i,c in expected.items()}
     output['review_coverage']=dict(expected_candidate_ids=sorted(expected),valid_candidate_ids=sorted(expected.keys()-pending),
         pending_candidate_ids=sorted(pending),candidate_hashes={i:fingerprint(c) for i,c in expected.items()})

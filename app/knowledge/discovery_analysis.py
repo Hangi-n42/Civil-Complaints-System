@@ -13,17 +13,17 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v59'
+PROMPT_VERSION = 'discovery-a2-v61'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
-        num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
+        num_ctx=36864, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
-        schema_hash=profile.digest({k: models.output_model(k,'authored-v2').model_json_schema() for k in models.OUTPUTS}))
+        schema_hash=profile.digest({k: models.output_model(k,'authored-v2','scope-v1').model_json_schema() for k in models.OUTPUTS}))
 
 
 def model_identity(current):
@@ -182,7 +182,7 @@ def lookup(service, run, label, term_type, blocks):
             rows.setdefault(candidate['id'], dict(candidate, origin_dependency_ids=sorted(set(u['dependency_ids']) | identities.dependencies(run,c['id']))))
         for h in u.get('output', {}).get('history', []):
             if 'classification' in h['after']:
-                candidate = identities.view(run,h['after'],revised=True)
+                candidate = identities.history_view(run,h)
                 rows[candidate['id']] = dict(candidate, origin_dependency_ids=u['dependency_ids'])
     blocked_revisions = {identities.identifier(run,h['candidate_id']) for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= allowed for h in u.get('output', {}).get('history', [])}
     candidates += [c for c in rows.values() if c['id'] not in blocked_revisions and usable(c) and not c['validation'] and not c['outside_scope_reason']]
@@ -274,7 +274,7 @@ def compact(value, originals=None):
                 and value['quote'] in originals[value['evidence_id']]):
             omitted.add('quote')
         result={k: compact(v, originals) for k,v in value.items() if k not in omitted}
-        if value.get('candidate_quote') and value.get('evidence_refs'):
+        if (value.get('candidate_quote') or value.get('meaning')) and value.get('evidence_refs'):
             result['evidence_locations']=[{k:r[k] for k in ('block_id','source_version_id','parse_run_id','span')} for r in value['evidence_refs']]
         return result
     return value
@@ -305,6 +305,9 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                 refs(child)
         elif isinstance(value, list):
             for child in value: refs(child)
+    if stage=='requirements':
+        from . import discovery_requirements
+        return discovery_requirements.normalize(output,context,supplied,by_id)
     if stage=='critic':
         return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize, refs, require_issue_cause)
     refs(output)
@@ -349,7 +352,13 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                     replacement.update(statement_type='design_proposal',support_type='design_proposal')
                 replacement['id'] = identifier
                 replacement['revision_status'] = 'unreviewed_revision'
-                history.append(dict(candidate_id=identifier, before=original, after=deepcopy(replacement), reason=reason))
+                record=dict(candidate_id=identifier, before=original, after=deepcopy(replacement), reason=reason)
+                if run['recipe'].get('context_contract')=='scope-v1':
+                    from .discovery_scope import preservation_basis
+                    record['preservation_basis']=preservation_basis(original,(context or {}).get('observation_checks',[])+(context or {}).get('relation_checks',[]))
+                    replacement['revision_basis_hash']=profile.digest([original,record['preservation_basis']])
+                    record['after']=deepcopy(replacement)
+                history.append(record)
                 seen.add(identifier)
         for item in output['deferred']:
             if item['candidate_ref'] in seen or item['candidate_ref'] not in supplied:
@@ -464,7 +473,7 @@ def issue_ids(run):
 
 async def model_call(prompt, schema, stage, run, timeout):
     return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage in {'critic','binding'} else 'draft'],
+        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements'} else 'draft'],
         num_predict=run['recipe']['binding_num_predict'] if stage=='binding' else run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
         timeout=timeout, return_metadata=True, local_only=True)
 
@@ -524,12 +533,18 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=instruction.replace(models.ROLE_DECLARATION_RULE,'') + models.AUTHORING_RULE
     if stage=='critic' and component not in {'binding','proposition'} and run.get('recipe',{}).get('claim_review_contract')=='claims-v1':
         instruction=instruction.replace('definition=refuted','해당 claim의 judgment=refuted') + models.CLAIM_REVIEW_RULE
+    if run.get('recipe',{}).get('context_contract')=='scope-v1' and stage in {'concept','revision','critic'} and component not in {'binding','proposition'}:
+        instruction += models.SCOPE_RULE
+    if stage=='critic' and context.get('revision_comparisons') and component!='binding': instruction+=models.PRESERVATION_RULE
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
 def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
+    from . import discovery_scope
     supplied = supplied or {}
+    if run['recipe'].get('context_contract')=='scope-v1' and stage!='scout':
+        context,deps=discovery_scope.source_context(context,deps,by_id)
     uid = stage + ':' + key
     unit = next((u for u in run['analysis_units'] if u['id']==uid), None)
     if unit is None:
@@ -575,12 +590,19 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
         remaining = budget['model_seconds'] - run['metrics']['model_total_s'] - run['metrics'].get('interrupted_time_reserve_s', 0)
         if run['metrics']['llm_calls'] >= budget['model_calls'] or remaining <= 0:
             raise ValueError('모델 호출/시간 예산 종료')
+        if run['recipe'].get('context_contract')=='scope-v1' and stage in {'builder','critic','revision'}:
+            reserved=run.get('review_reservation',{}).get('requirement_calls',0)
+            reserved_s=reserved*run.get('role_time_estimates',{}).get('requirements',{}).get('estimate_s',run['recipe']['call_timeout'])
+            if budget['model_calls']-run['metrics']['llm_calls']<=reserved or remaining<=reserved_s:
+                raise ValueError('현재 필수 요구 검수의 호출/시간 예약 보존; 후보 검수·교정 예산 부족')
+            remaining-=reserved_s
         timeout = min(remaining, run['recipe']['call_timeout'])
         definition_contract=run['recipe'].get('definition_contract')
-        response_model=models.output_model(stage,definition_contract)
+        scope_contract=run['recipe'].get('context_contract')
+        response_model=models.output_model(stage,definition_contract,scope_contract)
         schema=response_model.model_json_schema()
         designed_type='DeclaredType' if definition_contract in {'source-role-v1','authored-v2'} else 'DesignedType'
-        observation_revision='AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
+        observation_revision='ScopedObservationRevision' if scope_contract=='scope-v1' else 'AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
         if stage=='relation':
             targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
             schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
@@ -640,7 +662,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                 if not supplied:
                     schema['properties']['alignments']['maxItems'] = 0
                 alignment['properties']['observation_ref']['enum'] = [f'o{n}' for n in range(1,6)]
-                schema['$defs']['AuthoredObservation' if definition_contract=='authored-v2' else 'Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
+                schema['$defs']['ScopedObservation' if scope_contract=='scope-v1' else 'AuthoredObservation' if definition_contract=='authored-v2' else 'Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
             else:
                 alignment['properties']['observation_ref']['enum'] = [mapping[i] for i in supplied] or ['']
                 if not supplied:
@@ -981,7 +1003,7 @@ def apply_actions(service, run, index, blocks, stage, key, output):
 
 
 def base_context(run):
-    return [dict(c, **{k:v for k,v in c.get('modeling_origin', {}).items() if k in {'definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'}}, review_status='reviewed', classification=c.get('classification') or
+    return [dict(c, **{k:v for k,v in c.get('modeling_origin', {}).items() if k in {'definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection','context_needs','scope_assessment'}}, review_status='reviewed', classification=c.get('classification') or
                  {'concept':'type', 'attribute':'property_value', 'vocabulary_concept':'vocabulary'}.get(c['kind'], 'unresolved'))
             for c in run.get('base_candidates', [])]
 
@@ -1224,19 +1246,29 @@ def review_reservation(run, round_number, by_id, context_map, available):
     succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
     pending = [dict(unit_id=uid,stage=uid.split(':')[0],round=g.get('round',0)) for g in groups
                for uid in (['builder:'+g['id']] if 'builder:'+g['id'] not in succeeded else []) + pending_review_units(run,g,by_id,context_map) if uid not in succeeded]
+    if run['recipe'].get('context_contract')=='scope-v1':
+        from . import discovery_requirements
+        current={field:[row for u in run['analysis_units'] if u['status']=='succeeded' for row in u['output'].get(field,[])]
+            for field in ('observations','relations')}
+        current['taxonomy']=[u['output'] for u in run['analysis_units'] if u['stage']=='builder' and u['status']=='succeeded']
+        current['revision_history']=[h for u in run['analysis_units'] if u['status']=='succeeded' for h in u['output'].get('history',[])]
+        requirement_reserve=sum(len(discovery_requirements.packets(run,current,kind,q,by_id,context_map))
+            for kind,items in [('cq',run['cqs']),('scope',run['scope_items'])] for q in items)
+    else: requirement_reserve=0
     estimates = run.setdefault('role_time_estimates', {})
-    for stage in ('concept','relation','builder','critic','revision'):
+    for stage in ('concept','relation','builder','critic','revision','requirements'):
         observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
-        role = 'review' if stage=='critic' else 'draft'
+        role = 'review' if stage in {'critic','requirements'} else 'draft'
         estimate = estimates.setdefault(stage, dict(initial_s=run['recipe']['call_timeout'],estimate_s=run['recipe']['call_timeout'],
             basis='미관측 역할: recipe 호출 제한시간',model_identity=deepcopy(run.get('model_identity', {}).get(role))))
         if observed:
             # First observation replaces the timeout prior; later estimates only rise.
             estimate['estimate_s'] = max(estimate['estimate_s'] if estimate.get('observed_count') else 0, max(observed)*1.25)
             estimate.update(basis='같은 실행·모델의 역할별 최대 실제 시간 × 1.25; 완료 보장 아님',observed_count=len(observed))
-    reservation = dict(group_ids=[g['id'] for g in groups],pending_units=pending,model_calls=len(pending),
-        estimated_model_s=round(sum(estimates[p['stage']]['estimate_s'] for p in pending),3))
-    run['reserved_builder_critic_calls'] = len(pending)
+    reservation = dict(group_ids=[g['id'] for g in groups],pending_units=pending,model_calls=len(pending)+requirement_reserve,
+        requirement_calls=requirement_reserve,
+        estimated_model_s=round(sum(estimates[p['stage']]['estimate_s'] for p in pending)+requirement_reserve*estimates['requirements']['estimate_s'],3))
+    run['reserved_builder_critic_calls'] = sum(p['stage']!='requirements' for p in pending)
     run['review_reservation'] = reservation
     return reservation
 
@@ -1272,6 +1304,9 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         deps += prior_deps
     scout_unit = next(u for u in run['analysis_units'] if u['id']=='scout:structure')
     common, deps, supplied_tools = with_tool_context(service, run, common, deps, [scout_unit], by_id, context_map)
+    if run['recipe'].get('context_contract')=='scope-v1':
+        from .discovery_scope import source_context
+        common,deps=source_context(common,deps,by_id)
     supplied = {c['id']:c for c in base}
     supplied.update({c['id']:c for c in group['prior_comparisons']})
     supplied.update(supplied_tools)
@@ -1421,7 +1456,7 @@ def finish(run, blocks, available):
     rows.update({c['id']:c for c in identities.rows(run, [c for u in outputs if u['stage']=='builder' for c in u['output'].get('modeled_relations', [])], available)})
     history = [h for u in outputs for h in u['output'].get('history', [])]
     for h in history:
-        candidate = identities.view(run,h['after'],revised=True)
+        candidate = identities.history_view(run,h)
         if candidate['id'] in rows: rows[candidate['id']] = candidate
     blocked_revisions = {identities.identifier(run,h['candidate_id']) for u in run['analysis_units'] if u['status']=='succeeded' and not set(u.get('dependency_ids', [])) <= available for h in u.get('output', {}).get('history', [])}
     rows = {i:c for i,c in rows.items() if i not in blocked_revisions}
@@ -1535,9 +1570,7 @@ def finish(run, blocks, available):
     recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in recovery_review_ids | {r.get('unit_id') for r in run.get('recovery_requests', [])}]
     attempts = [a for u in recovery_units for a in u['attempts']]
     run['metrics'].update(recovery_calls=len(attempts), recovery_model_s=round(sum(a.get('elapsed_s',0) for a in attempts),3),
-        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in run.get('recovery_requests', [])),
-        recovery_remaining_by_cause={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
-            for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})})
+        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in run.get('recovery_requests', [])))
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     bindings = [dict(unit_id=u['id'],**u['output']['binding_coverage']) for u in outputs if 'binding_coverage' in u['output']]
@@ -1583,8 +1616,25 @@ def finish(run, blocks, available):
         unprocessed_features=[dict(file_id=g['file_id'], features=g['features']) for g in run.get('frontier', [])
                               if not g.get('analysis_grounded') and g['features']])
     if identities.enabled(run): run['result']['candidate_identity'] = deepcopy(run['candidate_identity'])
+    if run['recipe'].get('context_contract')=='scope-v1':
+        from . import discovery_requirements
+        assessments=discovery_requirements.saved(run,run['result'],by_id,available)
+        run['result']['requirement_assessments']=assessments
+        resolved={i for r in assessments for i in r['resolved_recovery_ids']}
+        resolved-={i for r in assessments for m in r['meanings'] if m['judgment']!='supported' for i in m['recovery_ids']}
+        for request in run.get('recovery_requests',[]):
+            if request['id'] in resolved and request.get('cause')=='extraction_missing':
+                request.update(semantic_status='supported',proposal_review_status='current_requirement_supported',reason='현재 요구의 누락 의미를 실제 표현·근거와 재대조')
+        run['result']['unresolved_recovery_requests']=[r for r in run.get('recovery_requests',[]) if r['semantic_status']!='supported']
+        for row in coverage:
+            assessment=next(a for a in assessments if a['requirement_id']==row['id'] and a['requirement_kind']==row['kind'])
+            row.update(semantic_status=assessment['judgment'],reason=assessment['reason'])
     has_errors = any(u.get('tool_errors') or u['output'].get('binding_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
-    incomplete = bool(binding_pending or deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
+    requirement_pending=any(a['judgment']!='supported' for a in run['result'].get('requirement_assessments',[]))
+    unresolved_recovery=run['result']['unresolved_recovery_requests']
+    run['metrics']['recovery_remaining_by_cause']={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
+        for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})}
+    incomplete = bool(requirement_pending or binding_pending or deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or
                       any(p.get('csv', {}).get('unresolved_block_ids') for p in run.get('profiles', [])))
     run['status'] = 'cancelled' if run['status']=='cancel_requested' else 'partial' if incomplete else 'review_ready'
@@ -1685,6 +1735,9 @@ def execute(service, run_id):
             primary_pending = any(stage+':'+g['id'] not in successful for g in pending for stage in g.get('roles',['concept','relation']))
             if not review_blocked:
                 synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=not primary_pending)
+            if run['recipe'].get('context_contract')=='scope-v1':
+                from . import discovery_requirements
+                discovery_requirements.assess(service,run,blocks,by_id,context_map)
             reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
             # Later saved rounds must remain reachable on resume; only earlier work blocks them.
             if primary_pending or any(p['round']<=round_number for p in reservation['pending_units']): break

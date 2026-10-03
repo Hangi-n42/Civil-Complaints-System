@@ -105,6 +105,7 @@ def model(monkeypatch):
         value=prior_recipe(budgets)
         value['definition_contract']='source-role-v1'
         value.pop('claim_review_contract',None)
+        value.pop('context_contract',None)
         return value
     monkeypatch.setattr(a2,'recipe',legacy_recipe)
     calls = []

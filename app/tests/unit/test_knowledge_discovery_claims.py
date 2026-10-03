@@ -12,7 +12,11 @@ from app.tests.unit.test_knowledge_discovery_run import corpus, service, prepare
 from app.tests.unit.test_knowledge_discovery_roles import declaration_fixture
 from app.tests.unit.test_knowledge_ontology_changes import listing, decide
 
-CURRENT_RECIPE=a2.recipe
+SCOPED_RECIPE=a2.recipe
+def CURRENT_RECIPE(budgets):
+    value=SCOPED_RECIPE(budgets)
+    value.pop('context_contract',None)
+    return value
 
 
 def authored(mode='synthesis'):
@@ -88,13 +92,17 @@ def test_claim_coverage_sources_and_code_aggregate(mode):
         assert claims.revision_context([check],reviews.fingerprint(row))['target_fingerprint']==reviews.fingerprint(row)
 
 
+@pytest.mark.parametrize('scoped',[False,True])
 @pytest.mark.parametrize('correction',[False,True])
-def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,monkeypatch,correction):
-    monkeypatch.setattr(a2,'recipe',CURRENT_RECIPE)
+def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,monkeypatch,correction,scoped):
+    monkeypatch.setattr(a2,'recipe',SCOPED_RECIPE if scoped else CURRENT_RECIPE)
     checked=[]
     async def generated(prompt,schema,stage,run,timeout):
         data=json.loads(prompt.split('\nINPUT:\n')[1])
-        value=source_response(response(prompt,stage),data)
+        if stage=='requirements':
+            candidate=data['unapproved_observations'][0]
+            value=dict(requirement_id=data['requirement']['id'],reason='계약 대역: 실제 의미 품질 아님',meanings=[dict(meaning='업무 유형',applies_to='제공 범위',source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='',locations=[dict(candidate_ref=candidate['id'],field='definition',quote=candidate['definition'])],judgment='supported',reason='대역 대조',cause='fulfilled',role='concept',candidate_ref='',recovery_ids=[r['id'] for r in data['recovery_targets']])])
+        else: value=source_response(response(prompt,stage),data)
         if stage=='concept':
             for row in value['observations']:
                 row.update(definition_mode='synthesis',support_type='design_proposal',design_reason='근거의 역할 통합',classification_reason='업무 유형',conditions='원문 범위',exceptions='',time='')
@@ -118,6 +126,17 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
                 support_type='explicit',design_reason='',source_refs=[selected['source_ref']],
                 source_selection=dict(source_ref=selected['source_ref'],source_quote=selected['text']))
             value=dict(observations=[row],relations=[],hierarchies=[],deferred=[])
+        if scoped:
+            for row in value.get('observations',[]):
+                if stage in {'concept','revision'}: row['context_needs']=[]
+            if stage=='critic':
+                candidates={c['id']:c for c in data.get('unapproved_observations',[])+data.get('unapproved_relations',[])}
+                for check in value['observation_checks']:
+                    c=candidates[check['candidate_ref']]
+                    check['definition_completeness']['required_meanings']=[dict(meaning='선택 범위의 정의',applies_to='제공 원문',source_refs=check['claim_reviews'][0]['source_refs'],missing_source='',locations=[dict(candidate_ref=c['id'],field='definition',quote=c['definition'])],judgment='supported',reason='계약 대역')]
+                for check in value['observation_checks']+value['relation_checks']:
+                    c=candidates[check['candidate_ref']]
+                    check['preservation_checks']=[dict(meaning_key=m['meaning_key'],meaning=m['meaning'],applies_to=m['applies_to'],source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='',locations=[dict(candidate_ref=c['id'],field='definition' if 'definition' in c else 'predicate',quote=c.get('definition',c.get('predicate')))],status='maintained',reason='대역 검수; 실제 의미 성공 아님') for m in data.get('revision_comparisons',{}).get(c['id'],{}).get('expected_meanings',[])]
         if stage=='critic' and not data.get('relation_bindings'):
 
             for check in value['relation_checks']: check.pop('binding_checks',None)
@@ -156,6 +175,11 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
     assert reread['modeling_origin']['observation_checks'][0]['claim_reviews']
     assert a2.base_context(dict(base_candidates=[reread]))[0]['definition_mode']=='human_edited_unclassified'
     assert {'concept','critic','builder','binding'}<=set(checked)
+    if scoped:
+        assert 'requirements' in checked
+        assert run['result']['requirement_assessments'][0]['judgment']=='supported'
+        if correction:
+            assert any(c.get('preservation_checks') and c['correction_complete'] for r in run['result']['critiques'] for c in r['observation_checks'])
 
 
 def test_extraction_receives_selected_type_scope_and_current_authoring_mode(monkeypatch):

@@ -12,14 +12,14 @@ def aggregate(values):
     return 'refuted' if 'refuted' in values else 'unknown' if not values or 'unknown' in values else 'supported'
 
 
-def prepare(raw, candidate):
+def prepare(raw, candidate, model=models.ClaimObservationCheck):
     if 'definition' in raw.get('semantic_checks', {}):
         raise ValueError('정의 최종 판정은 주장/충족 검사에서 서버가 집계')
     checks=raw.get('semantic_checks', {})
     if set(checks)!={'classification','conditions','exceptions'}:
         raise ValueError('관측 분류·조건·예외 판정 누락')
     # Validate before aggregation so an omitted/unknown enum cannot become supported.
-    parsed=models.ClaimObservationCheck.model_validate(dict(raw,judgment='unknown')).model_dump()
+    parsed=model.model_validate(dict(raw,judgment='unknown')).model_dump()
     coverage={field:set() for field in ('definition','conditions','exceptions','time')}
     for claim in parsed['claim_reviews']:
         text=candidate.get(claim['field'], '')

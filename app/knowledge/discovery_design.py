@@ -149,7 +149,7 @@ def declaration_schema(schema, relation_ids, source_refs, *, role_only=False):
         node.clear();node['anyOf']=[role] if role_only else ([role] if relation_ids else [])+[direct]
     if 'SourceSelection' in schema['$defs']:
         schema['$defs']['SourceSelection']['properties']['source_ref']['enum']=source_refs or ['']
-    for name in ('DeclaredType','DeclaredObservationRevision','AuthoredObservation','AuthoredObservationRevision'):
+    for name in ('DeclaredType','DeclaredObservationRevision','AuthoredObservation','AuthoredObservationRevision','ScopedObservation','ScopedObservationRevision'):
         if name in schema['$defs']: variants(schema['$defs'][name])
 
 

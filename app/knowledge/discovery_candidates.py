@@ -26,7 +26,7 @@ def exact_key(candidate):
     if any(not all((v,p,b,s,q)) for v,p,b,s,q in evidence): return None
     values={k:candidate.get(k, '') for k in fields}
     # Keep legacy keys byte-for-byte stable; authored definitions also identify the selected span.
-    values.update({k:candidate[k] for k in ('definition_evidence_refs','source_selection') if k in candidate})
+    values.update({k:candidate[k] for k in ('definition_evidence_refs','source_selection','context_needs') if k in candidate})
     return profile.digest(dict(values=values,
         scope={k:sorted(candidate.get(k, [])) for k in ('cq_ids','scope_item_ids','source_relation_ids')},
         evidence=sorted(evidence)))
@@ -102,3 +102,10 @@ def output(run, value):
     for binding in result.get('relation_bindings', []):
         for field in ('subject_ref','object_ref'): binding[field] = identifier(run,binding[field])
     return result
+
+
+def history_view(run, history):
+    value=view(run,history['after'],revised=True)
+    if 'preservation_basis' in history:
+        value['revision_basis_hash']=profile.digest([history['before'],history['preservation_basis']])
+    return value

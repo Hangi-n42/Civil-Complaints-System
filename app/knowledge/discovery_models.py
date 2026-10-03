@@ -369,10 +369,103 @@ class ClaimCritique(Critique):
     observation_checks: list[SkipValidation[ClaimObservationCheck]]
 
 
-OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
+class ContextNeed(Record):
+    meaning: str = Field(min_length=1)
+    applies_to: str = Field(min_length=1)
+    source_refs: list[str]
+    missing_source: str
 
 
-def output_model(stage, definition_contract=None):
+class MeaningLocation(Record):
+    candidate_ref: str
+    field: Literal['definition','conditions','exceptions','time','subject','predicate','object','role_source','structure']
+    quote: str
+
+
+class RequiredMeaning(ContextNeed):
+    locations: list[MeaningLocation]
+    judgment: Literal['supported','refuted','unknown']
+    reason: str = Field(min_length=1)
+
+
+class ScopedCompleteness(DefinitionCompleteness):
+    required_meanings: list[RequiredMeaning] = Field(min_length=1)
+
+
+class ScopedObservation(AuthoredObservation):
+    context_needs: list[ContextNeed]
+
+
+class ScopedObservationRevision(ScopedObservation):
+    candidate_ref: str
+    reason: str = Field(min_length=1, max_length=400)
+
+
+class ScopedConcepts(AuthoredConcepts):
+    observations: list[ScopedObservation] = Field(max_length=5)
+
+
+class ScopedRevision(AuthoredRevision):
+    observations: list[ScopedObservationRevision] = Field(max_length=5)
+
+
+class PreservationCheck(ContextNeed):
+    meaning_key: str
+    status: Literal['maintained','corrected','lost','unknown']
+    locations: list[MeaningLocation]
+    reason: str = Field(min_length=1)
+
+
+class ScopedRelationCheck(RelationCheck):
+    preservation_checks: list[PreservationCheck] = Field(default_factory=list)
+
+
+class ScopedObservationCheck(ClaimObservationCheck):
+    preservation_checks: list[PreservationCheck] = Field(default_factory=list)
+    definition_completeness: ScopedCompleteness
+
+
+class ScopedCritique(ClaimCritique):
+    relation_checks: list[SkipValidation[ScopedRelationCheck]]
+    observation_checks: list[SkipValidation[ScopedObservationCheck]]
+
+
+SCOPE_RULE = """
+필수 문맥은 context_needs / definition_completeness.required_meanings에 meaning, applies_to(해당 유형·출처 역할·하위항목과 적용 범위), source_refs, missing_source로 기록한다. 생성자는 필요한 문맥을 제안하고 Critic은 원문 전체와 독립 대조하여 누락을 추가하거나 잘못된 요구를 정정한다. 필요한 목록·상위 요건·지시어·참조·예외·유효기간을 확인한다. 본문에 없는 외부 조문 상세는 missing_source와 unknown이며 제공된 의미 누락은 refuted이다. 원문 인용 정확성만으로 정의 충분성을 지지하지 않는다.
+검수의 각 필수 의미는 locations에 현재 candidate_ref/field/quote(그 필드의 연속 실제 구절)로 충족 위치를 연결한다. 기존 계층은 field=structure, quote는 빈 값으로 선택할 수 있으나 방향·대상·현재 정의와 실제 원문을 대조한다. 관계는 실제 필드 구절을 선택한다. 관계/계층이 존재한다는 것만으로 충족이 아니다. 상위 정의를 포함 관계로 충족하면 문장 중복을 요구하지 않는다. 출처 역할은 그 명제 안의 역할만 설명하면 되며 법적 자격 전체를 요구하지 않는다. 하위 항목의 기간을 상위 유형 전체에 확대하지 않는다. 필수 의미가 표현되지 않으면 locations를 비우고 부족 이유를 쓴다. 추가 요구가 없는 정상 정의도 역할·범위가 충분한 근거와 실제 위치를 기록한다.
+"""
+
+PRESERVATION_RULE = """
+revision_comparisons는 수정 전후와 기존 검수에서 지지된 의미를 제공한다. preservation_checks에 이번 candidate_ref의 expected_meanings 각 meaning_key를 한 번씩 대조한다. maintained는 표현/필드 이동 또는 근거 있는 현재 구조 연결로 정상 의미 유지, corrected는 새 근거 또는 과거 판정 오류를 구체적으로 설명하고 실제 원문으로 정정, lost는 설명 없이 정상 의미 소실, unknown은 판단에 필요한 자료 부족이다. 기존 supported도 영구 정답이 아니므로 정정 가능하나 사유와 근거 없이 삭제를 정당화하지 않는다. 각 항목의 meaning/applies_to/source_refs/missing_source/locations/reason을 남긴다. 오류 제거와 정상 의미 보존 및 정의 충분성을 모두 확인하며 한 단어로 축소한 것을 유용한 수정이라 하지 않는다. 비교가 없는 후보는 preservation_checks=[]이다.
+"""
+
+class RequirementMeaning(RequiredMeaning):
+    endpoint_fields: list[Literal['subject','object']] = Field(default_factory=list)
+    cause: Literal['fulfilled','source_absent','scope_conflict','extraction_missing','endpoint']
+    role: Literal['concept','relation']
+    candidate_ref: str
+    recovery_ids: list[str]
+
+
+class RequirementReview(Record):
+    requirement_id: str
+    meanings: list[RequirementMeaning] = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
+REQUIREMENT_RULE = """
+현재 requirement의 질문/범위를 최종 제공 유형·관계·계층과 실제 원문에 대조한다. 요구를 충족하는 데 필요한 의미별 meanings를 작성한다. 이름이나 cq_ids 연결만으로 충족하지 않는다. 각 meaning/applies_to/source_refs/locations/judgment/reason을 기록한다. 기존 유형·관계 조합으로 충분하면 supported/fulfilled이며 새 synthesis를 강제하지 않는다. 충족 위치는 실제 현재 candidate_ref/field/quote, 계층은 structure와 빈 quote로 특정한다. 조건·예외·주체·시점을 독립 의미와 함께 대조한다.
+자료가 없으면 unknown/source_absent와 구체 missing_source, 적용 범위가 다른 경우 scope_conflict, 원문에 있고 관측·관계 양쪽에 없는 의미는 refuted/extraction_missing과 필요한 role(concept/relation), 기존 관계의 끝점 연결 오류는 refuted/endpoint와 candidate_ref 및 endpoint_fields(subject/object)를 쓴다. 원문에 없는 명제를 만들지 않는다. 호출/시간/용량 소진은 서버가 계산하므로 의미상 자료 부족으로 바꾸지 않는다.
+recovery_targets 각각의 실제 누락 의미를 현재 표현과 대조하고 해당 항목 recovery_ids에 기록한다. 후보가 새로 생겼다는 이유로 해결하지 않는다. 미해결도 recovery_ids와 구체 이유를 남긴다. 생성자의 목록·이전 supported를 정답으로 가정하지 않는다. 전체 meanings를 직접 판정하며 최종 전체 충족 판정은 서버가 집계한다. 요구 전체와 현재 제공 범위의 차이를 reason에 기록한다.
+"""
+PROMPTS['requirements']=REQUIREMENT_RULE
+
+OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision, 'requirements':RequirementReview}
+
+
+def output_model(stage, definition_contract=None, context_contract=None):
+    if context_contract=='scope-v1':
+        return {'concept':ScopedConcepts,'revision':ScopedRevision,'critic':ScopedCritique}.get(stage, output_model(stage,definition_contract))
     if definition_contract=='authored-v2':
         return {'concept':AuthoredConcepts,'builder':DeclaredTaxonomy,'revision':AuthoredRevision,'critic':ClaimCritique}.get(stage,OUTPUTS[stage])
     if definition_contract=='source-role-v1':
@@ -392,7 +485,7 @@ semantic_checks에는 classification/conditions/exceptions만 쓴다. definition
 '''
 
 
-RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
+RESULT_FIELDS = {'requirements':('meanings',), 'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}

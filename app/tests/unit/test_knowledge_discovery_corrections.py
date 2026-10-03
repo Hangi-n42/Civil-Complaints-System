@@ -132,7 +132,8 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
     assert len(model)==count and again['result']['revision_history']==run['result']['revision_history']
 
 
-def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(service,model,monkeypatch):
+@pytest.mark.parametrize('repair_source',['critic','requirements'])
+def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(service,model,monkeypatch,repair_source):
     from app.knowledge import discovery_synthesis as synthesis, discovery_review as reviews
     source=prepare(service,file_ids=['current:0']);original=a2.model_call;seen=[]
     async def generated(prompt,schema,stage,run,timeout):
@@ -163,11 +164,19 @@ def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(ser
     review=dict(issues=[],relation_checks=[dict(candidate_ref=relation['id'],judgment='supported',
         binding_checks=dict(subject='supported',object='refuted'),evidence_refs=[],evidence_id='')])
     review['review_coverage']=dict(valid_candidate_ids=[relation['id']],candidate_hashes={relation['id']:reviews.fingerprint(relation)})
+    if repair_source=='requirements':
+        review['requirement_binding_checks']=[dict(candidate_ref=relation['id'],judgment='refuted',repair_source='requirements',
+            assessment_unit_id='requirements:q',assessment_fingerprint='current-requirement',binding_checks=dict(object='refuted'),
+            binding_reasons=dict(object='현재 요구 검수의 실제 끝점 반박'),evidence_refs=[])]
+        review['relation_checks'][0]['binding_checks']['object']='supported'
     taxonomy=next(t for t in run['result']['taxonomy'] if t['unit_id']=='builder:'+group['id'])
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
     def inspect(service,run,stage,key,context,deps,by_id,supplied):
         assert stage=='builder' and supplied[target['id']]['definition']==target['definition']
         assert any(c['id']==target['id'] for c in context['unapproved_observations'])
+        if repair_source=='requirements':
+            assert context['binding_checks'][-1]['repair_source']=='requirements'
+            assert review['relation_checks'][0]['binding_checks']['object']=='supported'
         seen.append(target['id'])
         raise ValueError('검사 종료')
     monkeypatch.setattr(a2,'call',inspect)

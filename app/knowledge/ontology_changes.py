@@ -37,7 +37,7 @@ def record_definition_edit(candidate, patch):
     origin.setdefault('generation_origin',deepcopy({k:v for k,v in origin.items() if k!='generation_origin'}))
     origin['definition_mode']='human_edited_unclassified'
     origin['ai_review_current']=False
-    for key in ('role_basis','role_source','source_relations','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'):
+    for key in ('role_basis','role_source','source_relations','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection','context_needs','scope_assessment','scope_dependencies','scope_context','scope_current'):
         origin.pop(key,None)
 
 
@@ -143,7 +143,7 @@ def _convert(run, base, blocks):
         if source.get('design_reason'):
             origin['design_reason']=source['design_reason']
             raw['rationale']=source['design_reason']
-        for key in ('definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'):
+        for key in ('definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection','context_needs','scope_assessment','scope_dependencies','scope_context','scope_current'):
             if key in source: origin[key]=deepcopy(source[key])
         if source.get('role_source'):
             origin['source_relations']=[deepcopy(source['role_source'])]
@@ -279,6 +279,10 @@ def _convert(run, base, blocks):
             row['origin'].pop('ai_review_fingerprint',None)
         elif row['origin']['observation_checks']:
             row['origin'].update(ai_review_fingerprint=definition_fingerprint(row),ai_review_current=True)
+            check=row['origin']['observation_checks'][-1]
+            if 'required_meanings' in check.get('definition_completeness',{}):
+                row['origin']['scope_assessment']=deepcopy(check['definition_completeness'])
+                row['origin']['scope_dependency_ids']=sorted({i for c,related in current_reviews for cid in related for i in c.get('meaning_dependency_hashes',{}).get(cid,{})})
         row['origin']['review_scopes']=[dict(unit_id=c['unit_id'],**deepcopy(c['review_scope'])) for c,_ in current_reviews if c.get('review_scope')]
         unresolved = [i for c,related in current_reviews if 'review_outcomes' in c for field in ('relation_checks','observation_checks')
             for i in c.get(field, []) if i.get('candidate_ref') in related and i['judgment']!='supported']
@@ -330,9 +334,20 @@ def _convert(run, base, blocks):
         proposal = row['origin'].get('reuse_proposal')
         if not proposal: continue
         target_id = mapping.get(proposal['target_candidate_id'], {}).get('change_id')
-        target = next((c for c in rows if c['change_id']==target_id), None)
-        if target:
-            proposal.update(target_change_id=target_id,target_change_fingerprint=_reuse_fingerprint(target))
+        reuse_target = next((c for c in rows if c['change_id']==target_id), None)
+        if reuse_target:
+            proposal.update(target_change_id=target_id,target_change_fingerprint=_reuse_fingerprint(reuse_target))
+    scope_targets={**base,**{r['target_id']:r for r in rows}}
+    for row in rows:
+        assessment=row['origin'].get('scope_assessment')
+        if not assessment: continue
+        selected={target(i) for i in row['origin'].pop('scope_dependency_ids',[]) if target(i)!=row['target_id']}
+        for item in assessment['required_meanings']:
+            for location in item['locations']:
+                location['candidate_ref']=target(location['candidate_ref'])
+                if location['candidate_ref']!=row['target_id']: selected.add(location['candidate_ref'])
+        row['origin']['scope_dependencies']={i:canonical.scope_hash(scope_targets[i]) for i in selected if i in scope_targets}
+        row['origin']['scope_current']=all(i in scope_targets for i in selected)
     return rows, references, mapping
 
 
@@ -493,6 +508,10 @@ def _validate(repo, db, change, run, base):
     for c in proposals:
         if c['origin'].get('ai_review_fingerprint'):
             c['origin']['ai_review_current']=c['origin']['ai_review_fingerprint']==definition_fingerprint(c)
+        if 'scope_dependencies' in c['origin']:
+            scope_targets={**initial,**{p['target_id']:p for p in proposals if p['review_status'] not in {'rejected','deferred'} and p['operation'] not in {'merge','deprecate'}}}
+            c['origin']['scope_current']=canonical.scope_current(c['origin'],scope_targets)
+            c['origin']['ai_review_current']=c['origin'].get('ai_review_current',False) and c['origin']['scope_current']
         errors = []
         c.pop('consumer_impact',None)
         c['validation'] = dict(structural_errors=errors, semantic_review=['의미 적합성은 사람 검수 대상'], can_accept=False)
@@ -592,6 +611,7 @@ def _validate(repo, db, change, run, base):
         errors=c['validation']['structural_errors']
         item=projected.get(c['target_id'], {})
         refs=canonical.references(item) if c['operation'] not in {'merge','deprecate'} else set()
+        refs |= set(c['origin'].get('scope_dependencies',{}))
         c['dependency_ids']=sorted({by_target[i]['change_id'] for i in refs if i in by_target and i!=c['target_id']})
         for identifier in refs:
             if identifier not in projected or projected[identifier].get('deprecated'):

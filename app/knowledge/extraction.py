@@ -260,6 +260,10 @@ def prompt_for(run, unit):
         value={k:d.get(k) for k in ('id','kind','name','definition','inclusion','exclusion','domain_id','range','qualifiers')}
         origin=d.get('modeling_origin', {})
         value['definition_mode']=origin.get('definition_mode','legacy_unspecified')
+        if origin.get('scope_assessment'):
+            value['scope_assessment']=origin['scope_assessment']
+            value['scope_current']=origin.get('scope_current',False)
+            value['scope_context']=origin.get('scope_context',[])
         if origin.get('role_source'):
             value['source_role_scope']={k:origin['role_source'].get(k) for k in
                 ('subject','predicate','object','conditions','time','negation','statement_type')}
