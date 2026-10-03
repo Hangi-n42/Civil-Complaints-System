@@ -403,8 +403,18 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         selected_issues=[i for i in issues if not i.get('candidate_ref') or i['candidate_ref']==identifier]
         extra_ids=[e for i in selected_issues for f in ('evidence_ids','counter_evidence_ids') for e in i.get(f, [])]
         extra_ids += [r['evidence_id'] for c in checks for r in c.get('evidence_refs', [])]
-        raw=a2.packet(list(dict.fromkeys(extra_ids)),by_id,context_map)
-        context['blocks'] += [b for b in raw if b['ref'] not in a2.raw_refs(context)]
+        if focused:
+            refs=[r for item in selected_issues+checks for field in ('evidence_refs','counter_evidence_refs') for r in item.get(field, [])]
+            extra_ids=list(dict.fromkeys(extra_ids+[r['block_id'] for r in refs]))
+            evidence=[dict(id=i,evidence_ids=[i],evidence_refs=[r for r in refs if r['block_id']==i and r.get('span')]) for i in extra_ids]
+            raw=context_for(evidence,by_id,context_map)[0]['blocks']
+            provided_views=segments.originals(context)
+            context['blocks'] += [b for b in raw if not any(v['ref']==b['ref'] and
+                v.get('span',[0,len(v['text'])])[0]<=b.get('span',[0,len(b['text'])])[0] and
+                b.get('span',[0,len(b['text'])])[1]<=v.get('span',[0,len(v['text'])])[1] for v in provided_views)]
+        else:
+            raw=a2.packet(list(dict.fromkeys(extra_ids)),by_id,context_map)
+            context['blocks'] += [b for b in raw if b['ref'] not in a2.raw_refs(context)]
         deps=sorted(set(deps) | {b['ref'] for b in raw})
         if stage=='revision':
             for field in ('unapproved_observations','unapproved_relations','reviewed_base'): context.pop(field)

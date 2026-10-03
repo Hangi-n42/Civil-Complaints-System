@@ -96,3 +96,39 @@ def test_revision_model_scope_full_validation_and_deferral(service,model,monkeyp
                 with pytest.raises(ValueError,match='입력 해시 변경'):
                     call(service,run,stage,key,context,deps,by_id,supplied,**kwargs)
     assert group['candidates']==frozen['candidates'] and group['design_candidates']==frozen['design_candidates']
+
+
+def test_required_counter_span_in_same_block_is_preserved_without_whole_block(service,model,monkeypatch):
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=24,additional_rounds=0,revisions=1)))['run_id'])
+    group=deepcopy(run['candidate_groups'][0]);group.pop('correction_plan',None)
+    taxonomy=next(u['output'] for u in run['analysis_units'] if u['id']=='builder:'+group['id'])
+    target=next(c for c in group['candidates'] if c.get('classification')=='type')
+    relation=next(c for c in group['design_candidates'] if c.get('source_relation'))
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};block=by_id[target['evidence_ids'][0]]
+    block['text']='\n'.join(marker+' 제공 문맥'*100 for marker in '①②③④⑤⑥⑦⑧')
+    spans=a2.segments.split(block)
+    assert len(spans)>1
+    def ref(span):
+        return dict(target['evidence_refs'][0],span=span,quote=block['text'][slice(*span)])
+    early,late=ref(spans[0]['span']),ref(spans[-1]['span'])
+    target['evidence_refs']=[late]
+    relation['source_relation']['evidence_refs']=[late]
+    relation['evidence_refs']=[late]
+    target.update(source_relation_ids=[relation['id']],role_source=deepcopy(relation['source_relation']))
+    hidden=next(c for c in group['candidates'] if c.get('classification') and c['id']!=target['id'])
+    hidden['evidence_refs']=[early]
+    review=dict(issues=[dict(candidate_ref=target['id'],cause='content_error',reason='별도 구간 반례',
+        evidence_ids=[block['id']],evidence_refs=[late],counter_evidence_ids=[block['id']],counter_evidence_refs=[early])],
+        review_coverage=dict(valid_candidate_ids=[target['id']],candidate_hashes={target['id']:a2.reviews.fingerprint(target)}))
+    def inspect(service,run,stage,key,context,deps,by_id,supplied,**kwargs):
+        assert hidden['id'] not in supplied and hidden['id'] in kwargs['validation_supplied']
+        views=[v for v in a2.segments.originals(context) if v['ref']==block['id']]
+        for required in (early,late):
+            assert all(any(v['span'][0]<=a<z<=v['span'][1] for v in views)
+                for a,z in [s['span'] for s in a2.segments.clause_views([dict(ref=block['id'],text=required['quote'],span=required['span'])])])
+        assert all(v['text']==block['text'][slice(*v['span'])] and len(v['text'])<len(block['text']) for v in views)
+        raise RuntimeError('필수 구간 확인 완료')
+    monkeypatch.setattr(a2,'call',inspect)
+    with pytest.raises(RuntimeError,match='필수 구간 확인 완료'):
+        synthesis.revise(service,run,group,review,taxonomy,by_id,a2.profile.contexts(blocks))
