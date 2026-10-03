@@ -23,7 +23,7 @@ def recipe(budgets):
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
-        schema_hash=profile.digest({k: v.model_json_schema() for k, v in models.OUTPUTS.items()}))
+        schema_hash=profile.digest({k: models.output_model(k,'source-role-v1').model_json_schema() for k in models.OUTPUTS}))
 
 
 def model_identity(current):
@@ -558,7 +558,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if run['metrics']['llm_calls'] >= budget['model_calls'] or remaining <= 0:
             raise ValueError('모델 호출/시간 예산 종료')
         timeout = min(remaining, run['recipe']['call_timeout'])
-        schema = models.OUTPUTS[stage].model_json_schema()
+        definition_contract=run['recipe'].get('definition_contract')
+        response_model=models.output_model(stage,definition_contract)
+        schema=response_model.model_json_schema()
+        designed_type='DeclaredType' if definition_contract=='source-role-v1' else 'DesignedType'
+        observation_revision='DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
         if stage=='relation':
             targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
             schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
@@ -623,7 +627,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if issue_schema:
             issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
             issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-        for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
+        for name, field in [(observation_revision,'classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
             definition = schema.get('$defs', {}).get(name)
             if definition:
                 ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
@@ -661,12 +665,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
             schema['properties']['observations']['maxItems']=0
-            schema['$defs']['DesignedType']['properties'].pop('local_ref')
-            schema['$defs']['DesignedType']['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
+            schema['$defs'][designed_type]['properties'].pop('local_ref')
+            schema['$defs'][designed_type]['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
             binding = schema['$defs']['RelationBinding']['properties']
             binding['relation_ref']['enum'] = relation_ids or ['']
             for field in ('subject_ref','object_ref'):
-                binding[field] = {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/DesignedType'}]}
+                binding[field] = {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]}
             binding_definition=schema['$defs']['RelationBinding']
             variants=[]
             for decision in ('bind','defer','source_error'):
@@ -814,7 +818,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
-            output = deepcopy(decoded) if component=='binding' else models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
+            output = deepcopy(decoded) if component=='binding' else response_model.model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output)
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))

@@ -147,11 +147,11 @@ class DefinitionDeclaration(Observation):
     design_reason: str = Field(default='', max_length=300)
 
 
-class DesignedType(DefinitionDeclaration):
+class DesignedType(Observation):
     local_ref: str = Field(pattern=r'^t[1-5]$')
     classification: Literal['type']
     support_type: Literal['design_proposal']
-    source_relation_ids: list[str] = Field(default_factory=list, max_length=5)
+    source_relation_ids: list[str] = Field(min_length=1, max_length=5)
     design_reason: str = Field(min_length=1, max_length=300)
 
 
@@ -201,7 +201,7 @@ class RelationCheck(Record):
     binding_reasons: dict[str,str] = Field(default_factory=dict)
 
 
-class ObservationRevision(DefinitionDeclaration):
+class ObservationRevision(Observation):
     candidate_ref: str
     reason: str = Field(min_length=1, max_length=400)
 
@@ -301,7 +301,36 @@ for focus, instruction in {
 }.items():
     PROMPTS['critic_'+focus] = PROMPTS['critic'] + instruction
 
+class DeclaredType(DefinitionDeclaration):
+    local_ref: str = Field(pattern=r'^t[1-5]$')
+    classification: Literal['type']
+    support_type: Literal['design_proposal']
+    source_relation_ids: list[str] = Field(default_factory=list, max_length=5)
+    design_reason: str = Field(min_length=1, max_length=300)
+
+
+class DeclaredObservationRevision(DefinitionDeclaration):
+    candidate_ref: str
+    reason: str = Field(min_length=1, max_length=400)
+
+
+class DeclaredTaxonomy(Taxonomy):
+    observations: list[DeclaredType] = Field(default_factory=list, max_length=5)
+
+
+class DeclaredRevision(Revision):
+    observations: list[DeclaredObservationRevision] = Field(max_length=5)
+
+
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
+
+
+def output_model(stage, definition_contract=None):
+    if definition_contract=='source-role-v1':
+        return {'builder':DeclaredTaxonomy,'revision':DeclaredRevision}.get(stage,OUTPUTS[stage])
+    return OUTPUTS[stage]
+
+
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),

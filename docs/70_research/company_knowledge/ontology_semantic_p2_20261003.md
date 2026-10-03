@@ -32,8 +32,16 @@
 
 ### 새 실제 실험의 실행 전 고정
 
-- 계획: `configs/knowledge/quality_20261001/semantic_completion_p_v1.json`; 평가 기준: `semantic_p_assessor_v1.json`. 단계별로 EA / correction / D 설정 분리.
+- 계획: `configs/knowledge/quality_20261001/semantic_completion_p_v2.json`; 평가 기준: `semantic_p_assessor_v2.json`. 단계별로 EA / correction / D 설정 분리.
 - 자연 EA와 정상 직접 정의는 기존 `scripts/run_knowledge_critic_diagnostic.py` 재사용. 교정은 로컬 준비 폴더의 `correction.py`가 새 EA 실제 성공 단위·자연 반박과 독립 평가 통과 기록만 받아 기존 `synthesis.revise` 호출.
-- `data/knowledge/semantic_p_preflight_20261003/`에서 GenerationService 호출 경계를 포착. Builder 리허설은 저장된 과거 실제 반박을 이용한 입력/예약 확인이며 새 진단 결과가 아님. 예상 정답이나 가짜 성공 단위를 만들지 않음.
+- `data/knowledge/semantic_p_preflight_20261003_v2/`에서 GenerationService 호출 경계를 포착. Builder 리허설은 저장된 과거 실제 반박을 이용한 입력/예약 확인이며 새 진단 결과가 아님. 예상 정답이나 가짜 성공 단위를 만들지 않음.
 - 실행 코드 30개, 과거 입력/DB 등 14개, 준비 파일 15개의 SHA-256을 단계별로 고정하고 전부 재확인. 모델 digest `6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7`, temperature 0, think false, context 32768, 일반 출력 4096/연결 검수 8192 유지.
 - 준비된 단계와 평가 기준을 조율 세션에 전달한 뒤 명시적 실행 메시지를 기다림. 실제 결과 디렉터리는 아직 없고 생성 호출은 0회. C2/current·O1 재실행·사람 효용 측정은 이 고정 범위에 포함하지 않음.
+
+### 전문가 추가 검수 반영: legacy 응답 계약 분리
+
+- 호출부 조건만으로는 기본 Pydantic 모델의 새 필드와 완화된 필수값이 과거 schema/decoder에 섞이는 문제를 막지 못함을 확인.
+- 기존 DesignedType/ObservationRevision 및 OUTPUTS를 원래대로 복원. 새 계약만 별도 DeclaredTaxonomy/DeclaredRevision을 schema 생성과 응답 해독에 함께 사용.
+- 과거 전체 OUTPUTS JSON Schema 해시가 기존 `142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab`와 정확히 같음. legacy decoder의 빈 명칭·정의·출처 관계 및 새 선언 필드 거부 확인.
+- 새 역할/교정/명시적 Revision과 legacy 경계 집중 검사 **21 passed**, 63 deselected, 3.25초. 전체 265건을 불필요하게 반복하지 않음.
+- 이전 P v1 준비/고정 파일은 이력으로 보존. 보완한 코드로 별도 v2 준비·고정. 호출 수는 기존 helper 산정 7회와 동일하며 실제 생성은 계속 0회.

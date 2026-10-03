@@ -124,7 +124,7 @@ def declaration_schema(schema, relation_ids, source_refs):
         for branch in (role,direct):
             branch['required']=list(branch['properties'])
         node.clear();node['anyOf']=([role] if relation_ids else [])+[direct]
-    for name in ('DesignedType','ObservationRevision'):
+    for name in ('DeclaredType','DeclaredObservationRevision'):
         if name in schema['$defs']: variants(schema['$defs'][name])
 
 

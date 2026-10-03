@@ -211,3 +211,25 @@ def test_explicit_legacy_to_role_to_direct_revision_records_actual_history(servi
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==target['id'])
     assert row['origin']['definition_mode']=='direct' and not row['origin'].get('role_basis')
     assert not row['can_accept']  # Explicit external correction still requires a new current review.
+
+
+def test_legacy_schema_and_decoder_stay_exact_while_new_wire_is_separate():
+    from pydantic import ValidationError
+    models=a2.models
+    assert a2.profile.digest({k:v.model_json_schema() for k,v in models.OUTPUTS.items()})=='142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab'
+    for stage in ('builder','revision'):
+        assert models.output_model(stage) is models.OUTPUTS[stage]
+        assert models.output_model(stage,'source-role-v1') is not models.OUTPUTS[stage]
+    old=dict(local_ref='t1',label='기존 유형',classification='type',definition='기존 정의',support_type='design_proposal',
+        abstraction_level='유형',review_signals=[],source_relation_ids=['r'],design_reason='기존 사유')
+    assert models.DesignedType.model_validate(old).definition=='기존 정의'
+    for patch in ({'label':''},{'definition':''},{'source_relation_ids':[]},{'role_basis':dict(relation_ref='r',endpoint='object')}):
+        with pytest.raises(ValidationError): models.DesignedType.model_validate(dict(old,**patch))
+    revision={k:v for k,v in old.items() if k not in {'source_relation_ids','design_reason'}}
+    revision.update(candidate_ref='c',reason='기존 변경 사유')
+    assert models.ObservationRevision.model_validate(revision).definition=='기존 정의'
+    for patch in ({'label':''},{'definition':''},{'direct_definition_source_refs':['s']},{'role_basis':dict(relation_ref='r',endpoint='object')}):
+        with pytest.raises(ValidationError): models.ObservationRevision.model_validate(dict(revision,**patch))
+    row,_,_,_=declaration_fixture()
+    assert models.DeclaredType.model_validate(row).role_basis.endpoint=='object'
+    assert not models.DeclaredType.model_validate(row).definition
