@@ -1,0 +1,25 @@
+{
+  "id": "ontology-semantic-n3-correction-assessor-v1",
+  "issue": 579,
+  "frozen_at": "2026-10-03T07:24:36.433595+00:00",
+  "input_to_generation": false,
+  "target_relation_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+  "wrong_object_type_id": "dc_1179f45a778a4db0b4ea09cad30ac19e",
+  "required": [
+    "Natural E-A object refuted drives the existing Builder correction once; both actual parent units and review unchanged.",
+    "Direct object must denote the people selected, consistent with original proposition; physical housing type cannot remain selected.",
+    "Preserve original source_relation, relation ID, evidence version/parse/block/span/quote, direction/negation/conditions/time; unrelated existing candidates unchanged.",
+    "Any new endpoint type must contain a source-grounded role definition, valid exact source_refs, design_proposal rationale and source relation provenance; no unsupported added facts.",
+    "Actual revised proposition and binding units succeed with all four source semantic fields and both bindings supported; current relation and selected-type fingerprints match.",
+    "Every newly generated endpoint type has a complete current observation review with supported definition/classification/qualifier/scope judgments.",
+    "Finish current relation/review projection reflects the corrected binding and valid current review; no old failed binding substituted or partial review promoted.",
+    "No spurious missing meanings, unsupported correction, new record errors or unresolved correction for this target. Preserve historical unrelated failures as historical."
+  ],
+  "failure_action": "Any required boundary failure stops C2/current and further tuning/repetition. Record partial results and cause separately.",
+  "limits": [
+    "One known endpoint correction, not whole historical J3 run completion.",
+    "Human acceptance and utility unmeasured."
+  ],
+  "participant_count": 0,
+  "human_total_s": null
+}
