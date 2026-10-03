@@ -13,17 +13,17 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v58'
+PROMPT_VERSION = 'discovery-a2-v59'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
-        schema_hash=profile.digest({k: models.output_model(k,'source-role-v1').model_json_schema() for k in models.OUTPUTS}))
+        schema_hash=profile.digest({k: models.output_model(k,'authored-v2').model_json_schema() for k in models.OUTPUTS}))
 
 
 def model_identity(current):
@@ -273,7 +273,10 @@ def compact(value, originals=None):
         if (value.get('evidence_id') in originals and isinstance(value.get('quote'), str)
                 and value['quote'] in originals[value['evidence_id']]):
             omitted.add('quote')
-        return {k: compact(v, originals) for k,v in value.items() if k not in omitted}
+        result={k: compact(v, originals) for k,v in value.items() if k not in omitted}
+        if value.get('candidate_quote') and value.get('evidence_refs'):
+            result['evidence_locations']=[{k:r[k] for k in ('block_id','source_version_id','parse_run_id','span')} for r in value['evidence_refs']]
+        return result
     return value
 
 
@@ -333,7 +336,8 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                 for key in ('source_relation','source_relation_ids','design_reason'):
                     if source_change or field=='observations' and row.get('definition_mode'): continue
                     if key in original: replacement[key]=deepcopy(original[key])
-                if original.get('source_relation_ids'):
+                if original.get('source_relation_ids') and not (run.get('recipe',{}).get('definition_contract')=='authored-v2'
+                        and field=='observations' and row.get('definition_mode')):
                     replacement['support_type']='design_proposal'
                 if source_change:
                     raw = dict(deepcopy(replacement),id=identifier,revision_status='unreviewed_revision')
@@ -508,7 +512,7 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=PROMPT
     elif component=='proposition':
         instruction=models.COMMON + models.PROPOSITION_PROMPT
-    if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+    if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
         instruction=instruction.replace('type/design_proposal 정의와 source_refs, source_relation_ids, design_reason을 함께 작성한다.',
             'type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다.')
         instruction += models.ROLE_DECLARATION_RULE
@@ -516,6 +520,10 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
     if stage=='builder' and run.get('recipe',{}).get('builder_definition_contract')=='roles-only-v1':
         instruction=instruction.replace(models.DEFINITION_RULE,'').replace(models.ROLE_DECLARATION_RULE,models.BUILDER_ROLE_RULE)
+    if stage in {'concept','revision'} and run.get('recipe',{}).get('definition_contract')=='authored-v2':
+        instruction=instruction.replace(models.ROLE_DECLARATION_RULE,'') + models.AUTHORING_RULE
+    if stage=='critic' and component not in {'binding','proposition'} and run.get('recipe',{}).get('claim_review_contract')=='claims-v1':
+        instruction=instruction.replace('definition=refuted','해당 claim의 judgment=refuted') + models.CLAIM_REVIEW_RULE
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
@@ -571,8 +579,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
         definition_contract=run['recipe'].get('definition_contract')
         response_model=models.output_model(stage,definition_contract)
         schema=response_model.model_json_schema()
-        designed_type='DeclaredType' if definition_contract=='source-role-v1' else 'DesignedType'
-        observation_revision='DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
+        designed_type='DeclaredType' if definition_contract in {'source-role-v1','authored-v2'} else 'DesignedType'
+        observation_revision='AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
         if stage=='relation':
             targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
             schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
@@ -597,6 +605,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
 
             for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
                 fields=models.SEMANTIC_FIELDS[section]
+                if section=='observation_checks' and run['recipe'].get('claim_review_contract')=='claims-v1':
+                    fields=tuple(f for f in fields if f!='definition')
                 schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
                     properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=list(fields),additionalProperties=False)
             comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
@@ -630,7 +640,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                 if not supplied:
                     schema['properties']['alignments']['maxItems'] = 0
                 alignment['properties']['observation_ref']['enum'] = [f'o{n}' for n in range(1,6)]
-                schema['$defs']['Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
+                schema['$defs']['AuthoredObservation' if definition_contract=='authored-v2' else 'Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
             else:
                 alignment['properties']['observation_ref']['enum'] = [mapping[i] for i in supplied] or ['']
                 if not supplied:
@@ -791,7 +801,9 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                     node['required']=[k for k in node.get('required', []) if k in props]
                     node['required']=list(dict.fromkeys(node['required']+['source_refs']))
                     if 'cq_ids' in props: props['source_refs']['minItems']=1
-                    if 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
+                    if 'claim_reviews' in props:
+                        pass  # Per-claim citation branches and server aggregate validation.
+                    elif 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
                         grounded=deepcopy(node);unknown=deepcopy(node)
                         grounded['properties']['source_refs']['minItems']=1
                         checks=unknown['properties']['semantic_checks']
@@ -818,7 +830,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
             schema['$defs']['Issue']={'anyOf':[issue,other]}
         source_only(schema)
-        if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+        if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
             natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
             if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
             design.declaration_schema(schema,natural_ids,list(unit['source_ref_map']),
@@ -876,9 +888,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
-            if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+            if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
                 design.declarations(output,supplied,by_id,context,
-                    role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
+                    role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1',
+                    authored=stage!='builder' and definition_contract=='authored-v2')
             if component=='binding':
                 output=reviews.normalize_binding(output,supplied,context,by_id)
             else:
@@ -968,7 +981,7 @@ def apply_actions(service, run, index, blocks, stage, key, output):
 
 
 def base_context(run):
-    return [dict(c, **{k:v for k,v in c.get('modeling_origin', {}).items() if k in {'definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs'}}, review_status='reviewed', classification=c.get('classification') or
+    return [dict(c, **{k:v for k,v in c.get('modeling_origin', {}).items() if k in {'definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'}}, review_status='reviewed', classification=c.get('classification') or
                  {'concept':'type', 'attribute':'property_value', 'vocabulary_concept':'vocabulary'}.get(c['kind'], 'unresolved'))
             for c in run.get('base_candidates', [])]
 

@@ -100,6 +100,13 @@ def source_response(value, data):
 
 @pytest.fixture(autouse=True)
 def model(monkeypatch):
+    prior_recipe=a2.recipe
+    def legacy_recipe(budgets):
+        value=prior_recipe(budgets)
+        value['definition_contract']='source-role-v1'
+        value.pop('claim_review_contract',None)
+        return value
+    monkeypatch.setattr(a2,'recipe',legacy_recipe)
     calls = []
     monkeypatch.setattr(a2, 'model_identity', lambda recipe: {'fixture':'digest'})
     async def fake(prompt, schema, stage, run, timeout):

@@ -114,6 +114,7 @@ def declaration_schema(schema, relation_ids, source_refs, *, role_only=False):
             return
         if 'role_basis' not in node.get('properties', {}): return
         role, direct = deepcopy(node), deepcopy(node)
+        authored = 'definition_mode' in node['properties']
         for name in ('label','definition','direct_definition_source_refs','source_relation_ids','conditions','exceptions','time'):
             role['properties'].pop(name,None)
         role['properties']['role_basis']={'$ref':'#/$defs/RoleBasis'}
@@ -127,12 +128,32 @@ def declaration_schema(schema, relation_ids, source_refs, *, role_only=False):
         direct['properties']['direct_definition_source_refs'].update(minItems=1,items=dict(type='string',enum=source_refs or ['']))
         for branch in (role,direct):
             branch['required']=list(branch['properties'])
+        if authored:
+            role['properties']['definition_mode']={'type':'string','const':'source_role'}
+            role['properties'].pop('source_selection',None)
+            direct['properties'].pop('source_selection',None)
+            direct['properties'].pop('direct_definition_source_refs',None)
+            direct['properties']['definition_mode']={'type':'string','const':'synthesis'}
+            direct['properties']['support_type']={'type':'string','const':'design_proposal'}
+            direct['properties']['design_reason']['minLength']=1
+            extract=deepcopy(direct)
+            extract['properties']['definition_mode']={'type':'string','const':'source_extract'}
+            extract['properties']['support_type']={'type':'string','const':'explicit'}
+            extract['properties']['design_reason'].pop('minLength',None)
+            extract['properties']['source_selection']={'$ref':'#/$defs/SourceSelection'}
+            for name in ('definition','conditions','exceptions','time'):
+                extract['properties'].pop(name,None)
+            for branch in (role,direct,extract): branch['required']=list(branch['properties'])
+            node.clear();node['anyOf']=([role] if relation_ids else [])+[extract,direct]
+            return
         node.clear();node['anyOf']=[role] if role_only else ([role] if relation_ids else [])+[direct]
-    for name in ('DeclaredType','DeclaredObservationRevision'):
+    if 'SourceSelection' in schema['$defs']:
+        schema['$defs']['SourceSelection']['properties']['source_ref']['enum']=source_refs or ['']
+    for name in ('DeclaredType','DeclaredObservationRevision','AuthoredObservation','AuthoredObservationRevision'):
         if name in schema['$defs']: variants(schema['$defs'][name])
 
 
-def declarations(output, supplied, by_id, context, *, role_only=False):
+def declarations(output, supplied, by_id, context, *, role_only=False, authored=False):
     """Shared by initial/correction Builder and observation Revision; never repair free prose."""
     for candidate in output.get('observations', []):
         role = candidate.get('role_basis')
@@ -140,7 +161,33 @@ def declarations(output, supplied, by_id, context, *, role_only=False):
             raise ValueError('Builder의 새 유형은 출처 역할 선언만 허용; 직접 정의는 제공된 기존 ID로 재사용')
         direct = candidate.get('direct_definition_source_refs', [])
         candidate['definition_declaration'] = {k:deepcopy(candidate.get(k)) for k in
-            ('role_basis','label','definition','conditions','exceptions','time','direct_definition_source_refs','design_reason')}
+            ('role_basis','label','definition','conditions','exceptions','time','direct_definition_source_refs','design_reason','definition_mode','source_selection')}
+        if authored:
+            mode=candidate['definition_mode']
+            if bool(role)!=(mode=='source_role') or bool(candidate.get('source_selection'))!=(mode=='source_extract') or direct:
+                raise ValueError('작성 방식과 실제 선언 불일치')
+            if mode!='source_role':
+                if not candidate.get('label'): raise ValueError('정의 대상 명칭 필요')
+                refs,errors=segments.references(candidate,by_id,segments.originals(context))
+                if errors or not refs: raise ValueError('작성 정의의 실제 제공 근거 필요')
+                if mode=='source_extract':
+                    if any(candidate.get(k) for k in ('definition','conditions','exceptions','time')):
+                        raise ValueError('원문 추출과 자유 정의·한정을 함께 제출할 수 없음')
+                    selection=candidate['source_selection']
+                    views=[v for v in segments.originals(context) if v.get('source_ref')==selection['source_ref']]
+                    if len(views)!=1 or selection['source_ref'] not in candidate['source_refs']:
+                        raise ValueError('추출 구간은 선택된 제공 원문이어야 함')
+                    selected,errors=segments.references(dict(evidence_ids=[views[0]['ref']],source_quotes=[
+                        dict(evidence_id=views[0]['ref'],quote=selection['source_quote'])]),by_id,views)
+                    if errors or len(selected)!=1: raise ValueError('단일 연속 원문 추출 구간 불명확')
+                    candidate.update(definition=selected[0]['quote'],definition_evidence_refs=selected,support_type='explicit')
+                else:
+                    if not candidate.get('definition') or not candidate.get('design_reason'):
+                        raise ValueError('종합 설계에는 실질적 정의와 설계 사유 필요')
+                    candidate.update(support_type='design_proposal',definition_evidence_refs=refs)
+                candidate.pop('role_basis',None)
+                candidate['source_relation_ids']=[]
+                continue
         if role:
             if candidate.get('label') or candidate.get('definition') or direct or candidate.get('source_relation_ids') or any(candidate.get(k) for k in ('conditions','exceptions','time')):
                 raise ValueError('역할 선언과 자유 명칭·정의·조건·예외·시점을 함께 제출할 수 없음')

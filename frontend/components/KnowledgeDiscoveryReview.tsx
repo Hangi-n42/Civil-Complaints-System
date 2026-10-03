@@ -17,6 +17,22 @@ function JsonDetail({ title, value }: { title: string; value: unknown }) {
   return <details className="text-sm"><summary className="cursor-pointer">{title}</summary><pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-slate-50 p-3 text-xs">{pretty(value)}</pre></details>;
 }
 
+function ClaimOpinions({ checks, request, runId }: { checks: unknown; request: KnowledgeRequest; runId: string }) {
+  const [selected, setSelected] = useState<ReturnType<typeof readableRefs>[number] | null>(null);
+  return <div className="space-y-2">{records(checks).map((check,i) => <div key={i}>
+    <p className="text-sm">정의 전체: {label(display(check.judgment))} · {display(check.reason)}</p>
+    {records(check.claim_reviews).map((claim,j) => <div className="my-2 rounded border p-2 text-sm" key={j}>
+      <p className="font-medium">{claim.nature === "design_choice" ? "설계 선택" : "사실 주장"} · {label(display(claim.judgment))}</p>
+      <blockquote className="whitespace-pre-wrap">{display(claim.candidate_quote)}</blockquote>
+      <p>검수한 의미: {display(claim.claim)}</p><p>{display(claim.reason)}</p>
+      {readableRefs(claim.evidence_refs).map((ref,k) => <button type="button" className="mr-2 underline" key={k} onClick={() => setSelected(ref)}>근거 {k+1} 원문 보기</button>)}
+    </div>)}
+    {check.definition_completeness ? <p className="text-sm">역할·범위의 충분성: {label(display(record(check.definition_completeness).judgment))} · {display(record(check.definition_completeness).reason)}</p> : null}
+  </div>)}
+    {selected && <KnowledgeReviewEvidence key={`${selected.block_id}:${selected.span.join(":")}`} request={request} runId={runId} reference={selected} />}
+  </div>;
+}
+
 function Schema({ title, value }: { title: string; value: Ontology | null }) {
   if (!value) return null;
   return <details className={panelClass}><summary className="cursor-pointer font-medium">{title}</summary>
@@ -256,6 +272,8 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <div className="border-t pt-3"><h4 className="text-sm font-semibold">AI 분석 당시 의견 · 현재 의미 검증 아님</h4>
               <p className="mt-1 text-xs text-amber-900">대상: A2 실행 {run.id.slice(0,8)}의 원제안. {selected.origin.human_edited || dirty ? "사람이 수정한 내용은 AI가 다시 검토하지 않았습니다." : "A2 후속 수정의 해결 여부와 현재 의미 정확성은 원문으로 확인하세요."} 현재 변경안 revision {change.revision}.</p>
               {[...records(selected.origin.critiques),...records(selected.origin.relation_checks)].map((opinion,i) => <p key={i} className="mt-2 text-sm">{opinion.judgment ? `${label(display(opinion.judgment))} · ` : ""}{display(opinion.reason || opinion.description || opinion.issue || opinion)}</p>)}
+              <p className="text-sm">현재 작성 방식: {label(display(selected.origin.definition_mode || "legacy_unspecified"))} · {selected.origin.ai_review_current === false || dirty ? "현재 편집에 대한 AI 검수 없음" : "아래 검수 당시 내용과 원문 대조 필요"}</p>
+              <ClaimOpinions key={`${selected.id}:${change.revision}`} checks={selected.origin.observation_checks} request={request} runId={run.id} />
               <JsonDetail title="원제안·Critic 의견·수정 전후 기록" value={{ original: change.original_candidates?.find(c => c.change_id === selected.change_id), origin: selected.origin }} />
               <JsonDetail title="서버가 구분한 의미 검수 항목" value={selected.validation.semantic_review} />
             </div>

@@ -322,13 +322,74 @@ class DeclaredRevision(Revision):
     observations: list[DeclaredObservationRevision] = Field(max_length=5)
 
 
+class SourceSelection(Record):
+    source_ref: str
+    source_quote: str = Field(min_length=1)
+
+
+class AuthoredObservation(DefinitionDeclaration):
+    definition_mode: Literal['source_extract', 'source_role', 'synthesis']
+    source_selection: SourceSelection | None = None
+
+
+class AuthoredObservationRevision(AuthoredObservation):
+    candidate_ref: str
+    reason: str = Field(min_length=1, max_length=400)
+
+
+class AuthoredConcepts(Concepts):
+    observations: list[AuthoredObservation] = Field(max_length=5)
+
+
+class AuthoredRevision(Revision):
+    observations: list[AuthoredObservationRevision] = Field(max_length=5)
+
+
+class ClaimReview(Record):
+    field: Literal['definition', 'conditions', 'exceptions', 'time']
+    candidate_quote: str = Field(min_length=1)
+    claim: str = Field(min_length=1)
+    nature: Literal['factual', 'design_choice']
+    source_refs: list[str] = Field(default_factory=list)
+    judgment: Literal['supported', 'refuted', 'unknown']
+    reason: str = Field(min_length=1)
+
+
+class DefinitionCompleteness(Record):
+    judgment: Literal['supported', 'refuted', 'unknown']
+    reason: str = Field(min_length=1)
+
+
+class ClaimObservationCheck(RelationCheck):
+    claim_reviews: list[ClaimReview] = Field(min_length=1)
+    definition_completeness: DefinitionCompleteness
+
+
+class ClaimCritique(Critique):
+    observation_checks: list[SkipValidation[ClaimObservationCheck]]
+
+
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
 
 
 def output_model(stage, definition_contract=None):
+    if definition_contract=='authored-v2':
+        return {'concept':AuthoredConcepts,'builder':DeclaredTaxonomy,'revision':AuthoredRevision,'critic':ClaimCritique}.get(stage,OUTPUTS[stage])
     if definition_contract=='source-role-v1':
         return {'builder':DeclaredTaxonomy,'revision':DeclaredRevision}.get(stage,OUTPUTS[stage])
     return OUTPUTS[stage]
+
+
+AUTHORING_RULE = """
+관측의 definition_mode는 실제 작성 방식을 선택한다. source_extract: label과 source_selection의 제공 source_ref·연속 원문 그대로 source_quote를 선택하고 definition/conditions/exceptions/time은 쓰지 않는다. 서버가 원문 구간을 복원한다. 떨어진 구절 접합이나 재작성은 synthesis이다.
+synthesis: 여러 근거를 종합한 유용한 정의·상위개념·범위를 definition/conditions/exceptions/time에 쓰고 source_refs와 design_reason을 첨부한다. 새 명칭/추상화는 설계 선택이며 원문 명시 사실과 구별한다. 구체 효과·인과·권리·조건에는 근거가 필요하다. source_role은 제공 자연어 관계의 role_basis를 선택하는 기존 방식이다. 방식 설명만 쓰지 말고 실제 구조를 선택한다. 수정할 때 failed_claims를 바로잡고 preserve_claims의 정상 의미를 유지한다. 명칭만 남기거나 핵심 조건 삭제로 오류를 우회하지 않는다.
+"""
+
+CLAIM_REVIEW_RULE = '''
+관측은 생성자가 정한 주장 목록 대신 현재 후보의 definition/conditions/exceptions/time 전체를 직접 검토한다. claim_reviews에 실제 field·연속 원문 그대로 candidate_quote·주장 의미 claim·nature(factual/design_choice)·source_refs·judgment·reason을 쓴다. 각 필드의 공백 외 모든 문자를 검수 구절로 포괄한다. 같은 구절이 반복되어 위치가 모호하면 더 긴 구절을 선택한다. 단어를 나열하지 말고 독립 주장 단위로 쓰되 조건과 결과·인과·부정·예외·시점·수량 한정은 함께 대조한다. 같은 근거 본문을 반복 작성하지 말고 source_refs로 참조한다.
+새 이름/상위 개념 제안은 원문과 모순되지 않는 유용한 설계인지 판단한다. design_choice도 구체 효과·범위 주장 검수를 면제하지 않는다. 인용 존재만으로 supported가 아니다. 실제 원문 밖 효과 추가·주장에 필요한 한정 삭제는 refuted, 자료 모호함/필요 자료 미제공은 unknown이다. 외부 세계의 거짓을 선언하지 않는다.
+semantic_checks에는 classification/conditions/exceptions만 쓴다. definition 및 전체 judgment는 서버가 claim_reviews와 definition_completeness에서 집계하므로 쓰지 않는다. definition_completeness는 사실성 별도로 역할·범위를 실질적으로 설명하고 필수 의미를 유지했는지와 이유를 판정한다. 이름 반복·의미 없는 삭제를 완성으로 지지하지 않는다. 정상적인 원문 명시 효과와 근거 있는 다문서 종합을 보존한다. 원문을 그대로 썼다는 것만으로 유용성이 입증되지는 않는다.
+'''
 
 
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),

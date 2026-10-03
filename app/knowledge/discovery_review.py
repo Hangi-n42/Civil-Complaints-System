@@ -59,6 +59,8 @@ def valid_ids(review, candidates=None, latest=None):
 
 
 def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
+    from . import discovery_claims as claims
+    claim_contract=run.get('recipe', {}).get('claim_review_contract')=='claims-v1'
     checks_contract = require_issue_cause and run.get('recipe', {}).get('review_contract') == 'checks-v1'
     binding_reasons = checks_contract and run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1'
     declared = set(context.get('review_target_ids', supplied))
@@ -96,15 +98,20 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                 if checks_contract and section=='issues' and isinstance(raw,dict) and identifier in relations | observations and raw.get('cause') in {'content_error','endpoint'}:
                     raise ValueError('새 계약의 내용/연결 쟁점은 세부 판정에서만 도출')
                 parsed = raw
-                if checks_contract and section in models.SEMANTIC_FIELDS and isinstance(raw,dict):
+                claim_check=claim_contract and section=='observation_checks'
+                if claim_check:
+                    if identifier not in observations: raise ValueError('이번 주검토 대상 밖 ID')
+                    parsed=claims.prepare(raw,supplied[identifier])
+                elif checks_contract and section in models.SEMANTIC_FIELDS and isinstance(raw,dict):
                     checks = raw.get('semantic_checks', {})
                     if set(checks) != set(models.SEMANTIC_FIELDS[section]):
                         raise ValueError('필수 의미 항목 판정 누락')
                     judgment = 'refuted' if 'refuted' in checks.values() else 'unknown' if 'unknown' in checks.values() else 'supported'
                     parsed = dict(raw,judgment=judgment)
-                item = model.model_validate(parsed).model_dump()
+                item = (models.ClaimObservationCheck if claim_check else model).model_validate(parsed).model_dump()
                 segments.restore(item, by_id, provided)
                 validate_refs(item)
+                if claim_check: claims.restore(item,supplied[identifier])
                 if section in {'relation_checks','observation_checks','hierarchy_checks'} and counts[target]!=1:
                     raise ValueError('중복 검토 대상; 어느 판정도 선택하지 않음')
                 if section=='issues':

@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 from . import discovery_analysis as a2, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews
-from . import discovery_candidates as identities
+from . import discovery_candidates as identities, discovery_claims as claims
 
 
 def evidence_ids(candidate):
@@ -163,6 +163,15 @@ def review_context(run, group, taxonomy, by_id, context_map, history=(), extra=(
     supplied.update({h['id']:h for h in taxonomy['hierarchies']})
     context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
         [h['id'] for h in taxonomy['hierarchies']]+[c['id'] for c in extra]))
+    if history and run['recipe'].get('claim_review_contract')=='claims-v1':
+        affected={h['candidate_id'] for h in history} | {c['id'] for c in extra}
+        while True:
+            related={i for i,c in supplied.items() if affected & (set(c.get('source_relation_ids', [])) |
+                {c.get(k) for k in ('subject','object','child_ref','parent_ref')} |
+                {c.get('role_basis', {}).get('relation_ref') if c.get('role_basis') else None})}
+            if related<=affected: break
+            affected |= related
+        context['review_target_ids']=sorted(set(context['review_target_ids']) & affected)
     context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
     if group.get('comparison_only'): context['comparison_only']=True
     primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
@@ -424,6 +433,8 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
                 comparison_candidates=[c for i,c in supplied.items() if i!=identifier],issues=selected_issues,
                 relation_checks=[c for c in checks if 'negation' in effective[identifier]],
                 observation_checks=[c for c in checks if 'classification' in effective[identifier]])
+            if run['recipe'].get('claim_review_contract')=='claims-v1':
+                context.update(claims.revision_context(checks,reviews.fingerprint(effective[identifier])))
         else:
             original=effective[identifier]
             supplied[identifier]=deepcopy(original['source_relation'])

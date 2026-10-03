@@ -10,6 +10,10 @@ from .ontology_schema import ROOT, _encode
 
 METAMODEL = dict(version='discovery-empty-v1', company_definitions=[],
     target_kinds=['class', 'attribute', 'relation', 'vocabulary_concept', 'hierarchy', 'alias'])
+MODELING_FIELDS = ('source_relation','source_relations','design_reason','definition_mode','role_basis','role_source',
+    'definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection',
+    'generation_origin','ai_review_fingerprint','ai_review_current','observation_checks',
+    'proposal_generation_origin','proposal_observation_checks')
 OPTIONAL_PATTERNS = [dict(id='vocabulary-broader-v1', definition='통제 어휘의 더 넓은 용어 연결',
     relations=['broader', 'related'], applicable='동일 범위의 통제 어휘',
     not_applicable='클래스 상속 또는 개별 사실의 참/거짓 판정',
@@ -102,7 +106,7 @@ def project(base, changes):
         for field in ('evidence_refs', 'counter_evidence_refs', 'qualifiers', 'cq_ids', 'scope_item_ids',
                       'rationale', 'support_type', 'hierarchy_review'):
             item[field] = deepcopy(c[field])
-        modeling = {k:deepcopy(c['origin'][k]) for k in ('source_relation','source_relations','design_reason','definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs') if k in c.get('origin', {})}
+        modeling = {k:deepcopy(c['origin'][k]) for k in MODELING_FIELDS if k in c.get('origin', {})}
         if modeling: item['modeling_origin'] = modeling
         item['dependency_block_ids'] = sorted(set(item.get('dependency_block_ids', [])) | set(c.get('origin', {}).get('dependency_block_ids', [])))
         items[identifier] = item

@@ -23,6 +23,24 @@ AFTER_FIELDS = dict(class_=DEFINITION_FIELDS, vocabulary_concept=DEFINITION_FIEL
 AFTER_FIELDS['class'] = AFTER_FIELDS.pop('class_')
 
 
+def definition_fingerprint(candidate):
+    return canonical.digest({k:candidate.get(k) for k in ('after','target_kind','qualifiers','support_type',
+        'evidence_refs','counter_evidence_refs','cq_ids','scope_item_ids')})
+
+
+def record_definition_edit(candidate, patch):
+    updated=dict(candidate,**deepcopy(patch))
+    if definition_fingerprint(updated)==definition_fingerprint(candidate): return
+    origin=candidate['origin']
+    # Existing decisions preserve every before/after. Retain first generation provenance
+    # here as well, so canonical reuse never treats an edited definition as source extraction.
+    origin.setdefault('generation_origin',deepcopy({k:v for k,v in origin.items() if k!='generation_origin'}))
+    origin['definition_mode']='human_edited_unclassified'
+    origin['ai_review_current']=False
+    for key in ('role_basis','role_source','source_relations','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'):
+        origin.pop(key,None)
+
+
 def _base(repo, db, change):
     identifier = change.get('base_ontology_version_id')
     return repo.get(db, 'ontology_versions', identifier) if identifier else None
@@ -125,7 +143,7 @@ def _convert(run, base, blocks):
         if source.get('design_reason'):
             origin['design_reason']=source['design_reason']
             raw['rationale']=source['design_reason']
-        for key in ('definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs'):
+        for key in ('definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs','definition_evidence_refs','source_selection'):
             if key in source: origin[key]=deepcopy(source[key])
         if source.get('role_source'):
             origin['source_relations']=[deepcopy(source['role_source'])]
@@ -155,6 +173,11 @@ def _convert(run, base, blocks):
                 if meaning=='same':
                     raw['after'] = before
                     raw['qualifiers'] = deepcopy(target.get('qualifiers', {}))
+                    raw['support_type']=target.get('support_type','unresolved')
+                    proposal={k:origin.pop(k) for k in canonical.MODELING_FIELDS if k in origin}
+                    origin.update(deepcopy(target.get('modeling_origin', {})))
+                    origin.setdefault('definition_mode','legacy_unspecified')
+                    origin['proposal_generation_origin']=proposal
                     origin['change_intent'] = 'evidence_only'
                 else:
                     raw['after'] = dict(before, definition=source['definition'], inclusion=source.get('conditions', ''), exclusion=source.get('exceptions', ''))
@@ -249,6 +272,13 @@ def _convert(run, base, blocks):
         row['origin']['critiques'] = [deepcopy(i) for c,related in current_reviews for i in c.get('issues', []) if i.get('candidate_ref') in {'',*related}]
         row['origin']['relation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('relation_checks', []) if i.get('candidate_ref') in related]
         row['origin']['observation_checks'] = [deepcopy(i) for c,related in current_reviews for i in c.get('observation_checks', []) if i.get('candidate_ref') in related]
+        if row['origin'].get('change_intent')=='evidence_only':
+            row['origin']['proposal_observation_checks']=row['origin']['observation_checks']
+            row['origin']['observation_checks']=[]
+            row['origin']['ai_review_current']=False
+            row['origin'].pop('ai_review_fingerprint',None)
+        elif row['origin']['observation_checks']:
+            row['origin'].update(ai_review_fingerprint=definition_fingerprint(row),ai_review_current=True)
         row['origin']['review_scopes']=[dict(unit_id=c['unit_id'],**deepcopy(c['review_scope'])) for c,_ in current_reviews if c.get('review_scope')]
         unresolved = [i for c,related in current_reviews if 'review_outcomes' in c for field in ('relation_checks','observation_checks')
             for i in c.get(field, []) if i.get('candidate_ref') in related and i['judgment']!='supported']
@@ -461,6 +491,8 @@ def _validate(repo, db, change, run, base):
     observations = {c['id']:c for c in change.get('analysis_result', {}).get('observations', [])}
     good = []
     for c in proposals:
+        if c['origin'].get('ai_review_fingerprint'):
+            c['origin']['ai_review_current']=c['origin']['ai_review_fingerprint']==definition_fingerprint(c)
         errors = []
         c.pop('consumer_impact',None)
         c['validation'] = dict(structural_errors=errors, semantic_review=['의미 적합성은 사람 검수 대상'], can_accept=False)
@@ -775,6 +807,7 @@ def decide(service, changeset_id, request):
             if d.patch:
                 if d.action not in {'modify','edit'} or not set(d.patch)<=EDITABLE:
                     raise ValueError('수정 필드/작업 오류; 서버 ID는 수정 불가')
+                record_definition_edit(c,d.patch)
                 c.update(deepcopy(d.patch));c['origin']['human_edited']=True
                 # Explicit endpoint edits resolve binding only; class/evidence validation still runs below.
                 if c['target_kind']=='relation' and 'after' in d.patch:
