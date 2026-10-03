@@ -265,6 +265,9 @@ def combined_review(outputs):
     result['review_coverage']={field:sorted({v for o in outputs for v in o['review_coverage'][field]}) for field in
         ('expected_candidate_ids','valid_candidate_ids','pending_candidate_ids')}
     result['review_coverage']['candidate_hashes']={i:h for o in outputs for i,h in o['review_coverage']['candidate_hashes'].items()}
+    if any('review_dependency_contract' in o or 'binding_dependency_hashes' in o for o in outputs):
+        result['review_dependency_contract']='selected-types-v1'
+        result['binding_dependency_hashes']={i:h for o in outputs for i,h in o.get('binding_dependency_hashes', {}).items()}
     return result
 
 

@@ -12,19 +12,43 @@ def fingerprint(candidate):
     return profile.digest({k:v for k,v in candidate.items() if k not in {'origin_dependency_ids','analysis_group_id'}})
 
 
+def with_selected_base_types(candidates, run):
+    from .discovery_analysis import base_context
+    selected = {c.get(field) for c in candidates.values() if 'negation' in c for field in ('subject','object')}
+    return {**{c['id']:c for c in base_context(run) if c['id'] in selected}, **candidates}
+
+
+def binding_fingerprints(candidate, candidates):
+    if 'negation' not in candidate: return {}
+    return {field:fingerprint(candidates[candidate[field]]) if candidates.get(candidate.get(field), {}).get('classification')=='type' else None
+            for field in ('subject','object') if candidate.get('source_relation') or candidates.get(candidate.get(field), {}).get('classification')=='type'}
+
+
+def dependencies_current(review, identifier, candidates=None):
+    contract = review.get('review_dependency_contract')
+    if contract is None and 'binding_dependency_hashes' not in review: return True  # Stored legacy contract.
+    if contract != 'selected-types-v1': return False
+    recorded = review.get('binding_dependency_hashes', {}).get(identifier)
+    if recorded is None or any(not h for h in recorded.values()): return False
+    return candidates is None or identifier in candidates and recorded==binding_fingerprints(candidates[identifier],candidates)
+
+
 def latest_by_candidate(critiques, candidates):
     hashes={i:fingerprint(c) for i,c in candidates.items()}
-    return {i:review for review in critiques for i,h in review.get('review_coverage', {}).get('candidate_hashes', {}).items()
-            if i in hashes and h==hashes[i]}
+    latest = {i:review for review in critiques for i,h in review.get('review_coverage', {}).get('candidate_hashes', {}).items()
+              if i in hashes and h==hashes[i]}
+    # An incomplete new review cannot fall back to an older supported judgment.
+    return {i:r for i,r in latest.items() if dependencies_current(r,i,candidates)}
 
 
 def valid_ids(review, candidates=None, latest=None):
     coverage = review.get('review_coverage')
     if coverage is None:
+        if review.get('review_dependency_contract') or 'binding_dependency_hashes' in review: return set()
         # A representative view needs its own review; legacy raw judgments cannot cover it.
         if candidates and any(c.get('candidate_view_version') for c in candidates.values()): return set()
         return None  # Stored legacy reviews retain their original contract.
-    valid = set(coverage['valid_candidate_ids'])
+    valid = {i for i in coverage['valid_candidate_ids'] if dependencies_current(review,i,candidates)}
     if latest is not None: valid = {i for i in valid if latest.get(i) is review}
     if candidates is not None:
         valid = {i for i in valid if i in candidates and coverage['candidate_hashes'].get(i)==fingerprint(candidates[i])}
@@ -215,6 +239,8 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
     valid_issue_ids={i['id'] for i in output['issues']} | previous
     output['actions']=[a for a in actions if a['action']!='request_evidence' or a['issue_id'] in valid_issue_ids]
     output['record_errors']=errors
+    output['review_dependency_contract']='selected-types-v1'
+    output['binding_dependency_hashes']={i:binding_fingerprints(c,supplied) for i,c in expected.items()}
     output['review_coverage']=dict(expected_candidate_ids=sorted(expected),valid_candidate_ids=sorted(expected.keys()-pending),
         pending_candidate_ids=sorted(pending),candidate_hashes={i:fingerprint(c) for i,c in expected.items()})
     if 'review_target_ids' in context:

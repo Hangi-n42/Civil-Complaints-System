@@ -73,3 +73,45 @@ def test_relation_critic_projects_shared_type_uses_without_mutating_or_fetching_
     current=deepcopy(context);current['comparison_terms'][0]['definition']='수정 후 현재 정의'
     assert projected(ctx=current)['comparison_terms'][0]['definition']=='수정 후 현재 정의'
     assert projected(ctx=current)['comparison_terms'][0]['binding_uses']==selected['binding_uses']
+
+
+def test_selected_type_dependency_contract_is_local_and_fail_closed():
+    from app.knowledge import discovery_review as reviews, discovery_synthesis as synthesis
+    actor=dict(id='actor',classification='type',definition='행위 역할',conditions='',exceptions='',time='현재')
+    other=dict(actor,id='other')
+    raw=dict(id='raw',subject='행위자',object='대상',negation='affirmed')
+    relation=dict(raw,id='r',subject='actor',object='actor',source_relation=raw)
+    candidates={c['id']:c for c in (actor,other,raw,relation)}
+    coverage=dict(expected_candidate_ids=list(candidates),valid_candidate_ids=list(candidates),pending_candidate_ids=[],
+        candidate_hashes={i:reviews.fingerprint(c) for i,c in candidates.items()})
+    legacy=dict(review_coverage=coverage,issues=[],needs_revision=False)
+    review=dict(legacy,review_dependency_contract='selected-types-v1',
+        binding_dependency_hashes={i:reviews.binding_fingerprints(c,candidates) for i,c in candidates.items()})
+    before=deepcopy(review)
+    assert review['binding_dependency_hashes']['r']==dict(subject=reviews.fingerprint(actor),object=reviews.fingerprint(actor))
+    unrelated=dict(candidates,other=dict(other,definition='무관한 수정'))
+    assert 'r' in reviews.valid_ids(review,unrelated)
+    for field in ('definition','conditions','exceptions','time'):
+        changed=dict(candidates,actor=dict(actor,**{field:'수정'}))
+        assert 'r' not in reviews.valid_ids(review,changed)
+        assert 'raw' in reviews.valid_ids(review,changed) and 'other' in reviews.valid_ids(review,changed)
+        assert 'r' in reviews.valid_ids(legacy,changed)  # Do not rewrite stored legacy judgments.
+    missing=dict(candidates);missing.pop('actor')
+    assert 'r' not in reviews.valid_ids(review,missing)
+    for key in ('binding_dependency_hashes','review_coverage'):
+        incomplete=deepcopy(review);incomplete.pop(key)
+        assert 'r' not in reviews.valid_ids(incomplete,candidates)
+    incomplete=deepcopy(review);incomplete['binding_dependency_hashes'].pop('r')
+    assert 'r' not in reviews.latest_by_candidate([review,incomplete],candidates)
+    combined=synthesis.combined_review([review])
+    assert reviews.valid_ids(combined,candidates)==set(candidates)
+    assert 'r' not in reviews.valid_ids(combined,missing)
+    assert review==before and reviews.valid_ids({}) is None
+    assert reviews.valid_ids(dict(review_dependency_contract='selected-types-v1'))==set()
+    base=dict(actor,kind='concept',review_status='reviewed')
+    selected=reviews.with_selected_base_types({'r':relation},dict(base_candidates=[base,dict(other,kind='concept')]))
+    assert set(selected)=={'r','actor'} and selected['actor']==base
+    base_review=dict(review,binding_dependency_hashes={'r':reviews.binding_fingerprints(relation,selected)})
+    assert 'r' in reviews.valid_ids(base_review,selected)
+    changed=reviews.with_selected_base_types({'r':relation,'actor':dict(base,definition='현재 정의')},dict(base_candidates=[base]))
+    assert 'r' not in reviews.valid_ids(base_review,changed)

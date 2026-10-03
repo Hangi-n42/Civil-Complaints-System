@@ -99,7 +99,7 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
     revision=next(u for u in run['analysis_units'] if u['stage']=='revision')
     assert set(revision['dependency_ids']) <= set(followup['dependency_ids'])
     assert rid not in reviews.valid_ids(initial['output'],{rid:current})
-    assert rid in reviews.valid_ids(followup['output'],{rid:current})
+    assert rid in reviews.valid_ids(followup['output'],{c['id']:c for c in run['result']['observations']+[current]})
     assert rid not in run['result']['unreviewed_candidate_ids']
     if mode=='changed_endpoint':
         assert not current.get('source_relation') and current['unresolved_endpoints']==['subject','object']
@@ -656,7 +656,7 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
     assert candidate['definition']=='보완한 원문 범위의 임대 유형'
     assert history['before']['definition']=='선택 원문의 임대 유형'
     assert identifier not in reviews.valid_ids(critics[0]['output'],{identifier:candidate})
-    assert identifier in reviews.valid_ids(critics[-1]['output'],{identifier:candidate})
+    assert identifier in reviews.valid_ids(critics[-1]['output'],{c['id']:c for c in run['result']['observations']+[candidate]})
     saved=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert len(model)==9 and again['analysis_units']==saved
@@ -878,3 +878,39 @@ def test_focused_review_marks_unassessed_cross_kind_comparison_without_false_com
     assert not output['missing_meanings'] and not output['capacity_pending']
     assert output['review_scope']['missing_meanings_allowed'] is False
     assert output['record_errors'] and not output['review_coverage']['pending_candidate_ids']
+
+
+def test_selected_type_only_revision_invalidates_relation_review_at_finish_and_a3(service,model):
+    from app.knowledge import discovery_review as reviews
+    from app.tests.unit.test_knowledge_ontology_changes import listing
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id']))['run_id'])
+    legacy=deepcopy(run);legacy['recipe'].pop('review_dependency_contract')
+    with service.repository.connect() as db:service.repository.save(db,'runs',legacy)
+    count=len(model)
+    with pytest.raises(ValueError,match='새 실행'):
+        service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))
+    assert len(model)==count and service.run(run['id'])['analysis_units']==legacy['analysis_units']
+    with service.repository.connect() as db:service.repository.save(db,'runs',run)
+    relation=run['result']['relations'][0];identifier=relation['id']
+    current={c['id']:c for c in run['result']['observations']+run['result']['relations']}
+    review=next(r for r in run['result']['critiques'] if identifier in r['review_coverage']['expected_candidate_ids'])
+    assert identifier in reviews.valid_ids(review,current)
+    before=deepcopy(current[relation['object']]);after=dict(before,definition='다른 묶음에서 변경된 선택 유형 정의')
+    current[after['id']]=after
+    assert review['review_coverage']['candidate_hashes'][identifier]==reviews.fingerprint(relation)
+    assert identifier not in reviews.valid_ids(review,current)
+    assert identifier not in reviews.latest_by_candidate([review],current)
+    raw=deepcopy(run['result']['original_relations']);history=deepcopy(run['analysis_units'])
+    run['analysis_units'].append(dict(id='revision:other-type',stage='revision',status='succeeded',dependency_ids=[],
+        output=dict(history=[dict(candidate_id=after['id'],before=before,after=after)])))
+    blocks=a2.load_blocks(service,run)
+    a2.finish(run,blocks,{b['id'] for b in blocks})
+    assert run['result']['relations'][0]==relation and run['result']['original_relations']==raw
+    assert run['analysis_units'][:-1]==history
+    assert identifier in run['result']['review_pending_candidate_ids'] and run['result']['mandatory_pending']
+    with service.repository.connect() as db:service.repository.save(db,'runs',run)
+    cid=ontology_changes.publish(service,run['id'])['changeset_id']
+    row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
+    assert not row['can_accept'] and row['review_status']=='deferred'
+    assert not row['origin']['relation_checks'] and row['origin']['review_errors']

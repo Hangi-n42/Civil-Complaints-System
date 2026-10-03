@@ -194,6 +194,7 @@ def _convert(run, base, blocks):
             hierarchies[h['id']] = h
     current = {c['id']:c for c in observations + relations + list(hierarchies.values())}
     revised_ids = {h['candidate_id'] for h in result.get('revision_history', [])}
+    current = reviews.with_selected_base_types(current,run)
     latest_reviews = reviews.latest_by_candidate(result.get('critiques', []),current)
     for h in hierarchies.values():
         matches = [check for c in result.get('critiques', []) for check in c.get('hierarchy_checks', [])
