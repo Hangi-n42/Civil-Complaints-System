@@ -1230,10 +1230,19 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         remaining_calls = budget['model_calls']-metrics['llm_calls']
         remaining_s = budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s', 0)
         estimated_s = reservation['estimated_model_s']+sum(run['role_time_estimates'][stage]['estimate_s'] for stage in future)
-        proceed = remaining_calls >= reservation['model_calls']+len(future) and remaining_s >= estimated_s
+        calls_fit = remaining_calls >= reservation['model_calls']+len(future)
+        proceed = calls_fit and remaining_s >= estimated_s
+        initial_review = (not proceed and calls_fit and not reservation['pending_units']
+            and not run.get('initial_review_group_id')
+            and not any(u['stage'] in {'concept','relation'} and u.get('attempts') for u in run['analysis_units'])
+            and all(not run['role_time_estimates'][stage].get('observed_count') for stage in ('builder','critic'))
+            and remaining_s >= sum(run['role_time_estimates'][stage]['estimate_s'] for stage in needed))
+        if initial_review:
+            run['initial_review_group_id'] = key
+            proceed = True
         group['budget_allocation'] = dict(used_calls=metrics['llm_calls'],used_model_s=metrics['model_total_s'],
             remaining_calls=remaining_calls,remaining_model_s=remaining_s,pending_review_calls=reservation['model_calls'],
-            next_minimum_calls=len(future),reserved_estimated_s=round(estimated_s,3),decision='analyze' if proceed else 'review_existing')
+            next_minimum_calls=len(future),reserved_estimated_s=round(estimated_s,3),decision='analyze_then_review' if initial_review else 'analyze' if proceed else 'review_existing')
         if not proceed:
             group['error'] = '분석 및 실제 Builder/Critic 묶음 예약 호출/시간 예산 부족; 기존 후보 검수로 전환'
             return False
@@ -1589,6 +1598,20 @@ def execute(service, run_id):
                     queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=group['error'],defer_reason=group['error'])]}, group)
                 save(service, run)
                 if proceed is False: break
+                if run.get('initial_review_group_id')==group['id']:
+                    # One unobserved-time entry: review its output before opening another extraction.
+                    synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=False)
+                    reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+                    current = deepcopy(run)
+                    finish(current,blocks,allowed_ids(service,blocks))
+                    review_blocked = bool(reservation['pending_units']) or any(
+                        g['id'] in current['result']['mandatory_pending'] for g in run['candidate_groups'] if g['round']<=round_number)
+                    successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+                    review_blocked |= any(stage+':'+group['id'] not in successful for stage in group.get('roles',['concept','relation']))
+                    if review_blocked:
+                        group['error'] = '최초 분석 묶음의 필수 검수/분석 미완료; 후속 추출 보류'
+                        save(service,run)
+                        break
             successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
             primary_pending = any(stage+':'+g['id'] not in successful for g in pending for stage in g.get('roles',['concept','relation']))
             if not review_blocked:

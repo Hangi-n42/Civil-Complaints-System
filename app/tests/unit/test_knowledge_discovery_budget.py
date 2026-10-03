@@ -3,31 +3,45 @@ from copy import deepcopy
 from itertools import count
 import json
 
-from app.knowledge import discovery_analysis as a2, discovery_profile as profile
+from app.knowledge import discovery_analysis as a2, discovery_profile as profile, discovery_synthesis as synthesis
 from app.knowledge.schemas import RunRequest
 from app.tests.unit.test_knowledge_discovery_analysis import corpus, service, model, prepare, done
 
 
-def test_existing_fourteen_groups_reserve_twenty_eight_calls_without_changing_units():
-    units=[dict(id='concept:'+str(n),stage='concept',group_id='g',status='succeeded',dependency_ids=[],
-        output=dict(observations=[]),attempts=[dict(elapsed_s=20)]) for n in range(13)]
-    run=dict(analysis_units=units,frontier=[dict(id='g',round=0)],base_candidates=[],
-        candidate_groups=[dict(id=str(n),primary_candidate_ids=[],candidates=[]) for n in range(14)],
-        recipe=a2.recipe(dict(model_calls=24,model_seconds=1800)),metrics=dict(llm_calls=13,model_total_s=260),
-        model_identity=dict(draft={'digest':'draft'},review={'digest':'review'}))
+def test_fourteen_groups_reserve_unbuilt_capacity_then_actual_split_reviews(service,model):
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(RunRequest(kind='discovery',discovery_mode='analyze',input_run_id=source['id'],
+        cqs=[dict(id='cq1',question='유형과 조건')]))['run_id'])
+    built=deepcopy(next(u for u in run['analysis_units'] if u['stage']=='builder'))
+    group=deepcopy(run['candidate_groups'][0])
+    for field in ('review_unit_ids','design_candidates','design_candidate_ids'):
+        group.pop(field,None)
+    run['candidate_groups']=[dict(deepcopy(group),id=str(n)) for n in range(14)]
+    run['analysis_units']=[u for u in run['analysis_units'] if u['stage'] in {'scout','concept','relation'}]
+    for u in run['analysis_units']:u['attempts']=[dict(elapsed_s=20)]
+    run.pop('role_time_estimates',None)
+    blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};contexts=profile.contexts(blocks)
     before=deepcopy(run)
-    planned=a2.review_reservation(run,0,{}, {},set())
-    assert planned['model_calls']==28 and 13+planned['model_calls']>24
+    planned=a2.review_reservation(run,0,by_id,contexts,set(by_id))
+    reserved=synthesis.pending_review_units(run,run['candidate_groups'][0],by_id,contexts)
+    assert all(':reserved:' in uid for uid in reserved)
+    assert planned['model_calls']==14*(1+len(reserved)) and planned['model_calls']>24
     assert run['analysis_units']==before['analysis_units'] and run['candidate_groups']==before['candidate_groups']
-    assert a2.review_reservation(run,0,{}, {},set())==planned
+    assert a2.review_reservation(run,0,by_id,contexts,set(by_id))==planned
     assert run['role_time_estimates']['concept']['estimate_s']==25
     assert run['role_time_estimates']['critic']['basis'].startswith('미관측')
-    assert run['role_time_estimates']['critic']['model_identity']=={'digest':'review'}
-    units[0]['attempts'].append(dict(elapsed_s=40))
-    a2.review_reservation(run,0,{}, {},set())
+    concept=next(u for u in run['analysis_units'] if u['stage']=='concept')
+    concept['attempts'].append(dict(elapsed_s=40))
+    a2.review_reservation(run,0,by_id,contexts,set(by_id))
     assert run['role_time_estimates']['concept']['estimate_s']==50
-    units.append(dict(id='builder:0',stage='builder',group_id='0',status='succeeded',dependency_ids=[],output={},attempts=[]))
-    assert a2.review_reservation(run,0,{}, {},set())['model_calls']==27
+    built.update(id='builder:0',group_id='0');run['analysis_units'].append(built)
+    run['candidate_groups'][0].update(design_candidates=built['output'].get('observations',[])+built['output'].get('modeled_relations',[]),design_candidate_ids=[])
+    context,deps,supplied=synthesis.review_context(run,run['candidate_groups'][0],built['output'],by_id,contexts)
+    batches=synthesis.review_batches(context,deps,supplied,by_id,contexts)
+    actual=synthesis.pending_review_units(run,run['candidate_groups'][0],by_id,contexts)
+    assert actual==['critic:0:'+b['key'] for b in batches]
+    assert {'proposition','binding'} <= {b['context'].get('review_component') for b in batches}
+    assert a2.review_reservation(run,0,by_id,contexts,set(by_id))['model_calls']==13*(1+len(reserved))+len(actual)
 
 
 def test_round_robin_keeps_priority_and_saved_order():
@@ -87,11 +101,11 @@ def test_later_round_failed_critic_is_reachable_on_resume(service,monkeypatch,mo
             value['observations'][0]['definition']='추가 구간 의미'
         if stage=='critic':
             running=next(u for u in run['analysis_units'] if u['status']=='running')
-            group=next(g for g in run['candidate_groups'] if g['id']==running['group_id'])
+            group=next(g for g in run['candidate_groups'] if running['id'] in synthesis.review_ids(g))
             if group['round']==0:
                 value['missing_meanings']=[dict(role='concept',meaning='아직 기록되지 않은 의미',cq_ids=['cq1'],
                     source_refs=[data['blocks'][0]['source_ref']],comparison_reason='기존 유형과 관계에 없는 추가 의미',
-                    compared_candidate_ids=[c['id'] for f in ('unapproved_observations','unapproved_relations') for c in data.get(f,[])])]
+                    compared_candidate_ids=[c['id'] for f in ('unapproved_observations','unapproved_relations','comparison_terms') for c in data.get(f,[])])]
             elif not failed:
                 result['done_reason']='length';failed=True
         result['text']=json.dumps(value,ensure_ascii=False);return result
@@ -121,12 +135,66 @@ def test_review_measurements_release_same_round_analysis_reservation(service,mon
         discovery_budgets=dict(model_calls=24,model_seconds=1500,additional_rounds=0,revisions=0))
     run=done(service,service.start(request)['run_id'])
     assert not run.get('error'),run.get('error')
-    assert model==['scout','concept','relation','builder','critic','concept','relation','builder','critic']
-    assert len(run['budget_transitions'])==1 and run['budget_transitions'][0]['decision']=='review_existing'
-    assert all(g['budget_allocation']['decision']=='analyze' for g in run['frontier'])
+    first=run['initial_review_group_id']
+    group=next(g for g in run['frontier'] if g['id']==first)
+    assert group['budget_allocation']['decision']=='analyze_then_review'
+    assert group['budget_allocation']['reserved_estimated_s']>group['budget_allocation']['remaining_model_s']
+    units=run['analysis_units'];next_analysis=next(n for n,u in enumerate(units) if u['stage']=='concept' and u['group_id']!=first)
+    own=[g for g in run['candidate_groups'] if first in g['analysis_group_ids']]
+    required={uid for g in own for uid in synthesis.review_ids(g)}
+    assert required and required <= {u['id'] for u in units[:next_analysis] if u['status']=='succeeded'}
+    assert any(':binding:' in uid for uid in required)
     assert run['role_time_estimates']['builder']['initial_s']==360
     assert run['role_time_estimates']['builder']['estimate_s']==25
-    assert not run['result']['mandatory_pending'] and run['metrics']['model_total_s']==180
+    assert not run['result']['mandatory_pending']
+    assert run['metrics']['model_total_s']==20*len(model)<1500 and run['metrics']['llm_calls']<=24
     before=deepcopy(run['analysis_units']);calls=len(model)
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert len(model)==calls and again['analysis_units']==before
+
+
+def test_initial_review_failure_blocks_next_extraction_and_resume_reuses_success(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0','web:0']);original=a2.model_call;failed=False
+    monkeypatch.setattr(a2,'monotonic',count(0,20).__next__)
+    async def fail_binding(prompt,schema,stage,run,timeout):
+        nonlocal failed
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='binding' and not failed:
+            result['done_reason']='length';failed=True
+        return result
+    monkeypatch.setattr(a2,'model_call',fail_binding)
+    run=done(service,service.start(RunRequest(kind='discovery',discovery_mode='analyze',input_run_id=source['id'],
+        cqs=[dict(id='cq1',question='유형과 조건')],
+        discovery_budgets=dict(model_calls=24,model_seconds=1500,additional_rounds=0,revisions=0)))['run_id'])
+    assert failed and run['status']=='partial'
+    first=run['initial_review_group_id']
+    assert {u['group_id'] for u in run['analysis_units'] if u['stage'] in {'concept','relation'}}=={first}
+    assert any(':binding:' in u['id'] and u['status']=='failed' for u in run['analysis_units'])
+    before={u['id']:deepcopy(u) for u in run['analysis_units'] if u['status']=='succeeded'};calls=len(model)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model[calls]=='binding' and all(u==before[u['id']] for u in again['analysis_units'] if u['id'] in before)
+    assert any(u['stage']=='concept' and u['group_id']!=first for u in again['analysis_units'])
+    assert again['metrics']['llm_calls']<=24 and not again['result']['mandatory_pending']
+
+
+def test_initial_entry_still_stops_at_actual_time_limit(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0','web:0'])
+    monkeypatch.setattr(a2,'monotonic',count(0,250).__next__)
+    run=done(service,service.start(RunRequest(kind='discovery',discovery_mode='analyze',input_run_id=source['id'],
+        cqs=[dict(id='cq1',question='유형과 조건')],
+        discovery_budgets=dict(model_calls=24,model_seconds=1500,additional_rounds=0,revisions=0)))['run_id'])
+    assert run['initial_review_group_id'] and run['status']=='partial'
+    assert run['metrics']['model_total_s']==1500 and run['metrics']['llm_calls']==len(model)==6
+    assert len([u for u in run['analysis_units'] if u['stage']=='concept'])==1
+    assert run['result']['mandatory_pending'] and any('예산 종료' in f['error'] for f in run['result']['failures'])
+
+
+def test_initial_entry_does_not_override_call_or_extraction_time_shortage(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0'])
+    monkeypatch.setattr(a2,'monotonic',count(0,20).__next__)
+    for budgets in (dict(model_calls=5,model_seconds=1500),dict(model_calls=24,model_seconds=700)):
+        run=done(service,service.start(RunRequest(kind='discovery',discovery_mode='analyze',input_run_id=source['id'],
+            cqs=[dict(id='cq1',question='유형과 조건')],discovery_budgets=dict(budgets,additional_rounds=0,revisions=0)))['run_id'])
+        assert 'initial_review_group_id' not in run
+        assert [u['stage'] for u in run['analysis_units']]==['scout']
+        assert run['status']=='partial'
