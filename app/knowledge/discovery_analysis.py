@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v54'
+PROMPT_VERSION = 'discovery-a2-v55'
 
 
 def recipe(budgets):
@@ -788,7 +788,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                         grounded['properties']['source_refs']['minItems']=1
                         checks=unknown['properties']['semantic_checks']
                         for field in checks['properties'].values(): field['enum']=['supported','unknown']
-                        checks['anyOf']=[dict(properties={name:dict(const='unknown')}) for name in checks['properties']]
+                        alternatives=[]
+                        for name in checks['properties']:
+                            branch=deepcopy(checks)
+                            branch['properties'][name]={'type':'string','const':'unknown'}
+                            alternatives.append(branch)
+                        checks.clear();checks['anyOf']=alternatives
                         node.clear();node['anyOf']=[grounded,unknown]
                     elif 'judgment' in props:
                         unknown=deepcopy(node);grounded=deepcopy(node)

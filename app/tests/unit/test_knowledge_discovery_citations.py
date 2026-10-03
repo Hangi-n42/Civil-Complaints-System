@@ -30,6 +30,13 @@ def test_semantic_check_citation_and_missing_comparison_schema(service,model,mon
                 record.pop('binding_checks',None);record.pop('binding_reasons',None)
             contract={'$defs':schema['$defs'],'$ref':'#/$defs/'+name}
             jsonschema.validate(record,contract)
+            if current:
+                checks=schema['$defs'][name]['anyOf'][1]['properties']['semantic_checks']
+                assert set(checks)=={'anyOf'}
+                assert len(checks['anyOf'])==4
+                for branch in checks['anyOf']:
+                    assert branch['type']=='object' and branch['additionalProperties'] is False
+                    assert set(branch['required'])==set(branch['properties'])==set(record['semantic_checks'])
             fields=list(record['semantic_checks'])
             for judgments in (['supported']*4,['refuted']+['supported']*3,
                                ['unknown']+['supported']*3,['refuted','unknown','supported','supported']):
