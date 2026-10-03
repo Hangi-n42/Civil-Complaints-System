@@ -29,3 +29,11 @@
 - 새 역할 경계 검사 14건에는 실제 원명제 Revision 성공 이력을 통한 finish/A3 무효화와 승인된 정본 ID 재사용의 현재 검수 확인 포함.
 - 준비 스크립트 구문 검사 통과. 새 실험 helper 산정: 자연 E-A 2회, 조건부 Builder 1회+재검수 최대 3회, 별도 정상 직접 정의 1회 = 최대 7회. 현재 실제 생성 0회.
 - 예약 예산은 360초 기준 합계 2,520초, HTTP 호출별 상한은 별도로 300초(최대 합계 2,100초). Builder와 후속 검수의 실제 입력은 새 자연 진단/생성 결과에 의존하므로 그때 호출 전에 기록·해시화하며, 기존 저장 진단을 사용한 준비 리허설을 새 결과로 취급하지 않음.
+
+### 새 실제 실험의 실행 전 고정
+
+- 계획: `configs/knowledge/quality_20261001/semantic_completion_p_v1.json`; 평가 기준: `semantic_p_assessor_v1.json`. 단계별로 EA / correction / D 설정 분리.
+- 자연 EA와 정상 직접 정의는 기존 `scripts/run_knowledge_critic_diagnostic.py` 재사용. 교정은 로컬 준비 폴더의 `correction.py`가 새 EA 실제 성공 단위·자연 반박과 독립 평가 통과 기록만 받아 기존 `synthesis.revise` 호출.
+- `data/knowledge/semantic_p_preflight_20261003/`에서 GenerationService 호출 경계를 포착. Builder 리허설은 저장된 과거 실제 반박을 이용한 입력/예약 확인이며 새 진단 결과가 아님. 예상 정답이나 가짜 성공 단위를 만들지 않음.
+- 실행 코드 30개, 과거 입력/DB 등 14개, 준비 파일 15개의 SHA-256을 단계별로 고정하고 전부 재확인. 모델 digest `6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7`, temperature 0, think false, context 32768, 일반 출력 4096/연결 검수 8192 유지.
+- 준비된 단계와 평가 기준을 조율 세션에 전달한 뒤 명시적 실행 메시지를 기다림. 실제 결과 디렉터리는 아직 없고 생성 호출은 0회. C2/current·O1 재실행·사람 효용 측정은 이 고정 범위에 포함하지 않음.
