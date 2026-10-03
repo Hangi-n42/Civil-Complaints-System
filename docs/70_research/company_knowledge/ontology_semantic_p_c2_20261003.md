@@ -29,6 +29,13 @@
 - 집중 검사: declarations/roles/corrections **31 passed / 6.05초**. 앞선 새 공유·역할·legacy inline 경계 **12 passed / 4.00초**는 겹치는 확인이며 합산하지 않는다.
 - 이는 코드 계약 검증이다. 위 C2 실패를 새 코드의 실제 품질 성공으로 바꾸지 않는다. #588 검수 인용 형식, #589 Builder 책임 분리, #590 수정 입력 축소는 후속 순서로 진행한다.
 
+## #588 검수 출력 형식 보완 — 실제 모델 재실행 없음
+
+- `review_evidence_contract=semantic-checks-v1`, prompt v54. `judgment`가 없는 checks-v1 응답에도 세부 판정 집계와 같은 인용 규칙 적용.
+- 기존 `anyOf/const/enum/minItems`만 사용: 인용 1개 이상 분기 또는 `refuted` 없이 최소 1개 `unknown`인 분기. 무인용 supported/refuted와 refuted+unknown 혼합 거절, 무인용 unknown 허용. 비교 의무가 있는 missing의 빈 비교 목록도 거절.
+- 서버 정규화·근거·지문 검증은 그대로 유지. 과거 marker 없는 생성 계약과 기존 유효 응답 수용 확인. 제공된 인용이 의미를 뒷받침하는지, 문맥 전용 구간을 잘못 누락으로 판단하는지는 이 수정이 해결하지 않는다.
+- 집중 검사 **20 passed / 4.46초**, 기존 의도적 잘못된 응답 대역에서 Pydantic 직렬화 경고 4개. 새 코드의 Ollama 실행·C2 품질은 미검증이며 추가 모델 호출 0회.
+
 ## 선행 결과와 해석 범위
 
 - P v2 E-A 2회/83.360초: 원문 명제와 주체 연결 지지, 잘못된 주택 목적어 연결 반박. 독립 판정 통과.

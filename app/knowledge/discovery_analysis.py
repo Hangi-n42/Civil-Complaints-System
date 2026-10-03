@@ -13,12 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v53'
+PROMPT_VERSION = 'discovery-a2-v54'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -595,6 +595,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
             comparisons['items']['enum']=comparable or ['']
             comparisons['maxItems']=len(comparable)
+            if run['recipe'].get('review_evidence_contract')=='semantic-checks-v1' and 'review_scope' in context and comparable and missing_limit:
+                comparisons['minItems']=1
         action_schema = schema.get('$defs', {}).get('Action')
         if action_schema:
             variants = []
@@ -781,7 +783,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     node['required']=[k for k in node.get('required', []) if k in props]
                     node['required']=list(dict.fromkeys(node['required']+['source_refs']))
                     if 'cq_ids' in props: props['source_refs']['minItems']=1
-                    if 'judgment' in props:
+                    if 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
+                        grounded=deepcopy(node);unknown=deepcopy(node)
+                        grounded['properties']['source_refs']['minItems']=1
+                        checks=unknown['properties']['semantic_checks']
+                        for field in checks['properties'].values(): field['enum']=['supported','unknown']
+                        checks['anyOf']=[dict(properties={name:dict(const='unknown')}) for name in checks['properties']]
+                        node.clear();node['anyOf']=[grounded,unknown]
+                    elif 'judgment' in props:
                         unknown=deepcopy(node);grounded=deepcopy(node)
                         unknown['properties']['judgment']={'type':'string','const':'unknown'}
                         grounded['properties']['judgment']={'type':'string','enum':['supported','refuted']}
@@ -806,9 +815,10 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             schema=binding_schema(mapping[identifier],['subject','object'],list(unit['source_ref_map']))
         elif component=='proposition':
             definition=schema['$defs']['RelationCheck']
-            for field in ('binding_checks','binding_reasons'):
-                definition['properties'].pop(field,None)
-                definition['required']=[k for k in definition['required'] if k!=field]
+            for branch in definition.get('anyOf',[definition]):
+                for field in ('binding_checks','binding_reasons'):
+                    branch['properties'].pop(field,None)
+                    branch['required']=[k for k in branch['required'] if k!=field]
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1

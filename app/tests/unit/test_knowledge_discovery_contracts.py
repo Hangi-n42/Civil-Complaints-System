@@ -202,7 +202,7 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
             for c in value['relations']:
                 c.pop('endpoint_labels',None)
                 c.pop('local_ref')
-        if stage=='critic' and 'binding_checks' not in schema['$defs']['RelationCheck']['properties']:
+        if stage=='critic' and all('binding_checks' not in v['properties'] for v in schema['$defs']['RelationCheck'].get('anyOf',[schema['$defs']['RelationCheck']])):
             for check in value['relation_checks']:
                 check.pop('binding_checks',None);check.pop('binding_reasons',None)
         jsonschema.validate(value,schema)
