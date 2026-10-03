@@ -149,6 +149,9 @@ def main():
                 if case_calls[-1].get('http_attempted'): raise ValueError('진단별 실제 HTTP 1회 한도')
                 case_calls[-1]['http_attempted']=True
                 payload=kwargs['json'];case_calls[-1]['http_options']={k:payload.get(k) for k in ('model','options','think','stream')}
+                expected=case_calls[-1]['options']
+                assert payload['model']==expected['model'] and payload['think'] is expected['think'] and payload['stream'] is False
+                assert payload['options']=={k:expected[k] for k in ('temperature','num_ctx','num_predict')}
             return await post(client,url,**kwargs)
         async def measured(instance,prompt,**kwargs):
             left=selected['model_seconds']-sum(c['elapsed_s'] for c in calls)
@@ -191,7 +194,8 @@ def main():
                 model_total_s=round(sum(c['elapsed_s'] for c in case_calls),3))
             if case.get('split_review'):
                 result.update(units=run['analysis_units'],review=output,review_unit_ids=group['review_unit_ids'])
-            write(case_path/'result.json',result);record['cases'].append(dict(case=case['id'],status=unit['status'],result_sha256=digest(case_path/'result.json')))
+                result['status']='succeeded' if output is not None and not output.get('record_errors') and not output['review_coverage']['pending_candidate_ids'] else 'partial'
+            write(case_path/'result.json',result);record['cases'].append(dict(case=case['id'],status=result.get('status',unit['status']),result_sha256=digest(case_path/'result.json')))
         finally: service.shutdown()
     record.update(finished_at=utcnow(),http_calls=sum(c.get('http_attempted',False) for c in calls),
         model_total_s=round(sum(c['elapsed_s'] for c in calls),3),
