@@ -20,11 +20,12 @@ def inline_types(output):
 
 
 def scope_local_refs(output, supplied_ids=()):
-    # Scope declared wire tokens only; preserve supplied canonical IDs and legacy c1 aliases.
+    # Reserve local wire tokens, including undeclared ones; preserve only supplied wire IDs.
     tokens=[c['local_ref'] for c in output.get('observations', [])]
-    if len(tokens)!=len(set(tokens)) or set(tokens) & set(supplied_ids):
+    supplied_ids=set(supplied_ids)
+    if len(tokens)!=len(set(tokens)) or set(tokens) & supplied_ids:
         raise ValueError('새 유형 local_ref 중복 또는 제공 ID와 충돌')
-    local = {token:'local_'+uuid4().hex for token in tokens}
+    local = {f't{n}':'local_'+uuid4().hex for n in range(1,6) if f't{n}' not in supplied_ids}
     for candidate in output.get('observations', []):
         candidate['_binding_ref']=local[candidate['local_ref']]
     for field, keys in [('relation_bindings',('subject_ref','object_ref')), ('hierarchies',('child_ref','parent_ref')),
