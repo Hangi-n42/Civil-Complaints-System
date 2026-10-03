@@ -234,6 +234,10 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
 @pytest.mark.parametrize('invalid_source',[False,True])
 def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(service,model,monkeypatch,invalid_source):
     import jsonschema
+    recipe=a2.recipe
+    def legacy(budgets):
+        value=recipe(budgets);value.pop('builder_declaration_contract');return value
+    monkeypatch.setattr(a2,'recipe',legacy)
     source=prepare(service,file_ids=['current:0']);original=a2.model_call;seen=[]
     async def generated(prompt,schema,stage,run,timeout):
         result=await original(prompt,schema,stage,run,timeout)

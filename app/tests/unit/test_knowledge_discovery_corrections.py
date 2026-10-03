@@ -71,7 +71,8 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                         support_type='design_proposal',classification_reason='원문 역할',conditions='',exceptions='',time='',
                         abstraction_level='업무 대상',review_signals=[],source_relation_ids=bad_id,design_reason='직접 대상 역할',
                         source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')
-                    value['relation_bindings'][0]['object_ref']=new
+                    value['observations']=[dict(new,local_ref='t1')]
+                    value['relation_bindings'][0]['object_ref']='t1'
                 if mode=='cancel': service.cancel(run['id'])
             else:
                 row=value['relation_bindings'][0];bad_id.append(row['relation_ref']);row['object_ref']=row['subject_ref']

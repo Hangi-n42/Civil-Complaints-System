@@ -342,3 +342,9 @@ ROLE_DECLARATION_RULE = """
 직접 정의: definition과 해당 정의를 직접 뒷받침하는 제공 원문 direct_definition_source_refs(1개 이상)를 명시하고 role_basis는 제출하지 않는다. 이는 별도 의미 검수 대상이며 근거 선택만으로 참을 보증하지 않는다.
 역할에서 직접 정의로 전환하거나 legacy 자유 정의를 역할로 바꾸면 명시적 변경 사유를 기록한다. 기존 ID 재사용과 유형 연결 검수는 유지한다.
 """
+
+SHARED_TYPE_RULE = ('새 유형은 observations에 local_ref=t1..t5 중 제공 ID와 충돌하지 않는 토큰으로 한 번 선언한다. '
+    'subject_ref/object_ref는 실제 제공된 유형 ID 또는 이번 observations에 선언한 local_ref만 쓴다. '
+    '여러 관계가 같은 정의·출처·조건의 유형을 공유하면 같은 local_ref를 명시적으로 재사용한다. '
+    '서로 다른 역할 출처나 조건을 이름만으로 합치지 않는다. 새 선언은 주관계당 끝점2개, 전체최대5개이며 내부 ID는 서버가 부여한다. '
+    '선언하지 않은 토큰이나 끝점 안의 새 정의 객체는 제출하지 않는다.')

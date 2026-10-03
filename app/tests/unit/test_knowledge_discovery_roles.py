@@ -35,6 +35,7 @@ def test_role_builder_correction_dependency_and_a3_roundtrip(service,model,monke
                 value['relation_bindings'][0]['object_ref']=role_wire(data,natural)
             else:
                 value['relation_bindings'][0]['object_ref']=value['relation_bindings'][0]['subject_ref']
+            design.inline_types(value)
             jsonschema.validate(value,schema)
         if stage=='binding' and correction and not any(u.get('parent_group_id') and u['status']=='succeeded' for u in run['analysis_units']):
             value['binding_checks']['object']='refuted'
@@ -47,7 +48,7 @@ def test_role_builder_correction_dependency_and_a3_roundtrip(service,model,monke
     assert len(roles)==1,(run['candidate_groups'],run['result'])
     role=roles[0];relation=run['result']['relations'][0]
     builder=next(u for u in run['analysis_units'] if any(c.get('role_basis') for c in u.get('output',{}).get('observations',[])))
-    assert 'definition' not in json.loads(builder['raw_output'])['relation_bindings'][0]['object_ref']
+    assert 'definition' not in next(c for c in json.loads(builder['raw_output'])['observations'] if c.get('role_basis'))
     assert role['definition_declaration']['definition']==''
     assert role['role_source']==relation['source_relation']
     assert '필요충분 정의나 실제 발생 사실을 선언하지 않음' in role['definition']

@@ -19,9 +19,12 @@ def inline_types(output):
                 binding[field] = candidate['local_ref']
 
 
-def scope_local_refs(output):
-    # Separate model t1..t5 from a supplied canonical ID that happens to have that name.
-    local = {'t'+str(n):'local_'+uuid4().hex for n in range(1,6)}
+def scope_local_refs(output, supplied_ids=()):
+    # Scope declared wire tokens only; preserve supplied canonical IDs and legacy c1 aliases.
+    tokens=[c['local_ref'] for c in output.get('observations', [])]
+    if len(tokens)!=len(set(tokens)) or set(tokens) & set(supplied_ids):
+        raise ValueError('새 유형 local_ref 중복 또는 제공 ID와 충돌')
+    local = {token:'local_'+uuid4().hex for token in tokens}
     for candidate in output.get('observations', []):
         candidate['_binding_ref']=local[candidate['local_ref']]
     for field, keys in [('relation_bindings',('subject_ref','object_ref')), ('hierarchies',('child_ref','parent_ref')),

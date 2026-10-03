@@ -13,12 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v52'
+PROMPT_VERSION = 'discovery-a2-v53'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -506,6 +506,8 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=instruction.replace('type/design_proposal 정의와 source_refs, source_relation_ids, design_reason을 함께 작성한다.',
             'type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다.')
         instruction += models.ROLE_DECLARATION_RULE
+    if stage=='builder' and run.get('recipe',{}).get('builder_declaration_contract')=='shared-types-v1':
+        instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
@@ -664,13 +666,19 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
             if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
-            schema['properties']['observations']['maxItems']=0
-            schema['$defs'][designed_type]['properties'].pop('local_ref')
+            shared_types=run['recipe'].get('builder_declaration_contract')=='shared-types-v1'
+            local_tokens=[f't{n}' for n in range(1,6) if f't{n}' not in mapping.values()]
+            schema['properties']['observations']['maxItems']=min(5,2*len(relation_ids),len(local_tokens)) if shared_types else 0
+            if shared_types:
+                schema['$defs'][designed_type]['properties']['local_ref']['enum']=local_tokens or ['']
+            else:
+                schema['$defs'][designed_type]['properties'].pop('local_ref')
             schema['$defs'][designed_type]['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
             binding = schema['$defs']['RelationBinding']['properties']
             binding['relation_ref']['enum'] = relation_ids or ['']
             for field in ('subject_ref','object_ref'):
-                binding[field] = {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]}
+                binding[field] = (dict(type='string',enum=type_ids+local_tokens or ['']) if shared_types else
+                    {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]})
             binding_definition=schema['$defs']['RelationBinding']
             variants=[]
             for decision in ('bind','defer','source_error'):
@@ -814,12 +822,19 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + output_limit > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             decoded = json.loads(metadata['text'])
-            if stage=='builder': design.inline_types(decoded)
+            if stage=='builder':
+                if run['recipe'].get('builder_declaration_contract')=='shared-types-v1':
+                    if len(decoded.get('observations',[]))>min(5,2*len(context.get('design_relation_ids', []))):
+                        raise ValueError('새 유형 선언 수가 주관계의 끝점 예약 상한 초과')
+                    if any(isinstance(b.get(k),dict) for b in decoded.get('relation_bindings',[]) if isinstance(b,dict) for k in ('subject_ref','object_ref')):
+                        raise ValueError('새 유형은 observations에 한 번 선언하고 지역 참조로 연결해야 함')
+                else:
+                    design.inline_types(decoded)
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
             output = deepcopy(decoded) if component=='binding' else response_model.model_validate(decoded).model_dump(warnings=False)
-            if stage=='builder': design.scope_local_refs(output)
+            if stage=='builder': design.scope_local_refs(output, mapping.values())
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
                 original = supplied.get(identifier, {})
