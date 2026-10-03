@@ -21,7 +21,9 @@
 - 요청/전체 HTTP 응답 25쌍, 기존 raw_output·검수·수정 이력 보존. 추가 관찰 코드 `capture_execute.py` SHA-256 `505bff06575d809997920e9c60fb6b26bb4fcb726628cd5728afcff1841a92e3`은 응답 bytes만 저장했으며 고정 실행 조건을 변경하지 않았다.
 - `structural_inspection.json`에서 runtime 32개·입력 해시, 실제 recipe/옵션, 원본 모든 표의 기존 행 보존, 원문 위치를 포함한 근거 참조 72개를 확인했다. 읽기 전용 preview 전후 결과/DB bytes 불변. 수락·활성화·current 실행 없음.
 
-## #587 코드 보완 — 실제 모델 재실행 없음
+#587~#590의 호출 0회·미검증 표시는 각 코드 커밋 당시 기록이며, 최종 실제 4회 확인은 아래 절에 별도 기록했다.
+
+## #587 코드 보완 — 코드 커밋 당시 검증
 
 - `builder_declaration_contract=shared-types-v1`, prompt v53. `observations/local_ref → scope_local_refs → normalize → bind`를 재사용하여 새 유형을 한 번 선언하고 여러 관계가 명시적으로 공유하도록 변경.
 - 새 선언 최대 `min(5, 2×주관계 수)`, 수정 Builder 최대 2개. 제공 wire ID와 충돌하는 토큰은 schema에서 제외하고 파싱에서도 거절한다. 실제 canonical `t1` 보존, legacy `c1→실제 t1`과 새 지역 `t1` 구분, 미선언/중복/과다 선언 거절 확인.
@@ -30,7 +32,7 @@
 - 이는 코드 계약 검증이다. 위 C2 실패를 새 코드의 실제 품질 성공으로 바꾸지 않는다. 당시 후속 순서였던 #588~#590의 결과는 아래에 기록한다.
 - 독립 검수 추가 보완: legacy에서는 실제 canonical `t2`가 `c1` 등으로만 제공됐는데 미선언 `t2`를 그대로 남기면 기존 ID로 우회 연결되는 회귀를 확인. 제공 wire ID를 제외한 `t1..t5` 전체를 지역 참조로 격리하여 미선언 참조를 거절하도록 수정했다. 기존 재현 검사와 공유/충돌 검사 9개 통과. 실제 canonical wire `t2`는 계속 보존한다.
 
-## #588 검수 출력 형식 보완 — 실제 모델 재실행 없음
+## #588 검수 출력 형식 보완 — 코드 커밋 당시 검증
 
 - `review_evidence_contract=semantic-checks-v1`, prompt v54. `judgment`가 없는 checks-v1 응답에도 세부 판정 집계와 같은 인용 규칙 적용.
 - 기존 `anyOf/const/enum/minItems`만 사용: 인용 1개 이상 분기 또는 `refuted` 없이 최소 1개 `unknown`인 분기. 무인용 supported/refuted와 refuted+unknown 혼합 거절, 무인용 unknown 허용. 비교 의무가 있는 missing의 빈 비교 목록도 거절.
@@ -39,7 +41,7 @@
 
 - 독립 검수 후 prompt v55: `semantic_checks`의 properties+부분 anyOf 혼합을 제거하고, anyOf 전용 외곽 아래 필수 4항목·추가 속성 금지를 가진 완전한 object 대안 4개로 교체. 판정 의미는 동일하다. 스키마 구조·인용·누락 경계 20개 통과(4.43초). 로컬 Ollama의 실제 실패를 확인했다는 주장이 아니며 모델 재실행은 하지 않았다.
 
-## #589 Builder 신규 선언 책임 분리 — 실제 모델 재실행 없음
+## #589 Builder 신규 선언 책임 분리 — 코드 커밋 당시 검증
 
 - `builder_definition_contract=roles-only-v1`, prompt v56. 최초·끝점 교정 Builder의 새 선언은 role_basis만 허용하며 스키마와 파싱에서 직접 정의를 거절한다. 실패 원응답은 그대로 보존한다.
 - 이미 제공된 Concept 직접 정의 ID는 재사용 가능하다. 필요한 직접 정의가 없으면 기존 defer/gaps 사용. Concept 자동 실행·새 추론 계층·과거 후보 소급 변환 없음.
