@@ -1,0 +1,64 @@
+{
+  "id": "ontology-semantic-o1-observation-assessor-v1",
+  "issue": 583,
+  "followup_issue": 579,
+  "frozen_at": "2026-10-03T09:04:33.148149+00:00",
+  "input_to_generation": false,
+  "denominator": {
+    "error_candidates": 2,
+    "normal_candidates": 2,
+    "total_candidates": 4,
+    "http_calls": 2,
+    "positive": "error detected; missed unsupported claim is FN"
+  },
+  "targets": [
+    {
+      "case": "D-1",
+      "candidate_id": "dc_4cb7f4df36ce42ce9c3136a74b234416",
+      "truth": "error",
+      "expected": "refuted",
+      "dimension": "definition",
+      "reason": "선정 절차가 입주 자격을 부여한다는 효과·인과는 제공 원문에 없음"
+    },
+    {
+      "case": "D-1",
+      "candidate_id": "dc_67b5157d740e4ff9a04ec2cff2b63fe0",
+      "truth": "valid",
+      "expected": "supported",
+      "dimension": "whole_observation",
+      "reason": "국민임대주택을 공급하고 입주자를 선정하는 주체는 근거 있는 역할 추상화"
+    },
+    {
+      "case": "D-2",
+      "candidate_id": "dc_9b3317b75f0a404b853eeb30bab18b9a",
+      "truth": "valid",
+      "expected": "supported",
+      "dimension": "whole_observation",
+      "reason": "처분하려는 경우 환매·손익 공유하는 효과가 원문에 명시됨"
+    },
+    {
+      "case": "D-2",
+      "candidate_id": "eval_7f8cd934ff9d4b688a403ea0d694e020",
+      "truth": "error",
+      "expected": "refuted",
+      "dimension": "definition_or_conditions",
+      "reason": "환매·손익 공유의 발동을 처분하려는 경우에서 공급받는 즉시로 바꾼 절이 제공 원문과 충돌"
+    }
+  ],
+  "gates": [
+    "All four candidate judgments and exact source-grounded reasons must match; unknown cannot pass an expected supported/refuted case.",
+    "D-1 error definition=refuted; normal actor all four observation semantic checks supported. No unsupported additional qualification-conferral assertion accepted.",
+    "D-2 normal definition/classification/conditions/exceptions supported; explicit buyback/profit-sharing effect must not be rejected just because it is an effect.",
+    "D-2 altered trigger must be rejected in definition or conditions (or both) with whole judgment refuted and reason specifically contrasting disposal intention with immediate supply; unrelated criticism does not pass.",
+    "Each justification cites valid provided block/span/version/parse source. D-2 [820,1112] includes adjacent public housing district definition; do not attribute its content to profit-sharing housing.",
+    "No spurious missing meanings or record errors. No unnecessary correction of either normal candidate. Natural errors may produce requests, but diagnostic revisions=0.",
+    "Actual HTTP payloads match frozen prompts/schemas/options, source/candidate originals unchanged; no output truncation, oversize or fabricated success."
+  ],
+  "failure_action": "Any gate failure stops natural definition correction and C2/current. No prompt retuning or repeated setting.",
+  "pass_action": "A separate one-time correction of the actual N3 definition may use this diagnostic natural error only after a new helper-counted budget freeze. No normal contrast definition or expected answer injected. Then conditional C2/current with new budgets.",
+  "limitations": [
+    "Previously exposed N3/D5 examples plus one controlled clause variant; not unseen generalization.",
+    "Implementation tests do not establish semantic accuracy."
+  ],
+  "human_measurement": "excluded_by_user"
+}
