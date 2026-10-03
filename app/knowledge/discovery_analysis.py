@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v47'
+PROMPT_VERSION = 'discovery-a2-v48'
 
 
 def recipe(budgets):
@@ -698,6 +698,13 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
                     definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
+        if stage=='critic' and 'primary_source_spans' in context.get('review_scope', {}):
+            owned=context['review_scope']['primary_source_spans']
+            allowed=[ref for ref,v in unit['source_ref_map'].items() if any(s['block_id']==v['block_id'] and
+                s['span'][0]<=v['span'][0]<v['span'][1]<=s['span'][1] for s in owned)]
+            sources=schema['$defs']['MissingMeaning']['properties']['source_refs']
+            sources['items']['enum']=allowed or ['']
+            if not allowed: schema['properties']['missing_meanings']['maxItems']=0
         for definition in schema.get('$defs', {}).values():
             if 'cq_ids' in definition.get('properties', {}):
                 variants = []
@@ -917,9 +924,12 @@ def queue_recovery(run, review, group, by_id=None):
             validation.append('선택 분석 블록 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
         targets = []
         for ref in need['evidence_refs']:
+            if 'primary_source_spans' in need and not any(s['block_id']==ref['block_id'] and
+                    s['span'][0]<=ref['span'][0]<ref['span'][1]<=s['span'][1] for s in need['primary_source_spans']):
+                validation.append('이번 주검토 소유 구간 밖 누락 재추출 인용')
             views = [v for v in owned if v['block_id']==ref['block_id'] and v['span'][0]<=ref['span'][0] and ref['span'][1]<=v['span'][1]]
             if owners and not views: validation.append('담당 분석 구간 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
-            view = views[0] if views and need.get('trigger')!='target_response' else ref
+            view = views[0] if views and need.get('trigger')!='target_response' and 'primary_source_spans' not in need else ref
             target = [view['block_id'], view['span']]
             if target not in targets: targets.append(target)
         request = add('extraction_missing', need['role'], sorted(targets), need, validation)
@@ -982,7 +992,7 @@ def recovery_groups(run, round_number, by_id):
             owned = [v for g in owners for v in g.get('segments', []) if v['block_id']==block_id]
             matching = [v for v in owned or segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
             view = deepcopy(matching[0]) if matching else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION)
-            if request.get('trigger')=='target_response':
+            if request.get('trigger')=='target_response' or 'primary_source_spans' in request:
                 a,z = view['span']
                 view['shared_spans'] += [s for s in ([a,span[0]],[span[1],z]) if s[0]<s[1]]
                 view.update(span=span,analysis_target=True)

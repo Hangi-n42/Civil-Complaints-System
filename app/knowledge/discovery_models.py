@@ -270,11 +270,11 @@ PROMPTS['critic'] = ('Ontology Critic: review_target_ids만 검수한다. 비교
     'reason 400자 안에 원문이 요구하는 구절과 후보에 실제 적힌 구절을 대조하여 일치/차이/미확인 사유를 설명한다. supported/refuted에는 실제 제공 source_refs가 필요하다. unknown은 구체 사유를 남기며 오류 확정이 아니다. '
     'issues에는 evidence_error/alignment/source_absent/서버 확인 budget_exhausted를 실제 제공 candidate_ref/target_ref와 i1..i8로 쓴다. 비교 후보·계층의 별도 쟁점에는 content_error/endpoint도 가능하다. 후보 없는 쟁점의 candidate_ref는 빈 문자열이다. '
     '참조 자료의 미제공 상세는 source_absent와 defer_reason/gaps이며 제공 원문 재추출로 요청하지 않는다. '
-    'missing_meanings는 제공 관측·관계 양쪽에서 빠진 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 관계 의미는 role=relation, 일반 정의는 concept이다. '
+    'missing_meanings는 이번 primary_source_spans 안에서 제공 관측·관계 양쪽에 실제로 없는 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 기존 비교 후보에 표현된 의미는 누락이 아니다. 참고 구간과 미제공 후보의 전체 범위는 gaps에 미확인으로 남긴다. 누락 인용 모두가 주범위 안이어야 하며 참고 구간을 섞지 않는다. 관계 의미는 role=relation, 일반 정의는 concept이다. '
     'review_scope.missing_meanings_allowed=false이면 missing_meanings를 비우고 비교 미실시 범위를 gaps에 남긴다. 제공 범위를 자료 전체의 부재나 의미 완성으로 단정하지 않는다.')
 for focus, instruction in {
     'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. observation_checks/hierarchy_checks는 비운다.',
-    'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 명칭 등장과 정의의 각 사실적 주장에 대한 근거를 구분한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 설계 출처 대조에만 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
+    'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 명칭 등장과 정의의 각 사실적 주장에 대한 근거를 구분한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
 }.items():
     PROMPTS['critic_'+focus] = PROMPTS['critic'] + instruction
 

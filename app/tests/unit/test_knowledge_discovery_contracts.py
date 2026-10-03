@@ -534,13 +534,15 @@ def test_clause_response_pending_survives_critic_and_resume(service,model,monkey
             targets=[v for v in data['blocks'] if v.get('analysis_target')]
             value['relations'][0].update(evidence_ids=[],source_refs=[targets[0]['source_ref']])
             value['target_gaps']=[dict(source_ref=targets[2]['source_ref'],reason='별표 상세 미제공')]
-        if stage=='critic': seen['coverage']=data['analysis_target_coverage']
+        if stage=='critic': seen.setdefault('coverage',[]).append((data['review_target_ids'],data['analysis_target_coverage']))
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
     monkeypatch.setattr(a2,'model_call',generated)
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=7,additional_rounds=0,revisions=0)))['run_id'])
     assert run['metrics']['llm_calls']==7,run['result']['failures']
     coverage=run['result']['analysis_target_coverage']
-    assert len(coverage)==3 and len(seen['coverage'])==3
+    assert len(coverage)==3
+    assert all(set(t['candidate_ids'])<=set(ids) for ids,rows in seen['coverage'] for t in rows)
+    assert any(rows for _,rows in seen['coverage'])
     assert [bool(t['candidate_ids']) for t in coverage]==[True,False,False]
     missing=[r for r in run['result']['recovery_requests'] if r.get('trigger')=='target_response']
     assert len(missing)==1 and missing[0]['target'][0][1]==coverage[1]['span']
@@ -829,6 +831,10 @@ def test_focused_review_batches_preserve_sources_targets_and_current_candidates(
         data=json.loads(prompt.split('\nINPUT:\n')[1]);role=data['review_focus'];seen.append(role)
         absent='observation_checks' if role=='relations' else 'relation_checks'
         assert all(v['properties'][absent]['maxItems']==0 for v in schema.get('anyOf',[schema]))
+        owned=data['review_scope']['primary_source_spans']
+        allowed={v['source_ref'] for v in a2.segments.originals(data) if any(s['block_id']==v['ref'] and
+            s['span'][0]<=v.get('span',[0,len(v['text'])])[0]<v.get('span',[0,len(v['text'])])[1]<=s['span'][1] for s in owned)}
+        assert all(set(v['properties']['source_refs']['items']['enum'])==(allowed or {''}) for v in schema['$defs']['MissingMeaning']['anyOf'])
         assert '원문이 요구하는 구절과 후보에 실제 적힌 구절' in prompt
         return await call(prompt,schema,stage,run,timeout)
     monkeypatch.setattr(a2,'model_call',checked)
@@ -842,7 +848,8 @@ def test_focused_review_batches_preserve_sources_targets_and_current_candidates(
         assert 1<=len(ids)<=2 and set(ctx['comparison_candidate_ids'])==terms.keys()-ids
         assert batch['dependency_ids']==deps and ctx['review_scope']['whole_input_assessed'] is False
         assert all(reviews.fingerprint(c)==reviews.fingerprint(supplied[i]) for i,c in terms.items())
-        assert all(v in a2.segments.originals(context) for v in a2.segments.originals(ctx))
+        def source(v): return {k:x for k,x in v.items() if k not in {'analysis_target','context_only'}}
+        assert all(source(v) in [source(p) for p in a2.segments.originals(context)] for v in a2.segments.originals(ctx))
         assert synthesis.fits(run,'critic',ctx,deps,terms)
         result=a2.call(service,run,'critic',group['id']+':packet_check:'+batch['key'],ctx,deps,by_id,terms)
         assert result is not None,run['analysis_units'][-1].get('error')

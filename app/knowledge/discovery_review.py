@@ -155,6 +155,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                     if not item['cq_ids'] and not item['scope_item_ids'] or item['outside_scope_reason']: problems.append('복구의 허용 질문/범위 연결 필요')
                     if not set(item['cq_ids']) <= {q['id'] for q in run['cqs']} or not set(item['scope_item_ids']) <= {q['id'] for q in run['scope_items']}: problems.append('복구의 허용 질문/범위 밖 연결')
                     if problems: raise ValueError('; '.join(problems))
+                    owned=context.get('review_scope', {}).get('primary_source_spans')
+                    if owned is not None:
+                        if any(not any(s['block_id']==r['block_id'] and s['span'][0]<=r['span'][0]<r['span'][1]<=s['span'][1] for s in owned) for r in refs):
+                            raise ValueError('누락 재추출 인용이 이번 주검토 소유 구간 밖')
+                        item['primary_source_spans']=deepcopy(owned)
                     item.update(evidence_refs=refs,validation=[])
                     if 'review_scope' in context:
                         if not set(item['compared_candidate_ids']) <= supplied.keys(): raise ValueError('미제공 후보를 의미 대조했다고 주장할 수 없음')

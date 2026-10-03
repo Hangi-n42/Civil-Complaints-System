@@ -157,6 +157,7 @@ def review_context(run, group, taxonomy, by_id, context_map, history=(), extra=(
     context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
         [h['id'] for h in taxonomy['hierarchies']]+[c['id'] for c in extra]))
     context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
+    if group.get('comparison_only'): context['comparison_only']=True
     primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
     primary_views = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in primary['blocks']}
     for view in context['blocks']:
@@ -201,10 +202,33 @@ def review_batches(context, deps, supplied, by_id, context_map):
             part['review_target_ids']=primary
             part['comparison_candidate_ids']=sorted(needed-set(primary))
             part['review_focus']=role
+            coverage=[dict(t,candidate_ids=sorted(set(t['candidate_ids']) & set(primary)))
+                      for t in context.get('analysis_target_coverage', []) if set(t['candidate_ids']) & set(primary)]
+            owned=[]
+            for ref in [r for i in primary for r in terms[i].get('evidence_refs', [])] + coverage:
+                span=dict(block_id=ref['block_id'],span=list(ref['span']))
+                if span not in owned: owned.append(span)
+            if context.get('comparison_only'): owned=[];coverage=[]
+            provided=segments.originals(part)
+            for s in owned:
+                a,z=s['span']
+                if any(v['ref']==s['block_id'] and v.get('span',[0,len(v['text'])])==[a,z] for v in provided): continue
+                parent=next((v for v in provided if v['ref']==s['block_id'] and
+                    v.get('span',[0,len(v['text'])])[0]<=a<z<=v.get('span',[0,len(v['text'])])[1]),None)
+                if parent:
+                    offset=parent.get('span',[0])[0]
+                    part['blocks'].append(dict(parent,text=parent['text'][a-offset:z-offset],span=[a,z]))
+            # Exact saved spans only: a legacy block ID cannot establish paragraph ownership.
+            for view in segments.originals(part):
+                a,z=view.get('span',[0,len(view['text'])])
+                own=any(s['block_id']==view['ref'] and s['span'][0]<=a<z<=s['span'][1] for s in owned)
+                view.update(analysis_target=own,context_only=not own)
+            part['analysis_target_coverage']=coverage
             part['review_scope']=dict(part.get('review_scope', {}),extent='provided_only',whole_input_assessed=False,
                 omitted_comparison_ids=sorted(set(part.get('review_scope', {}).get('omitted_comparison_ids', [])) | (supplied.keys()-needed)),
                 omitted_block_ids=sorted(a2.raw_refs(context)-a2.raw_refs(part)),
-                missing_meanings_allowed=all(any(kind in c for c in terms.values()) for kind in ('classification','negation')))
+                primary_source_spans=owned,
+                missing_meanings_allowed=bool(owned) and all(any(kind in c for c in terms.values()) for kind in ('classification','negation')))
             result.append(dict(key=role+':'+profile.digest(primary)[:16],context=part,dependency_ids=list(deps),supplied=terms))
     return result
 
