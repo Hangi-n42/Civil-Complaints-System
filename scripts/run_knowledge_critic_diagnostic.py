@@ -11,19 +11,7 @@ from time import monotonic
 from unittest.mock import patch
 
 
-BINDING_PROMPT = '''제공 원문과 후보만 사용하여 요청된 관계의 유형 연결을 검수한다. 원명제의 끝점 대상이 선택 유형의 정의·조건·예외에 속하는지를 판단한다. 개념 동치가 필요한 것은 아니다. 업무 연관·소유·부분과 전체 관계만으로 유형 포함을 지지하지 않는다. 더 넓은 유형은 원명제의 좁은 한정이 보존되면 가능하며, 근거 없이 더 좁은 유형으로 대상 일부를 제외하면 부적합하다.
-각 끝점의 실제 표현·조건과 선택 유형 정의를 대조하여 supported/refuted/unknown과 구체적인 이유를 각각 반환한다. 판정에 필요한 정의·한정이 실제 부족하면 unknown이다. 법정 정의 문구가 없다는 이유만으로 원문에 근거한 역할 추상화를 보류하지 않는다. 자료의 인접 조항은 서로 다른 정의일 수 있으므로 해당 대상의 구간을 대조한다.
-relation_bindings는 검수 대상 선택이며 정답이 아니다. source_relation 없는 평가 조합에서는 endpoint_labels가 있으면 그 표현을 사용하고, 없으면 자연어 subject/object 끝점 필드를 사용한다. 요청된 끝점만 판단하며 원명제 수정·누락 발굴·새 유형 설계·전체 의미 검수를 수행하지 않는다. JSON schema에 지정된 candidate_ref, binding_checks, binding_reasons, 실제 제공 source_refs만 반환한다. 이유는 각 400자 이내이며 원문과 유형 정의의 대응 또는 충돌을 설명한다.'''
-
-
-def binding_schema(identifier, endpoints, source_refs):
-    return dict(type='object',additionalProperties=False,required=['candidate_ref','binding_checks','binding_reasons','source_refs'],
-        properties=dict(candidate_ref=dict(type='string',enum=[identifier]),
-            binding_checks=dict(type='object',additionalProperties=False,required=endpoints,
-                properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in endpoints}),
-            binding_reasons=dict(type='object',additionalProperties=False,required=endpoints,
-                properties={k:dict(type='string',minLength=1,maxLength=400) for k in endpoints}),
-            source_refs=dict(type='array',minItems=1,uniqueItems=True,items=dict(type='string',enum=source_refs))))
+from app.knowledge.discovery_binding import PROMPT as BINDING_PROMPT, schema as binding_schema
 
 
 def run_binding(args, frozen, package):
@@ -164,12 +152,14 @@ def main():
             return await post(client,url,**kwargs)
         async def measured(instance,prompt,**kwargs):
             left=selected['model_seconds']-sum(c['elapsed_s'] for c in calls)
-            if case_calls or len(calls)>=selected['http_calls'] or left<=0: raise ValueError('고정 진단 예산 종료')
-            assert sha256(prompt.encode()).hexdigest()==case['prompt_sha256']
-            assert profile.digest(kwargs['response_schema'])==case['schema_sha256']
-            assert all(kwargs[k]==v for k,v in selected['model_options'].items() if k!='timeout')
+            components=case.get('components',[case])
+            if len(case_calls)>=len(components) or len(calls)>=selected['http_calls'] or left<=0: raise ValueError('고정 진단 예산 종료')
+            expected=components[len(case_calls)]
+            assert sha256(prompt.encode()).hexdigest()==expected['prompt_sha256']
+            assert profile.digest(kwargs['response_schema'])==expected['schema_sha256']
+            assert all(kwargs[k]==v for k,v in expected.get('model_options',selected['model_options']).items() if k!='timeout')
             kwargs['timeout']=min(300,left,kwargs.get('timeout') or 300)
-            row=dict(case=case['id'],elapsed_s=0,prompt_sha256=case['prompt_sha256'],
+            row=dict(case=case['id'],component=expected.get('component'),elapsed_s=0,prompt_sha256=expected['prompt_sha256'],
                 schema_sha256=profile.digest(kwargs['response_schema']),
                 options={k:v for k,v in kwargs.items() if k in {'model','num_ctx','num_predict','think','temperature','timeout'}})
             case_calls.append(row);calls.append(row);tick=monotonic()
@@ -184,7 +174,11 @@ def main():
         try:
             by_id={b['id']:b for b in a2.load_blocks(service,run)}
             with patch.object(GenerationService,'call_ollama',measured),patch.object(httpx.AsyncClient,'post',observed_post):
-                output=a2.call(service,run,'critic',case.get('key',group['id']),case['context'],case['deps'],by_id,case['supplied'])
+                if case.get('split_review'):
+                    output=synthesis.focused_reviews(service,run,group,case['context'],case['deps'],case['supplied'],
+                        by_id,profile.contexts(list(by_id.values())),blocks=list(by_id.values()))
+                else:
+                    output=a2.call(service,run,'critic',case.get('key',group['id']),case['context'],case['deps'],by_id,case['supplied'])
             if output is not None:
                 a2.queue_recovery(run,output,group,by_id)
                 # The frozen diagnostic has revisions=0: expose requested targets, never generate a repair.
@@ -195,6 +189,8 @@ def main():
             result=dict(case=case['id'],unit=unit,recovery_requests=run.get('recovery_requests',[]),
                 revision_targets=group.get('revision_deferrals',[]),http_calls=sum(c.get('http_attempted',False) for c in case_calls),
                 model_total_s=round(sum(c['elapsed_s'] for c in case_calls),3))
+            if case.get('split_review'):
+                result.update(units=run['analysis_units'],review=output,review_unit_ids=group['review_unit_ids'])
             write(case_path/'result.json',result);record['cases'].append(dict(case=case['id'],status=unit['status'],result_sha256=digest(case_path/'result.json')))
         finally: service.shutdown()
     record.update(finished_at=utcnow(),http_calls=sum(c.get('http_attempted',False) for c in calls),

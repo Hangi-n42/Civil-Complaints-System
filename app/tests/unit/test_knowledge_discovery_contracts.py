@@ -55,7 +55,7 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
             if followup:
                 current=data['unapproved_relations'][0]
                 definitions={c['id'] for c in data['comparison_terms'] if 'classification' in c}
-                if mode!='changed_endpoint':
+                if mode!='changed_endpoint' and stage=='binding':
                     binding=next(b for b in data['relation_bindings'] if b['relation_ref']==current['id'])
                     assert {binding['subject_ref'],binding['object_ref']} <= definitions
                     assert 'source_relation' not in current and current['conditions']=='수정된 적용 범위'
@@ -76,30 +76,31 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
         result['text']=json.dumps(source_response(value,data),ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(
-        model_calls=8 if mode=='no_budget' else 9,additional_rounds=0,revisions=1)))['run_id'])
+        model_calls=10 if mode=='no_budget' else 11,additional_rounds=0,revisions=1)))['run_id'])
     if mode=='resume_review':
-        assert model==['scout','concept','relation','builder','critic','critic','revision'] and run['status']=='cancelled'
+        assert model==['scout','concept','relation','builder','critic','binding','critic','revision'] and run['status']=='cancelled'
         saved=[deepcopy(u) for u in run['analysis_units'] if u['status']=='succeeded']
         run=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-        assert run['candidate_groups'][0]['revision_reservation']['pending_stages']==['critic','critic']
+        assert run['candidate_groups'][0]['revision_reservation']['pending_stages']==['critic','critic','critic']
         assert [u for u in run['analysis_units'] if u['id'] in {s['id'] for s in saved}]==saved
     assert not run['result']['failures'],run['result']['failures']
     if mode in {'no_budget','equivalent'}:
-        assert model==['scout','concept','relation','builder','critic','critic']
+        assert model==['scout','concept','relation','builder','critic','binding','critic']
         assert bool(run['result']['revision_deferrals'])==(mode=='no_budget')
         return
-    assert model==['scout','concept','relation','builder','critic','critic','revision','critic','critic'],(run['candidate_groups'],run['result']['review_record_errors'])
+    expected=['scout','concept','relation','builder','critic','binding','critic','revision','critic']+([] if mode=='changed_endpoint' else ['binding'])+['critic']
+    assert model==expected,(run['candidate_groups'],run['result']['review_record_errors'])
     history=run['result']['revision_history'][0]
     current=run['result']['relations'][0];rid=current['id']
     assert history['before']['source_relation']['conditions']=='원문 범위'
     assert history['after']['conditions']==current['conditions']=='수정된 적용 범위'
     assert run['result']['original_relations'][0]['conditions']=='원문 범위'
-    initial=next(u for u in run['analysis_units'] if u['id'] in run['candidate_groups'][0]['review_unit_ids'] and u['output']['relation_checks'])
-    followup=next(u for u in run['analysis_units'] if u['id'] in run['candidate_groups'][0]['revision_review_unit_ids'] and u['output']['relation_checks'])
+    initial=next(u for u in run['analysis_units'] if u['id'] in run['candidate_groups'][0]['review_unit_ids'] and u['output'].get('relation_checks', []))
+    followup=next(u for u in run['analysis_units'] if u['id'] in run['candidate_groups'][0]['revision_review_unit_ids'] and u['output'].get('relation_checks', []))
     revision=next(u for u in run['analysis_units'] if u['stage']=='revision')
     assert set(revision['dependency_ids']) <= set(followup['dependency_ids'])
     assert rid not in reviews.valid_ids(initial['output'],{rid:current})
-    assert rid in reviews.valid_ids(followup['output'],{c['id']:c for c in run['result']['observations']+[current]})
+    assert rid in reviews.valid_ids(next(r for r in run['result']['critiques'] if r['unit_id']==followup['id']),{c['id']:c for c in run['result']['observations']+[current]})
     assert rid not in run['result']['unreviewed_candidate_ids']
     if mode=='changed_endpoint':
         assert not current.get('source_relation') and current['unresolved_endpoints']==['subject','object']
@@ -109,7 +110,7 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
         assert current['subject']==history['before']['subject'] and current['object']==history['before']['object']
     before=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert len(model)==9 and again['analysis_units']==before
+    assert len(model)==len(expected) and again['analysis_units']==before
     assert again['result']['revision_history']==run['result']['revision_history']
     cid=ontology_changes.publish(service,again['id'])['changeset_id']
     rows=listing(service,cid)['candidates'];row=next(c for c in rows if c['origin'].get('candidate_id')==rid)
@@ -201,6 +202,9 @@ def test_new_generation_schema_citations_and_target_bounds(service,model,monkeyp
             for c in value['relations']:
                 c.pop('endpoint_labels',None)
                 c.pop('local_ref')
+        if stage=='critic' and 'binding_checks' not in schema['$defs']['RelationCheck']['properties']:
+            for check in value['relation_checks']:
+                check.pop('binding_checks',None);check.pop('binding_reasons',None)
         jsonschema.validate(value,schema)
         if stage=='builder':
             assert all(v['properties']['relation_bindings']['minItems']==v['properties']['relation_bindings']['maxItems']==len(data['design_relation_ids'])<=2 for v in schema['anyOf'])
@@ -237,7 +241,7 @@ def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(se
         if stage=='relation':
             value['relations']=[dict(value['relations'][0],conditions='원문 조건 '+str(n)) for n in range(4)]
         if stage=='builder':
-            if not seen:assert run['review_reservation']['model_calls']==15
+            if not seen:assert run['review_reservation']['model_calls']==19
             prior=data.get('comparison_terms',[]);seen.append((len(data['design_relation_ids']),len(prior)))
             value=dict(observations=[],relation_bindings=[],hierarchies=[],alias_proposals=[],gaps=[],actions=[])
             for identifier in data['design_relation_ids']:
@@ -281,7 +285,7 @@ def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(se
         for relation in unit['output']['modeled_relations']:
             original_relation=relations[relation['id']]
             assert {k:relation['source_relation'][k] for k in original_relation}==original_relation
-    critic=next(u for u in run['analysis_units'] if u['id'].startswith('critic:'+builders[1]['group_id']+':') and u['output']['relation_checks'])
+    critic=next(u for u in run['analysis_units'] if u['id'].startswith('critic:'+builders[1]['group_id']+':') and u['output'].get('binding_check'))
     assert critic['status']=='succeeded',critic['error']
     context=json.loads(critic['prompt'].split('\nINPUT:\n')[1])
     assert {b[k] for b in context['relation_bindings'] for k in ('subject_ref','object_ref')} <= {c['id'] for c in context['comparison_terms']}  # Reused endpoint definitions stay in comparison context.
@@ -345,7 +349,7 @@ def test_critic_missing_capacity_uses_unique_primary_views(service,model,monkeyp
                     comparison_reason='제공 관측과 관계를 대조') for n in range(limit)]
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
     monkeypatch.setattr(a2,'call',call);monkeypatch.setattr(a2,'model_call',generated)
-    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=7,additional_rounds=0,revisions=0)))['run_id'])
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=8,additional_rounds=0,revisions=0)))['run_id'])
     unit=next(u for u in run['analysis_units'] if u['stage']=='critic')
     assert unit['status']=='succeeded',unit['error']
     output=unit['output'];assert seen[0]==max(2,min(5,targets)) and len(seen)==3
@@ -641,7 +645,7 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
             value=dict(observations=[row],relations=[],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
-    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=9,additional_rounds=0,revisions=1)))['run_id'])
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=11,additional_rounds=0,revisions=1)))['run_id'])
     assert not run['result']['failures'],run['result']['failures']
     if judgment=='unknown':
         assert 'revision' not in model and not run['result']['revision_history']
@@ -649,17 +653,17 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
         rows=listing(service,cid)['candidates']
         assert any(c['review_status']=='deferred' and any(i['judgment']=='unknown' for i in c['origin'].get('observation_checks', [])) for c in rows)
         return
-    assert model==['scout','concept','relation','builder','critic','critic','revision','critic','critic']
+    assert model==['scout','concept','relation','builder','critic','binding','critic','revision','critic','binding','critic']
     history=run['result']['revision_history'][0];identifier=history['candidate_id']
     candidate=next(c for c in run['result']['observations'] if c['id']==identifier)
-    critics=[u for u in run['analysis_units'] if u['stage']=='critic' and u['output']['observation_checks']]
+    critics=[u for u in run['analysis_units'] if u['stage']=='critic' and u['output'].get('observation_checks', [])]
     assert candidate['definition']=='보완한 원문 범위의 임대 유형'
     assert history['before']['definition']=='선택 원문의 임대 유형'
     assert identifier not in reviews.valid_ids(critics[0]['output'],{identifier:candidate})
     assert identifier in reviews.valid_ids(critics[-1]['output'],{c['id']:c for c in run['result']['observations']+[candidate]})
     saved=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert len(model)==9 and again['analysis_units']==saved
+    assert len(model)==11 and again['analysis_units']==saved
     cid=ontology_changes.publish(service,again['id'])['changeset_id']
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
     assert row['review_status']!='deferred' and not row['origin'].get('review_errors')
@@ -680,7 +684,7 @@ def test_supported_and_content_error_conflict_only_blocks_same_candidate(service
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1)))['run_id'])
-    assert 'revision' not in model and len(model)==6
+    assert 'revision' not in model and len(model)==7
     relation=run['result']['relations'][0];review=run['result']['critiques'][0]
     if cause in {'content_error','endpoint'}:
         assert relation['id'] in review['review_coverage']['pending_candidate_ids']
@@ -727,7 +731,7 @@ def test_source_revision_rejects_type_copy_before_history_and_preserves_original
             value=dict(observations=[],relations=[row],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
-    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=9)))['run_id'])
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=11)))['run_id'])
     unit=next(u for u in run['analysis_units'] if u['stage']=='revision')
     if violation=='unchanged_natural_id':
         assert unit['status']=='succeeded',unit.get('error')
@@ -735,11 +739,11 @@ def test_source_revision_rejects_type_copy_before_history_and_preserves_original
         return
     assert unit['status']=='failed' and '원명제 수정' in unit['error']
     assert unit['raw_output'] and unit['attempts'] and not unit.get('output')
-    assert not run['result']['revision_history'] and model==['scout','concept','relation','builder','critic','critic','revision']
+    assert not run['result']['revision_history'] and model==['scout','concept','relation','builder','critic','binding','critic','revision']
     relation=run['result']['relations'][0];before=next(g['design_candidates'] for g in run['candidate_groups'] if any(c['id']==relation['id'] for c in g['design_candidates']))
     assert relation['source_relation']==next(c['source_relation'] for c in before if c['id']==relation['id'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert len(model)==7 and not again['result']['revision_history']
+    assert len(model)==8 and not again['result']['revision_history']
     cid=ontology_changes.publish(service,again['id'])['changeset_id']
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==relation['id'])
     assert not row['can_accept'] and row['review_status']=='deferred' and row['unresolved_issues']
@@ -767,8 +771,8 @@ def test_latest_invalid_recritic_cannot_inherit_unchanged_sibling_support(servic
             value=dict(observations=[],relations=[row],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
-    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=9)))['run_id'])
-    assert len(model)==9 and not run['result']['failures']
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=1,model_calls=11)))['run_id'])
+    assert len(model)==11 and not run['result']['failures']
     old,new=[r for r in run['result']['critiques'] if ':observations:' in r['unit_id']];identifier=old['observation_checks'][0]['candidate_ref']
     assert old['review_coverage']['candidate_hashes'][identifier]==new['review_coverage']['candidate_hashes'][identifier]
     assert identifier in run['result']['review_pending_candidate_ids'] and identifier in run['result']['unreviewed_candidate_ids']
@@ -800,8 +804,8 @@ def test_comparison_review_keeps_group_completion_and_current_fingerprint(servic
             else:value['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref=check['candidate_ref'],reason='정의 오류',evidence_ids=[check['evidence_id']],counter_evidence_ids=[],defer_reason='')]
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
-    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=0,model_calls=8)))['run_id'])
-    assert len(model)==8 and not run['result']['failures'],run['result']['failures']
+    run=done(service,service.start(request(source['id'],discovery_budgets=dict(additional_rounds=0,revisions=0,model_calls=9)))['run_id'])
+    assert len(model)==9 and not run['result']['failures'],run['result']['failures']
     identifier=run['candidate_groups'][-1]['primary_candidate_ids'][0]
     if mode in {'supported','other_fingerprint'}:
         assert run['status']=='review_ready' and not run['result']['mandatory_pending'],{k:v for k,v in run['result'].items() if any(t in k for t in ('pending','errors','defer','unreviewed','incomplete'))}
@@ -818,7 +822,7 @@ def test_focused_review_batches_preserve_sources_targets_and_current_candidates(
     from app.knowledge import discovery_review as reviews,discovery_profile as profile
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert model==['scout','concept','relation','builder','critic','critic','critic']
+    assert model==['scout','concept','relation','builder','critic','binding','critic','critic']
     group=run['candidate_groups'][0];taxonomy=next(u['output'] for u in run['analysis_units'] if u['stage']=='builder')
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};contexts=profile.contexts(blocks)
     context,deps,supplied=synthesis.review_context(run,group,taxonomy,by_id,contexts)
@@ -829,6 +833,7 @@ def test_focused_review_batches_preserve_sources_targets_and_current_candidates(
     original=deepcopy((context,deps,supplied));seen=[];call=a2.model_call
     async def checked(prompt,schema,stage,run,timeout):
         data=json.loads(prompt.split('\nINPUT:\n')[1]);role=data['review_focus'];seen.append(role)
+        if stage=='binding': return await call(prompt,schema,stage,run,timeout)
         absent='observation_checks' if role=='relations' else 'relation_checks'
         assert all(v['properties'][absent]['maxItems']==0 for v in schema.get('anyOf',[schema]))
         owned=data['review_scope']['primary_source_spans']
@@ -839,12 +844,13 @@ def test_focused_review_batches_preserve_sources_targets_and_current_candidates(
         return await call(prompt,schema,stage,run,timeout)
     monkeypatch.setattr(a2,'model_call',checked)
     batches=synthesis.review_batches(context,deps,supplied,by_id,contexts)
-    assert [i for b in batches for i in b['context']['review_target_ids']]==sorted(
+    assert [i for b in batches if b['context'].get('review_component')!='binding' for i in b['context']['review_target_ids']]==sorted(
         [i for i in context['review_target_ids'] if 'negation' in supplied[i]])+sorted(
         [i for i in context['review_target_ids'] if 'negation' not in supplied[i]])
-    assert len({b['key'] for b in batches})==len(batches)==3
+    assert len({b['key'] for b in batches})==len(batches)==4
     for batch in batches:
         ctx=batch['context'];terms=batch['supplied'];ids=set(ctx['review_target_ids'])
+        if batch.get('bundle_key'):ctx['review_bundle_id']='packet_check:'+batch['bundle_key']
         assert 1<=len(ids)<=2 and set(ctx['comparison_candidate_ids'])==terms.keys()-ids
         assert batch['dependency_ids']==deps and ctx['review_scope']['whole_input_assessed'] is False
         assert all(reviews.fingerprint(c)==reviews.fingerprint(supplied[i]) for i,c in terms.items())

@@ -32,6 +32,11 @@ def response(prompt, stage):
     data = json.loads(prompt.split('\nINPUT:\n')[1])
     ev = next((b['ref'] for b in data.get('blocks', [])), 'e0')
     action = dict(action='finish', reason='제공 범위 분석 종료')
+    if stage=='binding':
+        identifier=data['review_target_ids'][0]
+        return dict(candidate_ref=identifier,binding_checks=dict(subject='supported',object='supported'),
+            binding_reasons=dict(subject='제공 유형의 행위 역할과 대응',object='제공 유형의 대상 정의와 대응'),
+            source_refs=[v['source_ref'] for v in a2.segments.originals(data)])
     if stage=='scout':
         return dict(findings=['자료 구조 조사'], gaps=[], actions=[action])
     if stage=='concept':
@@ -108,8 +113,8 @@ def test_full_roles_frozen_evidence_and_no_publication(service, model, monkeypat
     before = service.sources()
     run = done(service, service.start(request(source['id']))['run_id'])
     assert run['status']=='review_ready', (run.get('error'),run['result']['failures'],run['frontier'])
-    assert model==['scout','concept','relation','builder','critic','critic','critic']
-    assert run['metrics']['llm_calls']==7 and run['metrics']['searches']==2
+    assert model==['scout','concept','relation','builder','critic','binding','critic','critic']
+    assert run['metrics']['llm_calls']==8 and run['metrics']['searches']==2
     assert run['result']['mandatory_pending']==[] and run['result']['analysis_succeeded']==1
     candidate=run['result']['observations'][0]
     assert candidate['review_status']=='unreviewed' and candidate['cq_ids']==['cq1']
@@ -126,7 +131,7 @@ def test_full_roles_frozen_evidence_and_no_publication(service, model, monkeypat
     monkeypatch.setattr(parsers,'parse_unit',lambda *args: pytest.fail('재파싱'))
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert again['status']=='review_ready',again['result']['failures']
-    assert model==['scout','concept','relation','builder','critic','critic','critic']
+    assert model==['scout','concept','relation','builder','critic','binding','critic','critic']
     assert again['result']['observations'][0]['id']==candidate['id']
 
 
@@ -183,8 +188,8 @@ def test_cancel_commits_current_call_and_resume_success_units(service, monkeypat
     assert cancelled['status']=='cancelled' and model==['scout','concept']
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=rid))['run_id'])
     assert resumed['status']=='review_ready',resumed['result']['failures']
-    assert model==['scout','concept','relation','builder','critic','critic','critic']
-    assert resumed['metrics']['llm_calls']==7
+    assert model==['scout','concept','relation','builder','critic','binding','critic','critic']
+    assert resumed['metrics']['llm_calls']==8
 
 
 @pytest.mark.parametrize('failure',['truncated','json','empty'])
@@ -233,7 +238,7 @@ def test_blocked_source_cannot_reuse_profile_candidates_or_terms(service,model):
     assert a2.terms(service,run['id'],'국민')['items']==[]
     assert discovery_run.search(service,run['id'],'국민')['items']==[]
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert resumed['status']=='partial' and len(model)==7
+    assert resumed['status']=='partial' and len(model)==8
     assert resumed['result']['observations']==[] and resumed['result']['unavailable_block_ids']
 
 
@@ -375,7 +380,7 @@ def test_scout_read_resume_keeps_frozen_input_hash(service,monkeypatch,model):
     assert run['status']=='review_ready'
     resumed=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert resumed['status']=='review_ready',resumed['result']['failures']
-    assert len(model)==7
+    assert len(model)==8
 
 
 def test_discovery_api_and_complete_object_output_schema(service,monkeypatch):
@@ -540,7 +545,7 @@ def test_selected_analysis_cross_document_synthesis_and_honest_coverage(service,
     result=run['result']
     assert result['analysis_groups']==result['processed_analysis_groups']==2
     assert result['candidate_groups']==result['review_groups']==1
-    assert model==['scout','concept','relation','concept','relation','builder','critic','critic','critic','critic']
+    assert model==['scout','concept','relation','concept','relation','builder','critic','binding','binding','critic','critic','critic']
     group=run['candidate_groups'][0]
     assert len(group['analysis_group_ids'])==2
     assert len({c['evidence_ids'][0] for c in group['candidates']})==2
@@ -622,7 +627,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
             assert c['origin']['review_errors'] and not c['hierarchy_review']['critic'] and not c['can_accept']
         else:
             if c['target_kind']=='relation':
-                assert any('연결 유형 정의가 이번 검수에 제공되지 않음' in e['reason'] for e in c['origin']['review_errors'])
+                assert any('필수 부분 검수 미완료' in e['reason'] for e in c['origin']['review_errors'])
                 assert not c['origin']['relation_checks']
             else:
                 assert c['origin']['critiques'] and not c['origin'].get('review_errors')
@@ -708,7 +713,7 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
             assert len(data['review_target_ids'])<=2
             assert 'relation_bindings' not in data['taxonomy']
             assert all('source_relation' not in c and c['statement_type']=='rule' for c in data['unapproved_relations'])
-            assert data.get('relation_bindings') or not data['unapproved_relations']
+            assert data.get('relation_bindings') or not data['unapproved_relations'] or '유형 연결은 별도 호출' in prompt
             if revise_design and any(c['support_type']=='design_proposal' for c in data['unapproved_observations']):
                 target=next(c for c in data['unapproved_observations'] if c['support_type']=='design_proposal')
                 value.update(needs_revision=True,issues=[dict(local_ref='i1',cause='content_error',candidate_ref=target['id'],reason='설계 유형의 표현 점검',
@@ -959,10 +964,10 @@ def test_revision_inherits_full_critic_dependencies_and_blocks_revocation(servic
 
 def test_completed_exact_budget_resume_needs_no_new_reservation(service,model):
     source=prepare(service,file_ids=['current:0'])
-    run=done(service,service.start(request(source['id'],discovery_budgets={'model_calls':7}))['run_id'])
+    run=done(service,service.start(request(source['id'],discovery_budgets={'model_calls':8}))['run_id'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert again['status']==run['status']=='review_ready'
-    assert run['metrics']['llm_calls']==again['metrics']['llm_calls']==7 and len(model)==7
+    assert run['metrics']['llm_calls']==again['metrics']['llm_calls']==8 and len(model)==8
 
 
 def test_related_candidates_match_any_scope_link_and_previous_round(service):
@@ -1072,7 +1077,7 @@ def test_failed_revision_is_explicitly_deferred_without_second_attempt(service,m
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert model.count('revision')==1 and again['result']['revision_deferrals']
     assert next(u for u in again['analysis_units'] if u['stage']=='revision')==failed
-    assert again['metrics']['llm_calls']==run['metrics']['llm_calls']==8
+    assert again['metrics']['llm_calls']==run['metrics']['llm_calls']==9
 
 
 def test_compaction_only_omits_quotes_with_the_same_provided_original():
@@ -1090,12 +1095,12 @@ def test_compaction_only_omits_quotes_with_the_same_provided_original():
 def test_search_budget_does_not_skip_available_critic_review(service, model, search_budget):
     source = prepare(service, file_ids=['current:0'])
     run = done(service, service.start(request(source['id'], discovery_budgets=dict(searches=search_budget)))['run_id'])
-    assert model == ['scout','concept','relation','builder','critic','critic','critic']
+    assert model == ['scout','concept','relation','builder','critic','binding','critic','critic']
     assert run['status']=='partial' and run['result']['review_groups']==1
     assert len(run['result']['incomplete_review_searches'])==2-search_budget
     assert run['metrics']['searches']==search_budget
     resumed = done(service, service.start(RunRequest(kind='discovery', retry_of_run_id=run['id']))['run_id'])
-    assert resumed['status']=='partial' and model == ['scout','concept','relation','builder','critic','critic','critic']
+    assert resumed['status']=='partial' and model == ['scout','concept','relation','builder','critic','binding','critic','critic']
     assert resumed['metrics']['searches']==search_budget
 
 

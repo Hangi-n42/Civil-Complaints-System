@@ -35,7 +35,7 @@ def context_for(candidates, by_id, context_map):
 def fits(run, stage, context, deps, supplied, reserve=0):
     _, prompt = a2.make_prompt(run, stage, context, deps, supplied)
     return (len(prompt)+reserve <= run['recipe']['input_chars'] and
-            len(prompt.encode())+reserve*3+run['recipe']['num_predict'] <= run['recipe']['num_ctx'])
+            len(prompt.encode())+reserve*3+(run['recipe']['binding_num_predict'] if context.get('review_component')=='binding' else run['recipe']['num_predict']) <= run['recipe']['num_ctx'])
 
 
 def assemble(run, round_number, by_id, context_map, available):
@@ -229,7 +229,17 @@ def review_batches(context, deps, supplied, by_id, context_map):
                 omitted_block_ids=sorted(a2.raw_refs(context)-a2.raw_refs(part)),
                 primary_source_spans=owned,
                 missing_meanings_allowed=bool(owned) and all(any(kind in c for c in terms.values()) for kind in ('classification','negation')))
-            result.append(dict(key=role+':'+profile.digest(primary)[:16],context=part,dependency_ids=list(deps),supplied=terms))
+            key=role+':'+profile.digest(primary)[:16]
+            bindings=[i for i in primary if terms[i].get('source_relation')]
+            if role=='relations' and bindings:
+                part.update(review_component='proposition',binding_target_ids=bindings)
+                result.append(dict(key=key+':proposition',bundle_key=key,context=part,dependency_ids=list(deps),supplied=terms))
+                for identifier in bindings:
+                    binding=deepcopy(part)
+                    binding.update(review_component='binding',review_target_ids=[identifier],comparison_candidate_ids=sorted(terms.keys()-{identifier}))
+                    result.append(dict(key=key+':binding:'+identifier,bundle_key=key,context=binding,dependency_ids=list(deps),supplied=terms))
+            else:
+                result.append(dict(key=key,context=part,dependency_ids=list(deps),supplied=terms))
     return result
 
 
@@ -250,7 +260,7 @@ def pending_review_units(run, group, by_id, context_map):
     observations=sum('classification' in c for c in primary)
     designs=0 if group.get('comparison_only') else 2*sum(c.get('statement_type') in {'rule','definition'} for c in primary)
     hierarchies=a2.models.Taxonomy.model_json_schema()['properties']['hierarchies']['maxItems']
-    count=(relations+1)//2+(observations+designs+hierarchies+1)//2
+    count=(relations+1)//2+relations+(observations+designs+hierarchies+1)//2
     # Reservation identifiers only; no synthetic successful execution units.
     return ['critic:'+group['id']+':reserved:'+str(n) for n in range(count)]
 
@@ -281,14 +291,18 @@ def focused_reviews(service,run,group,context,deps,supplied,by_id,context_map,in
     for batch in batches:
         if a2.cancelled(service,run): break
         key=prefix+':'+batch['key']
+        if batch.get('bundle_key'): batch['context']['review_bundle_id']=prefix+':'+batch['bundle_key']
         output=a2.call(service,run,'critic',key,batch['context'],batch['dependency_ids'],by_id,batch['supplied'])
         if output is None: continue
-        outputs.append(output)
+        outputs.append(dict(unit_id='critic:'+key,**output))
         if not revised: a2.apply_actions(service,run,index,blocks,'critic',key,output)
-        a2.queue_recovery(run,output,group,by_id)
+        if not output.get('review_component'): a2.queue_recovery(run,output,group,by_id)
         if revised and any(a['action']!='finish' for a in output.get('actions', [])):
             group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 후 Critic의 추가 도구 요청 미처리; 사람 검수로 보류') for i in batch['context']['review_target_ids'])
-    return combined_review(outputs) if len(outputs)==len(batches) and outputs else None
+    complete=reviews.complete_reviews(outputs)
+    for output in complete:
+        if output.get('review_component')=='complete': a2.queue_recovery(run,output,group,by_id)
+    return combined_review(complete) if len(outputs)==len(batches) and complete else None
 
 
 def revise(service, run, group, review, taxonomy, by_id, context_map):

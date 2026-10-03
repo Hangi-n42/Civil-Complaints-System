@@ -13,11 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v49'
+PROMPT_VERSION = 'discovery-a2-v50'
 
 
 def recipe(budgets):
-    return dict(review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    from .discovery_binding import PROMPT as binding_prompt
+    return dict(review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -453,8 +454,8 @@ def issue_ids(run):
 
 async def model_call(prompt, schema, stage, run, timeout):
     return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage=='critic' else 'draft'],
-        num_predict=run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=False,
+        model=run['recipe']['models']['review' if stage in {'critic','binding'} else 'draft'],
+        num_predict=run['recipe']['binding_num_predict'] if stage=='binding' else run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
         timeout=timeout, return_metadata=True, local_only=True)
 
 
@@ -487,11 +488,21 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
                         c['binding_uses']=uses[c['id']]
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
+    component=context.pop('review_component',None)
+    for field in ('review_bundle_id','binding_target_ids'): context.pop(field,None)
+    if component=='proposition':
+        context.pop('relation_bindings',None)
     context.pop('binding_before',None);context.pop('parent_group_id',None)
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     payload = compact(remap(payload, mapping))
     prompt_name='critic_'+context['review_focus'] if stage=='critic' and context.get('review_focus') else stage
-    prompt = models.COMMON + models.PROMPTS[prompt_name] + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
+    instruction=models.COMMON + models.PROMPTS[prompt_name]
+    if component=='binding':
+        from .discovery_binding import PROMPT
+        instruction=PROMPT
+    elif component=='proposition':
+        instruction=models.COMMON + models.PROPOSITION_PROMPT
+    prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
@@ -519,6 +530,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         return None  # One attempt per cause/target; resume cannot reset a failed recovery.
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
+    component=context.get('review_component')
+    output_limit=run['recipe']['binding_num_predict'] if component=='binding' else run['recipe']['num_predict']
     citation_ids = unit['provided_block_ids']
     unit['source_ref_map'] = {b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
                               for b in segments.originals(context)}
@@ -530,7 +543,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if len(prompt) > run['recipe']['input_chars']:
             raise ValueError(f'전체 입력 {len(prompt)}자 예산 초과; 원문을 자르지 않고 미처리')
         # UTF-8 byte count is a conservative token upper bound, never a char=token claim.
-        if len(prompt.encode()) + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
+        if len(prompt.encode()) + output_limit > run['recipe']['num_ctx']:
             raise ValueError('전체 입력의 보수적 토큰 상한이 선언 컨텍스트 초과')
         if run['recipe'] != recipe(run['recipe']['budgets']):
             raise ValueError('실제 호출 시 모델/로컬 처리 설정 변경')
@@ -767,24 +780,33 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
             schema['$defs']['Issue']={'anyOf':[issue,other]}
         source_only(schema)
+        if component=='binding':
+            from .discovery_binding import schema as binding_schema
+            identifier=context['review_target_ids'][0]
+            schema=binding_schema(mapping[identifier],['subject','object'],list(unit['source_ref_map']))
+        elif component=='proposition':
+            definition=schema['$defs']['RelationCheck']
+            for field in ('binding_checks','binding_reasons'):
+                definition['properties'].pop(field,None)
+                definition['required']=[k for k in definition['required'] if k!=field]
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1
         save(service, run)
         started = monotonic(); metadata = None
         try:
-            metadata = asyncio.run(model_call(prompt, schema, stage, run, timeout))
+            metadata = asyncio.run(model_call(prompt, schema, 'binding' if component=='binding' else stage, run, timeout))
             unit['raw_output'] = metadata['text']
             if metadata.get('done_reason') == 'length' or metadata.get('done') is False:
                 raise ValueError('모델 출력 절단')
-            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
+            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + output_limit > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             decoded = json.loads(metadata['text'])
             if stage=='builder': design.inline_types(decoded)
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
-            output = models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
+            output = deepcopy(decoded) if component=='binding' else models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output)
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
@@ -803,7 +825,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
-            output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
+            if component=='binding':
+                output=reviews.normalize_binding(output,supplied,context,by_id)
+            else:
+                output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
+            if component:
+                output.update(review_component=component,review_bundle_id=context['review_bundle_id'],
+                    binding_target_ids=context['binding_target_ids'],
+                    review_scope_hash=profile.digest([segments.originals(context),context.get('review_scope', {})]))
             if stage=='builder' and context.get('binding_before'):
                 before=context['binding_before']
                 if output['hierarchies'] or output['alias_proposals'] or output['actions']:
@@ -813,7 +842,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     if after['id']!=before['id'] or after['source_relation']!=before['source_relation']:
                         raise ValueError('연결 교정의 관계 ID 또는 원명제 변경')
                     output['history'].append(dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason']))
-            if stage=='critic':
+            if stage=='critic' and component!='binding':
                 count = len(decoded.get('missing_meanings', []))
                 output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
                     primary_analysis_targets=len(primary_targets),semantic_completeness='미검증; 상한 미도달도 전체 검수 완료가 아님')
@@ -1328,8 +1357,9 @@ def finish(run, blocks, available):
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
     current = reviews.with_selected_base_types(current,run)
-    latest_reviews = reviews.latest_by_candidate([u['output'] for u in outputs if u['stage']=='critic'],current)
-    review_units = {u['id']:u['output'] for u in outputs if u['stage']=='critic'}
+    critic_views=reviews.complete_reviews([dict(unit_id=u['id'],**u['output']) for u in outputs if u['stage']=='critic'])
+    latest_reviews = reviews.latest_by_candidate(critic_views,current)
+    review_units = {i:r for r in critic_views for i in r.get('component_unit_ids',[r['unit_id']])}
     reviewed_candidates = set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))
     reviewed=set()
     for group in run.get('candidate_groups', []):
@@ -1438,7 +1468,7 @@ def finish(run, blocks, available):
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
         design_binding_coverage=bindings, design_pending_relation_ids=sorted(set(binding_pending)),
         analysis_target_coverage=[dict(group_id=g['id'],**t) for g in run.get('frontier', []) for t in g.get('analysis_target_coverage', [])],
-        review_outcomes=[dict(unit_id=u['id'],**u['output']['review_outcomes']) for u in outputs if 'review_outcomes' in u['output']],
+        review_outcomes=[dict(unit_id=r['unit_id'],**r['review_outcomes']) for r in critic_views if 'review_outcomes' in r],
         original_observations=original_observations, original_relations=original_relations, revision_history=history,
         revisions=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='revision'],
         revision_deferrals=[d for g in run.get('candidate_groups', []) for d in g.get('revision_deferrals', [])],
@@ -1447,16 +1477,16 @@ def finish(run, blocks, available):
         outside_scope=[c for c in candidates if c['outside_scope_reason']],
         alignments=[identities.alignment(run,a) for u in outputs for a in u['output'].get('alignments', [])],
         taxonomy=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='builder'],
-        critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
+        critiques=critic_views,
         review_pending_candidate_ids=sorted({i for i,c in current.items() if c.get('review_status')!='reviewed'} - reviewed_candidates -
             set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))),
-        review_record_errors=[dict(unit_id=u['id'],**error) for u in outputs if u['stage']=='critic' for error in u['output'].get('record_errors', [])],
+        review_record_errors=[dict(unit_id=r['unit_id'],**error) for r in critic_views for error in r.get('record_errors', [])],
         recovery_requests=run.get('recovery_requests', []), unresolved_recovery_requests=unresolved_recovery,
         deferred_comparison_ids=deferred_comparisons,
         capacity_pending=[dict(group_id=g['id'], reasons=g['capacity_pending'], **g['capacity'])
                           for g in run.get('frontier', []) if g.get('capacity_pending')]
-                         + [dict(group_id=i,stage='critic',reasons=r['capacity_pending'],**r['capacity'])
-                            for i,r in review_units.items() if r.get('capacity_pending')],
+                         + [dict(group_id=r['unit_id'],stage='critic',reasons=r['capacity_pending'],**r['capacity'])
+                            for r in critic_views if r.get('capacity_pending')],
         incomplete_review_searches=[dict(group_id=g['id'], **search) for g in run.get('candidate_groups', [])
                                    for search in g.get('critic_searches', []) if search['status']!='succeeded'],
         coverage=coverage, gaps=gaps, failures=failures, mandatory_pending=required_pending,

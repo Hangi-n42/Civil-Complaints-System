@@ -90,6 +90,7 @@ def _reuse_fingerprint(candidate):
 
 def _convert(run, base, blocks):
     result = run['result']
+    critiques=reviews.complete_reviews(result.get('critiques', []))
     rows, references, mapping = [], [], {}
     alignments = result.get('alignments', [])
     observations = result.get('observations', [])
@@ -195,9 +196,9 @@ def _convert(run, base, blocks):
     current = {c['id']:c for c in observations + relations + list(hierarchies.values())}
     revised_ids = {h['candidate_id'] for h in result.get('revision_history', [])}
     current = reviews.with_selected_base_types(current,run)
-    latest_reviews = reviews.latest_by_candidate(result.get('critiques', []),current)
+    latest_reviews = reviews.latest_by_candidate(critiques,current)
     for h in hierarchies.values():
-        matches = [check for c in result.get('critiques', []) for check in c.get('hierarchy_checks', [])
+        matches = [check for c in critiques for check in c.get('hierarchy_checks', [])
             if all(check.get(k)==h.get(k) for k in ('child_ref','parent_ref','relation'))
             and (h['id'] not in revised_ids if reviews.valid_ids(c,current,latest_reviews) is None else h['id'] in reviews.valid_ids(c,current,latest_reviews))]
         review = dict(builder={k:deepcopy(h[k]) for k in ('a_to_b','b_to_a')}, critic=deepcopy(matches),
@@ -237,7 +238,7 @@ def _convert(run, base, blocks):
                 row['review_status']='deferred'; row['unresolved_issues'].append(deepcopy(deferred))
         row['origin']['revision_history'] = [deepcopy(h) for h in result.get('revision_history', []) if h['candidate_id'] in identifiers]
         current_reviews = []
-        for critique in result.get('critiques', []):
+        for critique in critiques:
             valid = reviews.valid_ids(critique,current,latest_reviews)
             related = identifiers & (identifiers-revised_ids if valid is None else valid)
             if related: current_reviews.append((critique,related))
@@ -258,13 +259,13 @@ def _convert(run, base, blocks):
         if identifiers & set(result.get('design_pending_relation_ids', [])):
             row['review_status']='deferred'
             row['unresolved_issues'].append('Builder 유형 연결 미완료 또는 명시 보류')
-        covered = set().union(*(reviews.valid_ids(c,current,latest_reviews) or set() for c in result.get('critiques', [])))
-        expected = {i for c in result.get('critiques', []) for i in c.get('review_coverage', {}).get('expected_candidate_ids', [])}
+        covered = set().union(*(reviews.valid_ids(c,current,latest_reviews) or set() for c in critiques))
+        expected = {i for c in critiques for i in c.get('review_coverage', {}).get('expected_candidate_ids', [])}
         expected.update(h['candidate_id'] for h in row['origin']['revision_history'])
         expected.update(result.get('review_pending_candidate_ids', []))
         pending = identifiers & (expected-covered)
         if pending:
-            row['origin']['review_errors'] = [deepcopy(e) for c in result.get('critiques', [])
+            row['origin']['review_errors'] = [deepcopy(e) for c in critiques
                 for e in c.get('record_errors', []) if pending & set(e['candidate_ids'])]
             row['origin']['review_errors'].append(dict(candidate_ids=sorted(pending),reason='현재 후보의 유효한 검수 누락 또는 수정 전 판정'))
             row['review_status']='deferred'
@@ -277,7 +278,7 @@ def _convert(run, base, blocks):
         for ref in counter_refs:
             if ref not in row['counter_evidence_refs']:
                 row['counter_evidence_refs'].append(ref)
-        review_units = {c['unit_id'] for c in result.get('critiques', []) if any(
+        review_units = {uid for c in critiques for uid in c.get('component_unit_ids',[c['unit_id']]) if any(
             i in linked for field, linked in [('issues',row['origin']['critiques']),
                 ('relation_checks',row['origin']['relation_checks']),('observation_checks',row['origin']['observation_checks']),('hierarchy_checks',row['hierarchy_review'].get('critic',[]))]
             for i in c.get(field, []))}

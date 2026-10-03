@@ -262,9 +262,10 @@ source_refs로 해당 주장과 conditions의 모든 분기·전제·예외를 �
 
 PROMPTS['revision'] += ' source_change_ids 대상은 제공된 원명제의 자연어 subject/object와 규범 종류를 기준으로 원문 한정·조건을 보완한다. 유형 ID로 원명제를 대체하지 않는다. 근거만 보완하는 evidence_only_ids는 의미·분류·조건·시점·끝점을 보존하고 source_refs만 보완한다. 제공 근거가 없으면 deferred로 남긴다.'
 PROMPTS['relation'] += ' 괄호·삽입구의 정의가 주체나 대상의 적용 범위를 한정하면 그 한정도 conditions에 보존한다. 참조 조문 상세가 없어도 현재 제공 문장에 쓰인 한정은 미제공으로 돌리지 않는다. analysis_target인 각 항을 source_refs로 관계에 연결하거나 target_gaps에 그 항의 구체 미해결 사유를 적는다. 한 항에 여러 관계 또는 관계 없음이 가능하다. 별표 상세 부재는 그 상세의 공백이며 제공된 항 전체의 처리 완료가 아니다.'
+CRITIC_BINDING_INSTRUCTION = 'relation_bindings가 있는 관계는 binding_checks.subject/object와 binding_reasons.subject/object를 각각 작성한다. 각 연결 이유는 원문 끝점 표현과 실제 선택 유형의 정의를 대조해 대응·차이·미확인 원인을 설명한다. 원명제 reason으로 연결 이유를 대신하지 않는다. 원명제의 옳음과 연결의 옳음은 독립이다. 유형 미연결만으로 원명제를 refuted로 두지 않는다. '
 PROMPTS['critic'] = ('Ontology Critic: review_target_ids만 검수한다. 비교 후보는 필수 판정 대상이 아니다. '
     '주후보의 semantic_checks 항목만 각각 supported/refuted/unknown으로 판정한다. 전체 judgment와 같은 후보의 content_error/endpoint issues는 쓰지 않는다. 서버가 세부 판정에서 전체 판단과 오류를 도출한다. '
-    'relation_bindings가 있는 관계는 binding_checks.subject/object와 binding_reasons.subject/object를 각각 작성한다. 각 연결 이유는 원문 끝점 표현과 실제 선택 유형의 정의를 대조해 대응·차이·미확인 원인을 설명한다. 원명제 reason으로 연결 이유를 대신하지 않는다. 원명제의 옳음과 연결의 옳음은 독립이다. 유형 미연결만으로 원명제를 refuted로 두지 않는다. '
+    + CRITIC_BINDING_INSTRUCTION +
     '명제 전체에 동등한 의미로 보존된 조건은 필드 위치나 동등 표현을 오류로 만들지 않는다. 인용에만 있고 후보에 없는 의미는 충족이 아니다. '
     '정의 검수는 외부 세계의 진위가 아니라 후보가 실제 주장한 내용의 제공 원문 적합성을 판정한다. 근거 있는 역할 추상화는 허용하되, 정의가 추가한 구체 사실이 제공 근거로 지지되지 않으면 definition=refuted다. 원문 자체의 모호함이나 판정에 필요한 참조자료의 미제공은 unknown/source_absent로 남긴다. '
     'reason 400자 안에 원문이 요구하는 구절과 후보에 실제 적힌 구절을 대조하여 일치/차이/미확인 사유를 설명한다. supported/refuted에는 실제 제공 source_refs가 필요하다. unknown은 구체 사유를 남기며 오류 확정이 아니다. '
@@ -272,6 +273,8 @@ PROMPTS['critic'] = ('Ontology Critic: review_target_ids만 검수한다. 비교
     '참조 자료의 미제공 상세는 source_absent와 defer_reason/gaps이며 제공 원문 재추출로 요청하지 않는다. '
     'missing_meanings는 이번 primary_source_spans 안에서 제공 관측·관계 양쪽에 실제로 없는 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 기존 비교 후보에 표현된 의미는 누락이 아니다. 참고 구간과 미제공 후보의 전체 범위는 gaps에 미확인으로 남긴다. 누락 인용 모두가 주범위 안이어야 하며 참고 구간을 섞지 않는다. 관계 의미는 role=relation, 일반 정의는 concept이다. '
     'review_scope.missing_meanings_allowed=false이면 missing_meanings를 비우고 비교 미실시 범위를 gaps에 남긴다. 제공 범위를 자료 전체의 부재나 의미 완성으로 단정하지 않는다.')
+PROPOSITION_PROMPT = PROMPTS['critic'].replace(CRITIC_BINDING_INSTRUCTION, '') + '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. 유형 연결은 별도 호출이 담당한다. observation_checks/hierarchy_checks는 비운다.'
+
 for focus, instruction in {
     'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. binding_uses의 source_expression은 원명제 후보의 표현이며 검증된 원문 인용이 아니다. 실제 제공 원문과 계속 대조하면서 그 표현이 가리키는 대상과 바로 옆 선택 유형의 정의 전체를 검수한다. 이름 일치·연관성·연결 의도만으로 같은 유형이라고 지지하지 말고 대응·차이·미확인 사유를 binding_reasons에 적는다. observation_checks/hierarchy_checks는 비운다.',
     'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 명칭 등장과 정의의 각 사실적 주장에 대한 근거를 구분한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'

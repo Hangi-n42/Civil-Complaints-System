@@ -35,13 +35,14 @@ def dependencies_current(review, identifier, candidates=None):
 
 def latest_by_candidate(critiques, candidates):
     hashes={i:fingerprint(c) for i,c in candidates.items()}
-    latest = {i:review for review in critiques for i,h in review.get('review_coverage', {}).get('candidate_hashes', {}).items()
+    latest = {i:review for review in critiques if review.get('review_component') not in {'proposition','binding'} for i,h in review.get('review_coverage', {}).get('candidate_hashes', {}).items()
               if i in hashes and h==hashes[i]}
     # An incomplete new review cannot fall back to an older supported judgment.
     return {i:r for i,r in latest.items() if dependencies_current(r,i,candidates)}
 
 
 def valid_ids(review, candidates=None, latest=None):
+    if review.get('review_component') in {'proposition','binding'}: return set()
     coverage = review.get('review_coverage')
     if coverage is None:
         if review.get('review_dependency_contract') or 'binding_dependency_hashes' in review: return set()
@@ -140,9 +141,11 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                         for field in ('subject','object'):
                             label=candidate.get('endpoint_labels', {}).get(field)
                             if not label: raise ValueError('독립 대조할 원문 끝점 표현 미확인: '+field)
-                            if candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
+                            if context.get('review_component')!='proposition' and candidate.get('source_relation') and supplied.get(candidate[field], {}).get('classification')!='type':
                                 item.setdefault('binding_validation', []).append('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
-                    if checks_contract and section=='relation_checks':
+                    if context.get('review_component')=='proposition' and (item['binding_checks'] or item['binding_reasons']):
+                        raise ValueError('원명제 전용 응답에 유형 연결 판정을 포함할 수 없음')
+                    if checks_contract and section=='relation_checks' and context.get('review_component')!='proposition':
                         candidate=supplied[item['candidate_ref']]
                         if candidate.get('source_relation'):
                             if set(item['binding_checks']) != {'subject','object'}:
@@ -250,3 +253,72 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
     if 'review_scope' in context:
         output['review_scope']=dict(context['review_scope'],provided_source_refs=[b['source_ref'] for b in provided if b.get('source_ref')])
     return output
+
+
+def normalize_binding(output, supplied, context, by_id):
+    identifier=context['review_target_ids'][0]
+    if set(output)!={'candidate_ref','binding_checks','binding_reasons','source_refs'} or output['candidate_ref']!=identifier:
+        raise ValueError('연결 전용 응답의 대상/필드 불일치')
+    if set(output['binding_checks'])!={'subject','object'} or set(output['binding_reasons'])!={'subject','object'}:
+        raise ValueError('연결 전용 응답의 끝점 누락')
+    if any(v not in {'supported','refuted','unknown'} for v in output['binding_checks'].values()):
+        raise ValueError('연결 판정값 오류')
+    if any(not isinstance(v,str) or not v.strip() or len(v)>400 for v in output['binding_reasons'].values()):
+        raise ValueError('연결 사유 누락 또는 길이 초과')
+    if not isinstance(output['source_refs'],list) or not output['source_refs']:
+        raise ValueError('연결 판단의 제공 원문 근거 누락')
+    dependencies=binding_fingerprints(supplied[identifier],supplied)
+    if set(dependencies)!={'subject','object'} or not all(dependencies.values()):
+        raise ValueError('선택 유형 정의 부재')
+    segments.restore(output,by_id,segments.originals(context))
+    issues=[]
+    if 'refuted' in output['binding_checks'].values():
+        issues.append(dict(id='di_'+uuid4().hex,candidate_ref=identifier,cause='endpoint',target_ref='',
+            reason='; '.join(k+': '+output['binding_reasons'][k] for k,v in output['binding_checks'].items() if v=='refuted'),
+            evidence_ids=list(output['evidence_ids']),evidence_refs=deepcopy(output['evidence_refs']),counter_evidence_ids=[],defer_reason='',derived_from='binding_check'))
+    return dict(binding_check=output,issues=issues,actions=[],needs_revision=bool(issues),record_errors=[],
+        review_dependency_contract='selected-types-v1',binding_dependency_hashes={identifier:dependencies},
+        review_coverage=dict(expected_candidate_ids=[identifier],valid_candidate_ids=[identifier],pending_candidate_ids=[],
+            candidate_hashes={identifier:fingerprint(supplied[identifier])}))
+
+
+def complete_reviews(outputs):
+    """Read projection only: combine real calls, never persist a synthetic success unit."""
+    result=[]
+    for original in outputs:
+        component=original.get('review_component')
+        if component=='binding': continue
+        if component!='proposition':
+            result.append(original);continue
+        review=deepcopy(original)
+        review.update(review_component='complete',component_unit_ids=[original['unit_id']])
+        coverage=review['review_coverage'];pending=set(coverage['pending_candidate_ids'])
+        for identifier in original['binding_target_ids']:
+            matches=[b for b in outputs if b.get('review_component')=='binding'
+                and b.get('review_bundle_id')==original['review_bundle_id']
+                and b.get('review_scope_hash')==original['review_scope_hash']
+                and b.get('binding_target_ids')==original['binding_target_ids']
+                and b.get('binding_check', {}).get('candidate_ref')==identifier
+                and identifier in b['review_coverage']['valid_candidate_ids']
+                and dependencies_current(b,identifier)
+                and b['review_coverage']['candidate_hashes'].get(identifier)==coverage['candidate_hashes'].get(identifier)
+                and b.get('binding_dependency_hashes', {}).get(identifier)==original.get('binding_dependency_hashes', {}).get(identifier)]
+            check=next((c for c in review['relation_checks'] if c['candidate_ref']==identifier),None)
+            if len(matches)!=1 or check is None or identifier not in coverage['valid_candidate_ids']:
+                pending.add(identifier)
+                review.setdefault('record_errors', []).append(dict(candidate_ids=[identifier],reason='동일 묶음·원문 범위·현재 관계/선택 유형의 필수 부분 검수 미완료'))
+                continue
+            binding=matches[0];item=binding['binding_check']
+            review['component_unit_ids'].append(binding['unit_id'])
+            check.update(binding_checks=deepcopy(item['binding_checks']),binding_reasons=deepcopy(item['binding_reasons']),
+                binding_evidence_refs=deepcopy(item['evidence_refs']))
+            check['binding_validation']=['유형 연결 '+k+' '+v+': '+item['binding_reasons'][k] for k,v in item['binding_checks'].items() if v!='supported']
+            review['issues'].extend(deepcopy(binding['issues']))
+        coverage['pending_candidate_ids']=sorted(pending)
+        coverage['valid_candidate_ids']=sorted(set(coverage['valid_candidate_ids'])-pending)
+        review['review_outcomes']={k:[i for i in ids if i not in pending] for k,ids in review.get('review_outcomes', {}).items()}
+        review['relation_checks']=[c for c in review['relation_checks'] if c['candidate_ref'] not in pending]
+        review['issues']=[i for i in review['issues'] if i.get('candidate_ref') not in pending]
+        review['needs_revision']=any(i.get('cause') in {'content_error','evidence_error','endpoint'} for i in review['issues'])
+        result.append(review)
+    return result
