@@ -920,3 +920,24 @@ def test_selected_type_only_revision_invalidates_relation_review_at_finish_and_a
     row=next(c for c in listing(service,cid)['candidates'] if c['origin'].get('candidate_id')==identifier)
     assert not row['can_accept'] and row['review_status']=='deferred'
     assert not row['origin']['relation_checks'] and row['origin']['review_errors']
+
+
+def test_definition_rules_reach_writing_and_observation_prompts_only():
+    from hashlib import sha256
+    from app.knowledge import discovery_binding
+    run=dict(id='definition-contract',cqs=[],scope_items=[],recipe=a2.recipe({}))
+    for stage in ('concept','builder','revision'):
+        _,prompt=a2.make_prompt(run,stage,dict(blocks=[],targets=[]),[],{})
+        assert a2.models.DEFINITION_RULE in prompt
+    _,observation=a2.make_prompt(run,'critic',dict(blocks=[],review_focus='observations'),[],{})
+    assert '사실적 주장마다 대응하는 제공 원문 구절' in observation
+    assert '원문이 명시한 효과와 근거 있는 역할 추상화는 허용' in observation
+    assert 'design_reason·다른 미승인 후보·모델의 출처 관계 설명은 새 주장의 원문 증거가 아니다' in observation
+    # O1 leaves the already separated proposition/binding tasks and response schema unchanged.
+    for component,instruction in [('proposition',a2.models.PROPOSITION_PROMPT),('binding',discovery_binding.PROMPT)]:
+        _,prompt=a2.make_prompt(run,'critic',dict(blocks=[],review_focus='relations',review_component=component),[],{})
+        assert instruction in prompt
+        assert '사실적 주장마다 대응하는 제공 원문 구절' not in prompt
+    assert sha256(a2.models.PROPOSITION_PROMPT.encode()).hexdigest()=='fc38f80d928ec5c0a09557efa882aa7f75f2a3a283d24e769f44941fa70e52d6'
+    assert sha256(discovery_binding.PROMPT.encode()).hexdigest()=='d140e9eabc060e37c8d06b4583722efd9353b3881610089f41569532c8052544'
+    assert run['recipe']['schema_hash']=='142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab'

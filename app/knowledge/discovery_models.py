@@ -243,6 +243,8 @@ text_from 뷰의 본문은 지정 source_ref의 해당 span 부분이다(오프�
 recovery_meanings는 보완할 누락 목록이다. 기존 의미를 이름만 바꿔 반복하지 않는다. 제안 생성은 누락 의미 해결이나 사람 승인이 아니다.
 '''
 
+DEFINITION_RULE = '정의에는 제공 원문으로 확인되는 대상·역할·포함 범위만 적는다. 근거 없이 새 행위·권리·자격 발생·인과·결과를 추가하지 않는다. 원문이 명시한 효과와 근거 있는 역할 추상화는 허용한다. 역할 정의에 행위의 모든 조건·예외를 복제하거나 미제공 외부 법정 정의를 요구하지 않는다.'
+
 PROMPTS = {
     'scout': '전체 구조 프로파일과 frontier를 보고 자료 역할·필수 절·대표/예외 행·CQ 공백을 조사한다. 우선 필요한 unit을 read하거나 근거를 search한다. finish는 필수 분석을 면제하지 않는다.',
     'concept': '''Concept Miner: blocks가 주 분석 대상이다. focus_spans의 새 항목을 우선하고 tool_originals·공유 문맥의 정의 반복으로 대신하지 않는다. 최대 5개 관측을 작성한다.
@@ -259,6 +261,10 @@ source_refs로 해당 주장과 conditions의 모든 분기·전제·예외를 �
     'revision': 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 지적된 후보 묶음을 한 번만 수정한다. targets 각각을 observations/relations/hierarchies 중 맞는 목록으로 전체 수정하거나 deferred로 명시 보류한다. candidate_ref는 기존 ID를 유지한다. 쟁점과 원문을 대조해 분류·부정·조건·방향을 고친다. 근거 없는 확정이나 새 후보 추가는 금지한다. 모든 target에 수정 또는 보류 한 건이 필요하다.',
     'critic': ''}
 
+
+for stage in ('concept','builder','revision'):
+    PROMPTS[stage] += ' ' + DEFINITION_RULE
+PROMPTS['builder'] += ' 서버의 보존은 원명제의 보존이며 새 유형 정의의 의미 검증을 대신하지 않는다.'
 
 PROMPTS['revision'] += ' source_change_ids 대상은 제공된 원명제의 자연어 subject/object와 규범 종류를 기준으로 원문 한정·조건을 보완한다. 유형 ID로 원명제를 대체하지 않는다. 근거만 보완하는 evidence_only_ids는 의미·분류·조건·시점·끝점을 보존하고 source_refs만 보완한다. 제공 근거가 없으면 deferred로 남긴다.'
 PROMPTS['relation'] += ' 괄호·삽입구의 정의가 주체나 대상의 적용 범위를 한정하면 그 한정도 conditions에 보존한다. 참조 조문 상세가 없어도 현재 제공 문장에 쓰인 한정은 미제공으로 돌리지 않는다. analysis_target인 각 항을 source_refs로 관계에 연결하거나 target_gaps에 그 항의 구체 미해결 사유를 적는다. 한 항에 여러 관계 또는 관계 없음이 가능하다. 별표 상세 부재는 그 상세의 공백이며 제공된 항 전체의 처리 완료가 아니다.'
@@ -277,7 +283,7 @@ PROPOSITION_PROMPT = PROMPTS['critic'].replace(CRITIC_BINDING_INSTRUCTION, '') +
 
 for focus, instruction in {
     'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. binding_uses의 source_expression은 원명제 후보의 표현이며 검증된 원문 인용이 아니다. 실제 제공 원문과 계속 대조하면서 그 표현이 가리키는 대상과 바로 옆 선택 유형의 정의 전체를 검수한다. 이름 일치·연관성·연결 의도만으로 같은 유형이라고 지지하지 말고 대응·차이·미확인 사유를 binding_reasons에 적는다. observation_checks/hierarchy_checks는 비운다.',
-    'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 명칭 등장과 정의의 각 사실적 주장에 대한 근거를 구분한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
+    'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 정의의 사실적 주장마다 대응하는 제공 원문 구절을 확인한다. 원문의 대상·역할과 정의가 덧붙인 행위·권리·자격 발생·인과·결과를 구분하고, 각 추가 주장을 지지하는 구절이 없으면 definition=refuted로 판정한다. 원문이 명시한 효과와 근거 있는 역할 추상화는 허용한다. design_reason·다른 미승인 후보·모델의 출처 관계 설명은 새 주장의 원문 증거가 아니다. 기존 reason에 실제 후보 구절과 원문 구절의 대응·차이·미확인 사유를 구체적으로 적으며 취지 일치만으로 지지하지 않는다. 원문 자체가 모호하거나 판정에 필요한 참조자료가 미제공이면 unknown을 유지한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
 }.items():
     PROMPTS['critic_'+focus] = PROMPTS['critic'] + instruction
 
