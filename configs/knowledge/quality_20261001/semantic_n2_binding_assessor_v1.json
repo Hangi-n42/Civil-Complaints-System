@@ -1,0 +1,32 @@
+{
+  "id": "ontology-semantic-n2-binding-assessor-v1",
+  "issue": 581,
+  "task": "실제 원문·조건의 끝점 대상이 선택 유형에 속하는지 판단. 개념 동치나 전체 원명제 완전성 평가가 아님.",
+  "cases": {
+    "E-A": {"binding_checks": {"subject": "supported", "object": "refuted"}, "reason_gate": "행위 주체의 역할 정의는 근거가 있다. 입주자는 주택 자체가 아니며 업무 연관·입주 관계가 주택 유형 포함을 뜻하지 않는다."},
+    "E-B": {"binding_checks": {"subject": "supported", "object": "supported"}, "reason_gate": "행위 주체 및 선정 대상 입주자가 제공된 역할 유형 정의와 대응한다. 별표 상세의 부재를 현재 유형 연결 판정에 불필요하게 요구하지 않는다."},
+    "T-A": {"binding_checks": {"object": "supported"}, "reason_gate": "직접 건설하지 않고 매매 등으로 취득해 공급하는 대상은 제공된 공공매입임대주택 유형에 속한다."},
+    "T-B": {"binding_checks": {"object": "refuted"}, "reason_gate": "같은 원문·조건의 대상에 직접 건설하여 공급하는 유형을 연결하면 정의의 공급 방식과 충돌한다. 업무 연관만으로 포함을 지지하지 않는다."}
+  },
+  "gates": {
+    "E": "E-A/E-B의 object 주판정 2개와 subject 보존 경계 2개 모두 기대 판정·정의에 근거한 이유·제공 원문 근거 통과. 형식 실패·잘림·모순 이유·unknown은 통과 아님.",
+    "transfer": "사전 선택된 첫 E 통과 설정의 T-A/T-B object 주판정 2개 모두 판정·이유·근거 통과. subject는 분모에 포함하지 않음.",
+    "selection": "plain E 통과 시 thinking E 생략. plain E 미달 시 thinking E 한 번. 첫 E 통과 설정으로 전이 한 번. 전이 실패 후 다른 설정 재선택 금지. E와 전이 모두 통과해야 N3 가능."
+  },
+  "transfer_limits": [
+    "D5의 기존 개발 자료 재조합이며 신규 생성·미노출 holdout이 아님",
+    "source_relation 없는 과거 후보의 endpoint_labels.object를 평가 표현으로 사용; subject 미연결 유지",
+    "원후보의 제4조에 따른 한정 생략이 남아 있어 전체 조건 완전성 통과로 확대 금지",
+    "[549,820]의 인접 지분적립형 분양주택 정의와 매입임대주택 정의를 혼합하지 않음",
+    "직접 건설하지 않고는 공급 방식 조건이며 공급한다 관계의 negation affirmed 유지",
+    "오류 대조 유형 support_type instance_proposal은 원본 보존; 유형 포함 판정은 실제 정의의 건설 여부 충돌에 근거"
+  ],
+  "comparison_limits": [
+    "M2 대비 과업 분리와 출력 상한이 함께 변경되어 단일 변경 인과효과를 주장할 수 없음",
+    "동일 모델의 두 추론 설정을 사전 규칙대로 비교하며 think 존재만으로 정확성을 입증하지 않음",
+    "독립 AI 의미·평가 검수를 사람 시험으로 세지 않음"
+  ],
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}
