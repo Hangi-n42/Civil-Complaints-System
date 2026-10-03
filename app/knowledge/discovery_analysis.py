@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v48'
+PROMPT_VERSION = 'discovery-a2-v49'
 
 
 def recipe(budgets):
@@ -468,13 +468,23 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
                             for c in context['targets']]
     if stage=='critic':
-        bindings={}
+        bindings={};uses={}
+        adjacent=context.get('review_focus')=='relations'
         for field in ('unapproved_relations','reviewed_base','comparison_terms'):
             for n,c in enumerate(context.get(field, [])):
                 if not c.get('source_relation'): continue
                 bindings[c['id']]=dict(relation_ref=c['id'],subject_ref=c['subject'],object_ref=c['object'],reason=c.get('design_reason',''))
+                if adjacent:
+                    bindings[c['id']].pop('reason')
+                    for endpoint in ('subject','object'):
+                        uses.setdefault(c[endpoint], []).append(dict(relation_ref=c['id'],endpoint=endpoint,source_expression=c['source_relation'][endpoint]))
                 context[field][n]=dict(c['source_relation'],id=c['id'])
         context['relation_bindings']=list(bindings.values())
+        if adjacent:
+            for field in ('unapproved_observations','reviewed_base','comparison_terms'):
+                for c in context.get(field, []):
+                    if c.get('classification')=='type' and c['id'] in uses:
+                        c['binding_uses']=uses[c['id']]
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
     context.pop('binding_before',None);context.pop('parent_group_id',None)

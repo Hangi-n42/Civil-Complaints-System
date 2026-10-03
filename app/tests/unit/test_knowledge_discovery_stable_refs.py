@@ -39,3 +39,37 @@ def test_stable_refs_distinguish_block_span_and_text_and_preserve_legacy():
     assert a['blocks'] == list(reversed(z['blocks']))
     legacy = segments.bind(dict(blocks=views),'run','critic:g')
     assert legacy != a and legacy == segments.bind(dict(blocks=views),'run','critic:g')
+
+
+def test_relation_critic_projects_shared_type_uses_without_mutating_or_fetching_types():
+    run=dict(id='run',cqs=[],scope_items=[],recipe=dict(reference_contract='canonical-v1'))
+    actor=dict(id='actor',classification='type',label='행위자',definition='선정하는 주체',conditions='제공 조건',exceptions='',time='현재')
+    omitted=dict(id='omitted',classification='type',definition='이번 입력에 없는 정의')
+    raw=dict(id='r1',subject='공급자',object='선정 대상',negation='affirmed')
+    r1=dict(raw,subject='actor',object='omitted',source_relation=raw,design_reason='미검증 설계 이유')
+    r2=dict(r1,id='r2',object='actor',source_relation=dict(raw,id='r2',object='다른 행위자'))
+    standalone=dict(raw,id='raw')
+    context=dict(blocks=[],review_focus='relations',unapproved_relations=[r1,r2,standalone],comparison_terms=[actor],taxonomy=dict(hierarchies=[]))
+    supplied={c['id']:c for c in (actor,omitted,r1,r2,standalone)}
+    before=deepcopy((context,supplied))
+    def projected(stage='critic',focus='relations',ctx=context):
+        _,prompt=a2.make_prompt(run,stage,dict(ctx,review_focus=focus),[],supplied)
+        return json.loads(prompt.split('\nINPUT:\n')[1])
+    data=projected();selected=data['comparison_terms'][0]
+    assert {k:v for k,v in selected.items() if k!='binding_uses'}==actor
+    assert selected['binding_uses']==[
+        dict(relation_ref='r1',endpoint='subject',source_expression='공급자'),
+        dict(relation_ref='r2',endpoint='subject',source_expression='공급자'),
+        dict(relation_ref='r2',endpoint='object',source_expression='다른 행위자')]
+    assert data['unapproved_relations']==[raw,r2['source_relation'],standalone]
+    assert data['relation_bindings']==[dict(relation_ref='r1',subject_ref='actor',object_ref='omitted'),dict(relation_ref='r2',subject_ref='actor',object_ref='actor')]
+    assert len(data['comparison_terms'])==1 and (context,supplied)==before
+    observations=projected(focus='observations')
+    assert observations['comparison_terms']==[actor]
+    assert all(b['reason']=='미검증 설계 이유' for b in observations['relation_bindings'])
+    for stage in ('builder','revision'):
+        ctx=dict(context,targets=[r1],target_ids=['r1'])
+        assert projected(stage=stage,ctx=ctx)['unapproved_relations']==context['unapproved_relations']
+    current=deepcopy(context);current['comparison_terms'][0]['definition']='수정 후 현재 정의'
+    assert projected(ctx=current)['comparison_terms'][0]['definition']=='수정 후 현재 정의'
+    assert projected(ctx=current)['comparison_terms'][0]['binding_uses']==selected['binding_uses']
