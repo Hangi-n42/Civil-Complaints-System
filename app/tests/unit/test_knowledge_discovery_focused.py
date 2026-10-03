@@ -96,7 +96,7 @@ def test_focused_revision_latest_and_reservation(service,model,monkeypatch,mode)
     old=[u['output'] for u in run['analysis_units'] if u['id'] in group['review_unit_ids']]
     new=[u['output'] for u in run['analysis_units'] if u['id'] in group['revision_review_unit_ids']]
     assert not any(rid in (reviews.valid_ids(r,{rid:current}) or set()) for r in old)
-    assert any(rid in (reviews.valid_ids(r,{rid:current}) or set()) for r in new)
+    assert any(rid in (reviews.valid_ids(r,{c['id']:c for c in run['result']['observations']+[current]}) or set()) for r in new)
     assert not run['result']['mandatory_pending']
     cid=ontology_changes.publish(service,run['id'])['changeset_id'];rows=listing(service,cid)['candidates']
     row=next(c for c in rows if c['origin'].get('candidate_id')==rid)
