@@ -32,10 +32,17 @@ def context_for(candidates, by_id, context_map):
     return context, deps, {c['id']:c for c in candidates}
 
 
-def fits(run, stage, context, deps, supplied, reserve=0):
+def input_size(run, stage, context, deps, supplied):
     _, prompt = a2.make_prompt(run, stage, context, deps, supplied)
-    return (len(prompt)+reserve <= run['recipe']['input_chars'] and
-            len(prompt.encode())+reserve*3+(run['recipe']['binding_num_predict'] if context.get('review_component')=='binding' else run['recipe']['num_predict']) <= run['recipe']['num_ctx'])
+    output=run['recipe']['binding_num_predict'] if context.get('review_component')=='binding' else run['recipe']['num_predict']
+    return dict(input_chars=len(prompt),input_bytes=len(prompt.encode()),input_chars_limit=run['recipe']['input_chars'],
+        input_bytes_limit=run['recipe']['num_ctx']-output)
+
+
+def fits(run, stage, context, deps, supplied, reserve=0):
+    size=input_size(run,stage,context,deps,supplied)
+    return (size['input_chars']+reserve <= size['input_chars_limit'] and
+            size['input_bytes']+reserve*3 <= size['input_bytes_limit'])
 
 
 def assemble(run, round_number, by_id, context_map, available):
@@ -378,6 +385,20 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         effective.update({h['id']:h for h in effective_hierarchies})
         # Full dependencies validate cross-target hierarchy/endpoint consistency after each success.
         context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
+        focused=stage=='revision' and 'classification' in effective[identifier] and run['recipe'].get('revision_context_contract')=='target-source-v1'
+        if focused:
+            target=effective[identifier]
+            source_ids=list(dict.fromkeys(target.get('source_relation_ids', []) +
+                ([target['role_basis']['relation_ref']] if target.get('role_basis') else [])))
+            natural=[dict(deepcopy(effective[i].get('source_relation') or effective[i]),id=i)
+                for i in source_ids if i in effective and i!=identifier]
+            # Keep the source snapshot in target; never promote a stale snapshot to a current supplied ID.
+            context,_,supplied=context_for([target]+natural,by_id,context_map)
+            if target.get('role_source'):
+                source_context,source_deps,_=context_for([target['role_source']],by_id,context_map)
+                context['blocks'] += [b for b in source_context['blocks'] if b not in context['blocks']]
+                deps=sorted(set(deps)|set(source_deps))
+            context['omitted_comparison_candidate_ids']=sorted(effective.keys()-supplied.keys())
         checks=[c for field in ('relation_checks','observation_checks') for c in review.get(field, []) if c['candidate_ref']==identifier]
         selected_issues=[i for i in issues if not i.get('candidate_ref') or i['candidate_ref']==identifier]
         extra_ids=[e for i in selected_issues for f in ('evidence_ids','counter_evidence_ids') for e in i.get(f, [])]
@@ -390,7 +411,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
             context.update(target_ids=[identifier],targets=[effective[identifier]],
                 evidence_only_ids=[identifier] if identifier in evidence_only else [],
                 source_change_ids=[identifier] if effective[identifier].get('source_relation') and identifier not in evidence_only else [],
-                comparison_candidates=[c for i,c in effective.items() if i!=identifier],issues=selected_issues,
+                comparison_candidates=[c for i,c in supplied.items() if i!=identifier],issues=selected_issues,
                 relation_checks=[c for c in checks if 'negation' in effective[identifier]],
                 observation_checks=[c for c in checks if 'classification' in effective[identifier]])
         else:
@@ -404,11 +425,15 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
             deps=sorted(set(deps) | set(critic['dependency_ids']))
             context,deps,missing=add_retrieved(run,stage,context,deps,supplied,requested,by_id,context_map);omitted.extend(missing)
             context,deps,supplied,missing=add_terms(run,stage,context,deps,supplied,critic,by_id,context_map);term_omissions.extend(missing)
+        if focused:
+            context['omitted_comparison_candidate_ids']=sorted(effective.keys()-supplied.keys())
         group['omitted_revision_term_ids']=term_omissions;group['omitted_revision_context_ids']=omitted
         if not fits(run,stage,context,deps,supplied):
-            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='필수 원문 전체가 수정 입력 한도를 초과하여 보류'))
+            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='필수 원문 전체가 수정 입력 한도를 초과하여 보류',
+                **input_size(run,stage,context,deps,supplied)))
             continue
-        result=a2.call(service,run,stage,key,context,deps,by_id,supplied)
+        validation=dict(validation_supplied=effective) if focused else {}
+        result=a2.call(service,run,stage,key,context,deps,by_id,supplied,**validation)
         unit=next(u for u in run['analysis_units'] if u['id']==uid)
         if result is None:
             group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='수정 결과 미확정: '+str(unit.get('error') or '취소/중단')))

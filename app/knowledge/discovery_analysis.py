@@ -13,12 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v56'
+PROMPT_VERSION = 'discovery-a2-v57'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -286,7 +286,7 @@ def remap(value, mapping):
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
-def normalize(output, stage, run, deps, by_id, supplied, context=None, require_issue_cause=False):
+def normalize(output, stage, run, deps, by_id, supplied, context=None, require_issue_cause=False, *, validation_supplied=None):
     if any(not text.strip() for field in ('findings','gaps') for text in output.get(field, [])):
         raise ValueError('조사 결과/미해결 사유는 빈 문자열일 수 없음')
     if not any(output.get(field) for field in models.RESULT_FIELDS[stage]):
@@ -351,12 +351,18 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
             if item['candidate_ref'] in seen or item['candidate_ref'] not in supplied:
                 raise ValueError('보류 대상 중복 또는 범위 밖 후보')
             seen.add(item['candidate_ref'])
+        # Model references are checked against supplied above; full stored state is server-only.
         effective = dict(supplied)
+        effective.update(validation_supplied or {})
         effective.update({h['candidate_id']:h['after'] for h in history})
         hierarchies = [deepcopy(c) for c in effective.values() if 'child_ref' in c]
         identifiers = [h['id'] for h in hierarchies]
         if hierarchies:
-            checked = normalize({'hierarchies':hierarchies}, 'builder', run, deps, by_id, effective)['hierarchies']
+            hierarchy_deps=set(deps)
+            if validation_supplied is not None:
+                hierarchy_deps.update(e for h in hierarchies for direction in ('a_to_b','b_to_a')
+                    for field in ('evidence_ids','counter_evidence_ids') for e in h[direction].get(field, []))
+            checked = normalize({'hierarchies':hierarchies}, 'builder', run, hierarchy_deps, by_id, effective)['hierarchies']
             for identifier, row in zip(identifiers, checked):
                 row['id'] = identifier
                 effective[identifier] = row
@@ -514,7 +520,7 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     return mapping, prompt
 
 
-def call(service, run, stage, key, context, deps, by_id, supplied=None):
+def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
     supplied = supplied or {}
     uid = stage + ':' + key
     unit = next((u for u in run['analysis_units'] if u['id']==uid), None)
@@ -526,7 +532,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
     context = segments.bind(context, source_scope, uid,
         stable=run['recipe'].get('reference_contract') == 'canonical-v1')
     mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
-    input_hash = profile.digest([prompt, run['recipe']])
+    input_hash = profile.digest([prompt, run['recipe']] + ([validation_supplied] if validation_supplied is not None else []))
     # A resumed successful unit is immutable, even when its newly built input is wrong.
     if unit['status'] == 'succeeded':
         if not set(deps) <= allowed_ids(service, list(by_id.values())):
@@ -876,7 +882,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             if component=='binding':
                 output=reviews.normalize_binding(output,supplied,context,by_id)
             else:
-                output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
+                output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic',
+                    validation_supplied=validation_supplied)
             if component:
                 output.update(review_component=component,review_bundle_id=context['review_bundle_id'],
                     binding_target_ids=context['binding_target_ids'],
