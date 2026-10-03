@@ -62,6 +62,7 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
             value['hierarchies']=[]
             if 'binding_checks' in data:
                 corrections.append(data['design_relation_ids'][0])
+                assert data['binding_checks'][0]['binding_reasons']['object']=='선정되는 대상이 행위자 유형에 잘못 연결됨'
                 assert data['design_relation_ids']==bad_id
                 assert len(value['relation_bindings'])==1
                 if mode=='failed': raise ValueError('연결 교정의 독립 실패 원인')
@@ -80,6 +81,7 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                 b=bindings[check['candidate_ref']]
                 if b['subject_ref']==b['object_ref']:
                     check['binding_checks']['object']='unknown' if mode=='unknown' else 'refuted'
+                    check['binding_reasons']['object']='선정되는 대상이 행위자 유형에 잘못 연결됨'
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
     call=a2.call

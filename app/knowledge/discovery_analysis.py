@@ -13,11 +13,11 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v46'
+PROMPT_VERSION = 'discovery-a2-v47'
 
 
 def recipe(budgets):
-    return dict(correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
+    return dict(binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -606,6 +606,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 if name in {'RelationCheck','ObservationCheck'}:
                     ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
                     definition['properties']['candidate_ref']['enum'] = ids or ['']
+                    definition['properties'].pop('binding_reasons',None)
                     if run['recipe'].get('review_contract') == 'checks-v1':
                         definition['properties'].pop('judgment')
                         if name=='RelationCheck':
@@ -614,6 +615,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                                 additionalProperties=False)
                             if all(supplied[i].get('source_relation') for i in context.get('review_target_ids',supplied) if 'negation' in supplied[i]):
                                 definition['properties']['binding_checks']['required'] = ['subject','object']
+                            if run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1':
+                                modeled=[mapping[i] for i in context.get('review_target_ids',supplied) if supplied[i].get('source_relation')]
+                                reasons=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=400)
+                                    for k in ('subject','object')},required=['subject','object'],additionalProperties=False)
+                                if modeled:
+                                    definition['properties']['binding_reasons']=reasons if set(modeled)==set(ids) else dict(anyOf=[reasons,dict(type='object',maxProperties=0)])
                         else: definition['properties'].pop('binding_checks',None)
                     definition['required'] = [p for p in definition['properties'] if p!='source_refs']
                     schema['required'] = list(schema['properties'])

@@ -60,6 +60,7 @@ def response(prompt, stage):
         return [dict(candidate_ref=c['id'],judgment='supported',evidence_id=c['evidence_ids'][0],
             quote=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0]),reason='선택 원문과 비교했다.',
             binding_checks={k:'supported' for k in ('subject','object')} if any(b['relation_ref']==c['id'] for b in data.get('relation_bindings', [])) else {},
+            binding_reasons={k:'끝점 표현과 선택 유형 정의가 대응한다.' for k in ('subject','object')} if any(b['relation_ref']==c['id'] for b in data.get('relation_bindings', [])) else {},
             semantic_checks={k:'supported' for k in a2.models.SEMANTIC_FIELDS['relation_checks' if 'negation' in c else 'observation_checks']})
             for c in rows if c['id'] in data.get('review_target_ids',[c['id']])]
     return dict(issues=[], missing_meanings=[], hierarchy_checks=hierarchy,
@@ -79,7 +80,9 @@ def source_response(value, data):
             result['source_refs']=list(dict.fromkeys(row.get('source_refs', [])+[v['source_ref'] for i in ids for v in views if v['ref']==i]))
         if 'semantic_checks' in row:
             result.pop('judgment',None)
-            if 'classification' in row['semantic_checks']: result.pop('binding_checks',None)
+            if 'classification' in row['semantic_checks']:
+                result.pop('binding_checks',None);result.pop('binding_reasons',None)
+            elif not row.get('binding_reasons'): result.pop('binding_reasons',None)
         if 'counter_evidence_ids' in row:
             result['counter_source_refs']=[v['source_ref'] for i in row['counter_evidence_ids'] for v in views if v['ref']==i]
         if 'relation_ref' in row: result.setdefault('decision','bind')

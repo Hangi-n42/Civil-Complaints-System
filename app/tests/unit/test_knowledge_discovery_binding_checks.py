@@ -6,18 +6,21 @@ import pytest
 from app.knowledge import discovery_analysis as a2, discovery_review as reviews, discovery_segments as segments
 
 
-def normalized(semantic='supported', binding='supported', *, missing=False, legacy=False):
+def normalized(semantic='supported', binding='supported', *, missing=False, legacy=False, reasons=None, reason_contract=False, raw_relation=False):
     block=dict(id='b',text='사업자는 입주자를 선정한다.',source_version_id='v',parse_run_id='p',locator={'page':1})
     raw=dict(id='r',subject='사업자',object='입주자',negation='affirmed',endpoint_labels=dict(subject='사업자',object='입주자'))
     candidates={'r':dict(raw,subject='actor',object='housing',source_relation=raw),
                 'actor':dict(id='actor',classification='type',definition='선정하는 주체'),
                 'housing':dict(id='housing',classification='type',definition='주택')}
+    if raw_relation: candidates['r']=raw
     context=segments.bind(dict(blocks=[dict(ref='b',text=block['text'])],review_target_ids=['r'],review_scope={}), 'run','critic',stable=True)
     check=dict(candidate_ref='r',reason='원명제와 실제 연결 정의를 독립 대조',source_refs=[context['blocks'][0]['source_ref']],
                semantic_checks={k:semantic for k in a2.models.SEMANTIC_FIELDS['relation_checks']})
-    if not missing: check['binding_checks']=dict(subject='supported',object=binding)
+    if not missing: check['binding_checks']={} if raw_relation else dict(subject='supported',object=binding)
+    if reasons is not None: check['binding_reasons']=reasons
     output=dict(issues=[],relation_checks=[check],observation_checks=[],hierarchy_checks=[],missing_meanings=[],actions=[],gaps=[],needs_revision=False)
     run=dict(recipe={} if legacy else dict(review_contract='checks-v1'),analysis_units=[],cqs=[],scope_items=[])
+    if reason_contract: run['recipe']['binding_reason_contract']='per-endpoint-v1'
     if legacy:
         check['judgment']='supported'
         output['issues']=[dict(local_ref='i1',cause='content_error',candidate_ref='r',reason='과거 모순',
@@ -26,6 +29,29 @@ def normalized(semantic='supported', binding='supported', *, missing=False, lega
     result=a2.normalize(deepcopy(output),'critic',run,['b'],{'b':block},candidates,context,require_issue_cause=True)
     assert output==original
     return result,candidates
+
+
+def test_endpoint_reason_routes_separately_from_content_and_legacy_reason():
+    reasons=dict(subject='주체가 행위자 유형에 대응',object='선정 대상은 입주자인데 유형은 주택임')
+    result,_=normalized('refuted','refuted',reasons=reasons,reason_contract=True)
+    issues={i['cause']:i for i in result['issues']}
+    assert issues['endpoint']['reason']=='object: '+reasons['object']
+    assert issues['content_error']['reason']=='원명제와 실제 연결 정의를 독립 대조'
+    assert result['relation_checks'][0]['binding_validation']==['유형 연결 object refuted: '+reasons['object']]
+    unknown,_=normalized(binding='unknown',reasons=reasons,reason_contract=True)
+    assert not unknown['issues'] and reasons['object'] in unknown['relation_checks'][0]['binding_validation'][0]
+    old,_=normalized(binding='refuted')
+    assert old['relation_checks'][0]['binding_reasons']=={}
+    assert old['issues'][0]['reason']=='원명제와 실제 연결 정의를 독립 대조'
+    raw,_=normalized(reason_contract=True,raw_relation=True)
+    assert not raw['record_errors'] and raw['relation_checks'][0]['binding_reasons']=={}
+
+
+@pytest.mark.parametrize('reasons',[None,{},dict(subject='사유'),dict(subject='사유',object=' '),dict(subject='사유',object='사유',other='사유')])
+def test_new_endpoint_reasons_require_exact_nonempty_keys(reasons):
+    result,_=normalized(binding='refuted',reasons=reasons,reason_contract=True)
+    assert result['review_coverage']['pending_candidate_ids']==['r']
+    assert not result['relation_checks'] and not result['issues']
 
 
 @pytest.mark.parametrize('semantic,binding,causes', [('supported','refuted',['endpoint']),

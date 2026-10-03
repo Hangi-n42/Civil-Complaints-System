@@ -33,6 +33,7 @@ def valid_ids(review, candidates=None, latest=None):
 
 def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, validate_refs, require_issue_cause=False):
     checks_contract = require_issue_cause and run.get('recipe', {}).get('review_contract') == 'checks-v1'
+    binding_reasons = checks_contract and run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1'
     declared = set(context.get('review_target_ids', supplied))
     expected = {i:c for i,c in supplied.items() if i in declared and c.get('review_status')!='reviewed'}
     relations = {i for i,c in expected.items() if 'negation' in c}
@@ -122,13 +123,19 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                         if candidate.get('source_relation'):
                             if set(item['binding_checks']) != {'subject','object'}:
                                 raise ValueError('유형 연결의 주체/목적어 판정 누락')
+                            if binding_reasons and (set(item['binding_reasons']) != {'subject','object'} or
+                                    any(not reason.strip() or len(reason)>400 for reason in item['binding_reasons'].values())):
+                                raise ValueError('유형 연결의 끝점별 구체 사유 누락 또는 길이 초과')
                             for field,judgment in item['binding_checks'].items():
                                 if supplied.get(candidate[field], {}).get('classification')!='type':
                                     raise ValueError('연결 유형 정의가 이번 검수에 제공되지 않음: '+field)
                                 if judgment!='supported':
-                                    item.setdefault('binding_validation', []).append('유형 연결 '+field+' '+judgment+': '+item['reason'])
+                                    reason=item['binding_reasons'][field] if binding_reasons else item['reason']
+                                    item.setdefault('binding_validation', []).append('유형 연결 '+field+' '+judgment+': '+reason)
                         elif item['binding_checks']:
                             raise ValueError('유형 연결 없는 원명제에 binding 판정을 추가할 수 없음')
+                    if binding_reasons and item['binding_reasons'] and (section=='observation_checks' or not supplied[item['candidate_ref']].get('source_relation')):
+                        raise ValueError('유형 연결 없는 후보에 연결 사유를 추가할 수 없음')
                     if section=='observation_checks' and require_issue_cause and item['judgment']=='supported':
                         # Fresh generation only; stored Critic records keep their original contract.
                         if set(item['semantic_checks'])!=set(models.SEMANTIC_FIELDS[section]) or any(v!='supported' for v in item['semantic_checks'].values()):
@@ -195,8 +202,9 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
                 if 'refuted' in check['binding_checks'].values(): causes.append('endpoint')
                 for cause in causes:
                     if any(i['candidate_ref']==check['candidate_ref'] and i['cause']==cause for i in output['issues']): continue
+                    reason='; '.join(k+': '+check['binding_reasons'][k] for k,v in check['binding_checks'].items() if v=='refuted') if binding_reasons and cause=='endpoint' else check['reason']
                     output['issues'].append(dict(id='di_'+uuid4().hex,candidate_ref=check['candidate_ref'],
-                        cause=cause,target_ref='',reason=check['reason'],evidence_ids=[r['evidence_id'] for r in check.get('evidence_refs', [])],
+                        cause=cause,target_ref='',reason=reason,evidence_ids=[r['evidence_id'] for r in check.get('evidence_refs', [])],
                         evidence_refs=deepcopy(check.get('evidence_refs', [])),counter_evidence_ids=[],defer_reason='',derived_from=field))
         output['needs_revision']=any(i['cause'] in {'content_error','evidence_error','endpoint'} for i in output['issues'])
     valid_issue_ids={i['id'] for i in output['issues']} | previous
