@@ -39,6 +39,15 @@
 
 - 독립 검수 후 prompt v55: `semantic_checks`의 properties+부분 anyOf 혼합을 제거하고, anyOf 전용 외곽 아래 필수 4항목·추가 속성 금지를 가진 완전한 object 대안 4개로 교체. 판정 의미는 동일하다. 스키마 구조·인용·누락 경계 20개 통과(4.43초). 로컬 Ollama의 실제 실패를 확인했다는 주장이 아니며 모델 재실행은 하지 않았다.
 
+## #589 Builder 신규 선언 책임 분리 — 실제 모델 재실행 없음
+
+- `builder_definition_contract=roles-only-v1`, prompt v56. 최초·끝점 교정 Builder의 새 선언은 role_basis만 허용하며 스키마와 파싱에서 직접 정의를 거절한다. 실패 원응답은 그대로 보존한다.
+- 이미 제공된 Concept 직접 정의 ID는 재사용 가능하다. 필요한 직접 정의가 없으면 기존 defer/gaps 사용. Concept 자동 실행·새 추론 계층·과거 후보 소급 변환 없음.
+- 공용 DeclaredType/declarations와 관측 Revision의 직접 정의 기능은 유지. Builder 전용 안내와 Revision의 두 분기 안내를 분리하고 기존 동결 계약은 marker 부재 경로로 보존한다.
+- 공유 local_ref, 선택 role_basis/role_source, 수정 Builder의 관계 1개/신규 유형 최대 2개와 binding_before 경계 유지. 다른 출처 역할은 자동 병합하지 않는다.
+- 집중 검사 34개 통과(6.64초): 공유·출처·교정·finish/A3·명시적 역할/직접 정의 전환·legacy. 최초/교정 direct 거절과 legacy direct 수용 3개 추가 확인. 앞선 확인과 겹치는 건수를 합산하지 않는다.
+- Concept/Revision의 근거 밖 정의와 Critic 의미 오판은 미해결이다. 이 결과는 코드 계약 확인이며 C2 실제 품질 효과 검증은 아니다.
+
 ## 선행 결과와 해석 범위
 
 - P v2 E-A 2회/83.360초: 원문 명제와 주체 연결 지지, 잘못된 주택 목적어 연결 반박. 독립 판정 통과.

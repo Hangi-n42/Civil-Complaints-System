@@ -13,12 +13,12 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v55'
+PROMPT_VERSION = 'discovery-a2-v56'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
@@ -508,6 +508,8 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction += models.ROLE_DECLARATION_RULE
     if stage=='builder' and run.get('recipe',{}).get('builder_declaration_contract')=='shared-types-v1':
         instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
+    if stage=='builder' and run.get('recipe',{}).get('builder_definition_contract')=='roles-only-v1':
+        instruction=instruction.replace(models.DEFINITION_RULE,'').replace(models.ROLE_DECLARATION_RULE,models.BUILDER_ROLE_RULE)
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
@@ -813,7 +815,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
             natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
             if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
-            design.declaration_schema(schema,natural_ids,list(unit['source_ref_map']))
+            design.declaration_schema(schema,natural_ids,list(unit['source_ref_map']),
+                role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
         if component=='binding':
             from .discovery_binding import schema as binding_schema
             identifier=context['review_target_ids'][0]
@@ -868,7 +871,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
             if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
-                design.declarations(output,supplied,by_id,context)
+                design.declarations(output,supplied,by_id,context,
+                    role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
             if component=='binding':
                 output=reviews.normalize_binding(output,supplied,context,by_id)
             else:

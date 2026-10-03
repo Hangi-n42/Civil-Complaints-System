@@ -104,7 +104,7 @@ def source_projection(candidate):
     return {k:deepcopy(source.get(k)) for k in fields}
 
 
-def declaration_schema(schema, relation_ids, source_refs):
+def declaration_schema(schema, relation_ids, source_refs, *, role_only=False):
     """Narrow the two existing observation wire records to explicit exclusive branches."""
     if 'RoleBasis' in schema['$defs']:
         schema['$defs']['RoleBasis']['properties']['relation_ref']['enum'] = relation_ids or ['']
@@ -127,15 +127,17 @@ def declaration_schema(schema, relation_ids, source_refs):
         direct['properties']['direct_definition_source_refs'].update(minItems=1,items=dict(type='string',enum=source_refs or ['']))
         for branch in (role,direct):
             branch['required']=list(branch['properties'])
-        node.clear();node['anyOf']=([role] if relation_ids else [])+[direct]
+        node.clear();node['anyOf']=[role] if role_only else ([role] if relation_ids else [])+[direct]
     for name in ('DeclaredType','DeclaredObservationRevision'):
         if name in schema['$defs']: variants(schema['$defs'][name])
 
 
-def declarations(output, supplied, by_id, context):
+def declarations(output, supplied, by_id, context, *, role_only=False):
     """Shared by initial/correction Builder and observation Revision; never repair free prose."""
     for candidate in output.get('observations', []):
         role = candidate.get('role_basis')
+        if role_only and not role:
+            raise ValueError('Builder의 새 유형은 출처 역할 선언만 허용; 직접 정의는 제공된 기존 ID로 재사용')
         direct = candidate.get('direct_definition_source_refs', [])
         candidate['definition_declaration'] = {k:deepcopy(candidate.get(k)) for k in
             ('role_basis','label','definition','conditions','exceptions','time','direct_definition_source_refs','design_reason')}

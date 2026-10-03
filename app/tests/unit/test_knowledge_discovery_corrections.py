@@ -67,10 +67,8 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                 assert len(value['relation_bindings'])==1
                 if mode=='failed': raise ValueError('연결 교정의 독립 실패 원인')
                 if mode=='new_type_cancel':
-                    new=dict(direct_definition_source_refs=[data['blocks'][0]['source_ref']],label='입주자 유형',classification='type',definition='원문에서 선정되는 대상',
-                        support_type='design_proposal',classification_reason='원문 역할',conditions='',exceptions='',time='',
-                        abstraction_level='업무 대상',review_signals=[],source_relation_ids=bad_id,design_reason='직접 대상 역할',
-                        source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')
+                    from app.tests.unit.test_knowledge_discovery_roles import role_wire
+                    new=role_wire(data,data['unapproved_relations'][0])
                     value['observations']=[dict(new,local_ref='t1')]
                     value['relation_bindings'][0]['object_ref']='t1'
                 if mode=='cancel': service.cancel(run['id'])

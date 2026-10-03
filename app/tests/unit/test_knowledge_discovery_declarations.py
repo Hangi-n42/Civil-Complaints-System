@@ -50,7 +50,7 @@ def test_two_relations_share_two_declarations_and_invalidate_both_reviews(servic
     assert [c['target_kind'] for c in candidates].count('relation')==2
 
 
-@pytest.mark.parametrize('mode',['canonical','collision','legacy','undeclared','duplicate','over_capacity'])
+@pytest.mark.parametrize('mode',['canonical','collision','legacy','undeclared','duplicate','over_capacity','direct','initial_direct','legacy_direct'])
 def test_shared_wire_ids_and_correction_capacity(service,model,monkeypatch,mode):
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id'],discovery_budgets=dict(model_calls=24,additional_rounds=0,revisions=0)))['run_id'])
@@ -60,8 +60,13 @@ def test_shared_wire_ids_and_correction_capacity(service,model,monkeypatch,mode)
     _,_,context_map=a2.profile.survey(run['frozen_input']['files'],blocks)
     context,deps,supplied=synthesis.context_for([existing,natural],by_id,context_map)
     context.update(design_relation_ids=[natural['id']],binding_before=run['result']['relations'][0],parent_group_id=run['candidate_groups'][0]['id'])
+    if mode=='initial_direct':
+        context.pop('binding_before');context.pop('parent_group_id')
     if mode=='legacy':
         run['recipe'].pop('reference_contract')
+        monkeypatch.setattr(a2,'recipe',lambda budgets:deepcopy(run['recipe']))
+    if mode=='legacy_direct':
+        run['recipe'].pop('builder_definition_contract')
         monkeypatch.setattr(a2,'recipe',lambda budgets:deepcopy(run['recipe']))
     async def generated(prompt,schema,stage,current,timeout):
         assert stage=='builder'
@@ -72,7 +77,11 @@ def test_shared_wire_ids_and_correction_capacity(service,model,monkeypatch,mode)
             decision='bind',subject_ref=data['unapproved_observations'][0]['id'],object_ref=token,reason='기존 주체와 새 대상 역할 연결')],
             hierarchies=[],alias_proposals=[],gaps=[],actions=[])
         assert all(v['properties']['observations']['maxItems']==2 for v in schema['anyOf'])
-        if mode=='collision':
+        if mode in {'direct','initial_direct','legacy_direct'}:
+            declaration.pop('role_basis')
+            declaration.update(label='직접 유형',definition='원문 직접 정의',conditions='',exceptions='',time='',
+                source_relation_ids=[relation['id']],direct_definition_source_refs=declaration['source_refs'])
+        if mode in {'collision','direct','initial_direct'}:
             with pytest.raises(jsonschema.ValidationError): jsonschema.validate(value,schema)
         else: jsonschema.validate(value,schema)
         if mode=='undeclared': value['relation_bindings'][0]['object_ref']='t5'
@@ -83,9 +92,10 @@ def test_shared_wire_ids_and_correction_capacity(service,model,monkeypatch,mode)
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
     monkeypatch.setattr(a2,'model_call',generated)
     output=a2.call(service,run,'builder','shared_wire',context,deps,by_id,supplied)
-    if mode in {'collision','duplicate','over_capacity'}:
+    if mode in {'collision','duplicate','over_capacity','direct','initial_direct'}:
         assert output is None
-        assert any(word in run['analysis_units'][-1]['error'] for word in ('충돌','중복','상한'))
+        if mode in {'direct','initial_direct'}: assert json.loads(run['analysis_units'][-1]['raw_output'])['observations'][0]['definition']=='원문 직접 정의'
+        assert any(word in run['analysis_units'][-1]['error'] for word in ('충돌','중복','상한','출처 역할 선언'))
     elif mode=='undeclared':
         assert output['binding_errors'] and not output['modeled_relations']
     else:

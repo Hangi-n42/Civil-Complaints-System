@@ -236,7 +236,7 @@ def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(se
     import jsonschema
     recipe=a2.recipe
     def legacy(budgets):
-        value=recipe(budgets);value.pop('builder_declaration_contract');return value
+        value=recipe(budgets);value.pop('builder_declaration_contract');value.pop('builder_definition_contract');return value
     monkeypatch.setattr(a2,'recipe',legacy)
     source=prepare(service,file_ids=['current:0']);original=a2.model_call;seen=[]
     async def generated(prompt,schema,stage,run,timeout):
@@ -953,7 +953,7 @@ def test_definition_rules_reach_writing_and_observation_prompts_only():
     run=dict(id='definition-contract',cqs=[],scope_items=[],recipe=a2.recipe({}))
     for stage in ('concept','builder','revision'):
         _,prompt=a2.make_prompt(run,stage,dict(blocks=[],targets=[]),[],{})
-        assert a2.models.DEFINITION_RULE in prompt
+        assert (a2.models.DEFINITION_RULE in prompt)==(stage!='builder')
     _,observation=a2.make_prompt(run,'critic',dict(blocks=[],review_focus='observations'),[],{})
     assert '사실적 주장마다 대응하는 제공 원문 구절' in observation
     assert '원문이 명시한 효과와 근거 있는 역할 추상화는 허용' in observation
@@ -968,7 +968,11 @@ def test_definition_rules_reach_writing_and_observation_prompts_only():
     assert run['recipe']['definition_contract']=='source-role-v1'
     for stage in ('builder','revision'):
         _,prompt=a2.make_prompt(run,stage,dict(blocks=[],targets=[]),[],{})
-        assert a2.models.ROLE_DECLARATION_RULE in prompt
+        assert (a2.models.ROLE_DECLARATION_RULE in prompt)==(stage=='revision')
+        if stage=='builder':
+            assert a2.models.BUILDER_ROLE_RULE in prompt
+            legacy=deepcopy(run);legacy['recipe'].pop('builder_definition_contract')
+            assert a2.models.ROLE_DECLARATION_RULE in a2.make_prompt(legacy,stage,dict(blocks=[],targets=[]),[],{})[1]
         legacy=deepcopy(run);legacy['recipe'].pop('definition_contract')
         _,old_prompt=a2.make_prompt(legacy,stage,dict(blocks=[],targets=[]),[],{})
         assert a2.models.ROLE_DECLARATION_RULE not in old_prompt
