@@ -1,0 +1,146 @@
+{
+  "id": "ontology-semantic-n3-product-v1",
+  "issue": 582,
+  "followup_issue": 579,
+  "diagnostic_mode": "split-critic",
+  "frozen_at": "2026-10-03T07:07:56.133896+00:00",
+  "implementation_commit": "9f8f1b9602b83591651d73871c5f557f51cf4be9",
+  "diagnostic_inputs": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/diagnostic_inputs.json",
+    "sha256": "e85f22d5b0954f86d1932d4d59f449d12a1f9dbbed3dc08f83f5985778aed8d9"
+  },
+  "diagnostic_runner": {
+    "path": "scripts/run_knowledge_critic_diagnostic.py",
+    "sha256": "691d63a46b90d5761da98b0e4e48b851a697162a94573d6a9a91a2fa79cd208c"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_n3_product_assessor_v1.json",
+    "sha256": "cf1a062de4ec71028630e36f288117d0698fc2e2f31528644bbc06a94394f856"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/preflight.json",
+    "sha256": "e2b4e909ad3111adbe17de2c051a8f1766e431d06d9ed0cd7da69e5e1f334c86"
+  },
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "c4893c4631b3c38520312edea521a4afe5f1ff4e5dd19d50709d558766ad85cb",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "e04b65a4121db3f2f1906e21612a6a19d77306e66624be9616970091b96eca78",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "ea5dcf4a73a4b5b1657519e5db6a231fa993586c90c91f87b2bceb7478699bc0",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "511a50ec05546455929c84d0373ccc620633dcd812fbc0547a758f07c1895264",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+    "app/knowledge/discovery_synthesis.py": "74a3eec48bd47c7492c6009dde36219bc4a4e4f148383f6c5cc08d1ac9595264",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "014b68350f90fd05947a515ea12ec25f663dee82132e3e0d7a545f8bfe7729da",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
+    "app/core/config.py": "60e393d3608edb0d030b7f69a7bf36c1aeea8b62c52b28454f02ef5b32f12ac5",
+    "app/knowledge/discovery_binding.py": "728f25f654895001fc456b4158b4d867b546f2e5f9f68a4174221313b876d4bd"
+  },
+  "original_hashes": {
+    "data/knowledge/semantic_m2_preflight_20261003/diagnostic_inputs.json": "40495246ea4b82ad290a9644328f5229431ba0f1c1193325bfd88d5bde5b2405",
+    "data/knowledge/semantic_d5_20261001/current_changed/result.json": "35c92a543e037e866e4e3a3daab4c87602cd6af7ddd45235293e138cd09aebcb",
+    "data/knowledge/semantic_j3_20261002/c2_once/knowledge.db": "98624edd180a624dfb9d0bffb4f68a5f2d1fcb39af10d53a5bee173d34d04d08",
+    "data/knowledge/semantic_m2_preflight_20261003/prompt_E-A.txt": "2a64ad8c92eed7581c318b985cdcd64c3597dc5e433dec8a781202b338922cde",
+    "data/knowledge/semantic_m2_preflight_20261003/prompt_E-B.txt": "a91862a55a470a12847ea298ed801c9bbbdfd95cc5df92b1af39c01bb3a9c4af",
+    "data/knowledge/semantic_n2_preflight_20261003/final/diagnostic_inputs.json": "65ddccd21426a0ff466a255ff4e48bf784c0b1b5b115dc6ec492459613233709",
+    "data/knowledge/semantic_n2_20261003/plain_once/result.json": "0545a9a767124cd562b2b4f1764f681fa37a925265945bcfdf5393ad05f7f7e2",
+    "data/knowledge/semantic_n2_20261003/transfer_plain_once/result.json": "3a275d58f75105c5fcdc5b8bd33d66eee459780de6804deeb277715a093208f9",
+    "data/knowledge/semantic_n2_20261003/decision.json": "2ebb5fb1bc76e076250b4693b452a5b4849e3de21a89734ea44fdc5da2e28071",
+    "data/knowledge/semantic_n2_20261003/plain_once/E-A/http_response.txt": "d017aae54e758cf08fbfa2c143480b94bae1a3e66e8be7702b6f7c0dd9cfae48",
+    "data/knowledge/semantic_n2_20261003/plain_once/E-B/http_response.txt": "95616f058c58669e53c1a67f771d5022b9a82d1fe404d87cf92fa78004ed7134",
+    "data/knowledge/semantic_n2_20261003/transfer_plain_once/T-A/http_response.txt": "c5cebcac28681cfaec2c77453675a049900b44768de6b9b63c0116a1bda4e961",
+    "data/knowledge/semantic_n2_20261003/transfer_plain_once/T-B/http_response.txt": "bc6f4b2a68f4b0c08bb3c0c929612a1ae2667267187d2536d5fe064213a0cac7"
+  },
+  "preparation_files": {
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prepare.py": "23b00dacc3ffb9e89eea31bc95c94609095813c4938b50dd675f30ffe95cd792",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prompt_D_observations.txt": "7f9a73d3ac21ec6095e52638ad6079f311e3e3b7dde69b0e66ec8de068c7c73d",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prompt_E-A_binding.txt": "e12d6722d00064cfa3fdaa001964b0c50cdb8d3ddaaaebabafa897ac87ceb9a2",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prompt_E-A_proposition.txt": "8134e44590e920f1134e55af2ba6f839aee5b8c1bee66ebb7ff1b8a0efc2b922",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prompt_E-B_binding.txt": "9a8f22100339a58cff5395c7d8edab1a28ca112d0b8674778c5c2ec8fae7123e",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/prompt_E-B_proposition.txt": "c8516140448f9f1ad39581357951f226440f6b9eb82e20348be6f4eb1821e77c",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/schema_D_observations.json": "56c3e4a7586541570c64e49da50d221e3815ad48e38e3abe344671912a04fe96",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/schema_E-A_binding.json": "f6202cf97898e9c1dfb99be2de42fd00e9022650974319fb491fe460acc74f92",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/schema_E-A_proposition.json": "6f22eea9d7206f556f5c4029300b87786596526fa67e2975dfb4c988069d6f79",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/schema_E-B_binding.json": "f6202cf97898e9c1dfb99be2de42fd00e9022650974319fb491fe460acc74f92",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_n3_preflight_20261003/schema_E-B_proposition.json": "f301d20856fcdb3b53c905cb9846ca93cdafc65148ae7ddfa5452f9f71d4d90a"
+  },
+  "settings": {
+    "gemma": {
+      "model": "gemma4:31b-it-q4_K_M",
+      "recipe": {
+        "review_component_contract": "proposition-binding-v1",
+        "binding_num_predict": 8192,
+        "binding_think": false,
+        "review_dependency_contract": "selected-types-v1",
+        "binding_reason_contract": "per-endpoint-v1",
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v50",
+        "prompt_hash": "efe7029fdfaef2d7331a74a83353839593a863d793afa68161c2e55adc1756df",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 5,
+          "model_seconds": 1500,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+      },
+      "model_options": {
+        "model": "gemma4:31b-it-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "http_calls": 5,
+      "model_seconds": 1500
+    }
+  },
+  "http_timeout_s": 300,
+  "total_diagnostic_budget": {
+    "http_calls": 5,
+    "model_seconds": 1500
+  },
+  "max_executions": 1,
+  "output": "data/knowledge/semantic_n3_20261003/product_once",
+  "prerequisite": "N2 E and T independent semantic/evaluation pass, N3 focused execution/semantic review and selected tests passed",
+  "plan": "Product E-A2+E-B2+D1 actual focused_reviews calls. Only all-boundary pass permits #579 natural correction once with newly frozen budget. C2/current remain conditional and unexecuted.",
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}
