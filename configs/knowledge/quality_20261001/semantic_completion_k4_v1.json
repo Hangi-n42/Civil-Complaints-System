@@ -1,0 +1,230 @@
+{
+  "id": "ontology-semantic-k4-v1",
+  "issue": 572,
+  "frozen_at": "2026-10-02T18:04:47.746210+00:00",
+  "implementation_commit": "856dc7a0de5c7a665fdb9bad50accefc4b7f7a1f",
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "3c0ea34c31d98de0ce28812d69920f74cf03267cbf875e1c9f2330892ab329b1",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "e04b65a4121db3f2f1906e21612a6a19d77306e66624be9616970091b96eca78",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "c7a0a6762b72eeb2cd2686bf65b9a58974623c3c30a57541c69219913402ba47",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "587835196da12b87d8ae4733f689d519386b73c74561dcbd1ea26b1d1306d55e",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+    "app/knowledge/discovery_synthesis.py": "b3c822bce5feda8b5a5dfbfa437a3cff49025e5d398771bb96d1aed66490fa72",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "ad5985bc52c426d59c6e3871181c07b6ed37a2a05206d528e15a526927602af8",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
+    "app/core/config.py": "60e393d3608edb0d030b7f69a7bf36c1aeea8b62c52b28454f02ef5b32f12ac5"
+  },
+  "diagnostic_runner": {
+    "path": "scripts/run_knowledge_critic_diagnostic.py",
+    "sha256": "f77e18ae2d51f8a247403d0efe85ffc8c4a17437a3179f923ad8f52d52cdb962"
+  },
+  "diagnostic_inputs": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/diagnostic_inputs.json",
+    "sha256": "7a24965db1b9a48c43941b4c4631e4af2d69022cd064f62f7bc1b546c3cf5c02"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/preflight.json",
+    "sha256": "05c8c05270d3c608d8cbb03101818d0dc3803921617c23bcc16b58a4866c73b1"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_k4_diagnostic_assessor_v1.json",
+    "sha256": "9551b5f263105e34aa37b1cdfe4d55148a31d12c046e42c0b787a741d4f29027"
+  },
+  "original_hashes": {
+    "data/knowledge/semantic_h4_20261002/c2_once/result.json": "308baf152dca9b18c8951c3dfb00e3e3ff2f74786756a041e5081637beeb0c51",
+    "data/knowledge/semantic_h4_20261002/c2_once/knowledge.db": "4908adc15a7aa539ecbdb4ea8ef67c948a59dbb3c674f16f2a8a5ab6be6800ea",
+    "data/knowledge/semantic_h4_20261002/c2_once/started.json": "0e9b0472fe935747b27f8c607eb6ecd8bda39cac4ea568c43971c3dcd7c530f3",
+    "data/knowledge/semantic_h4_20261002/c2_once/calls.jsonl": "2fa768eec94218f6e7c44318fbdb5bfd4f16a29ad7db279d62d51a8ce4a45c9c",
+    "configs/knowledge/quality_20261001/semantic_completion_h4_v1.json": "af0f56edb489ecff69abb89c733150005e327be7877b13ea07bbad311068977c",
+    "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_i3_preflight_20261002/diagnostic_inputs.json": "ac280c40a5c4fc47ef10cc0fb0e4993db12dfac90004bc01325bf67840d27226",
+    "data/knowledge/semantic_i3_20261002/diagnostic_once/result.json": "bc52f12a5927b0c7521bcf78cdc0839769c21af76364a9354309d3d5ac5cca44",
+    "configs/knowledge/quality_20261001/semantic_completion_j2_v1.json": "7155712be498dd4a8f41161c104586a37830c9550efd0ad5a81a5468c186a345",
+    "configs/knowledge/quality_20261001/semantic_j2_diagnostic_assessor_v1.json": "967226aeaca9249f78dc522099cd49e11f030c2d59390836203517107647653a",
+    "data/knowledge/semantic_j2_20261002/qwen_once/result.json": "0d328f40186c7288a96713ea6680f0eed0ae33afb190039208a7450fa09afe7c",
+    "data/knowledge/semantic_j2_20261002/gemma_once/result.json": "2d3806ec9d5660e2f5c7be5beb4c5f3601f93ec6054f933d6784472b892c9199",
+    "data/knowledge/semantic_j3_20261002/c2_once/result.json": "105afa6082cc7617205fe63706225c235322a1941dc12a00885a66331f6638bb",
+    "data/knowledge/semantic_j3_20261002/c2_once/knowledge.db": "98624edd180a624dfb9d0bffb4f68a5f2d1fcb39af10d53a5bee173d34d04d08",
+    "data/knowledge/semantic_j3_20261002/c2_once/started.json": "c9d64106b005fc18794a697d9f6bcd657eb1bce5a863269368ada5888d877bf0",
+    "data/knowledge/semantic_j3_20261002/c2_once/calls.jsonl": "6fb09dae593e0b336ed4f80b17effee73b56641242abf06690f8b79358e10252",
+    "data/knowledge/semantic_j2_preflight_20261002/diagnostic_inputs.json": "e35c43fbbfe4bd084641fd45829804193cbf6965615fa4243b9f1b212dd198fe"
+  },
+  "settings": {
+    "gemma": {
+      "model": "gemma4:31b-it-q4_K_M",
+      "recipe": {
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v45",
+        "prompt_hash": "74cfbf953825f637657dab94e143d41d424cf10c126c1015dfa5bff647e711d0",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 900,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "f9076f77a9bd5a232e5239dd239a290881f109c074501bd902afad44e58c472d"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+      },
+      "model_options": {
+        "model": "gemma4:31b-it-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "http_calls": 3,
+      "model_seconds": 900
+    }
+  },
+  "http_timeout_s": 300,
+  "max_diagnostic_executions": 1,
+  "unit_count_preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/count.json",
+    "sha256": "ae947b4ad57f83fec5add5818b9433fdf8db7ed8b1bf07f03e044ae8444ef802"
+  },
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured",
+  "scenarios": {
+    "c2": {
+      "config": {
+        "path": "configs/knowledge/quality_20261001/semantic_k4_c2_v1.json",
+        "sha256": "8880ddf648a89a72218b4839d86dfd13c0d5d8e44017d9b757eaeb6a95fd1aba"
+      },
+      "recipe": {
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v45",
+        "prompt_hash": "74cfbf953825f637657dab94e143d41d424cf10c126c1015dfa5bff647e711d0",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 32,
+          "model_seconds": 3600,
+          "searches": 4,
+          "additional_rounds": 0,
+          "revisions": 1
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "f9076f77a9bd5a232e5239dd239a290881f109c074501bd902afad44e58c472d"
+      },
+      "max_executions": 1,
+      "prerequisite": "고정 진단의4주판정/2원명제경계 통과"
+    },
+    "current": {
+      "config": {
+        "path": "configs/knowledge/quality_20261001/semantic_k4_current_v1.json",
+        "sha256": "6a2ef22f9facecc46a3ca06e08d5a1e82f6cde99005bf1beaa613753687c3b2a"
+      },
+      "recipe": {
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v45",
+        "prompt_hash": "74cfbf953825f637657dab94e143d41d424cf10c126c1015dfa5bff647e711d0",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 48,
+          "model_seconds": 6000,
+          "searches": 4,
+          "additional_rounds": 1,
+          "revisions": 1
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "f9076f77a9bd5a232e5239dd239a290881f109c074501bd902afad44e58c472d"
+      },
+      "max_executions": 1,
+      "prerequisite": "C2필수의미/정의/끝점/근거/현재검수/전체preview/필수미처리없음"
+    }
+  },
+  "full_runner": {
+    "path": "scripts/run_knowledge_quality.py",
+    "sha256": "4e36c67148d6c5e67bdebe05f4d77f0f7e222e2974d913a7a97a2d9c57e2ed08"
+  },
+  "source": {
+    "path": "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db",
+    "sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d"
+  },
+  "source_case": {
+    "path": "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json",
+    "sha256": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872"
+  },
+  "condition_assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_h4_condition_assessor_v1.json",
+    "sha256": "77c045f50115ad658356f06303db7c03b4d8b915fbc64857e3f5182522cee7f5"
+  },
+  "full_assessor": {
+    "path": "configs/knowledge/quality_20261001/assessor.json",
+    "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3"
+  },
+  "failure_action": "실패원본보존/후속0/재튜닝재호출없음",
+  "known_limits": [
+    "개발노출입력의제한확인",
+    "자연수정없으면실제수정효과미시험",
+    "참가자0/사람시간null/효용미측정"
+  ],
+  "preparation_files": {
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/freeze.py": "d9b7b120f6cb33d3d08aeea29f9a3aef69a2645fc7422a6b0bfb2db7b586b25c",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/prepare.py": "e8051b16e62478ac76a46fcaa173144699e284fbb1ae667b5e6ded618fe1bdb5",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_k4_preflight_20261003/count.py": "34e472aae5091b0c7ed1bf77a6ab67f666563b48859f24b3719ece0f595e62e6"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "ontology-semantic-k4-current-v1",
+  "frozen_at": "2026-10-02T18:04:48.163219+00:00",
+  "issue": 572,
+  "product_sha": "856dc7a0de5c7a665fdb9bad50accefc4b7f7a1f",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+  },
+  "budgets": {
+    "model_calls": 48,
+    "model_seconds": 6000,
+    "searches": 4,
+    "additional_rounds": 1,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C1",
+          "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+        },
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "K4 명제·연결 독립 검수와 대상별 교정의 current 단일 실행"
+    }
+  ],
+  "rules": [
+    "동결 진단3회 통과 후 C2한번, C2통과후current한번; 실패시 후속0",
+    "실행중 예산 증액·동입력 재튜닝·재시도 없음",
+    "확대한 사전 예산의 다중 변경 제품 확인; 동비용/단일 인과 비교 아님"
+  ]
+}

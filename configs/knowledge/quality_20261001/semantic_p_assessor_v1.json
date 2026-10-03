@@ -1,0 +1,38 @@
+{
+  "id": "ontology-semantic-p-assessor-v1",
+  "issues": [
+    579,
+    585,
+    586
+  ],
+  "frozen_at": "2026-10-03T10:06:08.938466+00:00",
+  "input_to_generation": false,
+  "order": [
+    "E-A natural diagnosis 2",
+    "only if naturally refuted: correction Builder1 and up to3 current rechecks",
+    "only if correction passes: separate direct-definition contrast1"
+  ],
+  "human_measurement": "excluded_by_user",
+  "target_relation_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+  "wrong_object_id": "dc_1179f45a778a4db0b4ea09cad30ac19e",
+  "withheld_normal_tenant_id": "dc_6b57b5ae5c41491786a84c8c6b49a69d",
+  "normal_direct_definition_id": "dc_9b3317b75f0a404b853eeb30bab18b9a",
+  "gates": [
+    "E-A: current natural proposition supported on all four semantic fields; subject binding supported, wrong housing object binding refuted with source-grounded reason. Unknown does not pass.",
+    "The new real E-A review alone drives one Builder correction. No correct tenant/normal contrast answer injected; source relation, stable candidate IDs, source version/parse/block/span/quote and neighbors preserved.",
+    "Role declaration: inspect raw declaration separately from server materialization and stored type. Label is the literal source endpoint; short description only denotes its role in this proposition. No extra qualification-conferral/causality/effect. Free type conditions/exceptions/time absent; natural proposition qualifiers and evidence preserved in role_source.",
+    "Direct definition if chosen: explicit provided direct-definition evidence must actually support every claim. Server branch selection/validation alone cannot establish semantic correctness.",
+    "One current proposition review, one current binding review, and all required new observation batches succeed and support the actual changed candidates. Hashes, role-source dependencies, review composition, finish/recovery and evidence must be current; unsupported old reviews cannot substitute.",
+    "Only after correction independently passes, original D5 profit-sharing housing definition is supported in its separate one-call contrast, including the explicit disposal-triggered buyback/profit-sharing effect. Do not force a valid direct definition into a source-role description.",
+    "No spurious missing meaning, record error, unnecessary normal-candidate correction, truncation, oversize or successful-unit fabrication. Keep historical unrelated failures distinguishable.",
+    "Actual HTTP prompts/schemas/options match their pre-call hashes; frozen runtime/original hashes unchanged. Persist actual dependent prompt hashes before HTTP."
+  ],
+  "failure_action": "Stop at the first failed semantic/structural gate. No automatic tuning, retry or O1 replay. #583 legacy free-definition Critic miss remains unresolved.",
+  "limits": [
+    "Known exposed diagnostic cases, not unseen generalization or whole ontology quality.",
+    "Server prevention is distinct from Critic detection accuracy.",
+    "Explicit legacy Revision tests are model doubles and external correction, not autonomous discovery."
+  ],
+  "next": "Only after all stages pass: freshly budget/freeze C2 once, then current once if C2 passes. Neither is in this freeze.",
+  "assessment_contract": "Each executed phase gets assessment.json with passed boolean and source={path,sha256} pointing to the assessed result. Correction requires the independent E-A assessment; D requires independent correction assessment."
+}

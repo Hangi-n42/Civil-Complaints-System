@@ -1,0 +1,499 @@
+{
+  "id": "ontology-semantic-i3-v1",
+  "issue": 565,
+  "frozen_at": "2026-10-02T05:37:48.493903+00:00",
+  "implementation_commit": "97f9cdf7671e9c672a6203bf1edb76334c3a35f3",
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "6a4fcb07d8923267e30f3d0348f654010035dc2de8ab672becbdd8e6fc1752c5",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "e04b65a4121db3f2f1906e21612a6a19d77306e66624be9616970091b96eca78",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "52da3b611f5bea3b7409ad77379709a25cc21cefb6c883a71efa23cfbddbd4ec",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "39f1dfd16c49327310869033e4b15bfc59800f649628e39086a1a85b7e51e27c",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "2a5779a9690143aa99dc7e8340b5da6358dc93e4bb5b6feddc293df861ab8518",
+    "app/knowledge/discovery_synthesis.py": "4528a5ff228400b1f76bd62ab6802a45e4b4fd1b9aefa0e65dd46da455294267",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "ad5985bc52c426d59c6e3871181c07b6ed37a2a05206d528e15a526927602af8",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6"
+  },
+  "diagnostic_runner": {
+    "path": "scripts/run_knowledge_critic_diagnostic.py",
+    "sha256": "c31108baa10e78d17f27c9f0095d2843233ff4fc721fb34e749f35a46c1ea91a"
+  },
+  "full_runner": {
+    "path": "scripts/run_knowledge_quality.py",
+    "sha256": "4e36c67148d6c5e67bdebe05f4d77f0f7e222e2974d913a7a97a2d9c57e2ed08"
+  },
+  "diagnostic_inputs": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_i3_preflight_20261002/diagnostic_inputs.json",
+    "sha256": "ac280c40a5c4fc47ef10cc0fb0e4993db12dfac90004bc01325bf67840d27226"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_i3_preflight_20261002/preflight.json",
+    "sha256": "8e0f6d31117ad3bd368d703774dad78485ee57c88ed2dd81950d4693657f4f17"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_i3_diagnostic_assessor_v1.json",
+    "sha256": "8992d79c720caad358fc4eaf336306612b0ecf5d673580e77dbab90da25706b6"
+  },
+  "full_assessor": {
+    "path": "configs/knowledge/quality_20261001/assessor.json",
+    "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3",
+    "sections": [
+      "current.C1",
+      "current.C2"
+    ],
+    "input_to_generation": false
+  },
+  "full_condition_assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_h4_condition_assessor_v1.json",
+    "sha256": "77c045f50115ad658356f06303db7c03b4d8b915fbc64857e3f5182522cee7f5"
+  },
+  "original_hashes": {
+    "data/knowledge/semantic_h4_20261002/c2_once/result.json": "308baf152dca9b18c8951c3dfb00e3e3ff2f74786756a041e5081637beeb0c51",
+    "data/knowledge/semantic_h4_20261002/c2_once/knowledge.db": "4908adc15a7aa539ecbdb4ea8ef67c948a59dbb3c674f16f2a8a5ab6be6800ea",
+    "data/knowledge/semantic_h4_20261002/c2_once/started.json": "0e9b0472fe935747b27f8c607eb6ecd8bda39cac4ea568c43971c3dcd7c530f3",
+    "data/knowledge/semantic_h4_20261002/c2_once/calls.jsonl": "2fa768eec94218f6e7c44318fbdb5bfd4f16a29ad7db279d62d51a8ce4a45c9c",
+    "configs/knowledge/quality_20261001/semantic_completion_h4_v1.json": "af0f56edb489ecff69abb89c733150005e327be7877b13ea07bbad311068977c",
+    "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872"
+  },
+  "source": {
+    "study": "data/knowledge/a6_eval_20261001_schema_fix",
+    "db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "case_sha256": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872",
+    "input_run_id": "ac193ea30504461481d5b7798cb95620",
+    "frozen_input": {
+      "bundle_id": "lh_autonomous_input_v1_20260930",
+      "manifest_hash": "eb1379a48588ba7bf6c2be3dc109a797f9da1740ac5599aca85b33bdea315cdf",
+      "scope": "current_discovery",
+      "step": 0,
+      "files": [
+        {
+          "file_id": "public_housing_act_art2:0",
+          "source_id": "337b4041246f491a883b62b54445fa8f",
+          "title": "공공주택 특별법 제2조",
+          "publisher": "국가법령정보센터 / 국토교통부 법령",
+          "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289289&joNo=0002&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+          "rights": {
+            "basis_type": "copyright_act_article7_1",
+            "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+            "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+            "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+            "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+          },
+          "version": "[시행 2026. 9. 8.] [법률 제21895호, 2026. 9. 8., 일부개정]",
+          "group": "current_discovery",
+          "input_scope": "선정 조문 전체",
+          "encoding": "utf-8-sig",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_act_art2.txt",
+          "sha256": "a588b5f95d744481e84c6443eb07e84bf5a6cb15b9d4c72c2690b65153aded2e",
+          "role": "article_body_excerpt",
+          "parser": {
+            "name": "stdlib.text",
+            "version": "1",
+            "adapter_version": "2"
+          },
+          "parser_options": {},
+          "manifest_source_id": "public_housing_act_art2",
+          "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c"
+        },
+        {
+          "file_id": "public_housing_rule_art15:0",
+          "source_id": "a55957afa9c94b4ba57fe01c28809ff6",
+          "title": "공공주택 특별법 시행규칙 제15조",
+          "publisher": "국가법령정보센터 / 국토교통부 법령",
+          "source_url": "https://www.law.go.kr/LSW/lsSideInfoP.do?lsiSeq=289013&joNo=0015&joBrNo=00&docCls=jo&urlMode=lsScJoRltInfoR",
+          "rights": {
+            "basis_type": "copyright_act_article7_1",
+            "basis": "저작권법 제7조제1호 법령 본문; 사이트 디자인과 해설 제외",
+            "evidence_path": "data/knowledge/raw/lh_input_bundle_20260930/legal/copyright_art7.html",
+            "evidence_sha256": "eb43be5e2a3c393972b8e807490c7d8ac419297386e35332209ef91b0f8fbbe3",
+            "exclusions": "법령 원문만. LH 사규·웹사이트 디자인·해설 제외"
+          },
+          "version": "[시행 2026. 8. 24.] [국토교통부령 제1616호, 2026. 8. 24., 일부개정]",
+          "group": "current_discovery",
+          "input_scope": "선정 조문 전체",
+          "encoding": "utf-8-sig",
+          "path": "data/knowledge/raw/lh_input_bundle_20260930/legal/public_housing_rule_art15.txt",
+          "sha256": "d9a456835647f62b0ddc993d5ff1b7cb786653d374e2d28382bd24f71bb6d863",
+          "role": "article_body_excerpt",
+          "parser": {
+            "name": "stdlib.text",
+            "version": "1",
+            "adapter_version": "2"
+          },
+          "parser_options": {},
+          "manifest_source_id": "public_housing_rule_art15",
+          "source_version_id": "a4475cf8e17e4602abd59dde10063d24"
+        }
+      ]
+    },
+    "input_blocks": [
+      {
+        "id": "8ffb509e91a948028f0ab9ff6c889860",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "f8759bd67cd0d175f7bc3f1e7323966acc86f43793382ef2fbd209b8348bf7c0",
+        "locator": {
+          "format": "txt",
+          "line": 1,
+          "start_char": 0,
+          "end_char": 13,
+          "section": "",
+          "table_headers": [],
+          "block_order": 0
+        },
+        "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c",
+        "parse_run_id": "a1ed876f30b744168a9710a4d1af3157",
+        "evidence_id": "8ffb509e91a948028f0ab9ff6c889860"
+      },
+      {
+        "id": "daf1c33e1074469d90b177ba0fac69d5",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "2843a711edd78eda2c88ddabb8dc123db366f72fb10bcc962961721cc62d02d5",
+        "locator": {
+          "format": "txt",
+          "line": 2,
+          "start_char": 13,
+          "end_char": 62,
+          "section": "",
+          "table_headers": [],
+          "block_order": 1
+        },
+        "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c",
+        "parse_run_id": "a1ed876f30b744168a9710a4d1af3157",
+        "evidence_id": "daf1c33e1074469d90b177ba0fac69d5"
+      },
+      {
+        "id": "2641967317ad4690b7e90a099987e208",
+        "file_id": "public_housing_act_art2:0",
+        "text_sha256": "97b593af43fed5b8b8fdd5d3cd7185cf3f75420a3c838d6ab870931ab9df54e2",
+        "locator": {
+          "format": "txt",
+          "line": 4,
+          "start_char": 63,
+          "end_char": 2037,
+          "section": "",
+          "table_headers": [],
+          "block_order": 2
+        },
+        "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c",
+        "parse_run_id": "a1ed876f30b744168a9710a4d1af3157",
+        "evidence_id": "2641967317ad4690b7e90a099987e208"
+      },
+      {
+        "id": "3cd8f01de599414799f4f4894fb7090b",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "94490be59097a72cc05b2525741dccf47bac341785eb529b303ef724c4d3d20f",
+        "locator": {
+          "format": "txt",
+          "line": 1,
+          "start_char": 0,
+          "end_char": 19,
+          "section": "",
+          "table_headers": [],
+          "block_order": 0
+        },
+        "source_version_id": "a4475cf8e17e4602abd59dde10063d24",
+        "parse_run_id": "0100c5fec09449bdba396d9b6654bae3",
+        "evidence_id": "3cd8f01de599414799f4f4894fb7090b"
+      },
+      {
+        "id": "ef929cc0596d4a62bc568e13f93054a0",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "838961b2fb1a056e01384826bbad8425561ca5743b66899a3945c0a973726c44",
+        "locator": {
+          "format": "txt",
+          "line": 2,
+          "start_char": 19,
+          "end_char": 73,
+          "section": "",
+          "table_headers": [],
+          "block_order": 1
+        },
+        "source_version_id": "a4475cf8e17e4602abd59dde10063d24",
+        "parse_run_id": "0100c5fec09449bdba396d9b6654bae3",
+        "evidence_id": "ef929cc0596d4a62bc568e13f93054a0"
+      },
+      {
+        "id": "1e4c6a6dfc69410b923e15b9e748efa4",
+        "file_id": "public_housing_rule_art15:0",
+        "text_sha256": "9732948071b7cd8f33ad2780a4de0cbfeeb35f77f97e33a3ffe67049d00ec14a",
+        "locator": {
+          "format": "txt",
+          "line": 4,
+          "start_char": 74,
+          "end_char": 613,
+          "section": "",
+          "table_headers": [],
+          "block_order": 2
+        },
+        "source_version_id": "a4475cf8e17e4602abd59dde10063d24",
+        "parse_run_id": "0100c5fec09449bdba396d9b6654bae3",
+        "evidence_id": "1e4c6a6dfc69410b923e15b9e748efa4"
+      }
+    ],
+    "parse_units": [
+      {
+        "id": "7e897a7173694031aaebe6e8420a447e",
+        "file_id": "public_housing_act_art2:0",
+        "status": "succeeded",
+        "error": null,
+        "source_version_id": "b2a1cb58636641a7935b1cf84ffffe7c",
+        "parse_run_id": "a1ed876f30b744168a9710a4d1af3157",
+        "block_ids": [
+          "8ffb509e91a948028f0ab9ff6c889860",
+          "daf1c33e1074469d90b177ba0fac69d5",
+          "2641967317ad4690b7e90a099987e208"
+        ]
+      },
+      {
+        "id": "cf26f39b3a274a5485740b3cb64f4a3d",
+        "file_id": "public_housing_rule_art15:0",
+        "status": "succeeded",
+        "error": null,
+        "source_version_id": "a4475cf8e17e4602abd59dde10063d24",
+        "parse_run_id": "0100c5fec09449bdba396d9b6654bae3",
+        "block_ids": [
+          "3cd8f01de599414799f4f4894fb7090b",
+          "ef929cc0596d4a62bc568e13f93054a0",
+          "1e4c6a6dfc69410b923e15b9e748efa4"
+        ]
+      }
+    ]
+  },
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "qwen3.8:27b-q4_K_M",
+      "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+      "context_length": 262144
+    }
+  },
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "model_options": {
+    "model": "qwen3.8:27b-q4_K_M",
+    "temperature": 0,
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false
+  },
+  "http_timeout_s": 300,
+  "diagnostic_recipe": {
+    "profile_version": "a2-survey-v5",
+    "candidate_version": "a2-candidates-v1",
+    "prompt_version": "discovery-a2-v40",
+    "prompt_hash": "21bf4accb650cf997a7548928b40617a65968810fc30d703a7640ec61543868c",
+    "models": {
+      "draft": "gemma4:31b-it-q4_K_M",
+      "review": "qwen3.8:27b-q4_K_M"
+    },
+    "endpoint": "http://127.0.0.1:11434",
+    "budgets": {
+      "model_calls": 2,
+      "model_seconds": 600,
+      "searches": 0,
+      "additional_rounds": 0,
+      "revisions": 0
+    },
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "input_chars": 24000,
+    "call_timeout": 360.0,
+    "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+  },
+  "diagnostic_cases": [
+    {
+      "id": "A",
+      "prompt_sha256": "371419a981bbfc9a23a32f13c4ba92516c4d2486330ce38a33fea9911fb3a9f7",
+      "schema_sha256": "8f5f66171960c07270ff0a97950f536d9ad019eff4216c19c80df0a2ddd8d043"
+    },
+    {
+      "id": "B",
+      "prompt_sha256": "ceffe3c045c84f29a55794ddcce0194b8d0c29ed86d402549a2afb0407fc81f6",
+      "schema_sha256": "8f5f66171960c07270ff0a97950f536d9ad019eff4216c19c80df0a2ddd8d043"
+    }
+  ],
+  "server_field_diff": [
+    {
+      "path": "/unapproved_relations/0/conditions",
+      "before": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여, 한국토지주택공사가 국민임대주택을 건설하여 공급하는 경우",
+      "after": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여"
+    },
+    {
+      "path": "/unapproved_relations/0/source_relation/conditions",
+      "before": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여, 한국토지주택공사가 국민임대주택을 건설하여 공급하는 경우",
+      "after": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여"
+    }
+  ],
+  "model_field_diff": [
+    {
+      "path": "/unapproved_relations/0/conditions",
+      "before": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여, 한국토지주택공사가 국민임대주택을 건설하여 공급하는 경우",
+      "after": "제1항 및 제2항에도 불구하고 해당 지역의 실정을 고려하여"
+    }
+  ],
+  "scenarios": {
+    "c2": {
+      "config": {
+        "path": "configs/knowledge/quality_20261001/semantic_i3_c2_v1.json",
+        "sha256": "90cbba35b78de243d66ec3a73ea29be6dfd0e79913fc730595cd6b5c7293c25a"
+      },
+      "budgets": {
+        "model_calls": 12,
+        "searches": 4,
+        "additional_rounds": 0,
+        "revisions": 1,
+        "model_seconds": 2400
+      },
+      "case": {
+        "id": "current_conditionals",
+        "source_case": "auto_current",
+        "analysis_file_ids": [
+          "public_housing_rule_art15:0"
+        ],
+        "cqs": [
+          {
+            "id": "C2",
+            "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+          }
+        ],
+        "selection_reason": "I3 진단 통과 후 최종 조건의 전체 C2 한 번; 유형 선언·끝점·세부 조건·수정 재검수 확인"
+      },
+      "recipe": {
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v40",
+        "prompt_hash": "21bf4accb650cf997a7548928b40617a65968810fc30d703a7640ec61543868c",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 12,
+          "searches": 4,
+          "additional_rounds": 0,
+          "revisions": 1,
+          "model_seconds": 2400
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+      },
+      "prerequisite": "diagnostic_pass",
+      "max_executions": 1
+    },
+    "current": {
+      "config": {
+        "path": "configs/knowledge/quality_20261001/semantic_i3_current_v1.json",
+        "sha256": "57c62ae115b00114884807c8621c2b6134e22a2afc2fcda22a88cc9cd719b568"
+      },
+      "budgets": {
+        "model_calls": 40,
+        "searches": 4,
+        "additional_rounds": 1,
+        "revisions": 1,
+        "model_seconds": 3600
+      },
+      "case": {
+        "id": "current",
+        "source_case": "auto_current",
+        "analysis_file_ids": [
+          "public_housing_act_art2:0",
+          "public_housing_rule_art15:0"
+        ],
+        "cqs": [
+          {
+            "id": "C1",
+            "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+          },
+          {
+            "id": "C2",
+            "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+          }
+        ],
+        "selection_reason": "I3 진단 통과 후 C2 통과 후 정의 조문과 선정 기준 전체 블록 한 번"
+      },
+      "recipe": {
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v40",
+        "prompt_hash": "21bf4accb650cf997a7548928b40617a65968810fc30d703a7640ec61543868c",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 40,
+          "searches": 4,
+          "additional_rounds": 1,
+          "revisions": 1,
+          "model_seconds": 3600
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "fab97dab9ce82fdc0e6f4b754bafcce9d56ca1fdb2058f49224fe747a40454c4"
+      },
+      "prerequisite": "c2_pass",
+      "max_executions": 1
+    }
+  },
+  "generation_limits": {
+    "diagnostic_http_calls": 2,
+    "diagnostic_model_seconds": 600,
+    "c2_http_calls": 12,
+    "c2_model_seconds": 2400,
+    "current_http_calls": 40,
+    "current_model_seconds": 3600,
+    "total_http_calls": 54,
+    "total_model_seconds": 6600
+  },
+  "procedure": [
+    "구현·동결 커밋푸시 및 사전검수",
+    "Critic A/B 각각 한번",
+    "6대상 독립 검수 통과시 C2한번",
+    "C2최종전체 통과시 current한번",
+    "실패시 후속실행0; 실제재튜닝/재실행 없음"
+  ],
+  "known_limits": [
+    "개발 노출 H4 사례의 좁은 회귀, 일반화 아님",
+    "진단은 수정생성 없이 실제 Critic와 정규화·수정요청만 확인",
+    "자연오류가 없으면 실제수정 효과 미시험"
+  ],
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}

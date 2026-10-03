@@ -1,0 +1,40 @@
+{
+  "id": "ontology-semantic-l4-c2-v1",
+  "frozen_at": "2026-10-03T05:04:01.086550+00:00",
+  "issue": 576,
+  "product_sha": "720f8705f3f2a5d3bc26a3ac107a6ff6f64b6f6f",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+  },
+  "budgets": {
+    "model_calls": 32,
+    "model_seconds": 3600,
+    "searches": 4,
+    "additional_rounds": 0,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "L4 실제 제품 projection과 독립 연결 교정 이후 c2 종단 확인"
+    }
+  ],
+  "rules": [
+    "E-A/E-B/D 진단과 독립 연결교정 통과 후 C2, C2 통과 후 current 각1회",
+    "실행 중 예산 증액·동입력 재튜닝·재시도 없음",
+    "사람0/시간null/효용미측정"
+  ]
+}

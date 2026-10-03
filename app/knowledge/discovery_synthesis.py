@@ -32,10 +32,17 @@ def context_for(candidates, by_id, context_map):
     return context, deps, {c['id']:c for c in candidates}
 
 
-def fits(run, stage, context, deps, supplied, reserve=0):
+def input_size(run, stage, context, deps, supplied):
     _, prompt = a2.make_prompt(run, stage, context, deps, supplied)
-    return (len(prompt)+reserve <= run['recipe']['input_chars'] and
-            len(prompt.encode())+reserve*3+run['recipe']['num_predict'] <= run['recipe']['num_ctx'])
+    output=run['recipe']['binding_num_predict'] if context.get('review_component')=='binding' else run['recipe']['num_predict']
+    return dict(input_chars=len(prompt),input_bytes=len(prompt.encode()),input_chars_limit=run['recipe']['input_chars'],
+        input_bytes_limit=run['recipe']['num_ctx']-output)
+
+
+def fits(run, stage, context, deps, supplied, reserve=0):
+    size=input_size(run,stage,context,deps,supplied)
+    return (size['input_chars']+reserve <= size['input_chars_limit'] and
+            size['input_bytes']+reserve*3 <= size['input_bytes_limit'])
 
 
 def assemble(run, round_number, by_id, context_map, available):
@@ -43,7 +50,7 @@ def assemble(run, round_number, by_id, context_map, available):
     identities.register(run)
     buckets = {}; by_link = {}; revisions = {}
     for unit in run['analysis_units']:
-        if unit['stage']!='revision' or unit['status']!='succeeded': continue
+        if unit['status']!='succeeded' or not unit.get('output', {}).get('history'): continue
         for item in unit['output']['history']:
             revisions[identities.identifier(run,item['candidate_id'])] = (identities.view(run,item['after'],revised=True), unit['dependency_ids'])
     seen = set()
@@ -51,7 +58,7 @@ def assemble(run, round_number, by_id, context_map, available):
         if unit['stage'] not in {'concept','relation','builder'} or unit['status']!='succeeded' or not set(unit['dependency_ids']) <= available:
             continue
         source_groups = run['candidate_groups'] if unit['stage']=='builder' else run['frontier']
-        group = next(g for g in source_groups if g['id']==unit['group_id'])
+        group = next(g for g in source_groups if g['id']==unit.get('parent_group_id',unit['group_id']))
         for row in unit['output'].get('observations', []) + unit['output'].get('relations', []) + unit['output'].get('modeled_relations', []):
             origin = identities.dependencies(run,row['id'])
             if not origin <= available: continue
@@ -65,7 +72,9 @@ def assemble(run, round_number, by_id, context_map, available):
             if group['round']==round_number and row['id'] not in seen: buckets.setdefault(links[0], []).append(candidate)
             seen.add(row['id'])
             for link in links: by_link.setdefault(link, {})[candidate['id']]=candidate
-    assigned={i for g in run['candidate_groups'] for i in g['primary_candidate_ids']+g.get('design_candidate_ids', [])}
+    assigned={i for g in run['candidate_groups'] for i in g['primary_candidate_ids']+g.get('design_candidate_ids', [])+g.get('correction_candidate_ids', [])}
+    assigned.update(identities.identifier(run,c['id']) for u in run['analysis_units']
+                    if u.get('parent_group_id') and u['status']=='succeeded' for c in u['output'].get('observations', []))
     groups = []
     for anchor, rows in sorted(buckets.items()):
         sources = {}
@@ -142,18 +151,20 @@ def add_terms(run, stage, context, deps, supplied, unit, by_id, context_map):
     return context,deps,supplied,omitted
 
 
-def review_context(run, group, taxonomy, by_id, context_map, history=()):
+def review_context(run, group, taxonomy, by_id, context_map, history=(), extra=()):
     effective = {c['id']:c for c in group['candidates']}
     effective.update({c['id']:c for c in group['design_candidates']})
     endpoints = {r[k] for r in taxonomy.get('modeled_relations', []) for k in ('subject','object')}
     endpoints.update(h[k] for h in taxonomy['hierarchies'] for k in ('child_ref','parent_ref'))
     effective.update({i:c for i,c in group['builder_tool_context']['terms'].items() if i in endpoints})
+    effective.update({c['id']:c for c in extra})
     effective.update({h['candidate_id']:identities.view(run,h['after'],revised=True) for h in history})
     context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
     supplied.update({h['id']:h for h in taxonomy['hierarchies']})
     context['review_target_ids']=sorted(set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])+
-        [h['id'] for h in taxonomy['hierarchies']]))
+        [h['id'] for h in taxonomy['hierarchies']]+[c['id'] for c in extra]))
     context['comparison_candidate_ids']=sorted(supplied.keys()-set(context['review_target_ids']))
+    if group.get('comparison_only'): context['comparison_only']=True
     primary,_,_ = context_for([c for i,c in effective.items() if i in context['review_target_ids']],by_id,context_map)
     primary_views = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in primary['blocks']}
     for view in context['blocks']:
@@ -167,114 +178,295 @@ def review_context(run, group, taxonomy, by_id, context_map, history=()):
     return context,deps,supplied
 
 
+def review_batches(context, deps, supplied, by_id, context_map):
+    """Prepare stable focused calls through the existing serial runner."""
+    result=[]
+    targets=set(context['review_target_ids'])
+    for role, marker in [('relations','negation'),('observations','classification')]:
+        ids=sorted(i for i in targets if marker in supplied[i] or role=='observations' and 'child_ref' in supplied[i])
+        for n in range(0,len(ids),2):
+            primary=ids[n:n+2];needed=set(primary)
+            pending=list(primary)
+            while pending:
+                candidate=supplied[pending.pop()]
+                links=list(candidate.get('source_relation_ids', []))
+                fields=('subject','object') if candidate.get('source_relation') else ('child_ref','parent_ref')
+                links += [candidate[k] for k in fields if k in candidate]
+                for identifier in links:
+                    if identifier in supplied and identifier not in needed:
+                        needed.add(identifier);pending.append(identifier)
+            terms={i:deepcopy(supplied[i]) for i in sorted(needed)}
+            required,_,_=context_for(list(terms.values()),by_id,context_map)
+            raw_ids=a2.raw_refs(required)
+            part=deepcopy(context)
+            for field in ('blocks','independently_retrieved','tool_originals'):
+                if field in part:part[field]=[v for v in part[field] if v['ref'] in raw_ids]
+            for field,kind in [('unapproved_relations','negation'),('unapproved_observations','classification')]:
+                part[field]=[terms[i] for i in primary if kind in terms[i]]
+            part['reviewed_base']=[]
+            part['comparison_terms']=[c for i,c in terms.items() if i not in primary]
+            part['taxonomy']=dict(hierarchies=[terms[i] for i in primary if 'child_ref' in terms[i]])
+            part['review_target_ids']=primary
+            part['comparison_candidate_ids']=sorted(needed-set(primary))
+            part['review_focus']=role
+            coverage=[dict(t,candidate_ids=sorted(set(t['candidate_ids']) & set(primary)))
+                      for t in context.get('analysis_target_coverage', []) if set(t['candidate_ids']) & set(primary)]
+            owned=[]
+            for ref in [r for i in primary for r in terms[i].get('evidence_refs', [])] + coverage:
+                span=dict(block_id=ref['block_id'],span=list(ref['span']))
+                if span not in owned: owned.append(span)
+            if context.get('comparison_only'): owned=[];coverage=[]
+            provided=segments.originals(part)
+            for s in owned:
+                a,z=s['span']
+                if any(v['ref']==s['block_id'] and v.get('span',[0,len(v['text'])])==[a,z] for v in provided): continue
+                parent=next((v for v in provided if v['ref']==s['block_id'] and
+                    v.get('span',[0,len(v['text'])])[0]<=a<z<=v.get('span',[0,len(v['text'])])[1]),None)
+                if parent:
+                    offset=parent.get('span',[0])[0]
+                    part['blocks'].append(dict(parent,text=parent['text'][a-offset:z-offset],span=[a,z]))
+            # Exact saved spans only: a legacy block ID cannot establish paragraph ownership.
+            for view in segments.originals(part):
+                a,z=view.get('span',[0,len(view['text'])])
+                own=any(s['block_id']==view['ref'] and s['span'][0]<=a<z<=s['span'][1] for s in owned)
+                view.update(analysis_target=own,context_only=not own)
+            part['analysis_target_coverage']=coverage
+            part['review_scope']=dict(part.get('review_scope', {}),extent='provided_only',whole_input_assessed=False,
+                omitted_comparison_ids=sorted(set(part.get('review_scope', {}).get('omitted_comparison_ids', [])) | (supplied.keys()-needed)),
+                omitted_block_ids=sorted(a2.raw_refs(context)-a2.raw_refs(part)),
+                primary_source_spans=owned,
+                missing_meanings_allowed=bool(owned) and all(any(kind in c for c in terms.values()) for kind in ('classification','negation')))
+            key=role+':'+profile.digest(primary)[:16]
+            bindings=[i for i in primary if terms[i].get('source_relation')]
+            if role=='relations' and bindings:
+                part.update(review_component='proposition',binding_target_ids=bindings)
+                result.append(dict(key=key+':proposition',bundle_key=key,context=part,dependency_ids=list(deps),supplied=terms))
+                for identifier in bindings:
+                    binding=deepcopy(part)
+                    binding.update(review_component='binding',review_target_ids=[identifier],comparison_candidate_ids=sorted(terms.keys()-{identifier}))
+                    result.append(dict(key=key+':binding:'+identifier,bundle_key=key,context=binding,dependency_ids=list(deps),supplied=terms))
+            else:
+                result.append(dict(key=key,context=part,dependency_ids=list(deps),supplied=terms))
+    return result
+
+
+def review_ids(group, revised=False):
+    return group.get('revision_review_unit_ids' if revised else 'review_unit_ids',
+                     [group.get('revision_review_unit_id')] if revised and group.get('revision_review_unit_id') else [] if revised else ['critic:'+group['id']])
+
+
+def pending_review_units(run, group, by_id, context_map):
+    if 'review_unit_ids' in group: return group['review_unit_ids']
+    builder=next((u for u in run['analysis_units'] if u['id']=='builder:'+group['id'] and u['status']=='succeeded'),None)
+    if builder:
+        taxonomy=identities.output(run,builder['output'])
+        context,deps,supplied=review_context(run,group,taxonomy,by_id,context_map)
+        return ['critic:'+group['id']+':'+b['key'] for b in review_batches(context,deps,supplied,by_id,context_map)]
+    primary=[c for c in group['candidates'] if c['id'] in group['primary_candidate_ids']]
+    relations=sum('negation' in c for c in primary)
+    observations=sum('classification' in c for c in primary)
+    designs=0 if group.get('comparison_only') else 2*sum(c.get('statement_type') in {'rule','definition'} for c in primary)
+    hierarchies=a2.models.Taxonomy.model_json_schema()['properties']['hierarchies']['maxItems']
+    count=(relations+1)//2+relations+(observations+designs+hierarchies+1)//2
+    # Reservation identifiers only; no synthetic successful execution units.
+    return ['critic:'+group['id']+':reserved:'+str(n) for n in range(count)]
+
+
+def combined_review(outputs):
+    """Transient revision input; persisted critiques remain individual real calls."""
+    result={field:[v for output in outputs for v in output.get(field, [])] for field in
+        ('issues','missing_meanings','relation_checks','observation_checks','hierarchy_checks','record_errors','gaps','actions','capacity_pending')}
+    result['issues']=[issue for output in outputs for issue in output.get('issues', [])
+                      if not issue.get('candidate_ref') or issue['candidate_ref'] in set(output['review_coverage']['expected_candidate_ids']) & set(output['review_coverage']['valid_candidate_ids'])]
+    result['needs_revision']=any(o['needs_revision'] and (not o.get('issues') or any(i in result['issues'] for i in o['issues'])) for o in outputs)
+    result['review_coverage']={field:sorted({v for o in outputs for v in o['review_coverage'][field]}) for field in
+        ('expected_candidate_ids','valid_candidate_ids','pending_candidate_ids')}
+    result['review_coverage']['candidate_hashes']={i:h for o in outputs for i,h in o['review_coverage']['candidate_hashes'].items()}
+    if any('review_dependency_contract' in o or 'binding_dependency_hashes' in o for o in outputs):
+        result['review_dependency_contract']='selected-types-v1'
+        result['binding_dependency_hashes']={i:h for o in outputs for i,h in o.get('binding_dependency_hashes', {}).items()}
+    return result
+
+
+def focused_reviews(service,run,group,context,deps,supplied,by_id,context_map,index=None,blocks=None,revised=False):
+    batches=review_batches(context,deps,supplied,by_id,context_map)
+    prefix=group['id']+(':revision1:review' if revised else '')
+    field='revision_review_unit_ids' if revised else 'review_unit_ids'
+    group[field]=['critic:'+prefix+':'+b['key'] for b in batches]
+    a2.save(service,run)
+    outputs=[]
+    for batch in batches:
+        if a2.cancelled(service,run): break
+        key=prefix+':'+batch['key']
+        if batch.get('bundle_key'): batch['context']['review_bundle_id']=prefix+':'+batch['bundle_key']
+        output=a2.call(service,run,'critic',key,batch['context'],batch['dependency_ids'],by_id,batch['supplied'])
+        if output is None: continue
+        outputs.append(dict(unit_id='critic:'+key,**output))
+        if not revised: a2.apply_actions(service,run,index,blocks,'critic',key,output)
+        if not output.get('review_component'): a2.queue_recovery(run,output,group,by_id)
+        if revised and any(a['action']!='finish' for a in output.get('actions', [])):
+            group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 후 Critic의 추가 도구 요청 미처리; 사람 검수로 보류') for i in batch['context']['review_target_ids'])
+    complete=reviews.complete_reviews(outputs)
+    for output in complete:
+        if output.get('review_component')=='complete': a2.queue_recovery(run,output,group,by_id)
+    return combined_review(complete) if len(outputs)==len(batches) and complete else None
+
+
 def revise(service, run, group, review, taxonomy, by_id, context_map):
-    candidates = {c['id']:c for c in group['candidates']}
-    candidates.update({c['id']:c for c in group.get('design_candidates', [])})
+    candidates = dict(group.get('builder_tool_context', {}).get('terms', {}))
+    candidates.update({c['id']:c for c in group['candidates'] + group.get('design_candidates', [])})
     candidates.update({c['id']:c for c in taxonomy['hierarchies']})
     source_issues = [dict(candidate_ref=e['relation_ref'],cause='content_error',reason=e['reason'],
                          evidence_ids=[],counter_evidence_ids=[]) for e in group.get('source_errors', [])]
     issues = review['issues'] + source_issues
-    routed = {i['candidate_ref'] for i in issues if i.get('cause') in {'endpoint','alignment','source_absent','budget_exhausted'}}
-    target_ids = {i['candidate_ref'] for i in issues if i['candidate_ref'] and i.get('cause','content_error') in {'content_error','evidence_error'}}
-    target_ids.update(i['candidate_ref'] for i in review['relation_checks'] if i['judgment']!='supported' and i['candidate_ref'] not in routed)
+    target_ids = {i['candidate_ref'] for i in issues if i.get('cause','content_error') in {'content_error','evidence_error'}}
+    target_ids.update(c['candidate_ref'] for field in ('relation_checks','observation_checks')
+                      for c in review.get(field, []) if c['judgment']=='refuted')
     evidence_only = {i['candidate_ref'] for i in issues if i.get('cause')=='evidence_error'}
     evidence_only.update(i for i,c in candidates.items() if c.get('evidence_validation'))
     evidence_only -= {i['candidate_ref'] for i in issues if i.get('cause','content_error')=='content_error'}
     target_ids.update(evidence_only)
-    if not target_ids and not (issues or review.get('missing_meanings') or review.get('record_errors')):
-        target_ids=set(group['primary_candidate_ids'])
-    target_ids &= set(candidates)
     valid = reviews.valid_ids(review,candidates)
     if valid is not None: target_ids &= valid
     editable=set(group['primary_candidate_ids']+group.get('design_candidate_ids', [])) | {c['id'] for c in taxonomy['hierarchies']}
     group['revision_deferrals'] = [dict(candidate_ref=i,reason='비교 후보/검토 기준은 이 묶음에서 수정하지 않음; 담당 묶음 또는 사람 검수로 보류') for i in sorted(target_ids-editable)]
     target_ids &= editable
+    binding_ids = {c['candidate_ref'] for c in review.get('relation_checks', [])
+                   if c['judgment']=='supported' and 'refuted' in c.get('binding_checks', {}).values()
+                   and c['candidate_ref'] in editable and (valid is None or c['candidate_ref'] in valid)
+                   and candidates[c['candidate_ref']].get('source_relation')}
+    binding_ids -= target_ids
+    # Persist the actual target/unit correspondence once, including across cancellation.
+    plan=group.setdefault('correction_plan', [dict(candidate_id=i,stage=stage,
+        key=group['id']+(':'+('revision1' if stage=='revision' else 'binding1')+':'+i))
+        for stage,ids in [('revision',target_ids),('builder',binding_ids)] for i in sorted(ids)])
+    if not plan: return
     if not run['recipe']['budgets']['revisions']:
-        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 예산 0; 사람 검수로 보류') for i in sorted(target_ids))
-        for request in run.get('recovery_requests', []):
-            if request['role']=='revision' and request.get('candidate_ref') in target_ids:
-                request.update(status='budget_exhausted',stop_cause='budget_exhausted',reason='수정 예산 0; 자동 증액 없음')
+        group['revision_deferrals'].extend(dict(candidate_ref=p['candidate_id'],reason='수정 예산 0; 사람 검수로 보류') for p in plan)
         return
-    existing=next((u for u in run['analysis_units'] if u['id']=='revision:'+group['id']+':revision1'),None)
-    if existing and existing['attempts'] and existing['status']!='succeeded':
-        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 1회 사용 후 실패/중단: '+str(existing.get('error') or '결과 저장 미완료')+'; 사람 검수로 보류') for i in sorted(target_ids))
-        return
-    selected = []
-    context = {}; deps=[]; supplied={}
-    for identifier in sorted(target_ids):
-        trial_ids=selected+[identifier]
-        required=set(trial_ids)
-        if any('classification' in candidates[i] or 'child_ref' in candidates[i] for i in trial_ids):
-            required.update(c['id'] for c in taxonomy['hierarchies'])
-        for i in list(required):
-            for key in ('child_ref','parent_ref'):
-                if candidates[i].get(key) in candidates: required.add(candidates[i][key])
-        trial, trial_deps, trial_supplied = context_for([candidates[i] for i in sorted(required)],by_id,context_map)
-        issues=[i for i in review['issues']+source_issues if not i['candidate_ref'] or i['candidate_ref'] in required]
-        checks=[i for i in review['relation_checks'] if i['candidate_ref'] in required]
-        extra_ids=[e for i in issues for f in ('evidence_ids','counter_evidence_ids') for e in i[f]]
-        extra_ids += [e['evidence_id'] for i in checks for e in i.get('evidence_refs', [])]
-        extra_ids += [i['evidence_id'] for i in checks if i['evidence_id']]
-        extra=a2.packet(list(dict.fromkeys(extra_ids)),by_id,context_map)
-        trial['blocks'] += [b for b in extra if b['ref'] not in a2.raw_refs(trial)]
-        trial_deps=sorted(set(trial_deps) | {b['ref'] for b in extra})
-        trial.pop('unapproved_observations'); trial.pop('unapproved_relations'); trial.pop('reviewed_base')
-        trial.update(target_ids=trial_ids, targets=[candidates[i] for i in trial_ids], evidence_only_ids=sorted(set(trial_ids)&evidence_only),
-            source_change_ids=[i for i in trial_ids if candidates[i].get('source_relation') and i not in evidence_only],
-            comparison_candidates=[candidates[i] for i in sorted(required-set(trial_ids))], issues=issues, relation_checks=checks)
-        if fits(run,'revision',trial,trial_deps,trial_supplied):
-            selected=trial_ids;context,deps,supplied=trial,trial_deps,trial_supplied
+    units={u['id']:u for u in run['analysis_units']}
+    unfinished=[p for p in plan if not units.get(p['stage']+':'+p['key'], {}).get('attempts')]
+    successful=[units[p['stage']+':'+p['key']] for p in plan if units.get(p['stage']+':'+p['key'], {}).get('status')=='succeeded']
+    history=[h for u in successful for h in u['output'].get('history', [])]
+    extra=[c for u in successful if u['stage']=='builder' for c in identities.output(run,u['output']).get('observations', [])]
+    pending=[p['stage'] for p in unfinished]
+    if unfinished or history:
+        if group.get('revision_review_unit_ids'):
+            pending += ['critic' for uid in group['revision_review_unit_ids'] if units.get(uid,{}).get('status')!='succeeded']
         else:
-            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='필수 원문 전체가 수정 입력 한도를 초과하여 보류'))
-    if not selected: return
-    followup_id='critic:'+group['id']+':revision1:review'
-    succeeded={u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
-    completed=existing and existing['status']=='succeeded'
-    pending=([] if completed else ['revision']) + (['critic'] if followup_id not in succeeded and (not completed or existing['output']['history']) else [])
+            context,deps,supplied=review_context(run,group,taxonomy,by_id,context_map,history,extra)
+            count=len(review_batches(context,deps,supplied,by_id,context_map))
+            # Each one-relation Builder may add two endpoint types: at most one more focused batch.
+            count += sum(p['stage']=='builder' for p in unfinished)
+            pending += ['critic']*count
     estimates=run.get('role_time_estimates', {})
     required_s=sum(estimates.get(stage, {}).get('estimate_s',run['recipe']['call_timeout']) for stage in pending)
     budget=run['recipe']['budgets'];metrics=run['metrics']
     remaining_s=budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s',0)
     group['revision_reservation']=dict(pending_stages=pending,model_calls=len(pending),estimated_model_s=required_s)
     if budget['model_calls']-metrics['llm_calls']<len(pending) or remaining_s<required_s:
-        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정과 필수 재검수의 호출/시간 예산 부족; 자동 증액 없음') for i in selected)
+        group['revision_deferrals'].extend(dict(candidate_ref=p['candidate_id'],reason='수정과 필수 재검수의 호출/시간 예산 부족; 자동 증액 없음') for p in plan)
         return
-    unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+group['id'])
-    requested=[i for r in unit.get('tool_results', []) for i in r.get('block_ids', [])]
-    deps=sorted(set(deps) | set(unit['dependency_ids']))
-    context,deps,omitted=add_retrieved(run,'revision',context,deps,supplied,requested,by_id,context_map)
-    context,deps,supplied,term_omissions=add_terms(run,'revision',context,deps,supplied,unit,by_id,context_map)
-    group['omitted_revision_term_ids']=term_omissions
-    group['omitted_revision_context_ids']=omitted
-    for request in run.get('recovery_requests', []):
-        if request['role']=='revision' and request.get('candidate_ref') in selected and request['critic_group_id']==group['id']:
-            request['unit_id']='revision:'+group['id']+':revision1'
-    result=a2.call(service,run,'revision',group['id']+':revision1',context,deps,by_id,supplied)
-    if result is not None:
-        group['revision_unit_id']='revision:'+group['id']+':revision1'
+    history=[];extra=[];all_deps=set();provided=[]
+    effective_hierarchies=deepcopy(taxonomy['hierarchies'])
+    for p in plan:
+        if a2.cancelled(service,run): return
+        identifier,stage,key=p['candidate_id'],p['stage'],p['key'];uid=stage+':'+key
+        existing=units.get(uid)
+        for request in run.get('recovery_requests', []):
+            if request['role']==stage and request.get('candidate_ref')==identifier and request['critic_group_id']==group['id']:
+                request['unit_id']=uid
+        if existing and existing.get('attempts') and existing['status']!='succeeded':
+            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='수정 1회 사용 후 실패/중단: '+str(existing.get('error') or '결과 저장 미완료')))
+            continue
+        effective=dict(candidates)
+        effective.update({h['candidate_id']:identities.view(run,h['after'],revised=True) for h in history})
+        effective.update({c['id']:c for c in extra})
+        effective.update({h['id']:h for h in effective_hierarchies})
+        # Full dependencies validate cross-target hierarchy/endpoint consistency after each success.
+        context,deps,supplied=context_for(list(effective.values()),by_id,context_map)
+        focused=stage=='revision' and 'classification' in effective[identifier] and run['recipe'].get('revision_context_contract')=='target-source-v1'
+        if focused:
+            target=effective[identifier]
+            source_ids=list(dict.fromkeys(target.get('source_relation_ids', []) +
+                ([target['role_basis']['relation_ref']] if target.get('role_basis') else [])))
+            natural=[dict(deepcopy(effective[i].get('source_relation') or effective[i]),id=i)
+                for i in source_ids if i in effective and i!=identifier]
+            # Keep the source snapshot in target; never promote a stale snapshot to a current supplied ID.
+            context,_,supplied=context_for([target]+natural,by_id,context_map)
+            if target.get('role_source'):
+                source_context,source_deps,_=context_for([target['role_source']],by_id,context_map)
+                context['blocks'] += [b for b in source_context['blocks'] if b not in context['blocks']]
+                deps=sorted(set(deps)|set(source_deps))
+            context['omitted_comparison_candidate_ids']=sorted(effective.keys()-supplied.keys())
+        checks=[c for field in ('relation_checks','observation_checks') for c in review.get(field, []) if c['candidate_ref']==identifier]
+        selected_issues=[i for i in issues if not i.get('candidate_ref') or i['candidate_ref']==identifier]
+        extra_ids=[e for i in selected_issues for f in ('evidence_ids','counter_evidence_ids') for e in i.get(f, [])]
+        extra_ids += [r['evidence_id'] for c in checks for r in c.get('evidence_refs', [])]
+        if focused:
+            refs=[r for item in selected_issues+checks for field in ('evidence_refs','counter_evidence_refs') for r in item.get(field, [])]
+            extra_ids=list(dict.fromkeys(extra_ids+[r['block_id'] for r in refs]))
+            evidence=[dict(id=i,evidence_ids=[i],evidence_refs=[r for r in refs if r['block_id']==i and r.get('span')]) for i in extra_ids]
+            raw=context_for(evidence,by_id,context_map)[0]['blocks']
+            provided_views=segments.originals(context)
+            context['blocks'] += [b for b in raw if not any(v['ref']==b['ref'] and
+                v.get('span',[0,len(v['text'])])[0]<=b.get('span',[0,len(b['text'])])[0] and
+                b.get('span',[0,len(b['text'])])[1]<=v.get('span',[0,len(v['text'])])[1] for v in provided_views)]
+        else:
+            raw=a2.packet(list(dict.fromkeys(extra_ids)),by_id,context_map)
+            context['blocks'] += [b for b in raw if b['ref'] not in a2.raw_refs(context)]
+        deps=sorted(set(deps) | {b['ref'] for b in raw})
+        if stage=='revision':
+            for field in ('unapproved_observations','unapproved_relations','reviewed_base'): context.pop(field)
+            context.update(target_ids=[identifier],targets=[effective[identifier]],
+                evidence_only_ids=[identifier] if identifier in evidence_only else [],
+                source_change_ids=[identifier] if effective[identifier].get('source_relation') and identifier not in evidence_only else [],
+                comparison_candidates=[c for i,c in supplied.items() if i!=identifier],issues=selected_issues,
+                relation_checks=[c for c in checks if 'negation' in effective[identifier]],
+                observation_checks=[c for c in checks if 'classification' in effective[identifier]])
+        else:
+            original=effective[identifier]
+            supplied[identifier]=deepcopy(original['source_relation'])
+            context.update(unapproved_relations=[supplied[identifier]],design_relation_ids=[identifier],
+                binding_before=original,parent_group_id=group['id'],binding_checks=checks)
+        omitted=[];term_omissions=[]
+        for critic in [u for u in run['analysis_units'] if u['id'] in review_ids(group) and u['status']=='succeeded']:
+            requested=[i for r in critic.get('tool_results', []) for i in r.get('block_ids', [])]
+            deps=sorted(set(deps) | set(critic['dependency_ids']))
+            context,deps,missing=add_retrieved(run,stage,context,deps,supplied,requested,by_id,context_map);omitted.extend(missing)
+            context,deps,supplied,missing=add_terms(run,stage,context,deps,supplied,critic,by_id,context_map);term_omissions.extend(missing)
+        if focused:
+            context['omitted_comparison_candidate_ids']=sorted(effective.keys()-supplied.keys())
+        group['omitted_revision_term_ids']=term_omissions;group['omitted_revision_context_ids']=omitted
+        if not fits(run,stage,context,deps,supplied):
+            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='필수 원문 전체가 수정 입력 한도를 초과하여 보류',
+                **input_size(run,stage,context,deps,supplied)))
+            continue
+        validation=dict(validation_supplied=effective) if focused else {}
+        result=a2.call(service,run,stage,key,context,deps,by_id,supplied,**validation)
+        unit=next(u for u in run['analysis_units'] if u['id']==uid)
+        if result is None:
+            group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='수정 결과 미확정: '+str(unit.get('error') or '취소/중단')))
+            continue
+        history.extend(result.get('history', []));all_deps.update(unit['dependency_ids']);provided.extend(unit['provided_block_ids'])
+        effective_hierarchies=[identities.view(run,h) for h in result.get('effective_hierarchies',effective_hierarchies)]
+        if stage=='builder':
+            extra.extend(identities.output(run,result).get('observations', []))
+            if not result.get('history'):
+                group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='연결 교정 미완료; '+str(result.get('source_errors') or result.get('binding_errors') or result.get('relation_bindings'))))
+    group['correction_candidate_ids']=sorted({c['id'] for c in extra})
+    if history:
+        revised_taxonomy=deepcopy(taxonomy)
+        revised_taxonomy['hierarchies']=effective_hierarchies
+        context,deps,supplied=review_context(run,group,revised_taxonomy,by_id,context_map,history,extra)
+        deps=sorted(set(deps)|all_deps)
+        context['review_scope']=deepcopy(group.get('review_scope',dict(extent='provided_only',whole_input_assessed=False)))
+        context['review_search_status']=[{k:v for k,v in item.items() if k!='block_ids'} for item in group.get('critic_searches', [])]
+        context,deps,omitted=add_retrieved(run,'critic',context,deps,supplied,provided,by_id,context_map)
+        group['omitted_revision_review_context_ids']=omitted
         group['revision_review_status']='미검수 수정 제안; 사람이 재검수해야 함'
-        if result['history']:
-            revision_unit=next(u for u in run['analysis_units'] if u['id']==group['revision_unit_id'])
-            revised_taxonomy=deepcopy(taxonomy)
-            revised_taxonomy['hierarchies']=[identities.view(run,h) for h in result.get('effective_hierarchies',taxonomy['hierarchies'])]
-            context,deps,supplied=review_context(run,group,revised_taxonomy,by_id,context_map,result['history'])
-            deps=sorted(set(deps) | set(revision_unit['dependency_ids']))
-            context['review_scope']=deepcopy(group.get('review_scope',dict(extent='provided_only',whole_input_assessed=False)))
-            context['review_search_status']=[{k:v for k,v in item.items() if k!='block_ids'} for item in group.get('critic_searches', [])]
-            context,deps,omitted=add_retrieved(run,'critic',context,deps,supplied,revision_unit['provided_block_ids'],by_id,context_map)
-            group['omitted_revision_review_context_ids']=omitted
-            key=group['id']+':revision1:review'
-            group['revision_review_unit_id']=followup_id
-            followup=a2.call(service,run,'critic',key,context,deps,by_id,supplied)
-            if followup is not None:
-                group['revision_review_status']='수정 제안의 AI 재검수 저장; 사람 수락 아님'
-                a2.queue_recovery(run,followup,group,by_id)
-                if any(a['action']!='finish' for a in followup.get('actions', [])):
-                    # ponytail: one re-review; further evidence requests stay explicit human deferrals.
-                    group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 후 Critic의 추가 도구 요청 미처리; 사람 검수로 보류') for i in context['review_target_ids'])
-    else:
-        unit=next(u for u in run['analysis_units'] if u['id']=='revision:'+group['id']+':revision1')
-        group['revision_deferrals'].extend(dict(candidate_ref=i,reason='수정 결과 미확정: '+str(unit.get('error') or '취소/중단')+'; 사람 검수로 보류') for i in selected)
+        if focused_reviews(service,run,group,context,deps,supplied,by_id,context_map,revised=True) is not None:
+            group['revision_review_status']='수정 제안의 AI 재검수 저장; 사람 수락 아님'
 
 
 def synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=True):
@@ -320,6 +512,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         group['design_candidates'] = taxonomy.get('observations', []) + taxonomy.get('modeled_relations', [])
         group['source_errors'] = taxonomy.get('source_errors', [])
         group['design_candidate_ids'] = [c['id'] for c in taxonomy.get('observations', []) if c['id'] in new_design_ids]
+        a2.review_reservation(run,round_number,by_id,context_map,a2.allowed_ids(service,blocks))
         context,deps,supplied=review_context(run,group,taxonomy,by_id,context_map)
         try:
             if 'critic_context_ids' not in group:
@@ -349,21 +542,18 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
                 group['review_scope']=dict(extent='provided_only',whole_input_assessed=False,
                     known_not_provided=len(known-supplied.keys()),omitted_comparison_ids=sorted(set(group.get('omitted_related_ids', [])+term_omissions)))
             context['review_scope']=deepcopy(group['review_scope'])
-            review=a2.call(service,run,'critic',key,context,deps,by_id,supplied)
+            review=focused_reviews(service,run,group,context,deps,supplied,by_id,context_map,index,blocks)
             if review is None: continue
-            a2.apply_actions(service,run,index,blocks,'critic',key,review)
             group['status']='review_issues_generated'
-            a2.queue_recovery(run, review, group, by_id)
-            critic_unit=next(u for u in run['analysis_units'] if u['id']=='critic:'+key)
-            needs_context=any(r.get('block_ids') or r.get('terms') for r in critic_unit.get('tool_results', []))
+            needs_context=any(r.get('block_ids') or r.get('terms') for u in run['analysis_units'] if u['id'] in review_ids(group) for r in u.get('tool_results', []))
             candidate_revision = bool(group.get('source_errors')) or review['needs_revision'] and (not review.get('missing_meanings') or any(i.get('candidate_ref') for i in review['issues']))
-            if candidate_revision or needs_context or any(c['judgment']!='supported' for c in review['relation_checks']) or any(c.get('evidence_validation') for c in supplied.values()):
+            if candidate_revision or needs_context or any((c['judgment']=='refuted' if run['recipe'].get('review_contract')=='checks-v1' else c['judgment']!='supported') for field in ('relation_checks','observation_checks') for c in review.get(field, [])) or any(c.get('evidence_validation') for c in supplied.values()):
                 revisions.append((group,review,taxonomy))
         except ValueError as exc:
             group['error']=str(exc)
         a2.save(service,run)
     succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
-    pending = [stage+':'+g['id'] for g in run['candidate_groups'] for stage in ('builder','critic') if stage+':'+g['id'] not in succeeded]
+    pending = [i for g in run['candidate_groups'] for i in ['builder:'+g['id']]+review_ids(g) if i not in succeeded]
     for group,review,taxonomy in revisions:
         if a2.cancelled(service,run): return
         if pending or not allow_revisions:

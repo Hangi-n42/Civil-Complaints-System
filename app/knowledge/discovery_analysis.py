@@ -13,16 +13,17 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v38'
+PROMPT_VERSION = 'discovery-a2-v58'
 
 
 def recipe(budgets):
-    return dict(profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS]),
-        models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_REVIEW_MODEL),
+    from .discovery_binding import PROMPT as binding_prompt
+    return dict(revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='source-role-v1', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+        models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
         num_ctx=32768, num_predict=4096, think=False, input_chars=24000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
-        schema_hash=profile.digest({k: v.model_json_schema() for k, v in models.OUTPUTS.items()}))
+        schema_hash=profile.digest({k: models.output_model(k,'source-role-v1').model_json_schema() for k in models.OUTPUTS}))
 
 
 def model_identity(current):
@@ -112,7 +113,7 @@ def start(service, request):
                 raise ValueError('종료된 분석 실행만 재개할 수 있습니다.')
             run['reused_units'] = [u['id'] for u in run['analysis_units'] if u['status'] == 'succeeded']
             for unit in run['analysis_units']:
-                if unit['status'] != 'succeeded' and not (unit['attempts'] and (unit['stage']=='revision' or ':recovery_' in unit['id'])):
+                if unit['status'] != 'succeeded' and not (unit['attempts'] and (unit['stage']=='revision' or unit.get('parent_group_id') or ':recovery_' in unit['id'])):
                     unit.update(status='queued', error=None)
             run.pop('error', None)
         else:
@@ -285,7 +286,7 @@ def remap(value, mapping):
     return mapping.get(value, value) if isinstance(value, str) else value
 
 
-def normalize(output, stage, run, deps, by_id, supplied, context=None, require_issue_cause=False):
+def normalize(output, stage, run, deps, by_id, supplied, context=None, require_issue_cause=False, *, validation_supplied=None):
     if any(not text.strip() for field in ('findings','gaps') for text in output.get(field, [])):
         raise ValueError('조사 결과/미해결 사유는 빈 문자열일 수 없음')
     if not any(output.get(field) for field in models.RESULT_FIELDS[stage]):
@@ -330,7 +331,7 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                     replacement.update(repaired)
                 source_change = identifier in (context or {}).get('source_change_ids', []) and not evidence_only
                 for key in ('source_relation','source_relation_ids','design_reason'):
-                    if source_change: continue
+                    if source_change or field=='observations' and row.get('definition_mode'): continue
                     if key in original: replacement[key]=deepcopy(original[key])
                 if original.get('source_relation_ids'):
                     replacement['support_type']='design_proposal'
@@ -350,12 +351,18 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
             if item['candidate_ref'] in seen or item['candidate_ref'] not in supplied:
                 raise ValueError('보류 대상 중복 또는 범위 밖 후보')
             seen.add(item['candidate_ref'])
+        # Model references are checked against supplied above; full stored state is server-only.
         effective = dict(supplied)
+        effective.update(validation_supplied or {})
         effective.update({h['candidate_id']:h['after'] for h in history})
         hierarchies = [deepcopy(c) for c in effective.values() if 'child_ref' in c]
         identifiers = [h['id'] for h in hierarchies]
         if hierarchies:
-            checked = normalize({'hierarchies':hierarchies}, 'builder', run, deps, by_id, effective)['hierarchies']
+            hierarchy_deps=set(deps)
+            if validation_supplied is not None:
+                hierarchy_deps.update(e for h in hierarchies for direction in ('a_to_b','b_to_a')
+                    for field in ('evidence_ids','counter_evidence_ids') for e in h[direction].get(field, []))
+            checked = normalize({'hierarchies':hierarchies}, 'builder', run, hierarchy_deps, by_id, effective)['hierarchies']
             for identifier, row in zip(identifiers, checked):
                 row['id'] = identifier
                 effective[identifier] = row
@@ -453,37 +460,79 @@ def issue_ids(run):
 
 async def model_call(prompt, schema, stage, run, timeout):
     return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage=='critic' else 'draft'],
-        num_predict=run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=False,
+        model=run['recipe']['models']['review' if stage in {'critic','binding'} else 'draft'],
+        num_predict=run['recipe']['binding_num_predict'] if stage=='binding' else run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
         timeout=timeout, return_metadata=True, local_only=True)
 
 
 def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
-    context = segments.bind(context, source_scope or run.get('id'), stage+':'+key)
+    stable = run.get('recipe', {}).get('reference_contract') == 'canonical-v1'
+    if stable: mapping = {i:i for i in mapping}
+    context = segments.bind(context, source_scope or run.get('id'), stage+':'+key, stable=stable)
     if stage=='revision':
         context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
                             for c in context['targets']]
+    if stage=='critic':
+        bindings={};uses={}
+        adjacent=context.get('review_focus')=='relations'
+        for field in ('unapproved_relations','reviewed_base','comparison_terms'):
+            for n,c in enumerate(context.get(field, [])):
+                if not c.get('source_relation'): continue
+                bindings[c['id']]=dict(relation_ref=c['id'],subject_ref=c['subject'],object_ref=c['object'],reason=c.get('design_reason',''))
+                if adjacent:
+                    bindings[c['id']].pop('reason')
+                    for endpoint in ('subject','object'):
+                        uses.setdefault(c[endpoint], []).append(dict(relation_ref=c['id'],endpoint=endpoint,source_expression=c['source_relation'][endpoint]))
+                context[field][n]=dict(c['source_relation'],id=c['id'])
+        context['relation_bindings']=list(bindings.values())
+        if adjacent:
+            for field in ('unapproved_observations','reviewed_base','comparison_terms'):
+                for c in context.get(field, []):
+                    if c.get('classification')=='type' and c['id'] in uses:
+                        c['binding_uses']=uses[c['id']]
     if 'review_scope' in context:
         context['review_scope']['provided_source_refs']=[v['source_ref'] for v in segments.originals(context)]
+    component=context.pop('review_component',None)
+    for field in ('review_bundle_id','binding_target_ids'): context.pop(field,None)
+    if component=='proposition':
+        context.pop('relation_bindings',None)
+    context.pop('binding_before',None);context.pop('parent_group_id',None)
     payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
     payload = compact(remap(payload, mapping))
-    prompt = models.COMMON + models.PROMPTS[stage] + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
+    prompt_name='critic_'+context['review_focus'] if stage=='critic' and context.get('review_focus') else stage
+    instruction=models.COMMON + models.PROMPTS[prompt_name]
+    if component=='binding':
+        from .discovery_binding import PROMPT
+        instruction=PROMPT
+    elif component=='proposition':
+        instruction=models.COMMON + models.PROPOSITION_PROMPT
+    if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+        instruction=instruction.replace('type/design_proposal 정의와 source_refs, source_relation_ids, design_reason을 함께 작성한다.',
+            'type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다.')
+        instruction += models.ROLE_DECLARATION_RULE
+    if stage=='builder' and run.get('recipe',{}).get('builder_declaration_contract')=='shared-types-v1':
+        instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
+    if stage=='builder' and run.get('recipe',{}).get('builder_definition_contract')=='roles-only-v1':
+        instruction=instruction.replace(models.DEFINITION_RULE,'').replace(models.ROLE_DECLARATION_RULE,models.BUILDER_ROLE_RULE)
+    prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
 
-def call(service, run, stage, key, context, deps, by_id, supplied=None):
+def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
     supplied = supplied or {}
     uid = stage + ':' + key
     unit = next((u for u in run['analysis_units'] if u['id']==uid), None)
     if unit is None:
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
+    if context.get('binding_before'): unit['parent_group_id']=context['parent_group_id']
     source_scope = unit.setdefault('source_ref_run_id', run['id'])
-    context = segments.bind(context, source_scope, uid)
+    context = segments.bind(context, source_scope, uid,
+        stable=run['recipe'].get('reference_contract') == 'canonical-v1')
     mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
-    input_hash = profile.digest([prompt, run['recipe']])
+    input_hash = profile.digest([prompt, run['recipe']] + ([validation_supplied] if validation_supplied is not None else []))
     # A resumed successful unit is immutable, even when its newly built input is wrong.
     if unit['status'] == 'succeeded':
         if not set(deps) <= allowed_ids(service, list(by_id.values())):
@@ -495,6 +544,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         return None  # One attempt per cause/target; resume cannot reset a failed recovery.
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
+    component=context.get('review_component')
+    output_limit=run['recipe']['binding_num_predict'] if component=='binding' else run['recipe']['num_predict']
     citation_ids = unit['provided_block_ids']
     unit['source_ref_map'] = {b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
                               for b in segments.originals(context)}
@@ -506,7 +557,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if len(prompt) > run['recipe']['input_chars']:
             raise ValueError(f'전체 입력 {len(prompt)}자 예산 초과; 원문을 자르지 않고 미처리')
         # UTF-8 byte count is a conservative token upper bound, never a char=token claim.
-        if len(prompt.encode()) + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
+        if len(prompt.encode()) + output_limit > run['recipe']['num_ctx']:
             raise ValueError('전체 입력의 보수적 토큰 상한이 선언 컨텍스트 초과')
         if run['recipe'] != recipe(run['recipe']['budgets']):
             raise ValueError('실제 호출 시 모델/로컬 처리 설정 변경')
@@ -517,7 +568,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if run['metrics']['llm_calls'] >= budget['model_calls'] or remaining <= 0:
             raise ValueError('모델 호출/시간 예산 종료')
         timeout = min(remaining, run['recipe']['call_timeout'])
-        schema = models.OUTPUTS[stage].model_json_schema()
+        definition_contract=run['recipe'].get('definition_contract')
+        response_model=models.output_model(stage,definition_contract)
+        schema=response_model.model_json_schema()
+        designed_type='DeclaredType' if definition_contract=='source-role-v1' else 'DesignedType'
+        observation_revision='DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
         if stage=='relation':
             targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
             schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
@@ -536,17 +591,20 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             schema['properties']['issues']['maxItems']=8
             primary_targets = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in context.get('blocks', [])
                                if v.get('analysis_target') and not v.get('context_only')}
-            missing_limit = max(2,min(5,len(primary_targets)))
+            missing_limit = 0 if context.get('review_scope', {}).get('missing_meanings_allowed') is False else max(2,min(5,len(primary_targets)))
             schema['properties']['missing_meanings']['maxItems']=missing_limit
             schema['$defs']['Issue']['required'].append('cause')
-            checks=schema['$defs']['RelationCheck']['properties']
-            fields=['subject','object','conditions','statement_type']
-            checks['semantic_checks']=dict(type='object',properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=fields,additionalProperties=False)
-            schema['$defs']['ObservationCheck']['properties'].pop('semantic_checks',None)
+
+            for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
+                fields=models.SEMANTIC_FIELDS[section]
+                schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
+                    properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=list(fields),additionalProperties=False)
             comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
             comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
             comparisons['items']['enum']=comparable or ['']
             comparisons['maxItems']=len(comparable)
+            if run['recipe'].get('review_evidence_contract')=='semantic-checks-v1' and 'review_scope' in context and comparable and missing_limit:
+                comparisons['minItems']=1
         action_schema = schema.get('$defs', {}).get('Action')
         if action_schema:
             variants = []
@@ -581,7 +639,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
         if issue_schema:
             issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
             issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-        for name, field in [('ObservationRevision','classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
+        for name, field in [(observation_revision,'classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
             definition = schema.get('$defs', {}).get(name)
             if definition:
                 ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
@@ -591,6 +649,22 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                 if name in {'RelationCheck','ObservationCheck'}:
                     ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
                     definition['properties']['candidate_ref']['enum'] = ids or ['']
+                    definition['properties'].pop('binding_reasons',None)
+                    if run['recipe'].get('review_contract') == 'checks-v1':
+                        definition['properties'].pop('judgment')
+                        if name=='RelationCheck':
+                            definition['properties']['binding_checks'] = dict(type='object',properties={
+                                k:dict(type='string',enum=['supported','refuted','unknown']) for k in ('subject','object')},
+                                additionalProperties=False)
+                            if all(supplied[i].get('source_relation') for i in context.get('review_target_ids',supplied) if 'negation' in supplied[i]):
+                                definition['properties']['binding_checks']['required'] = ['subject','object']
+                            if run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1':
+                                modeled=[mapping[i] for i in context.get('review_target_ids',supplied) if supplied[i].get('source_relation')]
+                                reasons=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=400)
+                                    for k in ('subject','object')},required=['subject','object'],additionalProperties=False)
+                                if modeled:
+                                    definition['properties']['binding_reasons']=reasons if set(modeled)==set(ids) else dict(anyOf=[reasons,dict(type='object',maxProperties=0)])
+                        else: definition['properties'].pop('binding_checks',None)
                     definition['required'] = [p for p in definition['properties'] if p!='source_refs']
                     schema['required'] = list(schema['properties'])
                     definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
@@ -602,13 +676,19 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
             if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
-            schema['properties']['observations']['maxItems']=0
-            schema['$defs']['DesignedType']['properties'].pop('local_ref')
-            schema['$defs']['DesignedType']['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
+            shared_types=run['recipe'].get('builder_declaration_contract')=='shared-types-v1'
+            local_tokens=[f't{n}' for n in range(1,6) if f't{n}' not in mapping.values()]
+            schema['properties']['observations']['maxItems']=min(5,2*len(relation_ids),len(local_tokens)) if shared_types else 0
+            if shared_types:
+                schema['$defs'][designed_type]['properties']['local_ref']['enum']=local_tokens or ['']
+            else:
+                schema['$defs'][designed_type]['properties'].pop('local_ref')
+            schema['$defs'][designed_type]['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
             binding = schema['$defs']['RelationBinding']['properties']
             binding['relation_ref']['enum'] = relation_ids or ['']
             for field in ('subject_ref','object_ref'):
-                binding[field] = {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/DesignedType'}]}
+                binding[field] = (dict(type='string',enum=type_ids+local_tokens or ['']) if shared_types else
+                    {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]})
             binding_definition=schema['$defs']['RelationBinding']
             variants=[]
             for decision in ('bind','defer','source_error'):
@@ -619,6 +699,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             binding_definition.clear(); binding_definition['anyOf']=variants
             schema['properties']['relation_bindings'].update(minItems=len(relation_ids),maxItems=len(relation_ids))
             schema['required']=list(schema['properties'])
+            if context.get('binding_before'):
+                for field in ('hierarchies','alias_proposals','actions'): schema['properties'][field]['maxItems']=0
             if not relation_ids:
                 schema['properties']['observations']['maxItems']=0
                 schema['properties']['relation_bindings']['maxItems']=0
@@ -665,6 +747,13 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
             for name in ('evidence_ids', 'counter_evidence_ids'):
                 if name in definition.get('properties', {}):
                     definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
+        if stage=='critic' and 'primary_source_spans' in context.get('review_scope', {}):
+            owned=context['review_scope']['primary_source_spans']
+            allowed=[ref for ref,v in unit['source_ref_map'].items() if any(s['block_id']==v['block_id'] and
+                s['span'][0]<=v['span'][0]<v['span'][1]<=s['span'][1] for s in owned)]
+            sources=schema['$defs']['MissingMeaning']['properties']['source_refs']
+            sources['items']['enum']=allowed or ['']
+            if not allowed: schema['properties']['missing_meanings']['maxItems']=0
         for definition in schema.get('$defs', {}).values():
             if 'cq_ids' in definition.get('properties', {}):
                 variants = []
@@ -702,48 +791,117 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None):
                     node['required']=[k for k in node.get('required', []) if k in props]
                     node['required']=list(dict.fromkeys(node['required']+['source_refs']))
                     if 'cq_ids' in props: props['source_refs']['minItems']=1
-                    if 'judgment' in props:
+                    if 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
+                        grounded=deepcopy(node);unknown=deepcopy(node)
+                        grounded['properties']['source_refs']['minItems']=1
+                        checks=unknown['properties']['semantic_checks']
+                        for field in checks['properties'].values(): field['enum']=['supported','unknown']
+                        alternatives=[]
+                        for name in checks['properties']:
+                            branch=deepcopy(checks)
+                            branch['properties'][name]={'type':'string','const':'unknown'}
+                            alternatives.append(branch)
+                        checks.clear();checks['anyOf']=alternatives
+                        node.clear();node['anyOf']=[grounded,unknown]
+                    elif 'judgment' in props:
                         unknown=deepcopy(node);grounded=deepcopy(node)
                         unknown['properties']['judgment']={'type':'string','const':'unknown'}
                         grounded['properties']['judgment']={'type':'string','enum':['supported','refuted']}
                         grounded['properties']['source_refs']['minItems']=1
                         node.clear();node['anyOf']=[unknown,grounded]
+        if stage=='critic' and run['recipe'].get('review_contract') == 'checks-v1':
+            issue=schema['$defs']['Issue']
+            other=deepcopy(issue)
+            issue['properties']['cause']['enum']=['evidence_error','alignment','source_absent','budget_exhausted']
+            other['properties']['cause']['enum']=['content_error','endpoint']
+            checked={i for i in context.get('review_target_ids',supplied) if 'classification' in supplied[i] or 'negation' in supplied[i]}
+            other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
+            schema['$defs']['Issue']={'anyOf':[issue,other]}
         source_only(schema)
+        if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+            natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
+            if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
+            design.declaration_schema(schema,natural_ids,list(unit['source_ref_map']),
+                role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
+        if component=='binding':
+            from .discovery_binding import schema as binding_schema
+            identifier=context['review_target_ids'][0]
+            schema=binding_schema(mapping[identifier],['subject','object'],list(unit['source_ref_map']))
+        elif component=='proposition':
+            definition=schema['$defs']['RelationCheck']
+            for branch in definition.get('anyOf',[definition]):
+                for field in ('binding_checks','binding_reasons'):
+                    branch['properties'].pop(field,None)
+                    branch['required']=[k for k in branch['required'] if k!=field]
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1
         save(service, run)
         started = monotonic(); metadata = None
         try:
-            metadata = asyncio.run(model_call(prompt, schema, stage, run, timeout))
+            metadata = asyncio.run(model_call(prompt, schema, 'binding' if component=='binding' else stage, run, timeout))
             unit['raw_output'] = metadata['text']
             if metadata.get('done_reason') == 'length' or metadata.get('done') is False:
                 raise ValueError('모델 출력 절단')
-            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + run['recipe']['num_predict'] > run['recipe']['num_ctx']:
+            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + output_limit > run['recipe']['num_ctx']:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             decoded = json.loads(metadata['text'])
-            if stage=='builder': design.inline_types(decoded)
+            if stage=='builder':
+                if run['recipe'].get('builder_declaration_contract')=='shared-types-v1':
+                    if len(decoded.get('observations',[]))>min(5,2*len(context.get('design_relation_ids', []))):
+                        raise ValueError('새 유형 선언 수가 주관계의 끝점 예약 상한 초과')
+                    if any(isinstance(b.get(k),dict) for b in decoded.get('relation_bindings',[]) if isinstance(b,dict) for k in ('subject_ref','object_ref')):
+                        raise ValueError('새 유형은 observations에 한 번 선언하고 지역 참조로 연결해야 함')
+                else:
+                    design.inline_types(decoded)
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
-            output = models.OUTPUTS[stage].model_validate(decoded).model_dump(warnings=False)
-            if stage=='builder': design.scope_local_refs(output)
+            output = deepcopy(decoded) if component=='binding' else response_model.model_validate(decoded).model_dump(warnings=False)
+            if stage=='builder': design.scope_local_refs(output, mapping.values())
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
                 original = supplied.get(identifier, {})
                 source_change = identifier in context.get('source_change_ids', [])
                 if stage=='relation' or (stage=='revision' and (source_change or original.get('endpoint_mode')=='source_text' and not original.get('source_relation'))):
+                    if stage=='revision':
+                        raw=original.get('source_relation',original)
+                        types={i for i,c in supplied.items() if c.get('classification')=='type'}
+                        if original.get('source_relation'): types.update(original[k] for k in ('subject','object'))
+                        type_refs=types | {mapping[i] for i in types if i in mapping}
+                        if row['statement_type']=='design_proposal' or any(row[k]!=raw[k] and row[k] in type_refs for k in ('subject','object')):
+                            raise ValueError('원명제 수정은 유형 ID/별칭 또는 design_proposal로 대체할 수 없음')
                     row['endpoint_mode']='source_text'
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
             if stage!='critic': segments.restore(output, by_id, segments.originals(context))
-            output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic')
-            if stage=='critic':
+            if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract')=='source-role-v1':
+                design.declarations(output,supplied,by_id,context,
+                    role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
+            if component=='binding':
+                output=reviews.normalize_binding(output,supplied,context,by_id)
+            else:
+                output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic',
+                    validation_supplied=validation_supplied)
+            if component:
+                output.update(review_component=component,review_bundle_id=context['review_bundle_id'],
+                    binding_target_ids=context['binding_target_ids'],
+                    review_scope_hash=profile.digest([segments.originals(context),context.get('review_scope', {})]))
+            if stage=='builder' and context.get('binding_before'):
+                before=context['binding_before']
+                if output['hierarchies'] or output['alias_proposals'] or output['actions']:
+                    raise ValueError('연결 교정은 해당 관계와 필요한 유형만 변경 가능')
+                output['history']=[]
+                for after in output['modeled_relations']:
+                    if after['id']!=before['id'] or after['source_relation']!=before['source_relation']:
+                        raise ValueError('연결 교정의 관계 ID 또는 원명제 변경')
+                    output['history'].append(dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason']))
+            if stage=='critic' and component!='binding':
                 count = len(decoded.get('missing_meanings', []))
                 output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
                     primary_analysis_targets=len(primary_targets),semantic_completeness='미검증; 상한 미도달도 전체 검수 완료가 아님')
-                output['capacity_pending'] = ['누락 의미 응답 상한 도달; 추가 미검수 의미 가능성'] if count>=missing_limit else []
+                output['capacity_pending'] = ['누락 의미 응답 상한 도달; 추가 미검수 의미 가능성'] if missing_limit and count>=missing_limit else []
             if stage in {'concept', 'relation'}:
                 rows = output['observations' if stage=='concept' else 'relations']
                 group = next(g for g in run['frontier'] if g['id']==key)
@@ -810,7 +968,7 @@ def apply_actions(service, run, index, blocks, stage, key, output):
 
 
 def base_context(run):
-    return [dict(c, review_status='reviewed', classification=c.get('classification') or
+    return [dict(c, **{k:v for k,v in c.get('modeling_origin', {}).items() if k in {'definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs'}}, review_status='reviewed', classification=c.get('classification') or
                  {'concept':'type', 'attribute':'property_value', 'vocabulary_concept':'vocabulary'}.get(c['kind'], 'unresolved'))
             for c in run.get('base_candidates', [])]
 
@@ -818,7 +976,7 @@ def base_context(run):
 def meaning_signature(candidate, supplied=None):
     supplied = supplied or {}
     candidate = candidate.get('source_relation') or candidate
-    fields = ('label','classification','definition','conditions','exceptions','time') if 'classification' in candidate else (
+    fields = ('label','classification','definition','conditions','exceptions','time','role_basis','definition_mode') if 'classification' in candidate else (
         'subject','predicate','object','direction','negation','conditions','time','statement_type')
     values = {k:candidate.get(k, '') for k in fields}
     for key in ('subject','object'):
@@ -860,9 +1018,12 @@ def queue_recovery(run, review, group, by_id=None):
             validation.append('선택 분석 블록 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
         targets = []
         for ref in need['evidence_refs']:
+            if 'primary_source_spans' in need and not any(s['block_id']==ref['block_id'] and
+                    s['span'][0]<=ref['span'][0]<ref['span'][1]<=s['span'][1] for s in need['primary_source_spans']):
+                validation.append('이번 주검토 소유 구간 밖 누락 재추출 인용')
             views = [v for v in owned if v['block_id']==ref['block_id'] and v['span'][0]<=ref['span'][0] and ref['span'][1]<=v['span'][1]]
             if owners and not views: validation.append('담당 분석 구간 밖 비교 원문은 누락 재분석 대상으로 사용할 수 없음')
-            view = views[0] if views and need.get('trigger')!='target_response' else ref
+            view = views[0] if views and need.get('trigger')!='target_response' and 'primary_source_spans' not in need else ref
             target = [view['block_id'], view['span']]
             if target not in targets: targets.append(target)
         request = add('extraction_missing', need['role'], sorted(targets), need, validation)
@@ -888,7 +1049,10 @@ def queue_recovery(run, review, group, by_id=None):
         c = candidates[identifier]
         for cause, reason in [('endpoint', '미연결 끝점: '+', '.join(c.get('unresolved_endpoints', []))),
                               ('evidence_error', '; '.join(c.get('evidence_validation', [])))]:
-            if cause=='endpoint' and not c.get('unresolved_endpoints') or cause=='evidence_error' and not c.get('evidence_validation'): continue
+            bound_elsewhere = group.get('comparison_only') and any(
+                row['id']==identifier and row.get('source_relation') and not row.get('unresolved_endpoints')
+                for owner in run.get('candidate_groups', []) if not owner.get('comparison_only') for row in owner.get('design_candidates', []))
+            if cause=='endpoint' and (bound_elsewhere or not c.get('unresolved_endpoints')) or cause=='evidence_error' and not c.get('evidence_validation'): continue
             issues.append(dict(candidate_ref=identifier,cause=cause,reason=reason))
     for issue in issues:
         cause = issue.get('cause', 'content_error')
@@ -898,10 +1062,12 @@ def queue_recovery(run, review, group, by_id=None):
         if cause=='endpoint': target['endpoints']=c.get('unresolved_endpoints') or ['subject','object']
         if cause=='alignment': target['definition_id']=issue.get('target_ref', '')
         role = 'revision' if cause in {'evidence_error','content_error'} else 'builder' if cause=='endpoint' else 'review'
+        outside_review = identifier and 'review_coverage' in review and identifier not in review['review_coverage']['expected_candidate_ids']
+        if outside_review: role='review'
         request = add(cause, role, target, dict(meaning=issue['reason'],candidate_ref=identifier,
             target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', ''),
             assessment_scope=deepcopy(review.get('review_scope', {}))))
-        if cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
+        if outside_review or cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
             request.update(status='budget_exhausted' if cause=='budget_exhausted' else 'source_absent' if cause=='source_absent' else 'manual_review',
                 reason=('원문 관계 보존; 기존 Builder 연결 결과를 명시 검수' if cause=='endpoint' else
                         '관련 기존 정의와 명시 대응 검수' if cause=='alignment' else issue.get('defer_reason') or issue['reason']))
@@ -920,7 +1086,7 @@ def recovery_groups(run, round_number, by_id):
             owned = [v for g in owners for v in g.get('segments', []) if v['block_id']==block_id]
             matching = [v for v in owned or segments.split(b) if v['span'][0] <= ref['span'][0] and ref['span'][1] <= v['span'][1]]
             view = deepcopy(matching[0]) if matching else dict(block_id=b['id'],span=span,shared_spans=[],recipe=segments.VERSION)
-            if request.get('trigger')=='target_response':
+            if request.get('trigger')=='target_response' or 'primary_source_spans' in request:
                 a,z = view['span']
                 view['shared_spans'] += [s for s in ([a,span[0]],[span[1],z]) if s[0]<s[1]]
                 view.update(span=span,analysis_target=True)
@@ -1039,11 +1205,12 @@ def ordered_groups(run, groups, phase):
 
 
 def review_reservation(run, round_number, by_id, context_map, available):
-    from .discovery_synthesis import assemble
+    from .discovery_synthesis import assemble, pending_review_units
     # Preview on a copy: no successful unit, group assignment or representative ID changes.
     groups = run.get('candidate_groups', []) + assemble(deepcopy(run), round_number, by_id, context_map, available)
     succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
-    pending = [dict(unit_id=stage+':'+g['id'],stage=stage,round=g.get('round',0)) for g in groups for stage in ('builder','critic') if stage+':'+g['id'] not in succeeded]
+    pending = [dict(unit_id=uid,stage=uid.split(':')[0],round=g.get('round',0)) for g in groups
+               for uid in (['builder:'+g['id']] if 'builder:'+g['id'] not in succeeded else []) + pending_review_units(run,g,by_id,context_map) if uid not in succeeded]
     estimates = run.setdefault('role_time_estimates', {})
     for stage in ('concept','relation','builder','critic','revision'):
         observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
@@ -1113,15 +1280,25 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
     needed = [stage for stage in roles if not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])]
     if needed:
         reservation = review_reservation(run, group['round'], by_id, context_map, allowed_ids(service,blocks))
-        future = needed + ['builder','critic'] # Minimum one new group; actual count is recomputed after analysis.
+        future = needed + ['builder','critic','critic'] # Minimum relation and observation packets; recompute after analysis.
         budget = run['recipe']['budgets']; metrics = run['metrics']
         remaining_calls = budget['model_calls']-metrics['llm_calls']
         remaining_s = budget['model_seconds']-metrics['model_total_s']-metrics.get('interrupted_time_reserve_s', 0)
         estimated_s = reservation['estimated_model_s']+sum(run['role_time_estimates'][stage]['estimate_s'] for stage in future)
-        proceed = remaining_calls >= reservation['model_calls']+len(future) and remaining_s >= estimated_s
+        calls_fit = remaining_calls >= reservation['model_calls']+len(future)
+        proceed = calls_fit and remaining_s >= estimated_s
+        first_entry = (calls_fit and not reservation['pending_units'] and not run.get('initial_review_group_id')
+            and not any(u['stage'] in {'concept','relation'} and u.get('attempts') for u in run['analysis_units'])
+            and all(not run['role_time_estimates'][stage].get('observed_count') for stage in ('builder','critic')))
+        same_entry = run.get('initial_review_group_id')==key and remaining_calls>=len(needed)
+        initial_review = (not proceed and (first_entry or same_entry)
+            and remaining_s >= sum(run['role_time_estimates'][stage]['estimate_s'] for stage in needed))
+        if initial_review:
+            run['initial_review_group_id'] = key
+            proceed = True
         group['budget_allocation'] = dict(used_calls=metrics['llm_calls'],used_model_s=metrics['model_total_s'],
             remaining_calls=remaining_calls,remaining_model_s=remaining_s,pending_review_calls=reservation['model_calls'],
-            next_minimum_calls=len(future),reserved_estimated_s=round(estimated_s,3),decision='analyze' if proceed else 'review_existing')
+            next_minimum_calls=len(future),reserved_estimated_s=round(estimated_s,3),decision='analyze_then_review' if initial_review else 'analyze' if proceed else 'review_existing')
         if not proceed:
             group['error'] = '분석 및 실제 Builder/Critic 묶음 예약 호출/시간 예산 부족; 기존 후보 검수로 전환'
             return False
@@ -1217,6 +1394,7 @@ def linked_blocks(run, group, stage, available):
 
 
 def finish(run, blocks, available):
+    from .discovery_synthesis import review_ids
     identities.register(run)
     by_id = {b['id']: b for b in blocks}
     for group in run.get('frontier', []):
@@ -1243,24 +1421,28 @@ def finish(run, blocks, available):
         if u['stage'] not in {'builder','revision'}: continue
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
-    review_units = {u['group_id']:u['output'] for u in outputs if u['stage']=='critic'}
+    current = reviews.with_selected_base_types(current,run)
+    critic_views=reviews.complete_reviews([dict(unit_id=u['id'],**u['output']) for u in outputs if u['stage']=='critic'])
+    latest_reviews = reviews.latest_by_candidate(critic_views,current)
+    review_units = {i:r for r in critic_views for i in r.get('component_unit_ids',[r['unit_id']])}
+    reviewed_candidates = set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))
+    reviewed=set()
     for group in run.get('candidate_groups', []):
-        followup = next((u for u in outputs if u['id']==group.get('revision_review_unit_id')), None)
-        if followup: review_units[group['id']]=followup['output']
-    reviewed = {g['id'] for g in run.get('candidate_groups', []) if g['status']=='review_issues_generated'
-                and g['id'] in review_units and not review_units[g['id']].get('record_errors')
-                and not review_units[g['id']].get('capacity_pending')
-                and (reviews.valid_ids(review_units[g['id']],current) is None or
-                     set(review_units[g['id']].get('review_coverage', {}).get('expected_candidate_ids',
-                         g['primary_candidate_ids']+g.get('design_candidate_ids', []))) <= reviews.valid_ids(review_units[g['id']],current))}
+        required=review_ids(group,True) or review_ids(group)
+        own=[review_units[i] for i in required if i in review_units]
+        for review in own:
+            if reviews.valid_ids(review,current) is None:
+                reviewed_candidates.update(group['primary_candidate_ids']+group.get('design_candidate_ids', []))
+        if group['status']!='review_issues_generated' or not required or len(own)!=len(required): continue
+        if all(not r.get('record_errors') and not r.get('capacity_pending') and
+               (reviews.valid_ids(r) is None or set(r['review_coverage']['expected_candidate_ids']) <= reviews.valid_ids(r)) and
+               set(r.get('review_coverage', {}).get('expected_candidate_ids', [])) <= reviewed_candidates for r in own):
+            reviewed.add(group['id'])
     processed = {g['id'] for g in run.get('frontier', []) if not g.get('capacity_pending') and all(any(u['id']==stage+':'+g['id'] for u in outputs) for stage in g.get('roles', ['concept','relation']))}
     required_pending = [g['id'] for g in run.get('frontier', []) if g['required'] and g['id'] not in processed]
     required_pending += [g['id'] for g in run.get('candidate_groups', []) if g['id'] not in reviewed]
-    reviewed_candidates = {i for g in run.get('candidate_groups', []) if g['id'] in review_units
-        for i in [*g['primary_candidate_ids'],*g.get('design_candidate_ids', [])] if i in (reviews.valid_ids(review_units[g['id']],current)
-            if reviews.valid_ids(review_units[g['id']],current) is not None else set(g['primary_candidate_ids']+g.get('design_candidate_ids', [])))}
     reviewed_candidates -= {h['candidate_id'] for h in history
-        if not any(h['candidate_id'] in (reviews.valid_ids(r,current) or set()) for r in review_units.values())}
+        if not any(h['candidate_id'] in (reviews.valid_ids(r,current,latest_reviews) or set()) for r in review_units.values())}
     unreviewed_candidates = sorted({identities.identifier(run,c['id']) for c in original_observations+original_relations
         if not c['validation'] and not c['outside_scope_reason'] and identities.identifier(run,c['id']) not in reviewed_candidates})
     no_result = [dict(group_id=g['id'], empty_roles=[stage for stage in g.get('roles', ['concept','relation'])
@@ -1298,7 +1480,8 @@ def finish(run, blocks, available):
         created = [c['id'] for u in units for field in ('observations','relations') for c in u['output'].get(field, []) if not c['validation'] and not c['outside_scope_reason']]
         if unit and unit['status']=='succeeded':
             created += [h['candidate_id'] for h in unit['output'].get('history', []) if h['candidate_id']==request.get('candidate_ref') and not h['after']['validation']
-                        and (meaning_signature(h['before'])!=meaning_signature(h['after']) or h['before'].get('evidence_refs')!=h['after'].get('evidence_refs'))]
+                        and (meaning_signature(h['before'])!=meaning_signature(h['after']) or h['before'].get('evidence_refs')!=h['after'].get('evidence_refs')
+                            or any(h['before'].get(k)!=h['after'].get(k) for k in ('subject','object')))]
         request['proposal_ids'] = created
         if request['validation']:
             request.update(status='invalid',reason='; '.join(request['validation']))
@@ -1319,23 +1502,38 @@ def finish(run, blocks, available):
                 request.update(status='manual_review',reason='자동 수정 미선택 또는 유효 검토 부족; 대상 후보 명시 검수 필요')
         request['unattempted_meanings'] = [m for m in request.get('meanings', []) if m not in request.get('submitted_meanings', request.get('meanings', []))]
         request['proposal_review_status'] = 'unverified'  # A Critic output is not human acceptance.
-    unresolved_recovery = list(run.get('recovery_requests', []))
+        identifier=request.get('candidate_ref')
+        current_review=latest_reviews.get(identifier)
+        checks=[c for field in ('relation_checks','observation_checks') for c in (current_review or {}).get(field, []) if c['candidate_ref']==identifier]
+        if (request.get('proposal_ids') and unit and unit['status']=='succeeded'
+                and request.get('cause') in {'content_error','evidence_error','endpoint'} and current_review
+                and identifier in (reviews.valid_ids(current_review,current) or set())
+                and checks and all(c['judgment']=='supported' and not c.get('binding_validation') for c in checks)
+                and not any(i.get('candidate_ref') in {'',identifier} for i in current_review.get('issues', []))):
+            request.update(semantic_status='supported',proposal_review_status='current_critic_supported',
+                reason='현재 후보 지문의 AI 재검수 지지; 사람 수락 아님')
+    unresolved_recovery = [r for r in run.get('recovery_requests', []) if r['semantic_status']!='supported']
     recovery_groups_ids = {r['group_id'] for r in unresolved_recovery if r.get('group_id')}
     recovery_groups_ids.update(g['id'] for g in run.get('candidate_groups', []) if recovery_groups_ids & set(g['analysis_group_ids']))
-    recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in {r.get('unit_id') for r in unresolved_recovery}]
+    recovery_review_ids={i for g in run.get('candidate_groups', []) if g['id'] in recovery_groups_ids for i in review_ids(g)+review_ids(g,True)}
+    correction_ids={r.get('unit_id') for r in run.get('recovery_requests', [])}
+    recovery_review_ids.update(i for g in run.get('candidate_groups', [])
+        if any(p['stage']+':'+p['key'] in correction_ids for p in g.get('correction_plan', [])) for i in review_ids(g,True))
+    recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in recovery_review_ids | {r.get('unit_id') for r in run.get('recovery_requests', [])}]
     attempts = [a for u in recovery_units for a in u['attempts']]
     run['metrics'].update(recovery_calls=len(attempts), recovery_model_s=round(sum(a.get('elapsed_s',0) for a in attempts),3),
-        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in unresolved_recovery),
+        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in run.get('recovery_requests', [])),
         recovery_remaining_by_cause={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
             for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})})
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     bindings = [dict(unit_id=u['id'],**u['output']['binding_coverage']) for u in outputs if 'binding_coverage' in u['output']]
-    binding_pending = [i for b in bindings for i in b['pending_relation_ids']+b['deferred_relation_ids']]
+    latest_bindings={i:b for b in bindings for i in b['expected_relation_ids']}
+    binding_pending = [i for i,b in latest_bindings.items() if i in b['pending_relation_ids']+b['deferred_relation_ids']]
     run['result'] = dict(reference_gaps=reference_gaps, unfulfilled_read_requests=unfulfilled, payload_version='a2-analysis-v2', review_status='unreviewed',
         design_binding_coverage=bindings, design_pending_relation_ids=sorted(set(binding_pending)),
         analysis_target_coverage=[dict(group_id=g['id'],**t) for g in run.get('frontier', []) for t in g.get('analysis_target_coverage', [])],
-        review_outcomes=[dict(unit_id=u['id'],**u['output']['review_outcomes']) for u in outputs if 'review_outcomes' in u['output']],
+        review_outcomes=[dict(unit_id=r['unit_id'],**r['review_outcomes']) for r in critic_views if 'review_outcomes' in r],
         original_observations=original_observations, original_relations=original_relations, revision_history=history,
         revisions=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='revision'],
         revision_deferrals=[d for g in run.get('candidate_groups', []) for d in g.get('revision_deferrals', [])],
@@ -1344,16 +1542,16 @@ def finish(run, blocks, available):
         outside_scope=[c for c in candidates if c['outside_scope_reason']],
         alignments=[identities.alignment(run,a) for u in outputs for a in u['output'].get('alignments', [])],
         taxonomy=[dict(unit_id=u['id'], **identities.output(run,u['output'])) for u in outputs if u['stage']=='builder'],
-        critiques=[dict(unit_id=u['id'], **u['output']) for u in outputs if u['stage']=='critic'],
+        critiques=critic_views,
         review_pending_candidate_ids=sorted({i for i,c in current.items() if c.get('review_status')!='reviewed'} - reviewed_candidates -
-            set().union(*(reviews.valid_ids(r,current) or set() for r in review_units.values()))),
-        review_record_errors=[dict(unit_id=u['id'],**error) for u in outputs if u['stage']=='critic' for error in u['output'].get('record_errors', [])],
+            set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))),
+        review_record_errors=[dict(unit_id=r['unit_id'],**error) for r in critic_views for error in r.get('record_errors', [])],
         recovery_requests=run.get('recovery_requests', []), unresolved_recovery_requests=unresolved_recovery,
         deferred_comparison_ids=deferred_comparisons,
         capacity_pending=[dict(group_id=g['id'], reasons=g['capacity_pending'], **g['capacity'])
                           for g in run.get('frontier', []) if g.get('capacity_pending')]
-                         + [dict(group_id=i,stage='critic',reasons=r['capacity_pending'],**r['capacity'])
-                            for i,r in review_units.items() if r.get('capacity_pending')],
+                         + [dict(group_id=r['unit_id'],stage='critic',reasons=r['capacity_pending'],**r['capacity'])
+                            for r in critic_views if r.get('capacity_pending')],
         incomplete_review_searches=[dict(group_id=g['id'], **search) for g in run.get('candidate_groups', [])
                                    for search in g.get('critic_searches', []) if search['status']!='succeeded'],
         coverage=coverage, gaps=gaps, failures=failures, mandatory_pending=required_pending,
@@ -1456,6 +1654,20 @@ def execute(service, run_id):
                     queue_recovery(run, {'issues':[dict(cause='budget_exhausted',reason=group['error'],defer_reason=group['error'])]}, group)
                 save(service, run)
                 if proceed is False: break
+                if run.get('initial_review_group_id')==group['id']:
+                    # One unobserved-time entry: review its output before opening another extraction.
+                    synthesize(service, run, round_number, index, blocks, by_id, context_map, allow_revisions=False)
+                    reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+                    current = deepcopy(run)
+                    finish(current,blocks,allowed_ids(service,blocks))
+                    review_blocked = bool(reservation['pending_units']) or any(
+                        g['id'] in current['result']['mandatory_pending'] for g in run['candidate_groups'] if g['round']<=round_number)
+                    successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
+                    review_blocked |= any(stage+':'+group['id'] not in successful for stage in group.get('roles',['concept','relation']))
+                    if review_blocked:
+                        group['error'] = '최초 분석 묶음의 필수 검수/분석 미완료; 후속 추출 보류'
+                        save(service,run)
+                        break
             successful = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
             primary_pending = any(stage+':'+g['id'] not in successful for g in pending for stage in g.get('roles',['concept','relation']))
             if not review_blocked:

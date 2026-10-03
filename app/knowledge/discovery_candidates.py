@@ -21,7 +21,7 @@ def exact_key(candidate):
     if candidate.get('validation') or candidate.get('evidence_validation') or candidate.get('outside_scope_reason') or not refs:
         return None
     fields = ('label','classification','definition','conditions','exceptions','time','support_type',
-              'classification_reason','abstraction_level','review_signals','design_reason')
+              'classification_reason','abstraction_level','review_signals','design_reason','definition_mode','role_basis','role_source','direct_definition_evidence_refs')
     evidence = [(e.get('source_version_id'),e.get('parse_run_id'),e.get('block_id'),e.get('span'),e.get('quote')) for e in refs]
     if any(not all((v,p,b,s,q)) for v,p,b,s,q in evidence): return None
     return profile.digest(dict(values={k:candidate.get(k, '') for k in fields},

@@ -133,6 +133,20 @@ class Hierarchy(Record):
     b_to_a: Direction
 
 
+class RoleBasis(Record):
+    relation_ref: str
+    endpoint: Literal['subject', 'object']
+
+
+class DefinitionDeclaration(Observation):
+    label: str = Field(default='', max_length=80)
+    # Wire declarations only; the server restores a full role description without truncation.
+    definition: str = Field(default='', max_length=240)
+    role_basis: RoleBasis | None = None
+    direct_definition_source_refs: list[str] = Field(default_factory=list, max_length=8)
+    design_reason: str = Field(default='', max_length=300)
+
+
 class DesignedType(Observation):
     local_ref: str = Field(pattern=r'^t[1-5]$')
     classification: Literal['type']
@@ -171,6 +185,10 @@ class Issue(Record):
     counter_source_refs: list[str] = Field(default_factory=list, max_length=8)
 
 
+SEMANTIC_FIELDS = {'relation_checks': ('subject','object','conditions','statement_type'),
+                   'observation_checks': ('classification','definition','conditions','exceptions')}
+
+
 class RelationCheck(Record):
     candidate_ref: str
     judgment: Literal['supported', 'refuted', 'unknown']
@@ -179,6 +197,8 @@ class RelationCheck(Record):
     reason: str = Field(min_length=1, max_length=400)
     source_refs: list[str] = Field(default_factory=list, max_length=8)
     semantic_checks: dict[str,Literal['supported','refuted','unknown']] = Field(default_factory=dict)
+    binding_checks: dict[str,Literal['supported','refuted','unknown']] = Field(default_factory=dict)
+    binding_reasons: dict[str,str] = Field(default_factory=dict)
 
 
 class ObservationRevision(Observation):
@@ -237,6 +257,8 @@ text_from 뷰의 본문은 지정 source_ref의 해당 span 부분이다(오프�
 recovery_meanings는 보완할 누락 목록이다. 기존 의미를 이름만 바꿔 반복하지 않는다. 제안 생성은 누락 의미 해결이나 사람 승인이 아니다.
 '''
 
+DEFINITION_RULE = '정의에는 제공 원문으로 확인되는 대상·역할·포함 범위만 적는다. 근거 없이 새 행위·권리·자격 발생·인과·결과를 추가하지 않는다. 원문이 명시한 효과와 근거 있는 역할 추상화는 허용한다. 역할 정의에 행위의 모든 조건·예외를 복제하거나 미제공 외부 법정 정의를 요구하지 않는다.'
+
 PROMPTS = {
     'scout': '전체 구조 프로파일과 frontier를 보고 자료 역할·필수 절·대표/예외 행·CQ 공백을 조사한다. 우선 필요한 unit을 read하거나 근거를 search한다. finish는 필수 분석을 면제하지 않는다.',
     'concept': '''Concept Miner: blocks가 주 분석 대상이다. focus_spans의 새 항목을 우선하고 tool_originals·공유 문맥의 정의 반복으로 대신하지 않는다. 최대 5개 관측을 작성한다.
@@ -251,15 +273,84 @@ negation은 해당 주어-술어-목적어 주장 자체의 극성이다. 원문
 source_refs로 해당 주장과 conditions의 모든 분기·전제·예외를 뒷받침하는 제공 구간들을 선택한다. 본문의 '각 호/이 경우'가 가리키는 별도 구절을 조건으로 사용했다면 그 구절도 따로 인용한다. 별개 구절을 하나로 이어 쓰거나 말줄임하지 않는다. tool_originals의 반복으로 주 분석을 대신하지 않는다.''',
     'builder': 'Taxonomy Builder: design_relation_ids 각각의 원문 명제를 먼저 대조한다. 원문 주체/목적어·조건 자체가 잘못되었으면 decision=source_error와 오류 이유를 남긴다. 다른 유형 연결로 원명제를 고치지 않는다. 올바른 명제의 역할/대상에 맞는 제공 유형이 있으면 relation_bindings decision=bind, subject_ref/object_ref와 이유를 쓴다. 같은 실행의 제공 미승인 유형도 정의·조건이 맞으면 재사용을 제안한다. subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal 정의와 source_refs, source_relation_ids, design_reason을 함께 작성한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다. 선행 묶음에서 제공된 설계 유형은 정의·조건·근거가 맞으면 기존 ID로 재사용한다. 계층·별칭은 실제 제공된 후보 ID만 참조한다. 제공 규범의 행위자·행위 대상을 묶는 설계와 원문에 직접 정의된 법정 유형은 구별한다. 참조 별표의 상세 자격 부재는 그 상세만 gaps이며, 제공 명제의 행위자/대상 설계까지 불가능하다는 뜻은 아니다. 근거 있는 설계도 불가능하면 decision=defer와 구체 사유를 남긴다. 대상0이면 설계를 강제하지 않는다. 원문의 의무/허용·OR·조건/예외·시점은 서버가 보존한다. 필요한 계층/별칭만 제안한다. is_a는 type끼리, instance_of는 entity→type, broader는 vocabulary끼리다. 계층은 같은 범위·시점에서 모든 A가 B인지와 역방향을 각각 근거 있는 supported/refuted 또는 이유 있는 unknown으로 판단한다.',
     'revision': 'blocks·tool_originals·independently_retrieved의 모든 실제 제공 원문을 근거로 검토한다. 지적된 후보 묶음을 한 번만 수정한다. targets 각각을 observations/relations/hierarchies 중 맞는 목록으로 전체 수정하거나 deferred로 명시 보류한다. candidate_ref는 기존 ID를 유지한다. 쟁점과 원문을 대조해 분류·부정·조건·방향을 고친다. 근거 없는 확정이나 새 후보 추가는 금지한다. 모든 target에 수정 또는 보류 한 건이 필요하다.',
-    'critic': 'Ontology Critic: 먼저 blocks의 제공 항에서 누가 무엇을 해야/할 수 있는지, 적용 전제·OR 대안·예외·주체별 분기를 읽고 산출과 대조한다. review_target_ids마다 observation_checks/relation_checks/양방향 hierarchy_checks를 작성한다. supported/refuted는 원문 근거, unknown은 구체 사유가 필요하다. relation_checks.semantic_checks의 subject/object/conditions/statement_type은 원명제(source_relation이 있으면 그 원문 표현)와 대조한다. 업무가 적용되는 상황·대상 범위와 행위의 직접 목적어를 구별한다. 원문 끝점이 틀리면 content_error이며 올바른 타입에 연결해도 원명제 오류가 해소되지 않는다. 원명제는 맞고 유형 연결만 틀리면 endpoint다. 유형 미연결은 원명제 unsupported 사유가 아니다. 인용 안에만 있는 조건은 산출 충족이 아니다. 비교 후보는 필수 판정 대상이 아니다. issues.cause는 content_error/evidence_error/endpoint/alignment/source_absent/서버 확인 budget_exhausted이며 i1..i8, candidate_ref/target_ref는 실제 제공 대상이어야 한다. review_scope는 이번 제공 범위다. missing_meanings는 제공 구절에 있으나 관측과 관계 양쪽 산출에서 빠진 의미만 source_refs, compared_candidate_ids, comparison_reason으로 특정한다. 규범/조건/권한의 누락은 role=relation, 일반 정의 누락은 concept이다. 참조 별표/조문 자체의 미제공 상세는 source_absent 쟁점과 구체 defer_reason/gaps에 남기며 기존 원문 재추출로 요청하지 않는다. 후보 없는 쟁점의 candidate_ref는 빈 문자열이다. 미완료 검색을 전체 자료 부재로 단정하지 않는다.'}
+    'critic': ''}
 
+
+for stage in ('concept','builder','revision'):
+    PROMPTS[stage] += ' ' + DEFINITION_RULE
+PROMPTS['builder'] += ' 서버의 보존은 원명제의 보존이며 새 유형 정의의 의미 검증을 대신하지 않는다.'
 
 PROMPTS['revision'] += ' source_change_ids 대상은 제공된 원명제의 자연어 subject/object와 규범 종류를 기준으로 원문 한정·조건을 보완한다. 유형 ID로 원명제를 대체하지 않는다. 근거만 보완하는 evidence_only_ids는 의미·분류·조건·시점·끝점을 보존하고 source_refs만 보완한다. 제공 근거가 없으면 deferred로 남긴다.'
 PROMPTS['relation'] += ' 괄호·삽입구의 정의가 주체나 대상의 적용 범위를 한정하면 그 한정도 conditions에 보존한다. 참조 조문 상세가 없어도 현재 제공 문장에 쓰인 한정은 미제공으로 돌리지 않는다. analysis_target인 각 항을 source_refs로 관계에 연결하거나 target_gaps에 그 항의 구체 미해결 사유를 적는다. 한 항에 여러 관계 또는 관계 없음이 가능하다. 별표 상세 부재는 그 상세의 공백이며 제공된 항 전체의 처리 완료가 아니다.'
-PROMPTS['critic'] += ' semantic_checks.conditions와 reason에서 원문의 상위 전제·예외·분기·괄호 정의 한정이 후보의 실제 conditions에 남아 있는지 대조한다. 핵심 적용 범위가 빠졌으면 supported로 판정하지 않는다. 이미 있는 관계의 한정 누락은 candidate_ref를 지정한 content_error와 needs_revision으로 수정 요청한다. 의미가 같은 조건은 별도 문구나 분리 표현이 없다는 이유만으로 missing_meanings가 아니다. 원문에 제공된 한정의 산출 누락은 외부 상세의 source_absent와 구별한다. analysis_target_coverage는 항별 응답 유무이며 정답 판정이 아니다. candidate_ids가 비거나 gaps가 있는 항의 제공 명제를 대조하고 실제 누락은 missing_meanings로 남긴다.'
+CRITIC_BINDING_INSTRUCTION = 'relation_bindings가 있는 관계는 binding_checks.subject/object와 binding_reasons.subject/object를 각각 작성한다. 각 연결 이유는 원문 끝점 표현과 실제 선택 유형의 정의를 대조해 대응·차이·미확인 원인을 설명한다. 원명제 reason으로 연결 이유를 대신하지 않는다. 원명제의 옳음과 연결의 옳음은 독립이다. 유형 미연결만으로 원명제를 refuted로 두지 않는다. '
+PROMPTS['critic'] = ('Ontology Critic: review_target_ids만 검수한다. 비교 후보는 필수 판정 대상이 아니다. '
+    '주후보의 semantic_checks 항목만 각각 supported/refuted/unknown으로 판정한다. 전체 judgment와 같은 후보의 content_error/endpoint issues는 쓰지 않는다. 서버가 세부 판정에서 전체 판단과 오류를 도출한다. '
+    + CRITIC_BINDING_INSTRUCTION +
+    '명제 전체에 동등한 의미로 보존된 조건은 필드 위치나 동등 표현을 오류로 만들지 않는다. 인용에만 있고 후보에 없는 의미는 충족이 아니다. '
+    '정의 검수는 외부 세계의 진위가 아니라 후보가 실제 주장한 내용의 제공 원문 적합성을 판정한다. 근거 있는 역할 추상화는 허용하되, 정의가 추가한 구체 사실이 제공 근거로 지지되지 않으면 definition=refuted다. 원문 자체의 모호함이나 판정에 필요한 참조자료의 미제공은 unknown/source_absent로 남긴다. '
+    'reason 400자 안에 원문이 요구하는 구절과 후보에 실제 적힌 구절을 대조하여 일치/차이/미확인 사유를 설명한다. supported/refuted에는 실제 제공 source_refs가 필요하다. unknown은 구체 사유를 남기며 오류 확정이 아니다. '
+    'issues에는 evidence_error/alignment/source_absent/서버 확인 budget_exhausted를 실제 제공 candidate_ref/target_ref와 i1..i8로 쓴다. 비교 후보·계층의 별도 쟁점에는 content_error/endpoint도 가능하다. 후보 없는 쟁점의 candidate_ref는 빈 문자열이다. '
+    '참조 자료의 미제공 상세는 source_absent와 defer_reason/gaps이며 제공 원문 재추출로 요청하지 않는다. '
+    'missing_meanings는 이번 primary_source_spans 안에서 제공 관측·관계 양쪽에 실제로 없는 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 기존 비교 후보에 표현된 의미는 누락이 아니다. 참고 구간과 미제공 후보의 전체 범위는 gaps에 미확인으로 남긴다. 누락 인용 모두가 주범위 안이어야 하며 참고 구간을 섞지 않는다. 관계 의미는 role=relation, 일반 정의는 concept이다. '
+    'review_scope.missing_meanings_allowed=false이면 missing_meanings를 비우고 비교 미실시 범위를 gaps에 남긴다. 제공 범위를 자료 전체의 부재나 의미 완성으로 단정하지 않는다.')
+PROPOSITION_PROMPT = PROMPTS['critic'].replace(CRITIC_BINDING_INSTRUCTION, '') + '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. 유형 연결은 별도 호출이 담당한다. observation_checks/hierarchy_checks는 비운다.'
+
+for focus, instruction in {
+    'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. binding_uses의 source_expression은 원명제 후보의 표현이며 검증된 원문 인용이 아니다. 실제 제공 원문과 계속 대조하면서 그 표현이 가리키는 대상과 바로 옆 선택 유형의 정의 전체를 검수한다. 이름 일치·연관성·연결 의도만으로 같은 유형이라고 지지하지 말고 대응·차이·미확인 사유를 binding_reasons에 적는다. observation_checks/hierarchy_checks는 비운다.',
+    'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 정의의 사실적 주장마다 대응하는 제공 원문 구절을 확인한다. 원문의 대상·역할과 정의가 덧붙인 행위·권리·자격 발생·인과·결과를 구분하고, 각 추가 주장을 지지하는 구절이 없으면 definition=refuted로 판정한다. 원문이 명시한 효과와 근거 있는 역할 추상화는 허용한다. design_reason·다른 미승인 후보·모델의 출처 관계 설명은 새 주장의 원문 증거가 아니다. 기존 reason에 실제 후보 구절과 원문 구절의 대응·차이·미확인 사유를 구체적으로 적으며 취지 일치만으로 지지하지 않는다. 원문 자체가 모호하거나 판정에 필요한 참조자료가 미제공이면 unknown을 유지한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
+}.items():
+    PROMPTS['critic_'+focus] = PROMPTS['critic'] + instruction
+
+class DeclaredType(DefinitionDeclaration):
+    local_ref: str = Field(pattern=r'^t[1-5]$')
+    classification: Literal['type']
+    support_type: Literal['design_proposal']
+    source_relation_ids: list[str] = Field(default_factory=list, max_length=5)
+    design_reason: str = Field(min_length=1, max_length=300)
+
+
+class DeclaredObservationRevision(DefinitionDeclaration):
+    candidate_ref: str
+    reason: str = Field(min_length=1, max_length=400)
+
+
+class DeclaredTaxonomy(Taxonomy):
+    observations: list[DeclaredType] = Field(default_factory=list, max_length=5)
+
+
+class DeclaredRevision(Revision):
+    observations: list[DeclaredObservationRevision] = Field(max_length=5)
+
 
 OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision}
+
+
+def output_model(stage, definition_contract=None):
+    if definition_contract=='source-role-v1':
+        return {'builder':DeclaredTaxonomy,'revision':DeclaredRevision}.get(stage,OUTPUTS[stage])
+    return OUTPUTS[stage]
+
+
 RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}
+
+ROLE_DECLARATION_RULE = """
+새 유형 또는 관측 수정은 두 방식 중 하나만 선언한다.
+출처 끝점 역할: role_basis={relation_ref: 제공된 자연어 출처 관계 ID, endpoint: subject 또는 object}와 design_reason을 제출하고 label·definition·conditions·exceptions·time 및 direct_definition_source_refs는 제출하지 않는다. 명칭은 원문 끝점 표현으로 복원한다. 유형의 일반적 조건·예외·시점을 선언하지 않으며 원명제의 한정은 role_source에 무손실 보존한다. 서버가 출처 명제 안의 역할 설명을 복원한다. 그 설명은 이 명제에서 관측한 역할이며 유형 전체의 필요충분 정의가 아니다.
+직접 정의: definition과 해당 정의를 직접 뒷받침하는 제공 원문 direct_definition_source_refs(1개 이상)를 명시하고 role_basis는 제출하지 않는다. 이는 별도 의미 검수 대상이며 근거 선택만으로 참을 보증하지 않는다.
+역할에서 직접 정의로 전환하거나 legacy 자유 정의를 역할로 바꾸면 명시적 변경 사유를 기록한다. 기존 ID 재사용과 유형 연결 검수는 유지한다.
+"""
+
+SHARED_TYPE_RULE = ('새 유형은 observations에 local_ref=t1..t5 중 제공 ID와 충돌하지 않는 토큰으로 한 번 선언한다. '
+    'subject_ref/object_ref는 실제 제공된 유형 ID 또는 이번 observations에 선언한 local_ref만 쓴다. '
+    '여러 관계가 같은 정의·출처·조건의 유형을 공유하면 같은 local_ref를 명시적으로 재사용한다. '
+    '서로 다른 역할 출처나 조건을 이름만으로 합치지 않는다. 새 선언은 주관계당 끝점2개, 전체최대5개이며 내부 ID는 서버가 부여한다. '
+    '선언하지 않은 토큰이나 끝점 안의 새 정의 객체는 제출하지 않는다.')
+
+BUILDER_ROLE_RULE = (ROLE_DECLARATION_RULE.partition('\n직접 정의:')[0].replace(
+    '새 유형 또는 관측 수정은 두 방식 중 하나만 선언한다.', 'Builder의 새 유형은 출처 끝점 역할만 선언한다.') +
+    '\nConcept 등이 이미 생성하여 제공한 직접 정의 유형은 적합성을 대조한 뒤 기존 ID로 재사용한다. '
+    '새 직접 정의나 자유 명칭·정의는 작성하지 않는다. 필요한 직접 정의가 제공되지 않았으면 defer/gaps로 남긴다. '
+    '자동으로 다른 역할을 재실행하거나 다른 명제의 출처를 합성하지 않는다.\n')

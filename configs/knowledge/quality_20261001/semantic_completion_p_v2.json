@@ -1,0 +1,43 @@
+{
+  "id": "ontology-semantic-p-plan-v2",
+  "issue": 579,
+  "frozen_at": "2026-10-03T10:09:16.870843+00:00",
+  "implementation_commit": "15dcfc2790cc943af0b29a7f0cdd76483b1328aa",
+  "actual_model_calls": 0,
+  "phases": [
+    {
+      "path": "configs/knowledge/quality_20261001/semantic_p_ea_v2.json",
+      "sha256": "91a9a08e1aa0082ebf485e60e006d1763cb3a77909dd11b56bdd6209410808fb"
+    },
+    {
+      "path": "configs/knowledge/quality_20261001/semantic_p_correction_v2.json",
+      "sha256": "bf00b062b9eaf2890fa22b4e639516ca72f01a5724d791b6786a5895a04bd7e4"
+    },
+    {
+      "path": "configs/knowledge/quality_20261001/semantic_p_d_v2.json",
+      "sha256": "b64def269f6f90a4a21f1a478e153de5e6bba82013abe653b62468689813d563"
+    }
+  ],
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_p_assessor_v2.json",
+    "sha256": "1bf567460fdf709c9b8a5b1c658f91688307639cb4d7a4412a94917f3a451076"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_p_preflight_20261003_v2/preflight.json",
+    "sha256": "4f89aa2c014e872c0cabd7237d1d728526f93723705a42addc85a8f02a29dc80"
+  },
+  "helper_call_ceiling": 7,
+  "budget": {
+    "recipe_reservation_seconds": 2520,
+    "maximum_http_seconds": 2100,
+    "http_timeout_seconds": 300
+  },
+  "order": [
+    "E-A natural diagnosis 2",
+    "only if naturally refuted: correction Builder1 and up to3 current rechecks",
+    "only if correction passes: separate direct-definition contrast1"
+  ],
+  "execution_state": "Prepared and frozen; no generation. Await coordinator execution message. Do not repeat O1.",
+  "human_measurement": "excluded_by_user",
+  "unresolved_issue": 583
+}

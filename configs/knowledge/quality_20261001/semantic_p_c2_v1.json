@@ -1,0 +1,221 @@
+{
+  "id": "ontology-semantic-p-c2-v1",
+  "frozen_at": "2026-10-03T10:35:13.609446+00:00",
+  "issue": 579,
+  "product_sha": "0d23142b12a0679313c52d5f7d87fa45d3857a90",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+  },
+  "models": {
+    "draft": "gemma4:31b-it-q4_K_M",
+    "review": "gemma4:31b-it-q4_K_M"
+  },
+  "budgets": {
+    "model_calls": 48,
+    "model_seconds": 17280,
+    "searches": 24,
+    "additional_rounds": 0,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current_conditionals",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "P v2 독립 진단·실제 교정·정상 대조 통과 후 C2 전체 생성 1회"
+    }
+  ],
+  "recipe": {
+    "definition_contract": "source-role-v1",
+    "review_component_contract": "proposition-binding-v1",
+    "binding_num_predict": 8192,
+    "binding_think": false,
+    "review_dependency_contract": "selected-types-v1",
+    "binding_reason_contract": "per-endpoint-v1",
+    "correction_contract": "per-target-v1",
+    "review_contract": "checks-v1",
+    "reference_contract": "canonical-v1",
+    "profile_version": "a2-survey-v5",
+    "candidate_version": "a2-candidates-v1",
+    "prompt_version": "discovery-a2-v52",
+    "prompt_hash": "91bb308253d109aba9d1a81ef149edf2c674f458172c1dc61fa86819f41c5f8e",
+    "models": {
+      "draft": "gemma4:31b-it-q4_K_M",
+      "review": "gemma4:31b-it-q4_K_M"
+    },
+    "endpoint": "http://127.0.0.1:11434",
+    "budgets": {
+      "model_calls": 48,
+      "model_seconds": 17280,
+      "searches": 24,
+      "additional_rounds": 0,
+      "revisions": 1
+    },
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "input_chars": 24000,
+    "call_timeout": 360.0,
+    "schema_hash": "c4402bf8509c88d0684d8ce7b84c44098a96953ed1e02f88b43e086a17792333"
+  },
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    }
+  },
+  "model_options": {
+    "temperature": 0,
+    "num_ctx": 32768,
+    "num_predict": 4096,
+    "think": false,
+    "binding_num_predict": 8192,
+    "binding_think": false
+  },
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "ecd5bd050467a6eaad37409d33c7f867ca4d4454ae463c7e938335f22d4eeac3",
+    "app/knowledge/discovery_candidates.py": "edb38fa92247727a44234ead54b828fa1148c932ee0035e1752a9dd82e6569dd",
+    "app/knowledge/discovery_design.py": "04dec99267cb204cc98dabc74288a8e68b5065ec6f25a1ad3789fc12cc94f851",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "d4cc244ac9418641034481d4067c5b4563e99bf3a0b280facbf95347da958a13",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "74ca9a40abf265bb3d32455d1c9248674a7398ca44f30a544feb3995181e3e5c",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+    "app/knowledge/discovery_synthesis.py": "74a3eec48bd47c7492c6009dde36219bc4a4e4f148383f6c5cc08d1ac9595264",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "315f73a06fcf1a57d4ad1cfc97023173c2d15085f6c0bb7a3a8e9240a722ab6e",
+    "app/knowledge/ontology_changes.py": "116708f1c242615c9575b962816c0a4485ccdf7e8f60726803d28784ccdf4f9f",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
+    "app/core/config.py": "60e393d3608edb0d030b7f69a7bf36c1aeea8b62c52b28454f02ef5b32f12ac5",
+    "app/knowledge/discovery_binding.py": "728f25f654895001fc456b4158b4d867b546f2e5f9f68a4174221313b876d4bd",
+    "scripts/run_knowledge_quality.py": "4e36c67148d6c5e67bdebe05f4d77f0f7e222e2974d913a7a97a2d9c57e2ed08",
+    "scripts/run_knowledge_a6.py": "8f2524fb578a95baad974f85ce6511ba9aca130ed14f193b83ddbc8d35193b96"
+  },
+  "input_hashes": {
+    "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872"
+  },
+  "prior_freeze": {
+    "path": "configs/knowledge/quality_20261001/semantic_m3_gemma_c2_v1.json",
+    "sha256": "e1169eebc58230005de8f6960cbc9c57f7fb8639445e8925bcbf8f166072e2d6"
+  },
+  "assessor": [
+    {
+      "path": "configs/knowledge/quality_20261001/assessor.json",
+      "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3",
+      "sections": [
+        "current.C2"
+      ],
+      "input_to_generation": false
+    },
+    {
+      "path": "configs/knowledge/quality_20261001/semantic_h4_condition_assessor_v1.json",
+      "sha256": "77c045f50115ad658356f06303db7c03b4d8b915fbc64857e3f5182522cee7f5",
+      "sections": [
+        "C2.1",
+        "C2.2",
+        "C2.3a",
+        "C2.3b",
+        "C2.3c",
+        "H.revision",
+        "dimensions",
+        "gate",
+        "prohibited"
+      ],
+      "input_to_generation": false
+    }
+  ],
+  "prerequisites": [
+    {
+      "assessment": {
+        "path": "data/knowledge/semantic_p_20261003/ea_once/assessment.json",
+        "sha256": "8899a00f9a6537f847b6541065660333e2b9dbb9c23eb370d30e2e8719fc0b84"
+      },
+      "result": {
+        "path": "data/knowledge/semantic_p_20261003/ea_once/E-A/result.json",
+        "sha256": "4d163e573655f0bcf17e4011528364b2f784d98379aa5ab1e72089355c44d1e6"
+      }
+    },
+    {
+      "assessment": {
+        "path": "data/knowledge/semantic_p_20261003/correction_once/assessment.json",
+        "sha256": "d6151507de97a083a9cb056dcb96325f5cef9ee4865056175ec7cfe3ff0e52e4"
+      },
+      "result": {
+        "path": "data/knowledge/semantic_p_20261003/correction_once/result.json",
+        "sha256": "637e2e710029aee03e595b60f13c130f51a523fcfcf809cd237cc037d4af85f5"
+      }
+    },
+    {
+      "assessment": {
+        "path": "data/knowledge/semantic_p_20261003/direct_once/assessment.json",
+        "sha256": "c468da99d07f3d4a71a6710d30d027d8f1acd3684e283c1397352b5ac54c2fff"
+      },
+      "result": {
+        "path": "data/knowledge/semantic_p_20261003/direct_once/D/result.json",
+        "sha256": "39cdbe7a9e36a4f04b5771874e28483978d35b1821a2ea2312eb875ae43d6998"
+      }
+    }
+  ],
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_p_c2_preflight_20261003/preflight.json",
+    "sha256": "61b287d6cd93272387474be75fabb8a548fff2aed70cdb705df2ceb07fa2a40e"
+  },
+  "input_snapshot": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_p_c2_preflight_20261003/input_snapshot.json",
+    "sha256": "73a61d0f3101fd358ff8ba6f49e9181b79730bbc811daaf72b2d8558ccbd9839"
+  },
+  "execution_guard": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_p_c2_preflight_20261003/run_once.py",
+    "sha256": "232ab2ba81578f67896df0d9c18a64ca72447640f75c9572eb02a8af056b8aeb"
+  },
+  "study": "data/knowledge/a6_eval_20261001_schema_fix",
+  "output": "data/knowledge/semantic_p_20261003/c2_once",
+  "max_executions": 1,
+  "actual_model_calls_at_freeze": 0,
+  "human_measurement": "excluded_by_user",
+  "participant_count": 0,
+  "human_total_s": null,
+  "dynamic_input_boundary": "Only existing runtime helpers may derive later prompts, schemas, candidate IDs and reservations from this new run. No EA/correction/D candidate or answer graph is injected. Save each actual HTTP request before generation.",
+  "rules": [
+    "Preparation only until coordinator explicit execution message after freeze comparison.",
+    "Article15 one analysis file / same C2. Original A1 current bundle still contains Article2 comparison sources; no scope expansion or deletion.",
+    "Required and forbidden meanings, valid evidence, all dependent types/bindings and generated-only valid preview must pass independent review. No required pending/deferred output counts as success; unknown is not supported.",
+    "P role materializer branch was not selected in actual correction. Legacy free-definition Critic miss #583 remains unresolved.",
+    "Existing per-target correction at most once, revisions1; additional extraction rounds0. Runtime shortage remains partial/failure, without budget increase, tuning, restart or repeat.",
+    "C2 failure stops. Only if C2 passes may current be separately prepared/frozen for one execution. No current execution authorized by this file.",
+    "No acceptance, activation, original DB/source/old result alteration, issue closure or human measurement."
+  ]
+}

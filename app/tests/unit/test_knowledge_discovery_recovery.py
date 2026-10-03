@@ -17,17 +17,20 @@ def test_non_extraction_causes_preserve_relation_and_do_not_recall(service, monk
         result=await original(prompt,schema,stage,run,timeout)
         data=json.loads(prompt.split('INPUT:\n')[1]); value=json.loads(result['text'])
         if stage=='relation' and cause=='endpoint': value['relations'][0]['subject']='원문 역할'
-        if stage=='critic':
+        if stage=='critic' and (value['relation_checks'] if cause=='endpoint' else value['observation_checks']):
             candidate=data['unapproved_relations'][0] if cause=='endpoint' else data['unapproved_observations'][0]
             value['issues']=[dict(local_ref='i1',candidate_ref=candidate['id'],cause=cause,
                 target_ref=data['unapproved_observations'][1]['id'] if cause=='alignment' else '',
                 reason='주어진 대상의 연결 또는 원문 확인 필요',defer_reason='참조 별표 본문이 이번 고정 입력에 제공되지 않음' if cause=='source_absent' else '명시 검수 필요',
                 evidence_ids=[],counter_evidence_ids=[])]
             value['needs_revision']=True
+            if cause=='endpoint':
+                value['issues']=[]
+                value['relation_checks'][0]['binding_checks']['subject']='unknown'
         result['text']=json.dumps(value,ensure_ascii=False); return result
     monkeypatch.setattr(a2,'model_call',review)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert model==['scout','concept','relation','builder','critic']
+    assert model==['scout','concept','relation','builder','critic','critic','critic']
     pending=[r for r in run['result']['unresolved_recovery_requests'] if r['cause']==cause]
     assert len(pending)==1 and pending[0]['status']==('source_absent' if cause=='source_absent' else 'manual_review')
     assert pending[0]['assessment_scope']['extent']=='provided_only'
@@ -35,7 +38,7 @@ def test_non_extraction_causes_preserve_relation_and_do_not_recall(service, monk
     assert run['metrics']['recovery_calls']==0 and run['metrics']['recovery_remaining_by_cause'][cause]==1
     before=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert len(model)==5 and again['analysis_units']==before
+    assert len(model)==7 and again['analysis_units']==before
     assert again['result']['original_relations']==run['result']['original_relations']
     if cause=='endpoint':
         from app.knowledge import ontology_changes
@@ -100,7 +103,7 @@ def test_same_span_keeps_all_meanings_and_bounds_attempts(service,monkeypatch,mo
             if outcome=='failure': result['done_reason']='length'
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',missing)
-    budgets=dict(additional_rounds=2,model_calls=5 if outcome=='budget' else 48)
+    budgets=dict(additional_rounds=2,model_calls=7 if outcome=='budget' else 48)
     run=done(service,service.start(request(source['id'],discovery_budgets=budgets))['run_id'])
     recoveries=[r for r in run['result']['recovery_requests'] if r['cause']=='extraction_missing']
     assert len(recoveries)==1 and len(recoveries[0]['meanings'])==2
@@ -145,7 +148,7 @@ def test_successful_unit_hash_mismatch_never_overwrites_saved_unit(service,model
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
     with pytest.raises(ValueError,match='입력 해시 변경'):
         a2.call(service,run,'concept',unit['group_id'],dict(blocks=[],changed='변경된 입력'),[],by_id)
-    assert unit==before and len(model)==5
+    assert unit==before and len(model)==7
 
 
 def test_recovery_span_selection_keeps_shared_context_endpoints_and_single_candidates():

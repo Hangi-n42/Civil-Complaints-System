@@ -1,0 +1,49 @@
+{
+  "id": "ontology-semantic-m3-qwen-current-v1",
+  "frozen_at": "2026-10-03T05:34:18.124009+00:00",
+  "issue": 579,
+  "product_sha": "a22e2fcd56537a3492c91b42ab55b2aa1a315c39",
+  "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+  "model_digests": {
+    "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+    "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "budgets": {
+    "model_calls": 48,
+    "model_seconds": 6000,
+    "searches": 4,
+    "additional_rounds": 1,
+    "revisions": 1
+  },
+  "call_timeout_s": 300,
+  "cases": [
+    {
+      "id": "current",
+      "source_case": "auto_current",
+      "analysis_file_ids": [
+        "public_housing_act_art2:0",
+        "public_housing_rule_art15:0"
+      ],
+      "cqs": [
+        {
+          "id": "C1",
+          "question": "공공건설임대주택과 공공매입임대주택의 공공임대주택 포함 관계와 공급 방식은 어떻게 구분되는가?"
+        },
+        {
+          "id": "C2",
+          "question": "국민임대주택 입주자 선정 원칙, 잔여주택 예외, 별도 기준을 정하는 주체와 조건은 무엇인가?"
+        }
+      ],
+      "selection_reason": "M2 고정선택 및 M3 실제교정 통과 후 current 종단 확인"
+    }
+  ],
+  "rules": [
+    "선택 설정의 전체진단+실제교정 통과 후 C2, C2 통과 후 current 각1회",
+    "실행 중 증액·사후 튜닝·동설정 재호출 없음",
+    "사람0/시간null/효용미측정"
+  ],
+  "models": {
+    "draft": "gemma4:31b-it-q4_K_M",
+    "review": "qwen3.8:27b-q4_K_M"
+  }
+}

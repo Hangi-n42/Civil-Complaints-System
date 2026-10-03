@@ -1,0 +1,501 @@
+{
+  "id": "ontology-semantic-m2-v1",
+  "issue": 578,
+  "frozen_at": "2026-10-03T05:34:18.027569+00:00",
+  "implementation_commit": "a22e2fcd56537a3492c91b42ab55b2aa1a315c39",
+  "runtime_hashes": {
+    "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+    "app/knowledge/discovery_analysis.py": "2b86a3c14c4d31da02ec9ae8e1ad1f4495e17e034db1486b8e9ebfa2e354bdac",
+    "app/knowledge/discovery_candidates.py": "2dae1fbad28bb94c659123d2469efb27cd6781946db0ec708cf3a7d6ffa660b5",
+    "app/knowledge/discovery_design.py": "e04b65a4121db3f2f1906e21612a6a19d77306e66624be9616970091b96eca78",
+    "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+    "app/knowledge/discovery_models.py": "3889dd7682c053411101ab3f282887149a136db43f2442ac675557d778eb3e51",
+    "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+    "app/knowledge/discovery_review.py": "ce7d76345cee7015a133151d9126e0120029a7580656b8f75894f0e6c56b7e87",
+    "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+    "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+    "app/knowledge/discovery_synthesis.py": "a2d2c73afc0d3ee870097d607827a2ef1da8293e6e84334f628fc0044952c1b3",
+    "app/knowledge/extraction.py": "2bbca91a42def6d3e360f35ac92a3760cfe269072a894f5f7328fbd0a8ac3ae7",
+    "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+    "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+    "app/knowledge/ontology_canonical.py": "b3cc1bccfb85806653ace4a056aff8c59f98b73753cdcdac0f0ee36210b05673",
+    "app/knowledge/ontology_changes.py": "ad5985bc52c426d59c6e3871181c07b6ed37a2a05206d528e15a526927602af8",
+    "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+    "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+    "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+    "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+    "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+    "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+    "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+    "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+    "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281",
+    "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+    "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+    "app/generation/service.py": "175a807685f761a94fd95b3e60a3f292c5a2b5f9d4b03638e25557b355dcadf6",
+    "app/core/config.py": "60e393d3608edb0d030b7f69a7bf36c1aeea8b62c52b28454f02ef5b32f12ac5"
+  },
+  "diagnostic_runner": {
+    "path": "scripts/run_knowledge_critic_diagnostic.py",
+    "sha256": "f77e18ae2d51f8a247403d0efe85ffc8c4a17437a3179f923ad8f52d52cdb962"
+  },
+  "diagnostic_inputs": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/diagnostic_inputs.json",
+    "sha256": "40495246ea4b82ad290a9644328f5229431ba0f1c1193325bfd88d5bde5b2405"
+  },
+  "preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/preflight.json",
+    "sha256": "cb922e2f81b6827c73e52eae8cc489f4c0a8bb36121a73d99de785d4496044d9"
+  },
+  "assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_m2_diagnostic_assessor_v1.json",
+    "sha256": "ecb8dd3b2f71f608ff8bc610717895d8d4da0c87d746474e62be59a7ef9af976"
+  },
+  "original_hashes": {
+    "data/knowledge/semantic_h4_20261002/c2_once/result.json": "308baf152dca9b18c8951c3dfb00e3e3ff2f74786756a041e5081637beeb0c51",
+    "data/knowledge/semantic_h4_20261002/c2_once/knowledge.db": "4908adc15a7aa539ecbdb4ea8ef67c948a59dbb3c674f16f2a8a5ab6be6800ea",
+    "data/knowledge/semantic_h4_20261002/c2_once/started.json": "0e9b0472fe935747b27f8c607eb6ecd8bda39cac4ea568c43971c3dcd7c530f3",
+    "data/knowledge/semantic_h4_20261002/c2_once/calls.jsonl": "2fa768eec94218f6e7c44318fbdb5bfd4f16a29ad7db279d62d51a8ce4a45c9c",
+    "configs/knowledge/quality_20261001/semantic_completion_h4_v1.json": "af0f56edb489ecff69abb89c733150005e327be7877b13ea07bbad311068977c",
+    "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_i3_preflight_20261002/diagnostic_inputs.json": "ac280c40a5c4fc47ef10cc0fb0e4993db12dfac90004bc01325bf67840d27226",
+    "data/knowledge/semantic_i3_20261002/diagnostic_once/result.json": "bc52f12a5927b0c7521bcf78cdc0839769c21af76364a9354309d3d5ac5cca44",
+    "configs/knowledge/quality_20261001/semantic_completion_j2_v1.json": "7155712be498dd4a8f41161c104586a37830c9550efd0ad5a81a5468c186a345",
+    "configs/knowledge/quality_20261001/semantic_j2_diagnostic_assessor_v1.json": "967226aeaca9249f78dc522099cd49e11f030c2d59390836203517107647653a",
+    "data/knowledge/semantic_j2_20261002/qwen_once/result.json": "0d328f40186c7288a96713ea6680f0eed0ae33afb190039208a7450fa09afe7c",
+    "data/knowledge/semantic_j2_20261002/gemma_once/result.json": "2d3806ec9d5660e2f5c7be5beb4c5f3601f93ec6054f933d6784472b892c9199",
+    "data/knowledge/semantic_j3_20261002/c2_once/result.json": "105afa6082cc7617205fe63706225c235322a1941dc12a00885a66331f6638bb",
+    "data/knowledge/semantic_j3_20261002/c2_once/knowledge.db": "98624edd180a624dfb9d0bffb4f68a5f2d1fcb39af10d53a5bee173d34d04d08",
+    "data/knowledge/semantic_j3_20261002/c2_once/started.json": "c9d64106b005fc18794a697d9f6bcd657eb1bce5a863269368ada5888d877bf0",
+    "data/knowledge/semantic_j3_20261002/c2_once/calls.jsonl": "6fb09dae593e0b336ed4f80b17effee73b56641242abf06690f8b79358e10252",
+    "data/knowledge/semantic_j2_preflight_20261002/diagnostic_inputs.json": "e35c43fbbfe4bd084641fd45829804193cbf6965615fa4243b9f1b212dd198fe",
+    "configs/knowledge/quality_20261001/semantic_completion_k4_v1.json": "9efdd4fe8884f532ad20f1a398f1f371f9b1a6696c0e73846c0fcdbec171b844",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/result.json": "94180733250148c5e4ff13455aab51fe67d6e4a69c489fa469a70094d6e9aefc",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/started.json": "da8e2815fb5030dbd34a079fa726112391878dbe0fba783d5fec2b60226eb7b2",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/E-A/result.json": "ae9261b8aeb75faf92715edebd2d4c8f286690018ab4d3340aecb9cb269e9f8e",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/E-B/result.json": "f7f07b3e18417add5bdaf66c37eae85e50c4b6d3482a6b912b3b027cc4e094d4",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/D/result.json": "3415e3e3058e6745f824714f173806339947ead2cefb60f3417399c69efa91be",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/E-A/knowledge.db": "c0114286fb3d945904cdd9477ac1d37a42cff4fe9ac8f1ccb6f2c2217db03b48",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/E-B/knowledge.db": "57fc5d6c81bc9c61e1cb6179bcdbf23a2693f7974ed4fc0030d536e7a3504903",
+    "data/knowledge/semantic_k4_20261003/diagnostic_once/D/knowledge.db": "13b0e5c28960e50341b84415d8a969529be9cf5425408374f2a67f697d6bc177",
+    "data/knowledge/semantic_k4_20261003/inspection/diagnostic_checks.json": "911a42d3657132cd8e84f1d675da34b1803221fb7c59923902cb9d48b37ac1ad",
+    "data/knowledge/semantic_k4_20261003/inspection/independent_reviews.json": "3b1b716a238d3769f6e6a5090ab75080c142b2507e0051ab129519e0f6f1c18f",
+    "data/knowledge/semantic_k4_20261003/inspection/integrity.json": "d7a160153ad925bda69fa48d9722e8ffadaebf27b14cf196f11f13ffc3df4de3",
+    "configs/knowledge/quality_20261001/semantic_completion_l4_v1.json": "2a3dd7f2f3f21edf94f1c65b8cd519b6681f9765d9c2f973b1a9b7a85d9fdf1a",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/result.json": "f9a9142ebb71007b302390b25166c2f1f47d39714fe0141a57222fc2f48ab32e",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/started.json": "c1862e7f993c45262fab40b0079f735956d15337b7cc2baf1f3b54915f32e4a2",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/E-A/result.json": "5bb3ec1afb17c57912eafce62dc940a8cc8ce4cb72dacf28ecf09938326f39dd",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/E-B/result.json": "216a485533b7b147ee5a78b77efc7d4433bb09def7acab1253664b879c918263",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/D/result.json": "25b0bc55240c2c17713225683e42393ca9a2ccb46d76833b4510003cdce285c2",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/E-A/knowledge.db": "677fc0c7285eaf9501e3ab6f2a9aa27dfde52877d809b7c161776cd943386d32",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/E-B/knowledge.db": "6b362d7c7f252aab0a3f27ac9dade195331c2d9e1d70fa071880cfd2bed5065d",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/D/knowledge.db": "94e25f7f1062b6c7e102ac88d2ef71e41ba31b78750128e8b5dea62a146c0469",
+    "data/knowledge/semantic_l4_20261003/diagnostic_once/calls.jsonl": "0d56f7ddb0dc2a0fda2fdbefca8ce5d6719926e9b9c84d5bd5297440c9d6f046",
+    "data/knowledge/semantic_l4_20261003/inspection/diagnostic_checks.json": "2b6325c291be3d99df6cb582c29a7978f9307545514171e0e259799ab1b7a463",
+    "data/knowledge/semantic_l4_20261003/inspection/diagnostic_decision.json": "32dfa35c1aa08cb93b53211c7350c403d5e597ac4591a7d18720fdfc10bc5cde",
+    "data/knowledge/semantic_l4_20261003/inspection/independent_reviews.json": "42614af089cbccfb35b2e4fd28bdf21d478bcd5c83492219221d4eb9bd7135f2",
+    "data/knowledge/semantic_l4_20261003/inspection/integrity.json": "a6988bda35608a883e47798fd4822db785807f617af4dc4acfb497c020483aa5"
+  },
+  "settings": {
+    "gemma": {
+      "model": "gemma4:31b-it-q4_K_M",
+      "recipe": {
+        "binding_reason_contract": "per-endpoint-v1",
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v49",
+        "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 900,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7"
+      },
+      "model_options": {
+        "model": "gemma4:31b-it-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "role_options": {
+        "draft": {
+          "model": "gemma4:31b-it-q4_K_M",
+          "temperature": 0,
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false
+        },
+        "review": {
+          "model": "gemma4:31b-it-q4_K_M",
+          "temperature": 0,
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false
+        }
+      },
+      "http_calls": 3,
+      "model_seconds": 900
+    },
+    "qwen": {
+      "model": "qwen3.8:27b-q4_K_M",
+      "recipe": {
+        "binding_reason_contract": "per-endpoint-v1",
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v49",
+        "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 900,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 0
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+      },
+      "model_digests": {
+        "draft": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "review": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+      },
+      "model_options": {
+        "model": "qwen3.8:27b-q4_K_M",
+        "temperature": 0,
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false
+      },
+      "role_options": {
+        "draft": {
+          "model": "gemma4:31b-it-q4_K_M",
+          "temperature": 0,
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false
+        },
+        "review": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "temperature": 0,
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false
+        }
+      },
+      "http_calls": 3,
+      "model_seconds": 900
+    }
+  },
+  "http_timeout_s": 300,
+  "max_diagnostic_executions": 2,
+  "unit_count_preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/counts_final.json",
+    "sha256": "17d88934bc40938eef75f9921609108d13ab135d3164ecc9e7a4a0a7988dcd46"
+  },
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured",
+  "scenarios": {
+    "gemma": {
+      "c2": {
+        "config": {
+          "path": "configs/knowledge/quality_20261001/semantic_m3_gemma_c2_v1.json",
+          "sha256": "e1169eebc58230005de8f6960cbc9c57f7fb8639445e8925bcbf8f166072e2d6"
+        },
+        "recipe": {
+          "binding_reason_contract": "per-endpoint-v1",
+          "correction_contract": "per-target-v1",
+          "review_contract": "checks-v1",
+          "reference_contract": "canonical-v1",
+          "profile_version": "a2-survey-v5",
+          "candidate_version": "a2-candidates-v1",
+          "prompt_version": "discovery-a2-v49",
+          "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+          "models": {
+            "draft": "gemma4:31b-it-q4_K_M",
+            "review": "gemma4:31b-it-q4_K_M"
+          },
+          "endpoint": "http://127.0.0.1:11434",
+          "budgets": {
+            "model_calls": 32,
+            "model_seconds": 3600,
+            "searches": 4,
+            "additional_rounds": 0,
+            "revisions": 1
+          },
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false,
+          "input_chars": 24000,
+          "call_timeout": 360.0,
+          "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+        },
+        "max_executions": 1,
+        "prerequisite": "All selected diagnostics plus correction pass"
+      },
+      "current": {
+        "config": {
+          "path": "configs/knowledge/quality_20261001/semantic_m3_gemma_current_v1.json",
+          "sha256": "0a519b784b1474c925bcfdd43ec4e02095b8e1c99ab029bc836617004f0e29d6"
+        },
+        "recipe": {
+          "binding_reason_contract": "per-endpoint-v1",
+          "correction_contract": "per-target-v1",
+          "review_contract": "checks-v1",
+          "reference_contract": "canonical-v1",
+          "profile_version": "a2-survey-v5",
+          "candidate_version": "a2-candidates-v1",
+          "prompt_version": "discovery-a2-v49",
+          "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+          "models": {
+            "draft": "gemma4:31b-it-q4_K_M",
+            "review": "gemma4:31b-it-q4_K_M"
+          },
+          "endpoint": "http://127.0.0.1:11434",
+          "budgets": {
+            "model_calls": 48,
+            "model_seconds": 6000,
+            "searches": 4,
+            "additional_rounds": 1,
+            "revisions": 1
+          },
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false,
+          "input_chars": 24000,
+          "call_timeout": 360.0,
+          "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+        },
+        "max_executions": 1,
+        "prerequisite": "C2 pass"
+      }
+    },
+    "qwen": {
+      "c2": {
+        "config": {
+          "path": "configs/knowledge/quality_20261001/semantic_m3_qwen_c2_v1.json",
+          "sha256": "b7c5c269f7895131f6ad121ee429aa433ee02654269c61961134f9762276a146"
+        },
+        "recipe": {
+          "binding_reason_contract": "per-endpoint-v1",
+          "correction_contract": "per-target-v1",
+          "review_contract": "checks-v1",
+          "reference_contract": "canonical-v1",
+          "profile_version": "a2-survey-v5",
+          "candidate_version": "a2-candidates-v1",
+          "prompt_version": "discovery-a2-v49",
+          "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+          "models": {
+            "draft": "gemma4:31b-it-q4_K_M",
+            "review": "qwen3.8:27b-q4_K_M"
+          },
+          "endpoint": "http://127.0.0.1:11434",
+          "budgets": {
+            "model_calls": 32,
+            "model_seconds": 3600,
+            "searches": 4,
+            "additional_rounds": 0,
+            "revisions": 1
+          },
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false,
+          "input_chars": 24000,
+          "call_timeout": 360.0,
+          "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+        },
+        "max_executions": 1,
+        "prerequisite": "All selected diagnostics plus correction pass"
+      },
+      "current": {
+        "config": {
+          "path": "configs/knowledge/quality_20261001/semantic_m3_qwen_current_v1.json",
+          "sha256": "94bd4b2e45242ee05f1b5d78904d739f8046aad4e99702780143eb8335d24ac3"
+        },
+        "recipe": {
+          "binding_reason_contract": "per-endpoint-v1",
+          "correction_contract": "per-target-v1",
+          "review_contract": "checks-v1",
+          "reference_contract": "canonical-v1",
+          "profile_version": "a2-survey-v5",
+          "candidate_version": "a2-candidates-v1",
+          "prompt_version": "discovery-a2-v49",
+          "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+          "models": {
+            "draft": "gemma4:31b-it-q4_K_M",
+            "review": "qwen3.8:27b-q4_K_M"
+          },
+          "endpoint": "http://127.0.0.1:11434",
+          "budgets": {
+            "model_calls": 48,
+            "model_seconds": 6000,
+            "searches": 4,
+            "additional_rounds": 1,
+            "revisions": 1
+          },
+          "num_ctx": 32768,
+          "num_predict": 4096,
+          "think": false,
+          "input_chars": 24000,
+          "call_timeout": 360.0,
+          "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+        },
+        "max_executions": 1,
+        "prerequisite": "C2 pass"
+      }
+    }
+  },
+  "full_runner": {
+    "path": "scripts/run_knowledge_quality.py",
+    "sha256": "4e36c67148d6c5e67bdebe05f4d77f0f7e222e2974d913a7a97a2d9c57e2ed08"
+  },
+  "source": {
+    "path": "data/knowledge/a6_eval_20261001_schema_fix/knowledge.db",
+    "sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d"
+  },
+  "source_case": {
+    "path": "data/knowledge/a6_eval_20261001_schema_fix/auto_current.json",
+    "sha256": "fd60f8a8a3f470c2f0e6da9444c5162a4933f07c7bb4dd3658677ae878398872"
+  },
+  "condition_assessor": {
+    "path": "configs/knowledge/quality_20261001/semantic_h4_condition_assessor_v1.json",
+    "sha256": "77c045f50115ad658356f06303db7c03b4d8b915fbc64857e3f5182522cee7f5"
+  },
+  "full_assessor": {
+    "path": "configs/knowledge/quality_20261001/assessor.json",
+    "sha256": "aa1121b81a108736f38e0ada5e2470f4cf03750a0c44f6fbee6068126d9d0fd3"
+  },
+  "failure_action": "No retuning/repeat. Gemma full fail permits one Qwen comparison; E failure stops correction; any selected full diagnostic/correction failure stops C2/current.",
+  "known_limits": [
+    "개발노출입력의제한확인",
+    "자연수정없으면실제수정효과미시험",
+    "참가자0/사람시간null/효용미측정"
+  ],
+  "preparation_files": {
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/freeze.py": "9f28881e22ed716703ef5aaae55d61baa874a111e379585c1268728d1a3e920d",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/correction.py": "e06052dd6e79f99bd1e56488a15eb0c578d11589fc609cf60245b159fb9f3bfe",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/verify.py": "2284c8c211f1a8414cd8bbc7345c7cd3a6e0deccac011192960cb0393e26c4c3",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/prepare.py": "d157fee056f2ff417010cdcbbb56a20dea484533f0f267acc2e17095fa3a08d7",
+    "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/count.py": "34e472aae5091b0c7ed1bf77a6ab67f666563b48859f24b3719ece0f595e62e6"
+  },
+  "correction_preflight": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/correction_preflight.json",
+    "sha256": "b402585c93b3e8d33e2221e8f50a9af4d346587b0e9c5823698b7191068d462c"
+  },
+  "correction_input": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/correction_input.json",
+    "sha256": "c4d7b4ae9b6224fb8aef98b7a8518ccffa6cd0de65c43f2ec705035d1f8b069a"
+  },
+  "correction_runner": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/correction.py",
+    "sha256": "e06052dd6e79f99bd1e56488a15eb0c578d11589fc609cf60245b159fb9f3bfe"
+  },
+  "correction": {
+    "http_calls": 3,
+    "model_seconds": 1080,
+    "http_timeout_s": 300,
+    "prerequisite": "Gemma full pass -> keep and skip Qwen. Otherwise run fixed Qwen review with Gemma draft. Prefer full-pass setting; if neither fully passes, E-pass setting permits one correction with Gemma priority. No best-score selection; no repeat tuning.",
+    "max_executions": 1,
+    "recipes": {
+      "gemma": {
+        "binding_reason_contract": "per-endpoint-v1",
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v49",
+        "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "gemma4:31b-it-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 1080,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 1
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+      },
+      "qwen": {
+        "binding_reason_contract": "per-endpoint-v1",
+        "correction_contract": "per-target-v1",
+        "review_contract": "checks-v1",
+        "reference_contract": "canonical-v1",
+        "profile_version": "a2-survey-v5",
+        "candidate_version": "a2-candidates-v1",
+        "prompt_version": "discovery-a2-v49",
+        "prompt_hash": "439f931d43dbef2123605acb7fe6ce5372d43415d8b6fc6d8e9fe167ae746ea1",
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "endpoint": "http://127.0.0.1:11434",
+        "budgets": {
+          "model_calls": 3,
+          "model_seconds": 1080,
+          "searches": 0,
+          "additional_rounds": 0,
+          "revisions": 1
+        },
+        "num_ctx": 32768,
+        "num_predict": 4096,
+        "think": false,
+        "input_chars": 24000,
+        "call_timeout": 360.0,
+        "schema_hash": "142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab"
+      }
+    }
+  },
+  "followup_issue": 579,
+  "verification": {
+    "path": "/Users/hyeongi/.codex/worktrees/a1-input-grounding/Civil-Complaints-System/data/knowledge/semantic_m2_preflight_20261003/verification.json",
+    "sha256": "4fc2071c8abc2f166909ac1de02bde608ebd6ccc7af9b5fe76c2bd8045d62dcf"
+  },
+  "max_diagnostic_executions_per_setting": 1,
+  "total_diagnostic_budget": {
+    "http_calls": 6,
+    "model_seconds": 1800
+  },
+  "selection_rule": "Gemma full pass -> keep and skip Qwen. Otherwise run fixed Qwen review with Gemma draft. Prefer full-pass setting; if neither fully passes, E-pass setting permits one correction with Gemma priority. No best-score selection; no repeat tuning."
+}

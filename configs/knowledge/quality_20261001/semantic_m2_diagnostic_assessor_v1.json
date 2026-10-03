@@ -1,0 +1,60 @@
+{
+  "id": "ontology-semantic-m2-assessor-v1",
+  "issue": 578,
+  "frozen_at": "2026-10-03T05:34:18.014454+00:00",
+  "input_to_generation": false,
+  "denominator": {
+    "binding": 2,
+    "definition": 2,
+    "total": 4,
+    "source_statement_boundary": 2
+  },
+  "targets": [
+    {
+      "case": "E-A",
+      "candidate_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+      "dimension": "binding.object",
+      "truth": "error",
+      "expected": "refuted",
+      "reason": "선정의 직접 대상인 입주자를 주택 유형에 연결"
+    },
+    {
+      "case": "E-B",
+      "candidate_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+      "dimension": "binding.object",
+      "truth": "valid",
+      "expected": "supported",
+      "reason": "동일 명제의 직접 대상과 선정되는 입주자 유형이 대응"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_67b5157d740e4ff9a04ec2cff2b63fe0",
+      "dimension": "definition",
+      "truth": "valid",
+      "expected": "supported",
+      "reason": "공급하고 선정하는 주체라는 원문 역할의 설계 추상화"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_53bb37fa68394b3aadf3b54d6416a2c6",
+      "dimension": "definition",
+      "truth": "error",
+      "expected": "refuted",
+      "reason": "제공 원문에 없는 행정구분 열거를 정의에 추가"
+    }
+  ],
+  "boundaries": [
+    "E-A/E-B semantic_checks all supported; subject binding supported; expected object decisions and both endpoint explanations match supplied definitions",
+    "E primary span [23,114]; paragraph2 already expressed by supplied comparison; paragraph3 outside primary. No missing_meanings/erroneous correction for these.",
+    "D normal actor all checks and whole judgment supported; added definition fact refuted; source_absent/unknown remain for genuine reference absence.",
+    "E boundaries pass permits one actual revise independently of D. All diagnostic+correction boundaries pass required for C2; C2 pass required for current.",
+    "Correction changes endpoint, preserves source_relation/ID/evidence/normal neighbors, new types need grounded definition and current review, final result must reflect current fingerprint. No manual result substitution."
+  ],
+  "failure_action": "Gemma full pass -> keep and skip Qwen. Otherwise run fixed Qwen review with Gemma draft. Prefer full-pass setting; if neither fully passes, E-pass setting permits one correction with Gemma priority. No best-score selection; no repeat tuning. No tuning or repeated setting.",
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured",
+  "review_type": "Independent AI semantic and evaluation review, not human utility.",
+  "selection_rule": "Gemma full pass -> keep and skip Qwen. Otherwise run fixed Qwen review with Gemma draft. Prefer full-pass setting; if neither fully passes, E-pass setting permits one correction with Gemma priority. No best-score selection; no repeat tuning.",
+  "comparison_limits": "L4 to M2 changes placement and removal of Builder reason together; no single-factor causality. Same exposed tasks, not general model superiority."
+}

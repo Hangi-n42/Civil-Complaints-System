@@ -142,11 +142,11 @@ def compact_text(context):
     return context
 
 
-def bind(context, run_id, unit_id):
-    """Address existing packet views in one call, without serializing another copy of the text."""
+def bind(context, run_id, unit_id, *, stable=False):
+    """New references address immutable content; legacy calls retain their saved namespace."""
     context = deepcopy(context)
     for view in originals(context):
-        view['source_ref'] = 's' + profile.digest([run_id, unit_id, view['ref'],
+        view['source_ref'] = 's' + profile.digest([* ([] if stable else [run_id, unit_id]), view['ref'],
             view.get('span', [0, len(view['text'])]), view['text']])[:16]
     return context
 

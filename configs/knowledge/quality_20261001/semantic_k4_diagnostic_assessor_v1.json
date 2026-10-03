@@ -1,0 +1,56 @@
+{
+  "id": "ontology-semantic-k4-assessor-v1",
+  "issue": 572,
+  "frozen_at": "2026-10-02T18:04:47.734621+00:00",
+  "input_to_generation": false,
+  "denominator": {
+    "binding": 2,
+    "definition": 2,
+    "total": 4,
+    "source_statement_boundary": 2
+  },
+  "targets": [
+    {
+      "case": "E-A",
+      "candidate_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+      "dimension": "binding.object",
+      "truth": "error",
+      "expected": "refuted",
+      "reason": "선정의 직접 대상인 입주자를 주택 유형에 연결"
+    },
+    {
+      "case": "E-B",
+      "candidate_id": "dc_cfd6a3686b754ab4a8ecb30c0b400634",
+      "dimension": "binding.object",
+      "truth": "valid",
+      "expected": "supported",
+      "reason": "동일 명제의 직접 대상과 선정되는 입주자 유형이 대응"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_67b5157d740e4ff9a04ec2cff2b63fe0",
+      "dimension": "definition",
+      "truth": "valid",
+      "expected": "supported",
+      "reason": "공급하고 선정하는 주체라는 원문 역할의 설계 추상화"
+    },
+    {
+      "case": "D",
+      "candidate_id": "dc_53bb37fa68394b3aadf3b54d6416a2c6",
+      "dimension": "definition",
+      "truth": "error",
+      "expected": "refuted",
+      "reason": "제공 원문에 없는 행정구분 열거를 정의에 추가"
+    }
+  ],
+  "boundaries": [
+    "E-A/E-B semantic_checks 전부 supported 및 subject binding supported",
+    "범위 밖 비교 쟁점으로 정상 후보 수정 요구 없음",
+    "4주판정과2원명제경계 모두 통과해야C2실행",
+    "원시 응답·정규화·요청 및 AI 독립 의미검수 별도 확인"
+  ],
+  "failure_action": "진단 실패시 C2/current0; 동입력 재튜닝/재호출 없음",
+  "participant_count": 0,
+  "human_total_s": null,
+  "human_usefulness": "unmeasured"
+}
