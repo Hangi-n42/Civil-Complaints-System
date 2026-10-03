@@ -625,6 +625,18 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
     from app.knowledge import discovery_review as reviews
     from app.tests.unit.test_knowledge_ontology_changes import listing
     source=prepare(service,file_ids=['current:0']);original=a2.model_call
+    call=a2.call;intermediate=[]
+    def capture_revision(*args,**kwargs):
+        result=call(*args,**kwargs)
+        if args[2]=='revision' and result is not None:
+            trial=deepcopy(args[1]);blocks=a2.load_blocks(service,trial)
+            a2.finish(trial,blocks,{b['id'] for b in blocks})
+            # Actual successful Revision history must invalidate the old dependent review.
+            relation=trial['result']['relations'][0]
+            assert relation['id'] in trial['result']['review_pending_candidate_ids']
+            intermediate.append(trial)
+        return result
+    monkeypatch.setattr(a2,'call',capture_revision)
     async def generated(prompt,schema,stage,run,timeout):
         result=await original(prompt,schema,stage,run,timeout)
         data=json.loads(prompt.split('\nINPUT:\n')[1]);value=json.loads(result['text'])
@@ -661,6 +673,14 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
     assert history['before']['definition']=='선택 원문의 임대 유형'
     assert identifier not in reviews.valid_ids(critics[0]['output'],{identifier:candidate})
     assert identifier in reviews.valid_ids(critics[-1]['output'],{c['id']:c for c in run['result']['observations']+[candidate]})
+    assert len(intermediate)==1 and len(run['result']['revision_history'])==1
+    before={c['id']:c for c in intermediate[0]['result']['original_observations']}
+    untouched=next(c for c in run['result']['observations'] if c['id']!=identifier)
+    assert reviews.fingerprint(untouched)==critics[0]['output']['review_coverage']['candidate_hashes'][untouched['id']]
+    group=run['candidate_groups'][0]
+    assert [p['candidate_id'] for p in group['correction_plan']]==[identifier]
+    assert history['before']['evidence_refs']==before[identifier]['evidence_refs']
+    assert history['before']['source_refs']==before[identifier]['source_refs']
     saved=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert len(model)==11 and again['analysis_units']==saved
