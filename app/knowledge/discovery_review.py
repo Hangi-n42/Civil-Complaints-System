@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
-from . import discovery_models as models, discovery_profile as profile, discovery_segments as segments
+from . import discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_design as design
 
 
 def fingerprint(candidate):
@@ -20,7 +20,7 @@ def with_selected_base_types(candidates, run):
 
 def binding_fingerprints(candidate, candidates):
     if 'negation' not in candidate: return {}
-    return {field:fingerprint(candidates[candidate[field]]) if candidates.get(candidate.get(field), {}).get('classification')=='type' else None
+    return {field:fingerprint(candidates[candidate[field]]) if candidates.get(candidate.get(field), {}).get('classification')=='type' and not any(candidates[candidate[field]].get(k) for k in ('validation','evidence_validation','outside_scope_reason','deprecated')) else None
             for field in ('subject','object') if candidate.get('source_relation') or candidates.get(candidate.get(field), {}).get('classification')=='type'}
 
 
@@ -30,7 +30,9 @@ def dependencies_current(review, identifier, candidates=None):
     if contract != 'selected-types-v1': return False
     recorded = review.get('binding_dependency_hashes', {}).get(identifier)
     if recorded is None or any(not h for h in recorded.values()): return False
-    return candidates is None or identifier in candidates and recorded==binding_fingerprints(candidates[identifier],candidates)
+    roles=review.get('role_source_hashes', {}).get(identifier, {})
+    if any(not h for h in roles.values()): return False
+    return candidates is None or identifier in candidates and recorded==binding_fingerprints(candidates[identifier],candidates) and roles==design.role_fingerprints(candidates[identifier],candidates)
 
 
 def latest_by_candidate(critiques, candidates):
@@ -244,6 +246,7 @@ def normalize(output, run, deps, by_id, supplied, context, normalize_hierarchy, 
     output['record_errors']=errors
     output['review_dependency_contract']='selected-types-v1'
     output['binding_dependency_hashes']={i:binding_fingerprints(c,supplied) for i,c in expected.items()}
+    output['role_source_hashes']={i:design.role_fingerprints(c,supplied) for i,c in expected.items()}
     output['review_coverage']=dict(expected_candidate_ids=sorted(expected),valid_candidate_ids=sorted(expected.keys()-pending),
         pending_candidate_ids=sorted(pending),candidate_hashes={i:fingerprint(c) for i,c in expected.items()})
     if 'review_target_ids' in context:
@@ -278,6 +281,7 @@ def normalize_binding(output, supplied, context, by_id):
             evidence_ids=list(output['evidence_ids']),evidence_refs=deepcopy(output['evidence_refs']),counter_evidence_ids=[],defer_reason='',derived_from='binding_check'))
     return dict(binding_check=output,issues=issues,actions=[],needs_revision=bool(issues),record_errors=[],
         review_dependency_contract='selected-types-v1',binding_dependency_hashes={identifier:dependencies},
+        role_source_hashes={identifier:design.role_fingerprints(supplied[identifier],supplied)},
         review_coverage=dict(expected_candidate_ids=[identifier],valid_candidate_ids=[identifier],pending_candidate_ids=[],
             candidate_hashes={identifier:fingerprint(supplied[identifier])}))
 
@@ -302,7 +306,8 @@ def complete_reviews(outputs):
                 and identifier in b['review_coverage']['valid_candidate_ids']
                 and dependencies_current(b,identifier)
                 and b['review_coverage']['candidate_hashes'].get(identifier)==coverage['candidate_hashes'].get(identifier)
-                and b.get('binding_dependency_hashes', {}).get(identifier)==original.get('binding_dependency_hashes', {}).get(identifier)]
+                and b.get('binding_dependency_hashes', {}).get(identifier)==original.get('binding_dependency_hashes', {}).get(identifier)
+                and b.get('role_source_hashes', {}).get(identifier,{})==original.get('role_source_hashes', {}).get(identifier,{})]
             check=next((c for c in review['relation_checks'] if c['candidate_ref']==identifier),None)
             if len(matches)!=1 or check is None or identifier not in coverage['valid_candidate_ids']:
                 pending.add(identifier)

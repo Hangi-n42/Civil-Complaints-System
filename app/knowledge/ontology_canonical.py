@@ -102,7 +102,7 @@ def project(base, changes):
         for field in ('evidence_refs', 'counter_evidence_refs', 'qualifiers', 'cq_ids', 'scope_item_ids',
                       'rationale', 'support_type', 'hierarchy_review'):
             item[field] = deepcopy(c[field])
-        modeling = {k:deepcopy(c['origin'][k]) for k in ('source_relation','source_relations','design_reason') if k in c.get('origin', {})}
+        modeling = {k:deepcopy(c['origin'][k]) for k in ('source_relation','source_relations','design_reason','definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs') if k in c.get('origin', {})}
         if modeling: item['modeling_origin'] = modeling
         item['dependency_block_ids'] = sorted(set(item.get('dependency_block_ids', [])) | set(c.get('origin', {}).get('dependency_block_ids', [])))
         items[identifier] = item

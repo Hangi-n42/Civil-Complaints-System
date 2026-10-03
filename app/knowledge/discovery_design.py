@@ -4,7 +4,7 @@ from collections import Counter
 from uuid import uuid4
 
 from pydantic import ValidationError
-from . import discovery_segments as segments, discovery_models as models
+from . import discovery_segments as segments, discovery_models as models, discovery_profile as profile
 
 
 def inline_types(output):
@@ -91,3 +91,104 @@ def bind(output, supplied, by_id, context):
         for item in output.get(field, []):
             for key in keys: item[key]=local.get(item[key],item[key])
     return available
+
+
+def source_projection(candidate):
+    """Only natural proposition/evidence semantics, never selected type IDs or reviews."""
+    source = candidate.get('source_relation') or candidate.get('modeling_origin', {}).get('source_relation') or candidate
+    fields = ('subject','predicate','object','direction','statement_type','negation','conditions','time','evidence_ids','evidence_refs')
+    return {k:deepcopy(source.get(k)) for k in fields}
+
+
+def declaration_schema(schema, relation_ids, source_refs):
+    """Narrow the two existing observation wire records to explicit exclusive branches."""
+    if 'RoleBasis' in schema['$defs']:
+        schema['$defs']['RoleBasis']['properties']['relation_ref']['enum'] = relation_ids or ['']
+    def variants(node):
+        if 'anyOf' in node:
+            for child in node['anyOf']: variants(child)
+            return
+        if 'role_basis' not in node.get('properties', {}): return
+        role, direct = deepcopy(node), deepcopy(node)
+        for name in ('label','definition','direct_definition_source_refs','source_relation_ids','conditions','exceptions','time'):
+            role['properties'].pop(name,None)
+        role['properties']['role_basis']={'$ref':'#/$defs/RoleBasis'}
+        role['properties']['classification']={'type':'string','const':'type'}
+        role['properties']['support_type']={'type':'string','const':'design_proposal'}
+        role['properties']['design_reason']['minLength']=1
+        direct['properties'].pop('role_basis')
+        direct['properties']['label']['minLength']=1
+        direct['properties']['definition']['minLength']=1
+        if 'source_relation_ids' in direct['properties']: direct['properties']['source_relation_ids']['minItems']=1
+        direct['properties']['direct_definition_source_refs'].update(minItems=1,items=dict(type='string',enum=source_refs or ['']))
+        for branch in (role,direct):
+            branch['required']=list(branch['properties'])
+        node.clear();node['anyOf']=([role] if relation_ids else [])+[direct]
+    for name in ('DesignedType','ObservationRevision'):
+        if name in schema['$defs']: variants(schema['$defs'][name])
+
+
+def declarations(output, supplied, by_id, context):
+    """Shared by initial/correction Builder and observation Revision; never repair free prose."""
+    for candidate in output.get('observations', []):
+        role = candidate.get('role_basis')
+        direct = candidate.get('direct_definition_source_refs', [])
+        candidate['definition_declaration'] = {k:deepcopy(candidate.get(k)) for k in
+            ('role_basis','label','definition','conditions','exceptions','time','direct_definition_source_refs','design_reason')}
+        if role:
+            if candidate.get('label') or candidate.get('definition') or direct or candidate.get('source_relation_ids') or any(candidate.get(k) for k in ('conditions','exceptions','time')):
+                raise ValueError('역할 선언과 자유 명칭·정의·조건·예외·시점을 함께 제출할 수 없음')
+            if candidate['classification']!='type' or candidate['support_type']!='design_proposal' or not candidate.get('design_reason'):
+                raise ValueError('역할 선언은 설계 유형과 설계 사유 필요')
+            if role['relation_ref'] not in context.get('design_relation_ids',supplied):
+                raise ValueError('역할 출처가 이번 설계 관계 범위 밖')
+            source = supplied.get(role['relation_ref'], {})
+            source = source.get('source_relation') or source
+            if source.get('statement_type') not in {'rule','definition'} or source.get('validation') or source.get('evidence_validation') or source.get('outside_scope_reason'):
+                raise ValueError('역할 출처는 제공된 유효 자연어 규범/정의 관계여야 함')
+            if role['endpoint'] not in {'subject','object'} or not isinstance(source.get(role['endpoint']),str):
+                raise ValueError('역할 출처의 끝점 오류')
+            if any(source.get(k) in supplied and supplied[source[k]].get('classification') for k in ('subject','object')) and source.get('endpoint_mode')!='source_text':
+                raise ValueError('유형 ID 연결은 자연어 역할 출처가 아님')
+            refs, errors = segments.references(candidate,by_id,segments.originals(context))
+            if errors or not source.get('evidence_refs') or not all(any(r['block_id']==e['block_id'] and r['span'][0]<=e['span'][0]<e['span'][1]<=r['span'][1] for r in refs) for e in source['evidence_refs']):
+                raise ValueError('역할 출처 명제의 제공 원문 구간 연결 필요')
+            candidate.update(label=source[role['endpoint']],definition_mode='source_role',role_source=deepcopy(source),source_relation_ids=[role['relation_ref']],
+                definition='이 출처 명제에서 「'+source[role['endpoint']]+'」으로 지칭되는 '+('주체' if role['endpoint']=='subject' else '대상')+
+                    ' 역할. 이 명제 안의 역할이며 유형 전체의 필요충분 정의나 실제 발생 사실을 선언하지 않음.',
+                conditions='',exceptions='',time='')
+        else:
+            if not candidate.get('label') or not candidate.get('definition') or not direct:
+                raise ValueError('직접 정의는 정의문과 명시적 직접 정의 원문 선택 필요')
+            if 'candidate_ref' not in candidate and not candidate.get('source_relation_ids'):
+                raise ValueError('직접 정의 설계의 출처 관계 선택 필요')
+            refs,errors=segments.references(dict(source_refs=direct),by_id,segments.originals(context))
+            if errors or not refs or (not set(direct)<=set(candidate['source_refs']) if candidate.get('source_refs') else not {e['block_id'] for e in refs}<=set(candidate.get('evidence_ids', []))):
+                raise ValueError('직접 정의 근거는 이번 후보가 선택한 제공 원문이어야 함')
+            candidate.update(definition_mode='direct',direct_definition_evidence_refs=refs)
+            candidate.pop('role_basis',None)
+            # An explicit transition must not inherit the former role's provenance.
+            if 'candidate_ref' in candidate: candidate['source_relation_ids']=[]
+
+
+def role_fingerprints(candidate, candidates):
+    selected=[candidate]
+    if candidate.get('source_relation'):
+        selected += [candidates.get(candidate.get(k), {}) for k in ('subject','object')]
+    hashes={}
+    for target in selected:
+        role=target.get('role_basis')
+        if not role: continue
+        source=candidates.get(role['relation_ref'])
+        if source is None:
+            # Canonical IDs and new extraction IDs differ; resolve only an actually supplied
+            # identical natural proposition AND version/parse/block/span evidence, never the saved snapshot alone.
+            source=next((c for c in candidates.values() if
+                (c.get('source_relation') or c.get('modeling_origin', {}).get('source_relation') or c).get('statement_type') in {'rule','definition'}
+                and source_projection(c)==source_projection(target.get('role_source', {}))),None)
+        valid=source is not None and source_projection(source)==source_projection(target.get('role_source', {}))
+        valid=valid and not any(target.get(k) for k in ('validation','evidence_validation','outside_scope_reason','deprecated'))
+        natural=(source or {}).get('source_relation') or (source or {}).get('modeling_origin', {}).get('source_relation') or source or {}
+        valid=valid and not natural.get('validation') and not natural.get('evidence_validation') and not natural.get('outside_scope_reason')
+        hashes[target['id']]=profile.digest(source_projection(source)) if valid else None
+    return hashes

@@ -133,11 +133,25 @@ class Hierarchy(Record):
     b_to_a: Direction
 
 
-class DesignedType(Observation):
+class RoleBasis(Record):
+    relation_ref: str
+    endpoint: Literal['subject', 'object']
+
+
+class DefinitionDeclaration(Observation):
+    label: str = Field(default='', max_length=80)
+    # Wire declarations only; the server restores a full role description without truncation.
+    definition: str = Field(default='', max_length=240)
+    role_basis: RoleBasis | None = None
+    direct_definition_source_refs: list[str] = Field(default_factory=list, max_length=8)
+    design_reason: str = Field(default='', max_length=300)
+
+
+class DesignedType(DefinitionDeclaration):
     local_ref: str = Field(pattern=r'^t[1-5]$')
     classification: Literal['type']
     support_type: Literal['design_proposal']
-    source_relation_ids: list[str] = Field(min_length=1, max_length=5)
+    source_relation_ids: list[str] = Field(default_factory=list, max_length=5)
     design_reason: str = Field(min_length=1, max_length=300)
 
 
@@ -187,7 +201,7 @@ class RelationCheck(Record):
     binding_reasons: dict[str,str] = Field(default_factory=dict)
 
 
-class ObservationRevision(Observation):
+class ObservationRevision(DefinitionDeclaration):
     candidate_ref: str
     reason: str = Field(min_length=1, max_length=400)
 
@@ -292,3 +306,10 @@ RESULT_FIELDS = {'scout': ('findings','gaps','actions'), 'concept': ('observatio
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}
+
+ROLE_DECLARATION_RULE = """
+새 유형 또는 관측 수정은 두 방식 중 하나만 선언한다.
+출처 끝점 역할: role_basis={relation_ref: 제공된 자연어 출처 관계 ID, endpoint: subject 또는 object}와 design_reason을 제출하고 label·definition·conditions·exceptions·time 및 direct_definition_source_refs는 제출하지 않는다. 명칭은 원문 끝점 표현으로 복원한다. 유형의 일반적 조건·예외·시점을 선언하지 않으며 원명제의 한정은 role_source에 무손실 보존한다. 서버가 출처 명제 안의 역할 설명을 복원한다. 그 설명은 이 명제에서 관측한 역할이며 유형 전체의 필요충분 정의가 아니다.
+직접 정의: definition과 해당 정의를 직접 뒷받침하는 제공 원문 direct_definition_source_refs(1개 이상)를 명시하고 role_basis는 제출하지 않는다. 이는 별도 의미 검수 대상이며 근거 선택만으로 참을 보증하지 않는다.
+역할에서 직접 정의로 전환하거나 legacy 자유 정의를 역할로 바꾸면 명시적 변경 사유를 기록한다. 기존 ID 재사용과 유형 연결 검수는 유지한다.
+"""

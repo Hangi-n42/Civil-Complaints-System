@@ -83,6 +83,9 @@ def source_response(value, data):
         if any(k in row for k in ('evidence_ids','source_refs','evidence_id')):
             ids=row.get('evidence_ids', [])+([row['evidence_id']] if row.get('evidence_id') else [])
             result['source_refs']=list(dict.fromkeys(row.get('source_refs', [])+[v['source_ref'] for i in ids for v in views if v['ref']==i]))
+        if 'classification' in row and ('candidate_ref' in row or 'source_relation_ids' in row) and not row.get('role_basis'):
+            result.setdefault('direct_definition_source_refs',list(result.get('source_refs', [])))
+            result.setdefault('design_reason','')
         if 'semantic_checks' in row:
             result.pop('judgment',None)
             if 'classification' in row['semantic_checks']:
@@ -581,7 +584,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
                     item={k:c[k] for k in a2.models.Observation.model_fields if k!='local_ref' and k in c}
                     text=next(b['text'] for b in data['blocks'] if b['ref']==c['evidence_ids'][0])
                     item['source_quotes']=[dict(evidence_id=c['evidence_ids'][0],quote=text[:2] if quote_valid else '이번 입력에 없는 인용')]
-                    value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary'))
+                    value['observations'].append(dict(item,local_ref='o1',candidate_ref=c['id'],reason='열 표기를 어휘로 보류 분류한다.',classification='vocabulary',direct_definition_source_refs=[data['blocks'][0]['source_ref']]))
                 elif 'negation' in c:
                     raw=c.get('source_relation',c)
                     item={k:raw[k] for k in a2.models.Relation.model_fields if k!='local_ref' and k in raw}
@@ -705,7 +708,7 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
             value.update(hierarchies=[],observations=[dict(local_ref=f't{i}',label=name,classification='type',
                 definition=f'선택 규범을 표현하기 위한 {name}',support_type='design_proposal',
                 abstraction_level='업무 역할·대상 설계',review_signals=[],evidence_ids=[],source_refs=[ev['source_ref']],
-                cq_ids=['cq1'],source_relation_ids=[r['id'] for r in relations],
+                cq_ids=['cq1'],source_relation_ids=[r['id'] for r in relations],direct_definition_source_refs=[ev['source_ref']],
                 design_reason='제공 용어와 개별 기관은 재사용 가능한 역할/대상 유형이 아니므로 한정하여 설계')
                 for i,name in enumerate(['제1호 기준 설정 역할','제2호 기준 설정 역할','별도 기준 대상'],1)],
                 relation_bindings=[dict(relation_ref=r['id'],subject_ref=f't{i}',object_ref='t3',reason='원문의 주체별 분기를 별도 역할과 대상의 관계로 표현') for i,r in enumerate(relations,1)])
@@ -722,7 +725,7 @@ def test_builder_role_designs_preserve_source_rules_and_atomic_review_bundle(ser
             value=dict(observations=[],relations=[],hierarchies=[],deferred=[])
             for candidate in data['targets']:
                 item={k:candidate[k] for k in a2.models.Observation.model_fields if k in candidate}
-                value['observations'].append(dict(item,local_ref='o1',support_type='explicit',candidate_ref=candidate['id'],reason='잘못된 explicit 승격을 시도하는 회귀 출력'))
+                value['observations'].append(dict(item,local_ref='o1',support_type='explicit',candidate_ref=candidate['id'],reason='잘못된 explicit 승격을 시도하는 회귀 출력',direct_definition_source_refs=[data['blocks'][0]['source_ref']]))
 
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',design)

@@ -29,7 +29,7 @@ def test_three_targets_keep_two_successes_when_one_fails_and_resume_does_not_ret
             target=data['targets'][0];attempted.append(target['id'])
             if len(attempted)==1: raise ValueError('첫 대상의 독립 실패')
             row={k:target[k] for k in a2.models.Observation.model_fields if k in target}
-            row.update(local_ref='o1',candidate_ref=target['id'],reason='근거 범위로 수정',definition='수정 완료 '+target['label'])
+            row.update(local_ref='o1',candidate_ref=target['id'],reason='근거 범위로 수정',definition='수정 완료 '+target['label'],direct_definition_source_refs=[data['blocks'][0]['source_ref']])
             value=dict(observations=[row],relations=[],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
@@ -67,7 +67,7 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                 assert len(value['relation_bindings'])==1
                 if mode=='failed': raise ValueError('연결 교정의 독립 실패 원인')
                 if mode=='new_type_cancel':
-                    new=dict(label='입주자 유형',classification='type',definition='원문에서 선정되는 대상',
+                    new=dict(direct_definition_source_refs=[data['blocks'][0]['source_ref']],label='입주자 유형',classification='type',definition='원문에서 선정되는 대상',
                         support_type='design_proposal',classification_reason='원문 역할',conditions='',exceptions='',time='',
                         abstraction_level='업무 대상',review_signals=[],source_relation_ids=bad_id,design_reason='직접 대상 역할',
                         source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')
@@ -75,9 +75,9 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                 if mode=='cancel': service.cancel(run['id'])
             else:
                 row=value['relation_bindings'][0];bad_id.append(row['relation_ref']);row['object_ref']=row['subject_ref']
-        if stage=='critic':
+        if stage=='binding':
             bindings={b['relation_ref']:b for b in data['relation_bindings']}
-            for check in value['relation_checks']:
+            for check in [value]:
                 b=bindings[check['candidate_ref']]
                 if b['subject_ref']==b['object_ref']:
                     check['binding_checks']['object']='unknown' if mode=='unknown' else 'refuted'
@@ -144,7 +144,7 @@ def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(ser
         if stage=='revision':
             target=data['targets'][0]
             row={k:target[k] for k in a2.models.Observation.model_fields if k in target}
-            row.update(local_ref='o1',candidate_ref=target['id'],reason='정의만 보완',definition='근거 정의 보완')
+            row.update(local_ref='o1',candidate_ref=target['id'],reason='정의만 보완',definition='근거 정의 보완',direct_definition_source_refs=[data['blocks'][0]['source_ref']])
             value=dict(observations=[row],relations=[],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)

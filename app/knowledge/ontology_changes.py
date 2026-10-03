@@ -125,7 +125,11 @@ def _convert(run, base, blocks):
         if source.get('design_reason'):
             origin['design_reason']=source['design_reason']
             raw['rationale']=source['design_reason']
-        if source.get('source_relation_ids'):
+        for key in ('definition_mode','role_basis','role_source','definition_declaration','direct_definition_evidence_refs'):
+            if key in source: origin[key]=deepcopy(source[key])
+        if source.get('role_source'):
+            origin['source_relations']=[deepcopy(source['role_source'])]
+        elif source.get('source_relation_ids'):
             origin['source_relations']=[deepcopy(r) for r in result.get('original_relations', []) if r['id'] in source['source_relation_ids']]
         if source.get('source_relation') or source.get('statement_type')=='rule':
             origin['source_relation']=deepcopy(source.get('source_relation') or source)

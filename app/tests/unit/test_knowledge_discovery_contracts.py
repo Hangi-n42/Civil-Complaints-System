@@ -251,7 +251,7 @@ def test_inline_builder_types_split_reuse_and_resume_without_undeclared_slots(se
                         binding[field]=prior[0 if field=='subject_ref' else 1]['id']
                     else:
                         binding[field]=dict(label='주체' if field=='subject_ref' else '대상',classification='type',
-                            definition='선택 원문의 '+field,classification_reason='원문 역할을 표현하는 설계',
+                            definition='선택 원문의 '+field,direct_definition_source_refs=[data['blocks'][0]['source_ref']],classification_reason='원문 역할을 표현하는 설계',
                             conditions='원문 범위',exceptions='',time='',support_type='design_proposal',abstraction_level='업무 역할',review_signals=[],
                             source_relation_ids=[identifier],design_reason='관계의 주체와 대상 표현',
                             source_refs=[data['blocks'][0]['source_ref']],cq_ids=['cq1'],scope_item_ids=[],outside_scope_reason='')
@@ -653,7 +653,8 @@ def test_observation_check_without_issue_revises_and_recriticizes_current_defini
             assert check['candidate_ref']==target['id'] and check['reason']=='정의에 원문 밖 세부 추가'
             assert check['semantic_checks']['definition']==judgment and check['evidence_id']
             row={k:target[k] for k in a2.models.Observation.model_fields if k in target}
-            row.update(local_ref='o1',candidate_ref=target['id'],reason='근거 범위로 정의 보완',definition='보완한 원문 범위의 임대 유형')
+            row.update(local_ref='o1',candidate_ref=target['id'],reason='근거 범위로 정의 보완',definition='보완한 원문 범위의 임대 유형',
+                source_refs=[data['blocks'][0]['source_ref']],direct_definition_source_refs=[data['blocks'][0]['source_ref']])
             value=dict(observations=[row],relations=[],hierarchies=[],deferred=[])
         result['text']=json.dumps(value,ensure_ascii=False);return result
     monkeypatch.setattr(a2,'model_call',generated)
@@ -960,4 +961,10 @@ def test_definition_rules_reach_writing_and_observation_prompts_only():
         assert '사실적 주장마다 대응하는 제공 원문 구절' not in prompt
     assert sha256(a2.models.PROPOSITION_PROMPT.encode()).hexdigest()=='fc38f80d928ec5c0a09557efa882aa7f75f2a3a283d24e769f44941fa70e52d6'
     assert sha256(discovery_binding.PROMPT.encode()).hexdigest()=='d140e9eabc060e37c8d06b4583722efd9353b3881610089f41569532c8052544'
-    assert run['recipe']['schema_hash']=='142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab'
+    assert run['recipe']['definition_contract']=='source-role-v1'
+    for stage in ('builder','revision'):
+        _,prompt=a2.make_prompt(run,stage,dict(blocks=[],targets=[]),[],{})
+        assert a2.models.ROLE_DECLARATION_RULE in prompt
+        legacy=deepcopy(run);legacy['recipe'].pop('definition_contract')
+        _,old_prompt=a2.make_prompt(legacy,stage,dict(blocks=[],targets=[]),[],{})
+        assert a2.models.ROLE_DECLARATION_RULE not in old_prompt
