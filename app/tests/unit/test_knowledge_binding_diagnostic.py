@@ -53,3 +53,13 @@ def test_binding_diagnostic_records_http_and_failures_without_full_review(tmp_pa
     if mode=='valid':assert result['output']['evidence_refs'][0]['parse_run_id']=='p'
     with pytest.raises(FileExistsError):diagnostic.run_binding(args,freeze,package)
     assert len(payloads)==2
+
+
+def test_split_product_status_requires_both_current_units_and_read_projection():
+    units=[dict(id='old',status='failed'),dict(id='proposition',status='failed'),dict(id='binding',status='succeeded')]
+    expected=['proposition','binding']
+    assert diagnostic.split_case_status(units,expected,{'partial':'view'})=='incomplete'
+    units[1]['status']='succeeded'
+    assert diagnostic.split_case_status(units,expected,None)=='incomplete'
+    assert diagnostic.split_case_status(units,expected,{'complete':'view'})=='succeeded'
+    assert diagnostic.split_case_status(units[2:],expected,{'partial':'view'})=='incomplete'

@@ -98,6 +98,11 @@ def run_binding(args, frozen, package):
     print(json.dumps(record,ensure_ascii=False))
 
 
+def split_case_status(units, expected_ids, output):
+    selected={u['id']:u for u in units if u['id'] in expected_ids}
+    return 'succeeded' if output is not None and set(selected)==set(expected_ids) and all(u['status']=='succeeded' for u in selected.values()) else 'incomplete'
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--freeze',type=Path,required=True)
@@ -152,6 +157,9 @@ def main():
                 expected=case_calls[-1]['options']
                 assert payload['model']==expected['model'] and payload['think'] is expected['think'] and payload['stream'] is False
                 assert payload['options']=={k:expected[k] for k in ('temperature','num_ctx','num_predict')}
+                case_calls[-1].update(http_prompt_sha256=sha256(payload['prompt'].encode()).hexdigest(),http_schema_sha256=profile.digest(payload['format']))
+                assert case_calls[-1]['http_prompt_sha256']==case_calls[-1]['prompt_sha256']
+                assert case_calls[-1]['http_schema_sha256']==case_calls[-1]['schema_sha256']
             return await post(client,url,**kwargs)
         async def measured(instance,prompt,**kwargs):
             left=selected['model_seconds']-sum(c['elapsed_s'] for c in calls)
@@ -194,7 +202,9 @@ def main():
                 model_total_s=round(sum(c['elapsed_s'] for c in case_calls),3))
             if case.get('split_review'):
                 result.update(units=run['analysis_units'],review=output,review_unit_ids=group['review_unit_ids'])
-                result['status']='succeeded' if output is not None and not output.get('record_errors') and not output['review_coverage']['pending_candidate_ids'] else 'partial'
+                result['status']=split_case_status(run['analysis_units'],group['review_unit_ids'],output)
+                result['unit_field_contract']='compatibility only: last unit, not whole case status'
+                result['review_complete']=output is not None and not output.get('record_errors') and not output['review_coverage']['pending_candidate_ids']
             write(case_path/'result.json',result);record['cases'].append(dict(case=case['id'],status=result.get('status',unit['status']),result_sha256=digest(case_path/'result.json')))
         finally: service.shutdown()
     record.update(finished_at=utcnow(),http_calls=sum(c.get('http_attempted',False) for c in calls),
