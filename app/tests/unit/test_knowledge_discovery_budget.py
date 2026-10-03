@@ -198,3 +198,25 @@ def test_initial_entry_does_not_override_call_or_extraction_time_shortage(servic
         assert 'initial_review_group_id' not in run
         assert [u['stage'] for u in run['analysis_units']]==['scout']
         assert run['status']=='partial'
+
+
+def test_initial_extraction_failure_and_cancel_resume_same_group(service,monkeypatch,model):
+    source=prepare(service,file_ids=['current:0','web:0']);original=a2.model_call;interrupted=False
+    monkeypatch.setattr(a2,'monotonic',count(0,100).__next__)
+    async def interrupt_concept(prompt,schema,stage,run,timeout):
+        nonlocal interrupted
+        result=await original(prompt,schema,stage,run,timeout)
+        if stage=='concept' and not interrupted:
+            interrupted=True;result['done_reason']='length';service.cancel(run['id'])
+        return result
+    monkeypatch.setattr(a2,'model_call',interrupt_concept)
+    run=done(service,service.start(RunRequest(kind='discovery',discovery_mode='analyze',input_run_id=source['id'],
+        cqs=[dict(id='cq1',question='유형과 조건')],
+        discovery_budgets=dict(model_calls=24,model_seconds=1500,additional_rounds=0,revisions=0)))['run_id'])
+    assert interrupted and run['status']=='cancelled' and run['initial_review_group_id']
+    before={u['id']:deepcopy(u) for u in run['analysis_units'] if u['status']=='succeeded'};calls=len(model)
+    again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
+    assert model[calls:calls+2]==['concept','relation']
+    assert all(u==before[u['id']] for u in again['analysis_units'] if u['id'] in before)
+    assert again['initial_review_group_id']==run['initial_review_group_id']
+    assert again['metrics']['model_total_s']<=1500 and again['metrics']['llm_calls']<=24

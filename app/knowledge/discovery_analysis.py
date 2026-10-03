@@ -1232,10 +1232,11 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         estimated_s = reservation['estimated_model_s']+sum(run['role_time_estimates'][stage]['estimate_s'] for stage in future)
         calls_fit = remaining_calls >= reservation['model_calls']+len(future)
         proceed = calls_fit and remaining_s >= estimated_s
-        initial_review = (not proceed and calls_fit and not reservation['pending_units']
-            and not run.get('initial_review_group_id')
+        first_entry = (calls_fit and not reservation['pending_units'] and not run.get('initial_review_group_id')
             and not any(u['stage'] in {'concept','relation'} and u.get('attempts') for u in run['analysis_units'])
-            and all(not run['role_time_estimates'][stage].get('observed_count') for stage in ('builder','critic'))
+            and all(not run['role_time_estimates'][stage].get('observed_count') for stage in ('builder','critic')))
+        same_entry = run.get('initial_review_group_id')==key and remaining_calls>=len(needed)
+        initial_review = (not proceed and (first_entry or same_entry)
             and remaining_s >= sum(run['role_time_estimates'][stage]['estimate_s'] for stage in needed))
         if initial_review:
             run['initial_review_group_id'] = key
