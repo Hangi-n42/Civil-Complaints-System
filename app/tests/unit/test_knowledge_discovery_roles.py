@@ -35,8 +35,13 @@ def test_role_builder_correction_dependency_and_a3_roundtrip(service,model,monke
                 value['relation_bindings'][0]['object_ref']=role_wire(data,natural)
             else:
                 value['relation_bindings'][0]['object_ref']=value['relation_bindings'][0]['subject_ref']
-            design.inline_types(value)
+            inline=bool(data.get('binding_checks')) and run['recipe'].get('builder_correction_contract')=='inline-single-v1'
+            if not inline: design.inline_types(value)
             jsonschema.validate(value,schema)
+            if inline:
+                assert a2.models.SHARED_TYPE_RULE not in prompt
+                bad=deepcopy(value);bad['relation_bindings'][0]['object_ref']='t1'
+                with pytest.raises(jsonschema.ValidationError): jsonschema.validate(bad,schema)
         if stage=='binding' and correction and not any(u.get('parent_group_id') and u['status']=='succeeded' for u in run['analysis_units']):
             value['binding_checks']['object']='refuted'
             value['binding_reasons']['object']='모형 검사에서 지정한 잘못된 대상 유형'
@@ -48,7 +53,9 @@ def test_role_builder_correction_dependency_and_a3_roundtrip(service,model,monke
     assert len(roles)==1,(run['candidate_groups'],run['result'])
     role=roles[0];relation=run['result']['relations'][0]
     builder=next(u for u in run['analysis_units'] if any(c.get('role_basis') for c in u.get('output',{}).get('observations',[])))
-    assert 'definition' not in next(c for c in json.loads(builder['raw_output'])['observations'] if c.get('role_basis'))
+    raw=json.loads(builder['raw_output'])
+    declaration=raw['relation_bindings'][0]['object_ref'] if correction else next(c for c in raw['observations'] if c.get('role_basis'))
+    assert isinstance(declaration,dict) and 'definition' not in declaration
     assert role['definition_declaration']['definition']==''
     assert role['role_source']==relation['source_relation']
     assert '필요충분 정의나 실제 발생 사실을 선언하지 않음' in role['definition']
@@ -217,7 +224,7 @@ def test_explicit_legacy_to_role_to_direct_revision_records_actual_history(servi
 def test_legacy_schema_and_decoder_stay_exact_while_new_wire_is_separate():
     from pydantic import ValidationError
     models=a2.models
-    assert a2.profile.digest({k:v.model_json_schema() for k,v in models.OUTPUTS.items()})=='142c80e8f4538c5cd68d2dbeef0b2ba39b1308473c44d58725c2e2d5370b80ab'
+    assert a2.profile.digest({k:v.model_json_schema() for k,v in models.OUTPUTS.items()})=='693afb830e82eae59e353b3d3cafb8dc9e8dbc338d7740fd313d473f896b229c'
     for stage in ('builder','revision'):
         assert models.output_model(stage) is models.OUTPUTS[stage]
         assert models.output_model(stage,'source-role-v1') is not models.OUTPUTS[stage]

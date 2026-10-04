@@ -136,24 +136,114 @@ def test_critic_capacity_matches_http_and_input_reservation_with_legacy_fallback
     assert not synthesis.fits(run,'critic',{},[],{})
 
 
-def test_role_applicability_separates_endpoint_scope_from_whole_requirement():
+@pytest.mark.parametrize('endpoint',['subject','object'])
+def test_role_applicability_separates_endpoint_scope_from_whole_requirement(endpoint):
     import json
     run=dict(id='scope',recipe=a2.recipe({}),cqs=[dict(id='q',question='주체 A/B 각각의 조건과 대상')],scope_items=[])
     role=dict(subject='A',predicate='정한다',object='기준',conditions='A 조건',time='기간')
     context=dict(context_phase='applicability',target=dict(label='기준',cq_ids=['q'],scope_item_ids=[],
-        scope_kind='candidate',source_role=role,role_endpoint='object'),blocks=[],proposals=[])
+        scope_kind='candidate',source_role=role,role_endpoint=endpoint),blocks=[],proposals=[])
     before=deepcopy(context)
     def payload(value):
         return json.loads(a2.make_prompt(run,'context',value,[],{})[1].split('\nINPUT:\n')[1])['target']
     target=payload(context)
-    assert target['requirement_scope']==run['cqs'][0]['question'] and target['scope']!=target['requirement_scope']
-    assert target['source_role']==role and target['role_endpoint']=='object' and context==before
+    assert 'requirement_scope' not in target and run['cqs'][0]['question'] not in str(target)
+    assert target['source_role']==role and target['role_endpoint']==endpoint and context==before
     requirement=deepcopy(context);requirement['target']['scope_kind']='requirement'
     assert payload(requirement)['scope']==run['cqs'][0]['question'] and 'requirement_scope' not in payload(requirement)
     discovery=deepcopy(context);discovery.pop('context_phase')
     assert payload(discovery)['scope']==run['cqs'][0]['question'] and 'requirement_scope' not in payload(discovery)
     plain=deepcopy(context);plain['target'].pop('source_role');plain['target'].pop('role_endpoint')
     assert payload(plain)['scope']==run['cqs'][0]['question']
+
+
+@pytest.mark.parametrize('mode',['role','added_effect','plain_target','missing_role','invalid_role','mixed_targets','legacy_claims','legacy_scope'])
+def test_local_role_review_uses_primary_mode_and_keeps_assertions_and_locations(mode):
+    import json
+    run=dict(id='local',recipe=a2.recipe({}),cqs=[dict(id='q',question='다른 절차는 제외하는 전체 요구')],scope_items=[])
+    source=dict(id='r',subject='담당자',predicate='선정한다',object='대상',conditions='조건 A에도 불구하고 조건 B')
+    role=dict(id='c',classification='type',definition_mode='source_role',definition='이 출처 명제의 담당자 역할',
+        role_basis=dict(relation_ref='r',endpoint='subject'),role_source=source,cq_ids=['q'])
+    plain=dict(id='p',classification='type',definition_mode='synthesis',definition='일반 유형')
+    supplied={'c':role,'p':plain,'r':dict(source,subject='c',object='p',source_relation=deepcopy(source))}
+    target=['c']
+    if mode=='added_effect':role['definition']+=' 이 역할만으로 자격을 부여한다.'
+    if mode=='plain_target':target=['p']
+    if mode=='missing_role':role.pop('role_source')
+    if mode=='invalid_role':role['validation']=['invalid']
+    if mode=='mixed_targets':target=['c','p']
+    if mode=='legacy_claims':run['recipe'].pop('claim_review_contract')
+    if mode=='legacy_scope':run['recipe'].pop('context_contract')
+    context=dict(review_focus='observations',review_target_ids=target,blocks=[],
+        unapproved_observations=[supplied[i] for i in target],comparison_terms=[c for i,c in supplied.items() if i not in target],
+        source_requirements={'c':[dict(meaning='실제 한정',meaning_key='m')]},revision_comparisons={})
+    before=deepcopy((context,supplied))
+    _,prompt=a2.make_prompt(run,'critic',context,[],supplied)
+    wire=json.loads(prompt.split('\nINPUT:\n')[1]);local=mode in {'role','added_effect'}
+    assert (a2.models.SOURCE_ROLE_REVIEW_RULE in prompt)==local
+    assert wire['cqs']==([] if local or mode=='plain_target' else run['cqs'])
+    assert wire['source_requirements']==context['source_requirements']
+    if local:
+        assert wire['unapproved_observations'][0]['definition']==role['definition']
+        assert wire['unapproved_observations'][0]['role_source']==source
+        assert wire['unapproved_observations'][0]['role_basis']==role['role_basis']
+        assert next(c for c in wire['comparison_terms'] if c['id']=='r')['conditions']==source['conditions']
+        assert a2.models.CLAIM_REVIEW_RULE not in prompt and a2.models.SCOPE_RULE not in prompt
+        assert '모순되지 않는 유용한 역할 표현인지 판단한다' in prompt
+        assert 'design_choice라는 분류 자체로 unknown이나 supported를 정하지 않는다' in prompt
+        assert '자료의 모호함·미제공은 unknown' in prompt
+        representation=wire['role_representation'][0]
+        assert representation['declaration']==dict(candidate_ref='c',field='definition')
+        assert representation['source_role']==dict(candidate_ref='c',field='role_source')
+        assert representation['selected_endpoint']==role['role_basis']
+        assert representation['current_uses']==[dict(relation_ref='r',endpoint='subject',locations=[
+            dict(candidate_ref='r',field='predicate'),dict(candidate_ref='r',field='conditions')])]
+        from app.knowledge import discovery_scope as scope
+        for location in representation['current_uses'][0]['locations']:
+            selected=dict(judgment='supported',locations=[deepcopy(location)],evidence_refs=[dict(block_id='e')])
+            scope.locations(selected,supplied)
+            current=next(c for c in wire['comparison_terms'] if c['id']==location['candidate_ref'])
+            assert selected['locations'][0]['quote']==current[location['field']]
+        assert wire['review_scope']['missing_meanings_allowed'] is False
+        assert 'definition_completeness' not in prompt.split('\nINPUT:\n')[0]
+    else: assert 'role_representation' not in wire
+    assert (context,supplied)==before
+
+
+@pytest.mark.parametrize('bad',[None,'old_only','both','missing'])
+def test_role_wire_coverage_restores_only_name_and_preserves_verdicts(bad):
+    from app.knowledge import discovery_scope as scope
+    value=dict(judgment='refuted',reason='실제 누락',required_meanings=[dict(judgment='unknown',locations=[],missing_source='외부 자료')])
+    row=dict(candidate_ref='c',role_coverage=deepcopy(value),claim_reviews=[dict(judgment='refuted')])
+    if bad in {'old_only','missing'}:row.pop('role_coverage')
+    if bad in {'old_only','both'}:row['definition_completeness']=deepcopy(value)
+    output=dict(observation_checks=[row])
+    if bad:
+        with pytest.raises(ValueError):scope.restore_role_review(output)
+    else:
+        scope.restore_role_review(output)
+        assert output==dict(observation_checks=[dict(candidate_ref='c',definition_completeness=value,claim_reviews=[dict(judgment='refuted')])])
+
+
+def test_role_wire_schema_preserves_nested_requirements_and_location_contract():
+    from app.knowledge import discovery_scope as scope
+    schema=a2.models.ScopedCritique.model_json_schema();before=deepcopy(schema)
+    scope.role_schema(schema)
+    def check(old,new):
+        if isinstance(old,list):
+            assert len(old)==len(new)
+            for a,b in zip(old,new):check(a,b)
+        elif isinstance(old,dict):
+            assert set(new)==set(old)
+            for k,v in old.items():
+                if k=='properties' and 'definition_completeness' in v:
+                    assert 'definition_completeness' not in new[k]
+                    check(v['definition_completeness'],new[k]['role_coverage'])
+                    assert {a:b for a,b in v.items() if a!='definition_completeness'}=={a:b for a,b in new[k].items() if a!='role_coverage'}
+                elif k=='required':assert new[k]==['role_coverage' if s=='definition_completeness' else s for s in v]
+                else:check(v,new[k])
+        else:assert old==new
+    check(before,schema)
 
 
 @pytest.mark.parametrize('stage',['critic','requirements'])
@@ -204,6 +294,20 @@ def test_primary_type_review_includes_direct_current_uses_without_reverse_recurs
     changed_supplied['r2']['source_relation']['conditions']='변경된 현재 조건'
     follow=synthesis.review_batches(changed,deps,changed_supplied,by_id,{'b':dict(block_ids=['b'])})[0]
     assert a2.make_prompt(run,'critic',follow['context'],deps,follow['supplied'])[1]!=prompt
+
+
+def test_focused_proposition_does_not_claim_omitted_global_meanings():
+    from app.knowledge import discovery_synthesis as synthesis
+    from app.tests.unit.test_knowledge_discovery_review_scope import projection
+    run,group,by_id,_,_,_=projection()
+    run['recipe']=a2.recipe({});group['primary_candidate_ids']=['r1']
+    context,deps,supplied=synthesis.review_context(run,group,dict(hierarchies=[]),by_id,{'b':dict(block_ids=['b'])})
+    batches=synthesis.review_batches(context,deps,supplied,by_id,{'b':dict(block_ids=['b'])})
+    assert [b['context']['review_component'] for b in batches]==['proposition','binding']
+    for batch in batches:
+        assert not batch['context']['review_scope']['missing_meanings_allowed']
+        assert {'r2','r3'} <= set(batch['context']['review_scope']['omitted_comparison_ids'])
+        assert batch['context']['review_scope']['primary_source_spans']
 
 
 def concepts(rows, context, block, alignments=()):
@@ -549,7 +653,7 @@ def test_post_correction_wire_requires_each_preserved_meaning_receipt():
 
 
 @pytest.mark.parametrize('wrapped',[False,True])
-def test_relation_post_correction_wire_requires_receipts_and_keeps_unrevised_lists(wrapped):
+def test_relation_post_correction_wire_requires_receipts_and_forbids_unrequested_ones(wrapped):
     import jsonschema
     from app.knowledge import discovery_scope as scope
     schema=a2.models.ScopedCritique.model_json_schema()
@@ -566,9 +670,12 @@ def test_relation_post_correction_wire_requires_receipts_and_keeps_unrevised_lis
         assert nodes['anyOf'][1]['anyOf'][0]['properties']['semantic_checks']['properties']['subject']['const']=='unknown'
         nodes=nodes['anyOf'][0]
     changed,unchanged=nodes['anyOf']
-    assert unchanged['properties']['preservation_checks']==original['properties']['preservation_checks']
+    empty=dict(unchanged['properties']['preservation_checks'],**{'$defs':schema['$defs']})
+    assert empty['maxItems']==0
+    jsonschema.validate([],empty)
     receipt=dict(changed['properties']['preservation_checks'],**{'$defs':schema['$defs']})
     item=dict(meaning='normal meaning',applies_to='r',source_refs=['s'],missing_source='',locations=[],status='unknown',reason='not verified')
+    with pytest.raises(jsonschema.ValidationError): jsonschema.validate([dict(item,meaning_key='invented')],empty)
     jsonschema.validate({'normal':item},receipt)
     for missing in ([],{}, {'wrong':item}, {'normal':item,'wrong':item}):
         with pytest.raises(jsonschema.ValidationError): jsonschema.validate(missing,receipt)
@@ -577,7 +684,7 @@ def test_relation_post_correction_wire_requires_receipts_and_keeps_unrevised_lis
     assert output['relation_checks'][0]['preservation_checks']==[dict(item,meaning_key='normal')]
     legacy=a2.models.ScopedCritique.model_json_schema();legacy['$defs']['RelationCheck']=deepcopy(original)
     scope.context_check_schema(legacy,{},'critic')
-    assert legacy['$defs']['RelationCheck']==original
+    assert all(n['properties']['preservation_checks']['maxItems']==0 for n in legacy['$defs']['RelationCheck']['anyOf'])
 
 
 @pytest.mark.parametrize('quote',[None,'현재 정의','현재...정의',''])
@@ -920,3 +1027,255 @@ def test_failed_discovery_does_not_reserve_an_unreachable_applicability_child():
     run['analysis_units']=[dict(id=uid,stage='context',status='failed',attempts=[dict(outcome='error')])]
     assert scope.context_unit_ids(run,context,by,{'c':candidate})==[uid]
     assert run['analysis_units'][0]['status']=='failed'
+
+
+@pytest.mark.parametrize('invalid',[None,'quote','source_version_id','span'])
+def test_type_application_adds_only_verified_source_address_without_rediscovery(invalid):
+    import json
+    from app.knowledge import discovery_scope as scope
+    _,run,result,by,_=requirement_fixture();run['id']='local-type'
+    candidate=deepcopy(result['observations'][0]);candidate.update(definition_mode='source_extract',cq_ids=[])
+    b=by['e'];ref=dict(block_id='e',source_version_id=b['source_version_id'],parse_run_id=b['parse_run_id'],span=[0,2],quote=b['text'][:2])
+    if invalid:ref[invalid]={'quote':'wrong','source_version_id':'old','span':[0,99999]}[invalid]
+    context=dict(blocks=[dict(ref='e',text=b['text'])],review_target_ids=['c'])
+    baseline=scope.discovery_requests(run,context,by,{'c':candidate})[0]
+    candidate['definition_evidence_refs']=[ref]
+    _,key,packet,deps=scope.discovery_requests(run,context,by,{'c':candidate})[0]
+    assert key==baseline[1]  # Broad independent source proposals remain reusable.
+    run['analysis_units']=[dict(id='context:'+key,stage='context',status='succeeded',output=dict(context_needs=[]))]
+    before=deepcopy(packet);request=scope.candidate_application(run,'c',key,packet,by)
+    sent=json.loads(a2.make_prompt(run,'context',request[1],deps,{})[1].split('\nINPUT:\n')[1])
+    assert packet==before and sent['blocks'] and 'definition' not in sent['target']
+    assert ('definition_source_addresses' in sent['target'])==(invalid is None)
+    if invalid is None:
+        assert sent['target']['definition_source_addresses']==[{k:ref[k] for k in ('block_id','source_version_id','parse_run_id','span')}]
+        assert sent['target']['definition_mode']=='source_extract' and '별도 업무 규칙' in sent['target']['scope']
+        old=scope.candidate_application(run,'c',key,baseline[2],by)
+        assert request[0]!=old[0]  # Applicability must be recomputed for the changed question.
+
+
+def test_observation_critic_receives_only_primary_linked_questions():
+    import json
+    run=dict(id='local',recipe=a2.recipe({}),cqs=[dict(id='q1',question='primary'),dict(id='q2',question='comparison')],
+        scope_items=[dict(id='s1',description='primary scope'),dict(id='s2',description='comparison scope')])
+    supplied={'c':dict(id='c',classification='type',cq_ids=[],scope_item_ids=[]),
+        'other':dict(id='other',classification='type',cq_ids=['q2'],scope_item_ids=['s2'])}
+    context=dict(review_focus='observations',review_target_ids=['c'],blocks=[],unapproved_observations=[supplied['c']],comparison_terms=[supplied['other']])
+    def payload(stage):return json.loads(a2.make_prompt(run,stage,context,[],supplied)[1].split('\nINPUT:\n')[1])
+    assert payload('critic')['cqs']==[] and payload('critic')['scope_items']==[]
+    supplied['c'].update(cq_ids=['q1'],scope_item_ids=['s1'])
+    assert payload('critic')['cqs']==run['cqs'][:1] and payload('critic')['scope_items']==run['scope_items'][:1]
+    assert payload('requirements')['cqs']==run['cqs'] and payload('requirements')['scope_items']==run['scope_items']
+
+
+@pytest.mark.parametrize('mode,shared',[('single',False),('initial',True),('multiple',True),('legacy',True),('old_inline',False)])
+def test_single_binding_correction_uses_existing_inline_contract_only(mode,shared):
+    from app.knowledge import discovery_design as design
+    run=dict(recipe=a2.recipe({}));context=dict(binding_before={'id':'r'},design_relation_ids=['r'])
+    if mode=='initial':context.pop('binding_before')
+    if mode=='multiple':context['design_relation_ids'].append('r2')
+    if mode=='legacy':run['recipe'].pop('builder_correction_contract')
+    if mode=='old_inline':run['recipe'].pop('builder_declaration_contract')
+    assert design.shared_types(run,context) is shared
+
+
+@pytest.mark.parametrize('thinking',[False,True])
+def test_native_think_option_reaches_existing_calls_and_separates_source_cache(monkeypatch,thinking):
+    import asyncio
+    from app.knowledge import discovery_scope as scope
+    sent=[]
+    async def capture(self,prompt,**kwargs):sent.append(kwargs);return {}
+    monkeypatch.setattr(a2.GenerationService,'call_ollama',capture)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_THINK',thinking)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_NUM_CTX',65536)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_INPUT_CHARS',40000)
+    _,run,result,by,_=requirement_fixture()
+    assert run['recipe']['think'] is thinking
+    assert run['recipe']['num_ctx']==65536 and run['recipe']['input_chars']==40000
+    candidate=result['observations'][0];context=dict(blocks=[dict(ref='e',text=by['e']['text'])],review_target_ids=['c'])
+    key=scope.discovery_requests(run,context,by,{'c':candidate})[0][1]
+    legacy=deepcopy(run);legacy['recipe'].pop('think')
+    old=scope.discovery_requests(legacy,context,by,{'c':candidate})[0][1]
+    assert (key==old) is (not thinking)
+    for stage in ('context','applicability','critic','builder','requirements','binding'):
+        asyncio.run(a2.model_call('input',{},stage,run,720))
+        assert sent[-1]['think']==(run['recipe']['binding_think'] if stage=='binding' else thinking)
+        assert sent[-1]['num_ctx']==65536
+        assert sent[-1]['num_predict']==(8192 if stage in {'binding','critic','requirements'} or stage in {'builder','applicability'} and thinking else 4096)
+    from app.knowledge import discovery_synthesis as synthesis
+    application=dict(context_phase='applicability',target=dict(label='역할',scope_kind='candidate',cq_ids=[],scope_item_ids=[]),blocks=[],proposals=[])
+    size=synthesis.input_size(run,'context',application,[],{})
+    assert size['input_bytes_limit']==65536-(8192 if thinking else 4096)
+    app_key=scope.applicability_request(run,application['target'],[],[],{},[])[0]
+    previous=deepcopy(run);previous['recipe'].pop('applicability_num_predict')
+    assert scope.discovery_requests(previous,context,by,{'c':candidate})[0][1]==key
+    assert (scope.applicability_request(previous,application['target'],[],[],{},[])[0]==app_key) is (not thinking)
+    run['recipe']['binding_think']=True
+    asyncio.run(a2.model_call('input',{},'binding',run,720))
+    assert sent[-1]['think'] is True
+
+
+def test_cancellation_during_context_discovery_prevents_next_critic_call(monkeypatch):
+    from app.knowledge import discovery_scope as scope
+    run=dict(id='cancel-discovery',recipe=a2.recipe({}),cqs=[],scope_items=[],analysis_units=[],metrics=dict(llm_calls=0))
+    cancelled=[False]
+    monkeypatch.setattr(a2,'cancelled',lambda *_:cancelled[0])
+    monkeypatch.setattr(a2,'allowed_ids',lambda *_:set())
+    monkeypatch.setattr(a2,'make_prompt',lambda *_:({},'input'))
+    monkeypatch.setattr(scope,'attach_saved',lambda _,context,*__:context)
+    def discover(_,current,context,*rest):
+        cancelled[0]=True
+        return context
+    monkeypatch.setattr(scope,'discover',discover)
+    monkeypatch.setattr(a2,'model_identity',lambda *_:pytest.fail('취소 후 Critic 준비/호출 금지'))
+    assert a2.call(None,run,'critic','after-discovery',dict(blocks=[],review_target_ids=[]),[],{},{}) is None
+    assert run['metrics']['llm_calls']==0 and run['analysis_units'][0]['attempts']==[]
+
+
+@pytest.mark.parametrize('state',['failed','cancelled','missing','succeeded','legacy'])
+def test_failed_required_applicability_skips_critic_http_without_semantic_verdict(monkeypatch,state):
+    from app.knowledge import discovery_scope as scope
+    dependency=dict(id='context:apply:required',stage='context',status='failed' if state in {'legacy','missing'} else state)
+    run=dict(id='failed-application',recipe=a2.recipe({}),cqs=[],scope_items=[],analysis_units=[] if state=='missing' else [dependency],metrics=dict(llm_calls=0))
+    if state=='legacy':run['recipe'].pop('context_applicability_contract')
+    monkeypatch.setattr(a2,'recipe',lambda *_:run['recipe'])
+    monkeypatch.setattr(a2,'save',lambda *_:None)
+    monkeypatch.setattr(a2,'cancelled',lambda *_:False)
+    monkeypatch.setattr(a2,'allowed_ids',lambda *_:set())
+    monkeypatch.setattr(a2,'make_prompt',lambda *_:({},'input'))
+    monkeypatch.setattr(scope,'attach_saved',lambda _,context,*__:context)
+    monkeypatch.setattr(scope,'discover',lambda _,current,context,*__:context)
+    monkeypatch.setattr(scope,'context_unit_ids',lambda *_:[dependency['id']])
+    class ReadyForModel(BaseException):pass
+    def ready(*_):raise ReadyForModel()
+    monkeypatch.setattr(a2,'model_identity',ready)
+    args=(None,run,'critic','after-application',dict(blocks=[],review_target_ids=[]),[],{},{})
+    if state in {'failed','cancelled','missing'}:
+        assert a2.call(*args) is None
+        unit=run['analysis_units'][-1]
+        assert unit['status']=='failed' and '필수 문맥 준비 미완료' in unit['error'] and 'output' not in unit
+        assert run['metrics']['llm_calls']==0 and unit['attempts']==[]
+    else:
+        with pytest.raises(ReadyForModel):a2.call(*args)
+
+
+def test_role_declaration_purpose_only_enters_applicability_not_independent_source_discovery():
+    import json
+    from app.knowledge import discovery_scope as scope
+    _,run,result,by,_=requirement_fixture()
+    source=dict(id='r',subject='담당자',predicate='선정한다',object='대상',conditions='해당 조건',time='')
+    candidate=dict(result['observations'][0],label='대상',definition_mode='source_role',
+        role_basis=dict(relation_ref='r',endpoint='object'),role_source=source,definition='UNTRUSTED_GENERATED_EFFECT')
+    context=dict(blocks=[dict(ref='e',text=by['e']['text'])],review_target_ids=['c'])
+    _,key,packet,deps=scope.discovery_requests(run,context,by,{'c':candidate})[0]
+    declaration=packet['candidate_application_target']['declaration_scope']
+    assert declaration['role_basis']==candidate['role_basis'] and '선정 자격' in str(declaration['does_not_establish'])
+    original_prompt=a2.make_prompt(run,'context',packet,deps,{})[1]
+    assert 'declaration_scope' not in original_prompt and 'UNTRUSTED_GENERATED_EFFECT' not in original_prompt
+    run['analysis_units'].append(dict(id='context:'+key,stage='context',status='succeeded',output=dict(context_needs=[])))
+    _,application,app_deps=scope.candidate_application(run,'c',key,packet,by)
+    prompt=a2.make_prompt(run,'context',application,app_deps,{})[1]
+    wire=json.loads(prompt.split('\nINPUT:\n')[1])
+    assert wire['target']['definition_mode']=='source_role' and wire['target']['declaration_scope']==declaration
+    assert wire['target']['source_role']['conditions']==source['conditions']
+    assert 'UNTRUSTED_GENERATED_EFFECT' not in prompt
+    altered=deepcopy(candidate);altered['definition']='DIFFERENT_GENERATED_CLAIM'
+    _,same_key,same_packet,_=scope.discovery_requests(run,context,by,{'c':altered})[0]
+    assert same_key==key and same_packet['candidate_application_target']==packet['candidate_application_target']
+    invalid=deepcopy(candidate);invalid['role_basis']['endpoint']='outside'
+    assert 'candidate_application_target' not in scope.discovery_requests(run,context,by,{'c':invalid})[0][2]
+
+
+def test_remaining_contract_reaches_model_prompt_and_only_changes_applicability_cache(monkeypatch):
+    from app.knowledge import discovery_scope as scope
+    _,run,result,by,_=requirement_fixture()
+    candidate=result['observations'][0];context=dict(blocks=[dict(ref='e',text=by['e']['text'])],review_target_ids=['c'])
+    _,key,packet,deps=scope.discovery_requests(run,context,by,{'c':candidate})[0]
+    source_prompt=a2.make_prompt(run,'context',packet,deps,{})[1]
+    source_schema=a2.models.ContextDiscovery.model_json_schema()
+    run['analysis_units'].append(dict(id='context:'+key,stage='context',status='succeeded',output=dict(context_needs=[])))
+    app_key,application,app_deps=scope.candidate_application(run,'c',key,packet,by)
+    rule=a2.models.APPLICABILITY_REMAINING_RULE
+    assert rule in a2.make_prompt(run,'context',application,app_deps,{})[1]
+    assert rule==a2.models.ContextApplicability.model_json_schema()['$defs']['ContextApplicabilityDecision']['properties']['remaining']['description']
+    assert rule not in source_prompt and rule not in str(source_schema)
+    monkeypatch.setitem(a2.models.PROMPTS,'context_applicability',a2.models.PROMPTS['context_applicability'].replace(rule,''))
+    assert scope.candidate_application(run,'c',key,packet,by)[0]!=app_key
+    assert scope.discovery_requests(run,context,by,{'c':candidate})[0][1]==key
+    assert a2.make_prompt(run,'context',packet,deps,{})[1]==source_prompt
+    assert a2.models.ContextDiscovery.model_json_schema()==source_schema
+
+
+def test_requirements_capacity_changes_only_its_http_and_preserves_context_cache(monkeypatch):
+    import asyncio
+    from app.knowledge import discovery_scope as scope, discovery_synthesis as synthesis
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_NUM_CTX',65536)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX',0)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_PREDICT',8192)
+    _,prior,result,by,_=requirement_fixture()
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX',81920)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_PREDICT',16384)
+    run=deepcopy(prior);run['recipe']=a2.recipe(prior['recipe']['budgets'])
+    candidate=result['observations'][0];context=dict(blocks=[dict(ref='e',text=by['e']['text'])],review_target_ids=['c'])
+    assert scope.discovery_requests(run,context,by,{'c':candidate})[0][1]==scope.discovery_requests(prior,context,by,{'c':candidate})[0][1]
+    target=dict(label='대상',scope_kind='candidate',cq_ids=[],scope_item_ids=[])
+    assert scope.applicability_request(run,target,[],[],{},[])[0]==scope.applicability_request(prior,target,[],[],{},[])[0]
+    sent=[]
+    async def capture(self,prompt,**kwargs):sent.append(kwargs);return {}
+    monkeypatch.setattr(a2.GenerationService,'call_ollama',capture)
+    for stage in ('requirements','context','applicability','critic','builder','binding'):
+        asyncio.run(a2.model_call('input',{},stage,run,1800))
+        assert sent[-1]['num_ctx']==(81920 if stage=='requirements' else 65536)
+        assert sent[-1]['num_predict']==(16384 if stage=='requirements' else a2.output_tokens(prior['recipe'],stage))
+    monkeypatch.setattr(a2,'make_prompt',lambda *_: ({},'x'*60000))
+    run['recipe']['input_chars']=70000
+    assert synthesis.fits(run,'requirements',{},[],{})
+    assert not synthesis.fits(run,'critic',{},[],{})
+    legacy=deepcopy(run['recipe']);legacy.pop('requirements_num_ctx')
+    assert a2.context_tokens(legacy,'requirements')==65536
+
+
+def test_requirements_context_support_is_checked_only_on_review_model(monkeypatch):
+    from types import SimpleNamespace
+    current=a2.recipe({});current.update(num_ctx=65536,requirements_num_ctx=81920,models=dict(draft='draft',review='review'))
+    lengths=dict(draft=65536,review=81920)
+    def response(value):return SimpleNamespace(raise_for_status=lambda:None,json=lambda:value)
+    class Client:
+        def __init__(self,**_):pass
+        def __enter__(self):return self
+        def __exit__(self,*_):pass
+        def get(self,url):return response(dict(models=[dict(name=k,digest=k) for k in lengths]))
+        def post(self,url,json):return response(dict(model_info={'model.context_length':lengths[json['model']]}))
+    monkeypatch.setattr(a2.httpx,'Client',Client)
+    assert a2.model_identity(current)['draft']['context_length']==65536
+    lengths['review']=65536
+    with pytest.raises(ValueError,match='컨텍스트'):a2.model_identity(current)
+    lengths.update(draft=65535,review=81920)
+    with pytest.raises(ValueError,match='컨텍스트'):a2.model_identity(current)
+
+
+@pytest.mark.parametrize('actual_tokens',[65536,65537])
+def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(monkeypatch,actual_tokens):
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_NUM_CTX',65536)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_INPUT_CHARS',70000)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX',81920)
+    monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_PREDICT',16384)
+    req,run,result,by,cm=requirement_fixture()
+    run.update(id='capacity',status='running',model_identity={},metrics=dict(llm_calls=0,model_total_s=0))
+    context,deps,supplied=req.packet(run,result,'cq',run['cqs'][0],by,cm)
+    original=a2.make_prompt;called=[]
+    def padded(*args,**kwargs):
+        mapping,prompt=original(*args,**kwargs)
+        return mapping,prompt+' '*(60000-len(prompt.encode()))
+    async def capture(*_):
+        called.append(True)
+        # The intentionally empty record isolates the capacity check before schema validation.
+        return dict(text='{}',done=True,done_reason='stop',prompt_eval_count=actual_tokens)
+    monkeypatch.setattr(a2,'make_prompt',padded);monkeypatch.setattr(a2,'model_call',capture)
+    monkeypatch.setattr(a2,'model_identity',lambda _:{});monkeypatch.setattr(a2,'save',lambda *_:None)
+    monkeypatch.setattr(a2,'cancelled',lambda *_:False);monkeypatch.setattr(a2,'allowed_ids',lambda *_:set(by))
+    a2.call(None,run,'requirements','capacity',context,deps,by,supplied)
+    unit=run['analysis_units'][-1]
+    assert called==[True],unit
+    assert ('실제 입력 토큰/컨텍스트 확인 실패' in unit['error']) is (actual_tokens==65537)
+    assert '보수적 토큰 상한' not in unit['error']

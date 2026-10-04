@@ -5,6 +5,48 @@ import json
 from . import discovery_review as reviews, discovery_segments as segments, discovery_claims as claims, discovery_design as design
 
 
+def role_review(run, context, supplied):
+    targets=[supplied.get(i,{}) for i in context.get('review_target_ids',[])]
+    return context.get('review_focus')=='observations' and context.get('review_component') not in {'binding','proposition'} and \
+        run.get('recipe',{}).get('claim_review_contract')=='claims-v1' and run['recipe'].get('context_contract')=='scope-v1' and bool(targets) and all(
+        c.get('definition_mode')=='source_role' and c.get('classification')=='type' and
+        not any(c.get(k) for k in ('validation','evidence_validation','outside_scope_reason')) and
+        isinstance(c.get('role_basis'),dict) and c['role_basis'].get('relation_ref') and c['role_basis'].get('endpoint') in {'subject','object'} and
+        isinstance(c.get('role_source'),dict) and c['role_source'].get(c['role_basis']['endpoint']) for c in targets)
+
+
+def role_context(run, context, supplied):
+    if not role_review(run,context,supplied): return context
+    context=deepcopy(context)
+    context['review_scope']=dict(context.get('review_scope',{}),missing_meanings_allowed=False)
+    context['role_representation']=[dict(candidate_ref=i,declaration=dict(candidate_ref=i,field='definition'),
+        selected_endpoint=deepcopy(supplied[i]['role_basis']),source_role=dict(candidate_ref=i,field='role_source'),
+        current_uses=[dict(relation_ref=j,endpoint=endpoint,locations=[dict(candidate_ref=j,field=k)
+            for k in ('predicate','conditions','time') if isinstance(r.get(k),str) and r[k].strip() and r[k]==r['source_relation'].get(k)])
+            for j,r in supplied.items() if r.get('source_relation') for endpoint in ('subject','object') if r[endpoint]==i])
+        for i in context['review_target_ids']]
+    return context
+
+
+def role_schema(schema):
+    """Only the model-facing label changes; stored completeness keeps its contract."""
+    if isinstance(schema,list):
+        for node in schema: role_schema(node)
+    elif isinstance(schema,dict):
+        props=schema.get('properties',{})
+        if 'definition_completeness' in props:
+            schema['properties']={('role_coverage' if k=='definition_completeness' else k):v for k,v in props.items()}
+            schema['required']=['role_coverage' if k=='definition_completeness' else k for k in schema.get('required',[])]
+        for node in schema.values(): role_schema(node)
+
+
+def restore_role_review(output):
+    for row in output.get('observation_checks',[]):
+        if not isinstance(row,dict) or 'role_coverage' not in row or 'definition_completeness' in row:
+            raise ValueError('역할 검수의 role_coverage 누락 또는 구형 필드 동시 제출')
+        row['definition_completeness']=row.pop('role_coverage')
+
+
 def source_context(context, deps, by_id):
     context=deepcopy(context)
     if context.get('context_contract')=='scope-v1': return context, deps
@@ -220,10 +262,28 @@ def discovery_requests(run,context,by_id,supplied):
             target['role_endpoint']=(c.get('role_basis') or {}).get('endpoint')
         selected=views  # Keep supplied supplemental text, including potentially relevant effective dates.
         packet=dict(target=target,blocks=deepcopy(selected),context_contract='scope-v1')
+        role=c.get('role_basis') or {}
+        if c.get('classification')=='type' and c.get('definition_mode')=='source_role' and role.get('relation_ref') and \
+                role.get('endpoint') in {'subject','object'} and c.get('role_source',{}).get(role['endpoint'])==c.get('label') and \
+                not any(c.get(k) for k in ('validation','evidence_validation','outside_scope_reason')):
+            packet['candidate_application_target']=dict(definition_mode='source_role',declaration_scope=dict(
+                role_basis=deepcopy(role),purpose='선택한 출처 명제 안의 끝점 역할 식별',
+                does_not_establish=['유형 전체의 필요충분 정의','개별 대상의 실제 소속·선정 자격','자격·권리·효과 부여']))
+        if c.get('classification')=='type' and c.get('definition_mode') in {'source_extract','synthesis','direct'} and not any(
+                c.get(k) for k in ('validation','evidence_validation','outside_scope_reason')):
+            anchors=[]
+            for ref in c.get('definition_evidence_refs',c.get('direct_definition_evidence_refs',[])):
+                b=by_id.get(ref.get('block_id'),{});span=ref.get('span',[])
+                if len(span)==2 and all(isinstance(n,int) for n in span) and 0<=span[0]<span[1]<=len(b.get('text','')) and \
+                        all(ref.get(k)==b.get(k) for k in ('source_version_id','parse_run_id')) and b['text'][slice(*span)]==ref.get('quote') and \
+                        any(v['ref']==ref['block_id'] and v['span'][0]<=span[0]<span[1]<=v['span'][1] for v in selected):
+                    anchors.append({k:deepcopy(ref[k]) for k in ('block_id','source_version_id','parse_run_id','span')})
+            if anchors:
+                packet['candidate_application_target']=dict(definition_mode=c['definition_mode'],definition_source_addresses=anchors)
         deps=sorted({v['ref'] for v in selected})
         _,prompt=a2.make_prompt(run,'context',packet,deps,{})
         key=digest([{k:v for k,v in target.items() if k!='source_anchors'},prompt,models.ContextDiscovery.model_json_schema(),run.get('model_identity',{}).get('review'),
-            run['recipe'].get('num_predict'),sources])
+            run['recipe'].get('num_predict'),sources]+([dict(think=run['recipe']['think'])] if run['recipe'].get('think',False) else []))
         requests.append((identifier,key,packet,deps))
     return requests
 
@@ -353,6 +413,8 @@ def context_check_schema(schema,context,stage,supplied=None):
             comparison=context.get('revision_comparisons',{}).get(identifier)
             if comparison is not None:
                 bind(branch,comparison.get('expected_meanings',[]),'preservation_checks');changed=True
+            elif 'preservation_checks' in branch.get('properties',{}):
+                branch['properties']['preservation_checks']['maxItems']=0;changed=True
             variants.append(branch)
         if changed: node.clear();node['anyOf']=variants
     bind_relations(schema.get('$defs',{}).get('RelationCheck',{}))
@@ -489,7 +551,7 @@ def applicability_request(run,target,proposals,views,by_id,discovery_ids,scope_l
     sources=[(v['ref'],by_id[v['ref']]['source_version_id'],by_id[v['ref']]['parse_run_id'],v.get('span'),v['text']) for v in views]
     units={u['id']:u for u in run['analysis_units']}
     stamp=profile.digest([prompt,models.ContextApplicability.model_json_schema(),run.get('model_identity',{}).get('review'),
-        {k:run['recipe'].get(k) for k in ('num_ctx','num_predict','think','endpoint')},sources,scope_limit,
+        dict({k:run['recipe'].get(k) for k in ('num_ctx','think','endpoint')},num_predict=a2.output_tokens(run['recipe'],'applicability')),sources,scope_limit,
         [(i,units[i]['output']) for i in sorted(discovery_ids)]])
     return 'apply:'+stamp,packet,deps
 
@@ -518,6 +580,7 @@ def candidate_application(run,identifier,key,packet,by_id):
     unit=next((u for u in run['analysis_units'] if u['id']=='context:'+key and u['status']=='succeeded'),None)
     if not unit: return None
     target=dict(packet['target'],scope_kind='candidate')
+    target.update(deepcopy(packet.get('candidate_application_target',{})))
     proposals=required_context(dict(context_needs=unit['output']['context_needs']),[])
     return applicability_request(run,target,proposals,packet['blocks'],by_id,[unit['id']])
 

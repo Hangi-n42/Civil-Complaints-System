@@ -13,15 +13,18 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v86'
+PROMPT_VERSION = 'discovery-a2-v100'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(context_applicability_contract='scoped-v1', source_context_contract='independent-v1', context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, critic_num_predict=8192, requirements_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(builder_correction_contract='inline-single-v1', context_applicability_contract='scoped-v1', source_context_contract='independent-v1', context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, critic_num_predict=8192, requirements_num_predict=settings.KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_PREDICT, requirements_num_ctx=settings.KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX or settings.KNOWLEDGE_DISCOVERY_NUM_CTX, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.SOURCE_ROLE_REVIEW_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
-        num_ctx=49152, num_predict=4096, think=False, input_chars=32000,
+        num_ctx=settings.KNOWLEDGE_DISCOVERY_NUM_CTX, num_predict=4096,
+        builder_num_predict=8192 if settings.KNOWLEDGE_DISCOVERY_THINK else 4096,
+        applicability_num_predict=8192 if settings.KNOWLEDGE_DISCOVERY_THINK else 4096,
+        think=settings.KNOWLEDGE_DISCOVERY_THINK, input_chars=settings.KNOWLEDGE_DISCOVERY_INPUT_CHARS,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
         schema_hash=profile.digest([{k: models.output_model(k,'authored-v2','scope-v1').model_json_schema() for k in models.OUTPUTS},models.ContextApplicability.model_json_schema()]))
 
@@ -38,7 +41,8 @@ def model_identity(current):
             response = client.post(current['endpoint'] + '/api/show', json={'model': name})
             response.raise_for_status()
             lengths = [int(v) for k, v in response.json().get('model_info', {}).items() if k.endswith('.context_length')]
-            if not lengths or min(lengths) < current['num_ctx']:
+            required_context=max(current['num_ctx'],context_tokens(current,'requirements')) if role=='review' else current['num_ctx']
+            if not lengths or min(lengths) < required_context:
                 raise ValueError('모델의 선언 컨텍스트가 실행 설정보다 작거나 확인 불가합니다.')
             result[role] = dict(name=name, digest=installed[name]['digest'], context_length=min(lengths))
         return result
@@ -530,17 +534,30 @@ def issue_ids(run):
 
 
 def output_tokens(recipe, stage):
-    return recipe.get(stage+'_num_predict', recipe['num_predict']) if stage in {'binding','critic','requirements'} else recipe['num_predict']
+    return recipe.get(stage+'_num_predict', recipe['num_predict']) if stage in {'builder','binding','critic','requirements','applicability'} else recipe['num_predict']
+
+
+def context_tokens(recipe, stage):
+    return recipe.get('requirements_num_ctx',recipe['num_ctx']) if stage=='requirements' else recipe['num_ctx']
+
+
+def model_stage(stage, context):
+    if context.get('review_component')=='binding': return 'binding'
+    return 'applicability' if stage=='context' and context.get('context_phase')=='applicability' else stage
 
 
 async def model_call(prompt, schema, stage, run, timeout):
     return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements','context'} else 'draft'],
-        num_predict=output_tokens(run['recipe'],stage), num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
+        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements','context','applicability'} else 'draft'],
+        num_predict=output_tokens(run['recipe'],stage), num_ctx=context_tokens(run['recipe'],stage), think=run['recipe']['binding_think'] if stage=='binding' else run['recipe'].get('think',False),
         timeout=timeout, return_metadata=True, local_only=True)
 
 
 def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
+    from . import discovery_scope
+    shared_types=stage=='builder' and design.shared_types(run,context)
+    role_review=stage=='critic' and discovery_scope.role_review(run,context,supplied)
+    if role_review: context=discovery_scope.role_context(run,context,supplied)
     mapping = {i: 'e'+str(n) for n,i in enumerate(sorted(set(deps)))}
     mapping.update({i: 'c'+str(n) for n,i in enumerate(sorted(supplied))})
     stable = run.get('recipe', {}).get('reference_contract') == 'canonical-v1'
@@ -591,6 +608,10 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     if stage=='context':
         cqs=[q for q in cqs if q['id'] in context['target']['cq_ids']]
         scope_items=[q for q in scope_items if q['id'] in context['target']['scope_item_ids']]
+    if stage=='critic' and context.get('review_focus')=='observations' and run.get('recipe',{}).get('context_contract')=='scope-v1':
+        primary=[supplied[i] for i in context.get('review_target_ids',[]) if i in supplied]
+        cqs=[q for q in cqs if any(q['id'] in c.get('cq_ids',[]) for c in primary)]
+        scope_items=[q for q in scope_items if any(q['id'] in c.get('scope_item_ids',[]) for c in primary)]
     if stage=='context':
         target=dict(label=context['target']['label'],scope='\n'.join([q['question'] for q in cqs]+[q.get('description',q.get('label','')) for q in scope_items]))
         for field in ('source_role','role_endpoint'):
@@ -598,9 +619,12 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         payload=dict(target=target,blocks=[{k:v[k] for k in ('ref','source_ref','text','span') if k in v} for v in segments.originals(context)])
         if context.get('context_phase')=='applicability':
             payload['target'].update(scope_kind=context['target']['scope_kind'])
+            for field in ('definition_mode','definition_source_addresses','declaration_scope'):
+                if field in context['target']: target[field]=deepcopy(context['target'][field])
             if target['scope_kind']=='candidate' and target.get('source_role'):
-                target['requirement_scope']=target.pop('scope')
-                target['scope']='source_role의 role_endpoint가 가리키는 대상 역할의 의미와 그 해석을 결정하는 한정·조건을 검수한다. source_role은 역할을 도출한 원명제의 보존 문맥이며, 그 주체·행위·공급조건 전체가 선택 끝점의 정의 조건은 아니다. 누가 어떤 경우에 무엇을 하는지는 원관계·연결·전체 요구에서 별도로 확인한다. requirement_scope는 전체 요구의 맥락이며 다른 가지가 전체 요구에 필수라는 이유만으로 이 끝점 정의의 필수 내용이 되지 않는다. 선택 끝점의 실제 의미를 바꾸는 조건·예외·기간·참조는 그대로 남긴다.'
+                target['scope']='declaration_scope는 작성방식이 정한 검수 목적이며 현재 생성문장이 이를 준수한다는 증거가 아니다. 역할 식별과 실제 대상의 소속·선정 자격 판단을 구분한다. 추가 자격·권리·효과가 실제 정의에 있으면 별도 주장 검수가 반박해야 하며 이 메타데이터로 면제하지 않는다. source_role이라는 특정 명제 안에서 role_endpoint가 맡는 역할을 검수한다. 같은 이름이 등장하는 모든 절차의 일반 역할 정의가 아니다. 선택 끝점의 의미를 직접 결정하는 원명제의 대상·분기·한정·조건·예외·기간·참조는 유지한다. 다른 명제의 예외·우선관계가 관련되어도 그 처리 방법·권한·적용 주체 전체를 이 역할의 필수 정의로 확대하지 않는다. 원명제를 예외 없는 전역 규칙으로 확장했는지는 해당 관계와 전체 요구에서 검수하며, 다른 업무의 상세나 단순히 예외가 존재한다는 사실을 이 역할의 필수 누락으로 넘기지 않는다. 일부만 필요한 제안은 mixed.remaining에 선택 끝점과 해당 명제에 실제 필요한 의미와 applies_to만 남긴다. 직접 한정을 다른 가지의 조건과 합치거나 원문 구간 밖이라는 이유로 제외하지 않는다. 참조 사실과 외부의 실제 정의·자격·절차 내용은 별도 의미다. 제공된 참조 표현만 필요한 remaining에는 그 참조 사실을 쓰고 missing_source에 외부 본문을 복사하지 않는다. 실제 외부 내용도 이 역할 해석에 필요한 경우에는 별도 remaining에 구체 missing_source를 유지하며 필수 여부가 불명확하면 unknown이다. 역할 이름 일치만으로 다른 절차에 재사용할 수 있는지는 여기서 확정하지 않으며 실제 사용 관계의 연결 검수가 담당한다.'
+            elif target['scope_kind']=='candidate' and context['target'].get('definition_source_addresses'):
+                target['scope']='해당 유형의 정체성·구성·필수 조건·예외·기간을 확인하는 국소 정의 검수다. definition_source_addresses는 정의 작성에 사용된 검증된 원문 주소이며 정답이나 충분성 판정이 아니다. 원문 전체에서 유형 자체를 성립시키는 의미와 그 유형을 사용하는 별도 업무 규칙을 구분한다. 선택 구간 밖이라는 이유만으로 제외하지 않으며 source_extract도 누락 검수에서 면제하지 않는다. 어느 조문을 따르는지의 참조 사실과 그 조문의 실제 정의·조건 내용은 서로 다른 의미다. 혼합 제안은 mixed.remaining에서 이 둘을 별도 의미로 나누고 각각의 applies_to를 명시한다. 참조 사실은 제공 구절로 판단하지만 실제 외부 내용이 필요한 의미에는 그 자료의 missing_source를 유지한다. 필수 여부를 모르면 unknown이며, 필수라고 판단한 미제공 내용을 참조 사실만으로 충족했다고 보아서는 안 된다. 전체 업무의 충족 여부는 별도 요구 검수에서 확인한다.'
             payload['proposals']=compact(context['proposals'])
             return mapping,models.PROMPTS['context_applicability']+'\nINPUT:\n'+json.dumps(payload,ensure_ascii=False,separators=(',',':'))
         return mapping,models.PROMPTS['context']+'\nINPUT:\n'+json.dumps(payload,ensure_ascii=False,separators=(',',':'))
@@ -617,18 +641,22 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=instruction.replace('type/design_proposal 정의와 source_refs, source_relation_ids, design_reason을 함께 작성한다.',
             'type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다.')
         instruction += models.ROLE_DECLARATION_RULE
-    if stage=='builder' and run.get('recipe',{}).get('builder_declaration_contract')=='shared-types-v1':
+    if shared_types:
         instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
     if stage=='builder' and run.get('recipe',{}).get('builder_definition_contract')=='roles-only-v1':
         instruction=instruction.replace(models.DEFINITION_RULE,'').replace(models.ROLE_DECLARATION_RULE,models.BUILDER_ROLE_RULE)
     if stage in {'concept','revision'} and run.get('recipe',{}).get('definition_contract')=='authored-v2':
         instruction=instruction.replace(models.ROLE_DECLARATION_RULE,'') + models.AUTHORING_RULE
-    if stage=='critic' and component not in {'binding','proposition'} and run.get('recipe',{}).get('claim_review_contract')=='claims-v1':
+    if role_review:
+        instruction=models.COMMON + models.SOURCE_ROLE_REVIEW_RULE
+        payload['cqs']=[];payload['scope_items']=[]
+    if stage=='critic' and not role_review and component not in {'binding','proposition'} and run.get('recipe',{}).get('claim_review_contract')=='claims-v1':
         instruction=instruction.replace('definition=refuted','해당 claim의 judgment=refuted') + models.CLAIM_REVIEW_RULE
-    if run.get('recipe',{}).get('context_contract')=='scope-v1' and stage in {'concept','revision','critic'} and component not in {'binding','proposition'}:
+    if not role_review and run.get('recipe',{}).get('context_contract')=='scope-v1' and stage in {'concept','revision','critic'} and component not in {'binding','proposition'}:
         instruction += models.SCOPE_RULE
     if (stage=='critic' and (context.get('revision_comparisons') or context.get('source_requirements')) and component!='binding') or stage=='revision' and 'preservation_basis' in context:
         instruction+=models.PRESERVATION_RULE
+    if role_review: instruction=instruction.replace('definition_completeness','role_coverage')
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
 
@@ -648,6 +676,9 @@ def requirement_reservation(run,by_id=None,*,future=False,excluding=None):
 def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
     from . import discovery_scope
     supplied = supplied or {}
+    shared_types=stage=='builder' and design.shared_types(run,context)
+    role_review=stage=='critic' and discovery_scope.role_review(run,context,supplied)
+    if role_review: context=discovery_scope.role_context(run,context,supplied)
     if run['recipe'].get('context_contract')=='scope-v1' and stage!='scout':
         context,deps=discovery_scope.source_context(context,deps,by_id)
     uid = stage + ':' + key
@@ -678,7 +709,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
     component=context.get('review_component')
-    output_limit=output_tokens(run['recipe'],'binding' if component=='binding' else stage)
+    output_limit=output_tokens(run['recipe'],model_stage(stage,context))
+    context_limit=context_tokens(run['recipe'],model_stage(stage,context))
     citation_ids = unit['provided_block_ids']
     unit['source_ref_map'] = {b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
                               for b in segments.originals(context)}
@@ -691,13 +723,18 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             unit['context_dependency_ids']=['context:'+key for _,key,_,_ in discovery_scope.discovery_requests(run,context,by_id,supplied)]
             unit['context_candidate_ids']=[i for i in context.get('review_target_ids',[]) if 'classification' in supplied[i]]
             context=discovery_scope.discover(service,run,context,by_id,supplied)
+            if cancelled(service, run): return None
             unit['context_dependency_ids']=discovery_scope.context_unit_ids(run,context,by_id,supplied)
+            if run['recipe'].get('context_applicability_contract')=='scoped-v1' and any(
+                    next((u['status'] for u in run['analysis_units'] if u['id']==uid),None)!='succeeded'
+                    for uid in unit['context_dependency_ids']):
+                raise ValueError('필수 문맥 준비 미완료; 후보를 보존하고 후속 Critic 호출 보류')
             mapping,prompt=make_prompt(run,stage,context,deps,supplied,key,source_scope)
             input_hash=profile.digest([prompt,run['recipe']])
         if len(prompt) > run['recipe']['input_chars']:
             raise ValueError(f'전체 입력 {len(prompt)}자 예산 초과; 원문을 자르지 않고 미처리')
         # UTF-8 byte count is a conservative token upper bound, never a char=token claim.
-        if len(prompt.encode()) + output_limit > run['recipe']['num_ctx']:
+        if len(prompt.encode()) + output_limit > context_limit:
             raise ValueError('전체 입력의 보수적 토큰 상한이 선언 컨텍스트 초과')
         if run['recipe'] != recipe(run['recipe']['budgets']):
             raise ValueError('실제 호출 시 모델/로컬 처리 설정 변경')
@@ -831,7 +868,6 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
             if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
             type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
-            shared_types=run['recipe'].get('builder_declaration_contract')=='shared-types-v1'
             local_tokens=[f't{n}' for n in range(1,6) if f't{n}' not in mapping.values()]
             schema['properties']['observations']['maxItems']=min(5,2*len(relation_ids),len(local_tokens)) if shared_types else 0
             if shared_types:
@@ -1002,21 +1038,23 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                     branch['properties'].pop(field,None)
                     branch['required']=[k for k in branch['required'] if k!=field]
             omit_binding(schema['$defs']['RelationCheck'])
+        if role_review: discovery_scope.role_schema(schema)
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1
         save(service, run)
         started = monotonic(); metadata = None
         try:
-            metadata = asyncio.run(model_call(prompt, schema, 'binding' if component=='binding' else stage, run, timeout))
+            metadata = asyncio.run(model_call(prompt, schema, model_stage(stage,context), run, timeout))
             unit['raw_output'] = metadata['text']
             if metadata.get('done_reason') == 'length' or metadata.get('done') is False:
                 raise ValueError('모델 출력 절단')
-            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + output_limit > run['recipe']['num_ctx']:
+            if not metadata.get('prompt_eval_count') or metadata['prompt_eval_count'] + output_limit > context_limit:
                 raise ValueError('실제 입력 토큰/컨텍스트 확인 실패')
             decoded = json.loads(metadata['text'])
+            if role_review: discovery_scope.restore_role_review(decoded)
             if stage=='builder':
-                if run['recipe'].get('builder_declaration_contract')=='shared-types-v1':
+                if shared_types:
                     if len(decoded.get('observations',[]))>min(5,2*len(context.get('design_relation_ids', []))):
                         raise ValueError('새 유형 선언 수가 주관계의 끝점 예약 상한 초과')
                     if any(isinstance(b.get(k),dict) for b in decoded.get('relation_bindings',[]) if isinstance(b,dict) for k in ('subject_ref','object_ref')):

@@ -384,12 +384,15 @@ class ContextDiscovery(Record):
     context_needs: list[ContextNeed] = Field(min_length=1)
 
 
+APPLICABILITY_REMAINING_RULE = 'mixed.remaining은 원제안의 복사본이 아니라 선택한 범위에서 새로 남긴 필수 의미다. meaning에는 남긴 의미 자체를, applies_to에는 그 의미가 적용되는 현재 대상·범위를 다시 쓴다. reason에서 제외한 외부 실제 내용이나 범위를 meaning/applies_to에 그대로 남기지 않는다. missing_source에는 남긴 의미를 판단하는 데 필요한 실제 미제공 자료의 이름만 쓴다. 의미 내용·참조 사실·판정 이유를 missing_source에 쓰지 않는다. 제공 원문에 있는 참조 사실만 남긴다면 meaning을 그 참조 사실로 고쳐 쓰고 missing_source는 빈 문자열로 쓴다. 실제 외부 내용도 필요한 경우에는 별도 의미와 구체 missing_source로 유지한다.'
+
+
 class ContextApplicabilityDecision(Record):
     meaning_key: str
     applicability: Literal['required','not_applicable','mixed','unknown']
     source_refs: list[str]
     reason: str = Field(min_length=1)
-    remaining: list[ContextNeed] = Field(default_factory=list)
+    remaining: list[ContextNeed] = Field(default_factory=list, description=APPLICABILITY_REMAINING_RULE)
 
 
 class ContextApplicability(Record):
@@ -460,9 +463,19 @@ class ScopedCritique(ClaimCritique):
 
 ITEM_SCOPE_RULE = 'source_context_needs는 기존 원문 발견의 문맥제안이며 정답이 아니다. 생성에서도 원문과 CQ를 대조해 필요한 의미만 반영하고 무관한 요구는 확장하지 않는다. 목록은 각 구성 항목과 그 항목에 붙는 조건·예외·기간을 개별 의미로 대조한다. 본문 뒤 주석·부칙 참조 중 실제 제공된 적용 문구도 읽고, applies_to에 해당 하위항목의 원문 표현과 적용 범위를 구체화한다. 목록 전체를 한 의미로 묶어 개별 한정을 생략하지 않는다. 상위의 참조 문구만 충족 위치로 선택하지 말고 실제 내용을 담은 정의 또는 계층 structure와 자식의 definition/conditions/exceptions/time 위치를 선택한다. 하위 한정은 그 항목에 연결해 표현하며 상위 전체로 확대하지 않는다.\n'
 
+SOURCE_ROLE_REVIEW_RULE = """
+출처 끝점 역할 표현의 충족 검수다. review_target_ids만 판정한다. role_representation은 검수할 현재 표현의 주소 목록이다. declaration은 역할 선언, selected_endpoint는 출처 관계에서 선택한 끝점, source_role은 그 명제의 보존 한정, current_uses는 현재 직접 사용 관계다. 일반 유형 전체의 정의를 묻지 않는다.
+질문은 '이 출처 역할을 해석하는 데 필요한 의미가 현재 표현의 어느 필드에 있고 원문과 같은 범위인가'이다. 원문에서 필요한 의미를 찾고 role_representation이 가리키는 실제 필드들을 읽어 locations로 선택한 뒤 충족 여부를 판정한다. 역할의 한정이 role_source 또는 현재 관계에 표현돼 있으면 definition에 다시 복사할 필요가 없다. 끝점 불일치, 원문 조건 삭제·확대, 잘못된 역할 재사용은 오류다. 주소의 존재는 지지 증거가 아니며 각 실제 표현을 원문과 대조한다.
+claim_reviews는 후보 definition/conditions/exceptions/time의 공백 외 모든 문자를 실제 연속 candidate_quote로 포괄한다. 각 주장에 field, claim, nature(factual/design_choice), judgment, source_refs, reason을 쓴다. 역할 설명에 추가한 권리·효과·인과·자격은 별도 주장으로 원문과 대조하고 근거 없는 추가는 refuted다. 빈 조건 필드 자체는 오류가 아니며 보존 문맥까지 확인한다.
+설계 선택도 실제 원문·선택 끝점·한정과 대조하여 모순되지 않는 유용한 역할 표현인지 판단한다. design_choice라는 분류 자체로 unknown이나 supported를 정하지 않는다. 실제 범위·효과의 모순이나 한정 삭제는 refuted, 판단에 필요한 자료의 모호함·미제공은 unknown이며 구체 이유를 쓴다. 지지·반박에는 이 대조에 사용한 실제 source_refs가 필요하다.
+semantic_checks는 classification/conditions/exceptions만 작성한다. role_coverage.required_meanings는 필요한 의미→현재 표현 위치→원문과의 범위 대조 순으로 작성한다. 제공 원문에 있는 의미가 표현 결합에서 빠졌으면 refuted, 판단에 필요한 외부 자료가 없으면 unknown과 구체 missing_source를 남긴다. 제공 조건의 표현 누락은 자료 미제공이 아니다. 문맥 제안은 정답이 아니며 원문과 대조해 정정한다.
+supported/refuted는 실제 제공 source_refs와 구체 대조 이유가 필요하다. locations는 현재 candidate_ref/field 주소이며 quote는 복사하지 않는다. 지지하는 의미에는 실제 충족 위치가 필요하고 없는 표현은 locations=[]이다. hierarchy_checks/relation_checks/missing_meanings는 비운다. 전체 요구의 누락은 별도 요구 검수가 담당한다. 모델 출력이나 미승인 후보는 원문 증거가 아니다.
+주후보의 내용 오류는 claim_reviews·semantic_checks·role_coverage로 판정하며 issues에 중복 기입하지 않는다. issues는 실제 근거 오류·대응·자료 부재에만 쓰고 실제 candidate_ref와 원문 source_refs를 선택한다. 자료 부재는 구체 미제공 자료를 defer_reason에 적는다. 원문에 없는 효과를 후보가 주장한 것은 내용 오류이며 source_absent가 아니다. budget_exhausted는 서버가 제공한 예산 종료 사실이 있을 때만 쓴다.
+"""
+
 SCOPE_RULE = ITEM_SCOPE_RULE + """
 원문을 먼저 읽고 정의에 필요한 구성 의미를 각각 독립된 required_meanings 항목으로 펼친 뒤 현재 표현과 대조한다. 원문에 열거한 실제 항목·대상·행위·한정 조건을 meaning에 구체적으로 쓴다. 목록을 가리키는 참조 표현은 목록의 내용이 아니다. 해당 구성 의미가 현재 definition/conditions, 선택 계층의 자식 정의, 또는 아래 출처 역할 계약의 role_source·현재 관계 필드에 실제 있는지 해당 locations와 reason으로 대조한다. 계층으로 충족할 때는 hierarchy의 structure와 실제 구성 내용을 담은 자식 definition 위치를 함께 선택한다. 이미 구조가 충분하면 부모 정의에 내용을 중복 복사할 필요가 없다. 생성 context_needs와 교정 required_meanings에도 동일하게 구체화한 의미를 전달한다.
-필수 문맥은 context_needs / definition_completeness.required_meanings에 meaning, applies_to(해당 유형·출처 역할·하위항목과 적용 범위), source_refs, missing_source로 기록한다. 생성자는 필요한 문맥을 제안하고 Critic은 원문 전체와 독립 대조하여 누락을 추가하거나 잘못된 요구를 정정한다. 필요한 목록·상위 요건·지시어·참조·예외·유효기간을 확인한다. 본문에 없는 외부 조문 상세는 missing_source와 unknown이며 제공된 의미 누락은 refuted이다. 원문 인용 정확성만으로 정의 충분성을 지지하지 않는다.
+필수 문맥은 context_needs / definition_completeness.required_meanings에 meaning, applies_to(해당 유형·출처 역할·하위항목과 적용 범위), source_refs, missing_source로 기록한다. 생성자는 필요한 문맥을 제안하고 Critic은 원문 전체와 독립 대조하여 누락을 추가하거나 잘못된 요구를 정정한다. 필요한 목록·상위 요건·지시어·참조·예외·유효기간을 확인한다. 본문에 없는 외부 조문 상세는 missing_source와 unknown이며 제공된 의미 누락은 refuted이다. 원문 인용 정확성만으로 정의 충분성을 지지하지 않는다. required_meanings/context_checks의 meaning과 applies_to가 외부 조문의 실제 정의·조건 내용을 요구하면, 단순히 그 조문을 참조한다는 표현만으로 supported/maintained로 축소하지 않는다. 참조 사실과 실제 내용은 별도 의미로 대조하고, 실제 외부 내용이 미제공이면 해당 내용은 unknown과 구체 missing_source로 남긴다. 범위 정정에는 기존 corrected/replacement를 사용하되 미확정 외부 내용 기록을 없애지 않는다.
 검수의 각 필수 의미는 locations에 현재 candidate_ref/field/quote(그 필드의 연속 실제 구절)로 충족 위치를 연결한다. 기존 계층은 field=structure, quote는 빈 값으로 선택할 수 있으나 방향·대상·현재 정의와 실제 원문을 대조한다. 관계는 실제 필드 구절을 선택한다. 관계/계층이 존재한다는 것만으로 충족이 아니다. 상위 정의를 포함 관계로 충족하면 문장 중복을 요구하지 않는다. 출처 끝점 역할의 “이 출처 명제”는 조항 전체가 아니라 role_basis가 지칭하는 실제 role_source 명제다. claim_reviews와 필수 문맥 검수 모두 그 명제의 해당 endpoint 역할과 해석 한정을 definition 및 role_source 또는 제공된 현재 사용 관계의 실제 필드와 함께 대조한다. 역할형은 일반 유형의 조건·예외·기간을 별도로 선언하지 않고 원명제의 한정을 role_source에 보존하는 계약이므로, 해당 위치가 원문의 의미를 실제로 지지하면 빈 유형 조건 필드나 정의 내 문장 반복 부재만으로 누락이라 판정하지 않는다. role_source 존재만으로 지지를 강제하지 말고 실제 endpoint·한정·원문을 대조한다. 다른 관계의 잘못된 유형 연결을 유형 정의 확대로 정당화하지 않는다. 이 출처 끝점 역할 계약을 일반 유형 전체의 정의에 적용하거나 전체 법적 자격을 요구하지 않는다. 하위 항목의 기간을 상위 유형 전체에 확대하지 않는다. 필수 의미가 표현되지 않으면 locations를 비우고 부족 이유를 쓴다. 추가 요구가 없는 정상 정의도 역할·범위가 충분한 근거와 실제 위치를 기록한다.
 """
 
@@ -532,6 +545,9 @@ REQUIREMENT_RULE = ITEM_SCOPE_RULE + """
 각 의미의 원인부터 구분한다. 원문의 실제 명제·조건이 제공되었고 현재 표현에서 빠졌을 때만 extraction_missing이다. 제공 원문이 단지 다른 조문을 참조할 뿐 그 법적 연결 내용을 담지 않으면 source_absent다. 원문에 없는 두 문서 사이 법적 관계를 추출 누락이라고 하지 않는다. missing_source에는 필요한 정확 자료와 '원천 미제공' 또는 '입력 창 밖/생략'을 구분해 쓴다. context_only는 읽을 수 있는 비교 원문이며 text_from은 동일 packet의 본문 참조이므로 미제공 자료가 아니다.
 unassigned_recovery_targets는 이번 주분석 원문에 소유된 미귀속 요청이다. 각 request_id를 키로 갖는 recovery_attributions 객체에서 현재 requirement와 related/unrelated/unknown으로 원문 근거와 함께 대조한다. 관련이라는 판정은 업무 귀속이며 해결이 아니다. related 요청 답칸의 meanings에서 그 요청의 실제 의미들을 모두 대조한다. 이 중첩 의미에는 recovery_ids를 쓰지 않으며 서버가 답칸의 요청 ID만 기존 연결로 복원한다. unrelated/unknown 답칸에는 meanings를 쓰지 않는다. 최상위 meanings에는 이번 미귀속 요청 답칸의 의미를 중복 작성하지 않고 요청 밖 의미와 기존 recovery_targets만 대조한다. 한 요구의 unrelated를 다른 요구에도 적용하지 않는다.
 현재 requirement의 질문/범위를 최종 제공 유형·관계·계층과 실제 원문에 대조한다. 요구를 충족하는 데 필요한 의미별 meanings를 작성한다. 이름이나 cq_ids 연결만으로 충족하지 않는다. 각 meaning/applies_to/source_refs/locations/judgment/reason을 기록한다. 기존 유형·관계 조합으로 충분하면 supported/fulfilled이며 새 synthesis를 강제하지 않는다. 충족 위치는 실제 현재 candidate_ref/field/quote, 계층은 structure와 빈 quote로 특정한다. 조건·예외·주체·시점을 독립 의미와 함께 대조한다.
+문서 간 연결은 meaning/applies_to에서 단순 비교·참조와 법적 포함·동일성·권한 관계를 구분하고, reason에서 그 연결에 필요한 전제를 실제 원문 및 현재 locations와 각각 대조한다. 공통 명칭·행위 하나만으로 나머지 분류·주체·조건 전제가 충족되었다고 하지 않는다. 제공된 전제의 표현 누락과 전제 판단 자료의 부재를 구분하며, 상위 전체 unknown으로 내부의 근거 없는 supported를 정당화하지 않는다.
+원문의 권한·행위·재량은 그 관계 종류와 범위 그대로 대조한다. 다른 권한·의무·효과나 관계로 넓힌 설명도 별도 근거가 필요한 주장이며, reason에 근거 없는 확장을 넣지 않는다.
+기존 문맥제안의 missing_source도 현재 제공 원문과 대조한다. 실제 제공 자료나 이미 확인한 참조 사실을 미제공으로 유지하지 않고, 잘못된 요구 범위·자료부족 표시는 context_checks의 corrected/replacement로 정정한다. replacement에는 현재 필요한 meaning/applies_to와 실제 미제공 자료만 남기며 미제공 자료가 없으면 missing_source는 빈 문자열이다. 원문에 제공된 상위 요건은 각각 충족 위치와 대조하고, 외부 실제 내용이 필요한 의미는 별도로 unknown과 구체 missing_source를 보존한다.
 자료가 없으면 unknown/source_absent와 구체 missing_source, 적용 범위가 다른 경우 scope_conflict, 원문에 있고 관측·관계 양쪽에 없는 의미는 refuted/extraction_missing과 필요한 role(concept/relation), 기존 관계의 끝점 연결 오류는 refuted/endpoint와 candidate_ref 및 endpoint_fields(subject/object)를 쓴다. 원문에 없는 명제를 만들지 않는다. 호출/시간/용량 소진은 서버가 계산하므로 의미상 자료 부족으로 바꾸지 않는다.
 현재 후보에 표현된 구절이 없으면 locations=[]이며 빈 time/conditions 구절을 위치로 만들지 않는다. 최상위 meanings의 recovery_ids에는 기존 recovery_targets의 실제 id만 쓰고 미귀속 요청 ID나 문맥 meaning_key를 넣지 않는다. 연결할 기존 요청이 없으면 recovery_ids=[]이다. 미귀속 요청의 실제 의미는 해당 related 답칸 안에서만 작성한다.
 recovery_targets 각각의 실제 누락 의미를 현재 표현과 대조하고 해당 항목 recovery_ids에 기록한다. 후보가 새로 생겼다는 이유로 해결하지 않는다. 미해결도 recovery_ids와 구체 이유를 남긴다. 생성자의 목록·이전 supported를 정답으로 가정하지 않는다. 전체 meanings를 직접 판정하며 최종 전체 충족 판정은 서버가 집계한다. 요구 전체와 현재 제공 범위의 차이를 reason에 기록한다.
@@ -549,6 +565,7 @@ PROMPTS['context']='제공 원문 전체를 읽고 대상 명칭과 요구 범�
 PROMPTS['context_applicability']='현재 원문·요구·역할 범위만으로 각 문맥 제안의 필수 적용 여부를 판정한다. 현재 후보 정의나 이전 충족 판단은 제공되지 않으며 현재 표현의 옳고 그름을 판단하지 않는다. decisions의 각 meaning_key에 required(이 범위에 필수), not_applicable(전부 범위 밖), mixed(일부만 필요), unknown(필수 여부 판단 불가)을 한 번씩 기록하고 실제 원문 source_refs와 구체 이유를 쓴다. mixed의 remaining에는 여전히 필요한 의미를 개별 ContextNeed로 작성하고 원문의 적용 대상·조건·예외·기간을 유지한다. required/not_applicable/unknown의 remaining은 비운다. 미제공 상세와 제공된 참조·전제 조건을 구별하며 혼합 제안 전체를 면제하지 않는다. candidate 범위는 해당 출처 역할에 한정하며 requirement 범위는 그 요구 전체이므로 다른 후보의 국소 제외를 적용하지 않는다. 충족 위치나 supported/refuted 판정은 쓰지 않는다.'
 
 PROMPTS['context_applicability']+=' required는 원제안의 meaning/applies_to/missing_source 전체를 변경 없이 후속 필수 요구로 전달한다. 이유에서만 범위를 줄일 수 없으며 일부만 필요하면 반드시 mixed.remaining에 남는 의미를 명시한다. source_role의 원명제와 참조조건이 올바르게 표현됐는지 묻는 요구와 개별 대상이 외부 요건에 실제 해당하는지 판정하는 요구를 구분한다. 원문 표현의 충실성을 확인하는 전자는 제공된 참조조건을 보존하되 그 참조의 외부 상세 전체를 필수로 만들지 않는다. 세부기준을 제외한다는 것은 그 기준을 참조한다는 사실까지 지우는 것이 아니므로, 필요한 전제·조건·참조 자체는 remaining에 남긴다.'
+PROMPTS['context_applicability']+=' '+APPLICABILITY_REMAINING_RULE
 
 OUTPUTS = {'context':ContextDiscovery, 'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision, 'requirements':RequirementReview}
 

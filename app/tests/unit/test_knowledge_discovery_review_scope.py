@@ -29,7 +29,8 @@ def projection(legacy=False):
         design_candidate_ids=[],analysis_group_ids=['g'],builder_tool_context=dict(terms={}))
     context,deps,supplied=synthesis.review_context(run,group,dict(hierarchies=[]),by_id,contexts)
     before=deepcopy((run,group,context,supplied))
-    batch=synthesis.review_batches(context,deps,supplied,by_id,contexts)[1]
+    batch=next(b for b in synthesis.review_batches(context,deps,supplied,by_id,contexts)
+               if b['context']['review_target_ids']==['r3'] and b['context'].get('review_component')=='proposition')
     assert (run,group,context,supplied)==before
     return run,group,by_id,context,batch,refs
 
@@ -59,7 +60,8 @@ def test_exact_quote_adds_address_inside_provided_text_without_expanding_ownersh
     candidate['evidence_refs']=[narrow]
     run['frontier'][0]['analysis_target_coverage']=[]
     context,deps,supplied=synthesis.review_context(run,group,dict(hierarchies=[]),by_id,contexts)
-    batch=synthesis.review_batches(context,deps,supplied,by_id,contexts)[1]
+    batch=next(b for b in synthesis.review_batches(context,deps,supplied,by_id,contexts)
+               if b['context']['review_target_ids']==['r3'] and b['context'].get('review_component')=='proposition')
     ctx=segments.bind(batch['context'],'run','critic',stable=True)
     owned=[v for v in ctx['blocks'] if v['analysis_target']]
     assert len(owned)==1 and owned[0]['span']==narrow['span'] and owned[0]['text']==narrow['quote']
@@ -78,7 +80,7 @@ def test_missing_scope_validation_and_recovery_keep_exact_span(selection):
     selected={'own':[own],'other':[other],'mixed':[own,other]}[selection]
     output=dict(issues=[],hierarchy_checks=[],observation_checks=[],actions=[],gaps=[],needs_revision=False,
         relation_checks=[dict(candidate_ref='r3',reason='정상 명제',source_refs=[other],
-            semantic_checks={k:'supported' for k in a2.models.SEMANTIC_FIELDS['relation_checks']},binding_checks=dict(subject='supported',object='supported'))],
+            semantic_checks={k:'supported' for k in a2.models.SEMANTIC_FIELDS['relation_checks']})],
         missing_meanings=[dict(role='relation',meaning='주범위 안 미표현 조건',source_refs=selected,cq_ids=['q'],
             compared_candidate_ids=['r3','r1','actor','target'],comparison_reason='제공된 기존 표현과 대조')])
     result=a2.normalize(output,'critic',run,batch['dependency_ids'],by_id,batch['supplied'],ctx,require_issue_cause=True)
