@@ -463,6 +463,7 @@ def test_final_call_schema_cannot_widen_requirement_cause_verdict(monkeypatch):
     monkeypatch.setattr(a2,'model_call',capture);monkeypatch.setattr(a2,'model_identity',lambda _: {})
     monkeypatch.setattr(a2,'save',lambda *_:None);monkeypatch.setattr(a2,'cancelled',lambda *_:False)
     monkeypatch.setattr(a2,'allowed_ids',lambda *_:set(by_id))
+    monkeypatch.setattr(a2,'recipe',lambda _:deepcopy(run['recipe']))  # Execute the frozen legacy schema.
     a2.call(None,run,'requirements','capture',context,deps,by_id,supplied)
     assert len(captured)==1,run['analysis_units']
     data,schema=captured[0];ref=a2.segments.originals(data)[0]['source_ref']
@@ -1279,6 +1280,7 @@ def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(
     monkeypatch.setattr(a2,'make_prompt',padded);monkeypatch.setattr(a2,'model_call',capture)
     monkeypatch.setattr(a2,'model_identity',lambda _:{});monkeypatch.setattr(a2,'save',lambda *_:None)
     monkeypatch.setattr(a2,'cancelled',lambda *_:False);monkeypatch.setattr(a2,'allowed_ids',lambda *_:set(by))
+    monkeypatch.setattr(a2,'recipe',lambda _:deepcopy(run['recipe']))
     from app.knowledge import discovery_synthesis as synthesis
     assert synthesis.fits(run,'requirements',context,deps,supplied) is (not overflow)
     assert context==frozen

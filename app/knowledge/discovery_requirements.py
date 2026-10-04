@@ -13,6 +13,8 @@ def attribution_fingerprint(request,requirement,by_id):
 def extraction_authorized(run,request,by_id):
     """An owned request needs an explicit requirement or a current grounded attribution."""
     if run.get('recipe',{}).get('context_contract')!='scope-v1': return True
+    from . import discovery_meanings, discovery_grounding
+    if discovery_meanings.enabled(run): return discovery_grounding.authorized(run,request,by_id)
     known={kind+':'+q['id']:q for kind,items in [('cq',run['cqs']),('scope',run['scope_items'])] for q in items}
     if any(kind+':'+i in known for m in request['meanings'] for kind,field in [('cq','cq_ids'),('scope','scope_item_ids')] for i in m.get(field,[])):
         return True
@@ -150,6 +152,8 @@ def normalize(output, context, supplied, by_id):
 
 
 def saved(run, result, by_id, available):
+    from . import discovery_meanings, discovery_grounding
+    if discovery_meanings.enabled(run): return discovery_grounding.saved(run,result,by_id,available)
     context_map=profile.contexts(list(by_id.values()))
     assessments=[]
     for kind,items in [('cq',run['cqs']),('scope',run['scope_items'])]:
@@ -173,6 +177,8 @@ def saved(run, result, by_id, available):
 
 def assess(service,run,blocks,by_id,context_map, *, rechecked=False):
     from . import discovery_analysis as a2
+    from . import discovery_meanings, discovery_grounding
+    if discovery_meanings.enabled(run): return discovery_grounding.assess(service,run,blocks,by_id,context_map)
     corrected=False
     original_targets=profile.digest(run.get('recovery_requests',[]))
     snapshot=deepcopy(run);a2.finish(snapshot,blocks,a2.allowed_ids(service,blocks))
@@ -240,6 +246,8 @@ def assess(service,run,blocks,by_id,context_map, *, rechecked=False):
 def pending_calls(run, by_id, *, future=False, excluding=None):
     """Reserve the same concrete packet keys consumed by assess; no model calls."""
     from . import discovery_analysis as a2
+    from . import discovery_meanings, discovery_grounding
+    if discovery_meanings.enabled(run): return discovery_grounding.pending_calls(run,by_id,future=future,excluding=excluding)
     snapshot=deepcopy(run);a2.finish(snapshot,list(by_id.values()),set(by_id))
     completed={u['id'] for u in run['analysis_units'] if u.get('attempts') or u['status']=='succeeded' or u['stage']=='requirements' and u['status']=='failed'}
     pending={}

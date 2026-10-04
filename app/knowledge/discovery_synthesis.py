@@ -384,6 +384,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     target_ids = {i['candidate_ref'] for i in issues if i.get('cause','content_error') in {'content_error','evidence_error'}}
     target_ids.update(c['candidate_ref'] for field in ('relation_checks','observation_checks')
                       for c in review.get(field, []) if c['judgment']=='refuted')
+    target_ids.update(c['candidate_ref'] for c in review.get('grounded_repairs',[]) if c['cause']=='content_error')
     evidence_only = {i['candidate_ref'] for i in issues if i.get('cause')=='evidence_error'}
     evidence_only.update(i for i,c in candidates.items() if c.get('evidence_validation'))
     evidence_only -= {i['candidate_ref'] for i in issues if i.get('cause','content_error')=='content_error'}
@@ -400,7 +401,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
     binding_ids -= target_ids
     binding_ids.update(binding_repairs(group,review,taxonomy,candidates)-target_ids)
     binding_ids.update(c['candidate_ref'] for c in review.get('requirement_binding_checks',[])
-        if c['judgment']=='refuted' and c.get('repair_source')=='requirements'
+        if c['judgment']=='refuted' and c.get('repair_source') in {'requirements','grounded_requirements'}
         and c['candidate_ref'] in editable and (valid is None or c['candidate_ref'] in valid)
         and candidates[c['candidate_ref']].get('source_relation') and c['candidate_ref'] not in target_ids)
     # Persist the actual target/unit correspondence once, including across cancellation.
@@ -451,7 +452,7 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
                 context['blocks'] += [b for b in source_context['blocks'] if b not in context['blocks']]
                 deps=sorted(set(deps)|set(source_deps))
             context['omitted_comparison_candidate_ids']=sorted(effective.keys()-supplied.keys())
-        checks=[c for field in ('relation_checks','observation_checks','requirement_binding_checks') for c in target_review.get(field, []) if c['candidate_ref']==identifier]
+        checks=[c for field in ('relation_checks','observation_checks','requirement_binding_checks','grounded_repairs') for c in target_review.get(field, []) if c['candidate_ref']==identifier]
         selected_issues=[i for i in target_issues if not i.get('candidate_ref') or i['candidate_ref']==identifier]
         extra_ids=[e for i in selected_issues for f in ('evidence_ids','counter_evidence_ids') for e in i.get(f, [])]
         extra_ids += [r['evidence_id'] for c in checks for r in c.get('evidence_refs', [])]
@@ -488,6 +489,11 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
         if run['recipe'].get('context_contract')=='scope-v1':
             context['preservation_basis']=scope.preservation_basis(effective[identifier],checks)
             context['required_context']=scope.required_context(effective[identifier],checks)
+        grounded=[c for c in checks if c.get('repair_source')=='grounded_requirements']
+        if grounded:
+            context['grounded_repairs']=deepcopy(grounded)
+            context['preservation_basis']=[m for c in grounded for m in c['preservation_basis']]
+            context['required_context']=[m for c in grounded for m in c['required_context']]
         omitted=[];term_omissions=[]
         for critic in [u for u in run['analysis_units'] if u['id'] in review_ids(group) and u['status']=='succeeded']:
             requested=[i for r in critic.get('tool_results', []) for i in r.get('block_ids', [])]
