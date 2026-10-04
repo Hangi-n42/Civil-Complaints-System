@@ -8,6 +8,13 @@ from pydantic import ValidationError
 from . import discovery_segments as segments, discovery_models as models, discovery_profile as profile
 
 
+def shared_types(run, context):
+    recipe=run.get('recipe',{})
+    return recipe.get('builder_declaration_contract')=='shared-types-v1' and not (
+        recipe.get('builder_correction_contract')=='inline-single-v1' and context.get('binding_before') and
+        len(context.get('design_relation_ids',[]))==1)
+
+
 def inline_types(output):
     """Adapt declared wire endpoints to the existing stored type/binding contract."""
     observations = output.setdefault('observations', [])

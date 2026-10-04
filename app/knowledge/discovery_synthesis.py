@@ -34,9 +34,9 @@ def context_for(candidates, by_id, context_map):
 
 def input_size(run, stage, context, deps, supplied):
     _, prompt = a2.make_prompt(run, stage, context, deps, supplied)
-    output=a2.output_tokens(run['recipe'],'binding' if context.get('review_component')=='binding' else stage)
+    output=a2.output_tokens(run['recipe'],a2.model_stage(stage,context))
     return dict(input_chars=len(prompt),input_bytes=len(prompt.encode()),input_chars_limit=run['recipe']['input_chars'],
-        input_bytes_limit=run['recipe']['num_ctx']-output)
+        input_bytes_limit=a2.context_tokens(run['recipe'],a2.model_stage(stage,context))-output)
 
 
 def fits(run, stage, context, deps, supplied, reserve=0):
@@ -275,6 +275,7 @@ def review_batches(context, deps, supplied, by_id, context_map):
             key=role+':'+profile.digest(primary)[:16]
             bindings=[i for i in primary if terms[i].get('source_relation')]
             if role=='relations' and bindings:
+                if context.get('context_contract')=='scope-v1': part['review_scope']['missing_meanings_allowed']=False
                 part.update(review_component='proposition',binding_target_ids=bindings)
                 result.append(dict(key=key+':proposition',bundle_key=key,context=part,dependency_ids=list(batch_deps),supplied=terms))
                 for identifier in bindings:
