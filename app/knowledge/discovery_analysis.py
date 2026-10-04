@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v100'
+PROMPT_VERSION = 'discovery-a2-v101'
 
 
 def recipe(budgets):
@@ -673,6 +673,315 @@ def requirement_reservation(run,by_id=None,*,future=False,excluding=None):
     return calls+applications,calls*run.get('role_time_estimates',{}).get('requirements',{}).get('estimate_s',run['recipe']['call_timeout'])+applications*run.get('role_time_estimates',{}).get('context',{}).get('estimate_s',run['recipe']['call_timeout'])
 
 
+def response_contract(run, stage, context, supplied, mapping, citation_ids):
+    """The same exact wire schema for preflight sizing and the actual request."""
+    from . import discovery_scope
+    component=context.get('review_component')
+    shared_types=stage=='builder' and design.shared_types(run,context)
+    role_review=stage=='critic' and discovery_scope.role_review(run,context,supplied)
+    source_ref_map={b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
+                    for b in segments.originals(context)}
+    source_refs=list(source_ref_map)
+    missing_limit=0;primary_targets=set()
+    definition_contract=run['recipe'].get('definition_contract')
+    scope_contract=run['recipe'].get('context_contract')
+    response_model=models.output_model(stage,definition_contract,scope_contract)
+    if context.get('context_phase')=='applicability': response_model=models.ContextApplicability
+    schema=response_model.model_json_schema()
+    designed_type='DeclaredType' if definition_contract in {'source-role-v1','authored-v2'} else 'DesignedType'
+    observation_revision='ScopedObservationRevision' if scope_contract=='scope-v1' else 'AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
+    if stage=='relation':
+        targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
+        schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
+        schema['properties']['target_gaps']['maxItems'] = len(targets)
+    if stage=='builder':
+        schema['$defs']['RelationBinding'] = schema['properties']['relation_bindings']['items']
+        schema['properties']['relation_bindings']['items'] = {'$ref':'#/$defs/RelationBinding'}
+    if stage=='critic':
+        # SkipValidation inlines record schemas; keep the existing enum/coverage constraints.
+        definitions = deepcopy(schema.get('$defs', {}))
+        for field, name in [('issues','Issue'), ('hierarchy_checks','Hierarchy'),
+                            ('relation_checks','RelationCheck'), ('observation_checks','ObservationCheck'), ('missing_meanings','MissingMeaning')]:
+            item = schema['properties'][field]['items']
+            schema['$defs'][name] = deepcopy(definitions[item['$ref'].split('/')[-1]] if '$ref' in item else item)
+            schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
+        schema['properties']['issues']['maxItems']=8
+        primary_targets = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in context.get('blocks', [])
+                           if v.get('analysis_target') and not v.get('context_only')}
+        missing_limit = 0 if context.get('review_scope', {}).get('missing_meanings_allowed') is False else max(2,min(5,len(primary_targets)))
+        schema['properties']['missing_meanings']['maxItems']=missing_limit
+        schema['$defs']['Issue']['required'].append('cause')
+
+        for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
+            fields=models.SEMANTIC_FIELDS[section]
+            if section=='observation_checks' and run['recipe'].get('claim_review_contract')=='claims-v1':
+                fields=tuple(f for f in fields if f!='definition')
+            schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
+                properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=list(fields),additionalProperties=False)
+        comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
+        comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
+        comparisons['items']['enum']=comparable or ['']
+        comparisons['maxItems']=len(comparable)
+        if run['recipe'].get('review_evidence_contract')=='semantic-checks-v1' and 'review_scope' in context and comparable and missing_limit:
+            comparisons['minItems']=1
+    action_schema = schema.get('$defs', {}).get('Action')
+    if action_schema:
+        variants = []
+        for action, fields in {'read':['unit_id'], 'search':['query'], 'lookup_term':['label','term_type'], 'request_evidence':['query','issue_id'], 'finish':[]}.items():
+            request_issues = sorted(issue_ids(run)) + ([f'i{n}' for n in range(1,9)] if stage=='critic' else [])
+            if action == 'request_evidence' and not request_issues:
+                continue
+            props = {k:deepcopy(action_schema['properties'][k]) for k in ['action','reason',*fields]}
+            props['action'] = {'type':'string','const':action}
+            for prop in props.values(): prop.pop('default', None)
+            for field in fields:
+                if field != 'term_type': props[field]['minLength'] = 1
+            if action == 'read':
+                props['unit_id']['enum'] = [g['id'] for g in run['frontier']]
+            if action == 'request_evidence':
+                props['issue_id']['enum'] = request_issues
+            variants.append(dict(type='object', properties=props, required=list(props), additionalProperties=False))
+        schema['$defs']['Action'] = {'anyOf':variants}
+    alignment = schema.get('$defs', {}).get('ConceptAlignment') or schema.get('$defs', {}).get('Alignment')
+    if alignment:
+        alignment['properties']['target_id']['enum'] = [mapping[i] for i in supplied] or ['']
+        if stage == 'concept':
+            if not supplied:
+                schema['properties']['alignments']['maxItems'] = 0
+            alignment['properties']['observation_ref']['enum'] = [f'o{n}' for n in range(1,6)]
+            schema['$defs']['ScopedObservation' if scope_contract=='scope-v1' else 'AuthoredObservation' if definition_contract=='authored-v2' else 'Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
+        else:
+            alignment['properties']['observation_ref']['enum'] = [mapping[i] for i in supplied] or ['']
+            if not supplied:
+                schema['properties']['alias_proposals']['maxItems'] = 0
+    issue_schema = schema.get('$defs', {}).get('Issue')
+    if issue_schema:
+        issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
+        issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
+    for name, field in [(observation_revision,'classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
+        definition = schema.get('$defs', {}).get(name)
+        if definition:
+            ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
+            if stage=='revision':
+                ids = [mapping[i] for i in context['target_ids'] if field is None or field in supplied[i]]
+            definition['properties']['candidate_ref']['enum'] = ids or ['']
+            if name in {'RelationCheck','ObservationCheck'}:
+                ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
+                definition['properties']['candidate_ref']['enum'] = ids or ['']
+                definition['properties'].pop('binding_reasons',None)
+                if run['recipe'].get('review_contract') == 'checks-v1':
+                    definition['properties'].pop('judgment')
+                    if name=='RelationCheck':
+                        definition['properties']['binding_checks'] = dict(type='object',properties={
+                            k:dict(type='string',enum=['supported','refuted','unknown']) for k in ('subject','object')},
+                            additionalProperties=False)
+                        if all(supplied[i].get('source_relation') for i in context.get('review_target_ids',supplied) if 'negation' in supplied[i]):
+                            definition['properties']['binding_checks']['required'] = ['subject','object']
+                        if run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1':
+                            modeled=[mapping[i] for i in context.get('review_target_ids',supplied) if supplied[i].get('source_relation')]
+                            reasons=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=400)
+                                for k in ('subject','object')},required=['subject','object'],additionalProperties=False)
+                            if modeled:
+                                definition['properties']['binding_reasons']=reasons if set(modeled)==set(ids) else dict(anyOf=[reasons,dict(type='object',maxProperties=0)])
+                    else: definition['properties'].pop('binding_checks',None)
+                definition['required'] = [p for p in definition['properties'] if p!='source_refs']
+                schema['required'] = list(schema['properties'])
+                definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
+                schema['properties']['relation_checks' if name=='RelationCheck' else 'observation_checks'].update(minItems=len(ids), maxItems=len(ids))
+    if stage=='revision':
+        for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
+            schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
+    if stage=='builder':
+        relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
+        if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
+        type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
+        local_tokens=[f't{n}' for n in range(1,6) if f't{n}' not in mapping.values()]
+        schema['properties']['observations']['maxItems']=min(5,2*len(relation_ids),len(local_tokens)) if shared_types else 0
+        if shared_types:
+            schema['$defs'][designed_type]['properties']['local_ref']['enum']=local_tokens or ['']
+        else:
+            schema['$defs'][designed_type]['properties'].pop('local_ref')
+        schema['$defs'][designed_type]['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
+        binding = schema['$defs']['RelationBinding']['properties']
+        binding['relation_ref']['enum'] = relation_ids or ['']
+        for field in ('subject_ref','object_ref'):
+            binding[field] = (dict(type='string',enum=type_ids+local_tokens or ['']) if shared_types else
+                {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]})
+        binding_definition=schema['$defs']['RelationBinding']
+        variants=[]
+        for decision in ('bind','defer','source_error'):
+            fields=['relation_ref','decision','reason']+(['subject_ref','object_ref'] if decision=='bind' else [])
+            props={k:deepcopy(binding[k]) for k in fields}
+            props['decision']={'type':'string','const':decision}
+            variants.append(dict(type='object',properties=props,required=fields,additionalProperties=False))
+        binding_definition.clear(); binding_definition['anyOf']=variants
+        schema['properties']['relation_bindings'].update(minItems=len(relation_ids),maxItems=len(relation_ids))
+        schema['required']=list(schema['properties'])
+        if context.get('binding_before'):
+            for field in ('hierarchies','alias_proposals','actions'): schema['properties'][field]['maxItems']=0
+        if not relation_ids:
+            schema['properties']['observations']['maxItems']=0
+            schema['properties']['relation_bindings']['maxItems']=0
+    hierarchy_schema = schema.get('$defs', {}).get('Hierarchy') or schema.get('$defs', {}).get('HierarchyRevision')
+    if hierarchy_schema:
+        # ponytail: new inline types can join hierarchies/aliases once supplied in a later group.
+        identifiers = [mapping[i] for i,c in supplied.items() if c.get('classification') in {'type','entity','vocabulary','unresolved'}]
+        if not identifiers:
+            schema['properties']['hierarchy_checks' if stage=='critic' else 'hierarchies']['maxItems'] = 0
+        for name in ('child_ref','parent_ref'):
+            hierarchy_schema['properties'][name]['enum'] = identifiers or ['']
+        if stage == 'critic':
+            proposed = context.get('taxonomy', {}).get('hierarchies', [])
+            schema['properties']['hierarchy_checks'].update(minItems=len(proposed), maxItems=len(proposed))
+            variants = []
+            for hierarchy in proposed:
+                variant = deepcopy(hierarchy_schema)
+                for field in ('child_ref','parent_ref','relation'):
+                    variant['properties'][field] = {'type':'string','const':mapping.get(hierarchy[field], hierarchy[field])}
+                variants.append(variant)
+            if variants:
+                hierarchy_schema.clear()
+                hierarchy_schema['anyOf'] = variants
+    for definition in schema.get('$defs', {}).values():
+        props = definition.get('properties', {})
+        if stage=='relation' and 'endpoint_labels' in props:
+            props.pop('endpoint_labels')
+            props.pop('local_ref')
+        if 'endpoint_labels' in props:
+            props['endpoint_labels']=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=100) for k in ('subject','object')},
+                required=['subject','object'],additionalProperties=False)
+        for field in ('source_refs','counter_source_refs'):
+            if field in props:
+                if source_ref_map: props[field]['items']['enum']=source_refs
+                else: props[field]['maxItems']=0
+        if 'cq_ids' in props:
+            for field, values in [('cq_ids', run['cqs']), ('scope_item_ids', run['scope_items'])]:
+                if values:
+                    props[field]['items']['enum'] = [c['id'] for c in values]
+                else:
+                    # Ollama rejects enum=[] even on an optional array. Preserve the empty selection.
+                    props[field]['maxItems'] = 0
+            definition['required'] = [p for p in props if p!='source_refs']
+        for name in ('evidence_ids', 'counter_evidence_ids'):
+            if name in definition.get('properties', {}):
+                definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
+    if stage=='critic' and 'primary_source_spans' in context.get('review_scope', {}):
+        owned=context['review_scope']['primary_source_spans']
+        allowed=[ref for ref,v in source_ref_map.items() if any(s['block_id']==v['block_id'] and
+            s['span'][0]<=v['span'][0]<v['span'][1]<=s['span'][1] for s in owned)]
+        sources=schema['$defs']['MissingMeaning']['properties']['source_refs']
+        sources['items']['enum']=allowed or ['']
+        if not allowed: schema['properties']['missing_meanings']['maxItems']=0
+    for definition in schema.get('$defs', {}).values():
+        if 'cq_ids' in definition.get('properties', {}):
+            variants = []
+            for field in ('cq_ids', 'scope_item_ids', 'outside_scope_reason'):
+                if definition['properties'][field].get('maxItems') == 0:
+                    continue
+                variant = deepcopy(definition)
+                variant['properties'][field]['minLength' if field=='outside_scope_reason' else 'minItems'] = 1
+                variants.append(variant)
+            definition.clear()
+            definition['anyOf'] = variants
+    if stage=='requirements': models.requirement_schema(schema,remap(context,mapping))
+    root = {k:v for k,v in schema.items() if k!='$defs'}
+    variants = []
+    for field in models.RESULT_FIELDS[stage]:
+        if field not in root['properties'] or root['properties'][field].get('maxItems') == 0:
+            continue
+        variant = deepcopy(root)
+        variant['required'] = list(dict.fromkeys([*variant.get('required', []),field]))
+        variant['properties'][field]['minItems'] = max(1, variant['properties'][field].get('minItems', 0))
+        variants.append(variant)
+    schema = {'$defs':schema.get('$defs', {}), 'anyOf':variants}
+    quote_schema = schema.get('$defs', {}).get('SourceQuote')
+    if quote_schema:
+        quote_schema['properties']['evidence_id']['enum'] = [mapping[i] for i in citation_ids] or ['']
+    # New generation uses one citation path; parsers still accept stored exact-quote records.
+    def source_only(node):
+        if isinstance(node,list):
+            for child in node: source_only(child)
+        elif isinstance(node,dict):
+            for child in list(node.values()): source_only(child)
+            props=node.get('properties', {})
+            if props.get('source_refs', {}).get('type')=='array':
+                for name in ('evidence_ids','counter_evidence_ids','source_quotes','evidence_id','quote'):
+                    props.pop(name,None)
+                node['required']=[k for k in node.get('required', []) if k in props]
+                node['required']=list(dict.fromkeys(node['required']+['source_refs']))
+                if 'cq_ids' in props: props['source_refs']['minItems']=1
+                if 'claim_reviews' in props:
+                    pass  # Per-claim citation branches and server aggregate validation.
+                elif 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
+                    grounded=deepcopy(node);unknown=deepcopy(node)
+                    grounded['properties']['source_refs']['minItems']=1
+                    checks=unknown['properties']['semantic_checks']
+                    for field in checks['properties'].values(): field['enum']=['supported','unknown']
+                    alternatives=[]
+                    for name in checks['properties']:
+                        branch=deepcopy(checks)
+                        branch['properties'][name]={'type':'string','const':'unknown'}
+                        alternatives.append(branch)
+                    checks.clear();checks['anyOf']=alternatives
+                    node.clear();node['anyOf']=[grounded,unknown]
+                elif 'judgment' in props:
+                    unknown=deepcopy(node);grounded=deepcopy(node)
+                    unknown['properties']['judgment']={'type':'string','const':'unknown'}
+                    declared=props['judgment']
+                    allowed=set(declared.get('enum',[declared['const']] if 'const' in declared else ['supported','refuted','unknown']))
+                    supported=[j for j in ('supported','refuted') if j in allowed]
+                    grounded['properties']['judgment']={'type':'string','enum':supported}
+                    grounded['properties']['source_refs']['minItems']=1
+                    node.clear();node['anyOf']=([unknown] if 'unknown' in allowed else [])+([grounded] if supported else [])
+    if stage=='critic' and run['recipe'].get('review_contract') == 'checks-v1':
+        issue=schema['$defs']['Issue']
+        other=deepcopy(issue)
+        issue['properties']['cause']['enum']=['evidence_error','alignment','source_absent','budget_exhausted']
+        other['properties']['cause']['enum']=['content_error','endpoint']
+        checked={i for i in context.get('review_target_ids',supplied) if 'classification' in supplied[i] or 'negation' in supplied[i]}
+        other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
+        schema['$defs']['Issue']={'anyOf':[issue,other]}
+    source_only(schema)
+    if context.get('context_phase')=='applicability': discovery_scope.applicability_schema(schema,context)
+    if stage=='critic' and scope_contract=='scope-v1': models.source_first_schema(schema)
+    if stage in {'critic','requirements'} and scope_contract=='scope-v1':
+        discovery_scope.context_check_schema(schema,remap(context,mapping),stage,{mapping[i]:c for i,c in supplied.items()})
+        discovery_scope.location_schema(schema,remap(list(supplied.values()),mapping))
+    if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
+        natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
+        if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
+        design.declaration_schema(schema,natural_ids,source_refs,
+            role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
+    if component=='binding':
+        from .discovery_binding import schema as binding_schema
+        identifier=context['review_target_ids'][0]
+        schema=binding_schema(mapping[identifier],['subject','object'],source_refs)
+    elif component=='proposition':
+        def omit_binding(branch):
+            if 'anyOf' in branch:
+                for child in branch['anyOf']: omit_binding(child)
+                return
+            for field in ('binding_checks','binding_reasons'):
+                branch['properties'].pop(field,None)
+                branch['required']=[k for k in branch['required'] if k!=field]
+        omit_binding(schema['$defs']['RelationCheck'])
+    if role_review: discovery_scope.role_schema(schema)
+    return response_model,schema,missing_limit,primary_targets
+
+
+def input_size(run, stage, context, deps, supplied):
+    from . import discovery_scope
+    if stage=='critic': context=discovery_scope.role_context(run,context,supplied)
+    context=segments.bind(context,run.get('id'),stage+':',stable=run['recipe'].get('reference_contract')=='canonical-v1')
+    mapping,prompt=make_prompt(run,stage,context,deps,supplied)
+    _,schema,_,_=response_contract(run,stage,context,supplied,mapping,sorted(raw_refs(context)))
+    schema_text=json.dumps(schema,ensure_ascii=False,separators=(',',':'))
+    selected=model_stage(stage,context)
+    return dict(input_chars=len(prompt),input_bytes=len(prompt.encode()),schema_chars=len(schema_text),schema_bytes=len(schema_text.encode()),
+        request_input_bytes=len(prompt.encode())+len(schema_text.encode()),input_chars_limit=run['recipe']['input_chars'],
+        input_bytes_limit=context_tokens(run['recipe'],selected)-output_tokens(run['recipe'],selected))
+
+
 def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
     from . import discovery_scope
     supplied = supplied or {}
@@ -758,287 +1067,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
         timeout = min(remaining, run['recipe']['call_timeout'])
         definition_contract=run['recipe'].get('definition_contract')
         scope_contract=run['recipe'].get('context_contract')
-        response_model=models.output_model(stage,definition_contract,scope_contract)
-        if context.get('context_phase')=='applicability': response_model=models.ContextApplicability
-        schema=response_model.model_json_schema()
-        designed_type='DeclaredType' if definition_contract in {'source-role-v1','authored-v2'} else 'DesignedType'
-        observation_revision='ScopedObservationRevision' if scope_contract=='scope-v1' else 'AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
-        if stage=='relation':
-            targets = [v['source_ref'] for v in context.get('blocks', []) if v.get('analysis_target') and not v.get('context_only')]
-            schema['$defs']['TargetGap']['properties']['source_ref']['enum'] = targets or ['']
-            schema['properties']['target_gaps']['maxItems'] = len(targets)
-        if stage=='builder':
-            schema['$defs']['RelationBinding'] = schema['properties']['relation_bindings']['items']
-            schema['properties']['relation_bindings']['items'] = {'$ref':'#/$defs/RelationBinding'}
-        if stage=='critic':
-            # SkipValidation inlines record schemas; keep the existing enum/coverage constraints.
-            definitions = deepcopy(schema.get('$defs', {}))
-            for field, name in [('issues','Issue'), ('hierarchy_checks','Hierarchy'),
-                                ('relation_checks','RelationCheck'), ('observation_checks','ObservationCheck'), ('missing_meanings','MissingMeaning')]:
-                item = schema['properties'][field]['items']
-                schema['$defs'][name] = deepcopy(definitions[item['$ref'].split('/')[-1]] if '$ref' in item else item)
-                schema['properties'][field]['items'] = {'$ref':'#/$defs/'+name}
-            schema['properties']['issues']['maxItems']=8
-            primary_targets = {(v['ref'],tuple(v.get('span',[0,len(v['text'])]))) for v in context.get('blocks', [])
-                               if v.get('analysis_target') and not v.get('context_only')}
-            missing_limit = 0 if context.get('review_scope', {}).get('missing_meanings_allowed') is False else max(2,min(5,len(primary_targets)))
-            schema['properties']['missing_meanings']['maxItems']=missing_limit
-            schema['$defs']['Issue']['required'].append('cause')
-
-            for section,name in [('relation_checks','RelationCheck'),('observation_checks','ObservationCheck')]:
-                fields=models.SEMANTIC_FIELDS[section]
-                if section=='observation_checks' and run['recipe'].get('claim_review_contract')=='claims-v1':
-                    fields=tuple(f for f in fields if f!='definition')
-                schema['$defs'][name]['properties']['semantic_checks']=dict(type='object',
-                    properties={k:dict(type='string',enum=['supported','refuted','unknown']) for k in fields},required=list(fields),additionalProperties=False)
-            comparable=[mapping[i] for i,c in supplied.items() if 'classification' in c or 'negation' in c]
-            comparisons=schema['$defs']['MissingMeaning']['properties']['compared_candidate_ids']
-            comparisons['items']['enum']=comparable or ['']
-            comparisons['maxItems']=len(comparable)
-            if run['recipe'].get('review_evidence_contract')=='semantic-checks-v1' and 'review_scope' in context and comparable and missing_limit:
-                comparisons['minItems']=1
-        action_schema = schema.get('$defs', {}).get('Action')
-        if action_schema:
-            variants = []
-            for action, fields in {'read':['unit_id'], 'search':['query'], 'lookup_term':['label','term_type'], 'request_evidence':['query','issue_id'], 'finish':[]}.items():
-                request_issues = sorted(issue_ids(run)) + ([f'i{n}' for n in range(1,9)] if stage=='critic' else [])
-                if action == 'request_evidence' and not request_issues:
-                    continue
-                props = {k:deepcopy(action_schema['properties'][k]) for k in ['action','reason',*fields]}
-                props['action'] = {'type':'string','const':action}
-                for prop in props.values(): prop.pop('default', None)
-                for field in fields:
-                    if field != 'term_type': props[field]['minLength'] = 1
-                if action == 'read':
-                    props['unit_id']['enum'] = [g['id'] for g in run['frontier']]
-                if action == 'request_evidence':
-                    props['issue_id']['enum'] = request_issues
-                variants.append(dict(type='object', properties=props, required=list(props), additionalProperties=False))
-            schema['$defs']['Action'] = {'anyOf':variants}
-        alignment = schema.get('$defs', {}).get('ConceptAlignment') or schema.get('$defs', {}).get('Alignment')
-        if alignment:
-            alignment['properties']['target_id']['enum'] = [mapping[i] for i in supplied] or ['']
-            if stage == 'concept':
-                if not supplied:
-                    schema['properties']['alignments']['maxItems'] = 0
-                alignment['properties']['observation_ref']['enum'] = [f'o{n}' for n in range(1,6)]
-                schema['$defs']['ScopedObservation' if scope_contract=='scope-v1' else 'AuthoredObservation' if definition_contract=='authored-v2' else 'Observation']['properties']['local_ref']['enum'] = [f'o{n}' for n in range(1,6)]
-            else:
-                alignment['properties']['observation_ref']['enum'] = [mapping[i] for i in supplied] or ['']
-                if not supplied:
-                    schema['properties']['alias_proposals']['maxItems'] = 0
-        issue_schema = schema.get('$defs', {}).get('Issue')
-        if issue_schema:
-            issue_schema['properties']['candidate_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-            issue_schema['properties']['target_ref']['enum'] = ['', *[mapping[i] for i in supplied]]
-        for name, field in [(observation_revision,'classification'), ('RelationRevision','negation'), ('HierarchyRevision','child_ref'), ('Deferred',None), ('RelationCheck','negation'), ('ObservationCheck','classification')]:
-            definition = schema.get('$defs', {}).get(name)
-            if definition:
-                ids = [mapping[i] for i,c in supplied.items() if field is None or field in c]
-                if stage=='revision':
-                    ids = [mapping[i] for i in context['target_ids'] if field is None or field in supplied[i]]
-                definition['properties']['candidate_ref']['enum'] = ids or ['']
-                if name in {'RelationCheck','ObservationCheck'}:
-                    ids = [mapping[i] for i in context.get('review_target_ids',supplied) if field in supplied[i]]
-                    definition['properties']['candidate_ref']['enum'] = ids or ['']
-                    definition['properties'].pop('binding_reasons',None)
-                    if run['recipe'].get('review_contract') == 'checks-v1':
-                        definition['properties'].pop('judgment')
-                        if name=='RelationCheck':
-                            definition['properties']['binding_checks'] = dict(type='object',properties={
-                                k:dict(type='string',enum=['supported','refuted','unknown']) for k in ('subject','object')},
-                                additionalProperties=False)
-                            if all(supplied[i].get('source_relation') for i in context.get('review_target_ids',supplied) if 'negation' in supplied[i]):
-                                definition['properties']['binding_checks']['required'] = ['subject','object']
-                            if run['recipe'].get('binding_reason_contract') == 'per-endpoint-v1':
-                                modeled=[mapping[i] for i in context.get('review_target_ids',supplied) if supplied[i].get('source_relation')]
-                                reasons=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=400)
-                                    for k in ('subject','object')},required=['subject','object'],additionalProperties=False)
-                                if modeled:
-                                    definition['properties']['binding_reasons']=reasons if set(modeled)==set(ids) else dict(anyOf=[reasons,dict(type='object',maxProperties=0)])
-                        else: definition['properties'].pop('binding_checks',None)
-                    definition['required'] = [p for p in definition['properties'] if p!='source_refs']
-                    schema['required'] = list(schema['properties'])
-                    definition['properties']['evidence_id']['enum'] = ['', *[mapping[i] for i in citation_ids]]
-                    schema['properties']['relation_checks' if name=='RelationCheck' else 'observation_checks'].update(minItems=len(ids), maxItems=len(ids))
-        if stage=='revision':
-            for field, marker in [('observations','classification'), ('relations','negation'), ('hierarchies','child_ref')]:
-                schema['properties'][field]['maxItems'] = min(5, sum(marker in supplied[i] for i in context['target_ids']))
-        if stage=='builder':
-            relation_ids = [mapping[i] for i in context.get('design_relation_ids', [])]
-            if len(relation_ids)>2: raise ValueError('Builder 주관계는 최대 2개; 묶음 분리 필요')
-            type_ids = [mapping[i] for i,c in supplied.items() if c.get('classification')=='type']
-            local_tokens=[f't{n}' for n in range(1,6) if f't{n}' not in mapping.values()]
-            schema['properties']['observations']['maxItems']=min(5,2*len(relation_ids),len(local_tokens)) if shared_types else 0
-            if shared_types:
-                schema['$defs'][designed_type]['properties']['local_ref']['enum']=local_tokens or ['']
-            else:
-                schema['$defs'][designed_type]['properties'].pop('local_ref')
-            schema['$defs'][designed_type]['properties']['source_relation_ids']['items']['enum'] = relation_ids or ['']
-            binding = schema['$defs']['RelationBinding']['properties']
-            binding['relation_ref']['enum'] = relation_ids or ['']
-            for field in ('subject_ref','object_ref'):
-                binding[field] = (dict(type='string',enum=type_ids+local_tokens or ['']) if shared_types else
-                    {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]})
-            binding_definition=schema['$defs']['RelationBinding']
-            variants=[]
-            for decision in ('bind','defer','source_error'):
-                fields=['relation_ref','decision','reason']+(['subject_ref','object_ref'] if decision=='bind' else [])
-                props={k:deepcopy(binding[k]) for k in fields}
-                props['decision']={'type':'string','const':decision}
-                variants.append(dict(type='object',properties=props,required=fields,additionalProperties=False))
-            binding_definition.clear(); binding_definition['anyOf']=variants
-            schema['properties']['relation_bindings'].update(minItems=len(relation_ids),maxItems=len(relation_ids))
-            schema['required']=list(schema['properties'])
-            if context.get('binding_before'):
-                for field in ('hierarchies','alias_proposals','actions'): schema['properties'][field]['maxItems']=0
-            if not relation_ids:
-                schema['properties']['observations']['maxItems']=0
-                schema['properties']['relation_bindings']['maxItems']=0
-        hierarchy_schema = schema.get('$defs', {}).get('Hierarchy') or schema.get('$defs', {}).get('HierarchyRevision')
-        if hierarchy_schema:
-            # ponytail: new inline types can join hierarchies/aliases once supplied in a later group.
-            identifiers = [mapping[i] for i,c in supplied.items() if c.get('classification') in {'type','entity','vocabulary','unresolved'}]
-            if not identifiers:
-                schema['properties']['hierarchy_checks' if stage=='critic' else 'hierarchies']['maxItems'] = 0
-            for name in ('child_ref','parent_ref'):
-                hierarchy_schema['properties'][name]['enum'] = identifiers or ['']
-            if stage == 'critic':
-                proposed = context.get('taxonomy', {}).get('hierarchies', [])
-                schema['properties']['hierarchy_checks'].update(minItems=len(proposed), maxItems=len(proposed))
-                variants = []
-                for hierarchy in proposed:
-                    variant = deepcopy(hierarchy_schema)
-                    for field in ('child_ref','parent_ref','relation'):
-                        variant['properties'][field] = {'type':'string','const':mapping.get(hierarchy[field], hierarchy[field])}
-                    variants.append(variant)
-                if variants:
-                    hierarchy_schema.clear()
-                    hierarchy_schema['anyOf'] = variants
-        for definition in schema.get('$defs', {}).values():
-            props = definition.get('properties', {})
-            if stage=='relation' and 'endpoint_labels' in props:
-                props.pop('endpoint_labels')
-                props.pop('local_ref')
-            if 'endpoint_labels' in props:
-                props['endpoint_labels']=dict(type='object',properties={k:dict(type='string',minLength=1,maxLength=100) for k in ('subject','object')},
-                    required=['subject','object'],additionalProperties=False)
-            for field in ('source_refs','counter_source_refs'):
-                if field in props:
-                    if unit['source_ref_map']: props[field]['items']['enum']=list(unit['source_ref_map'])
-                    else: props[field]['maxItems']=0
-            if 'cq_ids' in props:
-                for field, values in [('cq_ids', run['cqs']), ('scope_item_ids', run['scope_items'])]:
-                    if values:
-                        props[field]['items']['enum'] = [c['id'] for c in values]
-                    else:
-                        # Ollama rejects enum=[] even on an optional array. Preserve the empty selection.
-                        props[field]['maxItems'] = 0
-                definition['required'] = [p for p in props if p!='source_refs']
-            for name in ('evidence_ids', 'counter_evidence_ids'):
-                if name in definition.get('properties', {}):
-                    definition['properties'][name]['items']['enum'] = [mapping[i] for i in citation_ids]
-        if stage=='critic' and 'primary_source_spans' in context.get('review_scope', {}):
-            owned=context['review_scope']['primary_source_spans']
-            allowed=[ref for ref,v in unit['source_ref_map'].items() if any(s['block_id']==v['block_id'] and
-                s['span'][0]<=v['span'][0]<v['span'][1]<=s['span'][1] for s in owned)]
-            sources=schema['$defs']['MissingMeaning']['properties']['source_refs']
-            sources['items']['enum']=allowed or ['']
-            if not allowed: schema['properties']['missing_meanings']['maxItems']=0
-        for definition in schema.get('$defs', {}).values():
-            if 'cq_ids' in definition.get('properties', {}):
-                variants = []
-                for field in ('cq_ids', 'scope_item_ids', 'outside_scope_reason'):
-                    if definition['properties'][field].get('maxItems') == 0:
-                        continue
-                    variant = deepcopy(definition)
-                    variant['properties'][field]['minLength' if field=='outside_scope_reason' else 'minItems'] = 1
-                    variants.append(variant)
-                definition.clear()
-                definition['anyOf'] = variants
-        if stage=='requirements': models.requirement_schema(schema,remap(context,mapping))
-        root = {k:v for k,v in schema.items() if k!='$defs'}
-        variants = []
-        for field in models.RESULT_FIELDS[stage]:
-            if field not in root['properties'] or root['properties'][field].get('maxItems') == 0:
-                continue
-            variant = deepcopy(root)
-            variant['required'] = list(dict.fromkeys([*variant.get('required', []),field]))
-            variant['properties'][field]['minItems'] = max(1, variant['properties'][field].get('minItems', 0))
-            variants.append(variant)
-        schema = {'$defs':schema.get('$defs', {}), 'anyOf':variants}
-        quote_schema = schema.get('$defs', {}).get('SourceQuote')
-        if quote_schema:
-            quote_schema['properties']['evidence_id']['enum'] = [mapping[i] for i in citation_ids] or ['']
-        # New generation uses one citation path; parsers still accept stored exact-quote records.
-        def source_only(node):
-            if isinstance(node,list):
-                for child in node: source_only(child)
-            elif isinstance(node,dict):
-                for child in list(node.values()): source_only(child)
-                props=node.get('properties', {})
-                if props.get('source_refs', {}).get('type')=='array':
-                    for name in ('evidence_ids','counter_evidence_ids','source_quotes','evidence_id','quote'):
-                        props.pop(name,None)
-                    node['required']=[k for k in node.get('required', []) if k in props]
-                    node['required']=list(dict.fromkeys(node['required']+['source_refs']))
-                    if 'cq_ids' in props: props['source_refs']['minItems']=1
-                    if 'claim_reviews' in props:
-                        pass  # Per-claim citation branches and server aggregate validation.
-                    elif 'semantic_checks' in props and run['recipe'].get('review_evidence_contract')=='semantic-checks-v1':
-                        grounded=deepcopy(node);unknown=deepcopy(node)
-                        grounded['properties']['source_refs']['minItems']=1
-                        checks=unknown['properties']['semantic_checks']
-                        for field in checks['properties'].values(): field['enum']=['supported','unknown']
-                        alternatives=[]
-                        for name in checks['properties']:
-                            branch=deepcopy(checks)
-                            branch['properties'][name]={'type':'string','const':'unknown'}
-                            alternatives.append(branch)
-                        checks.clear();checks['anyOf']=alternatives
-                        node.clear();node['anyOf']=[grounded,unknown]
-                    elif 'judgment' in props:
-                        unknown=deepcopy(node);grounded=deepcopy(node)
-                        unknown['properties']['judgment']={'type':'string','const':'unknown'}
-                        declared=props['judgment']
-                        allowed=set(declared.get('enum',[declared['const']] if 'const' in declared else ['supported','refuted','unknown']))
-                        supported=[j for j in ('supported','refuted') if j in allowed]
-                        grounded['properties']['judgment']={'type':'string','enum':supported}
-                        grounded['properties']['source_refs']['minItems']=1
-                        node.clear();node['anyOf']=([unknown] if 'unknown' in allowed else [])+([grounded] if supported else [])
-        if stage=='critic' and run['recipe'].get('review_contract') == 'checks-v1':
-            issue=schema['$defs']['Issue']
-            other=deepcopy(issue)
-            issue['properties']['cause']['enum']=['evidence_error','alignment','source_absent','budget_exhausted']
-            other['properties']['cause']['enum']=['content_error','endpoint']
-            checked={i for i in context.get('review_target_ids',supplied) if 'classification' in supplied[i] or 'negation' in supplied[i]}
-            other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
-            schema['$defs']['Issue']={'anyOf':[issue,other]}
-        source_only(schema)
-        if context.get('context_phase')=='applicability': discovery_scope.applicability_schema(schema,context)
-        if stage=='critic' and scope_contract=='scope-v1': models.source_first_schema(schema)
-        if stage in {'critic','requirements'} and scope_contract=='scope-v1':
-            discovery_scope.context_check_schema(schema,remap(context,mapping),stage,{mapping[i]:c for i,c in supplied.items()})
-            discovery_scope.location_schema(schema,remap(list(supplied.values()),mapping))
-        if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
-            natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
-            if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
-            design.declaration_schema(schema,natural_ids,list(unit['source_ref_map']),
-                role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1')
-        if component=='binding':
-            from .discovery_binding import schema as binding_schema
-            identifier=context['review_target_ids'][0]
-            schema=binding_schema(mapping[identifier],['subject','object'],list(unit['source_ref_map']))
-        elif component=='proposition':
-            def omit_binding(branch):
-                if 'anyOf' in branch:
-                    for child in branch['anyOf']: omit_binding(child)
-                    return
-                for field in ('binding_checks','binding_reasons'):
-                    branch['properties'].pop(field,None)
-                    branch['required']=[k for k in branch['required'] if k!=field]
-            omit_binding(schema['$defs']['RelationCheck'])
-        if role_review: discovery_scope.role_schema(schema)
+        response_model,schema,missing_limit,primary_targets=response_contract(run,stage,context,supplied,mapping,citation_ids)
+        schema_bytes=len(json.dumps(schema,ensure_ascii=False,separators=(',',':')).encode())
+        if len(prompt.encode())+schema_bytes+output_limit>context_limit:
+            raise ValueError('원문과 응답 스키마의 보수적 입력 상한이 선언 컨텍스트 초과')
+        unit['schema_bytes']=schema_bytes
+        unit['request_input_bytes']=len(prompt.encode())+schema_bytes
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1

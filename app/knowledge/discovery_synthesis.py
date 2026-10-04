@@ -33,16 +33,13 @@ def context_for(candidates, by_id, context_map):
 
 
 def input_size(run, stage, context, deps, supplied):
-    _, prompt = a2.make_prompt(run, stage, context, deps, supplied)
-    output=a2.output_tokens(run['recipe'],a2.model_stage(stage,context))
-    return dict(input_chars=len(prompt),input_bytes=len(prompt.encode()),input_chars_limit=run['recipe']['input_chars'],
-        input_bytes_limit=a2.context_tokens(run['recipe'],a2.model_stage(stage,context))-output)
+    return a2.input_size(run,stage,context,deps,supplied)
 
 
 def fits(run, stage, context, deps, supplied, reserve=0):
     size=input_size(run,stage,context,deps,supplied)
     return (size['input_chars']+reserve <= size['input_chars_limit'] and
-            size['input_bytes']+reserve*3 <= size['input_bytes_limit'])
+            size['request_input_bytes']+reserve*3 <= size['input_bytes_limit'])
 
 
 def assemble(run, round_number, by_id, context_map, available):
