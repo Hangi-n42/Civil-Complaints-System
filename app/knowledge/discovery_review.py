@@ -27,6 +27,7 @@ def binding_fingerprints(candidate, candidates):
 
 
 def dependencies_current(review, identifier, candidates=None):
+    if 'applicability_current_ids' in review and identifier not in review['applicability_current_ids']: return False
     contract = review.get('review_dependency_contract')
     if contract is None and 'binding_dependency_hashes' not in review: return True  # Stored legacy contract.
     if contract != 'selected-types-v1': return False

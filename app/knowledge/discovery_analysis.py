@@ -13,17 +13,17 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v61'
+PROMPT_VERSION = 'discovery-a2-v86'
 
 
 def recipe(budgets):
     from .discovery_binding import PROMPT as binding_prompt
-    return dict(context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
+    return dict(context_applicability_contract='scoped-v1', source_context_contract='independent-v1', context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, critic_num_predict=8192, requirements_num_predict=8192, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
         endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
-        num_ctx=36864, num_predict=4096, think=False, input_chars=24000,
+        num_ctx=49152, num_predict=4096, think=False, input_chars=32000,
         call_timeout=settings.KNOWLEDGE_DESIGN_TIMEOUT,
-        schema_hash=profile.digest({k: models.output_model(k,'authored-v2','scope-v1').model_json_schema() for k in models.OUTPUTS}))
+        schema_hash=profile.digest([{k: models.output_model(k,'authored-v2','scope-v1').model_json_schema() for k in models.OUTPUTS},models.ContextApplicability.model_json_schema()]))
 
 
 def model_identity(current):
@@ -259,7 +259,7 @@ def compact(value, originals=None):
     if isinstance(value, list):
         return [compact(v, originals) for v in value]
     if isinstance(value, dict):
-        omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref',
+        omitted = {'evidence_refs', 'counter_evidence_refs', 'input_hash', 'origin_dependency_ids', 'local_ref', 'source_context_proposals',
                    'source_refs', 'counter_source_refs', 'candidate_view_version', 'endpoint_mode'}
         if value.get('endpoint_mode')=='source_text' and not value.get('source_relation'):
             omitted.add('unresolved_endpoints')  # Source statements intentionally have no type binding.
@@ -275,7 +275,7 @@ def compact(value, originals=None):
             omitted.add('quote')
         result={k: compact(v, originals) for k,v in value.items() if k not in omitted}
         if (value.get('candidate_quote') or value.get('meaning')) and value.get('evidence_refs'):
-            result['evidence_locations']=[{k:r[k] for k in ('block_id','source_version_id','parse_run_id','span')} for r in value['evidence_refs']]
+            result['evidence_locations']=[{k:r[k] for k in ('block_id','source_version_id','parse_run_id','span') if k in r} for r in value['evidence_refs']]
         return result
     return value
 
@@ -311,6 +311,13 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
     if stage=='critic':
         return reviews.normalize(output, run, deps, by_id, supplied, context or {}, normalize, refs, require_issue_cause)
     refs(output)
+    if stage=='context':
+        if (context or {}).get('context_phase')=='applicability':
+            from .discovery_scope import normalize_applicability
+            return normalize_applicability(output,context)
+        if any(not m.get('evidence_refs') and not m['missing_source'] for m in output['context_needs']):
+            raise ValueError('문맥 발견의 실제 원문 또는 미제공 자료 필요')
+        return output
     if stage == 'revision':
         history = []
         seen = set()
@@ -354,10 +361,8 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
                 replacement['revision_status'] = 'unreviewed_revision'
                 record=dict(candidate_id=identifier, before=original, after=deepcopy(replacement), reason=reason)
                 if run['recipe'].get('context_contract')=='scope-v1':
-                    from .discovery_scope import preservation_basis
-                    record['preservation_basis']=preservation_basis(original,(context or {}).get('observation_checks',[])+(context or {}).get('relation_checks',[]))
-                    replacement['revision_basis_hash']=profile.digest([original,record['preservation_basis']])
-                    record['after']=deepcopy(replacement)
+                    from .discovery_scope import revision_record
+                    record=revision_record(original,replacement,reason,context)
                 history.append(record)
                 seen.add(identifier)
         for item in output['deferred']:
@@ -466,15 +471,72 @@ def normalize(output, stage, run, deps, by_id, supplied, context=None, require_i
     return output
 
 
+def concept_records(decoded, response_model, run, deps, by_id, supplied, context, unit_id):
+    """Independent Concept rows; shared Builder declarations remain atomic."""
+    from collections import Counter
+    from pydantic import ValidationError
+    if not isinstance(decoded.get('observations'),list) or not isinstance(decoded.get('alignments'),list):
+        raise ValueError('관측/대응 배열 필요')
+    if len(decoded['observations'])>5 or len(decoded['alignments'])>5:
+        raise ValueError('관측/대응 출력 상한 초과')
+    output=response_model.model_validate(dict(decoded,observations=[],alignments=[])).model_dump()
+    if any(not gap.strip() for gap in output['gaps']): raise ValueError('조사 결과/미해결 사유는 빈 문자열일 수 없음')
+    if not decoded['observations'] and not decoded['gaps']: raise ValueError('빈 분석에는 구체적인 미해결 사유 필요')
+    errors=[];local={}
+    counts=Counter(r.get('local_ref') for r in decoded['observations'] if isinstance(r,dict) and isinstance(r.get('local_ref'),str))
+    primary=[dict(block_id=v['ref'],span=v['span'] if 'span' in v else [0,len(v['text'])]) for v in context.get('blocks',[]) if not v.get('context_only')]
+    def failed(section,index,raw,exc):
+        errors.append(dict(id=profile.digest([unit_id,section,index,raw]),section=section,index=index,
+            record=deepcopy(raw),local_ref=raw.get('local_ref',raw.get('observation_ref','')) if isinstance(raw,dict) else '',
+            reason=str(exc),unit_id=unit_id,primary_source_spans=deepcopy(primary)))
+    for index,raw in enumerate(decoded['observations']):
+        try:
+            row=response_model.model_validate(dict(decoded,observations=[raw],alignments=[])).model_dump()['observations'][0]
+            if counts[row['local_ref']]!=1: raise ValueError('응답 내부 local_ref 중복')
+            single=dict(observations=[row])
+            segments.restore(single,by_id,segments.originals(context))
+            if run['recipe'].get('definition_contract')=='authored-v2':
+                design.declarations(single,supplied,by_id,context,authored=True)
+            single=normalize(single,'concept',run,deps,by_id,supplied,context)
+            row=single['observations'][0]
+            refs,problems=segments.references(row,by_id,segments.originals(context))
+            if row['validation'] or problems: raise ValueError('; '.join(row['validation']+problems))
+            row.update(evidence_refs=refs,evidence_validation=[])
+            local[row['local_ref']]=row;output['observations'].append(row)
+        except (ValueError,KeyError,TypeError,ValidationError) as exc:
+            failed('observations',index,raw,exc)
+    for index,raw in enumerate(decoded['alignments']):
+        try:
+            item=models.ConceptAlignment.model_validate(raw).model_dump()
+            if item['observation_ref'] not in local or item['target_id'] not in supplied:
+                raise ValueError('관측/기준 개념 대응 참조 불일치 또는 관측 행 실패')
+            item['observation_ref']=local[item['observation_ref']]['id']
+            target=supplied[item['target_id']]
+            item.update(review_status='unreviewed',target_scope='reviewed' if target.get('review_status')=='reviewed' else 'run_candidate')
+            if item['target_scope']=='run_candidate': item.update(target_fingerprint=identities.exact_key(target),target_snapshot=deepcopy(target))
+            output['alignments'].append(item)
+        except (ValueError,KeyError,TypeError,ValidationError) as exc:
+            failed('alignments',index,raw,exc)
+    for action in output['actions']:
+        if action['action']=='request_evidence' and action['issue_id'] not in issue_ids(run):
+            raise ValueError('추가 근거 요청의 쟁점 참조 불일치')
+    output.update(record_errors=errors,raw_observation_count=len(decoded['observations']))
+    return output
+
+
 def issue_ids(run):
     return {i['id'] for u in run.get('analysis_units', []) if u['status']=='succeeded'
             for i in u.get('output', {}).get('issues', [])}
 
 
+def output_tokens(recipe, stage):
+    return recipe.get(stage+'_num_predict', recipe['num_predict']) if stage in {'binding','critic','requirements'} else recipe['num_predict']
+
+
 async def model_call(prompt, schema, stage, run, timeout):
     return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements'} else 'draft'],
-        num_predict=run['recipe']['binding_num_predict'] if stage=='binding' else run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
+        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements','context'} else 'draft'],
+        num_predict=output_tokens(run['recipe'],stage), num_ctx=run['recipe']['num_ctx'], think=run['recipe']['binding_think'] if stage=='binding' else False,
         timeout=timeout, return_metadata=True, local_only=True)
 
 
@@ -488,6 +550,12 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         context['targets']=[dict(c['source_relation'],id=c['id']) if c['id'] in context.get('source_change_ids', []) else c
                             for c in context['targets']]
     if stage=='critic':
+        if context.get('review_component')!='binding':
+            for comparison in context.get('revision_comparisons',{}).values():
+                for field in ('before','after'):
+                    candidate=comparison.get(field,{})
+                    if 'negation' in candidate:
+                        comparison[field]=dict(design.source_projection(candidate),id=candidate['id'])
         bindings={};uses={}
         adjacent=context.get('review_focus')=='relations'
         for field in ('unapproved_relations','reviewed_base','comparison_terms'):
@@ -511,11 +579,35 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
     for field in ('review_bundle_id','binding_target_ids'): context.pop(field,None)
     if component=='proposition':
         context.pop('relation_bindings',None)
+    if component=='binding' or stage=='critic' and context.get('review_focus')=='observations':
+        for field in ('unapproved_observations','reviewed_base','comparison_terms'):
+            for candidate in context.get(field,[]):
+                if candidate.get('classification')!='type': continue
+                for name in ('classification_reason','design_reason','binding_uses'):
+                    candidate.pop(name,None)
+                (candidate.get('definition_declaration') or {}).pop('design_reason',None)
     context.pop('binding_before',None);context.pop('parent_group_id',None)
-    payload = dict(cqs=run['cqs'], scope_items=run['scope_items'], **context)
+    cqs=run['cqs'];scope_items=run['scope_items']
+    if stage=='context':
+        cqs=[q for q in cqs if q['id'] in context['target']['cq_ids']]
+        scope_items=[q for q in scope_items if q['id'] in context['target']['scope_item_ids']]
+    if stage=='context':
+        target=dict(label=context['target']['label'],scope='\n'.join([q['question'] for q in cqs]+[q.get('description',q.get('label','')) for q in scope_items]))
+        for field in ('source_role','role_endpoint'):
+            if field in context['target']: target[field]=context['target'][field]
+        payload=dict(target=target,blocks=[{k:v[k] for k in ('ref','source_ref','text','span') if k in v} for v in segments.originals(context)])
+        if context.get('context_phase')=='applicability':
+            payload['target'].update(scope_kind=context['target']['scope_kind'])
+            if target['scope_kind']=='candidate' and target.get('source_role'):
+                target['requirement_scope']=target.pop('scope')
+                target['scope']='source_role의 role_endpoint가 가리키는 대상 역할의 의미와 그 해석을 결정하는 한정·조건을 검수한다. source_role은 역할을 도출한 원명제의 보존 문맥이며, 그 주체·행위·공급조건 전체가 선택 끝점의 정의 조건은 아니다. 누가 어떤 경우에 무엇을 하는지는 원관계·연결·전체 요구에서 별도로 확인한다. requirement_scope는 전체 요구의 맥락이며 다른 가지가 전체 요구에 필수라는 이유만으로 이 끝점 정의의 필수 내용이 되지 않는다. 선택 끝점의 실제 의미를 바꾸는 조건·예외·기간·참조는 그대로 남긴다.'
+            payload['proposals']=compact(context['proposals'])
+            return mapping,models.PROMPTS['context_applicability']+'\nINPUT:\n'+json.dumps(payload,ensure_ascii=False,separators=(',',':'))
+        return mapping,models.PROMPTS['context']+'\nINPUT:\n'+json.dumps(payload,ensure_ascii=False,separators=(',',':'))
+    payload = dict(cqs=cqs, scope_items=scope_items, **context)
     payload = compact(remap(payload, mapping))
     prompt_name='critic_'+context['review_focus'] if stage=='critic' and context.get('review_focus') else stage
-    instruction=models.COMMON + models.PROMPTS[prompt_name]
+    instruction=(models.COMMON if stage!='context' else '') + models.PROMPTS[prompt_name]
     if component=='binding':
         from .discovery_binding import PROMPT
         instruction=PROMPT
@@ -535,9 +627,22 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction=instruction.replace('definition=refuted','해당 claim의 judgment=refuted') + models.CLAIM_REVIEW_RULE
     if run.get('recipe',{}).get('context_contract')=='scope-v1' and stage in {'concept','revision','critic'} and component not in {'binding','proposition'}:
         instruction += models.SCOPE_RULE
-    if stage=='critic' and context.get('revision_comparisons') and component!='binding': instruction+=models.PRESERVATION_RULE
+    if (stage=='critic' and (context.get('revision_comparisons') or context.get('source_requirements')) and component!='binding') or stage=='revision' and 'preservation_basis' in context:
+        instruction+=models.PRESERVATION_RULE
     prompt = instruction + '\nINPUT:\n' + json.dumps(segments.compact_text(payload), ensure_ascii=False, separators=(',', ':'))
     return mapping, prompt
+
+
+def requirement_reservation(run,by_id=None,*,future=False,excluding=None):
+    if by_id is not None and run['recipe'].get('context_contract')=='scope-v1':
+        from .discovery_requirements import pending_calls
+        pending=pending_calls(run,by_id,future=future,excluding=excluding)
+        run.setdefault('review_reservation',{}).update(requirement_unit_ids=list(pending),
+            requirement_calls=sum(stage=='requirements' for stage in pending.values()),
+            requirement_applicability_calls=sum(stage=='context' for stage in pending.values()))
+    calls=run.get('review_reservation',{}).get('requirement_calls',0) if run['recipe'].get('context_contract')=='scope-v1' else 0
+    applications=run.get('review_reservation',{}).get('requirement_applicability_calls',0)
+    return calls+applications,calls*run.get('role_time_estimates',{}).get('requirements',{}).get('estimate_s',run['recipe']['call_timeout'])+applications*run.get('role_time_estimates',{}).get('context',{}).get('estimate_s',run['recipe']['call_timeout'])
 
 
 def call(service, run, stage, key, context, deps, by_id, supplied=None, *, validation_supplied=None):
@@ -550,10 +655,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
     if unit is None:
         unit = dict(id=uid, stage=stage, group_id=key, status='queued', attempts=[], error=None)
         run['analysis_units'].append(unit)
+    if stage=='context':
+        unit['context_target']=deepcopy(context['target'])
+        if context.get('context_phase'): unit['context_phase']=context['context_phase']
     if context.get('binding_before'): unit['parent_group_id']=context['parent_group_id']
     source_scope = unit.setdefault('source_ref_run_id', run['id'])
     context = segments.bind(context, source_scope, uid,
         stable=run['recipe'].get('reference_contract') == 'canonical-v1')
+    if stage=='critic' and context.get('review_component') not in {'binding','proposition'}:
+        context=discovery_scope.attach_saved(run,context,by_id,supplied)
     mapping, prompt = make_prompt(run, stage, context, deps, supplied, key, source_scope)
     input_hash = profile.digest([prompt, run['recipe']] + ([validation_supplied] if validation_supplied is not None else []))
     # A resumed successful unit is immutable, even when its newly built input is wrong.
@@ -568,7 +678,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
     unit['dependency_ids'] = sorted(set(deps))
     unit['provided_block_ids'] = sorted(raw_refs(context))
     component=context.get('review_component')
-    output_limit=run['recipe']['binding_num_predict'] if component=='binding' else run['recipe']['num_predict']
+    output_limit=output_tokens(run['recipe'],'binding' if component=='binding' else stage)
     citation_ids = unit['provided_block_ids']
     unit['source_ref_map'] = {b['source_ref']:dict(block_id=b['ref'],span=b.get('span',[0,len(b['text'])]))
                               for b in segments.originals(context)}
@@ -577,6 +687,13 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             raise ValueError('사용 중단/재검토 근거가 원문 또는 파생 입력에 포함됨')
         if cancelled(service, run):
             return None
+        if stage=='critic' and context.get('review_component') not in {'binding','proposition'} and run['recipe'].get('source_context_contract')=='independent-v1':
+            unit['context_dependency_ids']=['context:'+key for _,key,_,_ in discovery_scope.discovery_requests(run,context,by_id,supplied)]
+            unit['context_candidate_ids']=[i for i in context.get('review_target_ids',[]) if 'classification' in supplied[i]]
+            context=discovery_scope.discover(service,run,context,by_id,supplied)
+            unit['context_dependency_ids']=discovery_scope.context_unit_ids(run,context,by_id,supplied)
+            mapping,prompt=make_prompt(run,stage,context,deps,supplied,key,source_scope)
+            input_hash=profile.digest([prompt,run['recipe']])
         if len(prompt) > run['recipe']['input_chars']:
             raise ValueError(f'전체 입력 {len(prompt)}자 예산 초과; 원문을 자르지 않고 미처리')
         # UTF-8 byte count is a conservative token upper bound, never a char=token claim.
@@ -590,9 +707,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
         remaining = budget['model_seconds'] - run['metrics']['model_total_s'] - run['metrics'].get('interrupted_time_reserve_s', 0)
         if run['metrics']['llm_calls'] >= budget['model_calls'] or remaining <= 0:
             raise ValueError('모델 호출/시간 예산 종료')
-        if run['recipe'].get('context_contract')=='scope-v1' and stage in {'builder','critic','revision'}:
-            reserved=run.get('review_reservation',{}).get('requirement_calls',0)
-            reserved_s=reserved*run.get('role_time_estimates',{}).get('requirements',{}).get('estimate_s',run['recipe']['call_timeout'])
+        if run['recipe'].get('context_contract')=='scope-v1' and stage in {'builder','critic','revision','context'}:
+            reserved,reserved_s=requirement_reservation(run,by_id,future=stage in {'builder','revision'} or stage=='context' and context.get('context_phase')!='applicability',excluding=uid)
+            if stage=='context' and context.get('target',{}).get('scope_kind')!='requirement':
+                reserved+=1
+                reserved_s+=run.get('role_time_estimates',{}).get('critic',{}).get('estimate_s',run['recipe']['call_timeout'])
+                if context.get('context_phase')!='applicability' and run['recipe'].get('context_applicability_contract')=='scoped-v1':
+                    reserved+=1
+                    reserved_s+=run.get('role_time_estimates',{}).get('context',{}).get('estimate_s',run['recipe']['call_timeout'])
             if budget['model_calls']-run['metrics']['llm_calls']<=reserved or remaining<=reserved_s:
                 raise ValueError('현재 필수 요구 검수의 호출/시간 예약 보존; 후보 검수·교정 예산 부족')
             remaining-=reserved_s
@@ -600,6 +722,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
         definition_contract=run['recipe'].get('definition_contract')
         scope_contract=run['recipe'].get('context_contract')
         response_model=models.output_model(stage,definition_contract,scope_contract)
+        if context.get('context_phase')=='applicability': response_model=models.ContextApplicability
         schema=response_model.model_json_schema()
         designed_type='DeclaredType' if definition_contract in {'source-role-v1','authored-v2'} else 'DesignedType'
         observation_revision='ScopedObservationRevision' if scope_contract=='scope-v1' else 'AuthoredObservationRevision' if definition_contract=='authored-v2' else 'DeclaredObservationRevision' if definition_contract=='source-role-v1' else 'ObservationRevision'
@@ -797,10 +920,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                     variants.append(variant)
                 definition.clear()
                 definition['anyOf'] = variants
+        if stage=='requirements': models.requirement_schema(schema,remap(context,mapping))
         root = {k:v for k,v in schema.items() if k!='$defs'}
         variants = []
         for field in models.RESULT_FIELDS[stage]:
-            if root['properties'][field].get('maxItems') == 0:
+            if field not in root['properties'] or root['properties'][field].get('maxItems') == 0:
                 continue
             variant = deepcopy(root)
             variant['required'] = list(dict.fromkeys([*variant.get('required', []),field]))
@@ -840,9 +964,12 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                     elif 'judgment' in props:
                         unknown=deepcopy(node);grounded=deepcopy(node)
                         unknown['properties']['judgment']={'type':'string','const':'unknown'}
-                        grounded['properties']['judgment']={'type':'string','enum':['supported','refuted']}
+                        declared=props['judgment']
+                        allowed=set(declared.get('enum',[declared['const']] if 'const' in declared else ['supported','refuted','unknown']))
+                        supported=[j for j in ('supported','refuted') if j in allowed]
+                        grounded['properties']['judgment']={'type':'string','enum':supported}
                         grounded['properties']['source_refs']['minItems']=1
-                        node.clear();node['anyOf']=[unknown,grounded]
+                        node.clear();node['anyOf']=([unknown] if 'unknown' in allowed else [])+([grounded] if supported else [])
         if stage=='critic' and run['recipe'].get('review_contract') == 'checks-v1':
             issue=schema['$defs']['Issue']
             other=deepcopy(issue)
@@ -852,6 +979,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             other['properties']['candidate_ref']['enum']=['',*[mapping[i] for i in supplied if i not in checked]]
             schema['$defs']['Issue']={'anyOf':[issue,other]}
         source_only(schema)
+        if context.get('context_phase')=='applicability': discovery_scope.applicability_schema(schema,context)
+        if stage=='critic' and scope_contract=='scope-v1': models.source_first_schema(schema)
+        if stage in {'critic','requirements'} and scope_contract=='scope-v1':
+            discovery_scope.context_check_schema(schema,remap(context,mapping),stage,{mapping[i]:c for i,c in supplied.items()})
+            discovery_scope.location_schema(schema,remap(list(supplied.values()),mapping))
         if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
             natural_ids=[mapping[i] for i,c in supplied.items() if (c.get('source_relation') or c).get('statement_type') in {'rule','definition'}]
             if stage=='builder': natural_ids=[mapping[i] for i in context.get('design_relation_ids', [])]
@@ -862,11 +994,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             identifier=context['review_target_ids'][0]
             schema=binding_schema(mapping[identifier],['subject','object'],list(unit['source_ref_map']))
         elif component=='proposition':
-            definition=schema['$defs']['RelationCheck']
-            for branch in definition.get('anyOf',[definition]):
+            def omit_binding(branch):
+                if 'anyOf' in branch:
+                    for child in branch['anyOf']: omit_binding(child)
+                    return
                 for field in ('binding_checks','binding_reasons'):
                     branch['properties'].pop(field,None)
                     branch['required']=[k for k in branch['required'] if k!=field]
+            omit_binding(schema['$defs']['RelationCheck'])
         unit.update(status='running', prompt=prompt, input_hash=input_hash, input_chars=len(prompt), error=None)
         unit['attempts'].append(dict(started_at=utcnow(), timeout_s=timeout, outcome='started'))
         run['metrics']['llm_calls'] += 1
@@ -891,7 +1026,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             if stage=='relation':
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
-            output = deepcopy(decoded) if component=='binding' else response_model.model_validate(decoded).model_dump(warnings=False)
+            if stage in {'critic','requirements'} or context.get('context_phase')=='applicability': discovery_scope.restore_receipts(decoded)
+            output = deepcopy(decoded) if component=='binding' or stage=='concept' else response_model.model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output, mapping.values())
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
@@ -909,12 +1045,14 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
-            if stage!='critic': segments.restore(output, by_id, segments.originals(context))
-            if (stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}) or (stage=='concept' and run.get('recipe',{}).get('definition_contract')=='authored-v2'):
+            if stage not in {'critic','concept'}: segments.restore(output, by_id, segments.originals(context))
+            if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}:
                 design.declarations(output,supplied,by_id,context,
                     role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1',
                     authored=stage!='builder' and definition_contract=='authored-v2')
-            if component=='binding':
+            if stage=='concept':
+                output=concept_records(output,response_model,run,citation_ids,by_id,supplied,context,uid)
+            elif component=='binding':
                 output=reviews.normalize_binding(output,supplied,context,by_id)
             else:
                 output = normalize(output, stage, run, citation_ids, by_id, supplied, context, require_issue_cause=stage=='critic',
@@ -929,9 +1067,11 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                     raise ValueError('연결 교정은 해당 관계와 필요한 유형만 변경 가능')
                 output['history']=[]
                 for after in output['modeled_relations']:
-                    if after['id']!=before['id'] or after['source_relation']!=before['source_relation']:
+                    if after['id']!=before['id'] or after['source_relation']!=(before.get('source_relation') or before):
                         raise ValueError('연결 교정의 관계 ID 또는 원명제 변경')
-                    output['history'].append(dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason']))
+                    record=dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason'])
+                    if scope_contract=='scope-v1': record=discovery_scope.revision_record(before,after,after['design_reason'],context)
+                    output['history'].append(record)
             if stage=='critic' and component!='binding':
                 count = len(decoded.get('missing_meanings', []))
                 output['capacity'] = dict(roles={'missing_meanings':dict(limit=missing_limit,output_count=count)},
@@ -967,6 +1107,9 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                 covered = {h['candidate_id'] for h in output['history']} | {d['candidate_ref'] for d in output['deferred']}
                 if covered != set(context['target_ids']):
                     raise ValueError('수정 대상의 수정 또는 명시적 보류 누락')
+            if stage=='critic' and unit.get('context_dependency_ids'):
+                output['context_unit_ids']=deepcopy(unit['context_dependency_ids'])
+                output['applicability_receipts']=deepcopy(context.get('applicability_receipts',[]))
             unit.update(output=output, status='succeeded')
             identities.register(run)
         finally:
@@ -1027,7 +1170,7 @@ def queue_recovery(run, review, group, by_id=None):
     scope = [run.get('frozen_input', {}).get(k) for k in ('bundle_id','scope','step')]
     scope += [run.get('analysis_block_ids'), run.get('cqs', []), run.get('scope_items', [])]
     def add(cause, role, target, need, validation=()):
-        key = profile.digest([cause, target, role, scope])
+        key = profile.digest([cause, target, role, scope]+([need['original_error_id']] if need.get('original_error_id') else []))
         request = next((r for r in requests if r['id']==key), None)
         if request is None:
             request = dict(deepcopy(need), id=key, cause=cause, role=role, target=target,
@@ -1109,9 +1252,13 @@ def queue_recovery(run, review, group, by_id=None):
 
 
 def recovery_groups(run, round_number, by_id):
+    from .discovery_requirements import extraction_authorized, attributed_meanings
     groups = []
     for request in run.get('recovery_requests', []):
         if request.get('cause','extraction_missing')!='extraction_missing' or request['status']!='pending' or request['validation']: continue
+        if not extraction_authorized(run,request,by_id): continue
+        requested=deepcopy(request['meanings'])
+        requested.extend(m for m in attributed_meanings(run,request,by_id) if m not in requested)
         owners = [g for g in run.get('frontier', []) if g['id'] in request.get('owner_group_ids', [])]
         views = []
         targets = request.get('target', [(e['block_id'],e['span']) for e in request['evidence_refs']])
@@ -1151,14 +1298,14 @@ def recovery_groups(run, round_number, by_id):
         groups.append(dict(id=identifier, file_id=by_id[ids[0]]['file_id'], source_group=by_id[ids[0]]['source_group'],
             block_ids=ids, segments=views, features=[], priority=2, required=True, input_chars=sum(v['span'][1]-v['span'][0] for v in views),
             round=round_number, reason='Critic이 특정한 원문 의미 누락: '+request['meaning'], status='unvisited',
-            recovery_request_id=request['id'], recovery_meaning=request['meaning'], recovery_meanings=deepcopy(request['meanings']),
+            recovery_request_id=request['id'], recovery_meaning=request['meaning'], recovery_meanings=deepcopy(requested),
             context_block_ids=list(dict.fromkeys(i for g in owners for i in g.get('context_block_ids', []))),
             required_endpoint_ids=[c['id'] for c in endpoint_types] if request['role']=='relation' else [],
             required_comparison_ids=[c['id'] for c in comparisons], omitted_recovery_candidates=omissions,
             previous_observations=[c for c in prior if 'classification' in c],
             previous_relations=[c for c in prior if 'negation' in c],
             previous_signatures=[meaning_signature(c,supplied) for c in known if set(c.get('evidence_ids', [])) & set(ids)], roles=[request['role']]))
-        request.update(status='scheduled', group_id=identifier, submitted_meanings=deepcopy(request['meanings']))
+        request.update(status='scheduled', group_id=identifier, submitted_meanings=deepcopy(requested))
     return groups
 
 
@@ -1246,28 +1393,29 @@ def review_reservation(run, round_number, by_id, context_map, available):
     succeeded = {u['id'] for u in run['analysis_units'] if u['status']=='succeeded'}
     pending = [dict(unit_id=uid,stage=uid.split(':')[0],round=g.get('round',0)) for g in groups
                for uid in (['builder:'+g['id']] if 'builder:'+g['id'] not in succeeded else []) + pending_review_units(run,g,by_id,context_map) if uid not in succeeded]
+    stopped_context={u['id'] for u in run['analysis_units'] if u['stage']=='context' and u.get('attempts') and u['status']!='succeeded'}
+    pending=list({p['unit_id']:p for p in pending if p['unit_id'] not in stopped_context}.values())
+    requirement_reserve=application_reserve=0;requirement_units={}
     if run['recipe'].get('context_contract')=='scope-v1':
-        from . import discovery_requirements
-        current={field:[row for u in run['analysis_units'] if u['status']=='succeeded' for row in u['output'].get(field,[])]
-            for field in ('observations','relations')}
-        current['taxonomy']=[u['output'] for u in run['analysis_units'] if u['stage']=='builder' and u['status']=='succeeded']
-        current['revision_history']=[h for u in run['analysis_units'] if u['status']=='succeeded' for h in u['output'].get('history',[])]
-        requirement_reserve=sum(len(discovery_requirements.packets(run,current,kind,q,by_id,context_map))
-            for kind,items in [('cq',run['cqs']),('scope',run['scope_items'])] for q in items)
-    else: requirement_reserve=0
+        from .discovery_requirements import pending_calls
+        requirement_units=pending_calls(run,by_id,future=any(p['stage'] in {'builder','context'} for p in pending))
+        requirement_reserve=sum(stage=='requirements' for stage in requirement_units.values())
+        application_reserve=sum(stage=='context' for stage in requirement_units.values())
     estimates = run.setdefault('role_time_estimates', {})
-    for stage in ('concept','relation','builder','critic','revision','requirements'):
-        observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
-        role = 'review' if stage in {'critic','requirements'} else 'draft'
+    for stage in ('concept','relation','builder','critic','revision','requirements','context'):
+        observed = [a['elapsed_s'] for u in run['analysis_units'] if u['stage']==stage
+            if stage not in {'critic','requirements'} or output_tokens(u.get('imported_recipe',run['recipe']),stage)==output_tokens(run['recipe'],stage)
+            for a in u.get('attempts', []) if a.get('elapsed_s') is not None]
+        role = 'review' if stage in {'critic','requirements','context'} else 'draft'
         estimate = estimates.setdefault(stage, dict(initial_s=run['recipe']['call_timeout'],estimate_s=run['recipe']['call_timeout'],
             basis='미관측 역할: recipe 호출 제한시간',model_identity=deepcopy(run.get('model_identity', {}).get(role))))
         if observed:
             # First observation replaces the timeout prior; later estimates only rise.
             estimate['estimate_s'] = max(estimate['estimate_s'] if estimate.get('observed_count') else 0, max(observed)*1.25)
             estimate.update(basis='같은 실행·모델의 역할별 최대 실제 시간 × 1.25; 완료 보장 아님',observed_count=len(observed))
-    reservation = dict(group_ids=[g['id'] for g in groups],pending_units=pending,model_calls=len(pending)+requirement_reserve,
-        requirement_calls=requirement_reserve,
-        estimated_model_s=round(sum(estimates[p['stage']]['estimate_s'] for p in pending)+requirement_reserve*estimates['requirements']['estimate_s'],3))
+    reservation = dict(group_ids=[g['id'] for g in groups],pending_units=pending,model_calls=len(pending)+requirement_reserve+application_reserve,
+        requirement_calls=requirement_reserve,requirement_applicability_calls=application_reserve,requirement_unit_ids=list(requirement_units),
+        estimated_model_s=round(sum(estimates[p['stage']]['estimate_s'] for p in pending)+requirement_reserve*estimates['requirements']['estimate_s']+application_reserve*estimates['context']['estimate_s'],3))
     run['reserved_builder_critic_calls'] = sum(p['stage']!='requirements' for p in pending)
     run['review_reservation'] = reservation
     return reservation
@@ -1324,6 +1472,9 @@ def process_group(service, run, group, index, blocks, by_id, context_map):
         group['required_endpoint_block_ids'] = sorted(raw_refs(endpoint_context['blocks']))
         common['tool_originals'].extend(endpoint_context['blocks'])
         supplied.update({c['id']:c for c in prior})
+    if run['recipe'].get('source_context_contract')=='independent-v1':
+        from .discovery_scope import discovered_context
+        common['source_context_needs']=group.setdefault('source_context_needs',discovered_context(run,{i:by_id[i] for i in raw_refs(common)},supplied))
     roles = group.get('roles', ['concept','relation'])
     needed = [stage for stage in roles if not any(u['id']==stage+':'+key and u['status']=='succeeded' for u in run['analysis_units'])]
     if needed:
@@ -1394,7 +1545,7 @@ def capacity_status(run, group, by_id):
     for stage, field in (('concept', 'observations'), ('relation', 'relations')):
         limit = models.OUTPUTS[stage].model_json_schema()['properties'][field]['maxItems']
         unit = next((u for u in run['analysis_units'] if u['id'] == stage + ':' + group['id']), None)
-        count = len(unit['output'][field]) if unit and unit['status'] == 'succeeded' else None
+        count = (unit['output'].get('raw_observation_count',len(unit['output'][field])) if stage=='concept' else len(unit['output'][field])) if unit and unit['status'] == 'succeeded' else None
         roles[stage] = dict(limit=limit, output_count=count)
         if count == limit:
             pending.append(stage + ': 출력 상한 도달; 추가 누락 여부 미확인')
@@ -1406,17 +1557,25 @@ def capacity_status(run, group, by_id):
     unit = next((u for u in run['analysis_units'] if u['id']=='relation:'+group['id'] and u['status']=='succeeded'), None)
     group['analysis_target_coverage'] = deepcopy((unit or {}).get('output', {}).get('target_coverage', []))
     if not group.get('recovery_request_id'):
+        concept=next((u for u in run['analysis_units'] if u['id']=='concept:'+group['id'] and u['status']=='succeeded'),None)
+        for error in (concept or {}).get('output',{}).get('record_errors',[]):
+            if error['section']!='observations': continue
+            refs=[dict(evidence_id=s['block_id'],**s) for s in error['primary_source_spans']]
+            if not refs: continue
+            queue_recovery(run,{'missing_meanings':[dict(role='concept',meaning='실패 관측의 원문 의미를 기존 정상 후보와 대조하고 필요한 관측만 복구',
+                evidence_refs=refs,validation=[],trigger='record_error',original_error_id=error['id'],original_unit_id=concept['id'],
+                original_record=deepcopy(error['record']),primary_source_spans=deepcopy(error['primary_source_spans']))]},group,by_id)
         for target in group['analysis_target_coverage']:
             if target['candidate_ids'] or target['gaps']: continue
             ref = dict(evidence_id=target['block_id'],block_id=target['block_id'],span=target['span'])
             queue_recovery(run, {'missing_meanings':[dict(role='relation',meaning='제공 항의 관계 응답 미제출; 원문과 기존 산출을 대조하여 미표현 의미만 분석',
-                evidence_refs=[ref],validation=[],trigger='target_response')]}, group, by_id)
+                evidence_refs=[ref],validation=[],trigger='target_response',original_unit_id='relation:'+group['id'])]}, group, by_id)
     if pending and not group.get('recovery_request_id'):
         views = group.get('segments') or [dict(block_id=i,span=[0,len(by_id[i]['text'])]) for i in group['block_ids']]
         for stage in group.get('roles', ['concept','relation']):
             if roles[stage]['output_count'] != roles[stage]['limit']: continue
             refs = [dict(evidence_id=v['block_id'], block_id=v['block_id'], span=v['span']) for v in views]
-            queue_recovery(run, {'missing_meanings':[dict(role=stage, meaning='출력 상한 이후 아직 제안하지 않은 의미만 확인; 기존 의미 반복 금지', evidence_refs=refs, validation=[], trigger='output_capacity')]}, group, by_id)
+            queue_recovery(run, {'missing_meanings':[dict(role=stage, meaning='출력 상한 이후 아직 제안하지 않은 의미만 확인; 기존 의미 반복 금지', evidence_refs=refs, validation=[], trigger='output_capacity',original_unit_id=stage+':'+group['id'])]}, group, by_id)
 
 
 def grounded_analysis(run, group, available):
@@ -1470,7 +1629,15 @@ def finish(run, blocks, available):
         for field in ('hierarchies','effective_hierarchies'):
             current.update({h['id']:identities.view(run,h) for h in u['output'].get(field, [])})
     current = reviews.with_selected_base_types(current,run)
-    critic_views=reviews.complete_reviews([dict(unit_id=u['id'],**u['output']) for u in outputs if u['stage']=='critic'])
+    from . import discovery_scope
+    critic_outputs=[]
+    for unit in outputs:
+        if unit['stage']!='critic': continue
+        value=dict(unit_id=unit['id'],**unit['output'])
+        valid=discovery_scope.current_applicability_ids(run,unit,by_id,current,available)
+        if valid is not None: value['applicability_current_ids']=valid
+        critic_outputs.append(value)
+    critic_views=reviews.complete_reviews(critic_outputs)
     latest_reviews = reviews.latest_by_candidate(critic_views,current)
     review_units = {i:r for r in critic_views for i in r.get('component_unit_ids',[r['unit_id']])}
     reviewed_candidates = set().union(*(reviews.valid_ids(r,current,latest_reviews) or set() for r in review_units.values()))
@@ -1560,6 +1727,8 @@ def finish(run, blocks, available):
                 and not any(i.get('candidate_ref') in {'',identifier} for i in current_review.get('issues', []))):
             request.update(semantic_status='supported',proposal_review_status='current_critic_supported',
                 reason='현재 후보 지문의 AI 재검수 지지; 사람 수락 아님')
+    from . import discovery_recovery
+    discovery_recovery.resolve_endpoint_reviews(run,current,latest_reviews,available)
     unresolved_recovery = [r for r in run.get('recovery_requests', []) if r['semantic_status']!='supported']
     recovery_groups_ids = {r['group_id'] for r in unresolved_recovery if r.get('group_id')}
     recovery_groups_ids.update(g['id'] for g in run.get('candidate_groups', []) if recovery_groups_ids & set(g['analysis_group_ids']))
@@ -1623,18 +1792,29 @@ def finish(run, blocks, available):
         resolved={i for r in assessments for i in r['resolved_recovery_ids']}
         resolved-={i for r in assessments for m in r['meanings'] if m['judgment']!='supported' for i in m['recovery_ids']}
         for request in run.get('recovery_requests',[]):
-            if request['id'] in resolved and request.get('cause')=='extraction_missing':
+            proposal_ids={identities.identifier(run,i) for i in request.get('proposal_ids',[])}
+            used=any(request['id'] in m.get('recovery_ids',[]) and m['judgment']=='supported' and
+                proposal_ids & {l['candidate_ref'] for l in m.get('locations',[])}
+                for assessment in assessments for m in assessment['meanings'])
+            checked=proposal_ids and all(i in latest_reviews and i in (reviews.valid_ids(latest_reviews[i],current) or set()) and
+                any(c['candidate_ref']==i and c['judgment']=='supported' and not c.get('binding_validation')
+                    for f in ('observation_checks','relation_checks') for c in latest_reviews[i].get(f,[])) and
+                not current[i].get('unresolved_endpoints') for i in proposal_ids)
+            if request['id'] in resolved and request.get('cause')=='extraction_missing' and checked and used and not request.get('unattempted_meanings'):
                 request.update(semantic_status='supported',proposal_review_status='current_requirement_supported',reason='현재 요구의 누락 의미를 실제 표현·근거와 재대조')
         run['result']['unresolved_recovery_requests']=[r for r in run.get('recovery_requests',[]) if r['semantic_status']!='supported']
         for row in coverage:
             assessment=next(a for a in assessments if a['requirement_id']==row['id'] and a['requirement_kind']==row['kind'])
             row.update(semantic_status=assessment['judgment'],reason=assessment['reason'])
-    has_errors = any(u.get('tool_errors') or u['output'].get('binding_errors') for u in outputs) or any(g.get('error') for g in run.get('frontier', []) + run.get('candidate_groups', []))
+    from . import discovery_recovery
+    active=discovery_recovery.active_blockers(run,current,latest_reviews,available)
+    run['result']['active_blockers']=active
+    has_errors = any(active[k] for k in ('record_errors','binding_errors','group_errors','tool_errors'))
     requirement_pending=any(a['judgment']!='supported' for a in run['result'].get('requirement_assessments',[]))
     unresolved_recovery=run['result']['unresolved_recovery_requests']
     run['metrics']['recovery_remaining_by_cause']={cause:sum(r.get('cause','extraction_missing')==cause for r in unresolved_recovery)
         for cause in sorted({r.get('cause','extraction_missing') for r in unresolved_recovery})}
-    incomplete = bool(requirement_pending or binding_pending or deferred_comparisons or unresolved_recovery or run['result']['capacity_pending'] or run['result']['incomplete_review_searches'] or required_pending or unreviewed_candidates or no_result or run['result']['revision_deferrals'] or failures or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
+    incomplete = bool(requirement_pending or binding_pending or deferred_comparisons or unresolved_recovery or active['capacity_pending'] or run['result']['incomplete_review_searches'] or active['mandatory_pending'] or unreviewed_candidates or active['no_result_groups'] or run['result']['revision_deferrals'] or active['failures'] or has_errors or unfulfilled or run['result']['incomplete_file_ids'] or
                       run['result']['unavailable_block_ids'] or run.get('error') or
                       any(p.get('csv', {}).get('unresolved_block_ids') for p in run.get('profiles', [])))
     run['status'] = 'cancelled' if run['status']=='cancel_requested' else 'partial' if incomplete else 'review_ready'
@@ -1739,8 +1919,14 @@ def execute(service, run_id):
                 from . import discovery_requirements
                 discovery_requirements.assess(service,run,blocks,by_id,context_map)
             reservation = review_reservation(run, round_number, by_id, context_map, allowed_ids(service,blocks))
+            state=deepcopy(run);finish(state,blocks,allowed_ids(service,blocks))
+            active=state['result']['active_blockers']
+            primary_pending=any(role+':'+g['id'] in active['analysis_pending_unit_ids'] for g in pending for role in g.get('roles',['concept','relation']))
+            old_units={u['id'] for u in run['analysis_units']}
+            active_failed={f['unit_id'] for f in active['failures']}
+            pending_reviews=[p for p in reservation['pending_units'] if p['unit_id'] not in old_units or p['unit_id'] in active_failed]
             # Later saved rounds must remain reachable on resume; only earlier work blocks them.
-            if primary_pending or any(p['round']<=round_number for p in reservation['pending_units']): break
+            if primary_pending or any(p['round']<=round_number for p in pending_reviews): break
             if round_number == run['recipe']['budgets']['additional_rounds']: break
             run['frontier'].extend(recovery_groups(run, round_number+1, by_id))
             assigned = {i for g in run['frontier'] for i in g['block_ids']}

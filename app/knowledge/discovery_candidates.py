@@ -107,5 +107,5 @@ def output(run, value):
 def history_view(run, history):
     value=view(run,history['after'],revised=True)
     if 'preservation_basis' in history:
-        value['revision_basis_hash']=profile.digest([history['before'],history['preservation_basis']])
+        value['revision_basis_hash']=profile.digest([history['before'],history['preservation_basis']]+([history['required_context']] if 'required_context' in history else []))
     return value

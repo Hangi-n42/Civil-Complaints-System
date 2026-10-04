@@ -2,6 +2,7 @@
 from copy import deepcopy
 from collections import Counter
 from uuid import uuid4
+import re
 
 from pydantic import ValidationError
 from . import discovery_segments as segments, discovery_models as models, discovery_profile as profile
@@ -177,8 +178,22 @@ def declarations(output, supplied, by_id, context, *, role_only=False, authored=
                     views=[v for v in segments.originals(context) if v.get('source_ref')==selection['source_ref']]
                     if len(views)!=1 or selection['source_ref'] not in candidate['source_refs']:
                         raise ValueError('추출 구간은 선택된 제공 원문이어야 함')
+                    if selection.get('occurrence') is not None or selection.get('end_quote'):
+                        positions=list(re.finditer(re.escape(selection['source_quote']),views[0]['text']))
+                        occurrence=selection.get('occurrence')
+                        if occurrence is None:
+                            if len(positions)!=1: raise ValueError('시작 인용 위치가 모호함; 순서 선택 필요')
+                            occurrence=1
+                        if not 1<=occurrence<=len(positions): raise ValueError('선택 인용 순서가 제공 원문 밖')
+                        match=positions[occurrence-1];offset=views[0].get('span',[0])[0]
+                        end=match.end()
+                        if selection.get('end_quote'):
+                            ends=[m.end() for m in re.finditer(re.escape(selection['end_quote']),views[0]['text']) if m.start()>=end]
+                            if len(ends)!=1: raise ValueError('끝 인용 위치가 모호하거나 시작 이후 제공 원문 밖')
+                            end=ends[0]
+                        views=[dict(views[0],text=views[0]['text'][match.start():end],span=[offset+match.start(),offset+end])]
                     selected,errors=segments.references(dict(evidence_ids=[views[0]['ref']],source_quotes=[
-                        dict(evidence_id=views[0]['ref'],quote=selection['source_quote'])]),by_id,views)
+                        dict(evidence_id=views[0]['ref'],quote=views[0]['text'] if selection.get('end_quote') else selection['source_quote'])]),by_id,views)
                     if errors or len(selected)!=1: raise ValueError('단일 연속 원문 추출 구간 불명확')
                     candidate.update(definition=selected[0]['quote'],definition_evidence_refs=selected,support_type='explicit')
                 else:

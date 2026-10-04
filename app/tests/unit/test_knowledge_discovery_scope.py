@@ -72,7 +72,7 @@ def test_before_after_meaning_preservation(status,judgment):
         source_refs=[],evidence_refs=[dict(block_id='e')] if status!='unknown' else [],missing_source='상세 미제공' if status=='unknown' else '',
         reason='원문에 따른 의미 대조',locations=[dict(candidate_ref='c',field='conditions',quote='조건 A')] if status in {'maintained','corrected'} else [])
     check=dict(candidate_ref='c',judgment='supported',preservation_checks=[item])
-    context=dict(revision_comparisons={'c':dict(expected_meanings=[dict(meaning_key='m')])})
+    context=dict(revision_comparisons={'c':dict(expected_meanings=[dict(meaning_key='m',meaning='조건 A에서 선정되는 역할',applies_to='출처 역할')])})
     scope.preserve(check,context,{'c':candidate})
     assert check['judgment']==judgment
     assert check['correction_complete']==(judgment=='supported')
@@ -92,7 +92,7 @@ def test_grounded_correction_can_remove_a_previously_supported_error():
     candidate=dict(id='c',definition='선정 역할',revision_basis_hash='basis')
     check=dict(candidate_ref='c',judgment='supported',preservation_checks=[dict(meaning_key='m',status='corrected',locations=[],
         evidence_refs=[dict(block_id='e')],reason='선정이 자격 부여를 뜻한다는 이전 판단 오류를 원문으로 정정')])
-    scope.preserve(check,dict(revision_comparisons={'c':dict(expected_meanings=[dict(meaning_key='m')])}),{'c':candidate})
+    scope.preserve(check,dict(revision_comparisons={'c':dict(expected_meanings=[dict(meaning_key='m',meaning='조건 A에서 선정되는 역할',applies_to='출처 역할')])}),{'c':candidate})
     assert check['correction_complete']
 
 
@@ -188,7 +188,7 @@ from app.tests.unit.test_knowledge_discovery_run import corpus, service, prepare
 from app.tests.unit.test_knowledge_discovery_analysis import model, request, done
 
 
-def test_finish_counts_final_requirement_resolution_without_model_calls(service,model,monkeypatch):
+def test_finish_does_not_resolve_without_actual_recovery_even_if_requirement_supported(service,model,monkeypatch):
     from app.knowledge import discovery_requirements as req
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id']))['run_id'])
@@ -201,13 +201,14 @@ def test_finish_counts_final_requirement_resolution_without_model_calls(service,
     monkeypatch.setattr(a2,'model_call',forbidden)
     blocks=a2.load_blocks(service,run)
     a2.finish(run,blocks,{b['id'] for b in blocks})
-    assert run['recovery_requests'][0]['semantic_status']=='supported'
-    assert run['result']['unresolved_recovery_requests']==[]
-    assert run['metrics']['recovery_remaining_by_cause']=={}
+    assert run['recovery_requests'][0]['semantic_status']=='unverified'
+    assert len(run['result']['unresolved_recovery_requests'])==1
+    assert run['metrics']['recovery_remaining_by_cause']=={'extraction_missing':1}
 
 
 @pytest.mark.parametrize('spare_seconds',[10,2000])
-def test_review_consumption_preserves_requirement_calls_under_budget_pressure(service,model,monkeypatch,spare_seconds):
+@pytest.mark.parametrize('source_discovery',[False,True])
+def test_review_consumption_preserves_requirement_calls_under_budget_pressure(service,model,monkeypatch,spare_seconds,source_discovery):
     import json
     from app.knowledge import discovery_synthesis as synthesis
     from app.tests.unit.test_knowledge_discovery_claims import SCOPED_RECIPE
@@ -217,8 +218,13 @@ def test_review_consumption_preserves_requirement_calls_under_budget_pressure(se
     candidate=run['result']['observations'][0]
     ctx,deps,supplied=synthesis.context_for([candidate],by_id,a2.profile.contexts(blocks))
     ctx.update(review_target_ids=[candidate['id']],taxonomy=dict(hierarchies=[]))
-    monkeypatch.setattr(a2,'recipe',SCOPED_RECIPE)
+    def selected_recipe(budgets):
+        value=SCOPED_RECIPE(budgets)
+        if not source_discovery: value.pop('source_context_contract',None)
+        return value
+    monkeypatch.setattr(a2,'recipe',selected_recipe)
     run['recipe']=a2.recipe(dict(model_calls=2,model_seconds=2000,additional_rounds=0,revisions=0,searches=0))
+    if not source_discovery: run['recipe'].pop('source_context_contract',None)
     run['recipe']['budgets']['model_seconds']=run['recipe']['call_timeout']+spare_seconds
     run['model_identity']=a2.model_identity(run['recipe'])
     run.update(analysis_units=[],metrics=dict(llm_calls=0,model_total_s=0,searches=0),review_reservation=dict(requirement_calls=1))
@@ -235,10 +241,11 @@ def test_review_consumption_preserves_requirement_calls_under_budget_pressure(se
     monkeypatch.setattr(a2,'model_call',generated)
     assert a2.call(service,run,'critic','one',ctx,deps,by_id,supplied) is None
     assert a2.call(service,run,'critic','two',ctx,deps,by_id,supplied) is None
-    assert called==['critic']
+    expected=[] if source_discovery else ['critic']
+    assert called==expected
     context=dict(blocks=ctx['blocks'],requirement=dict(id='cq1',kind='cq',question='업무 범위?'),
         requirement_scope=dict(complete_input=True,omitted_group_ids=[]),recovery_targets=[])
     result=a2.call(service,run,'requirements','q',context,deps,by_id,supplied)
     assert result['judgment']=='unknown'
-    assert called==['critic','requirements'] and run['metrics']['llm_calls']==2
+    assert called==expected+['requirements'] and run['metrics']['llm_calls']==len(expected)+1
     assert not run['analysis_units'][1]['attempts'] and '요구' in run['analysis_units'][1]['error']

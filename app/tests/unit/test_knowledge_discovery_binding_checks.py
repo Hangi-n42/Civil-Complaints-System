@@ -6,6 +6,32 @@ import pytest
 from app.knowledge import discovery_analysis as a2, discovery_review as reviews, discovery_segments as segments
 
 
+@pytest.mark.parametrize('focus',['relations','observations'])
+def test_review_projects_actual_type_scope_without_author_reasons_or_proposed_uses(focus):
+    import json
+    source=dict(subject='담당 A',object='기준',conditions='경우 A')
+    candidate=dict(id='t',classification='type',label='담당 A',definition='명제 A의 주체 역할',conditions='',exceptions='',
+        role_basis=dict(relation_ref='a',endpoint='subject'),role_source=source,
+        classification_reason='다른 담당도 포함한다는 미검증 사유',design_reason='넓은 범위라는 미검증 사유',
+        definition_declaration=dict(role_basis=dict(relation_ref='a',endpoint='subject'),design_reason='작성사유'))
+    relation=dict(id='b',subject='t',object='o',source_relation=dict(id='b',subject='담당 B',object='기준',conditions='경우 B'))
+    context=dict(blocks=[],comparison_terms=[candidate],unapproved_relations=[relation],review_target_ids=['b'],
+        review_focus=focus,review_component='binding' if focus=='relations' else 'complete')
+    before=deepcopy(context);run=dict(id='run',recipe=dict(reference_contract='canonical-v1'),cqs=[],scope_items=[])
+    _,prompt=a2.make_prompt(run,'critic',context,[],{'t':candidate,'b':relation})
+    packet=json.loads(prompt.split('\nINPUT:\n',1)[1]);selected=packet['comparison_terms'][0]
+    assert context==before
+    assert not {'classification_reason','design_reason','binding_uses'} & selected.keys()
+    assert 'design_reason' not in selected['definition_declaration']
+    for key in ('label','definition','conditions','exceptions','role_basis','role_source'):
+        assert selected[key]==candidate[key]
+    assert packet['unapproved_relations'][0]['subject']=='담당 B'
+    assert packet['relation_bindings'][0]['subject_ref']=='t'
+    authored_context=deepcopy(context);authored_context.pop('review_component')
+    authoring=a2.make_prompt(run,'builder',authored_context,[],{'t':candidate,'b':relation})[1]
+    assert candidate['classification_reason'] in authoring and candidate['design_reason'] in authoring
+
+
 def normalized(semantic='supported', binding='supported', *, missing=False, legacy=False, reasons=None, reason_contract=False, raw_relation=False):
     block=dict(id='b',text='사업자는 입주자를 선정한다.',source_version_id='v',parse_run_id='p',locator={'page':1})
     raw=dict(id='r',subject='사업자',object='입주자',negation='affirmed',endpoint_labels=dict(subject='사업자',object='입주자'))

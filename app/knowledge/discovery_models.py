@@ -293,10 +293,11 @@ PROMPTS['critic'] = ('Ontology Critic: review_target_ids만 검수한다. 비교
     '참조 자료의 미제공 상세는 source_absent와 defer_reason/gaps이며 제공 원문 재추출로 요청하지 않는다. '
     'missing_meanings는 이번 primary_source_spans 안에서 제공 관측·관계 양쪽에 실제로 없는 의미만 source_refs/compared_candidate_ids/comparison_reason으로 특정한다. 기존 비교 후보에 표현된 의미는 누락이 아니다. 참고 구간과 미제공 후보의 전체 범위는 gaps에 미확인으로 남긴다. 누락 인용 모두가 주범위 안이어야 하며 참고 구간을 섞지 않는다. 관계 의미는 role=relation, 일반 정의는 concept이다. '
     'review_scope.missing_meanings_allowed=false이면 missing_meanings를 비우고 비교 미실시 범위를 gaps에 남긴다. 제공 범위를 자료 전체의 부재나 의미 완성으로 단정하지 않는다.')
-PROPOSITION_PROMPT = PROMPTS['critic'].replace(CRITIC_BINDING_INSTRUCTION, '') + '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. 유형 연결은 별도 호출이 담당한다. observation_checks/hierarchy_checks는 비운다.'
+PROPOSITION_SCOPE_RULE = '원문의 전제·OR 분기·예외·괄호 한정을 후보의 subject/predicate/object/conditions/time/부정/규범이 결합한 의미와 대조한다. 실제 역할과 한정이 이 결합에 보존되면 정상적인 필드 이동이나 같은 표현의 중복 부재만으로 refuted를 주지 않는다. 수식 대상 변경, 조건·예외 누락, 권한 확대, OR·AND 변경은 오류로 판정한다. 경우별로 분리된 관계에는 해당 분기의 주체·조건을 대조하며 다른 분기 주체의 합병을 요구하지 않는다. 전체 분기 누락은 CQ·누락 검수에서 계속 확인한다.'
+PROPOSITION_PROMPT = PROMPTS['critic'].replace(CRITIC_BINDING_INSTRUCTION, '') + '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. ' + PROPOSITION_SCOPE_RULE + ' 유형 연결은 별도 호출이 담당한다. observation_checks/hierarchy_checks는 비운다.'
 
 for focus, instruction in {
-    'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. 원문의 전제·OR 분기·예외·괄호 한정을 후보의 전체 명제와 대조한다. binding_uses의 source_expression은 원명제 후보의 표현이며 검증된 원문 인용이 아니다. 실제 제공 원문과 계속 대조하면서 그 표현이 가리키는 대상과 바로 옆 선택 유형의 정의 전체를 검수한다. 이름 일치·연관성·연결 의도만으로 같은 유형이라고 지지하지 말고 대응·차이·미확인 사유를 binding_reasons에 적는다. observation_checks/hierarchy_checks는 비운다.',
+    'relations': '이번 주검수는 관계의 자연어 주체·행위·직접 대상·규범·조건이다. subject/object/conditions/statement_type의 semantic_checks를 작성한다. ' + PROPOSITION_SCOPE_RULE + ' binding_uses의 source_expression은 원명제 후보의 표현이며 검증된 원문 인용이 아니다. 실제 제공 원문과 계속 대조하면서 그 표현이 가리키는 대상과 바로 옆 선택 유형의 정의 전체를 검수한다. 이름 일치·연관성·연결 의도만으로 같은 유형이라고 지지하지 말고 대응·차이·미확인 사유를 binding_reasons에 적는다. observation_checks/hierarchy_checks는 비운다.',
     'observations': '이번 주검수는 classification·definition·conditions·exceptions와 지정 계층이다. 정의의 사실적 주장마다 대응하는 제공 원문 구절을 확인한다. 원문의 대상·역할과 정의가 덧붙인 행위·권리·자격 발생·인과·결과를 구분하고, 각 추가 주장을 지지하는 구절이 없으면 definition=refuted로 판정한다. 원문이 명시한 효과와 근거 있는 역할 추상화는 허용한다. design_reason·다른 미승인 후보·모델의 출처 관계 설명은 새 주장의 원문 증거가 아니다. 기존 reason에 실제 후보 구절과 원문 구절의 대응·차이·미확인 사유를 구체적으로 적으며 취지 일치만으로 지지하지 않는다. 원문 자체가 모호하거나 판정에 필요한 참조자료가 미제공이면 unknown을 유지한다. 조건·예외는 빈 필드만 보지 말고 정의 본문을 포함한 전체 주장의 한정을 검사한다. 주장에 필요한 한정의 누락은 refuted, 필요한 근거 부재는 unknown, 추가로 필요한 한정이 없고 제공 근거와 맞으면 supported다. 근거 있는 역할 정의에 원문 행위의 모든 조건·예외를 복제하도록 요구하지 않는다. 비교 관계는 관측 판정에서 설계 출처를 대조하고, 누락 판정에서는 제공 관측·관계의 기존 표현을 확인하는 데 쓴다. 지정 계층은 포함 여부와 역방향을 양방향 hierarchy_checks로 대조한다. relation_checks는 비운다.'
 }.items():
     PROMPTS['critic_'+focus] = PROMPTS['critic'] + instruction
@@ -325,9 +326,12 @@ class DeclaredRevision(Revision):
 class SourceSelection(Record):
     source_ref: str
     source_quote: str = Field(min_length=1)
+    occurrence: int | None = Field(default=None, ge=1, strict=True)
+    end_quote: str | None = Field(default=None, min_length=1)
 
 
 class AuthoredObservation(DefinitionDeclaration):
+    definition: str = Field(default='', max_length=1000)
     definition_mode: Literal['source_extract', 'source_role', 'synthesis']
     source_selection: SourceSelection | None = None
 
@@ -376,10 +380,27 @@ class ContextNeed(Record):
     missing_source: str
 
 
+class ContextDiscovery(Record):
+    context_needs: list[ContextNeed] = Field(min_length=1)
+
+
+class ContextApplicabilityDecision(Record):
+    meaning_key: str
+    applicability: Literal['required','not_applicable','mixed','unknown']
+    source_refs: list[str]
+    reason: str = Field(min_length=1)
+    remaining: list[ContextNeed] = Field(default_factory=list)
+
+
+class ContextApplicability(Record):
+    decisions: list[ContextApplicabilityDecision] = Field(min_length=1)
+
+
 class MeaningLocation(Record):
     candidate_ref: str
     field: Literal['definition','conditions','exceptions','time','subject','predicate','object','role_source','structure']
-    quote: str
+    quote: str | None = None
+    selection_mode: Literal['exact_quote','whole_field'] = 'exact_quote'
 
 
 class RequiredMeaning(ContextNeed):
@@ -416,11 +437,18 @@ class PreservationCheck(ContextNeed):
     reason: str = Field(min_length=1)
 
 
+class ContextCheck(PreservationCheck):
+    status: Literal['maintained','corrected','lost','unknown','not_applicable']
+    requirement_refs: list[str] = Field(default_factory=list)
+    replacement: RequiredMeaning | None = None
+
+
 class ScopedRelationCheck(RelationCheck):
     preservation_checks: list[PreservationCheck] = Field(default_factory=list)
 
 
 class ScopedObservationCheck(ClaimObservationCheck):
+    context_checks: list[ContextCheck] = Field(default_factory=list)
     preservation_checks: list[PreservationCheck] = Field(default_factory=list)
     definition_completeness: ScopedCompleteness
 
@@ -430,13 +458,18 @@ class ScopedCritique(ClaimCritique):
     observation_checks: list[SkipValidation[ScopedObservationCheck]]
 
 
-SCOPE_RULE = """
+ITEM_SCOPE_RULE = 'source_context_needs는 기존 원문 발견의 문맥제안이며 정답이 아니다. 생성에서도 원문과 CQ를 대조해 필요한 의미만 반영하고 무관한 요구는 확장하지 않는다. 목록은 각 구성 항목과 그 항목에 붙는 조건·예외·기간을 개별 의미로 대조한다. 본문 뒤 주석·부칙 참조 중 실제 제공된 적용 문구도 읽고, applies_to에 해당 하위항목의 원문 표현과 적용 범위를 구체화한다. 목록 전체를 한 의미로 묶어 개별 한정을 생략하지 않는다. 상위의 참조 문구만 충족 위치로 선택하지 말고 실제 내용을 담은 정의 또는 계층 structure와 자식의 definition/conditions/exceptions/time 위치를 선택한다. 하위 한정은 그 항목에 연결해 표현하며 상위 전체로 확대하지 않는다.\n'
+
+SCOPE_RULE = ITEM_SCOPE_RULE + """
+원문을 먼저 읽고 정의에 필요한 구성 의미를 각각 독립된 required_meanings 항목으로 펼친 뒤 현재 표현과 대조한다. 원문에 열거한 실제 항목·대상·행위·한정 조건을 meaning에 구체적으로 쓴다. 목록을 가리키는 참조 표현은 목록의 내용이 아니다. 해당 구성 의미가 현재 definition/conditions, 선택 계층의 자식 정의, 또는 아래 출처 역할 계약의 role_source·현재 관계 필드에 실제 있는지 해당 locations와 reason으로 대조한다. 계층으로 충족할 때는 hierarchy의 structure와 실제 구성 내용을 담은 자식 definition 위치를 함께 선택한다. 이미 구조가 충분하면 부모 정의에 내용을 중복 복사할 필요가 없다. 생성 context_needs와 교정 required_meanings에도 동일하게 구체화한 의미를 전달한다.
 필수 문맥은 context_needs / definition_completeness.required_meanings에 meaning, applies_to(해당 유형·출처 역할·하위항목과 적용 범위), source_refs, missing_source로 기록한다. 생성자는 필요한 문맥을 제안하고 Critic은 원문 전체와 독립 대조하여 누락을 추가하거나 잘못된 요구를 정정한다. 필요한 목록·상위 요건·지시어·참조·예외·유효기간을 확인한다. 본문에 없는 외부 조문 상세는 missing_source와 unknown이며 제공된 의미 누락은 refuted이다. 원문 인용 정확성만으로 정의 충분성을 지지하지 않는다.
-검수의 각 필수 의미는 locations에 현재 candidate_ref/field/quote(그 필드의 연속 실제 구절)로 충족 위치를 연결한다. 기존 계층은 field=structure, quote는 빈 값으로 선택할 수 있으나 방향·대상·현재 정의와 실제 원문을 대조한다. 관계는 실제 필드 구절을 선택한다. 관계/계층이 존재한다는 것만으로 충족이 아니다. 상위 정의를 포함 관계로 충족하면 문장 중복을 요구하지 않는다. 출처 역할은 그 명제 안의 역할만 설명하면 되며 법적 자격 전체를 요구하지 않는다. 하위 항목의 기간을 상위 유형 전체에 확대하지 않는다. 필수 의미가 표현되지 않으면 locations를 비우고 부족 이유를 쓴다. 추가 요구가 없는 정상 정의도 역할·범위가 충분한 근거와 실제 위치를 기록한다.
+검수의 각 필수 의미는 locations에 현재 candidate_ref/field/quote(그 필드의 연속 실제 구절)로 충족 위치를 연결한다. 기존 계층은 field=structure, quote는 빈 값으로 선택할 수 있으나 방향·대상·현재 정의와 실제 원문을 대조한다. 관계는 실제 필드 구절을 선택한다. 관계/계층이 존재한다는 것만으로 충족이 아니다. 상위 정의를 포함 관계로 충족하면 문장 중복을 요구하지 않는다. 출처 끝점 역할의 “이 출처 명제”는 조항 전체가 아니라 role_basis가 지칭하는 실제 role_source 명제다. claim_reviews와 필수 문맥 검수 모두 그 명제의 해당 endpoint 역할과 해석 한정을 definition 및 role_source 또는 제공된 현재 사용 관계의 실제 필드와 함께 대조한다. 역할형은 일반 유형의 조건·예외·기간을 별도로 선언하지 않고 원명제의 한정을 role_source에 보존하는 계약이므로, 해당 위치가 원문의 의미를 실제로 지지하면 빈 유형 조건 필드나 정의 내 문장 반복 부재만으로 누락이라 판정하지 않는다. role_source 존재만으로 지지를 강제하지 말고 실제 endpoint·한정·원문을 대조한다. 다른 관계의 잘못된 유형 연결을 유형 정의 확대로 정당화하지 않는다. 이 출처 끝점 역할 계약을 일반 유형 전체의 정의에 적용하거나 전체 법적 자격을 요구하지 않는다. 하위 항목의 기간을 상위 유형 전체에 확대하지 않는다. 필수 의미가 표현되지 않으면 locations를 비우고 부족 이유를 쓴다. 추가 요구가 없는 정상 정의도 역할·범위가 충분한 근거와 실제 위치를 기록한다.
 """
 
 PRESERVATION_RULE = """
+Revision 입력의 preservation_basis는 이번 교정에서 유지해야 할 정상 역할·대상·조건·범위의 원문 근거다. preserve_claims가 비어 있어도 preservation_basis는 별도로 유지한다. failed_claims 하나에 정상 역할과 잘못된 효과가 섞일 수 있으므로 전체 문장을 삭제하지 말고 원래 후보에서 잘못된 주장만 최소한으로 고친다. 유형을 설명하던 정의를 의무문으로 바꿔 역할·정체성을 없애지 않는다. 자유 재작성은 synthesis로 선언하고 source_extract에는 실제 원문의 연속 발췌만 쓴다. 보존 기준은 후속 Critic에도 그대로 전달된다.
 revision_comparisons는 수정 전후와 기존 검수에서 지지된 의미를 제공한다. preservation_checks에 이번 candidate_ref의 expected_meanings 각 meaning_key를 한 번씩 대조한다. maintained는 표현/필드 이동 또는 근거 있는 현재 구조 연결로 정상 의미 유지, corrected는 새 근거 또는 과거 판정 오류를 구체적으로 설명하고 실제 원문으로 정정, lost는 설명 없이 정상 의미 소실, unknown은 판단에 필요한 자료 부족이다. 기존 supported도 영구 정답이 아니므로 정정 가능하나 사유와 근거 없이 삭제를 정당화하지 않는다. 각 항목의 meaning/applies_to/source_refs/missing_source/locations/reason을 남긴다. 오류 제거와 정상 의미 보존 및 정의 충분성을 모두 확인하며 한 단어로 축소한 것을 유용한 수정이라 하지 않는다. 비교가 없는 후보는 preservation_checks=[]이다.
+revision_comparisons.required_context는 이전 검수의 미충족 필수 의미와 생성 context_needs까지 포함한다. context_checks에서 각 meaning_key를 한 번씩 대조한다. maintained는 해당 필수 의미가 현재 표현으로 충족됨, lost는 아직 표현되지 않음, unknown은 근거 부족, corrected는 원문 근거로 과거 요구 자체를 정정함이다. corrected에는 정정된 요구와 원문 이유를 쓰며 과거 요구를 영구 정답으로 취급하지 않는다. 이 검사는 정상 의미 보존과 별개이고 새로 발견한 필수 의미는 definition_completeness에도 추가한다. source_requirements에 있는 이번 후보의 원문 문맥제안도 context_checks에서 각 meaning_key를 같은 방식으로 대조한다. 문맥 제안은 원문/CQ에 따라 corrected로 정정할 수 있다. 두 목록 모두 없으면 context_checks=[]이다.
 """
 
 class RequirementMeaning(RequiredMeaning):
@@ -446,21 +479,78 @@ class RequirementMeaning(RequiredMeaning):
     candidate_ref: str
     recovery_ids: list[str]
 
+    @model_validator(mode='after')
+    def verdict_cause(self):
+        permitted={'fulfilled':{'supported'},'source_absent':{'unknown'},'scope_conflict':{'refuted','unknown'},
+            'extraction_missing':{'refuted'},'endpoint':{'refuted'}}
+        if self.judgment not in permitted[self.cause]: raise ValueError('요구 판정과 원인 조합 불일치')
+        if self.cause=='source_absent' and not self.missing_source: raise ValueError('구체 미제공 자료 필요')
+        if self.cause in {'extraction_missing','endpoint'} and not self.source_refs: raise ValueError('제공 원문의 누락/오류 근거 필요')
+        return self
 
-class RequirementReview(Record):
-    requirement_id: str
-    meanings: list[RequirementMeaning] = Field(min_length=1)
+
+def requirement_schema(schema, context=None):
+    from copy import deepcopy
+    base=deepcopy(schema['$defs']['RequirementMeaning']);variants=[]
+    if context is not None:
+        ids=list(dict.fromkeys(r['id'] for r in context.get('recovery_targets',[])))
+        field=base['properties']['recovery_ids']
+        if ids: field['items']['enum']=ids
+        else: field['maxItems']=0
+    location=schema['$defs']['MeaningLocation'];text=deepcopy(location);structure=deepcopy(location)
+    text['properties']['field']['enum'].remove('structure');text['properties']['quote']={'type':'string','minLength':1}
+    structure['properties']['field']={'type':'string','const':'structure'}
+    structure['properties']['quote']={'type':'string','const':''}
+    schema['$defs']['MeaningLocation']={'anyOf':[text,structure]}
+    for cause,judgments in [('fulfilled',['supported']),('source_absent',['unknown']),('scope_conflict',['refuted','unknown']),
+            ('extraction_missing',['refuted']),('endpoint',['refuted'])]:
+        variant=deepcopy(base)
+        variant['properties']['cause']={'type':'string','const':cause}
+        variant['properties']['judgment']={'type':'string','enum':judgments}
+        if cause=='source_absent': variant['properties']['missing_source']['minLength']=1
+        if cause in {'extraction_missing','endpoint'}: variant['properties']['source_refs']['minItems']=1
+        variants.append(variant)
+    schema['$defs']['RequirementMeaning']={'anyOf':variants}
+
+
+class RecoveryAttribution(Record):
+    request_id: str
+    relevance: Literal['related','unrelated','unknown']
+    source_refs: list[str]
     reason: str = Field(min_length=1)
 
 
-REQUIREMENT_RULE = """
+class RequirementReview(Record):
+    context_checks: list[ContextCheck] = Field(default_factory=list)
+    requirement_id: str
+    meanings: list[RequirementMeaning] = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    recovery_attributions: list[RecoveryAttribution] = Field(default_factory=list)
+
+
+REQUIREMENT_RULE = ITEM_SCOPE_RULE + """
+각 의미의 원인부터 구분한다. 원문의 실제 명제·조건이 제공되었고 현재 표현에서 빠졌을 때만 extraction_missing이다. 제공 원문이 단지 다른 조문을 참조할 뿐 그 법적 연결 내용을 담지 않으면 source_absent다. 원문에 없는 두 문서 사이 법적 관계를 추출 누락이라고 하지 않는다. missing_source에는 필요한 정확 자료와 '원천 미제공' 또는 '입력 창 밖/생략'을 구분해 쓴다. context_only는 읽을 수 있는 비교 원문이며 text_from은 동일 packet의 본문 참조이므로 미제공 자료가 아니다.
+unassigned_recovery_targets는 이번 주분석 원문에 소유된 미귀속 요청이다. 각 request_id를 키로 갖는 recovery_attributions 객체에서 현재 requirement와 related/unrelated/unknown으로 원문 근거와 함께 대조한다. 관련이라는 판정은 업무 귀속이며 해결이 아니다. related 요청 답칸의 meanings에서 그 요청의 실제 의미들을 모두 대조한다. 이 중첩 의미에는 recovery_ids를 쓰지 않으며 서버가 답칸의 요청 ID만 기존 연결로 복원한다. unrelated/unknown 답칸에는 meanings를 쓰지 않는다. 최상위 meanings에는 이번 미귀속 요청 답칸의 의미를 중복 작성하지 않고 요청 밖 의미와 기존 recovery_targets만 대조한다. 한 요구의 unrelated를 다른 요구에도 적용하지 않는다.
 현재 requirement의 질문/범위를 최종 제공 유형·관계·계층과 실제 원문에 대조한다. 요구를 충족하는 데 필요한 의미별 meanings를 작성한다. 이름이나 cq_ids 연결만으로 충족하지 않는다. 각 meaning/applies_to/source_refs/locations/judgment/reason을 기록한다. 기존 유형·관계 조합으로 충분하면 supported/fulfilled이며 새 synthesis를 강제하지 않는다. 충족 위치는 실제 현재 candidate_ref/field/quote, 계층은 structure와 빈 quote로 특정한다. 조건·예외·주체·시점을 독립 의미와 함께 대조한다.
 자료가 없으면 unknown/source_absent와 구체 missing_source, 적용 범위가 다른 경우 scope_conflict, 원문에 있고 관측·관계 양쪽에 없는 의미는 refuted/extraction_missing과 필요한 role(concept/relation), 기존 관계의 끝점 연결 오류는 refuted/endpoint와 candidate_ref 및 endpoint_fields(subject/object)를 쓴다. 원문에 없는 명제를 만들지 않는다. 호출/시간/용량 소진은 서버가 계산하므로 의미상 자료 부족으로 바꾸지 않는다.
+현재 후보에 표현된 구절이 없으면 locations=[]이며 빈 time/conditions 구절을 위치로 만들지 않는다. 최상위 meanings의 recovery_ids에는 기존 recovery_targets의 실제 id만 쓰고 미귀속 요청 ID나 문맥 meaning_key를 넣지 않는다. 연결할 기존 요청이 없으면 recovery_ids=[]이다. 미귀속 요청의 실제 의미는 해당 related 답칸 안에서만 작성한다.
 recovery_targets 각각의 실제 누락 의미를 현재 표현과 대조하고 해당 항목 recovery_ids에 기록한다. 후보가 새로 생겼다는 이유로 해결하지 않는다. 미해결도 recovery_ids와 구체 이유를 남긴다. 생성자의 목록·이전 supported를 정답으로 가정하지 않는다. 전체 meanings를 직접 판정하며 최종 전체 충족 판정은 서버가 집계한다. 요구 전체와 현재 제공 범위의 차이를 reason에 기록한다.
 """
-PROMPTS['requirements']=REQUIREMENT_RULE
+PROMPTS['requirements']=REQUIREMENT_RULE + '\nsource_context_needs는 원문만 읽고 발견한 문맥제안이며 정답이 아니다. context_checks에서 각 meaning_key의 현재 충족(maintained), 미충족(lost), 자료부족(unknown), 실제 원문/CQ로 요구 자체 정정(corrected)을 대조한다. corrected도 실제 원문 근거와 이유가 필요하다. 발견목록 밖 필수 의미도 meanings에 추가한다.'
+LOCATION_RULE=' locations에는 실제 제공된 현재 candidate_ref와 비어있지 않은 field 주소만 선택한다. 서버가 해당 필드 전체를 복원하므로 quote를 복사하거나 요약하지 않는다. 표현이 없으면 locations=[]이다. 계층은 실제 structure를 선택하고 자식 정의·조건·기간도 해당 자식의 필드 주소로 함께 선택한다.'
+CONTEXT_APPLICABILITY_RULE=' 문맥제안의 원문상 사실 여부와 현재 요구·후보 역할에 대한 필수 적용성을 먼저 구분한다. context_checks에서 전부 현재 요구/역할 밖인 제안만 not_applicable로 기록하고 실제 source_refs, 현재 요구키(cq:ID 또는 scope:ID)의 requirement_refs, 구체 reason을 남긴다. 이것은 의미 충족이나 교정 성공이 아니다. 현재 적용되는 요구만 maintained/lost/unknown으로 대조한다. 하나의 제안에 불필요한 상세와 반드시 보존할 조건이 섞이면 통째 not_applicable로 버리지 말고 corrected로 범위를 정정하고 replacement에 남는 필수 의미의 meaning/applies_to/source_refs/locations/judgment/reason을 작성한다. replacement는 지지·미충족·자료부족을 그대로 판정하며 남은 요구를 면제하지 않는다. 원제안 자체는 보존한다. 단순 참조 상세 부재 때문에 제공된 전제·조건·예외·기간을 제외하지 않는다. 후보 역할 밖의 다른 주체 권한을 그 유형에 모두 넣지 않는다. 정상 의미 preservation_checks에는 not_applicable이 허용되지 않는다.'
+PROMPTS['requirements']+=LOCATION_RULE+CONTEXT_APPLICABILITY_RULE
+RECEIPT_RULE=' 관측 검사와 요구 검사의 context_checks/preservation_checks 및 수정 전후 비교가 있는 관계 검사의 preservation_checks는 스키마에 지정된 meaning_key를 속성 이름으로 하는 객체다. 각 키의 판정 레코드를 한 번씩 작성하며 내부 meaning_key는 반복하지 않는다. 서버가 기존 기록 목록으로 복원한다. 수정 전후 비교가 없는 관계 검사의 preservation_checks는 meaning_key가 들어 있는 기존 목록 형식을 사용한다.'
+PROMPTS['requirements']+=RECEIPT_RULE
+PRESERVATION_RULE+=CONTEXT_APPLICABILITY_RULE+RECEIPT_RULE
+SCOPE_RULE+=LOCATION_RULE
+PROMPTS['context']='제공 원문 전체를 읽고 대상 명칭과 요구 범위를 이해하는 데 필요한 원문 의미와 문맥을 찾는다. 현재 후보 정의나 이전 판정은 제공되지 않는다. 대상의 구성 내용과 각 항목에 적용되는 조건·예외·기간·참조 문맥을 별개 context_needs로 기록한다. 본문 뒤 주석의 적용 대상도 대조한다. applies_to는 해당 원문 대상과 적용 범위를 구체적으로 명시한다. source_refs는 실제 제공된 원문이며, 미제공 외부 참조 상세는 missing_source에 정확 자료명을 쓴다. 미제공 상세가 없으면 missing_source는 빈 문자열이다. 원문에 없는 정답 정의나 법적 효과를 생성하지 않는다. 이 목록은 후속 생성·검수에서 다시 대조할 문맥 제안이며 승인 판정이 아니다.'
 
-OUTPUTS = {'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision, 'requirements':RequirementReview}
+PROMPTS['context_applicability']='현재 원문·요구·역할 범위만으로 각 문맥 제안의 필수 적용 여부를 판정한다. 현재 후보 정의나 이전 충족 판단은 제공되지 않으며 현재 표현의 옳고 그름을 판단하지 않는다. decisions의 각 meaning_key에 required(이 범위에 필수), not_applicable(전부 범위 밖), mixed(일부만 필요), unknown(필수 여부 판단 불가)을 한 번씩 기록하고 실제 원문 source_refs와 구체 이유를 쓴다. mixed의 remaining에는 여전히 필요한 의미를 개별 ContextNeed로 작성하고 원문의 적용 대상·조건·예외·기간을 유지한다. required/not_applicable/unknown의 remaining은 비운다. 미제공 상세와 제공된 참조·전제 조건을 구별하며 혼합 제안 전체를 면제하지 않는다. candidate 범위는 해당 출처 역할에 한정하며 requirement 범위는 그 요구 전체이므로 다른 후보의 국소 제외를 적용하지 않는다. 충족 위치나 supported/refuted 판정은 쓰지 않는다.'
+
+PROMPTS['context_applicability']+=' required는 원제안의 meaning/applies_to/missing_source 전체를 변경 없이 후속 필수 요구로 전달한다. 이유에서만 범위를 줄일 수 없으며 일부만 필요하면 반드시 mixed.remaining에 남는 의미를 명시한다. source_role의 원명제와 참조조건이 올바르게 표현됐는지 묻는 요구와 개별 대상이 외부 요건에 실제 해당하는지 판정하는 요구를 구분한다. 원문 표현의 충실성을 확인하는 전자는 제공된 참조조건을 보존하되 그 참조의 외부 상세 전체를 필수로 만들지 않는다. 세부기준을 제외한다는 것은 그 기준을 참조한다는 사실까지 지우는 것이 아니므로, 필요한 전제·조건·참조 자체는 remaining에 남긴다.'
+
+OUTPUTS = {'context':ContextDiscovery, 'scout': Scout, 'concept': Concepts, 'relation': Relations, 'builder': Taxonomy, 'critic': Critique, 'revision': Revision, 'requirements':RequirementReview}
 
 
 def output_model(stage, definition_contract=None, context_contract=None):
@@ -474,6 +564,8 @@ def output_model(stage, definition_contract=None, context_contract=None):
 
 
 AUTHORING_RULE = """
+source_selection.occurrence는 선택 source_ref 안에서 동일 source_quote가 등장하는 순서(1부터)다. 반복 인용은 의도한 순서를 명시하고 유일 인용이면 null을 사용한다. 원문과 정확히 일치하는 연속 구절만 선택한다.
+긴 목록/복합 구간은 원문을 재입력하며 줄바꿈을 추가하지 않는다. source_quote에 정확한 시작 구절, end_quote에 그 뒤의 유일한 정확한 끝 구절을 선택하면 서버가 시작부터 끝까지 원문 그대로 연속 복원한다. end_quote=null이면 source_quote 자체가 전체 인용이다. 시작/끝 구절을 원문과 다르게 작성하거나 중간 내용을 재배열하지 않는다. 원문 구절 그대로가 아니라 유용한 정의로 재작성할 때는 synthesis를 쓴다.
 관측의 definition_mode는 실제 작성 방식을 선택한다. source_extract: label과 source_selection의 제공 source_ref·연속 원문 그대로 source_quote를 선택하고 definition/conditions/exceptions/time은 쓰지 않는다. 서버가 원문 구간을 복원한다. 떨어진 구절 접합이나 재작성은 synthesis이다.
 synthesis: 여러 근거를 종합한 유용한 정의·상위개념·범위를 definition/conditions/exceptions/time에 쓰고 source_refs와 design_reason을 첨부한다. 새 명칭/추상화는 설계 선택이며 원문 명시 사실과 구별한다. 구체 효과·인과·권리·조건에는 근거가 필요하다. source_role은 제공 자연어 관계의 role_basis를 선택하는 기존 방식이다. 방식 설명만 쓰지 말고 실제 구조를 선택한다. 수정할 때 failed_claims를 바로잡고 preserve_claims의 정상 의미를 유지한다. 명칭만 남기거나 핵심 조건 삭제로 오류를 우회하지 않는다.
 """
@@ -485,7 +577,7 @@ semantic_checks에는 classification/conditions/exceptions만 쓴다. definition
 '''
 
 
-RESULT_FIELDS = {'requirements':('meanings',), 'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
+RESULT_FIELDS = {'context':('context_needs','decisions'), 'requirements':('meanings',), 'scout': ('findings','gaps','actions'), 'concept': ('observations','gaps'),
     'relation': ('relations','target_gaps','gaps'), 'builder': ('observations','relation_bindings','hierarchies','alias_proposals','gaps'),
     'critic': ('issues','hierarchy_checks','relation_checks','observation_checks','gaps','missing_meanings'),
     'revision': ('observations','relations','hierarchies','deferred')}
@@ -508,3 +600,13 @@ BUILDER_ROLE_RULE = (ROLE_DECLARATION_RULE.partition('\n직접 정의:')[0].repl
     '\nConcept 등이 이미 생성하여 제공한 직접 정의 유형은 적합성을 대조한 뒤 기존 ID로 재사용한다. '
     '새 직접 정의나 자유 명칭·정의는 작성하지 않는다. 필요한 직접 정의가 제공되지 않았으면 defer/gaps로 남긴다. '
     '자동으로 다른 역할을 재실행하거나 다른 명제의 출처를 합성하지 않는다.\n')
+
+
+def source_first_schema(schema):
+    """Source requirements precede candidate claims and overall explanation on the wire."""
+    for name,first in [('ScopedCompleteness',['required_meanings','reason','judgment']),
+        ('ObservationCheck',['candidate_ref','definition_completeness','context_checks','claim_reviews','preservation_checks','semantic_checks','source_refs','reason'])]:
+        node=schema.get('$defs',{}).get(name,{})
+        props=node.get('properties',{})
+        node['properties']={k:props[k] for k in dict.fromkeys(first+list(props)) if k in props}
+        if 'required' in node: node['required']=[k for k in node['properties'] if k in node['required']]

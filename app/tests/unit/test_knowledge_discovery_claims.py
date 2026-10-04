@@ -16,6 +16,7 @@ SCOPED_RECIPE=a2.recipe
 def CURRENT_RECIPE(budgets):
     value=SCOPED_RECIPE(budgets)
     value.pop('context_contract',None)
+    value.pop('source_context_contract',None)
     return value
 
 
@@ -102,6 +103,7 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
         if stage=='requirements':
             candidate=data['unapproved_observations'][0]
             value=dict(requirement_id=data['requirement']['id'],reason='계약 대역: 실제 의미 품질 아님',meanings=[dict(meaning='업무 유형',applies_to='제공 범위',source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='',locations=[dict(candidate_ref=candidate['id'],field='definition',quote=candidate['definition'])],judgment='supported',reason='대역 대조',cause='fulfilled',role='concept',candidate_ref='',recovery_ids=[r['id'] for r in data['recovery_targets']])])
+            value['context_checks']=[dict(meaning_key=m['meaning_key'],meaning=m['meaning'],applies_to=m['applies_to'],source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='',locations=[dict(candidate_ref=candidate['id'],field='definition',quote=candidate['definition'])],status='maintained',reason='문맥 제안 대조 계약 대역') for m in data.get('source_context_needs',[])]
         else: value=source_response(response(prompt,stage),data)
         if stage=='concept':
             for row in value['observations']:
@@ -133,6 +135,7 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
                 candidates={c['id']:c for c in data.get('unapproved_observations',[])+data.get('unapproved_relations',[])}
                 for check in value['observation_checks']:
                     c=candidates[check['candidate_ref']]
+                    check['context_checks']=[dict(meaning_key=m['meaning_key'],meaning=m['meaning'],applies_to=m['applies_to'],source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='',locations=[dict(candidate_ref=c['id'],field='definition',quote=c['definition'])],status='maintained',reason='필수 의미 후속 대조 계약 대역') for m in list({m['meaning_key']:m for m in data.get('revision_comparisons',{}).get(c['id'],{}).get('required_context',[])+data.get('source_requirements',{}).get(c['id'],[])}.values())]
                     check['definition_completeness']['required_meanings']=[dict(meaning='선택 범위의 정의',applies_to='제공 원문',source_refs=check['claim_reviews'][0]['source_refs'],missing_source='',locations=[dict(candidate_ref=c['id'],field='definition',quote=c['definition'])],judgment='supported',reason='계약 대역')]
                 for check in value['observation_checks']+value['relation_checks']:
                     c=candidates[check['candidate_ref']]
@@ -145,6 +148,18 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
             for row in value['relations']:
                 row.pop('local_ref',None);row.pop('endpoint_labels',None)
             value['target_gaps']=[]
+        if scoped:
+            def addresses(node):
+                if isinstance(node,list):
+                    for v in node:addresses(v)
+                elif isinstance(node,dict):
+                    for location in node.get('locations',[]):location.pop('quote',None)
+                    for v in node.values():addresses(v)
+            addresses(value)
+            for check in ([value] if stage=='requirements' else value.get('observation_checks',[])):
+                for field in ('context_checks','preservation_checks'):
+                    if isinstance(check.get(field),list):
+                        check[field]={m['meaning_key']:{k:v for k,v in m.items() if k!='meaning_key'} for m in check[field]}
         jsonschema.validate(value,schema)
         checked.append(stage)
         return dict(text=json.dumps(value,ensure_ascii=False),done=True,done_reason='stop',prompt_eval_count=100,eval_count=50)
@@ -152,6 +167,11 @@ def test_new_wire_generation_review_revision_and_human_roundtrip(service,model,m
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id']))['run_id'])
     assert not run['result']['failures'],run['result']['failures']
+    if scoped:
+        from app.knowledge.discovery_requirements import pending_calls
+        by_id={b['id']:b for b in a2.load_blocks(service,run)}
+        assert not pending_calls(run,by_id)
+        assert set(pending_calls(run,by_id,future=True).values())=={'context','requirements'}
     obs=next(c for c in run['result']['observations'] if c['label']=='국민임대')
     assert obs['definition_mode']==('source_extract' if correction else 'synthesis')
     if correction:
