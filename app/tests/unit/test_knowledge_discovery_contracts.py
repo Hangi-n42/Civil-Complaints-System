@@ -14,7 +14,7 @@ from app.tests.unit.test_knowledge_discovery_run import corpus, service, prepare
 def test_expanded_input_selects_comparison_and_keeps_byte_and_actual_token_guards(service,model,monkeypatch):
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert (run['recipe']['input_chars'],run['recipe']['num_ctx'],run['recipe']['num_predict'])==(24000,32768,4096)
+    assert (run['recipe']['input_chars'],run['recipe']['num_ctx'],run['recipe']['num_predict'])==(32000,49152,4096)
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks};bid=blocks[0]['id']
     term=dict(id='comparison',classification='type',definition='x'*13000,evidence_ids=[bid])
     context=dict(blocks=[dict(ref=bid,text=blocks[0]['text'])],comparison_terms=[term])
@@ -26,11 +26,11 @@ def test_expanded_input_selects_comparison_and_keeps_byte_and_actual_token_guard
     assert a2.call(service,run,'scout','expanded',selected,deps,by_id,terms) is not None
     assert 12000<run['analysis_units'][-1]['input_chars']<24000
     count=len(model)
-    assert a2.call(service,run,'scout','bytes',dict(blocks=context['blocks'],note='가'*11000),deps,by_id) is None
+    assert a2.call(service,run,'scout','bytes',dict(blocks=context['blocks'],note='가'*(run['recipe']['num_ctx']//3)),deps,by_id) is None
     assert len(model)==count and '컨텍스트' in run['analysis_units'][-1]['error']
     original=a2.model_call
     async def overflow(*args,**kwargs):
-        result=await original(*args,**kwargs);result['prompt_eval_count']=30000;return result
+        result=await original(*args,**kwargs);result['prompt_eval_count']=run['recipe']['num_ctx'];return result
     monkeypatch.setattr(a2,'model_call',overflow)
     assert a2.call(service,run,'scout','tokens',dict(blocks=context['blocks']),deps,by_id) is None
     assert len(model)==count+1 and '토큰' in run['analysis_units'][-1]['error']
@@ -81,7 +81,7 @@ def test_revision_recritic_preserves_source_history_and_current_preview(service,
         assert model==['scout','concept','relation','builder','critic','binding','critic','revision'] and run['status']=='cancelled'
         saved=[deepcopy(u) for u in run['analysis_units'] if u['status']=='succeeded']
         run=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-        assert run['candidate_groups'][0]['revision_reservation']['pending_stages']==['critic','critic','critic']
+        assert model.count('revision')==1  # Successful correction is reused after cancellation.
         assert [u for u in run['analysis_units'] if u['id'] in {s['id'] for s in saved}]==saved
     assert not run['result']['failures'],run['result']['failures']
     if mode in {'no_budget','equivalent'}:

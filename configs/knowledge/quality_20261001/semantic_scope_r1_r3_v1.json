@@ -1,0 +1,282 @@
+{
+  "version": "semantic-scope-r1-r3-v1",
+  "issues": [
+    595,
+    596,
+    597
+  ],
+  "criteria": {
+    "expected": {
+      "dc_parent_without_hierarchy": "refuted: missing actual list",
+      "dc_parent_time": "refuted: child expiry must not apply to all parent",
+      "dc_parent_with_hierarchy": "supported: supplied five child definitions satisfy list through actual hierarchy, without duplicate prose",
+      "dc_effect": "refuted: selection does not itself grant eligibility",
+      "dc_role": "supported: source-local role does not need all legal eligibility",
+      "dc_external": "unknown: provided reference cannot establish absent legal definition",
+      "dc_transfer": "supported with five years and resident at that time",
+      "dc_transfer_bad": "refuted timing condition"
+    },
+    "correction": "Only naturally refuted dc_effect enters existing Revision/post-Critic. Remove false effect while preserving normal selection role and source scope. Natural failure stays failure.",
+    "product": "실제 두문서 Concept/Relation/Builder/Critic/requirements/조건부복구. 법2의 건설·매입 구분 및 규칙15의 국민임대 선정 조건을 연결하되 국민임대 법적 포함 정의가 미제공이면 해당 연결 unknown. 두문서 적용범위를 억지 동일시하지 않음.",
+    "limits": {
+      "total_http": 34,
+      "total_seconds": 6600,
+      "per_call_timeout": 300,
+      "diagnostic_max_http": 10,
+      "product_max_http": 24,
+      "retries": 0
+    },
+    "exposure": "Article2/15 exposed development; catalog separately sourced but previously used, not unseen holdout. Human utility unmeasured.",
+    "policy": "No tuning/repetition to pass; source exact, actual current supported necessary, unknown not success; technical and semantic separately.",
+    "execution_boundary": "첫 진단 완료 보존, 두번째 HTTP는 실행경계 변경으로 40.278초 중단되어 응답 없음. 첫 의미미탐 재실행 없음. 둘째만 같은 입력으로 기술적 이어가기1회, 이전2호출/138.700초 포함 총34/6600 유지."
+  },
+  "freeze": {
+    "code_sha": "58cc43b3afbcd9f704d394f2ca2920fd09830765",
+    "runtime_hashes": {
+      "app/knowledge/discovery_review.py": "9f497af56390be46c6f551c287df1e082b72da3d17b774b858863935c63c0fb1",
+      "app/knowledge/discovery_analysis.py": "2bb7de8208767f18ee9845095b4b7bc903ba7379464469fa6c6bca6d3c336cf8",
+      "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+      "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+      "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+      "app/knowledge/discovery_requirements.py": "c53e5cc7caf1e4bda4944c71cb040657ca44f27f8040cc5faf5f3ae7cdbdfd0d",
+      "app/knowledge/discovery_claims.py": "6d1a7c15e9c18f7e3833201bbaf3cf02a3ea7699b9d76f220727229e330c9fe2",
+      "app/knowledge/discovery_design.py": "1e392a8fc41a4a4db1586e4444c4330734d5639d5670aa08bd7bf62980317ca1",
+      "app/knowledge/discovery_binding.py": "728f25f654895001fc456b4158b4d867b546f2e5f9f68a4174221313b876d4bd",
+      "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+      "app/knowledge/discovery_scope.py": "c7e087b8c28971cabe6d67291105b33b86c7f51b3f9da1e9cf8af020388304b6",
+      "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+      "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+      "app/knowledge/discovery_models.py": "a3cbc82c25d5a3ba25af6e30a82833f1e1fbd30408fbb995e69a0c28468cffd3",
+      "app/knowledge/ontology_changes.py": "15d1e5efca4fd554bb7b74f9f7ea6e9c2ccb9f9745fff3e8fe64f0d2e81c1271",
+      "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+      "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+      "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+      "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+      "app/knowledge/discovery_candidates.py": "99b16b31e2ec04a50302a349d7c277d500807f85e04c8f52742dbbccab3e8912",
+      "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+      "app/knowledge/ontology_canonical.py": "0234d2a52363a2554bbd00bbfd60607d065045d549c98c39c9b79409f79cca2b",
+      "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+      "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+      "app/knowledge/extraction.py": "f4c6604b721bbb9ef627944f0c7b53afed2ddfc79a3ed8d77cb3ab3a2bc441c2",
+      "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+      "app/knowledge/discovery_synthesis.py": "2aa6f8e1a9d20ac0ab3ae54a253d46c78b3f0013f372d0061e77a675b7a11ea3",
+      "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+      "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+      "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+      "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281"
+    },
+    "recipe": {
+      "context_contract": "scope-v1",
+      "claim_review_contract": "claims-v1",
+      "revision_context_contract": "target-source-v1",
+      "builder_definition_contract": "roles-only-v1",
+      "review_evidence_contract": "semantic-checks-v1",
+      "builder_declaration_contract": "shared-types-v1",
+      "definition_contract": "authored-v2",
+      "review_component_contract": "proposition-binding-v1",
+      "binding_num_predict": 8192,
+      "binding_think": false,
+      "review_dependency_contract": "selected-types-v1",
+      "binding_reason_contract": "per-endpoint-v1",
+      "correction_contract": "per-target-v1",
+      "review_contract": "checks-v1",
+      "reference_contract": "canonical-v1",
+      "profile_version": "a2-survey-v5",
+      "candidate_version": "a2-candidates-v1",
+      "prompt_version": "discovery-a2-v60",
+      "prompt_hash": "aa2ce0e937c4f051352602b88b99312a87da29e4fd453a14ec1312a8a7600f10",
+      "models": {
+        "draft": "gemma4:31b-it-q4_K_M",
+        "review": "gemma4:31b-it-q4_K_M"
+      },
+      "endpoint": "http://127.0.0.1:11434",
+      "budgets": {
+        "model_calls": 10,
+        "model_seconds": 2400,
+        "additional_rounds": 0,
+        "revisions": 1,
+        "searches": 0
+      },
+      "num_ctx": 32768,
+      "num_predict": 4096,
+      "think": false,
+      "input_chars": 24000,
+      "call_timeout": 300,
+      "schema_hash": "da49a26831682d20674e86de605d9c7619782c0cd72f20ccd1b5f48bca516ac1"
+    },
+    "identity": {
+      "draft": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      },
+      "review": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      }
+    },
+    "product_recipe": {
+      "context_contract": "scope-v1",
+      "claim_review_contract": "claims-v1",
+      "revision_context_contract": "target-source-v1",
+      "builder_definition_contract": "roles-only-v1",
+      "review_evidence_contract": "semantic-checks-v1",
+      "builder_declaration_contract": "shared-types-v1",
+      "definition_contract": "authored-v2",
+      "review_component_contract": "proposition-binding-v1",
+      "binding_num_predict": 8192,
+      "binding_think": false,
+      "review_dependency_contract": "selected-types-v1",
+      "binding_reason_contract": "per-endpoint-v1",
+      "correction_contract": "per-target-v1",
+      "review_contract": "checks-v1",
+      "reference_contract": "canonical-v1",
+      "profile_version": "a2-survey-v5",
+      "candidate_version": "a2-candidates-v1",
+      "prompt_version": "discovery-a2-v60",
+      "prompt_hash": "aa2ce0e937c4f051352602b88b99312a87da29e4fd453a14ec1312a8a7600f10",
+      "models": {
+        "draft": "gemma4:31b-it-q4_K_M",
+        "review": "gemma4:31b-it-q4_K_M"
+      },
+      "endpoint": "http://127.0.0.1:11434",
+      "budgets": {
+        "model_calls": 24,
+        "model_seconds": 4200,
+        "additional_rounds": 1,
+        "revisions": 1,
+        "searches": 2
+      },
+      "num_ctx": 32768,
+      "num_predict": 4096,
+      "think": false,
+      "input_chars": 24000,
+      "call_timeout": 300,
+      "schema_hash": "da49a26831682d20674e86de605d9c7619782c0cd72f20ccd1b5f48bca516ac1"
+    },
+    "source_db_sha256": "b31277736284a6d17fe3085322d78a3618014e7b95eefabd8572ea885fdb412d",
+    "package_sha256": "85199b4857a1aad0fbdc06e922e41b6ffa9848868bef818a20e163deecca352f",
+    "runner_sha256": "3837c455808454f39b6f1d4a862c20fc3561fd5bbadf32542a7f8a1c7a93f734",
+    "criteria_sha256": "972bfd0ae17d295d9824ac28ba2a6e356ac0639e0c2ed1e99e62464cd5ea5ba3",
+    "parent_freeze_sha256": "523b5e1fe9e1d5560f4ede98c97de528ec96afdfdd514e6cf98543d490ec8415",
+    "previous_result_sha256": "204f72df3e6c80a8fc1c165f09d5fa28eca15e5290bb617a506bcaf7cc564b79",
+    "completed_diagnostic_reused": "list_and_child_time",
+    "interrupted_without_response": "existing_hierarchy"
+  },
+  "source_blocks": [
+    "2641967317ad4690b7e90a099987e208",
+    "1e4c6a6dfc69410b923e15b9e748efa4",
+    "dee5dfd20a4f4f80b85d8399509b4d38"
+  ],
+  "local_evidence_directory": "data/knowledge/scope_preservation_20261004",
+  "note": "고정 입력·원장·전체 모델 응답은 로컬 보존. 진단 최초 결과와 실행 경계 변경을 별도로 기록. 원문/개인정보는 이 파일에 수록하지 않음.",
+  "whole_requirement_followup": {
+    "recipe": {
+      "context_contract": "scope-v1",
+      "claim_review_contract": "claims-v1",
+      "revision_context_contract": "target-source-v1",
+      "builder_definition_contract": "roles-only-v1",
+      "review_evidence_contract": "semantic-checks-v1",
+      "builder_declaration_contract": "shared-types-v1",
+      "definition_contract": "authored-v2",
+      "review_component_contract": "proposition-binding-v1",
+      "binding_num_predict": 8192,
+      "binding_think": false,
+      "review_dependency_contract": "selected-types-v1",
+      "binding_reason_contract": "per-endpoint-v1",
+      "correction_contract": "per-target-v1",
+      "review_contract": "checks-v1",
+      "reference_contract": "canonical-v1",
+      "profile_version": "a2-survey-v5",
+      "candidate_version": "a2-candidates-v1",
+      "prompt_version": "discovery-a2-v61",
+      "prompt_hash": "aa2ce0e937c4f051352602b88b99312a87da29e4fd453a14ec1312a8a7600f10",
+      "models": {
+        "draft": "gemma4:31b-it-q4_K_M",
+        "review": "gemma4:31b-it-q4_K_M"
+      },
+      "endpoint": "http://127.0.0.1:11434",
+      "budgets": {
+        "model_calls": 1,
+        "model_seconds": 300,
+        "additional_rounds": 0,
+        "revisions": 0,
+        "searches": 0
+      },
+      "num_ctx": 36864,
+      "num_predict": 4096,
+      "think": false,
+      "input_chars": 24000,
+      "call_timeout": 300,
+      "schema_hash": "da49a26831682d20674e86de605d9c7619782c0cd72f20ccd1b5f48bca516ac1"
+    },
+    "identity": {
+      "draft": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      },
+      "review": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      }
+    },
+    "before": {
+      "input_chars": 21799,
+      "input_bytes": 30741,
+      "input_chars_limit": 24000,
+      "input_bytes_limit": 28672
+    },
+    "after": {
+      "input_chars": 21799,
+      "input_bytes": 30741,
+      "input_chars_limit": 24000,
+      "input_bytes_limit": 32768
+    },
+    "scope": "Same final candidates/source/CQ; whole input once. No Concept/Relation/Builder/regeneration or semantic retry.",
+    "criteria": "Provided legal definitions cannot be called globally absent. Cross-document legal membership requiring absent decree remains unknown. Validate actual locations, all assigned recovery targets, and current fingerprint; model supported alone is not quality approval.",
+    "previous_http": 32,
+    "previous_seconds": 2864.405,
+    "max_added_http": 1,
+    "max_added_seconds": 300,
+    "source_db_sha256": "84c6684710dde992f96d6b45eeced554c5a5d36e51ecb33fc4e80d23557a88ce",
+    "source_product_sha256": "bf3fb6853dfb7183c06ae652c7c0c51a2e6bf87f477273cd8cabc3965ec4e1e5",
+    "input_sha256": "ced50708db45191510413eacda6fa8da9043e56ae7450e86c4871d4931c02e40",
+    "runner_sha256": "85be4219ba364325540ca55a0cc914950d6ff4fa1d105fb595ce83b4d97357d4",
+    "runtime_hashes": {
+      "app/knowledge/discovery_review.py": "9f497af56390be46c6f551c287df1e082b72da3d17b774b858863935c63c0fb1",
+      "app/knowledge/discovery_analysis.py": "be80e7d2be4d6a75ab5efa667041723051fd54679f9e6d144a4d644e4a0b2d0d",
+      "app/knowledge/ontology_schema.py": "7ea48c9b3fde7e5f413ded6c9c48ef70d5dc55685642c70b2266127c257405f3",
+      "app/knowledge/service.py": "0c7bf407261dbdbe63239ce6d9e379f35997c835eefad78c33386626b95de38f",
+      "app/knowledge/snapshots.py": "599044f282a400c139d7024c8d0a74e7a63cd746d156110b3914277a41d5ca52",
+      "app/knowledge/discovery_requirements.py": "c53e5cc7caf1e4bda4944c71cb040657ca44f27f8040cc5faf5f3ae7cdbdfd0d",
+      "app/knowledge/discovery_claims.py": "6d1a7c15e9c18f7e3833201bbaf3cf02a3ea7699b9d76f220727229e330c9fe2",
+      "app/knowledge/discovery_design.py": "1e392a8fc41a4a4db1586e4444c4330734d5639d5670aa08bd7bf62980317ca1",
+      "app/knowledge/discovery_binding.py": "728f25f654895001fc456b4158b4d867b546f2e5f9f68a4174221313b876d4bd",
+      "app/knowledge/ontology_changes_models.py": "92bcc33d24968d1a6bab1810b009263b9f113aa9cdddd8cc9116caee55e114a4",
+      "app/knowledge/discovery_scope.py": "c7e087b8c28971cabe6d67291105b33b86c7f51b3f9da1e9cf8af020388304b6",
+      "app/knowledge/ontology_run.py": "6aeb36026cab7b53eb6cbf7618f58c8f41297bfb7850cdf86ff6aecb8a38844f",
+      "app/knowledge/discovery_run.py": "ca90b2bb0e9d105bfa9e325748b278ca89ddf0ed433e8489d2ea6cc23725677e",
+      "app/knowledge/discovery_models.py": "a3cbc82c25d5a3ba25af6e30a82833f1e1fbd30408fbb995e69a0c28468cffd3",
+      "app/knowledge/ontology_changes.py": "70dfdce556a73d72f771d9882524c33af4fdff9e3808635a989a4e731b39852f",
+      "app/knowledge/extraction_store.py": "cd34475138f310331bd2f426e1de344fca192db2a0eb1c0b7520633754ee2be3",
+      "app/knowledge/__init__.py": "97cbc3f1f93cead04258044f2586b2ae2acc7bbf688490ea801e12cfe266a42d",
+      "app/knowledge/parsers.py": "1ae7df72e0b3ad9b108ea77e11f62d773793359304e0368194216b5c87b0d3dc",
+      "app/knowledge/discovery_segments.py": "fabd6eb4eba6a91c8d0c053eeae77e23dfec7f8b42f33d2e7969e4dc21509acc",
+      "app/knowledge/discovery_candidates.py": "99b16b31e2ec04a50302a349d7c277d500807f85e04c8f52742dbbccab3e8912",
+      "app/knowledge/ontology_consumer.py": "93f57ded4b44053e7ee6c8bb7bfbb6ea8af479e10bd01cc3e90597f0aaa22357",
+      "app/knowledge/ontology_canonical.py": "0234d2a52363a2554bbd00bbfd60607d065045d549c98c39c9b79409f79cca2b",
+      "app/knowledge/discovery_profile.py": "2b7ca3cde8d4055b3d83fc98f0dcc608e745f3ad51df10168d6791e42c050bce",
+      "app/knowledge/schemas.py": "5a52088afca1e190f802086017ece61a6a84366c508b1e2e8d3fb964ac11393b",
+      "app/knowledge/extraction.py": "f4c6604b721bbb9ef627944f0c7b53afed2ddfc79a3ed8d77cb3ab3a2bc441c2",
+      "app/knowledge/search.py": "32cb4d30d01dbbc0e627638a13f0d77c45d2668966b116f1c3bd64d273f7d956",
+      "app/knowledge/discovery_synthesis.py": "2aa6f8e1a9d20ac0ab3ae54a253d46c78b3f0013f372d0061e77a675b7a11ea3",
+      "app/knowledge/repository.py": "9db8dd49b01fa87c26fb702110e7cb0c13824e371bd3e37cc912ada09c5d6817",
+      "app/knowledge/extraction_contract.py": "deac9bdc3500a1e10875483b75b70ac7d16ef40a08bd8a39c25c8c1ebbfa562e",
+      "app/knowledge/discovery_inputs.py": "8bec521013193bae041e920484cc2cc2821f66a5ece8f1cdebd05e02aef94a6d",
+      "app/knowledge/search_answer.py": "ead70de29fbd8bfa03420a9a8283ad694583fe3d222e9c05cd587a6ea3b38281"
+    }
+  }
+}

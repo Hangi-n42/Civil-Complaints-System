@@ -26,11 +26,12 @@ def test_non_extraction_causes_preserve_relation_and_do_not_recall(service, monk
             value['needs_revision']=True
             if cause=='endpoint':
                 value['issues']=[]
-                value['relation_checks'][0]['binding_checks']['subject']='unknown'
+        if stage=='binding' and cause=='endpoint':
+            value['binding_checks']['subject']='unknown'
         result['text']=json.dumps(value,ensure_ascii=False); return result
     monkeypatch.setattr(a2,'model_call',review)
     run=done(service,service.start(request(source['id']))['run_id'])
-    assert model==['scout','concept','relation','builder','critic','critic','critic']
+    assert model==['scout','concept','relation','builder','critic','binding','critic','critic']
     pending=[r for r in run['result']['unresolved_recovery_requests'] if r['cause']==cause]
     assert len(pending)==1 and pending[0]['status']==('source_absent' if cause=='source_absent' else 'manual_review')
     assert pending[0]['assessment_scope']['extent']=='provided_only'
@@ -38,7 +39,7 @@ def test_non_extraction_causes_preserve_relation_and_do_not_recall(service, monk
     assert run['metrics']['recovery_calls']==0 and run['metrics']['recovery_remaining_by_cause'][cause]==1
     before=deepcopy(run['analysis_units'])
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
-    assert len(model)==7 and again['analysis_units']==before
+    assert len(model)==8 and again['analysis_units']==before
     assert again['result']['original_relations']==run['result']['original_relations']
     if cause=='endpoint':
         from app.knowledge import ontology_changes
@@ -71,7 +72,7 @@ def test_invalid_quote_repairs_only_evidence_without_reextracting(service,monkey
     assert model.count('relation')==1 and model.count('revision')==1,run.get('error')
     original_relation=run['result']['original_relations'][0]
     assert original_relation['validation'] and original_relation['evidence_validation']
-    recovery=next(r for r in run['result']['recovery_requests'] if r['cause']=='evidence_error')
+    recovery=next(r for r in run['result']['recovery_requests'] if r['cause']=='evidence_error' and r['role']=='revision')
     assert recovery['status']==('unresolved' if mutate_meaning else 'proposals_created'),run['result']['failures']
     if not mutate_meaning:
         revised=run['result']['relations'][0]
@@ -148,7 +149,7 @@ def test_successful_unit_hash_mismatch_never_overwrites_saved_unit(service,model
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
     with pytest.raises(ValueError,match='입력 해시 변경'):
         a2.call(service,run,'concept',unit['group_id'],dict(blocks=[],changed='변경된 입력'),[],by_id)
-    assert unit==before and len(model)==7
+    assert unit==before and len(model)==8
 
 
 def test_recovery_span_selection_keeps_shared_context_endpoints_and_single_candidates():

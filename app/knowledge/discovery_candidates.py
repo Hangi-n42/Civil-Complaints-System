@@ -24,7 +24,10 @@ def exact_key(candidate):
               'classification_reason','abstraction_level','review_signals','design_reason','definition_mode','role_basis','role_source','direct_definition_evidence_refs')
     evidence = [(e.get('source_version_id'),e.get('parse_run_id'),e.get('block_id'),e.get('span'),e.get('quote')) for e in refs]
     if any(not all((v,p,b,s,q)) for v,p,b,s,q in evidence): return None
-    return profile.digest(dict(values={k:candidate.get(k, '') for k in fields},
+    values={k:candidate.get(k, '') for k in fields}
+    # Keep legacy keys byte-for-byte stable; authored definitions also identify the selected span.
+    values.update({k:candidate[k] for k in ('definition_evidence_refs','source_selection','context_needs') if k in candidate})
+    return profile.digest(dict(values=values,
         scope={k:sorted(candidate.get(k, [])) for k in ('cq_ids','scope_item_ids','source_relation_ids')},
         evidence=sorted(evidence)))
 
@@ -99,3 +102,10 @@ def output(run, value):
     for binding in result.get('relation_bindings', []):
         for field in ('subject_ref','object_ref'): binding[field] = identifier(run,binding[field])
     return result
+
+
+def history_view(run, history):
+    value=view(run,history['after'],revised=True)
+    if 'preservation_basis' in history:
+        value['revision_basis_hash']=profile.digest([history['before'],history['preservation_basis']]+([history['required_context']] if 'required_context' in history else []))
+    return value

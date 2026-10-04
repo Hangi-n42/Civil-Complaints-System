@@ -78,3 +78,8 @@ python -m pytest app/tests/unit/test_knowledge_ontology_changes.py app/tests/uni
 - A5: reviewed v2의 `effective_class_slots`, 안정 target ID와 registry/hash를 K4 전용 매핑·K5 snapshot에 연결한다. 현재 v2 추출/로컬 개체 등록은 명시적으로 미지원 응답이며 기존 v1 경로는 유지한다. 기존 사실·snapshot·매핑을 새 정의로 자동 승격하지 않는다.
 - 전체 민원 테스트, 12과제 평가, 다중 모델 비교, Windows 실기, 현업 검토자 시험은 미실시다. UI·운영 활성화·재추출·간접 영향 탐색은 A3 범위 밖이다.
 - 현재 사용자 결정이 필요한 사항 없음.
+
+## 필수 문맥과 수정 검수의 현재성 — 2026-10-04
+
+- A2의 필수 문맥 판단과 수정 전후 의미 보존 판단을 후보 origin 및 검토 화면에 유지한다. 선택 구조의 참조를 정본 target ID로 연결하고 전이 의존 정의의 지문을 보존한다. 정본에서 의존 구조가 달라지면 검수 현재성을 무효화하며 K4에는 선택된 구조·정의와 현재성만 전달한다.
+- 사람의 정의 수정은 기존 생성·검수 이력을 보존하면서 현재 AI 판정을 해제한다. 요구 전체의 충족 여부, 개별 후보의 구조적 수락 가능 여부, 사람 결정은 별도다. required_meanings가 있다는 사실이나 AI supported를 의미 품질의 보증으로 해석하지 않는다.

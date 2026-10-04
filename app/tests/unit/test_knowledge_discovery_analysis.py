@@ -32,6 +32,10 @@ def response(prompt, stage):
     data = json.loads(prompt.split('\nINPUT:\n')[1])
     ev = next((b['ref'] for b in data.get('blocks', [])), 'e0')
     action = dict(action='finish', reason='제공 범위 분석 종료')
+    if stage=='context':
+        if data.get('proposals'):
+            return dict(decisions={m['meaning_key']:dict(applicability='required',source_refs=[v['source_ref'] for v in a2.segments.originals(data)],reason='적용성 계약 대역',remaining=[]) for m in data['proposals']})
+        return dict(context_needs=[dict(meaning='제공 원문의 대상 범위',applies_to=data['target']['label'],source_refs=[v['source_ref'] for v in a2.segments.originals(data)],missing_source='')])
     if stage=='binding':
         identifier=data['review_target_ids'][0]
         return dict(candidate_ref=identifier,binding_checks=dict(subject='supported',object='supported'),
@@ -100,6 +104,15 @@ def source_response(value, data):
 
 @pytest.fixture(autouse=True)
 def model(monkeypatch):
+    prior_recipe=a2.recipe
+    def legacy_recipe(budgets):
+        value=prior_recipe(budgets)
+        value['definition_contract']='source-role-v1'
+        value.pop('claim_review_contract',None)
+        value.pop('context_contract',None)
+        value.pop('source_context_contract',None)
+        return value
+    monkeypatch.setattr(a2,'recipe',legacy_recipe)
     calls = []
     monkeypatch.setattr(a2, 'model_identity', lambda recipe: {'fixture':'digest'})
     async def fake(prompt, schema, stage, run, timeout):
@@ -618,7 +631,7 @@ def test_revision_corrects_classification_negation_and_preserves_ids_and_history
     again=done(service,service.start(RunRequest(kind='discovery',retry_of_run_id=run['id']))['run_id'])
     assert model.count('revision')==3 and again['result']['revision_history']==run['result']['revision_history']
     assert run['status']==again['status']=='partial'
-    assert model.count('critic')==6 and revised['id'] not in again['result']['unreviewed_candidate_ids']
+    assert model.count('critic')==12 and revised['id'] not in again['result']['unreviewed_candidate_ids']
     from app.knowledge import ontology_changes as a3
     from app.tests.unit.test_knowledge_ontology_changes import listing
     cid=a3.publish(service,again['id'])['changeset_id']

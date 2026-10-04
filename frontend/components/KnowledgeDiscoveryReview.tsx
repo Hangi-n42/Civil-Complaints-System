@@ -17,6 +17,29 @@ function JsonDetail({ title, value }: { title: string; value: unknown }) {
   return <details className="text-sm"><summary className="cursor-pointer">{title}</summary><pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded bg-slate-50 p-3 text-xs">{pretty(value)}</pre></details>;
 }
 
+function ClaimOpinions({ checks, request, runId }: { checks: unknown; request: KnowledgeRequest; runId: string }) {
+  const [selected, setSelected] = useState<ReturnType<typeof readableRefs>[number] | null>(null);
+  return <div className="space-y-2">{records(checks).map((check,i) => <div key={i}>
+    <p className="text-sm">후보 의미: {label(display(check.judgment))} · {display(check.reason)}</p>
+    {records(check.claim_reviews).map((claim,j) => <div className="my-2 rounded border p-2 text-sm" key={j}>
+      <p className="font-medium">{claim.nature === "design_choice" ? "설계 선택" : "사실 주장"} · {label(display(claim.judgment))}</p>
+      <blockquote className="whitespace-pre-wrap">{display(claim.candidate_quote)}</blockquote>
+      <p>검수한 의미: {display(claim.claim)}</p><p>{display(claim.reason)}</p>
+      {readableRefs(claim.evidence_refs).map((ref,k) => <button type="button" className="mr-2 underline" key={k} onClick={() => setSelected(ref)}>근거 {k+1} 원문 보기</button>)}
+    </div>)}
+    {[...records(record(check.definition_completeness).required_meanings), ...records(check.preservation_checks)].map((meaning,j) => <div key={`meaning:${j}`} className="my-2 rounded border p-2 text-sm">
+      <p>{meaning.status ? "수정 전후 의미 보존" : "필수 문맥"} · {label(display(meaning.status || meaning.judgment))}</p>
+      <p>{display(meaning.meaning)} · 적용: {display(meaning.applies_to)}</p><p>{display(meaning.reason)}</p>
+      {meaning.missing_source ? <p>필요한 자료: {display(meaning.missing_source)}</p> : null}
+      {records(meaning.locations).map((location,k) => <p key={k}>현재 표현: {display(location.quote) || "연결된 구조"}</p>)}
+      {readableRefs(meaning.evidence_refs).map((ref,k) => <button type="button" className="mr-2 underline" key={k} onClick={() => setSelected(ref)}>문맥 근거 {k+1}</button>)}
+    </div>)}
+    {check.definition_completeness ? <p className="text-sm">역할·범위의 충분성: {label(display(record(check.definition_completeness).judgment))} · {display(record(check.definition_completeness).reason)}</p> : null}
+  </div>)}
+    {selected && <KnowledgeReviewEvidence key={`${selected.block_id}:${selected.span.join(":")}`} request={request} runId={runId} reference={selected} />}
+  </div>;
+}
+
 function Schema({ title, value }: { title: string; value: Ontology | null }) {
   if (!value) return null;
   return <details className={panelClass}><summary className="cursor-pointer font-medium">{title}</summary>
@@ -256,6 +279,8 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
             <div className="border-t pt-3"><h4 className="text-sm font-semibold">AI 분석 당시 의견 · 현재 의미 검증 아님</h4>
               <p className="mt-1 text-xs text-amber-900">대상: A2 실행 {run.id.slice(0,8)}의 원제안. {selected.origin.human_edited || dirty ? "사람이 수정한 내용은 AI가 다시 검토하지 않았습니다." : "A2 후속 수정의 해결 여부와 현재 의미 정확성은 원문으로 확인하세요."} 현재 변경안 revision {change.revision}.</p>
               {[...records(selected.origin.critiques),...records(selected.origin.relation_checks)].map((opinion,i) => <p key={i} className="mt-2 text-sm">{opinion.judgment ? `${label(display(opinion.judgment))} · ` : ""}{display(opinion.reason || opinion.description || opinion.issue || opinion)}</p>)}
+              <p className="text-sm">현재 작성 방식: {label(display(selected.origin.definition_mode || "legacy_unspecified"))} · {selected.origin.ai_review_current === false || dirty ? "현재 편집에 대한 AI 검수 없음" : "아래 검수 당시 내용과 원문 대조 필요"}</p>
+              <ClaimOpinions key={`${selected.id}:${change.revision}`} checks={[...records(selected.origin.observation_checks), ...records(selected.origin.relation_checks)]} request={request} runId={run.id} />
               <JsonDetail title="원제안·Critic 의견·수정 전후 기록" value={{ original: change.original_candidates?.find(c => c.change_id === selected.change_id), origin: selected.origin }} />
               <JsonDetail title="서버가 구분한 의미 검수 항목" value={selected.validation.semantic_review} />
             </div>
@@ -284,6 +309,11 @@ export default function KnowledgeDiscoveryReview({ request }: { request: Knowled
         </section>
       </>}
       <section className={panelClass}><h3 className="font-semibold">업무 질문·허용 범위에 남은 공백</h3><p className="text-sm">후보나 근거가 연결됐다는 사실은 질문 해결을 뜻하지 않습니다. 전체 미탐색·자료 부족 기록을 특정 질문에 임의 배정하지 않습니다.</p>
+        {records(record(change.analysis_result).requirement_assessments).map((assessment,i) => <div key={i} className="rounded border p-2 text-sm">
+          <p>질문·범위 충족 검수 · {label(display(assessment.judgment))}</p>
+          <p>{coverageRows(run,change).find(row => row.id === assessment.requirement_id && row.kind === assessment.requirement_kind)?.question}</p><p>{display(assessment.reason)}</p>
+          {records(assessment.meanings).map((m,j) => <p key={j}>{display(m.meaning)} · {label(display(m.judgment))} · {label(display(m.cause))} · {display(m.reason)}{m.missing_source ? ` · 필요한 자료: ${display(m.missing_source)}` : ""}</p>)}
+        </div>)}
         <div className="overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">질문·범위</th><th>저장된 조사 상태</th><th>현재 연결 후보·보류</th></tr></thead><tbody>{coverageRows(run,change).map(row => <tr key={`${row.kind}:${row.id}`} className="border-t"><td className="p-2">{row.question}</td><td className="p-2">{row.status}<p className="text-xs text-slate-600">{row.reason}</p></td><td className="p-2">후보 {row.candidates.length} · 보류 {row.deferred}<ul>{row.candidates.map(c => <li key={c.id}>{changeName(c)} · {label(c.review_status)}</li>)}</ul><KnowledgeMissingProposal request={request} run={run} change={change} question={row} onSaved={()=>loadChange(change.id)} disabled={locked}/></td></tr>)}</tbody></table></div>
         <ul className="list-inside list-disc text-sm text-amber-900">{strings(result.gaps).map((gap,i) => <li key={i}>{gap}</li>)}</ul>
         <JsonDetail title="자료 필요·후보 누락 의심·미탐색·실패의 저장 기록" value={{ reference_gaps: result.reference_gaps, unfulfilled_read_requests: result.unfulfilled_read_requests, mandatory_pending: result.mandatory_pending, unvisited_block_ids: result.unvisited_block_ids, unprocessed_features: result.unprocessed_features, failures: result.failures, revision_deferrals: result.revision_deferrals }} />

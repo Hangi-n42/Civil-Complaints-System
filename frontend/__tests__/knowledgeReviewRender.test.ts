@@ -20,13 +20,14 @@ function candidate(): Change {
     validation: { structural_errors: [], semantic_review: [], unresolved_dependency_ids: [] } };
 }
 
-function render(c: Change, reviewed: Ontology, draft: EditDraft = makeDraft(c)) {
+function render(c: Change, reviewed: Ontology, draft: EditDraft = makeDraft(c), whole = false) {
   const run: DiscoveryRun = { id: "run", status: "partial", cqs: [], scope_items: [], frozen_input: { scope: "current_discovery", step: 0, files: [] } };
   const change: Changeset = { id: "change", revision: 0, run_id: run.id, input_status: "partial", base_ontology_version_id: "base",
     ontology_head_id: "base", reviewed_ontology_version_id: null, unresolved_count: 1, candidates: [c], decisions: [], analysis_result: {}, reference_material: [] };
   // Seed the saved-run state; no network, effects or database mutations in this rendering check.
   state.values = [[], null, run, change, c.id, draft, { counter: false, index: 0 }, "tester", "", false, "", "", false, null, null, reviewed, []];
   const html = renderToStaticMarkup(createElement(KnowledgeDiscoveryReview, { request: async () => { throw Error("unexpected request"); } }));
+  if (whole) return html;
   return html.split("의미·범위·예외를 어떻게 바꿉니까?")[1].split("반례·의존·영향에서 더 확인할 것은 무엇입니까?")[0];
 }
 
@@ -67,4 +68,14 @@ describe("A4 실제 컴포넌트 비교 출력", () => {
     expect(after).not.toContain("저장 전 편집 조건");
     expect(html.split("검토자가 수정할 내용 · 아직 저장되지 않음")[1]).toContain("저장 전 편집 조건");
   });
+});
+
+
+it("주장별 구절·의미·근거와 사람 편집 뒤 검수 현재성을 표시한다", () => {
+  const c={...candidate(),origin:{definition_mode:"human_edited_unclassified",ai_review_current:false,human_edited:true,
+    observation_checks:[{judgment:"refuted",reason:"추가 효과 미지지",claim_reviews:[{candidate_quote:"선정으로 자격을 부여받는다",
+      claim:"선정의 자격 발생 효과",nature:"factual",judgment:"refuted",reason:"원문에는 선정만 명시",evidence_refs:[]}],
+      definition_completeness:{judgment:"unknown",reason:"실질 범위 추가 확인"}}]}};
+  const html=render(c,{status:"reviewed",targets:[]},makeDraft(c),true);
+  for (const text of ["선정으로 자격을 부여받는다","선정의 자격 발생 효과","원문에는 선정만 명시","역할·범위의 충분성","현재 편집에 대한 AI 검수 없음","사람 수정 · 작성 성격 재확인"]) expect(html).toContain(text);
 });
