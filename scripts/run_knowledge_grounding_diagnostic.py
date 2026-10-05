@@ -52,7 +52,7 @@ def main():
                   ['Supplied candidates are unchanged; no repair success claimed','Missing detection and wrong-endpoint repair require separate executions']),
                 'One source re-entry, no semantic retry or parameter tuning; stop on repeated semantic bottleneck']))
         print(json.dumps(dict(prepared=True,run_id=run['id'],preflight=preflight),ensure_ascii=False));return
-    frozen=json.loads(freeze.read_text());data=json.loads(inputs.read_text());run=data['run'];blocks=data['blocks'];by={b['id']:b for b in blocks}
+    frozen=json.loads(freeze.read_text(encoding='utf-8'));data=json.loads(inputs.read_text(encoding='utf-8'));run=data['run'];blocks=data['blocks'];by={b['id']:b for b in blocks}
     assert args.repair==frozen.get('repair',False)
     assert digest(inputs)==frozen['inputs_sha256']
     assert all(digest(Path(n))==h for n,h in {**frozen['sources'],**frozen['runtime_hashes']}.items())

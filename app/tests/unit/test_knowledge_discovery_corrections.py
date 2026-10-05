@@ -370,11 +370,14 @@ def test_scope_binding_builder_history_survives_required_post_comparison(service
 
 
 @pytest.mark.parametrize('raw_after',[False,True])
-def test_relation_call_reaches_model_with_nested_preservation_schema(service,model,monkeypatch,raw_after):
+@pytest.mark.parametrize('context_limit',[49152,98304])
+def test_relation_call_reaches_model_with_nested_preservation_schema(service,model,monkeypatch,raw_after,context_limit):
     from app.knowledge import discovery_synthesis as syn, discovery_scope as scope
     source=prepare(service,file_ids=['current:0'])
     run=done(service,service.start(request(source['id']))['run_id'])
     run['recipe']['context_contract']='scope-v1';run['recipe']['review_evidence_contract']='semantic-checks-v1'
+    # This checks schema delivery separately from the production capacity gate.
+    run['recipe'].update(num_ctx=context_limit,requirements_num_ctx=context_limit)
     run['recipe']['budgets'].update(model_calls=40,model_seconds=20000)
     monkeypatch.setattr(a2,'recipe',lambda budget:dict(run['recipe'],budgets=budget))
     blocks=a2.load_blocks(service,run);by={b['id']:b for b in blocks};cm=a2.profile.contexts(blocks)
@@ -421,6 +424,11 @@ def test_relation_call_reaches_model_with_nested_preservation_schema(service,mod
         raise ValueError('test stopped after final schema reached model boundary')
     monkeypatch.setattr(a2,'model_call',capture)
     assert a2.call(service,run,'critic','wire-finalization',batch['context'],batch['dependency_ids'],by,batch['supplied']) is None
+    if context_limit==49152:
+        assert not captured
+        assert '원문과 응답 스키마' in run['analysis_units'][-1]['error']
+        assert not run['analysis_units'][-1]['attempts']
+        return
     assert len(captured)==1,run['analysis_units'][-1].get('error')
     assert 'test stopped after final schema' in run['analysis_units'][-1]['error']
     from app.knowledge import discovery_requirements as requirements

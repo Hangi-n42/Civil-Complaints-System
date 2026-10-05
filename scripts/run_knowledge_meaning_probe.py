@@ -51,10 +51,10 @@ def main():
             ctx['source_fingerprint']=a2.profile.digest(ctx);contexts.append(dict(id=case['id'],context=ctx))
         reassessment=None
         if args.reassess_output:
-            old=json.loads(args.reassess_output.read_text())
+            old=json.loads(args.reassess_output.read_text(encoding='utf-8'))
             original=deepcopy(old['unit']);original['id']='context:imported-actual-source'
             if not original.get('grounding_context'):
-                old_inputs=json.loads((args.reassess_output.parent.parent/'inputs.json').read_text())
+                old_inputs=json.loads((args.reassess_output.parent.parent/'inputs.json').read_text(encoding='utf-8'))
                 original['grounding_context']=deepcopy(next(c['context'] for c in old_inputs['cases'] if c['id']==args.reassess_output.stem))
             # New diagnostic run explicitly imports an unapproved source baseline, not its execution budget.
             original.pop('grounding_base_id',None);original.pop('grounding_actions',None)
@@ -80,7 +80,7 @@ def main():
             recipe=run['recipe'],model_identity=run['model_identity'],sizes=sizes,max_http=maximum,max_seconds=1800*maximum,
             criteria=supplied['criteria'],semantic_retries=0,development_exposed=True))
         print(json.dumps(dict(prepared=True,cases=len(contexts),sizes=sizes),ensure_ascii=False));return
-    frozen=json.loads((root/'freeze.json').read_text());data=json.loads((root/'inputs.json').read_text());run=data['run'];blocks=data['blocks'];by={b['id']:b for b in blocks}
+    frozen=json.loads((root/'freeze.json').read_text(encoding='utf-8'));data=json.loads((root/'inputs.json').read_text(encoding='utf-8'));run=data['run'];blocks=data['blocks'];by={b['id']:b for b in blocks}
     assert digest(root/'inputs.json')==frozen['input_sha256'] and digest(args.cases)==frozen['cases_sha256']
     assert digest(args.source_db)==frozen['source_db_sha256']
     assert a2.recipe(run['recipe']['budgets'])==run['recipe'] and a2.model_identity(run['recipe'])==run['model_identity']
