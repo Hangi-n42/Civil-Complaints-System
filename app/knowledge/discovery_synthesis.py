@@ -98,15 +98,20 @@ def neighbor_context(run, stage, context, supplied, owner, by_id, context_map):
         v.get('span',[0])[0]<e['span'][1] for e in r['source']['evidence_refs'] for v in raw_views if not v.get('context_only'))]
     target_anchors={tuple(anchor) for r in targets for anchor in r['anchors'].values()}
     selected=[];omitted=[];display={}
+    provided={profile.digest(source_projection(c)):dict(field=field,relation_id=c['id'])
+        for field in ('unapproved_relations','reviewed_base') for c in value.get(field,[]) if 'negation' in c}
     for row in sorted(pool,key=lambda r:(r not in targets,len(str(r['source'])),r['relation_id'])):
         if row['review_status']=='refuted':
             omitted.append(dict(relation_id=row['relation_id'],reason='current_review_refuted'));continue
         connected=[side for side,anchor in row['anchors'].items() if tuple(anchor) in target_anchors]
         if not connected:
             omitted.append(dict(relation_id=row['relation_id'],reason='no_connected_neighbor'));continue
-        signature=profile.digest([row['source'],row['anchors']])
+        signature=profile.digest(row['source'])
+        origin=dict(relation_id=row['relation_id'],source_unit_id=row['source_unit_id'],endpoints=row['anchors'],
+            connected_endpoints=connected,review_status=row['review_status'],review_unit_id=row['review_unit_id'])
         if signature in display:
-            display[signature]['relation_ids'].append(row['relation_id']);continue
+            display[signature]['relation_ids'].append(row['relation_id'])
+            display[signature]['origins'].append(origin);continue
         source=deepcopy(row['source'])
         # Explicit address field survives compact(); extracted words never substitute for originals.
         source['source_addresses']=[{k:e[k] for k in ('source_version_id','parse_run_id','block_id','span')} for e in source.pop('evidence_refs')]
@@ -119,7 +124,10 @@ def neighbor_context(run, stage, context, supplied, owner, by_id, context_map):
                 raw.extend(dict(v,context_only=True,analysis_target=False) for v in packet['blocks'])
         item=dict(kind='relation_neighbor',relation_ids=[row['relation_id']],source_unit_id=row['source_unit_id'],
             endpoints=row['anchors'],connected_endpoints=connected,source_statement=source,review_status=row['review_status'],
-            review_unit_id=row['review_unit_id'],blocks=raw)
+            review_unit_id=row['review_unit_id'],blocks=raw,origins=[origin])
+        if signature in provided:
+            item.pop('source_statement')
+            item.update(source_statement_ref=provided[signature],source_addresses=source['source_addresses'])
         trial=deepcopy(value);trial['relation_neighbors']=selected+[item]
         if fits(run,stage,trial,sorted(a2.raw_refs(trial)),supplied):
             selected.append(item);display[signature]=item

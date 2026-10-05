@@ -40,7 +40,34 @@ def concept_context(case,blocks):
 
 def group_for(case):
     return dict(id=case['id'],block_ids=[case['block_id']],segments=[],roles=['concept','relation'],round=0,
+        required=True,features=[],file_id=case.get('file_id',case['block_id']),
         status='raw_provided',reason='동결한 독립 개념화 대조',analysis_grounded=False)
+
+
+def arm_run(data,case,arm):
+    run=deepcopy(data['run']);run['id']=uuid4().hex
+    a2.settings.KNOWLEDGE_DISCOVERY_NEIGHBORS=arm=='N1'
+    run['recipe']['neighbor_contract']='disabled' if arm=='N0' else 'relation-neighbors-v1'
+    run['frontier']=[group_for(case)]
+    run['analysis_units']=[dict(id=case['source_unit'],stage='relation',status='succeeded',group_id=case['id'],
+        output=dict(relations=deepcopy(case['relations'])),dependency_ids=[case['block_id']],attempts=[],
+        diagnostic_import=case['relation_provenance'])]
+    saved=data.get('prior_arms',{}).get(case['id']+'_'+arm)
+    if saved:
+        run['analysis_units']+=deepcopy([u for u in saved['run']['analysis_units'] if u['stage']=='concept'])
+        run['metrics']=deepcopy(saved['run']['metrics']);run['role_time_estimates']=deepcopy(saved['run']['role_time_estimates'])
+        run['diagnostic_import']=dict(mode='historical_concept_no_recall',source_run_id=saved['run']['id'])
+    return run,saved
+
+
+def builder_context(run,case,number,concept,by,cm):
+    ids=case['builder_batches'][number]
+    candidates=[r for r in case['relations'] if r['id'] in ids]+(concept or {}).get('observations',[])
+    ctx,deps,terms=synthesis.context_for(candidates,by,cm);ctx['design_relation_ids']=ids
+    ctx,deps=scope.source_context(ctx,deps,by)
+    group=dict(id=case['id']+f':builder:{number}',primary_candidate_ids=ids)
+    ctx,deps,terms=synthesis.neighbor_context(run,'builder',ctx,terms,group,by,cm)
+    return group,ctx,deps,terms
 
 
 def main():
@@ -49,6 +76,7 @@ def main():
     parser.add_argument('--source-db',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--execute',action='store_true')
+    parser.add_argument('--builder-from',type=Path,help='Completed frozen comparison; import each arm Concept unchanged and call only previously uncalled Builders')
     args=parser.parse_args();root=args.output
     source=json.loads(args.input.read_text());configure(source['run']['recipe'])
     if not args.execute:
@@ -69,7 +97,22 @@ def main():
                     unit_hash=a2.profile.digest(unit),attempts=deepcopy(unit['attempts'])),
                     builder_batches=[[c['id'] for c in rows[i:i+2]] for i in range(0,len(rows),2)])
         run=clean_run(source['run']);run['model_identity']=a2.model_identity(run['recipe'])
-        write(root/'inputs.json',dict(run=run,blocks=source['blocks'],cases=cases))
+        data=dict(run=run,blocks=source['blocks'],cases=cases);prior_hashes={}
+        if args.builder_from:
+            receipt=json.loads((args.builder_from/'execution/receipt.json').read_text())
+            prior_freeze=json.loads((args.builder_from/'freeze.json').read_text())
+            assert receipt['source_unchanged'] and receipt['runtime_unchanged']
+            assert prior_freeze['source_input_sha256']==digest(args.input) and prior_freeze['source_db_sha256']==digest(args.source_db)
+            assert all(c['stage']=='concept' for c in receipt['calls']), 'Builder calls already attempted'
+            paths=[args.builder_from/name for name in ('inputs.json','freeze.json','execution/receipt.json')]
+            data['prior_arms']={}
+            for case in cases:
+                for arm in ('N0','N1'):
+                    path=args.builder_from/'execution'/f'{case["id"]}_{arm}.json';paths.append(path)
+                    data['prior_arms'][case['id']+'_'+arm]=json.loads(path.read_text())
+            prior_hashes={str(p.resolve()):digest(p) for p in paths}
+        for case in cases: case['file_id']=next(b['file_id'] for b in source['blocks'] if b['id']==case['block_id'])
+        write(root/'inputs.json',data)
         checks=[]
         for case in cases:
             for arm in ('N0','N1'):
@@ -86,6 +129,18 @@ def main():
                 jsonschema.Draft202012Validator.check_schema(schema)
                 assert size['input_chars']<=size['input_chars_limit'] and size['request_input_bytes']<=size['input_bytes_limit'],size
                 checks.append(dict(case=case['id'],arm=arm,size=size,selected=context.get('conceptualization_context',{}).get('selected_relation_ids',[])))
+                if args.builder_from:
+                    trial,saved=arm_run(data,case,arm)
+                    reservation=a2.requirement_reservation(trial,by,future=True,excluding='builder:preflight')
+                    for number in range(len(case['builder_batches'])):
+                        group,ctx,deps,terms=builder_context(trial,case,number,saved['concept'],by,cm)
+                        bound=a2.segments.bind(ctx,trial['id'],'builder:'+group['id'],stable=True)
+                        mapping,_=a2.make_prompt(trial,'builder',bound,deps,terms,group['id'])
+                        _,schema,_,_=a2.response_contract(trial,'builder',bound,terms,mapping,sorted(a2.raw_refs(bound)))
+                        jsonschema.Draft202012Validator.check_schema(schema)
+                        size=a2.input_size(trial,'builder',ctx,deps,terms)
+                        assert size['input_chars']<=size['input_chars_limit'] and size['request_input_bytes']<=size['input_bytes_limit'],size
+                        checks.append(dict(case=case['id'],arm=arm,stage='builder',batch=number,size=size,reservation=reservation))
         criteria=dict(required=['주분석 직접 정의의 공공임대 범위·건설/매입 차이와 국소 부정 보존',
             '권한 주체별 공급 조건·지역 실정·제1/2항 예외·지방공사 제49조/주택사업목적 한정 보존',
             '모든 신규 후보의 유형/역할·끝점·조건·근거 위치와 중복 검수'],
@@ -94,15 +149,17 @@ def main():
             interpretation='개발 노출 자료의 제한 선택효과 비교. 순서 인과효과/사람 효용/실제 교정 효과 아님')
         write(root/'freeze.json',dict(input_sha256=digest(root/'inputs.json'),source_input_sha256=digest(args.input),source_db_sha256=digest(args.source_db),
             runtime_hashes={str(p.resolve()):digest(p) for p in [*Path('app/knowledge').glob('*.py'),Path(__file__),Path('scripts/run_knowledge_meaning_probe.py'),Path('app/core/config.py')]},
-            criteria=criteria,checks=checks,max_http=sum(2*(1+len(c['builder_batches'])) for c in cases),
-            max_seconds=1800*sum(2*(1+len(c['builder_batches'])) for c in cases),
-            call_plan=[dict(case=c['id'],arm=a,concept_calls=1,builder_batches=c['builder_batches']) for c in cases for a in ('N0','N1')],
+            criteria=criteria,checks=checks,prior_hashes=prior_hashes,
+            max_http=sum(2*(int(not args.builder_from)+len(c['builder_batches'])) for c in cases),
+            max_seconds=1800*sum(2*(int(not args.builder_from)+len(c['builder_batches'])) for c in cases),
+            call_plan=[dict(case=c['id'],arm=a,concept_calls=int(not args.builder_from),builder_batches=c['builder_batches']) for c in cases for a in ('N0','N1')],
             shared_relation_new_http=0,shared_relation_logical_cost='Each arm includes its original saved Relation attempt; not new HTTP',
             semantic_retries=0,development_exposed=True))
         print(json.dumps(dict(prepared=True,checks=checks),ensure_ascii=False));return
     frozen=json.loads((root/'freeze.json').read_text());data=json.loads((root/'inputs.json').read_text())
     assert digest(root/'inputs.json')==frozen['input_sha256'] and digest(args.source_db)==frozen['source_db_sha256']
     assert digest(args.input)==frozen['source_input_sha256']
+    assert all(digest(Path(p))==h for p,h in frozen.get('prior_hashes',{}).items())
     assert a2.model_identity(data['run']['recipe'])==data['run']['model_identity']
     output=root/'execution';output.mkdir(exist_ok=False)
     with sqlite3.connect(args.source_db.resolve().as_uri()+'?mode=ro',uri=True) as src,sqlite3.connect(output/'knowledge.db') as db: src.backup(db)
@@ -112,8 +169,10 @@ def main():
         if str(url).endswith('/api/generate'): write(active['path']/'http_request.json',kwargs['json'])
         response=await post(client,url,**kwargs)
         if str(url).endswith('/api/generate'): (active['path']/'http_response.json').write_bytes(response.content)
+        if response.status_code==400: active['transport_error']=True
         return response
     async def measured(prompt,schema,stage,run,timeout):
+        if active.get('transport_error'): raise RuntimeError('Prior HTTP400; stop invalid requests in this comparison')
         assert len(calls)<frozen['max_http'] and monotonic()-started<frozen['max_seconds']
         assert all(digest(Path(n))==h for n,h in frozen['runtime_hashes'].items())
         path=output/f'call_{len(calls)+1:02d}';path.mkdir();active['path']=path
@@ -127,25 +186,17 @@ def main():
         with patch.object(a2,'model_call',measured),patch.object(httpx.AsyncClient,'post',observed):
             for case in data['cases']:
                 for arm in ('N0','N1'):
-                    active.update(case=case['id'],arm=arm);run=deepcopy(data['run']);run['id']=uuid4().hex
-                    a2.settings.KNOWLEDGE_DISCOVERY_NEIGHBORS=arm=='N1'
-                    run['recipe']['neighbor_contract']='disabled' if arm=='N0' else 'relation-neighbors-v1'
-                    run['frontier']=[group_for(case)]
-                    run['analysis_units']=[dict(id=case['source_unit'],stage='relation',status='succeeded',group_id=case['id'],
-                        output=dict(relations=deepcopy(case['relations'])),dependency_ids=[case['block_id']],attempts=[],
-                        diagnostic_import=case['relation_provenance'])]
+                    active.update(case=case['id'],arm=arm);run,saved=arm_run(data,case,arm)
                     with service.repository.connect() as db: db.execute('INSERT INTO runs VALUES(?,?)',(run['id'],encode(run)))
-                    owner=dict(id=case['id']);ctx=concept_context(case,blocks)
-                    ctx,deps,terms=synthesis.neighbor_context(run,'concept',ctx,{},owner,by,cm)
-                    concept=a2.call(service,run,'concept',case['id'],ctx,deps,by,terms)
+                    if saved:
+                        owner=deepcopy(saved['concept_owner']);concept=deepcopy(saved['concept'])
+                    else:
+                        owner=dict(id=case['id']);ctx=concept_context(case,blocks)
+                        ctx,deps,terms=synthesis.neighbor_context(run,'concept',ctx,{},owner,by,cm)
+                        concept=a2.call(service,run,'concept',case['id'],ctx,deps,by,terms)
                     builders=[]
                     for number,ids in enumerate(case['builder_batches']):
-                        candidates=[r for r in case['relations'] if r['id'] in ids]+(concept or {}).get('observations',[])
-                        ctx,deps,terms=synthesis.context_for(candidates,by,cm)
-                        ctx['design_relation_ids']=ids
-                        ctx,deps=scope.source_context(ctx,deps,by)
-                        group=dict(id=case['id']+f':builder:{number}',primary_candidate_ids=ids)
-                        ctx,deps,terms=synthesis.neighbor_context(run,'builder',ctx,terms,group,by,cm)
+                        group,ctx,deps,terms=builder_context(run,case,number,concept,by,cm)
                         result=a2.call(service,run,'builder',group['id'],ctx,deps,by,terms)
                         builders.append(dict(group=group,output=result))
                     record=dict(case=case['id'],arm=arm,run=run,concept_owner=owner,concept=concept,builders=builders)

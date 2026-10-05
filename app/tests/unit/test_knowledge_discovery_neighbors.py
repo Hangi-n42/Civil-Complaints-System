@@ -78,6 +78,30 @@ def test_final_capacity_removes_actual_neighbor_with_comparison_copy():
     assert result['blocks']==context['blocks']
 
 
+def test_repeated_mention_duplicates_share_statement_not_endpoint_identity():
+    run,by,cm,context,rows=fixture()
+    duplicate=dict(deepcopy(rows[0]),id='r3')
+    run['analysis_units'][0]['output']['relations']=[rows[0],duplicate]
+    value,deps,terms=synthesis.neighbor_context(run,'concept',context,{},dict(),by,cm)
+    _,prompt=a2.make_prompt(run,'concept',value,deps,terms)
+    packet=json.loads(prompt.split('\nINPUT:\n')[1]);neighbors=packet['relation_neighbors']
+    assert len(neighbors)==1 and neighbors[0]['relation_ids']==['r1','r3']
+    assert [o['endpoints']['object'] for o in neighbors[0]['origins']]==[['r1','object'],['r3','object']]
+    assert all(o['review_status']=='unreviewed' for o in neighbors[0]['origins'])
+    assert json.dumps(packet,ensure_ascii=False).count('"conditions": "조건 유지"')==1
+
+
+def test_builder_neighbor_reuses_already_supplied_statement():
+    run,by,cm,context,rows=fixture();context['unapproved_relations']=[rows[0]]
+    value,deps,terms=synthesis.neighbor_context(run,'builder',context,{'r1':rows[0]},dict(primary_candidate_ids=['r1']),by,cm)
+    _,prompt=a2.make_prompt(run,'builder',value,deps,terms)
+    packet=json.loads(prompt.split('\nINPUT:\n')[1]);neighbor=packet['relation_neighbors'][0]
+    assert 'source_statement' not in neighbor
+    assert neighbor['source_statement_ref']==dict(field='unapproved_relations',relation_id='r1')
+    assert neighbor['source_addresses'][0]['source_version_id']=='v'
+    assert json.dumps(packet,ensure_ascii=False).count('"conditions": "조건 유지"')==1
+
+
 @pytest.mark.parametrize('relation_failure',[False,True])
 def test_product_calls_relation_before_independent_definition(service,model,monkeypatch,relation_failure):
     source=prepare(service,file_ids=['current:0']);recipe=a2.recipe;call=a2.model_call;stages=[]

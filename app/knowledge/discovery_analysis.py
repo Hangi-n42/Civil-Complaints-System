@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v108'
+PROMPT_VERSION = 'discovery-a2-v109'
 
 
 def recipe(budgets):
@@ -654,6 +654,7 @@ def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):
         instruction += models.ROLE_DECLARATION_RULE
     if context.get('relation_neighbors'):
         instruction += '\nrelation_neighbors는 미승인 추출 연결 문맥이다. 실제 끝점/방향/조건을 원문과 대조하고 직접 정의와 예외를 보존한다. source_addresses는 원문 위치이며 생성문 자체는 근거가 아니다. 같은 이름만으로 개체를 합치거나 type으로 승격하지 않는다.\n'
+        instruction += 'source_statement_ref는 해당 field의 relation_id가 가리키는 기존 명제(source_relation이 있으면 그 원명제)다. origins의 후보별 끝점·출처·검수 상태는 별개이며 본문 공유는 개체 동일성 판정이 아니다.\n'
     if shared_types:
         instruction=instruction.replace('subject_ref/object_ref는 실제 제공된 유형 ID 또는 근거 정의 객체 중 하나다. 필요한 유형이 없으면 그 끝점 자리에 type/design_proposal, source_refs, design_reason과 역할 선언 또는 직접 정의를 작성한다. 직접 정의에는 source_relation_ids도 명시한다. 새 유형 이름이나 미선언 ID만 적지 않는다. observations는 빈 배열로 두며 내부 ID는 서버가 부여한다.', models.SHARED_TYPE_RULE)
     if stage=='builder' and run.get('recipe',{}).get('builder_definition_contract')=='roles-only-v1':
