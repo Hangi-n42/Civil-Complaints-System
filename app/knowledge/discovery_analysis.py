@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v103'
+PROMPT_VERSION = 'discovery-a2-v107'
 
 
 def recipe(budgets):
@@ -1123,7 +1123,7 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                 for n, row in enumerate(decoded.get('relations', []), 1):
                     row['local_ref'] = f'r{n}'
             if not context.get('meaning_phase') and (stage in {'critic','requirements'} or context.get('context_phase')=='applicability'): discovery_scope.restore_receipts(decoded)
-            output = deepcopy(decoded) if component=='binding' or stage=='concept' else response_model.model_validate(decoded).model_dump(warnings=False)
+            output = deepcopy(decoded) if component=='binding' or stage=='concept' or context.get('meaning_phase') else response_model.model_validate(decoded).model_dump(warnings=False)
             if stage=='builder': design.scope_local_refs(output, mapping.values())
             for row in output.get('relations', []):
                 identifier = {v:k for k,v in mapping.items()}.get(row.get('candidate_ref'))
@@ -1141,12 +1141,15 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
             output = remap(output, {v:k for k,v in mapping.items()})
             if not set(deps) <= allowed_ids(service, list(by_id.values())):
                 raise ValueError('호출 중 입력 근거 사용 상태 변경')
-            if stage not in {'critic','concept'}: segments.restore(output, by_id, segments.originals(context))
+            if stage not in {'critic','concept'} and not context.get('meaning_phase'): segments.restore(output, by_id, segments.originals(context))
             if stage in {'builder','revision'} and run.get('recipe',{}).get('definition_contract') in {'source-role-v1','authored-v2'}:
                 design.declarations(output,supplied,by_id,context,
                     role_only=stage=='builder' and run['recipe'].get('builder_definition_contract')=='roles-only-v1',
                     authored=stage!='builder' and definition_contract=='authored-v2')
-            if stage=='concept':
+            if context.get('meaning_phase'):
+                from .discovery_meanings import records
+                output=records(output,context,supplied,by_id,uid)
+            elif stage=='concept':
                 output=concept_records(output,response_model,run,citation_ids,by_id,supplied,context,uid)
             elif component=='binding':
                 output=reviews.normalize_binding(output,supplied,context,by_id)
@@ -1272,6 +1275,7 @@ def meaning_signature(candidate, supplied=None):
 def queue_recovery(run, review, group, by_id=None):
     by_id = by_id or {}
     requests = run.setdefault('recovery_requests', [])
+    touched=set()
     scope = [run.get('frozen_input', {}).get(k) for k in ('bundle_id','scope','step')]
     scope += [run.get('analysis_block_ids'), run.get('cqs', []), run.get('scope_items', [])]
     def add(cause, role, target, need, validation=()):
@@ -1287,9 +1291,16 @@ def queue_recovery(run, review, group, by_id=None):
             request.update(validation=[],status='pending',critic_group_id=group['id'])
         meaning = {k:deepcopy(v) for k,v in need.items() if k not in {'validation','id'}}
         def identity(m):
-            return [' '.join(m.get('meaning','').split()), sorted(m.get('cq_ids', [])), sorted(m.get('scope_item_ids', [])),
+            return [sorted(m.get('meaning_keys',[])), ' '.join(m.get('meaning','').split()), sorted(m.get('cq_ids', [])), sorted(m.get('scope_item_ids', [])),
                     sorted((e['block_id'],e['span']) for e in m.get('evidence_refs', []))]
         if not any(identity(m)==identity(meaning) for m in request['meanings']): request['meanings'].append(meaning)
+        touched.add(request['id'])
+        if need.get('generated_by_grounding'):
+            authorizations=request.setdefault('grounding_authorizations',{})
+            for meaning_key in need['meaning_keys']:
+                authorizations[meaning_key]={k:deepcopy(need[k]) for k in ('source_receipt','representation_unit_id','requirement_key')}
+            request['meaning_keys']=sorted(authorizations)
+            request['generated_by_grounding']=True
         return request
     owners = [g for g in run.get('frontier', []) if g['id'] in group.get('analysis_group_ids', [group['id']])]
     owned = [v for g in owners for i in g['block_ids'] for v in
@@ -1347,7 +1358,7 @@ def queue_recovery(run, review, group, by_id=None):
         role = 'revision' if cause in {'evidence_error','content_error'} else 'builder' if cause=='endpoint' else 'review'
         outside_review = identifier and 'review_coverage' in review and identifier not in review['review_coverage']['expected_candidate_ids']
         if outside_review: role='review'
-        request = add(cause, role, target, dict(meaning=issue['reason'],candidate_ref=identifier,
+        request = add(cause, role, target, dict(deepcopy(issue),meaning=issue.get('meaning',issue['reason']),candidate_ref=identifier,
             target_ref=issue.get('target_ref', ''),defer_reason=issue.get('defer_reason', ''),
             assessment_scope=deepcopy(review.get('review_scope', {}))))
         if outside_review or cause in {'endpoint','alignment','source_absent','budget_exhausted'} or identifier not in primary:
@@ -1355,14 +1366,23 @@ def queue_recovery(run, review, group, by_id=None):
                 reason=('원문 관계 보존; 기존 Builder 연결 결과를 명시 검수' if cause=='endpoint' else
                         '관련 기존 정의와 명시 대응 검수' if cause=='alignment' else issue.get('defer_reason') or issue['reason']))
 
+    return sorted(touched)
 
 def recovery_groups(run, round_number, by_id):
     from .discovery_requirements import extraction_authorized, attributed_meanings
     groups = []
     for request in run.get('recovery_requests', []):
-        if request.get('cause','extraction_missing')!='extraction_missing' or request['status']!='pending' or request['validation']: continue
+        grounded=bool(request.get('grounding_authorizations'))
+        if request.get('cause','extraction_missing')!='extraction_missing' or request['validation'] or not grounded and request['status']!='pending': continue
         if not extraction_authorized(run,request,by_id): continue
         requested=deepcopy(request['meanings'])
+        if request.get('grounding_authorizations'):
+            from .discovery_grounding import authorized_keys
+            valid_keys=authorized_keys(run,request,by_id)
+            submitted={k for m in request.get('submitted_meanings',[]) for k in m.get('meaning_keys',[])}
+            request['unattempted_meanings']=[m for m in requested if not m.get('meaning_keys') or not set(m['meaning_keys'])<=submitted]
+            requested=[m for m in requested if m.get('meaning_keys') and set(m['meaning_keys'])<=valid_keys and not set(m['meaning_keys']) & submitted]
+            if not requested: continue
         requested.extend(m for m in attributed_meanings(run,request,by_id) if m not in requested)
         owners = [g for g in run.get('frontier', []) if g['id'] in request.get('owner_group_ids', [])]
         views = []
@@ -1398,19 +1418,23 @@ def recovery_groups(run, round_number, by_id):
         provided_ids = {c['id'] for c in prior}
         omissions = [dict(candidate_id=c['id'],reason='요청 구간과 불일치' if any(e.get('span') for e in c.get('evidence_refs', [])) else 'legacy span 미확인; 비교 보류')
                      for c in known if set(c.get('evidence_ids', [])) & set(ids) and c['id'] not in provided_ids]
-        identifier = 'recovery_' + request['id'][:20]
+        identifier = 'recovery_' + (profile.digest([request['id'],sorted(k for m in requested for k in m['meaning_keys'])])[:20] if grounded else request['id'][:20])
         supplied = {c['id']:c for c in identities.rows(run, [c for u in run['analysis_units'] if u['status']=='succeeded' for c in u['output'].get('observations', [])])}
         groups.append(dict(id=identifier, file_id=by_id[ids[0]]['file_id'], source_group=by_id[ids[0]]['source_group'],
             block_ids=ids, segments=views, features=[], priority=2, required=True, input_chars=sum(v['span'][1]-v['span'][0] for v in views),
             round=round_number, reason='Critic이 특정한 원문 의미 누락: '+request['meaning'], status='unvisited',
-            recovery_request_id=request['id'], recovery_meaning=request['meaning'], recovery_meanings=deepcopy(requested),
+            recovery_request_id=request['id'], recovery_meaning='; '.join(m['meaning'] for m in requested), recovery_meanings=deepcopy(requested),
             context_block_ids=list(dict.fromkeys(i for g in owners for i in g.get('context_block_ids', []))),
             required_endpoint_ids=[c['id'] for c in endpoint_types] if request['role']=='relation' else [],
             required_comparison_ids=[c['id'] for c in comparisons], omitted_recovery_candidates=omissions,
             previous_observations=[c for c in prior if 'classification' in c],
             previous_relations=[c for c in prior if 'negation' in c],
             previous_signatures=[meaning_signature(c,supplied) for c in known if set(c.get('evidence_ids', [])) & set(ids)], roles=[request['role']]))
-        request.update(status='scheduled', group_id=identifier, submitted_meanings=deepcopy(requested))
+        submitted_meanings=request.get('submitted_meanings',[]) if grounded else []
+        request.update(status='scheduled', group_id=identifier, submitted_meanings=submitted_meanings+deepcopy(requested))
+        if grounded:
+            request.setdefault('group_ids',[]).append(identifier)
+            request['unattempted_meanings']=[m for m in request['meanings'] if m not in request['submitted_meanings']]
     return groups
 
 
@@ -1795,7 +1819,8 @@ def finish(run, blocks, available):
     for request in run.get('recovery_requests', []):
         request['semantic_status']='unverified'
         group = next((g for g in run.get('frontier', []) if g['id']==request.get('group_id')), None)
-        units = [u for u in outputs if group and u['group_id']==group['id']]
+        group_ids=set(request.get('group_ids',[])) | ({group['id']} if group else set())
+        units = [u for u in outputs if u.get('group_id') in group_ids]
         unit = next((u for u in run['analysis_units'] if u['id']==request.get('unit_id')), None)
         created = [c['id'] for u in units for field in ('observations','relations') for c in u['output'].get(field, []) if not c['validation'] and not c['outside_scope_reason']]
         if unit and unit['status']=='succeeded':
@@ -1835,7 +1860,7 @@ def finish(run, blocks, available):
     from . import discovery_recovery
     discovery_recovery.resolve_endpoint_reviews(run,current,latest_reviews,available)
     unresolved_recovery = [r for r in run.get('recovery_requests', []) if r['semantic_status']!='supported']
-    recovery_groups_ids = {r['group_id'] for r in unresolved_recovery if r.get('group_id')}
+    recovery_groups_ids = {i for r in unresolved_recovery for i in r.get('group_ids',[]) + ([r['group_id']] if r.get('group_id') else [])}
     recovery_groups_ids.update(g['id'] for g in run.get('candidate_groups', []) if recovery_groups_ids & set(g['analysis_group_ids']))
     recovery_review_ids={i for g in run.get('candidate_groups', []) if g['id'] in recovery_groups_ids for i in review_ids(g)+review_ids(g,True)}
     correction_ids={r.get('unit_id') for r in run.get('recovery_requests', [])}
@@ -1844,7 +1869,7 @@ def finish(run, blocks, available):
     recovery_units = [u for u in run['analysis_units'] if u.get('group_id') in recovery_groups_ids or u['id'] in recovery_review_ids | {r.get('unit_id') for r in run.get('recovery_requests', [])}]
     attempts = [a for u in recovery_units for a in u['attempts']]
     run['metrics'].update(recovery_calls=len(attempts), recovery_model_s=round(sum(a.get('elapsed_s',0) for a in attempts),3),
-        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id')==r.get('group_id')) for u in recovery_units) for r in run.get('recovery_requests', [])))
+        recovery_attempted_tasks=sum(any(u['attempts'] and (u['id']==r.get('unit_id') or u.get('group_id') in r.get('group_ids',[r.get('group_id')])) for u in recovery_units) for r in run.get('recovery_requests', [])))
     compared = {c['id'] for g in run.get('candidate_groups', []) if g['id'] in reviewed for c in g['candidates']}
     deferred_comparisons = sorted({i for g in run.get('frontier', []) for i in g.get('omitted_comparison_ids', []) if i not in compared})
     bindings = [dict(unit_id=u['id'],**u['output']['binding_coverage']) for u in outputs if 'binding_coverage' in u['output']]

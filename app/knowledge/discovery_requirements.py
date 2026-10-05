@@ -178,7 +178,7 @@ def saved(run, result, by_id, available):
 def assess(service,run,blocks,by_id,context_map, *, rechecked=False):
     from . import discovery_analysis as a2
     from . import discovery_meanings, discovery_grounding
-    if discovery_meanings.enabled(run): return discovery_grounding.assess(service,run,blocks,by_id,context_map)
+    if discovery_meanings.enabled(run): return discovery_grounding.assess(service,run,blocks,by_id,context_map,rechecked=rechecked)
     corrected=False
     original_targets=profile.digest(run.get('recovery_requests',[]))
     snapshot=deepcopy(run);a2.finish(snapshot,blocks,a2.allowed_ids(service,blocks))
