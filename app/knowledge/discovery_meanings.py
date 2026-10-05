@@ -7,7 +7,7 @@ from pydantic import Field
 from .discovery_models import Record, Relation
 from . import discovery_profile as profile, discovery_scope as scope, discovery_review as reviews
 
-CONTRACT = 'grounded-meanings-v1'
+CONTRACT = 'grounded-meanings-v2'
 
 
 class SourceMeaning(Record):
@@ -55,7 +55,6 @@ class Challenge(Record):
 class Expression(Record):
     meaning_key: str
     status: Literal['represented','missing','incorrect','unknown']
-    assertion: Literal['asserted','qualified_unknown','negated','absent']
     locations: list[Location]
     repair_fields: list[str]
     preserve_keys: list[str]
@@ -122,11 +121,11 @@ local_ref는 이번 응답에서 유일하며 premise_refs는 이번 local_ref �
 source_challenge 재판정 시 해당 의미와 직접 의존 전제만 수정하며 기존 의미를 교체하면 supersedes에 그 meaning_key를 적는다.''',
     representation='''고정된 원문 판정과 현재 후보 표현을 같은 의미키로 대조한다. 원문 판정을 조용히 뒤집지 않는다.
 원문 판정도 미승인 모델 결과다. relation_kind의 실제 관계 종류, 필수 조건/예외, applicability의 질문상 필요성, missing_source의 실제 자료명을 원문·질문과 대조하라. 오류를 발견하면 해당 키에 source_challenge를 제출하며, 형식 통과나 원문 주소만으로 기존 판단을 신뢰하지 않는다. applicability는 특정 사례의 조건 충족 여부가 아니다.
-모든 meaning_key에 한 번씩 checks를 작성한다. 원문에 지지되는 정상 의미의 실제 표현 위치를 확인하고 빠진 경우 missing, 잘못 표현했으면 incorrect이다.
-unknown 원문 의미는 확정 사실처럼 주장하는지(asserted), 적절히 미확정 표시했는지(qualified_unknown), 부정했는지(negated), 아예 없는지(absent)를 구분한다.
+checks 객체의 모든 고정 의미키에 판정 하나를 작성한다. status는 현재 E와 후보를 대조한 단일 결론이다: represented=현재 근거 상태에 맞는 실제 표현, missing=전체 후보를 대조했으나 해당 표현이 실제로 없음, incorrect=현재 후보에 잘못된 주장/한정/연결이 있음, unknown=판정 불가.
+원문 supported이면 올바른 긍정/부정/조건 표현이 represented다. 원문 unknown이면 적절한 미확정 표현은 represented, 확정 긍정 또는 확정 부정은 incorrect다. 원문 refuted이면 반박을 표현한 경우 represented, 반증된 주장을 확정하면 incorrect다. 실제 표현이 없을 때만 missing이며 위치 목록이 비었다는 이유로 추정하지 않는다. represented/incorrect에는 실제 후보 필드 locations, incorrect에는 해당 repair_fields가 필요하다.
 원문을 다시 읽어 판정 자체의 모순/새 필수 전제를 발견하면 source_challenges로 해당 키/이유/새 의미/근거를 제출한다. 원문판정의 supported는 표현의 supported가 아니다.
 잘못된 위치와 수정할 필드만 지정하고, 같은 후보에서 유지할 독립 정상 의미키를 preserve_keys에 남긴다. 원문 문구와 동등한 표현은 누락이 아니다.
-역할 참조만으로 외부 자격/권리나 법적 포함이 주장되었다고 간주하지 말고 실제 후보 필드를 읽는다. 후보 없으면 locations=[], assertion=absent이다.''',
+역할 참조만으로 외부 자격/권리나 법적 포함이 주장되었다고 간주하지 말고 실제 후보 필드를 읽는다. 후보가 없으면 locations=[]이며, 표현 유무를 확인한 뒤 status를 결정한다.''',
     join='''업무 요구의 마지막 연결 검수다. 입력에는 관련 의미/전제/원문/표현 위치와 전체 조사 범위가 있다.
 각 의미의 직접 전제, 관계 종류, 범위/시점, 실제 현재 표현을 다시 확인하라. 부분 supported 개수를 합산하지 않는다.
 모든 의미키에 connections를 작성하되 독립 의미는 빈 전제도 가능하다. 새로운 필수 전제나 원문 판정 모순이면 source_challenges로 해당 키를 돌려보낸다.
@@ -204,17 +203,14 @@ def action(meaning, expression):
     """Only this table authorizes recovery; cause is not an LLM output."""
     if meaning['applicability']!='required': return 'not_applicable' if meaning['applicability']=='not_applicable' else 'refresh'
     if meaning.get('validation'): return 'refresh'
-    status=meaning['source_status'];assertion=expression['assertion'];represented=expression['status']
+    status=meaning['source_status'];represented=expression['status']
+    if represented=='unknown': return 'refresh'
     if status in {'unknown','refuted'}:
         if meaning.get('availability') in {'internal_unselected','capacity'}: return 'refresh'
-        if assertion=='asserted': return 'correct'
-        if status=='unknown': return 'gap' if assertion in {'absent','qualified_unknown'} else 'refresh'
-        return 'refutation' if assertion in {'absent','negated'} else 'refresh'
+        if represented=='incorrect': return 'correct'
+        return 'gap' if status=='unknown' else 'refutation'
     if not meaning.get('premises_current'): return 'refresh'
-    if represented=='represented' and assertion==('negated' if meaning['negation']=='negated' else 'asserted'): return 'maintain'
-    if represented=='missing' and assertion=='absent': return 'recover'
-    if represented=='incorrect' and assertion!='absent': return 'correct'
-    return 'refresh'
+    return {'represented':'maintain','missing':'recover','incorrect':'correct'}.get(represented,'refresh')
 
 
 def representation(output,context,supplied,*,partial=False):
@@ -224,8 +220,8 @@ def representation(output,context,supplied,*,partial=False):
     for check in output['checks']:
         if not set(check['preserve_keys'])<=known.keys(): raise ValueError('범위 밖 정상 보존 의미키')
         check['candidate_hashes']=scope.locations(dict(check,judgment='unknown',evidence_refs=known[check['meaning_key']].get('evidence_refs',[]),missing_source=known[check['meaning_key']]['reason']),supplied)
-        if (check['assertion']=='absent') != (not check['locations']): raise ValueError('주장 상태와 실제 표현 위치 불일치')
-        if check['status']=='represented' and not check['locations']: raise ValueError('표현 완료에는 현재 위치 필요')
+        if check['status']=='missing' and check['locations']: raise ValueError('표현 누락 판정에는 위치를 지정할 수 없음')
+        if check['status'] in {'represented','incorrect'} and not check['locations']: raise ValueError('표현/오류 판정에는 현재 위치 필요')
         check['action']=action(known[check['meaning_key']],check)
         if check['action']=='correct' and (not check['repair_fields'] or not set(check['repair_fields'])<={p['field'] for p in check['locations']}):
             raise ValueError('부분 교정에는 잘못된 현재 필드 위치 필요')
@@ -254,7 +250,10 @@ def records(decoded,context,supplied,by_id,unit_id):
     """Validate the envelope once, preserving independent records and their raw errors."""
     from collections import Counter
     from . import discovery_segments as segments
-    mode=context['meaning_phase'];output=ENVELOPES[mode].model_validate(decoded).model_dump()
+    mode=context['meaning_phase']
+    if mode=='representation' and isinstance(decoded.get('checks'),dict):
+        decoded=dict(decoded,checks=[dict(value,meaning_key=key) if isinstance(value,dict) else value for key,value in decoded['checks'].items()])
+    output=ENVELOPES[mode].model_validate(decoded).model_dump()
     if not output['reason']: raise ValueError('판정 이유 필요')
     field,model,key={'grounding':('meanings',SourceMeaning,'local_ref'),
         'representation':('checks',Expression,'meaning_key'),'join':('connections',Connection,'meaning_key')}[mode]
@@ -274,6 +273,7 @@ def records(decoded,context,supplied,by_id,unit_id):
             segments.restore(row,by_id,segments.originals(context))
             if mode=='grounding':
                 validate_source(row,{m['meaning_key']:m for m in context.get('previous_meanings',[])})
+                if row['supersedes'] and context.get('reassess_meaning_keys') and row['supersedes'] not in context['reassess_meaning_keys']: raise ValueError('재판정 대상 밖 의미 교체')
                 inventory={b['block_id'] for b in context.get('input_inventory',[])}
                 if not set(row['read_block_ids'])<=inventory: raise ValueError('추가 읽기 대상이 고정 입력 목록 밖')
                 canonical=profile.digest(body(row,context['requirement']))

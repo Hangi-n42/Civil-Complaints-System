@@ -42,6 +42,127 @@ def fits(run, stage, context, deps, supplied, reserve=0):
             size['request_input_bytes']+reserve*3 <= size['input_bytes_limit'])
 
 
+def neighbor_context(run, stage, context, supplied, owner, by_id, context_map):
+    """Freeze direct source-relation neighbors; model output remains unapproved context."""
+    from .discovery_design import source_projection
+    policy='relation-neighbors-v1'
+    if run['recipe'].get('neighbor_contract')!=policy:
+        return context, sorted(a2.raw_refs(context) | {i for c in supplied.values() for i in c.get('origin_dependency_ids',[])}), supplied
+    saved=owner.get('conceptualization_context',{}).get(stage)
+    if saved:
+        value=deepcopy(context);value.update(deepcopy(saved['context']))
+        return value, sorted(a2.raw_refs(value) | set(saved['dependency_ids'])), {i:supplied[i] for i in saved['supplied_ids']}
+    value=deepcopy(context)
+    # CQ matches are comparisons, never graph edges. Select these only after direct neighbors.
+    comparisons=value.pop('comparison_terms',[])
+    required=set(owner.get('required_comparison_ids',[])) | set(owner.get('required_endpoint_ids',[]))
+    value['comparison_terms']=[c for c in comparisons if c['id'] in required]
+    pool=[];seen=set();raw_views=segments.originals(context)
+    current={c['id']:c for u in run['analysis_units'] if u['status']=='succeeded'
+        for field in ('observations','relations','modeled_relations') for c in u['output'].get(field,[])}
+    current=reviews.with_selected_base_types(current,run)
+    critic_views=[]
+    for unit in run['analysis_units']:
+        if unit['stage']!='critic' or unit['status']!='succeeded': continue
+        review=dict(unit_id=unit['id'],**unit['output'])
+        valid=scope.current_applicability_ids(run,unit,by_id,current,set(by_id))
+        if valid is not None: review['applicability_current_ids']=valid
+        critic_views.append(review)
+    latest=reviews.latest_by_candidate(reviews.complete_reviews(critic_views),current)
+    for unit in run['analysis_units']:
+        if unit['stage']!='relation' or unit['status']!='succeeded': continue
+        for candidate in unit['output'].get('relations',[]):
+            if candidate['id'] in seen or candidate.get('validation') or candidate.get('outside_scope_reason'): continue
+            source=source_projection(candidate);refs=source.get('evidence_refs') or []
+            if not refs or any(e['block_id'] not in by_id or
+                by_id[e['block_id']]['source_version_id']!=e['source_version_id'] or
+                by_id[e['block_id']]['parse_run_id']!=e['parse_run_id'] for e in refs): continue
+            if any(str(source.get(side,'')).startswith('dc_') for side in ('subject','object')): continue
+            anchors={}
+            for side in ('subject','object'):
+                mentions=set();label=source[side]
+                for e in refs:
+                    a,z=e['span'];text=by_id[e['block_id']]['text'];start=a
+                    while label and (start:=text.find(label,start,z))!=-1:
+                        mentions.add((e['source_version_id'],e['parse_run_id'],e['block_id'],start,start+len(label)));start+=len(label)
+                anchors[side]=list(next(iter(mentions))) if len(mentions)==1 else [candidate['id'],side]
+            seen.add(candidate['id'])
+            review=latest.get(candidate['id']);status='unreviewed'
+            if review and candidate['id'] in (reviews.valid_ids(review,current,latest) or set()):
+                status=next((c['judgment'] for c in review.get('relation_checks',[]) if c['candidate_ref']==candidate['id']),'unknown')
+            pool.append(dict(relation_id=candidate['id'],source=source,anchors=anchors,review_status=status,
+                review_unit_id=review.get('unit_id') if review else None,source_unit_id=unit['id']))
+    own_ids=set(owner.get('primary_candidate_ids',[]))
+    targets=[r for r in pool if r['relation_id'] in own_ids or not own_ids and any(
+        e['block_id']==v['ref'] and e['span'][0]<v.get('span',[0,len(v['text'])])[1] and
+        v.get('span',[0])[0]<e['span'][1] for e in r['source']['evidence_refs'] for v in raw_views if not v.get('context_only'))]
+    target_anchors={tuple(anchor) for r in targets for anchor in r['anchors'].values()}
+    selected=[];omitted=[];display={}
+    for row in sorted(pool,key=lambda r:(r not in targets,len(str(r['source'])),r['relation_id'])):
+        if row['review_status']=='refuted':
+            omitted.append(dict(relation_id=row['relation_id'],reason='current_review_refuted'));continue
+        connected=[side for side,anchor in row['anchors'].items() if tuple(anchor) in target_anchors]
+        if not connected:
+            omitted.append(dict(relation_id=row['relation_id'],reason='no_connected_neighbor'));continue
+        signature=profile.digest([row['source'],row['anchors']])
+        if signature in display:
+            display[signature]['relation_ids'].append(row['relation_id']);continue
+        source=deepcopy(row['source'])
+        # Explicit address field survives compact(); extracted words never substitute for originals.
+        source['source_addresses']=[{k:e[k] for k in ('source_version_id','parse_run_id','block_id','span')} for e in source.pop('evidence_refs')]
+        raw=[]
+        for e in row['source']['evidence_refs']:
+            block=by_id[e['block_id']];span=e['span']
+            if not any(v['ref']==block['id'] and v.get('span',[0,len(v['text'])])[0]<=span[0] and
+                span[1]<=v.get('span',[0,len(v['text'])])[1] for v in raw_views):
+                packet,_,_=context_for([dict(evidence_ids=[block['id']],evidence_refs=[e])],by_id,context_map)
+                raw.extend(dict(v,context_only=True,analysis_target=False) for v in packet['blocks'])
+        item=dict(kind='relation_neighbor',relation_ids=[row['relation_id']],source_unit_id=row['source_unit_id'],
+            endpoints=row['anchors'],connected_endpoints=connected,source_statement=source,review_status=row['review_status'],
+            review_unit_id=row['review_unit_id'],blocks=raw)
+        trial=deepcopy(value);trial['relation_neighbors']=selected+[item]
+        if fits(run,stage,trial,sorted(a2.raw_refs(trial)),supplied):
+            selected.append(item);display[signature]=item
+        else: omitted.append(dict(relation_id=row['relation_id'],reason='complete_neighbor_packet_exceeds_capacity'))
+    value['relation_neighbors']=selected
+    for candidate in comparisons:
+        if candidate['id'] in required: continue
+        trial=deepcopy(value);trial['comparison_terms'].append(candidate)
+        if fits(run,stage,trial,sorted(a2.raw_refs(trial)),supplied): value=trial
+        else: omitted.append(dict(candidate_id=candidate['id'],reason='comparison_exceeds_capacity'))
+    selected=value['relation_neighbors']
+    value['conceptualization_context']=dict(policy=policy,pool_fingerprint=profile.digest(pool),
+        target_endpoints=[dict(relation_id=r['relation_id'],endpoints=r['anchors']) for r in targets],
+        selected_relation_ids=[i for n in selected for i in n['relation_ids']],omitted_count=len(omitted),
+        status='selected' if selected else 'no_connected_neighbor' if pool else 'graph_pool_not_yet_extracted',
+        context_kinds=dict(blocks='structural_context',tool_originals='reference_or_retrieved_context',comparison_terms='retrieved_comparison'))
+    # Include selection metadata in the final limit; discard whole optional packets only.
+    while True:
+        if selected: value['conceptualization_context']['status']='selected'
+        elif value['conceptualization_context']['status']=='selected': value['conceptualization_context']['status']='neighbors_exceed_capacity'
+        value['conceptualization_context']['omitted_count']=len(omitted)
+        ids={c['id'] for field in ('reviewed_base','unapproved_observations','unapproved_relations',
+            'previous_observations','previous_relations','comparison_terms') for c in value.get(field,[])}
+        selected_supplied={i:c for i,c in supplied.items() if i in ids}
+        deps=sorted(a2.raw_refs(value) | {i for c in selected_supplied.values() for i in c.get('origin_dependency_ids',[])})
+        if fits(run,stage,value,deps,selected_supplied): break
+        optional=[c for c in value['comparison_terms'] if c['id'] not in required]
+        if optional:
+            value['comparison_terms'].remove(optional[-1])
+            omitted.append(dict(candidate_id=optional[-1]['id'],reason='final_metadata_capacity'))
+        elif selected:
+            removed=selected.pop()
+            omitted.extend(dict(relation_id=i,reason='final_metadata_capacity') for i in removed['relation_ids'])
+        else:
+            value['conceptualization_context']['status']='mandatory_context_exceeds_capacity';break
+        value['conceptualization_context']['selected_relation_ids']=[i for n in selected for i in n['relation_ids']]
+    owner.setdefault('conceptualization_context',{})[stage]=dict(
+        context={k:deepcopy(value[k]) for k in ('relation_neighbors','conceptualization_context','comparison_terms')},
+        dependency_ids=deps,supplied_ids=sorted(selected_supplied),omitted=deepcopy(omitted),
+        input_size=input_size(run,stage,value,deps,selected_supplied))
+    return value,deps,selected_supplied
+
+
 def assemble(run, round_number, by_id, context_map, available):
     # ponytail: CQ/scope buckets plus stable source rotation, not semantic equivalence or all-pairs.
     identities.register(run)
@@ -97,6 +218,9 @@ def assemble(run, round_number, by_id, context_map, available):
         related = [c for c in a2.base_context(run) if c['id'] in omitted_analysis or links & {'cq:'+i for i in c.get('cq_ids', [])}]
         matches={i:c for link in sorted(links) for i,c in by_link.get(link, {}).items() if i not in own_ids}
         related += list(matches.values())
+        if run['recipe'].get('neighbor_contract')=='relation-neighbors-v1':
+            # Direct relation selection happens after primary source/definitions are prepared.
+            related=[c for c in related if c.get('review_status')=='reviewed']
         group['omitted_related_ids'] = []
         included = list(own)
         for candidate in related:
@@ -601,6 +725,7 @@ def synthesize(service, run, round_number, index, blocks, by_id, context_map, al
         extra = group['builder_tool_context']
         context.update(deepcopy(extra['context']));deps=sorted(set(deps)|set(extra['dependency_ids']))
         supplied.update(deepcopy(extra['terms']))
+        context,deps,supplied=neighbor_context(run,'builder',context,supplied,group,by_id,context_map)
         taxonomy=a2.call(service,run,'builder',key,context,deps,by_id,supplied)
         if taxonomy is None: continue
         a2.apply_actions(service,run,index,blocks,'builder',key,taxonomy)

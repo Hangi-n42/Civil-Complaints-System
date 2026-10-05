@@ -34,7 +34,7 @@ def contract(context,supplied):
         schema['$defs']['SourceMeaning']['required'] += ['statement_type','judgment_kind','local_negation','read_block_ids']
     refs=[v['source_ref'] for v in segments.originals(context)]
     known=[m['meaning_key'] for m in context.get('source_assessment',{}).get('meanings',context.get('meanings',[]))]
-    previous=[m['meaning_key'] for m in context.get('previous_meanings',[])]
+    previous=context.get('reassess_meaning_keys',[m['meaning_key'] for m in context.get('previous_meanings',[])])
     def constrain(node):
         if isinstance(node,list):
             for child in node: constrain(child)
@@ -48,6 +48,10 @@ def contract(context,supplied):
             if 'preserve_keys' in props: props['preserve_keys']['items']['enum']=known or ['']
             for child in node.values(): constrain(child)
     constrain(schema)
+    if phase(context)=='representation':
+        expression=schema['$defs']['Expression']
+        expression['properties'].pop('meaning_key');expression['required'].remove('meaning_key')
+        schema['properties']['checks']=dict(type='object',properties={k:{'$ref':'#/$defs/Expression'} for k in known},required=known,additionalProperties=False)
     return model,schema,0,set()
 
 

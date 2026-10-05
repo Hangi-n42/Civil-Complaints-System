@@ -19,22 +19,22 @@ def grounded(rows):
         dict(requirement={'id':'q'},expected_source_refs=['s'],source_fingerprint='fixed'))
 
 
-@pytest.mark.parametrize('status,assertion,expression,expected',[
-    ('supported','asserted','represented','maintain'),('supported','absent','missing','recover'),
-    ('supported','asserted','incorrect','correct'),('unknown','absent','missing','gap'),
-    ('unknown','qualified_unknown','represented','gap'),('unknown','asserted','incorrect','correct'),
-    ('refuted','absent','missing','refutation'),('refuted','asserted','incorrect','correct')])
-def test_server_action_table(status,assertion,expression,expected):
+@pytest.mark.parametrize('status,expression,expected',[
+    ('supported','represented','maintain'),('supported','missing','recover'),
+    ('supported','incorrect','correct'),('unknown','missing','gap'),
+    ('unknown','represented','gap'),('unknown','incorrect','correct'),
+    ('refuted','missing','refutation'),('refuted','incorrect','correct')])
+def test_server_action_table(status,expression,expected):
     meaning=grounded([source(status)])['meanings'][0]
-    assert m.action(meaning,dict(assertion=assertion,status=expression))==expected
+    assert m.action(meaning,dict(status=expression))==expected
 
 
 @pytest.mark.parametrize('status',['unknown','refuted'])
 def test_uncertain_premise_does_not_block_correction_of_asserted_claim(status):
     meaning=grounded([source(status)])['meanings'][0];meaning['premises_current']=False
-    assert m.action(meaning,dict(assertion='asserted',status='incorrect'))=='correct'
+    assert m.action(meaning,dict(status='incorrect'))=='correct'
     meaning['validation']=['순환 전제']
-    assert m.action(meaning,dict(assertion='asserted',status='incorrect'))=='refresh'
+    assert m.action(meaning,dict(status='incorrect'))=='refresh'
 
 
 def test_premise_keys_cycle_and_unknown_only_block_dependent_generation():
@@ -42,8 +42,8 @@ def test_premise_keys_cycle_and_unknown_only_block_dependent_generation():
     third=dict(source(),local_ref='c',meaning='독립 의무')
     values=grounded([first,second,third])['meanings']
     assert [v['premises_current'] for v in values]==[True,False,True]
-    assert m.action(values[1],dict(assertion='absent',status='missing'))=='refresh'
-    assert m.action(values[2],dict(assertion='absent',status='missing'))=='recover'
+    assert m.action(values[1],dict(status='missing'))=='refresh'
+    assert m.action(values[2],dict(status='missing'))=='recover'
     first['premise_refs']=['b'];cyclic=grounded([first,second,third])['meanings']
     assert cyclic[0]['validation'] and cyclic[1]['validation'] and not cyclic[2]['validation']
     second['premise_refs']=['outside'];assert grounded([second])['meanings'][0]['validation']
@@ -102,8 +102,8 @@ def test_real_call_contract_restores_source_and_separates_saved_receipts(monkeyp
             if malformed: value['meanings'].append(dict(row,local_ref='bad',meaning='검사 오류',availability='external_missing',missing_source=''))
         elif 'source_assessment' in data:
             key=data['source_assessment']['meanings'][0]['meaning_key']
-            value=dict(checks=[dict(meaning_key=key,status='represented',assertion='asserted',locations=[dict(candidate_ref='c',field='definition')],
-                repair_fields=[],preserve_keys=[],role='concept',reason='대역')],source_challenges=[],reason='대역')
+            value=dict(checks={key:dict(status='represented',locations=[dict(candidate_ref='c',field='definition')],
+                repair_fields=[],preserve_keys=[],role='concept',reason='대역')},source_challenges=[],reason='대역')
         else:
             value=dict(connections=[dict(meaning_key=r['meaning_key'],premises_complete=True,scope_consistent=True,expression_consistent=True,reason='대역') for r in data['meanings']],source_challenges=[],reason='대역')
         jsonschema.validate(value,schema)
@@ -139,7 +139,7 @@ def receipt_fixture(monkeypatch):
     run['analysis_units'].append(dict(id=descriptor['id'],stage='context',status='succeeded',output=output,
         dependency_ids=['e'],attempts=[{}],grounding_context=deepcopy(descriptor['context'])))
     expression=engine.plan(run,result,by)[1];key=output['meanings'][0]['meaning_key']
-    check=dict(meaning_key=key,status='missing',assertion='absent',locations=[],repair_fields=[],preserve_keys=[],role='concept',reason='대역 누락')
+    check=dict(meaning_key=key,status='missing',locations=[],repair_fields=[],preserve_keys=[],role='concept',reason='대역 누락')
     value=engine.normalize(dict(checks=[check],source_challenges=[],reason='대역'),expression['context'],expression['supplied'])
     run['analysis_units'].append(dict(id=expression['id'],stage='requirements',status='succeeded',output=value,dependency_ids=['e'],attempts=[{}]))
     request=dict(meaning_keys=[key],representation_unit_id=expression['id'],source_receipt=value['source_receipt'])
@@ -204,7 +204,7 @@ def test_partial_revision_receives_current_proof_and_normal_meaning_preservation
     primary=d['context']['source_assessment']['meanings'][0]
     normal=dict(deepcopy(primary),meaning_key='normal',meaning='정상 역할')
     d['context']['source_assessment']['meanings'].append(normal)
-    output['checks'][0].update(action='correct',status='incorrect',assertion='asserted',locations=[dict(candidate_ref='c',field='definition')],repair_fields=['definition'],preserve_keys=['normal'])
+    output['checks'][0].update(action='correct',status='incorrect',locations=[dict(candidate_ref='c',field='definition')],repair_fields=['definition'],preserve_keys=['normal'])
     output['checks'].append(dict(deepcopy(output['checks'][0]),meaning_key='normal',action='maintain',status='represented',repair_fields=[],preserve_keys=[]))
     run['candidate_groups']=[dict(id='owner',primary_candidate_ids=['c'],candidates=[candidate],design_candidates=[],analysis_group_ids=['g'])]
     run['analysis_units'].append(dict(id='builder:owner',stage='builder',status='succeeded',output=dict(hierarchies=[])))
@@ -286,7 +286,7 @@ def test_malformed_challenge_blocks_only_named_meaning_and_dependents(monkeypatc
 def test_bad_representation_and_join_rows_remain_pending(monkeypatch):
     run,result,by,_,d,output,_=receipt_fixture(monkeypatch)
     raw={k:v for k,v in output['checks'][0].items() if k in m.Expression.model_fields}
-    raw.update(locations=[dict(candidate_ref='outside',field='definition')],assertion='asserted')
+    raw.update(locations=[dict(candidate_ref='outside',field='definition')],)
     value=m.records(dict(checks=[raw],source_challenges=[],reason='대역'),d['context'],d['supplied'],by,d['id'])
     assert not value['checks'] and value['record_errors'] and value['pending_meaning_keys']==[raw['meaning_key']]
     context=dict(meaning_phase='join',meanings=d['context']['source_assessment']['meanings'],blocks=[])
@@ -368,7 +368,7 @@ def test_same_candidate_errors_are_collected_before_one_revision(monkeypatch):
     normal=dict(deepcopy(primary),meaning_key='normal',meaning='보존할 정상 역할')
     d['context']['source_assessment']['meanings'] += [second,normal]
     first=output['checks'][0]
-    first.update(action='correct',status='incorrect',assertion='asserted',locations=[dict(candidate_ref='c',field='definition')],repair_fields=['definition'],preserve_keys=['normal'])
+    first.update(action='correct',status='incorrect',locations=[dict(candidate_ref='c',field='definition')],repair_fields=['definition'],preserve_keys=['normal'])
     output['checks'] += [dict(deepcopy(first),meaning_key='second',locations=[dict(candidate_ref='c',field='conditions')],repair_fields=['conditions']),
         dict(deepcopy(first),meaning_key='normal',action='maintain',status='represented',repair_fields=[])]
     run['candidate_groups']=[dict(id='owner',primary_candidate_ids=['c'],candidates=result['observations'],design_candidates=[],analysis_group_ids=['g'])]
@@ -493,3 +493,19 @@ def test_later_authorized_missing_meaning_gets_new_group_without_repeating_first
     assert set(request['group_ids'])=={one[0]['id'],two[0]['id']}
     assert not request['unattempted_meanings']
     assert a2.recovery_groups(run,2,by)==[]
+
+
+def test_keyed_expression_and_targeted_supersession():
+    _,run,result,by,cm=requirement_fixture();run['recipe']['meaning_contract']=m.CONTRACT
+    source_output=grounded([source(),dict(source(),local_ref='b',meaning='독립 규칙')])
+    key,other=[r['meaning_key'] for r in source_output['meanings']]
+    ctx=dict(meaning_phase='representation',source_assessment=source_output,source_receipt={'unit_id':'u'},blocks=[])
+    _,schema,_,_=engine.contract(ctx,{})
+    assert set(schema['properties']['checks']['required'])=={key,other}
+    assert 'assertion' not in schema['$defs']['Expression']['properties']
+    row=dict(status='missing',locations=[],repair_fields=[],preserve_keys=[],role='concept',reason='실제 표현 누락')
+    normalized=m.records(dict(checks={key:row},source_challenges=[],reason='대조'),ctx,{},by,'r')
+    assert normalized['checks'][0]['action']=='recover' and normalized['pending_meaning_keys']==[other]
+    ctx=dict(meaning_phase='grounding',previous_meanings=source_output['meanings'],reassess_meaning_keys=[key],blocks=[])
+    _,schema,_,_=engine.contract(ctx,{})
+    assert schema['$defs']['SourceMeaning']['properties']['supersedes']['enum']==['',key]

@@ -52,10 +52,12 @@ def main():
         reassessment=None
         if args.reassess_output:
             old=json.loads(args.reassess_output.read_text())
-            old_inputs=json.loads((args.reassess_output.parent.parent/'inputs.json').read_text())
-            case=next(c for c in old_inputs['cases'] if c['id']==args.reassess_output.stem)
             original=deepcopy(old['unit']);original['id']='context:imported-actual-source'
-            original['grounding_context']=deepcopy(case['context'])
+            if not original.get('grounding_context'):
+                old_inputs=json.loads((args.reassess_output.parent.parent/'inputs.json').read_text())
+                original['grounding_context']=deepcopy(next(c['context'] for c in old_inputs['cases'] if c['id']==args.reassess_output.stem))
+            # New diagnostic run explicitly imports an unapproved source baseline, not its execution budget.
+            original.pop('grounding_base_id',None);original.pop('grounding_actions',None)
             original['diagnostic_import']=dict(path=str(args.reassess_output),sha256=digest(args.reassess_output),
                 status='unapproved prior-contract actual output, explicitly reassessed against current source')
             run['analysis_units']=[original]
@@ -64,7 +66,7 @@ def main():
             ends={c[k] for c in candidates for k in ('subject','object')}
             candidates += [c for c in supplied['run']['result']['observations'] if c['id'] in ends]
             terms={c['id']:c for c in candidates}
-            ctx=dict(meaning_phase='representation',requirement=deepcopy(case['context']['requirement']),blocks=deepcopy(case['context']['blocks']),
+            ctx=dict(meaning_phase='representation',requirement=deepcopy(original['grounding_context']['requirement']),blocks=deepcopy(original['grounding_context']['blocks']),
                 source_assessment=deepcopy(original['output']),source_receipt=dict(unit_id=original['id'],assessment_hash=original['output']['assessment_hash']),
                 candidates=deepcopy(candidates))
             contexts=[dict(id='authority_expression_before',context=ctx,supplied=terms)]
