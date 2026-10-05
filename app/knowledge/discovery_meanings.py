@@ -7,11 +7,12 @@ from pydantic import Field
 from .discovery_models import Record, Relation
 from . import discovery_profile as profile, discovery_scope as scope, discovery_review as reviews
 
-CONTRACT = 'grounded-meanings-v2'
+CONTRACT = 'grounded-meanings-v3'
 
 
 class SourceMeaning(Record):
     local_ref: str
+    proposition_refs: list[str] = Field(default_factory=list)
     meaning: str
     applies_to: str
     statement_type: Relation.model_fields['statement_type'].annotation = 'unresolved'
@@ -46,7 +47,8 @@ class Location(Record):
 
 
 class Challenge(Record):
-    meaning_key: str
+    meaning_key: str = ''
+    proposition_ref: str = ''
     reason: str
     proposed_meaning: str
     source_refs: list[str]
@@ -154,6 +156,7 @@ def validate_source(row, previous):
 
 
 def grounding(output, context):
+    output['examined_source_refs']=list(dict.fromkeys(output['examined_source_refs']))
     examined=set(output['examined_source_refs']);expected=set(context['expected_source_refs'])
     if not examined<=expected: raise ValueError('근거 판정의 원문 조사 범위 밖 참조')
     if examined!=expected:
@@ -194,6 +197,9 @@ def grounding(output, context):
         m['premises_current']=m['premises_complete'] and not m['validation'] and all(supported(k,set()) for k in m['premise_keys'])
         m['dependency_hash']=profile.digest({k:{f:known[k].get(f) for f in ('body','source_status','premise_keys','premises_complete')} for k in m['premise_keys'] if k in known})
     output['meanings']=rows
+    mapped={p for m in rows if not m['validation'] for p in m.get('proposition_refs',[])}
+    output['unmapped_proposition_refs']=sorted({p['proposition_ref'] for p in context.get('unapproved_relations',[])}-mapped)
+    output['pending_proposition_refs']=sorted(set(context.get('reassess_proposition_refs',[]))-mapped)
     output['source_fingerprint']=context['source_fingerprint']
     output['assessment_hash']=profile.digest([context['source_fingerprint'],rows])
     return output
@@ -232,9 +238,12 @@ def representation(output,context,supplied,*,partial=False):
     return output
 
 
-def challenges(output,known):
+def challenges(output,known,propositions=()):
     for c in output['source_challenges']:
-        if c['meaning_key'] not in known or not c['reason'].strip() or not c['proposed_meaning'].strip(): raise ValueError('범위 밖/빈 원문 재판정 요청')
+        key=c.get('meaning_key','');prop=c.get('proposition_ref','')
+        if bool(key)==bool(prop): raise ValueError('의미키 또는 원명제 가설 참조 중 하나만 필요')
+        if (key and key not in known) or (prop and prop not in propositions) or not c['reason'].strip() or not c['proposed_meaning'].strip(): raise ValueError('범위 밖/빈 원문 재판정 요청')
+        if prop and any(prop in m.get('proposition_refs',[]) for m in known.values()): raise ValueError('대응된 가설의 재판정에는 기존 의미키 필요')
         if not c.get('evidence_refs'): raise ValueError('원문 재판정에는 실제 원문 근거 필요')
 
 
@@ -242,7 +251,7 @@ def join(output,context,*,partial=False):
     known={m['meaning_key']:m for m in context['meanings']}
     keys=[c['meaning_key'] for c in output['connections']]
     if len(keys)!=len(set(keys)) or not set(keys)<=set(known) or not partial and set(keys)!=set(known): raise ValueError('결합 검수 의미키 누락/중복/범위 밖')
-    challenges(output,known)
+    challenges(output,known,{p['proposition_ref'] for p in context.get('unapproved_relations',[])})
     return output
 
 
@@ -272,6 +281,9 @@ def records(decoded,context,supplied,by_id,unit_id):
             if not row[key] or counts[row[key]]!=1: raise ValueError('의미 참조 누락/중복')
             segments.restore(row,by_id,segments.originals(context))
             if mode=='grounding':
+                row['proposition_refs']=list(dict.fromkeys(row['proposition_refs']))
+                if not set(row['proposition_refs'])<={p['proposition_ref'] for p in context.get('unapproved_relations',[])}: raise ValueError('제공되지 않은 원명제 가설 참조')
+                if set(row['proposition_refs']) & set(context.get('reassess_proposition_refs',[])) and row['supersedes']: raise ValueError('누락 가설의 신규 의미는 기존 의미를 교체할 수 없음')
                 validate_source(row,{m['meaning_key']:m for m in context.get('previous_meanings',[])})
                 if row['supersedes'] and context.get('reassess_meaning_keys') and row['supersedes'] not in context['reassess_meaning_keys']: raise ValueError('재판정 대상 밖 의미 교체')
                 inventory={b['block_id'] for b in context.get('input_inventory',[])}
@@ -291,7 +303,7 @@ def records(decoded,context,supplied,by_id,unit_id):
         for index,raw in enumerate(challenges_raw):
             try:
                 row=Challenge.model_validate(raw).model_dump();segments.restore(row,by_id,segments.originals(context))
-                challenges(dict(source_challenges=[row]),known);output['source_challenges'].append(row)
+                challenges(dict(source_challenges=[row]),known,{p['proposition_ref'] for p in context.get('unapproved_relations',[])});output['source_challenges'].append(row)
             except (ValueError,KeyError,TypeError) as error: failed('source_challenges',index,raw,error)
         present={r[key] for r in output[field]}
         output['pending_meaning_keys']=sorted(known.keys()-present)
@@ -315,4 +327,6 @@ def blocked_keys(output,rows):
     keys=[c['meaning_key'] for c in output.get('source_challenges',[])]
     keys += [e['record'].get('meaning_key') for e in output.get('record_errors',[])
         if e['section']=='source_challenges' and isinstance(e['record'],dict)]
-    return affected_keys(rows,keys)
+    props={c.get('proposition_ref') for c in output.get('source_challenges',[])}
+    keys += [m['meaning_key'] for m in rows if props & set(m.get('proposition_refs',[]))]
+    return affected_keys(rows,{k for k in keys if k})
