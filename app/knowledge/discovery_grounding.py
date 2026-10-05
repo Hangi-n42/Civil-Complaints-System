@@ -16,23 +16,31 @@ def prompt(context):
     for key in ('expected_source_refs','source_fingerprint','meaning_phase'):
         payload.pop(key,None)
     if mode=='grounding' and 'previous_meanings' in payload:
-        payload['previous_meanings']=[{k:m[k] for k in ('meaning_key','meaning','applies_to','conditions','exceptions','time','negation','relation_kind','statement_type','judgment_kind','local_negation','premise_keys','evidence_refs') if k in m} for m in payload['previous_meanings']]
+        payload['previous_meanings']=[{k:m[k] for k in ('meaning_key','proposition_refs','meaning','applies_to','conditions','exceptions','time','negation','relation_kind','statement_type','judgment_kind','local_negation','premise_keys','evidence_refs') if k in m} for m in payload['previous_meanings']]
     from .discovery_analysis import compact
-    if 'candidates' in payload: payload['candidates']=compact(payload['candidates'])
+    if 'candidates' in payload:
+        from .discovery_design import source_projection
+        hypotheses={profile.digest(source_projection(p)):p['proposition_ref'] for p in payload.get('unapproved_relations',[])}
+        for candidate in payload['candidates']:
+            for field in ('source_relation','role_source'):
+                if candidate.get(field) and (ref:=hypotheses.get(profile.digest(source_projection(candidate[field])))):
+                    candidate[field]={'proposition_ref':ref}
+        payload['candidates']=compact(payload['candidates'])
     def references(value):
         if isinstance(value,list): return [references(v) for v in value]
         if not isinstance(value,dict): return value
         return {k:references(v) for k,v in value.items() if k not in {'quote','body','local_ref','dependency_hash','candidate_hashes'}}
-    for field in ('discoveries','source_assessment','meanings','expressions','previous_meanings'):
+    for field in ('discoveries','unapproved_relations','source_assessment','meanings','expressions','previous_meanings'):
         if field in payload: payload[field]=references(payload[field])
-    return meanings.PROMPTS[mode]+'\ntext_from은 같은 블록의 큰 원문을 재사용한다. span은 원래 블록 기준 위치이다. 반드시 지정된 JSON 형식으로 응답한다.\nINPUT:\n'+json.dumps(segments.compact_text(payload),ensure_ascii=False,separators=(',',':'))
+    return meanings.PROMPTS[mode]+'\ntext_from은 같은 블록의 큰 원문을 재사용한다. span은 원래 블록 기준 위치이다. 후보의 source_relation/role_source가 proposition_ref만 담으면 unapproved_relations의 해당 원명제를 참조한다. 반드시 지정된 JSON 형식으로 응답한다.\nINPUT:\n'+json.dumps(segments.compact_text(payload),ensure_ascii=False,separators=(',',':'))
 
 
 def contract(context,supplied):
     model=meanings.OUTPUTS[phase(context)];schema=model.model_json_schema()
     if phase(context)=='grounding':
-        schema['$defs']['SourceMeaning']['required'] += ['statement_type','judgment_kind','local_negation','read_block_ids']
-    refs=[v['source_ref'] for v in segments.originals(context)]
+        schema['$defs']['SourceMeaning']['required'] += ['statement_type','judgment_kind','local_negation','read_block_ids','proposition_refs']
+    refs=list(dict.fromkeys(v['source_ref'] for v in segments.originals(context)))
+    propositions=list(dict.fromkeys(p['proposition_ref'] for p in context.get('unapproved_relations',[])))
     known=[m['meaning_key'] for m in context.get('source_assessment',{}).get('meanings',context.get('meanings',[]))]
     previous=context.get('reassess_meaning_keys',[m['meaning_key'] for m in context.get('previous_meanings',[])])
     def constrain(node):
@@ -41,13 +49,28 @@ def contract(context,supplied):
         elif isinstance(node,dict):
             props=node.get('properties',{})
             for field in ('source_refs','examined_source_refs'):
-                if field in props: props[field]['items']['enum']=refs or ['']
+                if field in props:
+                    props[field]['items']['enum']=refs or ['']
+                    props[field]['maxItems']=len(refs)
+            if 'proposition_refs' in props:
+                props['proposition_refs']['items']['enum']=propositions or ['']
+                props['proposition_refs']['maxItems']=len(propositions)
             if 'supersedes' in props: props['supersedes']['enum']=['',*previous]
             if 'candidate_ref' in props: props['candidate_ref']['enum']=sorted(supplied) or ['']
             if 'meaning_key' in props: props['meaning_key']['enum']=known or ['']
             if 'preserve_keys' in props: props['preserve_keys']['items']['enum']=known or ['']
             for child in node.values(): constrain(child)
     constrain(schema)
+    if 'Challenge' in schema['$defs']:
+        challenge=schema['$defs']['Challenge'];variants=[]
+        for field,ids in [('meaning_key',known),('proposition_ref',propositions)]:
+            if not ids: continue
+            variant=deepcopy(challenge);props=variant['properties']
+            props[field]=dict(type='string',enum=ids)
+            props['proposition_ref' if field=='meaning_key' else 'meaning_key']=dict(type='string',const='')
+            variant['required']=list(props);variants.append(variant)
+        if variants: schema['$defs']['Challenge']={'anyOf':variants}
+        else: schema['properties']['source_challenges']['maxItems']=0
     if phase(context)=='representation':
         expression=schema['$defs']['Expression']
         expression['properties'].pop('meaning_key');expression['required'].remove('meaning_key')
@@ -71,6 +94,28 @@ def candidate_hash(supplied):
     return profile.digest({i:reviews.fingerprint(c) for i,c in supplied.items()})
 
 
+def proposition_hypotheses(run,context,by_id):
+    """Only actual completed Relation output covered by this immutable source packet."""
+    from .discovery_design import source_projection
+    views=segments.originals(context);hypotheses={}
+    for u in run.get('analysis_units',[]):
+        if u.get('stage')!='relation' or u.get('status')!='succeeded' or not u.get('attempts'): continue
+        for candidate in u.get('output',{}).get('relations',[]):
+            refs=candidate.get('evidence_refs',[])
+            if not refs or candidate.get('source_relation') or candidate.get('validation') or candidate.get('evidence_validation'): continue
+            def covered(e):
+                b=by_id.get(e['block_id'])
+                if not b or any(e.get(k)!=b[k] for k in ('source_version_id','parse_run_id')): return False
+                start,end=e['span']
+                if not 0<=start<end<=len(b['text']) or b['text'][start:end]!=e['quote']: return False
+                return any(v['ref']==b['id'] and v.get('span',[0,len(v['text'])])[0]<=start and
+                    end<=v.get('span',[0,len(v['text'])])[1] and
+                    v['text'][start-v.get('span',[0])[0]:end-v.get('span',[0])[0]]==e['quote'] for v in views)
+            if all(covered(e) for e in refs):
+                hypotheses[candidate['id']]=dict(source_projection(candidate),proposition_ref=candidate['id'],source_unit_id=u['id'])
+    return list(hypotheses.values())
+
+
 def source_packet(run,context,by_id):
     requirement=context['requirement'];kind=requirement['kind'];qid=requirement['id']
     views=deepcopy(segments.originals(context))
@@ -82,7 +127,8 @@ def source_packet(run,context,by_id):
             for m in context.get('source_context_proposals',[])],
         reference_availability=deepcopy(context.get('context_gaps',[])),
         input_inventory=[dict(block_id=b['id'],title=b.get('title',''),selected=any(v['ref']==b['id'] for v in views),source_version_id=b['source_version_id'],parse_run_id=b['parse_run_id']) for b in by_id.values() if not run.get('analysis_block_ids') or b['id'] in run['analysis_block_ids']])
-    # Discovery suggestions are hypotheses. Candidate assertions and previous verdicts never enter this packet.
+    value['unapproved_relations']=proposition_hypotheses(run,value,by_id)
+    # Natural extracted statements are unapproved hypotheses, never reviewed type bindings.
     value['source_fingerprint']=profile.digest([value,[(v['ref'],by_id[v['ref']]['source_version_id'],by_id[v['ref']]['parse_run_id']) for v in views]])
     return value
 
@@ -113,6 +159,7 @@ def source_parts(run,src,by_id):
             selected=[dict(view,span=span,text=block['text'][slice(*span)]) for span in spans]
             selected += [deepcopy(v) for v in original if v.get('context_only') and v not in selected]
             ctx=dict(deepcopy(src),blocks=selected,split_parent_fingerprint=src['source_fingerprint'])
+            ctx['unapproved_relations']=proposition_hypotheses(run,ctx,by_id)
             ctx['source_fingerprint']=profile.digest(ctx)
             if ctx['blocks'] not in [p['blocks'] for p in parts]: parts.append(ctx)
     # An indivisible oversized part remains a capacity failure in call; never cut text to fit.
@@ -126,7 +173,7 @@ def followup_actions(unit):
     return set()
 
 
-def refresh_descriptor(current,base,by_id):
+def refresh_descriptor(current,base,by_id,run=None):
     """One changed-input read/reassessment, identified in the same execution/reservation plan."""
     if 'read' in followup_actions(current): return None
     context=deepcopy(current['grounding_context'])
@@ -144,6 +191,7 @@ def refresh_descriptor(current,base,by_id):
         reason='내부 자료 추가 읽기',source_unit_id=current['id']) for i in sorted(requested)]
     for item in context['input_inventory']:
         if item['block_id'] in requested: item['selected']=True
+    if run is not None: context['unapproved_relations']=proposition_hypotheses(run,context,by_id)
     context['source_fingerprint']=profile.digest(context)
     result=descriptor('grounding','refresh:'+base+':'+context['source_fingerprint'],context,sorted({v['ref'] for v in context['blocks']}))
     result['grounding_base_id']=base
@@ -172,7 +220,7 @@ def packet_descriptors(run,result,kind,q,by_id,cm):
         if current:
             history=[u for u in run.get('analysis_units',[]) if u.get('grounding_base_id')==g['id']]
             used=set().union(*(followup_actions(u) for u in [current,*history]))
-            refresh=refresh_descriptor(dict(current,grounding_actions=sorted(used)),g['id'],by_id) if current.get('grounding_context') else None
+            refresh=refresh_descriptor(dict(current,grounding_actions=sorted(used)),g['id'],by_id,run) if current.get('grounding_context') else None
             if refresh: records.append(refresh)
             grounds.append(current)
         source_id=current['id'] if current else g['id']
@@ -181,6 +229,7 @@ def packet_descriptors(run,result,kind,q,by_id,cm):
         current_views=deepcopy(segments.originals(current.get('grounding_context',src) if current else src))
         representation=dict(meaning_phase='representation',requirement=context['requirement'],
             blocks=current_views,source_assessment=current_source,source_receipt=receipt,
+            unapproved_relations=deepcopy((current.get('grounding_context',src) if current else src).get('unapproved_relations',[])),
             candidates=[{k:deepcopy(c[k]) for k in ('id','label','classification','definition','subject','predicate','object','conditions','exceptions','time','negation','role_source','source_relation','child_ref','parent_ref','relation','definition_mode') if k in c} for c in supplied.values()])
         rkey='representation:'+source_id+':'+candidate_hash(supplied)
         r=descriptor('representation',rkey,representation,sorted({v['ref'] for v in current_views}),supplied,ready=current is not None)
@@ -192,7 +241,8 @@ def packet_descriptors(run,result,kind,q,by_id,cm):
     ms={m['meaning_key']:m for g in grounds for m in g['output']['meanings']}
     expressions=[dict(deepcopy(c),representation_unit_id=r['id']) for r in representations for c in r['output']['checks']]
     blocks=[]
-    for m in ms.values():
+    hypotheses={p['proposition_ref']:p for g in grounds for p in g.get('grounding_context',{}).get('unapproved_relations',[])}
+    for m in [*ms.values(),*hypotheses.values()]:
         for e in m.get('evidence_refs',[]):
             v=dict(ref=e['block_id'],span=e['span'],text=by_id[e['block_id']]['text'][slice(*e['span'])])
             if v not in blocks: blocks.append(v)
@@ -201,6 +251,7 @@ def packet_descriptors(run,result,kind,q,by_id,cm):
         for loc in c['locations']:
             locations.append(dict(loc,value=deepcopy(all_supplied[loc['candidate_ref']].get(loc['field']))))
     join_context=dict(meaning_phase='join',requirement=dict(kind=kind,**q),meanings=list(ms.values()),
+        unapproved_relations=deepcopy(list(hypotheses.values())),
         expressions=expressions,locations=locations,blocks=blocks,
         coverage=[dict(group_id=g['id'],block_ids=g['block_ids'],status=g.get('status'),analysis_grounded=g.get('analysis_grounded',False)) for g in run['frontier']],
         source_receipts=[dict(unit_id=g['id'],assessment_hash=g['output']['assessment_hash']) for g in grounds])
@@ -257,7 +308,7 @@ def saved(run,result,by_id,available):
                 parts.append(dict(unit_id=u['id'],**deepcopy(u['output'])))
             joins=[p for p in parts if 'connections' in p]
             challenged=set().union(*(meanings.blocked_keys(p,[m for source in parts for m in source.get('meanings',[])]) for p in parts))
-            pending.extend(p['unit_id'] for p in parts if p.get('record_errors') or p.get('pending_meaning_keys'))
+            pending.extend(p['unit_id'] for p in parts if p.get('record_errors') or p.get('pending_meaning_keys') or p.get('pending_proposition_refs') or p.get('source_challenges'))
             for c in checks:
                 if c['meaning_key'] in challenged: c.update(judgment='unknown',cause='unverified',action='refresh')
             join_ok=bool(joins) and all(c['premises_complete'] and c['scope_consistent'] and c['expression_consistent'] for j in joins for c in j['connections'])
@@ -313,8 +364,10 @@ def challenge(service,run,d,output,by_id):
     changed=False
     for receipt in receipts:
         original=unit(run,receipt['unit_id'])
+        if not original or original['output']['assessment_hash']!=receipt['assessment_hash']: continue
         keys={m['meaning_key'] for m in original['output']['meanings']}
-        selected=[c for c in requests if c['meaning_key'] in keys]
+        propositions={p['proposition_ref'] for p in original['grounding_context'].get('unapproved_relations',[])}
+        selected=[c for c in requests if c.get('meaning_key') in keys or c.get('proposition_ref') in propositions]
         if not selected: continue
         base=original.get('grounding_base_id',original['id'])
         history=[u for u in run.get('analysis_units',[]) if u.get('grounding_base_id')==base]
@@ -322,12 +375,13 @@ def challenge(service,run,d,output,by_id):
         if 'challenge' in used: continue
         ctx=deepcopy(original['grounding_context'])
         ctx['previous_meanings']=deepcopy(original['output']['meanings'])
-        ctx['reassess_meaning_keys']=sorted(meanings.affected_keys(original['output']['meanings'],[c['meaning_key'] for c in selected]))
+        ctx['reassess_meaning_keys']=sorted(meanings.affected_keys(original['output']['meanings'],[c['meaning_key'] for c in selected if c.get('meaning_key')]))
+        ctx['reassess_proposition_refs']=sorted({c['proposition_ref'] for c in selected if c.get('proposition_ref')})
         for c in selected:
             for e in c.get('evidence_refs',[]):
                 view=dict(ref=e['block_id'],span=e['span'],text=by_id[e['block_id']]['text'][slice(*e['span'])])
                 if view not in ctx['blocks']: ctx['blocks'].append(view)
-        ctx['source_challenges']=[{k:c[k] for k in ('meaning_key','reason','proposed_meaning','evidence_refs')} for c in selected]
+        ctx['source_challenges']=[{k:c[k] for k in ('meaning_key','proposition_ref','reason','proposed_meaning','evidence_refs') if k in c} for c in selected]
         ctx['source_fingerprint']=profile.digest([ctx['source_fingerprint'],ctx['source_challenges']])
         key='challenge:'+base+':'+profile.digest(ctx['source_challenges'])
         result=a2.call(service,run,'context',key,ctx,sorted({v['ref'] for v in ctx['blocks']}),by_id,{})
@@ -421,7 +475,7 @@ def assess(service,run,blocks,by_id,cm,*,rechecked=False):
                             stored['grounding_base_id']=d['grounding_base_id']
                             stored['grounding_actions']=deepcopy(d['grounding_actions'])
                         stored['read_selection']=deepcopy(d['context'].get('read_selection',[]))
-                        if output is not None and refresh_descriptor(stored,d.get('grounding_base_id',d['id']),by_id): restart=True
+                        if output is not None and refresh_descriptor(stored,d.get('grounding_base_id',d['id']),by_id,run): restart=True
                     if output is None: continue
                 if mode in {'representation','join'}:
                     if challenge(service,run,d,output,by_id): restart=True;continue

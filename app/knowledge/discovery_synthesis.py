@@ -614,8 +614,17 @@ def revise(service, run, group, review, taxonomy, by_id, context_map):
                 context['required_meanings']=[m for c in checks for m in c.get('definition_completeness',{}).get('required_meanings',[])]
         else:
             original=effective[identifier]
+            current=reviews.valid_ids(target_review,effective)
+            if current is not None and identifier not in current:
+                group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='현재 후보와 일치하는 끝점 판정 없음'))
+                continue
+            editable_fields={f for c in checks for f,v in c.get('binding_checks',{}).items() if f in {'subject','object'} and v=='refuted'}
+            if original.get('source_relation') and not editable_fields:
+                group['revision_deferrals'].append(dict(candidate_ref=identifier,reason='반박된 끝점 없음'))
+                continue
             supplied[identifier]=deepcopy(original.get('source_relation') or original)
             context.update(unapproved_relations=[supplied[identifier]],design_relation_ids=[identifier],
+                fixed_binding_refs={f+'_ref':original[f] for f in ('subject','object') if f not in editable_fields} if original.get('source_relation') else {},
                 binding_before=original,parent_group_id=group['id'],binding_checks=checks,
                 previous_binding_errors=[deepcopy(e) for e in taxonomy.get('binding_errors',[]) if identifier in e['candidate_ids']])
         if run['recipe'].get('context_contract')=='scope-v1':

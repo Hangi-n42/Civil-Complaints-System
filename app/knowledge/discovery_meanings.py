@@ -120,17 +120,18 @@ OR/예외/부정은 한 복합 의미 본문에 보존하며 양쪽을 AND 전�
 가설을 반박한 것과 모든 경우의 부정 증명을 구분한다. 참조 상세 미제공은 external_missing, 읽어도 판정 불가는 ambiguous. input_inventory의 내부 자료가 더 필요하면 internal_unselected와 정확한 block_id를 read_block_ids에 기록한다. 제목의 유사성만으로 문서 동일성을 확정하지 않는다.
 local_ref는 이번 응답에서 유일하며 premise_refs는 이번 local_ref 또는 제공된 meaning_key만 사용한다.
 검토할 가설은 근거가 아니다. 모든 원문 구간을 검토해 examined_source_refs에 기록한다.
-source_challenge 재판정 시 해당 의미와 직접 의존 전제만 수정하며 기존 의미를 교체하면 supersedes에 그 meaning_key를 적는다.''',
+unapproved_relations는 실제 추출했지만 검수되지 않은 원명제 가설이다. 정답이나 근거로 사용하지 말고 원문으로 반박/지지/미확정을 판단한다. proposition_refs에는 대응하는 제공 가설 ID만 적는다. 빈 목록, 한 의미의 여러 가설, 한 가설의 여러 의미가 모두 가능하며 가설 밖 원문 의미도 발견하라. 가설마다 supported를 만들지 않는다.
+source_challenge 재판정 시 해당 의미와 직접 의존 전제만 수정하며 기존 의미를 교체하면 supersedes에 그 meaning_key를 적는다. reassess_proposition_refs는 이전에 통째로 빠진 가설이다. 해당 신규 의미는 proposition_refs로 대응하고 supersedes는 비운다. 요청과 무관한 정상 의미를 교체하지 않는다.''',
     representation='''고정된 원문 판정과 현재 후보 표현을 같은 의미키로 대조한다. 원문 판정을 조용히 뒤집지 않는다.
 원문 판정도 미승인 모델 결과다. relation_kind의 실제 관계 종류, 필수 조건/예외, applicability의 질문상 필요성, missing_source의 실제 자료명을 원문·질문과 대조하라. 오류를 발견하면 해당 키에 source_challenge를 제출하며, 형식 통과나 원문 주소만으로 기존 판단을 신뢰하지 않는다. applicability는 특정 사례의 조건 충족 여부가 아니다.
 checks 객체의 모든 고정 의미키에 판정 하나를 작성한다. status는 현재 E와 후보를 대조한 단일 결론이다: represented=현재 근거 상태에 맞는 실제 표현, missing=전체 후보를 대조했으나 해당 표현이 실제로 없음, incorrect=현재 후보에 잘못된 주장/한정/연결이 있음, unknown=판정 불가.
 원문 supported이면 올바른 긍정/부정/조건 표현이 represented다. 원문 unknown이면 적절한 미확정 표현은 represented, 확정 긍정 또는 확정 부정은 incorrect다. 원문 refuted이면 반박을 표현한 경우 represented, 반증된 주장을 확정하면 incorrect다. 실제 표현이 없을 때만 missing이며 위치 목록이 비었다는 이유로 추정하지 않는다. represented/incorrect에는 실제 후보 필드 locations, incorrect에는 해당 repair_fields가 필요하다.
-원문을 다시 읽어 판정 자체의 모순/새 필수 전제를 발견하면 source_challenges로 해당 키/이유/새 의미/근거를 제출한다. 원문판정의 supported는 표현의 supported가 아니다.
+unapproved_relations는 원문 추출의 미승인 가설이며 정답이 아니다. source_assessment의 proposition_refs와 대조하되 미대응만으로 누락을 단정하지 않는다. 원문을 다시 읽어 판정 자체의 모순/새 필수 전제를 발견하면 source_challenges로 이유/새 의미/근거를 제출한다. 이미 대응된 의미의 한정 누락은 meaning_key, 통째로 빠진 가설은 proposition_ref를 지정하고 다른 참조는 비운다. 원문판정의 supported는 표현의 supported가 아니다.
 잘못된 위치와 수정할 필드만 지정하고, 같은 후보에서 유지할 독립 정상 의미키를 preserve_keys에 남긴다. 원문 문구와 동등한 표현은 누락이 아니다.
 역할 참조만으로 외부 자격/권리나 법적 포함이 주장되었다고 간주하지 말고 실제 후보 필드를 읽는다. 후보가 없으면 locations=[]이며, 표현 유무를 확인한 뒤 status를 결정한다.''',
     join='''업무 요구의 마지막 연결 검수다. 입력에는 관련 의미/전제/원문/표현 위치와 전체 조사 범위가 있다.
 각 의미의 직접 전제, 관계 종류, 범위/시점, 실제 현재 표현을 다시 확인하라. 부분 supported 개수를 합산하지 않는다.
-모든 의미키에 connections를 작성하되 독립 의미는 빈 전제도 가능하다. 새로운 필수 전제나 원문 판정 모순이면 source_challenges로 해당 키를 돌려보낸다.
+모든 의미키에 connections를 작성하되 독립 의미는 빈 전제도 가능하다. 새로운 필수 전제나 원문 판정 모순이면 source_challenges로 해당 키를 돌려보낸다. unapproved_relations는 미승인 가설이다. 이미 대응된 의미는 meaning_key, 통째로 빠진 가설은 proposition_ref 중 정확히 하나를 지정하고 다른 참조는 비운다. 미대응 자체는 생성 누락의 증명이 아니다.
 자료 미제공으로 확정 불가한 연결은 그대로 유지한다. 전체 범위 미조사나 용량 부족을 자료 부재 또는 완료로 표시하지 않는다.''')
 
 
@@ -173,6 +174,8 @@ def grounding(output, context):
     for row in output['meanings']:
         if not row['local_ref'] or row['local_ref'] in aliases: raise ValueError('의미 local_ref 누락/중복')
         validate_source(row,previous)
+        proposition_refs(row,context)
+        reassessment_scope(row,context)
         canonical=body(row,context['requirement']);key='m_'+profile.digest(canonical)
         aliases[row['local_ref']]=key
         rows.append(dict(deepcopy(row),meaning_key=key,body=canonical))
@@ -232,7 +235,7 @@ def representation(output,context,supplied,*,partial=False):
         if check['action']=='correct' and (not check['repair_fields'] or not set(check['repair_fields'])<={p['field'] for p in check['locations']}):
             raise ValueError('부분 교정에는 잘못된 현재 필드 위치 필요')
         check['source_receipt']=deepcopy(context['source_receipt'])
-    challenges(output,known)
+    challenges(output,known,{p['proposition_ref'] for p in context.get('unapproved_relations',[])})
     output['source_receipt']=deepcopy(context['source_receipt'])
     output['candidate_fingerprint']=profile.digest({i:reviews.fingerprint(c) for i,c in supplied.items()})
     return output
@@ -245,6 +248,21 @@ def challenges(output,known,propositions=()):
         if (key and key not in known) or (prop and prop not in propositions) or not c['reason'].strip() or not c['proposed_meaning'].strip(): raise ValueError('범위 밖/빈 원문 재판정 요청')
         if prop and any(prop in m.get('proposition_refs',[]) for m in known.values()): raise ValueError('대응된 가설의 재판정에는 기존 의미키 필요')
         if not c.get('evidence_refs'): raise ValueError('원문 재판정에는 실제 원문 근거 필요')
+
+
+def proposition_refs(row,context):
+    row['proposition_refs']=list(dict.fromkeys(row.get('proposition_refs',[])))
+    if not set(row['proposition_refs'])<={p['proposition_ref'] for p in context.get('unapproved_relations',[])}: raise ValueError('제공되지 않은 원명제 가설 참조')
+    if set(row['proposition_refs']) & set(context.get('reassess_proposition_refs',[])) and row['supersedes']: raise ValueError('누락 가설의 신규 의미는 기존 의미를 교체할 수 없음')
+
+
+def reassessment_scope(row,context):
+    if 'reassess_meaning_keys' not in context and 'reassess_proposition_refs' not in context: return
+    allowed=set(context.get('reassess_meaning_keys',[]))
+    if row['supersedes'] and row['supersedes'] not in allowed: raise ValueError('재판정 대상 밖 의미 교체')
+    key='m_'+profile.digest(body(row,context['requirement']))
+    if key not in allowed and any(m['meaning_key']==key for m in context.get('previous_meanings',[])):
+        raise ValueError('재판정 대상 밖 동일 의미 덮어쓰기')
 
 
 def join(output,context,*,partial=False):
@@ -281,11 +299,9 @@ def records(decoded,context,supplied,by_id,unit_id):
             if not row[key] or counts[row[key]]!=1: raise ValueError('의미 참조 누락/중복')
             segments.restore(row,by_id,segments.originals(context))
             if mode=='grounding':
-                row['proposition_refs']=list(dict.fromkeys(row['proposition_refs']))
-                if not set(row['proposition_refs'])<={p['proposition_ref'] for p in context.get('unapproved_relations',[])}: raise ValueError('제공되지 않은 원명제 가설 참조')
-                if set(row['proposition_refs']) & set(context.get('reassess_proposition_refs',[])) and row['supersedes']: raise ValueError('누락 가설의 신규 의미는 기존 의미를 교체할 수 없음')
+                proposition_refs(row,context)
                 validate_source(row,{m['meaning_key']:m for m in context.get('previous_meanings',[])})
-                if row['supersedes'] and context.get('reassess_meaning_keys') and row['supersedes'] not in context['reassess_meaning_keys']: raise ValueError('재판정 대상 밖 의미 교체')
+                reassessment_scope(row,context)
                 inventory={b['block_id'] for b in context.get('input_inventory',[])}
                 if not set(row['read_block_ids'])<=inventory: raise ValueError('추가 읽기 대상이 고정 입력 목록 밖')
                 canonical=profile.digest(body(row,context['requirement']))
@@ -324,7 +340,7 @@ def affected_keys(meanings,keys):
 
 
 def blocked_keys(output,rows):
-    keys=[c['meaning_key'] for c in output.get('source_challenges',[])]
+    keys=[c.get('meaning_key') for c in output.get('source_challenges',[])]
     keys += [e['record'].get('meaning_key') for e in output.get('record_errors',[])
         if e['section']=='source_challenges' and isinstance(e['record'],dict)]
     props={c.get('proposition_ref') for c in output.get('source_challenges',[])}

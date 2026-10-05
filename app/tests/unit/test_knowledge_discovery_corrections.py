@@ -179,6 +179,9 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
                 corrections.append(data['design_relation_ids'][0])
                 assert data['binding_checks'][0]['binding_reasons']['object']=='선정되는 대상이 행위자 유형에 잘못 연결됨'
                 assert data['design_relation_ids']==bad_id
+                assert set(data['fixed_binding_refs'])=={'subject_ref'}
+                bind_schema=next(v for v in schema['$defs']['RelationBinding']['anyOf'] if v['properties']['decision'].get('const')=='bind')
+                assert bind_schema['properties']['subject_ref']['const']==data['fixed_binding_refs']['subject_ref']
                 assert len(value['relation_bindings'])==1
                 if mode=='failed': raise ValueError('연결 교정의 독립 실패 원인')
                 if mode=='new_type_cancel':
@@ -230,6 +233,7 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
     history=run['result']['revision_history'][0];before,after=history['before'],history['after']
     assert before['id']==after['id']==bad_id[0] and before['source_relation']==after['source_relation']
     assert before['subject']==before['object'] and after['subject']!=after['object']
+    assert before['subject']==after['subject']
     current=next(c for c in run['result']['relations'] if c['id']==bad_id[0])
     assert current['object']==after['object']
     assert not run['result']['design_pending_relation_ids'] and not run['result']['review_pending_candidate_ids']
@@ -247,7 +251,34 @@ def test_binding_correction_keeps_source_id_neighbor_and_current_a3(service,mode
     assert len(model)==count and again['result']['revision_history']==run['result']['revision_history']
 
 
-@pytest.mark.parametrize('repair_source',['critic','requirements'])
+@pytest.mark.parametrize('change_fixed',[False,True])
+def test_binding_storage_rejects_fixed_endpoint_change_even_if_model_ignores_schema(service,model,monkeypatch,change_fixed):
+    from app.knowledge import discovery_synthesis as syn
+    source=prepare(service,file_ids=['current:0'])
+    run=done(service,service.start(request(source['id']))['run_id'])
+    blocks=a2.load_blocks(service,run);by={b['id']:b for b in blocks};cm=a2.profile.contexts(blocks)
+    before=deepcopy(run['result']['relations'][0]);rows=run['result']['observations']
+    context,deps,supplied=syn.context_for([before['source_relation'],*rows],by,cm)
+    context.update(binding_before=before,design_relation_ids=[before['id']],parent_group_id='fixed_endpoint',
+        fixed_binding_refs={'subject_ref':before['subject']})
+    run['recipe']['budgets'].update(model_calls=30,model_seconds=20000)
+    original=a2.model_call
+    async def generated(prompt,schema,*args):
+        result=await original(prompt,schema,*args);value=json.loads(result['text'])
+        data=json.loads(prompt.split('\nINPUT:\n')[1]);fixed=data['fixed_binding_refs']['subject_ref']
+        value['hierarchies']=[]
+        row=value['relation_bindings'][0]
+        row['subject_ref']=next(c['id'] for c in data['unapproved_observations'] if c['id']!=fixed) if change_fixed else fixed
+        result['text']=json.dumps(value);return result
+    monkeypatch.setattr(a2,'model_call',generated)
+    output=a2.call(service,run,'builder','fixed_endpoint',context,deps,by,supplied)
+    if change_fixed:
+        assert output is None and '정상 끝점 변경' in run['analysis_units'][-1]['error']
+    else:
+        assert output and output['history'][0]['after']['subject']==before['subject']
+
+
+@pytest.mark.parametrize('repair_source',['critic','requirements','both','stale'])
 def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(service,model,monkeypatch,repair_source):
     from app.knowledge import discovery_synthesis as synthesis, discovery_review as reviews
     source=prepare(service,file_ids=['current:0']);original=a2.model_call;seen=[]
@@ -279,6 +310,8 @@ def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(ser
     review=dict(issues=[],relation_checks=[dict(candidate_ref=relation['id'],judgment='supported',
         binding_checks=dict(subject='supported',object='refuted'),evidence_refs=[],evidence_id='')])
     review['review_coverage']=dict(valid_candidate_ids=[relation['id']],candidate_hashes={relation['id']:reviews.fingerprint(relation)})
+    if repair_source=='both': review['relation_checks'][0]['binding_checks']['subject']='refuted'
+    if repair_source=='stale': review['review_coverage']['candidate_hashes'][relation['id']]='stale'
     if repair_source=='requirements':
         review['requirement_binding_checks']=[dict(candidate_ref=relation['id'],judgment='refuted',repair_source='requirements',
             assessment_unit_id='requirements:q',assessment_fingerprint='current-requirement',binding_checks=dict(object='refuted'),
@@ -288,6 +321,7 @@ def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(ser
     blocks=a2.load_blocks(service,run);by_id={b['id']:b for b in blocks}
     def inspect(service,run,stage,key,context,deps,by_id,supplied):
         assert stage=='builder' and supplied[target['id']]['definition']==target['definition']
+        assert context['fixed_binding_refs']==({} if repair_source=='both' else {'subject_ref':relation['subject']})
         assert any(c['id']==target['id'] for c in context['unapproved_observations'])
         if repair_source=='requirements':
             assert context['binding_checks'][-1]['repair_source']=='requirements'
@@ -295,6 +329,10 @@ def test_correction_reuses_builder_tool_type_and_final_hierarchy_fingerprint(ser
         seen.append(target['id'])
         raise ValueError('검사 종료')
     monkeypatch.setattr(a2,'call',inspect)
+    if repair_source=='stale':
+        synthesis.revise(service,run,group,review,taxonomy,by_id,a2.profile.contexts(blocks))
+        assert seen==[] and group['correction_plan']==[]
+        return
     with pytest.raises(ValueError,match='검사 종료'):
         synthesis.revise(service,run,group,review,taxonomy,by_id,a2.profile.contexts(blocks))
     assert seen==[target['id']]

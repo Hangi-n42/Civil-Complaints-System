@@ -13,7 +13,7 @@ from . import discovery_run as grounding, discovery_models as models, discovery_
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
 
-PROMPT_VERSION = 'discovery-a2-v109'
+PROMPT_VERSION = 'discovery-a2-v110'
 
 
 def recipe(budgets):
@@ -826,6 +826,8 @@ def response_contract(run, stage, context, supplied, mapping, citation_ids):
         for field in ('subject_ref','object_ref'):
             binding[field] = (dict(type='string',enum=type_ids+local_tokens or ['']) if shared_types else
                 {'anyOf':([dict(type='string',enum=type_ids)] if type_ids else [])+[{'$ref':'#/$defs/'+designed_type}]})
+            if field in context.get('fixed_binding_refs',{}):
+                binding[field]=dict(type='string',const=mapping[context['fixed_binding_refs'][field]])
         binding_definition=schema['$defs']['RelationBinding']
         variants=[]
         for decision in ('bind','defer','source_error'):
@@ -1171,6 +1173,8 @@ def call(service, run, stage, key, context, deps, by_id, supplied=None, *, valid
                 for after in output['modeled_relations']:
                     if after['id']!=before['id'] or after['source_relation']!=(before.get('source_relation') or before):
                         raise ValueError('연결 교정의 관계 ID 또는 원명제 변경')
+                    if any(after[f.removesuffix('_ref')]!=identifier for f,identifier in context.get('fixed_binding_refs',{}).items()):
+                        raise ValueError('연결 교정에서 반박되지 않은 정상 끝점 변경')
                     record=dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=after['design_reason'])
                     if scope_contract=='scope-v1': record=discovery_scope.revision_record(before,after,after['design_reason'],context)
                     output['history'].append(record)

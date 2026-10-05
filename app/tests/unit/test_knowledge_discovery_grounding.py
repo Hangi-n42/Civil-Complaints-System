@@ -7,8 +7,8 @@ from app.knowledge import discovery_analysis as a2, discovery_meanings as m, dis
 from app.tests.unit.test_knowledge_discovery_scope import requirement_fixture
 
 
-def source(status='supported', **kwargs):
-    return dict(statement_type='rule',judgment_kind='source_content',local_negation='',read_block_ids=[],local_ref='a',meaning='조건 A이면 선정한다',applies_to='제공 업무',relation_kind='obligation',
+def source(status='supported', proposition_refs=None, **kwargs):
+    return dict(proposition_refs=proposition_refs or [],statement_type='rule',judgment_kind='source_content',local_negation='',read_block_ids=[],local_ref='a',meaning='조건 A이면 선정한다',applies_to='제공 업무',relation_kind='obligation',
         conditions='A',exceptions='',time='',negation='affirmed',applicability='required',source_status=status,
         evidence_refs=[dict(block_id='e',source_version_id='v',parse_run_id='p',span=[0,2],quote='주체')],
         source_refs=['s'],missing_source='',availability='provided',premise_refs=[],premises_complete=True,reason='원문 대조',supersedes='',**kwargs)
@@ -509,3 +509,111 @@ def test_keyed_expression_and_targeted_supersession():
     ctx=dict(meaning_phase='grounding',previous_meanings=source_output['meanings'],reassess_meaning_keys=[key],blocks=[])
     _,schema,_,_=engine.contract(ctx,{})
     assert schema['$defs']['SourceMeaning']['properties']['supersedes']['enum']==['',key]
+
+
+def test_source_hypotheses_require_actual_attempt_and_exact_current_evidence():
+    _,run,result,by,_=requirement_fixture()
+    ref=dict(block_id='e',source_version_id=by['e']['source_version_id'],parse_run_id=by['e']['parse_run_id'],
+        span=[0,2],quote=by['e']['text'][:2])
+    raw=dict(id='p1',subject='주체',predicate='선정한다',object='대상',evidence_refs=[ref])
+    run['analysis_units']=[dict(id='relation:actual',stage='relation',status='succeeded',attempts=[{'elapsed_s':1}],output=dict(relations=[raw]))]
+    ctx=dict(blocks=[dict(ref='e',text=by['e']['text'],span=[0,len(by['e']['text'])])])
+    actual=engine.proposition_hypotheses(run,ctx,by)
+    assert len(actual)==1 and actual[0]['proposition_ref']=='p1' and actual[0]['source_unit_id']=='relation:actual'
+    run['analysis_units'][0]['attempts']=[]
+    assert not engine.proposition_hypotheses(run,ctx,by)
+    run['analysis_units'][0]['attempts']=[{}]
+    ref['parse_run_id']='different'
+    assert not engine.proposition_hypotheses(run,ctx,by)
+    ref['parse_run_id']=by['e']['parse_run_id'];ctx['blocks'][0]['span']=[2,len(by['e']['text'])]
+    assert not engine.proposition_hypotheses(run,ctx,by)
+
+
+def test_finite_source_lists_keep_complete_duplicates_but_not_missing_coverage(monkeypatch):
+    import jsonschema
+    run,result,by,_,_,_,_=receipt_fixture(monkeypatch)
+    ctx=a2.segments.bind(engine.plan(run,result,by)[0]['context'],'fixed','g',stable=True)
+    refs=list(dict.fromkeys(v['source_ref'] for v in a2.segments.originals(ctx)))
+    _,schema,_,_=engine.contract(ctx,{})
+    assert schema['properties']['examined_source_refs']['maxItems']==len(refs)
+    row={k:v for k,v in source().items() if k!='evidence_refs'};row['source_refs']=refs
+    response=dict(meanings=[row],examined_source_refs=refs*2,reason='대조')
+    with pytest.raises(jsonschema.ValidationError): jsonschema.validate(response,schema)
+    saved=m.records(response,ctx,{},by,'g')
+    assert saved['examined_source_refs']==refs and response['examined_source_refs']==refs*2
+    with pytest.raises(ValueError,match='조사 범위 누락'):
+        m.records(dict(response,examined_source_refs=[]),ctx,{},by,'g')
+
+
+@pytest.mark.parametrize('mapped',[False,True])
+def test_missing_hypothesis_challenge_reenters_original_source_and_preserves_sibling(monkeypatch,mapped):
+    import jsonschema
+    run,result,by,_,d,_,_=receipt_fixture(monkeypatch)
+    original=run['analysis_units'][0];normal=deepcopy(original['output']['meanings'][0])
+    hypothesis=dict(proposition_ref='p1',source_unit_id='relation:actual',evidence_refs=normal['evidence_refs'])
+    original['grounding_context']['unapproved_relations']=[hypothesis]
+    d['context']['unapproved_relations']=[hypothesis]
+    ctx=a2.segments.bind(d['context'],'fixed','r',stable=True)
+    refs=[v['source_ref'] for v in a2.segments.originals(ctx)]
+    request=dict(meaning_key='',proposition_ref='p1',reason='원문 가설 전체 미대응',proposed_meaning='추가 의무',source_refs=refs)
+    _,schema,_,_=engine.contract(ctx,d['supplied'])
+    challenge_schema={'$defs':schema['$defs'],'$ref':'#/$defs/Challenge'}
+    jsonschema.validate(request,challenge_schema)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(dict(request,meaning_key=normal['meaning_key']),challenge_schema)
+    response=dict(checks={},source_challenges=[request],reason='대조')
+    output=m.records(response,ctx,d['supplied'],by,'r')
+    assert not output['record_errors']
+    calls=[]
+    def call(service,current,stage,key,context,*_):
+        assert context['reassess_proposition_refs']==['p1'] and context['reassess_meaning_keys']==[]
+        assert context['previous_meanings']==[normal]
+        calls.append(key)
+        row=dict(source('refuted',proposition_refs=['p1'] if mapped else []),meaning='가설 반박',local_ref='new')
+        value=m.grounding(dict(meanings=[row],examined_source_refs=['s'],reason='원문 대조'),
+            dict(context,expected_source_refs=['s']))
+        current['analysis_units'].append(dict(id=stage+':'+key,stage=stage,status='succeeded',output=value))
+        return value
+    monkeypatch.setattr(a2,'call',call);monkeypatch.setattr(a2,'save',lambda *_:None)
+    assert engine.challenge(None,run,d,output,by)
+    latest=run['analysis_units'][-1]
+    assert latest['output']['pending_proposition_refs']==([] if mapped else ['p1'])
+    assert next(v for v in latest['output']['meanings'] if v['meaning_key']==normal['meaning_key'])==normal
+    assert not engine.challenge(None,run,d,output,by) and len(calls)==1
+
+
+@pytest.mark.parametrize('exhausted',[False,True])
+def test_failed_or_exhausted_hypothesis_reassessment_keeps_question_pending(monkeypatch,exhausted):
+    run,result,by,_,d,output,_=receipt_fixture(monkeypatch)
+    original=run['analysis_units'][0];normal=original['output']['meanings'][0]
+    original['grounding_context']['unapproved_relations']=[dict(proposition_ref='p1',evidence_refs=normal['evidence_refs'])]
+    check=output['checks'][0];check.update(action='maintain',status='represented',locations=[dict(candidate_ref='c',field='definition')])
+    join=engine.plan(run,result,by)[-1]
+    run['analysis_units'].append(dict(id=join['id'],stage='requirements',status='succeeded',dependency_ids=['e'],
+        output=dict(connections=[dict(meaning_key=normal['meaning_key'],premises_complete=True,scope_consistent=True,expression_consistent=True)],source_challenges=[])))
+    assert engine.saved(run,result,by,set(by))[0]['judgment']=='supported'
+    output['source_challenges']=[dict(meaning_key='',proposition_ref='p1',reason='누락 가설',proposed_meaning='재판정',evidence_refs=normal['evidence_refs'])]
+    if exhausted: original['grounding_actions']=['challenge']
+    def failed(service,current,stage,key,*_):
+        current['analysis_units'].append(dict(id=stage+':'+key,stage=stage,status='failed',error='출력 절단'))
+        return None
+    monkeypatch.setattr(a2,'call',failed);monkeypatch.setattr(a2,'save',lambda *_:None)
+    assert not engine.challenge(None,run,d,output,by)
+    saved=engine.saved(run,result,by,set(by))[0]
+    assert saved['judgment']=='unknown' and d['id'] in saved['pending_units']
+    assert saved['meanings'][0]['action']=='maintain'
+
+
+@pytest.mark.parametrize('explicit',[False,True])
+def test_new_hypothesis_cannot_overwrite_normal_sibling_via_key_or_body(monkeypatch,explicit):
+    run,_,by,_,_,_,_=receipt_fixture(monkeypatch)
+    original=run['analysis_units'][0];normal=deepcopy(original['output']['meanings'][0])
+    ctx=a2.segments.bind(dict(original['grounding_context'],previous_meanings=[normal],
+        reassess_meaning_keys=[],reassess_proposition_refs=['p1'],unapproved_relations=[dict(proposition_ref='p1')]),'fixed','g',stable=True)
+    row={k:v for k,v in source('unknown').items() if k!='evidence_refs'}
+    row.update(source_refs=[v['source_ref'] for v in a2.segments.originals(ctx)],
+        supersedes=normal['meaning_key'] if explicit else '',meaning='다른 의미' if explicit else normal['meaning'])
+    good=dict(row,local_ref='new',meaning='새 가설의 원문 반박',source_status='refuted',supersedes='',proposition_refs=['p1'])
+    value=m.records(dict(meanings=[row,good],examined_source_refs=row['source_refs'],reason='대조'),ctx,{},by,'g')
+    assert len(value['record_errors'])==1 and value['pending_proposition_refs']==[]
+    assert next(m for m in value['meanings'] if m['meaning_key']==normal['meaning_key'])==normal
