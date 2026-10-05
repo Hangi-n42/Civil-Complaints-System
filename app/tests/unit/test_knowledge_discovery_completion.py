@@ -115,7 +115,7 @@ def test_modeled_relation_preservation_uses_only_supported_natural_fields_withou
 def test_critic_capacity_matches_http_and_input_reservation_with_legacy_fallback(monkeypatch):
     import asyncio
     from app.knowledge import discovery_synthesis as synthesis
-    recipe=a2.recipe({});run=dict(id='capacity',recipe=recipe,cqs=[],scope_items=[])
+    recipe=a2.recipe({});run=dict(id='capacity',recipe=recipe,cqs=[],scope_items=[],frontier=[],analysis_units=[])
     sent=[]
     async def capture(self,prompt,**kwargs):
         sent.append(kwargs);return {}
@@ -123,8 +123,8 @@ def test_critic_capacity_matches_http_and_input_reservation_with_legacy_fallback
     for stage,expected in [('critic',8192),('binding',8192),('concept',4096),('context',4096),('requirements',8192)]:
         asyncio.run(a2.model_call('input',{},stage,run,720))
         assert sent[-1]['num_predict']==expected and sent[-1]['timeout']==720
-        context={'target':{'label':'target','cq_ids':[],'scope_item_ids':[]}} if stage=='context' else {'review_component':'binding'} if stage=='binding' else {}
-        size=synthesis.input_size(run,'critic' if stage=='binding' else stage,context,[],{})
+        context={'target':{'label':'target','cq_ids':[],'scope_item_ids':[]}} if stage=='context' else {'review_component':'binding','review_target_ids':['c']} if stage=='binding' else {}
+        size=synthesis.input_size(run,'critic' if stage=='binding' else stage,context,[],{'c':dict(id='c')} if stage=='binding' else {})
         assert size['input_bytes_limit']==recipe['num_ctx']-expected
     legacy=deepcopy(recipe);legacy.pop('critic_num_predict')
     assert a2.output_tokens(legacy,'critic')==4096
@@ -463,6 +463,7 @@ def test_final_call_schema_cannot_widen_requirement_cause_verdict(monkeypatch):
     monkeypatch.setattr(a2,'model_call',capture);monkeypatch.setattr(a2,'model_identity',lambda _: {})
     monkeypatch.setattr(a2,'save',lambda *_:None);monkeypatch.setattr(a2,'cancelled',lambda *_:False)
     monkeypatch.setattr(a2,'allowed_ids',lambda *_:set(by_id))
+    monkeypatch.setattr(a2,'recipe',lambda _:deepcopy(run['recipe']))  # Execute the frozen legacy schema.
     a2.call(None,run,'requirements','capture',context,deps,by_id,supplied)
     assert len(captured)==1,run['analysis_units']
     data,schema=captured[0];ref=a2.segments.originals(data)[0]['source_ref']
@@ -1227,7 +1228,8 @@ def test_requirements_capacity_changes_only_its_http_and_preserves_context_cache
         asyncio.run(a2.model_call('input',{},stage,run,1800))
         assert sent[-1]['num_ctx']==(81920 if stage=='requirements' else 65536)
         assert sent[-1]['num_predict']==(16384 if stage=='requirements' else a2.output_tokens(prior['recipe'],stage))
-    monkeypatch.setattr(a2,'make_prompt',lambda *_: ({},'x'*60000))
+    schema_bytes=synthesis.input_size(run,'requirements',{},[],{})['schema_bytes']
+    monkeypatch.setattr(a2,'make_prompt',lambda *_: ({},'x'*(60000-schema_bytes)))
     run['recipe']['input_chars']=70000
     assert synthesis.fits(run,'requirements',{},[],{})
     assert not synthesis.fits(run,'critic',{},[],{})
@@ -1255,7 +1257,8 @@ def test_requirements_context_support_is_checked_only_on_review_model(monkeypatc
 
 
 @pytest.mark.parametrize('actual_tokens',[65536,65537])
-def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(monkeypatch,actual_tokens):
+@pytest.mark.parametrize('overflow',[False,True])
+def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(monkeypatch,actual_tokens,overflow):
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_NUM_CTX',65536)
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_INPUT_CHARS',70000)
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX',81920)
@@ -1264,9 +1267,12 @@ def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(
     run.update(id='capacity',status='running',model_identity={},metrics=dict(llm_calls=0,model_total_s=0))
     context,deps,supplied=req.packet(run,result,'cq',run['cqs'][0],by,cm)
     original=a2.make_prompt;called=[]
+    size=a2.input_size(run,'requirements',context,deps,supplied)
+    prompt_bytes=size['input_bytes_limit']-size['schema_bytes']+int(overflow)
+    frozen=deepcopy(context)
     def padded(*args,**kwargs):
         mapping,prompt=original(*args,**kwargs)
-        return mapping,prompt+' '*(60000-len(prompt.encode()))
+        return mapping,prompt+' '*(prompt_bytes-len(prompt.encode()))
     async def capture(*_):
         called.append(True)
         # The intentionally empty record isolates the capacity check before schema validation.
@@ -1274,8 +1280,18 @@ def test_requirement_call_uses_selected_context_for_preflight_and_actual_tokens(
     monkeypatch.setattr(a2,'make_prompt',padded);monkeypatch.setattr(a2,'model_call',capture)
     monkeypatch.setattr(a2,'model_identity',lambda _:{});monkeypatch.setattr(a2,'save',lambda *_:None)
     monkeypatch.setattr(a2,'cancelled',lambda *_:False);monkeypatch.setattr(a2,'allowed_ids',lambda *_:set(by))
+    monkeypatch.setattr(a2,'recipe',lambda _:deepcopy(run['recipe']))
+    from app.knowledge import discovery_synthesis as synthesis
+    assert synthesis.fits(run,'requirements',context,deps,supplied) is (not overflow)
+    assert context==frozen
     a2.call(None,run,'requirements','capacity',context,deps,by,supplied)
     unit=run['analysis_units'][-1]
+    if overflow:
+        assert not called and not unit['attempts'] and run['metrics']['llm_calls']==0
+        assert '응답 스키마' in unit['error']
+        return
     assert called==[True],unit
+    assert unit['schema_bytes']==size['schema_bytes']
+    assert unit['request_input_bytes']==size['input_bytes_limit']
     assert ('실제 입력 토큰/컨텍스트 확인 실패' in unit['error']) is (actual_tokens==65537)
     assert '보수적 토큰 상한' not in unit['error']

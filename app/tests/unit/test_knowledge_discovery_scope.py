@@ -105,6 +105,7 @@ def requirement_fixture():
         meanings=[dict(meaning='조건 A',cq_ids=['q'],scope_item_ids=[])],evidence_refs=[])
     run=dict(recipe=a2.recipe(dict(model_calls=40,model_seconds=12000,additional_rounds=1,revisions=1,searches=0)),
         cqs=[dict(id='q',question='선정 조건은?')],scope_items=[],frontier=[group],base_candidates=[],analysis_units=[],recovery_requests=[recovery])
+    run['recipe'].pop('meaning_contract',None)  # Frozen legacy requirement receipts.
     result=dict(observations=[c],relations=[],taxonomy=[])
     by_id={'e':b};cm=a2.profile.contexts([b])
     return req,run,result,by_id,cm
@@ -220,6 +221,7 @@ def test_review_consumption_preserves_requirement_calls_under_budget_pressure(se
     ctx.update(review_target_ids=[candidate['id']],taxonomy=dict(hierarchies=[]))
     def selected_recipe(budgets):
         value=SCOPED_RECIPE(budgets)
+        value.pop('meaning_contract',None)
         if not source_discovery: value.pop('source_context_contract',None)
         return value
     monkeypatch.setattr(a2,'recipe',selected_recipe)

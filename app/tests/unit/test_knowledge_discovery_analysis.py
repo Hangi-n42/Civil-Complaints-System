@@ -107,6 +107,7 @@ def model(monkeypatch):
     prior_recipe=a2.recipe
     def legacy_recipe(budgets):
         value=prior_recipe(budgets)
+        value.pop('meaning_contract',None)
         value['definition_contract']='source-role-v1'
         value.pop('claim_review_contract',None)
         value.pop('context_contract',None)

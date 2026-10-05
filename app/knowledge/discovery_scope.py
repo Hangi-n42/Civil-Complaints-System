@@ -159,7 +159,7 @@ def revision_record(before, after, reason, context):
     needed=deepcopy(context['required_context']) if 'required_context' in context else required_context(before,checks)
     after['revision_basis_hash']=digest([before,basis,needed])
     return dict(candidate_id=before['id'],before=deepcopy(before),after=deepcopy(after),reason=reason,
-        preservation_basis=basis,required_context=needed)
+        preservation_basis=basis,required_context=needed,grounded_repairs=deepcopy(context.get('grounded_repairs',[])))
 
 
 def required_context(before, checks):
@@ -598,6 +598,7 @@ def context_unit_ids(run,context,by_id,supplied):
 
 
 def requirement_application(run,context,by_id):
+    if run['recipe'].get('meaning_contract')=='grounded-meanings-v1': return None
     if run['recipe'].get('context_applicability_contract')!='scoped-v1' or not context.get('source_context_proposals'): return None
     requirement=context['requirement'];kind=requirement['kind'];identifier=requirement['id']
     target=dict(label=requirement.get('question',requirement.get('description',requirement.get('label',''))),scope_kind='requirement',
