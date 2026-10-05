@@ -78,7 +78,7 @@ def main():
     parser.add_argument('--execute',action='store_true')
     parser.add_argument('--builder-from',type=Path,help='Completed frozen comparison; import each arm Concept unchanged and call only previously uncalled Builders')
     args=parser.parse_args();root=args.output
-    source=json.loads(args.input.read_text());configure(source['run']['recipe'])
+    source=json.loads(args.input.read_text(encoding='utf-8'));configure(source['run']['recipe'])
     if not args.execute:
         root.mkdir(parents=True,exist_ok=False)
         cases=[dict(id='definitions',block_id='2641967317ad4690b7e90a099987e208',primary_span=[0,628],
@@ -99,8 +99,8 @@ def main():
         run=clean_run(source['run']);run['model_identity']=a2.model_identity(run['recipe'])
         data=dict(run=run,blocks=source['blocks'],cases=cases);prior_hashes={}
         if args.builder_from:
-            receipt=json.loads((args.builder_from/'execution/receipt.json').read_text())
-            prior_freeze=json.loads((args.builder_from/'freeze.json').read_text())
+            receipt=json.loads((args.builder_from/'execution/receipt.json').read_text(encoding='utf-8'))
+            prior_freeze=json.loads((args.builder_from/'freeze.json').read_text(encoding='utf-8'))
             assert receipt['source_unchanged'] and receipt['runtime_unchanged']
             assert prior_freeze['source_input_sha256']==digest(args.input) and prior_freeze['source_db_sha256']==digest(args.source_db)
             assert all(c['stage']=='concept' for c in receipt['calls']), 'Builder calls already attempted'
@@ -109,7 +109,7 @@ def main():
             for case in cases:
                 for arm in ('N0','N1'):
                     path=args.builder_from/'execution'/f'{case["id"]}_{arm}.json';paths.append(path)
-                    data['prior_arms'][case['id']+'_'+arm]=json.loads(path.read_text())
+                    data['prior_arms'][case['id']+'_'+arm]=json.loads(path.read_text(encoding='utf-8'))
             prior_hashes={str(p.resolve()):digest(p) for p in paths}
         for case in cases: case['file_id']=next(b['file_id'] for b in source['blocks'] if b['id']==case['block_id'])
         write(root/'inputs.json',data)
@@ -156,7 +156,7 @@ def main():
             shared_relation_new_http=0,shared_relation_logical_cost='Each arm includes its original saved Relation attempt; not new HTTP',
             semantic_retries=0,development_exposed=True))
         print(json.dumps(dict(prepared=True,checks=checks),ensure_ascii=False));return
-    frozen=json.loads((root/'freeze.json').read_text());data=json.loads((root/'inputs.json').read_text())
+    frozen=json.loads((root/'freeze.json').read_text(encoding='utf-8'));data=json.loads((root/'inputs.json').read_text(encoding='utf-8'))
     assert digest(root/'inputs.json')==frozen['input_sha256'] and digest(args.source_db)==frozen['source_db_sha256']
     assert digest(args.input)==frozen['source_input_sha256']
     assert all(digest(Path(p))==h for p,h in frozen.get('prior_hashes',{}).items())
