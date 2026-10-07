@@ -208,6 +208,35 @@ class ScopedRequirementGroundingCheck(RequirementGroundingCheck):
     meanings: list[ScopedRequiredMeaningCheck]
 
 
+class RootedRequirementLink(RequirementLink):
+    requirement_quote: str = Field(description='Exact question/criterion quotation that requests this direct answer. Empty for a premise or background; situation alone is not a requested fact.')
+
+
+class RootedRequiredMeaningCheck(ScopedRequiredMeaningCheck):
+    requirement_link: RootedRequirementLink
+
+
+class RootedRequirementSourceCheck(ScopedRequirementSourceCheck):
+    meanings: list[RootedRequiredMeaningCheck]
+
+
+class RootedRequirementGroundingCheck(ScopedRequirementGroundingCheck):
+    meanings: list[RootedRequiredMeaningCheck]
+
+
+class RequirementLinkUpdate(BaseModel):
+    key: str
+    requirement_link: RootedRequirementLink
+    premise_keys: list[str] | None
+    evidence: list[EvidenceQuote]
+    reason: str
+    required_for_requirement: bool
+
+
+class RequirementLinkReassessment(GroundingCheck):
+    meanings: list[RequirementLinkUpdate]
+
+
 class GroundedMeaningChallenge(MeaningChallenge):
     evidence: list[EvidenceQuote]
 

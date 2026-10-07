@@ -356,3 +356,76 @@ def test_unresolved_applicability_blocks_only_linked_claim_and_legacy_records_st
     assessment['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], source)
     assert business_use.eligibility(run)[0] == set(ids)
     assert business_run.requirement_completion(assessment)['status'] == 'satisfied'
+
+
+def test_answer_roots_expand_actual_premises_and_retain_unconnected_uncertainty():
+    run = local_run(); run['recipe']['review_contract'] = review.ANSWER_SCOPE_EXPERIMENT
+    req = dict(question='신청기한은 언제까지인가?', criterion='기산점과 단위를 구별한다.', situation='방문기관 선택')
+    def item(key, contribution, required, quote='', premises=()):
+        return dict(meaning(key), required_for_requirement=required, premise_keys=list(premises),
+            requirement_link=dict(contribution=contribution, requirement_quote=quote))
+    rows = [item('deadline', 'direct_answer', True, '신청기한', ['condition']),
+            item('condition', 'necessary_premise', False), item('exception', 'necessary_premise', False),
+            item('adjacent', 'background', False), item('unconnected', 'necessary_premise', True),
+            item('context_only', 'direct_answer', True, '방문기관 선택')]
+    source = dict(meanings=rows, review_contract=review.CONTRACT,
+        answer_scope_contract=review.ANSWER_SCOPE_CONTRACT, answer_request=req,
+        meaning_conjunctions=[dict(meaning_keys=['condition', 'exception'])])
+    before = deepcopy(source)
+    assert [m['key'] for m in review.review_meanings(source)] == ['deadline', 'condition', 'exception']
+    assert {x['meaning_key'] for x in review.answer_scope_issues(source)} == {'unconnected', 'context_only'}
+    assert source == before  # Background, original relevance, and unresolved links survive.
+    assessment = dict(source=dict(source, completeness='complete', gaps=[], meaning_gaps=[]),
+        representation=judgments(['deadline', 'condition', 'exception'], ids=['normal']),
+        errors=[], preservation_complete=True)
+    assessment['representation'].update(satisfied=True, conjunctions_satisfied=True)
+    assert business_run.requirement_completion(assessment)['status'] == 'partial'
+    instruction, context, schema = review.source_request(run, req, dict(blocks=run['blocks']), 0, 1)
+    assert context['answer_request'] == {k: req[k] for k in ('question', 'criterion')}
+    assert context['application_context'] == dict(situation='방문기관 선택')
+    assert 'requirement' not in context and schema.__name__ == 'RootedRequirementSourceCheck'
+    from json import loads
+    private = dict(req, current_assessment={'status': 'old_model_judgment'}, history=['private'])
+    instruction, context, schema = review.source_request(run, private, dict(blocks=run['blocks']), 0, 1)
+    request = business_run.json_request(run, 'requirement_source', instruction, context, schema)
+    supplied = loads(request['messages'][-1]['content'])
+    assert supplied['application_context'] == dict(situation='방문기관 선택')
+    run['recipe']['review_contract'] = review.CONTRACT
+    _, default_context, default_schema = review.source_request(run, req, dict(blocks=run['blocks']), 0, 1)
+    assert default_schema.__name__ == 'ScopedRequirementSourceCheck' and default_context['requirement'] == req
+
+    legacy = dict(source); legacy.pop('answer_scope_contract')
+    assert {m['key'] for m in review.review_meanings(legacy)} >= {'unconnected', 'context_only'}
+
+
+def test_invalid_answer_link_reuses_partial_source_reassessment_without_rewriting_facts(monkeypatch):
+    run = local_run(); run['recipe']['review_contract'] = review.ANSWER_SCOPE_EXPERIMENT
+    req = dict(question='기간은?', criterion='기간을 보존한다', situation='기관 선택')
+    normal = dict(meaning('normal'), required_for_requirement=True,
+        requirement_link=dict(requested_fact='기간', applicability='applicable', contribution='direct_answer',
+            reason='직접 요구', requirement_quote='기간'))
+    adjacent = dict(meaning('adjacent'), required_for_requirement=True,
+        requirement_link=dict(requested_fact='기관 선택', applicability='applicable', contribution='direct_answer',
+            reason='방문 상황을 질문으로 오독', requirement_quote='기관 선택'))
+    source = dict(meanings=[normal, adjacent], review_contract=review.CONTRACT,
+        answer_scope_contract=review.ANSWER_SCOPE_CONTRACT, answer_request={k:req[k] for k in ('question','criterion')},
+        examined_block_ids=['body'], completeness='unknown', gaps=[], meaning_gaps=[], meaning_conjunctions=[], findings=[])
+    original = deepcopy(source); calls=[]
+    def answer(service, active, stage, instruction, context, schema):
+        calls.append(context);active['units'].append(dict(id='partial-link'))
+        assert stage=='source_reassessment' and schema.__name__=='RequirementLinkReassessment'
+        assert [m['key'] for m in context['previous']['meanings']]==['adjacent']
+        assert context['challenges'][0]['invalid_requirement_quote']=='기관 선택'
+        assert context['answer_request']==source['answer_request']
+        patch=dict(key='adjacent', required_for_requirement=False, premise_keys=[], evidence=adjacent['evidence'],
+            requirement_link=dict(requested_fact='', applicability='applicable', contribution='background',
+                                  reason='직접 답변에 필요 없음', requirement_quote=''), reason='원문 사실은 유지')
+        return dict(meanings=[patch], examined_block_ids=['body'], completeness='complete',gaps=[],
+                    conjunctions=[],meaning_gaps=[],meaning_conjunctions=[])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    result=review.reassess_source(None, run, req, dict(source=source), review.answer_scope_challenges(source))
+    assert len(calls)==1 and source==original and result['meanings'][0]==normal
+    updated=result['meanings'][1]
+    for field in ('statement','conditions','exceptions','period','references','source_status','availability'):
+        assert updated[field]==adjacent[field]
+    assert not review.answer_scope_challenges(result) and not updated['required_for_requirement']

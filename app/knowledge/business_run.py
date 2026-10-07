@@ -325,8 +325,9 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
     context = deepcopy(context)
     # Public requirements are criteria, not previous model judgments/history.
     public_keys = {'id', 'revision', 'question_ids', 'question', 'target', 'situation', 'period', 'criterion', 'source_ids', 'required'}
-    if 'requirement' in context:
-        context['requirement'] = {k: v for k, v in context['requirement'].items() if k in public_keys}
+    for field in ('requirement', 'answer_request', 'application_context'):
+        if field in context:
+            context[field] = {k: v for k, v in context[field].items() if k in public_keys}
     evidence_views = None
     if issubclass(output_type, (RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
         evidence_views = {f'e{n + 1}': deepcopy(b) for n, b in enumerate(context.get('blocks', []))}
@@ -545,6 +546,7 @@ def requirement_completion(assessment, accepted_ids=None):
     required_ids = {cid for c in checks if c['meaning_key'] in required for cid in c['claim_ids']}
     complete = (source.get('completeness') == 'complete' and not source.get('gaps') and not source.get('meaning_gaps')
         and bool(business_review.review_meanings(source)) and bool(required)
+        and not business_review.answer_scope_issues(source)
         and all(m['source_status'] == 'supported' and m['availability'] == 'provided' for m in business_review.review_meanings(source))
         and all((m.get('requirement_link') or {}).get('applicability') != 'unresolved'
                 for m in business_review.review_meanings(source))
@@ -554,6 +556,11 @@ def requirement_completion(assessment, accepted_ids=None):
         and not representation.get('source_challenges') and not representation.get('meaning_challenges') and not assessment['errors']
         and assessment.get('preservation_complete', False)
         and (accepted_ids is None or required_ids <= set(accepted_ids)))
+    if assessment.get('candidate_accuracy_contract'):
+        complete = complete and all(
+            any(c.get('claim_support', {}).get(cid) == 'supported' for c in checks)
+            and not any(c.get('claim_support', {}).get(cid) in {'unknown', 'incorrect'} for c in checks)
+            for cid in required_ids)
     return dict(status='satisfied' if complete else 'partial' if representation else 'unknown',
                 required_claim_ids=sorted(required_ids), completion_contract=COMPLETION_CONTRACT)
 
@@ -583,7 +590,11 @@ def assess(service, run, requirement, *, source=None, phase='initial', previous_
     assessment = dict(id=uuid4().hex, requirement_id=requirement['id'], revision=requirement['revision'],
                       phase=phase, source=source, representation=None, status='unknown', claim_ids=[], actions=[], errors=[],
                       source_record_challenges=[], issues=[])
+    if business_review.owned_errors(run):
+        assessment['candidate_accuracy_contract'] = 'candidate-own-source-errors-v1'
     if source:
+        if source.get('answer_scope_contract'):
+            assessment['answer_scope_issues'] = business_review.answer_scope_issues(source)
         provided_ids = {b['id'] for b in blocks}
         declared_ids = set(source['examined_block_ids'])
         # Delivery, a model's examination declaration, and semantic completeness
@@ -689,6 +700,13 @@ def assess(service, run, requirement, *, source=None, phase='initial', previous_
                                                       review_unit_ids=check.get('review_unit_ids', []),
                                                       error_fields=deepcopy(check.get('error_fields', {})),
                                                       error_evidence=deepcopy(check.get('error_evidence', []))))
+                pending = [a for a in check.get('error_attributions', []) if a['status'] == 'unresolved_error_attribution']
+                if pending:
+                    assessment['claim_ids'].extend(a['claim_id'] for a in pending)
+                    assessment['actions'].append(dict(meaning_key=meaning['key'], action='hold',
+                        claim_ids=[a['claim_id'] for a in pending], reason='Candidate error attribution to its own source is unresolved.',
+                        review_unit_ids=check.get('review_unit_ids', []), error_attributions=deepcopy(pending),
+                        source_reassessment_needed=False))
             expected_preservation = {v['before']['id'] for r in repair_context for v in r['changes'] if v['before']}
             preserved = {p['target_id'] for p in representation['preservation_checks'] if p['status'] == 'preserved'
                          and p['before_normal_meanings'] and p['after_locations']}
@@ -1125,7 +1143,8 @@ def execute(service, run_id):
                     assessment = assess(service, run, requirement, source=expanded, phase='additional_source_read')
                     representation = assessment.get('representation') or {}
             challenges = [*representation.get('source_challenges', []), *representation.get('meaning_challenges', []),
-                          *assessment.get('source_record_challenges', []), *business_review.source_row_challenges(run, assessment)]
+                          *assessment.get('source_record_challenges', []), *business_review.source_row_challenges(run, assessment),
+                          *business_review.answer_scope_challenges(assessment.get('source') or {})]
             if challenges:
                 source = business_review.reassess_source(service, run, requirement, assessment, challenges) if business_review.current(run) else json_call(
                     service, run, 'source_reassessment', SOURCE_PROMPT, dict(requirement=requirement,

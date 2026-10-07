@@ -261,3 +261,89 @@ def test_execute_routes_literal_row_dispute_to_existing_reassessment_once(monkey
     assert len(calls) == 1 and {c['meaning_key'] for c in calls[0]} == {'m0', 'm1', 'm2', 'm3', 'm4'}
     assert run['claims'] == before and run['status'] == 'partial' and not run.get('error')
     assert run['repairs'][-1]['protected_source_rows'] and not run['repairs'][-1]['changes']
+
+
+def test_owned_error_boundary_preserves_other_version_without_repair_or_hidden_candidate(monkeypatch):
+    from app.knowledge import business_store, business_use
+    from app.tests.unit.test_knowledge_business_separated_review import synthesis
+    run, req, _ = case()
+    run['recipe']['review_contract'] = review.CONTRACT
+    row_blocks = run['blocks'][-2:]
+    row_blocks[1]['locator']['fields']['값'] = 2.5
+    row_blocks[1]['text'] = json.dumps(row_blocks[1]['locator']['fields'], ensure_ascii=False)
+    run['chunks'] = autoschema.chunks(run['blocks'], 49152, 8192, 1000)
+    rows = [business_run.direct_tabular_row(next(c for c in run['chunks'] if any(b['id']==row['id'] for b in c['blocks'])), row, i)
+            for i, row in enumerate(row_blocks)]
+    run['claims'] = rows
+    old, new = [c['id'] for c in rows]
+    before = deepcopy(rows)
+    m = dict(meaning('latest'), required_for_requirement=True)
+    m['statement'] = '항목_ID 001 순번 7의 값은 2.5다.'
+    m['evidence'] = rows[1]['evidence']
+    source = dict(meanings=[m], review_contract=review.CONTRACT, examined_block_ids=[b['id'] for b in run['blocks']],
+        source_batches=[], source_selection={}, findings=[], completeness='complete', gaps=[], conjunctions=[])
+    calls = []
+    def answer(service, run, stage, instruction, context, schema):
+        calls.append(deepcopy(context));run['units'].append(dict(id=str(len(calls))))
+        if context['mode']=='requirement_join': return synthesis()
+        assert {c['id'] for c in context['claims']} == {old, new}
+        assert {v['claim_id'] for v in context['source_row_integrity']} == {old, new}
+        output = judgments(['latest'], ids=[new])
+        output['checks'][0].update(incorrect_claim_ids=[old], claim_support={new:'supported',old:'not_assessed'},
+            error_fields={old:['raw.fields.값']}, error_evidence=deepcopy(rows[1]['evidence']))
+        run['units'][-1]['response'] = dict(parsed=deepcopy(output))
+        return output
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    monkeypatch.setattr(business_run, 'cancelled', lambda *_: False)
+    monkeypatch.setattr(business_run, 'save', lambda *_: None)
+    monkeypatch.setattr(business_store, 'save_assessment', lambda *_: None)
+    result = business_run.assess(None, run, req, source=source)
+    check = result['representation']['checks'][0]
+    assert result['status']=='satisfied' and check['incorrect_claim_ids']==[]
+    assert check['claim_support'][old]=='not_assessed'  # Exact raw is not whole-candidate approval.
+    assert check['error_attributions'][0]['status']=='rejected_literal_source_match'
+    assert run['units'][0]['response']['parsed']['checks'][0]['incorrect_claim_ids']==[old]
+    assert not any(a['action']=='correct' for a in result['actions'])
+    assert review.source_row_challenges(run, result)==[] and not business_run.repair(None, run, req, result)
+    assert business_use.eligibility(run)[0]=={new} and rows==before
+    # A real wrong raw value and an independently alleged Scope error remain reviewable.
+    altered = deepcopy(rows[0]);altered['raw']['fields']['값']=9
+    for candidate, field in [(altered, 'raw.fields.값'), (rows[0], 'interpretation.raw')]:
+        check = dict(meaning_key='latest',status='represented',claim_ids=[new],incorrect_claim_ids=[old],
+            claim_support={new:'supported',old:'incorrect'},error_fields={old:[field]},error_evidence=rows[0]['evidence'],reason='자기 원문 대조')
+        review.own_source_errors(run,check,[candidate,rows[1]],run['blocks'])
+        assert check['incorrect_claim_ids']==[old] and check['error_attributions'][0]['status']=='accepted'
+
+
+def test_unowned_error_stays_candidate_unknown_without_blocking_independent_normal():
+    from app.knowledge import business_use
+    run = local_run();run['recipe']['review_contract']=review.CONTRACT;run['units']=[dict(id='u')]
+    normal, disputed = [c['id'] for c in run['claims']]
+    other = dict(block('other','다른 출처의 원문'),source_version_id='other-version')
+    run['blocks'].append(other)
+    check = dict(meaning_key='m',status='represented',claim_ids=[normal],incorrect_claim_ids=[disputed],
+        claim_support={normal:'supported',disputed:'incorrect'},error_fields={disputed:['raw.Relation']},
+        error_evidence=[dict(block_id='other',quote=other['text'])],reason='다른 출처에 근거한 오류 지목')
+    review.own_source_errors(run,check,run['claims'],run['blocks'])
+    assert check['incorrect_claim_ids']==[] and check['claim_support'][disputed]=='unknown'
+    assert review.expression_attribution_valid(check,{normal,disputed})
+    source=dict(review_contract=review.CONTRACT,meanings=[dict(meaning('m'),required_for_requirement=True)],completeness='complete',gaps=[])
+    representation=judgments(['m']);representation['checks']=[check]
+    a=dict(id='a',requirement_id='r',source=source,representation=representation,errors=[],issues=[],
+           preservation_complete=True,candidate_accuracy_contract='candidate-own-source-errors-v1')
+    a['input_fingerprint']=business_run.assessment_fingerprint(run,run['requirements'][0],source)
+    run['assessments']=[a]
+    eligible,blocked=business_use.eligibility(run)
+    assert eligible=={normal} and 'unresolved_claim_support' in blocked[disputed]
+    assert business_run.requirement_completion(a)['status']=='satisfied'
+    from app.tests.unit.test_knowledge_business_separated_review import synthesis
+    response = synthesis()
+    response['checks'] = [dict(check, claim_support={normal: 'supported'}, error_fields={},
+        error_attributions=[], error_evidence=[], evidence=meaning('m')['evidence'], revision_basis='prior_misreading')]
+    joined, valid, _, errors = review.retain_synthesis(representation, response, {'m'}, {normal, disputed}, run['blocks'])
+    assert valid and not errors
+    retained = joined['checks'][0]
+    assert retained['claim_support'][disputed] == 'unknown'
+    assert retained['error_attributions'] == check['error_attributions']
+    check['claim_ids']=[disputed]
+    assert business_run.requirement_completion(a)['status']=='partial'
