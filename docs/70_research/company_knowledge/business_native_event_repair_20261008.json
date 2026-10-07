@@ -2165,5 +2165,16 @@
       617,
       620
     ]
+  },
+  "database_provenance": {
+    "parent_input_db": {
+      "path": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db",
+      "sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7"
+    },
+    "initial_evaluation_db": {
+      "path": "/Users/hyeongi/.codex/worktrees/ontology-grounded-recovery/Civil-Complaints-System/data/knowledge/evaluations/autoschemakg_business_20261006/busan_v1/knowledge.db",
+      "sha256": "62f6eda378eb1258d84c6b85e6b2ce414a595fcbeef62260b6cdae22a7fecde3"
+    },
+    "interpretation": "raw result original_database_sha256 denotes c116-repaired parent input DB, not the initial evaluation DB; both files read-only hashed after execution"
   }
 }

@@ -83,7 +83,14 @@ c47의 근거 원문은 다음과 같다.
 
 **이번 과제·입력·모델 조합에서 c47 최소 편집 생성은 실패했다.** 심사 실패에 더해 이 미측정 역할에서도 같은 의미 확대를 고치지 못한 실제 결과를 얻었다. 한 호출로 모든 편집 과제나 모델 전반의 능력 부재를 단정하지 않는다. 불필요한 c46 보충과 핵심 c47 수정 실패를 서로 다른 결과로 남긴다.
 
-사전 중단 조건에 따라 추가 프롬프트·모델 호출을 하지 않았다. 제안을 제품 검수에 연결하거나 가짜 incorrect 판정으로 실제 repair를 실행하지 않았다. 기존 원문 DB, 후보·원문·요구·assessments·repairs·graph·concepts 및 동결 해시는 유지됐다.
+사전 중단 조건에 따라 추가 프롬프트·모델 호출을 하지 않았다. 제안을 제품 검수에 연결하거나 가짜 incorrect 판정으로 실제 repair를 실행하지 않았다. 실행 입력인 부모 DB, 후보·원문·요구·assessments·repairs·graph·concepts 및 동결 해시는 유지됐다.
+
+원시 결과의 `original_database_sha256`는 **c116 교정 후 부모 입력 DB**를 뜻하며 최초 부산 평가 DB와 구분한다. 두 파일을 종료 후 읽기 전용으로 해시 확인했다. 최초 DB도 기존 동결 해시와 일치했다. 원시 실행 결과 필드명은 그대로 두고 상위 trace의 `database_provenance`에 다음 경로·해시·의미를 명시했다.
+
+| DB | 실제 경로 | SHA-256 |
+|---|---|---|
+| c116 교정 후 부모 입력 | `/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db` | `d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7` |
+| 최초 부산 평가 | `/Users/hyeongi/.codex/worktrees/ontology-grounded-recovery/Civil-Complaints-System/data/knowledge/evaluations/autoschemakg_business_20261006/busan_v1/knowledge.db` | `62f6eda378eb1258d84c6b85e6b2ce414a595fcbeef62260b6cdae22a7fecde3` |
 
 ## 완료 범위와 다음 작업
 
