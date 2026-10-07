@@ -517,6 +517,49 @@ def test_selected_source_evidence_restores_only_current_explicit_address(monkeyp
     assert business_run.json_call(None, run, 'requirement_source', '', context, schema) is None
 
 
+def test_local_source_restores_separate_parent_and_body_references(monkeypatch):
+    from app.knowledge.business_models import RequirementSourceCheck
+    run = local_run()
+    parent = dict(run['blocks'][0], id='parent', text='대리 신청', span=[0, 5], context_only=True)
+    body = dict(run['blocks'][0], id='body', text='위임장 제출', span=[8, 14])
+    context = dict(blocks=[parent, body])
+    output = dict(examined_block_ids=['parent', 'body'], inspection_status='complete', findings=[], conjunctions=[],
+        meanings=[dict(meaning('m', required_for_requirement=True), evidence=['e1', 'e2'], source_status='unknown')])
+    def response(*args, **kwargs):
+        run['units'].append(dict(id='u'))
+        return dict(parsed=deepcopy(output))
+    monkeypatch.setattr(business_run, 'call', response)
+    monkeypatch.setattr(business_run, 'save', lambda *a: None)
+    result = business_run.json_call(None, run, 'requirement_source', '', context, RequirementSourceCheck)
+    refs = result['meanings'][0]['evidence']
+    assert [(r['block_id'], r['quote'], r['start_char'], r['end_char']) for r in refs] == [
+        ('parent', '대리 신청', 0, 5), ('body', '위임장 제출', 8, 14)]
+    assert result['meanings'][0]['source_status'] == 'unknown'
+    assert run['units'][-1]['restored_evidence_output'] == result
+    output['meanings'][0]['evidence'] = [dict(block_id='body', quote='대리 신청 위임장 제출')]
+    assert business_run.json_call(None, run, 'requirement_source', '', context, RequirementSourceCheck) is None
+
+
+def test_source_input_preserves_parser_parent_binding_without_changing_normal_r():
+    import json
+    from app.knowledge import autoschema
+    from app.knowledge.business_models import RequirementSourceCheck
+    from app.tests.unit.test_knowledge_business_scope import block
+    run = local_run()
+    run['blocks'] = [block('parent', '대리 신청', path='ul:1 > li:1::text(1)'),
+        block('child', '위임장', path='ul:1 > li:1 > ul:1 > li:1'),
+        block('sibling', '공통 신분증', path='ul:1 > li:2'),
+        dict(block('other', '다른 버전', path='ul:1 > li:1 > ul:1 > li:1'), source_version_id='other')]
+    context = dict(blocks=run['blocks'])
+    source = business_run.json_request(run, 'requirement_source', '', context, RequirementSourceCheck)
+    payload = json.loads(source['messages'][-1]['content'])
+    assert payload['source_parents'] == [dict(block_id='b2', parent_block_ids=['b1'])]
+    assert [p['id'] for p in autoschema.list_parents(run['blocks'][1], run['blocks'])] == ['parent']
+    normal = business_run.json_request(run, 'requirement_representation', '', context, ExpressionReviewCheck)
+    assert 'source_parents' not in json.loads(normal['messages'][-1]['content'])
+    assert 'source_parents' not in normal['messages'][0]['content']
+
+
 def test_source_quote_answer_server_keeps_conditional_text_and_unanswered_item(monkeypatch):
     from app.knowledge.business_models import BusinessQuery
     text = '대리인이 신청하는 경우 위임장을 제출한다.'

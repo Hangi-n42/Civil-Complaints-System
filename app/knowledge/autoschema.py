@@ -114,6 +114,14 @@ def source_packet(blocks):
     return result
 
 
+def list_parents(block, blocks):
+    """Parser list ancestors only; their semantic applicability remains a model judgment."""
+    path = block.get('locator', {}).get('element_path', '')
+    return [b for b in blocks if b['id'] != block['id'] and b['source_version_id'] == block['source_version_id']
+            and '::text(' in b.get('locator', {}).get('element_path', '')
+            and path.startswith(b['locator']['element_path'].split('::text(')[0] + ' > ')]
+
+
 def chunks(blocks, context_tokens, output_tokens, target_chars=1000):
     """Retain source order, table rows and parents; don't silently truncate a bundle."""
     # ponytail: conservative UTF-8 estimate until the serving tokenizer is available.
@@ -144,9 +152,7 @@ def chunks(blocks, context_tokens, output_tokens, target_chars=1000):
             context = [dict(b, context_only=True) for b in heading if b['id'] != block['id']]
             # Parser text nodes on an ancestor list item carry its applicability
             # (for example a missing applicant); preserve the actual parent text.
-            context += [dict(b, context_only=True) for b in group if b['id'] != block['id']
-                and '::text(' in b.get('locator', {}).get('element_path', '')
-                and path.startswith(b['locator']['element_path'].split('::text(')[0] + ' > ')]
+            context += [dict(b, context_only=True) for b in list_parents(block, group)]
             # A retrieved list label needs the contents of its own nested list.
             parent_item = path.split('::text(')[0]
             if '::text(' in path and re.search(r'(?:^| > )li(?::[^>]*)?$', parent_item):

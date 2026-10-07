@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, create_model
 from app.core.config import settings
 from app.generation.model_client import ModelClient, ModelRequest, configuration
 from . import autoschema, business_store, business_review
-from .business_models import (GroundingCheck, RequirementCheck, RequirementJoinCheck,
+from .business_models import (GroundingCheck, LocalSourceCheck, RequirementCheck, RequirementJoinCheck,
                               FindingResolution, Repairs, EvidenceQuote,
                               RequirementSynthesisCheck,
                               ExpressionRevision, GroundedMeaningChallenge,
@@ -282,7 +282,7 @@ def request_tokens(messages, schema, max_tokens):
 def evidence_fields(output_type):
     if issubclass(output_type, SelectedRequirementSourceCheck):
         return {name: get_args(output_type.model_fields[name].annotation)[0] for name in ('selections', 'additions')}
-    if issubclass(output_type, GroundingCheck):
+    if issubclass(output_type, (GroundingCheck, LocalSourceCheck)):
         return {'meanings': get_args(output_type.model_fields['meanings'].annotation)[0]}
     if issubclass(output_type, ExpressionReviewCheck):
         return dict(checks=LocatedExpressionCheck, meaning_challenges=GroundedMeaningChallenge)
@@ -300,7 +300,7 @@ def selected_evidence_type(output_type, references):
         selected = {name: (selection, Field(max_length=len(references)))
                     for name in ('evidence', 'error_evidence') if name in row_type.model_fields}
         row = create_model('Selected' + row_type.__name__, __base__=row_type, **selected)
-        if issubclass(output_type, GroundingCheck):
+        if issubclass(output_type, (GroundingCheck, LocalSourceCheck)):
             unresolved = create_model('Unresolved' + row_type.__name__, __base__=row,
                                       source_status=(Literal['unknown'], Field(...)))
             if references:
@@ -333,7 +333,7 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
         if field in context:
             context[field] = {k: v for k, v in context[field].items() if k in public_keys}
     evidence_views = None
-    if issubclass(output_type, (RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck, SelectedRequirementSourceCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
+    if issubclass(output_type, (LocalSourceCheck, RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck, SelectedRequirementSourceCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
         evidence_views = {f'e{n + 1}': deepcopy(b) for n, b in enumerate(context.get('blocks', []))}
         output_type = selected_evidence_type(output_type, evidence_views)
         fields = 'evidence와 error_evidence' if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck)) else 'evidence'
@@ -364,6 +364,12 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
     mapping = dict(reference_map or {})
     if stage != 'direct_definitions':
         if 'blocks' in context:
+            if issubclass(output_type, LocalSourceCheck) or stage == 'source_reassessment':
+                parents = {b['id']: list(dict.fromkeys(p['id'] for p in autoschema.list_parents(b, context['blocks'])))
+                           for b in context['blocks']}
+                if any(parents.values()):
+                    context['source_parents'] = [dict(block_id=bid, parent_block_ids=ids) for bid, ids in parents.items() if ids]
+                    instruction += '\nsource_parents는 원문 파서의 목록 조상 block_id다. 자식의 적용 조건을 판단할 때 그 부모 원문을 함께 읽는다. 형제 항목에 부모 조건을 옮기지 않는다.\n'
             context['blocks'] = autoschema.source_packet(context['blocks'])
             if evidence_views is not None:
                 for reference, block in zip(evidence_views, context['blocks']):
