@@ -1,6 +1,6 @@
 """Persistent public requirements and the selectable source-graph workflow."""
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from .discovery_meanings import SourceMeaning
 
 
@@ -196,9 +196,20 @@ class BusinessDecision(BaseModel):
 class BusinessQuery(BaseModel):
     question: str = Field(min_length=1)
     choices: list[str] = Field(default_factory=list)
-    snapshot_id: str
+    snapshot_id: str | None = None
+    source_run_id: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)
     limit: int = Field(default=12, ge=1, le=50)
+    retrieval: Literal['bm25', 'dense', 'hipporag2'] = 'hipporag2'
+    graph_variant: Literal['entity', 'entity_event', 'full'] = 'full'
+
+    @model_validator(mode='after')
+    def one_source(self):
+        if bool(self.snapshot_id) == bool(self.source_run_id):
+            raise ValueError('snapshot_id 또는 source_run_id 중 하나를 선택하세요.')
+        if self.source_run_id and self.requirement_ids:
+            raise ValueError('원문 QA는 요구 충족 판정이 아닙니다. 요구별 승인 지식 활용에는 snapshot을 선택하세요.')
+        return self
 
 
 class ChangeRequest(BaseModel):

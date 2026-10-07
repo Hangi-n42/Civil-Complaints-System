@@ -181,6 +181,16 @@ class Answer(BaseModel):
         return values
 
 
+class SourceAnswer(Answer):
+    @field_validator('citations', mode='before')
+    @classmethod
+    def deduplicate_citations(cls, values):
+        # Lossless formatting repair; supplied-ID validation still runs afterward.
+        if isinstance(values, list) and all(isinstance(v, str) for v in values):
+            return list(dict.fromkeys(values))
+        return values
+
+
 def concept_hints(snapshot):
     """Candidate concepts help retrieval only; they never become answer evidence."""
     hints = {c['id']: [] for c in snapshot['claims']}
@@ -197,13 +207,26 @@ def query(service, request, *, context_mode='graph'):
     """The same question/answer contract supports a recorded document baseline."""
     from .discovery_profile import FrozenIndex
     started = monotonic()
+    source_reader = bool(request.source_run_id)
     if context_mode not in {'graph', 'document'}:
         raise ValueError('Unknown query context')
+    if context_mode == 'document' and request.retrieval != 'bm25':
+        raise ValueError('문서 기준선은 bm25를 사용합니다. 그래프 검색은 graph 경로를 선택하세요.')
     with service.lock, service.repository.connect() as db:
         if service.closed or any(json.loads(r['payload'])['status'] in {'queued', 'running', 'cancel_requested'}
                                  for r in db.execute('SELECT payload FROM runs')):
             raise KnowledgeConflict('다른 실행이 종료된 뒤 답변을 요청하세요.')
-        snapshot = service.repository.get(db, 'snapshots', request.snapshot_id)
+        if source_reader:
+            original = service.repository.get(db, 'runs', request.source_run_id)
+            if original.get('kind') != 'business' or original['status'] not in {'succeeded', 'partial', 'failed', 'cancelled'}:
+                raise ValueError('종료된 업무 지식 추출 실행을 선택하세요.')
+            # A transient read view, never an approval or a stored snapshot.
+            snapshot = dict(id='run:' + original['id'], kind='source_graph', run_id=original['id'],
+                source_versions=original['sources'], blocks=original['blocks'],
+                claims=[c for c in original['claims'] if not c.get('superseded_by') and not c.get('extraction_error')],
+                concepts=original['concepts'], requirements=[], assessments={}, include_unlinked_blocks=True)
+        else:
+            snapshot = service.repository.get(db, 'snapshots', request.snapshot_id)
         if snapshot.get('kind') != 'source_graph':
             raise ValueError('출처 그래프 snapshot이 필요합니다.')
         if not set(request.requirement_ids) <= {r['id'] for r in snapshot['requirements']}:
@@ -218,8 +241,10 @@ def query(service, request, *, context_mode='graph'):
                  r['revision'] != next(v['revision'] for v in snapshot['requirements'] if v['id'] == r['id'])]
         if stale:
             return dict(status='needs_review', requirement_ids=stale, answer=None, snapshot_id=snapshot['id'])
-        if context_mode == 'graph' and not snapshot['claims']:
+        if context_mode == 'graph' and not snapshot['claims'] and not source_reader:
             return dict(status='no_reviewed_claims', answer=None, snapshot_id=snapshot['id'], model_called=False)
+        if source_reader and not any(c.get('evidence') for c in snapshot['claims']) and not snapshot['blocks']:
+            return dict(status='no_source_passages', answer=None, source_run_id=request.source_run_id, model_called=False)
         required_ids = set()
         if context_mode == 'graph' and request.requirement_ids:
             for rid in request.requirement_ids:
@@ -235,18 +260,35 @@ def query(service, request, *, context_mode='graph'):
                    recipe=deepcopy(original['recipe']), model_identity=original['model_identity'],
                    metrics=dict(llm_calls=0, model_total_s=0, elapsed_s=0), started_at=utcnow(), finished_at=None,
                    query=request.model_dump(), context_mode=context_mode, snapshot_id=snapshot['id'],
+                   answer_basis='source_passages_not_ontology_approval' if source_reader else 'reviewed_claims',
+                   source_extraction_status=original['status'] if source_reader else None,
                    answer_contract=ANSWER_CONTRACT, required_context_ids=sorted(required_ids))
         db.execute('INSERT INTO runs VALUES(?,?)', (run['id'], encode(run)))
-    if context_mode == 'graph':
+    if source_reader:
+        from . import graph_retrieval
+        _, _, passages, _ = graph_retrieval.build(snapshot, request.graph_variant)
+        candidates = graph_retrieval.passage_candidates(passages)
+    elif context_mode == 'graph':
         candidates = [dict(id=c['id'], text=encode(business_run.compact_claim(c)),
                            file_id=c['source_version_ids'][0], source_group=c['source_version_ids'][0]) for c in snapshot['claims']]
     else:
         candidates = [dict(id=b['id'], text=b['text'], file_id=b['source_version_id'],
                            source_group=b['source_version_id']) for b in snapshot['blocks']]
-    hints = concept_hints(snapshot) if context_mode == 'graph' else {}
-    index = FrozenIndex([dict(c, text=c['text'] + '\n검색용 관련 표현: ' + ', '.join(hints.get(c['id'], [])))
-                         if hints.get(c['id']) else c for c in candidates], preserve_numbers=True)
-    hits = index.search(request.question + '\n' + '\n'.join(request.choices), {c['id'] for c in candidates}, request.limit)
+    hints = concept_hints(snapshot) if context_mode == 'graph' and not source_reader else {}
+    if request.retrieval == 'bm25':
+        index = FrozenIndex([dict(c, text=c['text'] + '\n검색용 관련 표현: ' + ', '.join(hints.get(c['id'], [])))
+                             if hints.get(c['id']) else c for c in candidates], preserve_numbers=True)
+        hits = index.search(request.question + '\n' + '\n'.join(request.choices), {c['id'] for c in candidates}, request.limit)
+    else:
+        from . import graph_retrieval
+        try:
+            hits = graph_retrieval.retrieve(service, run, snapshot, request)
+        except Exception as exc:
+            run.update(status='failed', finished_at=utcnow(), error=f'{type(exc).__name__}: {exc}')
+            run['metrics']['elapsed_s'] = monotonic() - started
+            business_run.save(service, run)
+            return dict(run_id=run['id'], status='retrieval_failed', answer=None,
+                        snapshot_id=snapshot['id'], error=run['error'])
     if required_ids:
         by_id = {h['block_id']: h for h in hits}
         mandatory = [dict(by_id.get(c['id']) or dict(block_id=c['id'], file_id=c['file_id'], score=None),
@@ -254,8 +296,14 @@ def query(service, request, *, context_mode='graph'):
         hits = mandatory + [h for h in hits if h['block_id'] not in required_ids][:request.limit - len(mandatory)]
     selected = {h['block_id'] for h in hits}
     context = [c for c in candidates if c['id'] in selected]
+    required_source_context = []
+    if source_reader:
+        context = [{k: v for k, v in c.items() if k != 'linked_claim_ids'} for c in context]
+        required_source_context = graph_retrieval.source_context(snapshot['blocks'], context, run['recipe']['options'])
+        run['source_context_contract'] = 'existing-table-rowspan-heading-list-bundles-v1'
+        run['source_context'] = deepcopy(required_source_context)
     source_evidence = {}
-    if context_mode == 'graph':
+    if context_mode == 'graph' and not source_reader:
         blocks = {b['id']: b for b in snapshot['blocks']}
         for claim in snapshot['claims']:
             if claim['id'] not in selected:
@@ -273,16 +321,30 @@ def query(service, request, *, context_mode='graph'):
     source_evidence = []
     for block_id in dict.fromkeys(view['id'] for view in views):
         for view in business_run.contiguous_evidence_views(views, block_id):
-            links = [dict(claim_ids=row['claim_ids'], **{k: v for k, v in row['evidence'].items() if k != 'quote'})
+            # The enclosing view already carries source/version/parse/block IDs.
+            # Keep each claim's exact span without repeating those addresses.
+            links = [dict(claim_ids=row['claim_ids'], span=[row['evidence']['start_char'], row['evidence']['end_char']],
+                          precision=row['evidence'].get('precision', 'unspecified'))
                 for row in evidence_rows if row['evidence']['block_id'] == block_id
                 and row['evidence']['source_version_id'] == view['source_version_id']
                 and row['evidence'].get('parse_run_id') == view.get('parse_run_id')
                 and view['span'][0] <= row['evidence']['start_char'] < row['evidence']['end_char'] <= view['span'][1]]
-            source_evidence.append(dict(view, locator=blocks[block_id].get('locator', {}), claim_references=links))
+            source_evidence.append(dict(view, claim_references=links))
     references = {c['id']: f'q{i+1}' for i, c in enumerate(context)}
     citation_type = list[Literal[tuple(references)]] if references else list[str]
-    context_answer = create_model('ContextAnswer', __base__=Answer,
+    context_answer = create_model('ContextAnswer', __base__=SourceAnswer if source_reader else Answer,
         citations=(citation_type, Field(max_length=len(context), json_schema_extra={'uniqueItems': True})))
+    # Reuse the existing reversible reference map for long source addresses too.
+    # Citation choices remain context IDs; the server restores original IDs.
+    reference_map = dict(references)
+    if source_reader:
+        reference_map.update({c['id']: f'c{i+1}' for i, c in enumerate(snapshot['claims'])})
+    source_addresses = source_evidence + required_source_context + [dict(id=c['source_reference']['block_id'], **{
+        k: c['source_reference'].get(k) for k in ('source_version_id', 'parse_run_id')})
+        for c in context if 'source_reference' in c]
+    for field, prefix in [('id', 'b'), ('source_version_id', 'v'), ('parse_run_id', 'p')]:
+        values = list(dict.fromkeys(v[field] for v in source_addresses if v.get(field)))
+        reference_map.update({value: f'{prefix}{i+1}' for i, value in enumerate(values) if value not in reference_map})
     # Complete claim bundles retain conditions and source provenance; no gold mappings.
     limitations = [dict(requirement_id=r, status=a['status'], gaps=(a.get('source') or {}).get('gaps', []))
                    for r, a in snapshot['assessments'].items() if a['status'] != 'satisfied']
@@ -292,11 +354,24 @@ def query(service, request, *, context_mode='graph'):
         '각 인용 ID는 한 번만 쓰며 제공된 context 개수를 넘지 않는다. 빈 답변을 반환하지 않는다. '
         '미승인 개념이나 원문보다 강한 효과를 사실로 쓰지 않는다. 조건/예외/기간을 유지한다. '
         'source_evidence는 연결된 승인 후보의 출처와 범위를 확인하는 원문이다. '
-        '같은 인용 안의 다른 의미까지 승인된 것으로 취급하지 않는다.',
+        '같은 인용 안의 다른 의미까지 승인된 것으로 취급하지 않는다.' + (
+        '\n이번 context는 검색된 원문 구간이다. 원문 자체를 대조하여 답한다. '
+        'source_context는 선택한 구간의 표 행·병합 셀·상위 조건·예외에 필요한 원문이다. '
+        'supports_context_ids와 표의 row/column/merged_span을 사용하여 귀속을 확인한다. '
+        'context_id만 있는 문맥은 같은 context의 원문을 참조한다. 문맥 근거도 연결된 context id로 인용한다. '
+        '검색에 사용한 그래프 연결은 미승인 추출일 수 있으며 그 존재가 의미 검증은 아니다. '
+        '원문에 없는 조건이나 연결을 추론해서 채우지 않는다. 이 답변은 온톨로지 승인이나 업무 요구 전체 충족 판정이 아니다.'
+        if source_reader else ''),
         dict(question=request.question, choices=request.choices, context=context,
              source_versions=snapshot['source_versions'], source_evidence=source_evidence,
-             requirement_limitations=limitations), context_answer,
-        reference_map=references)
+             requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader else {})), context_answer,
+        reference_map=reference_map)
+    if source_reader:
+        run['answer_contract'] = 'source-unique-provided-citations-lossless-dedup-v3'
+        raw_ids = ((run['units'][-1].get('response') or {}).get('parsed') or {}).get('citations', []) if run['units'] else []
+        if output and isinstance(raw_ids, list) and all(isinstance(v, str) for v in raw_ids):
+            run['citation_normalization'] = dict(kind='stable_dedup_only',
+                removed_duplicates=len(raw_ids) - len(set(raw_ids)))
     status = 'answered'
     if not output or not set(output['citations']) <= selected or (output['answer'] and not output['citations']):
         status = 'unverified'
@@ -310,7 +385,12 @@ def query(service, request, *, context_mode='graph'):
                    retrieval_concept_hints=hints, retrieval_contract=('required-reviewed-claims+ranked-remainder-v1' if context_mode == 'graph' and request.requirement_ids
                                        else 'source-claims+concept-hints+numeric-identifiers-v2'),
                    concept_hints_are_answer_evidence=False)
+        if request.retrieval != 'bm25':
+            run.update(retrieval_contract=run['graph_retrieval']['contract'], retrieval_concept_hints={})
+        elif source_reader:
+            run['retrieval_contract'] = 'bm25-source-passages-v1'
         run['metrics']['elapsed_s'] = monotonic() - started
         service.repository.save(db, 'runs', run)
     return dict(run_id=run['id'], status=status, answer=output, retrieval=hits,
-                context_mode=context_mode, snapshot_id=snapshot['id'], limitations=limitations)
+                context_mode=context_mode, snapshot_id=None if source_reader else snapshot['id'],
+                source_run_id=request.source_run_id, answer_basis=run['answer_basis'], limitations=limitations)

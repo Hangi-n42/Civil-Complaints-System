@@ -453,7 +453,7 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
         decision = business_use.decide(service, run['changeset_id'], BusinessDecision(
             expected_revision=0, actor='test-operator', reason='승인 주장 없는 문서 기준선 검사', accept_ids=[]))
         from app.knowledge.business_models import BusinessQuery
-        query = BusinessQuery(snapshot_id=decision['snapshot_id'], question='접수 기관은?')
+        query = BusinessQuery(snapshot_id=decision['snapshot_id'], question='접수 기관은?', retrieval='bm25')
         previous_calls = len(calls)
         graph = business_use.query(service, query)
         assert graph['status'] == 'no_reviewed_claims' and not graph['model_called']
@@ -792,7 +792,7 @@ def test_concept_search_hint_retrieves_claim_without_becoming_answer_evidence(tm
             assert '접수처' not in context['context'][0]['text']
             return dict(answer='기관이 민원을 받습니다.', choice=None, citations=['c'], limitations=[])
         monkeypatch.setattr(business_run, 'json_call', answer)
-        result = business_use.query(service, BusinessQuery(snapshot_id='s', question='접수처', limit=1))
+        result = business_use.query(service, BusinessQuery(snapshot_id='s', question='접수처', retrieval='bm25', limit=1))
         assert result['retrieval'][0]['block_id'] == 'c' and result['status'] == 'answered'
         saved = service.run(result['run_id'])
         assert saved['retrieval_concept_hints'] == {'c': ['접수처']}
@@ -842,7 +842,7 @@ def test_query_citations_are_bounded_aliased_and_empty_answers_fail(tmp_path, mo
         with service.repository.connect() as db:
             db.execute('INSERT INTO runs VALUES(?,?)', ('origin', json.dumps(original)))
             db.execute('INSERT INTO snapshots VALUES(?,?)', ('s', json.dumps(snapshot)))
-        request = BusinessQuery(snapshot_id='s', question='신청 접수 기관은?', limit=13)
+        request = BusinessQuery(snapshot_id='s', question='신청 접수 기관은?', retrieval='bm25', limit=13)
         for mode in ['document', 'graph']:
             result = business_use.query(service, request, context_mode=mode)
             assert result['status'] == 'answered'
@@ -1062,11 +1062,14 @@ def test_requirement_query_keeps_approved_coverage_and_rejects_unknown_or_too_sm
         supplied.append(ids)
         evidence = context['source_evidence']
         shared_row = next(row for row in evidence if row['id'] == 'body')
-        assert shared_row['text'] == shared['quote'] and shared_row['locator'] == dict(line=4)
+        assert shared_row['text'] == shared['quote']
+        assert shared_row['source_version_id'] == 'v' and shared_row['parse_run_id'] == 'parse'
         assert shared_row['span'] == [shared['start_char'], shared['end_char']]
         assert len(shared_row['claim_references']) == 2
-        assert shared_row['claim_references'][1]['end_char'] == 2
-        assert {k:v for k,v in shared_row['claim_references'][0].items() if k != 'claim_ids'} == {k:v for k,v in shared.items() if k != 'quote'}
+        assert shared_row['claim_references'][1]['span'] == [0, 2]
+        assert shared_row['claim_references'][0]['precision'] == 'chunk'
+        assert shared_row['claim_references'][0]['span'] == [shared['start_char'], shared['end_char']]
+        assert 'source_version_id' not in shared_row['claim_references'][0]  # Inherited from the enclosing view.
         if 'mandatory' in ids:
             assert len(evidence) == 1 and shared_row['claim_references'][0]['claim_ids'] == ['mandatory', 'ranked']
         else:
@@ -1082,7 +1085,7 @@ def test_requirement_query_keeps_approved_coverage_and_rejects_unknown_or_too_sm
             for req in requirements:
                 db.execute('INSERT INTO requirements VALUES(?,?)', (req['id'], json.dumps(req)))
             db.execute('INSERT INTO snapshots VALUES(?,?)', ('s', json.dumps(snapshot)))
-        query = dict(snapshot_id='s', question='업무 요구 답변', limit=2)
+        query = dict(snapshot_id='s', question='업무 요구 답변', retrieval='bm25', limit=2)
         unscoped = business_use.query(service, BusinessQuery(**query))
         assert supplied[-1] == ['ranked', 'optional'] and unscoped['status'] == 'answered'
         scoped = business_use.query(service, BusinessQuery(**query, requirement_ids=['r']))

@@ -37,6 +37,18 @@
       "local_path": "app/knowledge/vendor/autoschemakg/concept_generation.py",
       "sha256": "41029f07e197de1330a3228c22bbf870fdc835925206002c2c0d5b28ccab8586",
       "bytes": 11549
+    },
+    {
+      "upstream_path": "atlas_rag/retriever/hipporag2.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/hipporag2_upstream.py",
+      "sha256": "6cb4562ec05a00efaa211e557dd83df254866142580db1e87b09601e332faba7",
+      "bytes": 13560
+    },
+    {
+      "upstream_path": "atlas_rag/llm_generator/prompt/rag_prompt.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/rag_prompt.py",
+      "sha256": "ef7860e5da67cbea6c3d294f13727889063bb4d2f7f93d023b6e6b24648e9e42",
+      "bytes": 8676
     }
   ]
 }

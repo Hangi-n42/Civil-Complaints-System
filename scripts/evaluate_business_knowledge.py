@@ -82,7 +82,7 @@ def main():
         answers = []
         for question in questions['items']:
             request = BusinessQuery(question=question['question'], choices=[f'{k}. {v}' for k, v in question['choices'].items()],
-                                    snapshot_id=decision['snapshot_id'], limit=12)
+                                    snapshot_id=decision['snapshot_id'], retrieval='bm25', limit=12)
             for mode in ('document', 'graph'):
                 if args.stop_file and args.stop_file.exists():
                     write_new(args.output/'stopped.json', dict(recorded_at=utcnow(),
