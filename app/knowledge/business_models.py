@@ -344,6 +344,16 @@ class BusinessDecision(BaseModel):
     accept_ids: list[str]  # An explicit empty review approves no claims.
 
 
+class PublicAnswerItem(BaseModel):
+    """Execution-only decomposition of an unchanged public request, never an expected answer."""
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    id: str = Field(min_length=1)
+    requirement_id: str
+    requirement_revision: int = Field(ge=0)
+    field: Literal['question', 'criterion']
+    request_quote: str = Field(min_length=1)
+
+
 class BusinessQuery(BaseModel):
     question: str = Field(min_length=1)
     choices: list[str] = Field(default_factory=list)
@@ -353,7 +363,8 @@ class BusinessQuery(BaseModel):
     limit: int = Field(default=12, ge=1, le=50)
     retrieval: Literal['bm25', 'dense', 'hipporag2'] = 'hipporag2'
     graph_variant: Literal['entity', 'entity_event', 'full'] = 'full'
-    answer_mode: Literal['synthesis', 'source_quotes'] = 'synthesis'
+    answer_mode: Literal['synthesis', 'source_quotes', 'items'] = 'synthesis'
+    answer_items: list[PublicAnswerItem] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def one_source(self):
@@ -361,6 +372,12 @@ class BusinessQuery(BaseModel):
             raise ValueError('snapshot_id 또는 source_run_id 중 하나를 선택하세요.')
         if self.source_run_id and self.requirement_ids:
             raise ValueError('원문 QA는 요구 충족 판정이 아닙니다. 요구별 승인 지식 활용에는 snapshot을 선택하세요.')
+        if self.answer_mode == 'items' and not self.answer_items:
+            raise ValueError('항목별 답변에는 공개 요청에서 고정한 answer_items가 필요합니다.')
+        if self.answer_items and (self.answer_mode != 'items' or not self.requirement_ids):
+            raise ValueError('answer_items는 요구를 선택한 항목별 답변에서만 사용합니다.')
+        if len({i.id for i in self.answer_items}) != len(self.answer_items):
+            raise ValueError('공개 답변 항목 ID가 중복됩니다.')
         return self
 
 

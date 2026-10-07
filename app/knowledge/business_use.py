@@ -244,6 +244,116 @@ def public_answer_requirements(requirements):
             for r in requirements]
 
 
+def bind_answer_items(request, requirements):
+    """Bind the public plan to this execution without revising or approving requirements."""
+    by_id = {r['id']: r for r in requirements if r['id'] in request.requirement_ids}
+    items = [i.model_dump() for i in request.answer_items]
+    for item in items:
+        requirement = by_id.get(item['requirement_id'])
+        if not requirement or item['requirement_revision'] != requirement['revision']:
+            raise ValueError('공개 답변 항목의 요구 ID/revision이 선택한 요구와 다릅니다.')
+        if item['request_quote'] not in requirement[item['field']]:
+            raise ValueError('공개 답변 항목은 원래 question/criterion의 정확한 구절이어야 합니다.')
+    return items
+
+
+def item_answer(service, run, request, source_evidence, source_versions, reference_map, requirements):
+    """One semantic answer per frozen public item; no second whole-answer rewrite."""
+    evidence = {f't{i + 1}': row for i, row in enumerate(source_evidence)}
+    if not evidence:
+        return None
+    quote = create_model('AnswerSupport', evidence_ref=(Literal[tuple(evidence)], Field(...)),
+                         quote=(str, Field(min_length=1)))
+    claim = create_model('ItemConclusion', statement=(str, Field(min_length=1)),
+        kind=(Literal['direct', 'inference', 'conditional_duty', 'exclusion'], Field(...)),
+        conditions=(list[str], Field(...)), exceptions=(list[str], Field(...)),
+        support=(list[quote], Field(min_length=1)),
+        reasoning=(str, Field(description='For inference: premises and derivation; otherwise empty.')))
+    row = create_model('PublicItemAnswer', item_id=(Literal[tuple(i['id'] for i in run['answer_items'])], Field(...)),
+        conclusions=(list[claim], Field(...)),
+        missing=(list[str], Field(description='Specific requested facts not established by these sources, with the reason; empty only if fully answered.')))
+    response_type = create_model('PublicItemAnswers', items=(list[row], Field(...)),
+                                 choice=(Literal['A', 'B', 'C', 'D'] | None, None))
+    output = business_run.json_call(service, run, 'business_qa',
+        '고정된 public_answer_items 각각에 대해 질문에 유용한 설명·비교 결론을 한국어로 작성한다. '
+        '요청 항목별로 원문이 지지하는 결론을 나누고 주체·조건·예외·기간·기산점·단위를 유지한다. '
+        '원문 목록을 반복하거나 모든 항목을 미확인으로 회피하지 않는다. application 문맥은 새 요청을 만들지 않는다. '
+        'support에는 실제 원문 주소와 정확한 인용을 넣는다. 주체/조건/예외가 다른 구간에 있으면 함께 인용한다. '
+        'direct는 원문이 직접 진술한 효과만 쓴다. 조건부 의무는 conditional_duty와 conditions, 제외는 exclusion으로 적는다. '
+        '추론은 inference로 분리하고 reasoning에 원문 전제와 결론 사이의 논증을 쓴다. 추론을 명시적 허용으로 바꾸지 않는다. '
+        '기간·처리 사실·담당 업무·허용·의무는 서로 다른 명제다. 한 명제의 원문만으로 다른 명제의 법적 효과를 확정하지 않는다. '
+        '조건부 문장의 의무나 예외를 그 조건 밖에 확장하지 않는다. 원문이 다른 업무를 제외하지 않았다는 사실만으로 허용을 확정하지 않는다. '
+        '각 항목은 conclusions 또는 구체적인 missing이 있어야 한다. 일부 확인이면 확인된 결론도 쓰고 남은 요청 사실과 부족한 근거를 missing에 특정한다. '
+        '출처 부족과 답변 누락을 구별한다. 참고 사실이 있어도 요청한 효과를 확인하지 못하면 그 차이를 밝힌다. '
+        '최종 전체 답변은 서버가 조립하므로 별도 종합 결론을 쓰지 않는다. choice는 선택지가 있을 때만 고른다.',
+        dict(question=request.question, choices=request.choices, public_answer_items=run['answer_items'],
+             public_requirements=public_answer_requirements(requirements), source_versions=source_versions,
+             source_evidence=[dict(reference=ref, **value) for ref, value in evidence.items()]),
+        response_type, reference_map=reference_map)
+    run['answer_contract'] = 'public-items-source-conclusions-server-assembly-experimental-v1'
+    run['answer_selection'] = deepcopy(output)
+    errors, restored = {}, {}
+    for item in (output or {}).get('items', []):
+        key = item['item_id']
+        if key in restored:
+            errors.setdefault(key, []).append('duplicate_item')
+        restored[key] = deepcopy(item)
+        if not item['conclusions'] and not any(m.strip() for m in item['missing']):
+            errors.setdefault(key, []).append('empty_item')
+        valid = []
+        for index, conclusion in enumerate(restored[key]['conclusions']):
+            faults = []
+            if conclusion['kind'] == 'inference' and not conclusion['reasoning'].strip():
+                faults.append('inference_without_reason')
+            if conclusion['kind'] == 'conditional_duty' and not conclusion['conditions']:
+                faults.append('duty_without_condition')
+            for support in conclusion['support']:
+                source = evidence.get(support['evidence_ref'])
+                if not source or not support['quote'].strip() or support['quote'] not in source['text']:
+                    faults.append('invalid_source_quote')
+                    continue
+                start = source['span'][0] + source['text'].index(support['quote'])
+                support['source'] = dict(block_id=source['id'], source_version_id=source['source_version_id'],
+                    parse_run_id=source['parse_run_id'], span=[start, start + len(support['quote'])])
+            errors.setdefault(key, []).extend(f'{fault}:{index}' for fault in faults)
+            if not faults:
+                valid.append(conclusion)
+        restored[key]['conclusions'] = valid
+    expected = {i['id'] for i in run['answer_items']}
+    for key in restored.keys() - expected:
+        errors.setdefault(key, []).append('unexpected_item')
+    for key in expected:
+        if key not in restored:
+            errors.setdefault(key, []).append('missing_item')
+            restored[key] = dict(item_id=key, conclusions=[], missing=[])
+        if 'duplicate_item' in errors.get(key, []):
+            restored[key].update(conclusions=[], missing=[])
+        restored[key]['record_errors'] = errors.get(key, [])
+    run['answer_item_errors'] = [dict(item_id=k, errors=v) for k, v in errors.items() if v]
+    lines, citations, limitations = [], [], []
+    labels = dict(direct='원문 확인', inference='근거에 따른 추론', conditional_duty='조건부 의무', exclusion='제외 업무')
+    for public in run['answer_items']:
+        item = restored[public['id']]
+        lines.append(public['request_quote'])
+        if item['record_errors']:
+            lines.append('- 응답 기록 미완성: ' + ', '.join(item['record_errors']))
+        for conclusion in item['conclusions']:
+            lines.append(f"- [{labels[conclusion['kind']]}] {conclusion['statement']}")
+            for field, label in [('conditions', '조건'), ('exceptions', '예외')]:
+                if conclusion[field]:
+                    lines.append('  ' + label + ': ' + '; '.join(conclusion[field]))
+            if conclusion['reasoning']:
+                lines.append('  추론 근거: ' + conclusion['reasoning'])
+            citations.extend(cid for s in conclusion['support'] for link in evidence[s['evidence_ref']]['claim_references']
+                             for cid in link['claim_ids'])
+        for missing in item['missing']:
+            limitation = public['request_quote'] + ' — 확인 불가: ' + missing
+            lines.append('- ' + limitation)
+            limitations.append(limitation)
+    return dict(answer='\n'.join(lines), choice=(output or {}).get('choice'), citations=list(dict.fromkeys(citations)),
+                limitations=limitations, items=[dict(public_item=p, **restored[p['id']]) for p in run['answer_items']])
+
+
 def source_quote_answer(service, run, request, source_evidence, source_versions, reference_map, requirements=()):
     """Experimental extractive answers: the model selects, the server quotes."""
     evidence = {f't{i + 1}': row for i, row in enumerate(source_evidence)}
@@ -299,7 +409,7 @@ def source_quote_answer(service, run, request, source_evidence, source_versions,
 def query(service, request, *, context_mode='graph'):
     """The same question/answer contract supports a recorded document baseline."""
     from .discovery_profile import FrozenIndex
-    if request.answer_mode == 'source_quotes' and (request.source_run_id or context_mode != 'graph'):
+    if request.answer_mode in {'source_quotes', 'items'} and (request.source_run_id or context_mode != 'graph'):
         raise ValueError('원문 선택 답변 실험은 승인 그래프 근거에서만 지원합니다.')
     started = monotonic()
     source_reader = bool(request.source_run_id)
@@ -336,6 +446,7 @@ def query(service, request, *, context_mode='graph'):
                  r['revision'] != next(v['revision'] for v in snapshot['requirements'] if v['id'] == r['id'])]
         if stale:
             return dict(status='needs_review', requirement_ids=stale, answer=None, snapshot_id=snapshot['id'])
+        answer_items = bind_answer_items(request, requirements)
         if context_mode == 'graph' and not snapshot['claims'] and not source_reader:
             return dict(status='no_reviewed_claims', answer=None, snapshot_id=snapshot['id'], model_called=False)
         if source_reader and not any(c.get('evidence') for c in snapshot['claims']) and not snapshot['blocks']:
@@ -354,7 +465,7 @@ def query(service, request, *, context_mode='graph'):
         run = dict(id=uuid4().hex, kind='business_query', status='running', units=[], input_version_ids=list(snapshot['source_versions']),
                    recipe=deepcopy(original['recipe']), model_identity=original['model_identity'],
                    metrics=dict(llm_calls=0, model_total_s=0, elapsed_s=0), started_at=utcnow(), finished_at=None,
-                   query=request.model_dump(), context_mode=context_mode, snapshot_id=snapshot['id'],
+                   query=request.model_dump(), answer_items=answer_items, context_mode=context_mode, snapshot_id=snapshot['id'],
                    answer_basis='source_passages_not_ontology_approval' if source_reader else 'reviewed_claims',
                    source_extraction_status=original['status'] if source_reader else None,
                    answer_contract=ANSWER_CONTRACT, required_context_ids=sorted(required_ids))
@@ -482,7 +593,9 @@ def query(service, request, *, context_mode='graph'):
     limitations = [dict(requirement_id=r, status=a['status'], gaps=(a.get('source') or {}).get('gaps', []))
                    for r, a in snapshot['assessments'].items() if a['status'] != 'satisfied']
     answer_requirements = public_answer_requirements(requirements) if request.requirement_ids else []
-    if request.answer_mode == 'source_quotes':
+    if request.answer_mode == 'items':
+        output = item_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)
+    elif request.answer_mode == 'source_quotes':
         output = source_quote_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)
     else:
         output = business_run.json_call(service, run, 'business_qa',
@@ -517,7 +630,7 @@ def query(service, request, *, context_mode='graph'):
             run['citation_normalization'] = dict(kind='stable_dedup_only',
                 removed_duplicates=len(raw_ids) - len(set(raw_ids)))
     status = 'answered'
-    if not output or not set(output['citations']) <= selected or (output['answer'] and not output['citations']):
+    if not output or run.get('answer_item_errors') or not set(output['citations']) <= selected or (output['answer'] and not output['citations']):
         status = 'unverified'
     with service.lock, service.repository.connect() as db:
         now = [service.repository.get(db, 'requirements', r['id']) for r in requirements]

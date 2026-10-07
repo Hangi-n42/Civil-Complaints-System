@@ -549,6 +549,60 @@ def test_source_quote_answer_carries_public_criterion_without_prior_judgments(mo
     assert 'history' not in contexts[0]['public_requirements'][0]
 
 
+def test_public_item_binding_does_not_revise_requirements_or_accept_answer_text():
+    from app.knowledge.business_models import BusinessQuery
+    import pytest
+    requirement = dict(id='r', revision=2, question='접수 기관은?', criterion='구비서류 요건', status='satisfied')
+    original = deepcopy(requirement)
+    request = BusinessQuery(question='접수 기관은?', snapshot_id='s', requirement_ids=['r'], answer_mode='items',
+        answer_items=[dict(id='docs', requirement_id='r', requirement_revision=2, field='criterion', request_quote='구비서류 요건')])
+    assert business_use.bind_answer_items(request, [requirement]) == [request.answer_items[0].model_dump()]
+    assert requirement == original
+    request.answer_items[0].requirement_revision = 1
+    with pytest.raises(ValueError, match='revision'):
+        business_use.bind_answer_items(request, [requirement])
+    request.answer_items[0].requirement_revision = 2
+    request.answer_items[0].request_quote = '위임장이 필요하다'
+    with pytest.raises(ValueError, match='정확한 구절'):
+        business_use.bind_answer_items(request, [requirement])
+
+
+def test_item_answer_requires_all_public_items_and_preserves_specific_gap_and_source(monkeypatch):
+    from app.knowledge.business_models import BusinessQuery
+    public = [dict(id=k, requirement_id='r', requirement_revision=1, field='criterion', request_quote=q)
+              for k, q in [('docs:required', '구비서류 요건'), ('office', '처리 기관')]]
+    request = BusinessQuery(question='어디에 어떤 서류를 제출하는가?', snapshot_id='s', requirement_ids=['r'],
+                            answer_mode='items', answer_items=public)
+    text = '대리인이 신청하는 경우 위임장을 제출한다.'
+    evidence = [dict(id='b', source_version_id='v', parse_run_id='p', span=[10, 10 + len(text)],
+                     text=text, claim_references=[dict(claim_ids=['c'])])]
+    output = dict(choice=None, items=[dict(item_id='docs:required', conclusions=[dict(statement=text, kind='conditional_duty',
+        conditions=['대리인이 신청하는 경우'], exceptions=[], support=[dict(evidence_ref='t1', quote=text)], reasoning='')], missing=[]),
+        dict(item_id='office', conclusions=[], missing=['제출 서류 원문에는 접수 기관이 명시되어 있지 않다.'])])
+    monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: deepcopy(output))
+    run = dict(answer_items=public)
+    result = business_use.item_answer(None, run, request, evidence, {}, {}, [])
+    assert result['citations'] == ['c'] and '조건: 대리인이 신청하는 경우' in result['answer']
+    assert result['limitations'] and len(result['items']) == 2
+    assert result['items'][0]['conclusions'][0]['support'][0]['source']['span'] == [10, 10 + len(text)]
+    output['items'].pop()
+    partial = business_use.item_answer(None, run, request, evidence, {}, {}, [])
+    assert partial['citations'] == ['c'] and text in partial['answer']
+    assert partial['items'][1]['record_errors'] == ['missing_item']
+    assert partial['limitations'] == []
+    assert run['answer_item_errors'] == [dict(item_id='office', errors=['missing_item'])]
+    output['items'].append(dict(item_id='office', conclusions=[], missing=['접수 기관 근거 없음']))
+    output['items'][0]['conclusions'][0]['support'][0]['quote'] = '직접 신청도 위임장 필요'
+    output['items'][1]['conclusions'] = deepcopy(output['items'][0]['conclusions'])
+    output['items'][1]['conclusions'][0]['support'][0]['quote'] = text
+    partial = business_use.item_answer(None, run, request, evidence, {}, {}, [])
+    assert partial['citations'] == ['c'] and text in partial['answer']
+    assert partial['items'][0]['conclusions'] == []
+    assert partial['items'][1]['conclusions']
+    assert run['answer_item_errors'] == [dict(item_id='docs:required', errors=['invalid_source_quote:0'])]
+    assert run['answer_selection'] == output
+
+
 def test_selection_catalog_cannot_supply_unread_support_or_old_premise_keys():
     run = local_run(); pool, output = selection_fixture(run)
     run['assessments'][0]['source']['meanings'][0]['evidence'].append(dict(block_id='unread', quote='별도 조건'))
