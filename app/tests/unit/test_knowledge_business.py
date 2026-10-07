@@ -1200,7 +1200,8 @@ def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_rev
     m['evidence'] = business_run.exact_evidence(m['evidence'], blocks)
     c = dict(id='c', role='entity_relation', raw=dict(Head='기관', Relation='접수', Tail='신청'),
              source_version_ids=[blocks[0]['source_version_id']], evidence=refs)
-    req = dict(id='r', revision=1, status='ready')
+    req = dict(id='r', revision=1, status='ready', question='대리 신청 접수 조건은?',
+               criterion='신청 서류와 접수 기관을 확인', target='대리인', history=['이전 판정'])
     a = dict(id='a', requirement_id='r', status='satisfied', source=dict(meanings=[m]), representation=dict(
         source_checks=[dict(meaning_key='m', required_for_requirement=True)],
         checks=[dict(meaning_key='m', status='represented' if support=='supported' else 'partial',
@@ -1225,6 +1226,9 @@ def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_rev
         assert delivered['body']==blocks[1]['text'] and delivered['note']==blocks[2]['text']
         assert ('unrelated' not in delivered) if support=='supported' else ('unrelated' in delivered)
         assert seen[0]['reviewed_meanings'][0]['claim_support'] == {'c':support}
+        public = seen[0]['public_requirements'][0]
+        assert public['criterion'] == req['criterion'] and public['question'] == req['question']
+        assert 'status' not in public and 'history' not in public
         with service.repository.connect() as db: assert service.repository.get(db, 'snapshots', 'snap') == snap
     finally:
         service.shutdown()

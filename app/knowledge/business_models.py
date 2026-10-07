@@ -224,6 +224,34 @@ class RootedRequirementGroundingCheck(ScopedRequirementGroundingCheck):
     meanings: list[RootedRequiredMeaningCheck]
 
 
+class MeaningContent(BaseModel):
+    statement: str = Field(min_length=1)
+    conditions: list[str]
+    exceptions: list[str]
+    period: str
+    references: list[str]
+
+
+class MeaningSelection(BaseModel):
+    meaning_id: str
+    source_status: Literal['supported', 'refuted', 'unknown']
+    evidence: list[EvidenceQuote]
+    requirement_link: RootedRequirementLink
+    premise_keys: list[str] | None
+    reason: str
+    correction: MeaningContent | None = Field(description='Only if the stored meaning needs a source-grounded correction or narrower scope; otherwise null. Preserve the whole subject/condition/time meaning.')
+
+
+class SelectedRequirementSourceCheck(BaseModel):
+    examined_block_ids: list[str]
+    inspection_status: Literal['complete', 'partial', 'unknown']
+    selections: list[MeaningSelection]
+    additions: list[RootedRequiredMeaningCheck]
+    findings: list[SourceFinding]
+    conjunctions: list[str]
+    meaning_conjunctions: list[MeaningAnnotation]
+
+
 class RequirementLinkUpdate(BaseModel):
     key: str
     requirement_link: RootedRequirementLink
@@ -325,6 +353,7 @@ class BusinessQuery(BaseModel):
     limit: int = Field(default=12, ge=1, le=50)
     retrieval: Literal['bm25', 'dense', 'hipporag2'] = 'hipporag2'
     graph_variant: Literal['entity', 'entity_event', 'full'] = 'full'
+    answer_mode: Literal['synthesis', 'source_quotes'] = 'synthesis'
 
     @model_validator(mode='after')
     def one_source(self):

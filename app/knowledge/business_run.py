@@ -15,7 +15,8 @@ from .business_models import (GroundingCheck, RequirementCheck, RequirementJoinC
                               FindingResolution, Repairs, EvidenceQuote,
                               RequirementSynthesisCheck,
                               ExpressionRevision, GroundedMeaningChallenge,
-                              ExpressionReviewCheck, LocatedExpressionCheck)
+                              ExpressionReviewCheck, LocatedExpressionCheck,
+                              SelectedRequirementSourceCheck)
 from .service import KnowledgeConflict, encode, utcnow
 
 
@@ -180,6 +181,7 @@ def start(service, request):
             for key in ('claims', 'graph', 'concepts', 'extraction_rejections'):
                 run[key] = deepcopy(parent.get(key, []))
             run['prior_repairs'] = deepcopy([*parent.get('prior_repairs', []), *parent['repairs']])
+            run['reference_meanings'] = business_review.stored_meanings(parent)
             run['stored_pool'] = dict(parent_run_id=parent['id'],
                 claims_hash=autoschema.identifier('claims', parent['claims']),
                 source_hash=autoschema.identifier('source', parent['blocks']),
@@ -278,6 +280,8 @@ def request_tokens(messages, schema, max_tokens):
 
 
 def evidence_fields(output_type):
+    if issubclass(output_type, SelectedRequirementSourceCheck):
+        return {name: get_args(output_type.model_fields[name].annotation)[0] for name in ('selections', 'additions')}
     if issubclass(output_type, GroundingCheck):
         return {'meanings': get_args(output_type.model_fields['meanings'].annotation)[0]}
     if issubclass(output_type, ExpressionReviewCheck):
@@ -329,11 +333,19 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
         if field in context:
             context[field] = {k: v for k, v in context[field].items() if k in public_keys}
     evidence_views = None
-    if issubclass(output_type, (RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
+    if issubclass(output_type, (RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck, SelectedRequirementSourceCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
         evidence_views = {f'e{n + 1}': deepcopy(b) for n, b in enumerate(context.get('blocks', []))}
         output_type = selected_evidence_type(output_type, evidence_views)
         fields = 'evidence와 error_evidence' if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck)) else 'evidence'
         instruction += '\n' + fields + '에는 blocks의 evidence_ref ID만 선택한다. 여러 구간은 별도 ID로 반환한다. 문장을 재작성하지 않는다. 참조가 있다는 이유만으로 의미 지지/해소를 선언하지 않는다.\n'
+        if issubclass(output_type, SelectedRequirementSourceCheck):
+            # Provenance remains server-side. Historical keys are not new local
+            # premise IDs, and saved quotations cannot substitute for this read.
+            for meaning in context['existing_meanings']:
+                meaning.pop('origin', None)
+                refs = meaning['content'].pop('evidence')
+                meaning['source_evidence_refs'] = [ref for ref, block in evidence_views.items() if any(
+                    e['block_id'] == block['id'] and e['quote'] in block['text'] for e in refs)]
         if stage == 'source_reassessment':
             for meaning in context.get('previous', {}).get('meanings', []):
                 try:

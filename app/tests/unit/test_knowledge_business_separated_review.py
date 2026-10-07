@@ -429,3 +429,162 @@ def test_invalid_answer_link_reuses_partial_source_reassessment_without_rewritin
     for field in ('statement','conditions','exceptions','period','references','source_status','availability'):
         assert updated[field]==adjacent[field]
     assert not review.answer_scope_challenges(result) and not updated['required_for_requirement']
+
+
+def selection_fixture(run):
+    run['id'] = 'run'
+    run['recipe']['review_contract'] = review.MEANING_SELECTION_EXPERIMENT
+    run['requirements'][0].update(question='어느 기관이 신청을 접수하는가?', criterion='접수 기관', situation='방문')
+    run['assessments'] = [dict(id='prior', source=dict(meanings=[dict(meaning('stored'),
+        required_for_requirement=True, requirement_link=dict(applicability='applicable'))]))]
+    pool = review.selectable_meanings(run, run['blocks'])
+    selected = dict(meaning_id=pool[0]['id'], source_status='unknown', availability='provided',
+        evidence=meaning('m')['evidence'], requirement_link=dict(requested_fact='접수 기관',
+        applicability='applicable', contribution='direct_answer', reason='질문 대조', requirement_quote='어느 기관이 신청을 접수하는가?'),
+        premise_keys=[], reason='새 독립 판단', correction=None)
+    return pool, dict(examined_block_ids=['body'], inspection_status='complete', selections=[selected],
+        additions=[], findings=[], conjunctions=[], meaning_conjunctions=[])
+
+
+def test_selection_discards_prior_verdict_and_retains_whole_saved_content():
+    run = local_run(); pool, output = selection_fixture(run)
+    assert set(pool[0]['content']) == {'statement', 'conditions', 'exceptions', 'period', 'references', 'evidence'}
+    result = review.selected_source_output(output, pool)
+    assert result['meanings'][0]['source_status'] == 'unknown'
+    assert result['meanings'][0]['statement'] == meaning('stored')['statement']
+    assert result['meanings'][0]['selection_origin']['assessment_id'] == 'prior'
+    assert run['assessments'][0]['source']['meanings'][0]['source_status'] == 'supported'
+
+
+def test_selection_scope_failure_keeps_healthy_sibling_and_surfaces_error(monkeypatch):
+    run = local_run(); pool, output = selection_fixture(run)
+    output['selections'][0]['source_status'] = 'supported'
+    bad = deepcopy(pool[0]); bad['id'] = 's2'; pool.append(bad)
+    bad = deepcopy(output['selections'][0]); bad['meaning_id'] = 's2'
+    bad['requirement_link']['applicability'] = 'outside_scope'; output['selections'].append(bad)
+    result = review.selected_source_output(output, pool)
+    assert len(result['meanings']) == 2
+    assert result['meanings'][0]['required_for_requirement']
+    assert 'record_error' not in result['meanings'][0]
+    assert result['meanings'][1]['record_error'].startswith('invalid_selection_scope:')
+    assert result['meanings'][1]['source_status'] == 'supported'
+    monkeypatch.setattr(review, 'source_selection', lambda *a: ([run['chunks'][0]], {}))
+    monkeypatch.setattr(review, 'selectable_meanings', lambda *a: pool)
+    monkeypatch.setattr(business_run, 'cancelled', lambda *a: False)
+    def response(*args):
+        run['units'].append(dict(id='selection-unit'))
+        return deepcopy(output)
+    monkeypatch.setattr(business_run, 'json_call', response)
+    source = review.source(None, run, run['requirements'][0])
+    assert len(source['meanings']) == 2 and source['source_batches'][0]['errors']
+    assert [m['key'] for m in review.review_meanings(source)] == ['batch1:s1']
+    assert review.answer_scope_issues(source)[0]['meaning_key'] == 'batch1:s2'
+    assert review.answer_scope_challenges(source)[0]['reassessment_scope'] == 'requirement_link_and_evidence'
+    source.update(completeness='complete', gaps=[], meaning_gaps=[])
+    assessment = dict(source=source, representation=judgments(['batch1:s1'], ids=['normal']), errors=[], issues=[], preservation_complete=True)
+    assert business_run.requirement_completion(assessment)['status'] == 'partial'
+    source['meanings'].pop()
+    assert business_run.requirement_completion(assessment)['status'] == 'satisfied'
+
+
+def test_selection_without_catalog_uses_claims_or_original_additions():
+    run = local_run(); run['id'] = 'run'
+    run['recipe']['review_contract'] = review.MEANING_SELECTION_EXPERIMENT
+    assert review.selectable_meanings(run, run['blocks'])[0]['origin']['claim_id'] == run['claims'][0]['id']
+    run['claims'] = []
+    _, context, schema = review.source_request(run, run['requirements'][0], run['chunks'][0], 0, 1)
+    assert context['existing_meanings'] == []
+    new = dict(meaning('new'), required_for_requirement=True, requirement_link=dict(requested_fact='접수 기관',
+        applicability='applicable', contribution='direct_answer', reason='원문에서 새 발견', requirement_quote='접수 기관'))
+    output = schema.model_validate(dict(examined_block_ids=['body'], inspection_status='complete', selections=[],
+        additions=[new], findings=[], conjunctions=[], meaning_conjunctions=[])).model_dump()
+    assert review.selected_source_output(output, [])['meanings'] == [new]
+
+
+def test_selected_source_evidence_restores_only_current_explicit_address(monkeypatch):
+    run = local_run(); pool, output = selection_fixture(run)
+    _, context, schema = review.source_request(run, run['requirements'][0], run['chunks'][0], 0, 1)
+    output['selections'][0]['evidence'] = ['e1']
+    def response(*args, **kwargs):
+        run['units'].append(dict(id='u'))
+        return dict(parsed=deepcopy(output))
+    monkeypatch.setattr(business_run, 'call', response)
+    monkeypatch.setattr(business_run, 'save', lambda *a: None)
+    result = business_run.json_call(None, run, 'requirement_source', '', context, schema)
+    assert result['selections'][0]['evidence'][0]['quote'] == run['blocks'][0]['text']
+    assert result['selections'][0]['source_status'] == 'unknown'
+    output['selections'][0]['evidence'] = ['invented']
+    assert business_run.json_call(None, run, 'requirement_source', '', context, schema) is None
+
+
+def test_source_quote_answer_server_keeps_conditional_text_and_unanswered_item(monkeypatch):
+    from app.knowledge.business_models import BusinessQuery
+    text = '대리인이 신청하는 경우 위임장을 제출한다.'
+    evidence = [dict(id='b', text=text, claim_references=[dict(claim_ids=['c'])])]
+    output = dict(items=[dict(question_quote='직접 신청에도 위임장이 필요한가?', coverage='unknown',
+        evidence_refs=['t1'], missing_question_quote='직접 신청에도 위임장이 필요한가?')], choice=None)
+    monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: deepcopy(output))
+    run = {}; request = BusinessQuery(question='직접 신청에도 위임장이 필요한가?', snapshot_id='s', answer_mode='source_quotes')
+    result = business_use.source_quote_answer(None, run, request, evidence, {}, {})
+    assert result['citations'] == ['c'] and '원문: ' + text in result['answer']
+    assert result['limitations'] == ['직접 확인 불가: 직접 신청에도 위임장이 필요한가?']
+    output['items'][0]['question_quote'] = '질문에 없는 답변 항목'
+    assert business_use.source_quote_answer(None, run, request, evidence, {}, {}) is None
+
+
+def test_source_quote_answer_carries_public_criterion_without_prior_judgments(monkeypatch):
+    from app.knowledge.business_models import BusinessQuery
+    contexts = []
+    def response(service, run, stage, instruction, context, schema, **kwargs):
+        contexts.append(context)
+        return dict(items=[dict(question_quote='구비서류 요건', coverage='unknown', evidence_refs=['t1'],
+            missing_question_quote='구비서류 요건')], choice=None)
+    monkeypatch.setattr(business_run, 'json_call', response)
+    request = BusinessQuery(question='접수 기관은?', snapshot_id='s', answer_mode='source_quotes')
+    result = business_use.source_quote_answer(None, {}, request,
+        [dict(text='접수 기관: 본소', claim_references=[dict(claim_ids=['c'])])], {}, {},
+        [dict(id='r', question='접수 기관은?', criterion='구비서류 요건', status='satisfied', history=['old verdict'])])
+    assert result['limitations'] == ['직접 확인 불가: 구비서류 요건']
+    assert 'status' not in contexts[0]['public_requirements'][0]
+    assert 'history' not in contexts[0]['public_requirements'][0]
+
+
+def test_selection_catalog_cannot_supply_unread_support_or_old_premise_keys():
+    run = local_run(); pool, output = selection_fixture(run)
+    run['assessments'][0]['source']['meanings'][0]['evidence'].append(dict(block_id='unread', quote='별도 조건'))
+    assert review.selectable_meanings(run, run['blocks']) == []
+    run['assessments'][0]['source']['meanings'][0]['evidence'].pop()
+    instruction, context, schema = review.source_request(run, run['requirements'][0], run['chunks'][0], 0, 1)
+    wire = business_run.json_request(run, 'requirement_source', instruction, context, schema)
+    import json
+    row = json.loads(wire['messages'][1]['content'])['existing_meanings'][0]
+    assert 'origin' not in row and 'evidence' not in row['content']
+    assert row['source_evidence_refs'] == ['e1']
+    assert context['existing_meanings'][0]['origin']['meaning_key'] == 'stored'
+
+
+def test_selected_availability_is_source_provenance_and_self_premise_stays_unresolved():
+    run = local_run(); pool, output = selection_fixture(run)
+    output['selections'][0].pop('availability')
+    result = review.selected_source_output(output, pool)['meanings'][0]
+    assert result['availability'] == 'provided' and result['source_status'] == 'unknown'
+    output['selections'][0]['premise_keys'] = [pool[0]['id']]
+    result = review.selected_source_output(output, pool)['meanings'][0]
+    assert result['record_error'] == 'invalid_selection_scope: self premise'
+    assert result['source_status'] == 'unknown' and not result['required_for_requirement']
+
+
+def test_reassessment_cannot_clear_self_premise_by_dropping_error_metadata():
+    run = local_run(); pool, output = selection_fixture(run)
+    m = review.selected_source_output(output, pool)['meanings'][0]
+    m.update(source_status='supported', premise_keys=[m['key']], required_for_requirement=True)
+    assert 'record_error' not in m
+    source = dict(meanings=[m], review_contract=review.MEANING_SELECTION_EXPERIMENT,
+        answer_scope_contract=review.ANSWER_SCOPE_CONTRACT, answer_request=run['requirements'][0],
+        completeness='complete', gaps=[], meaning_gaps=[])
+    assessment = dict(source=source, representation=judgments([m['key']], ids=['normal']),
+                      errors=[], preservation_complete=True)
+    assert review.answer_scope_issues(source)[0]['reason'] == 'invalid_selection_scope: self premise'
+    assert business_run.requirement_completion(assessment)['status'] == 'partial'
+    m['premise_keys'] = []
+    assert business_run.requirement_completion(assessment)['status'] == 'satisfied'

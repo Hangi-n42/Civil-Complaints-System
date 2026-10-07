@@ -239,9 +239,68 @@ def reviewed_answer_meanings(snapshot, selected, requirement_ids):
     return rows
 
 
+def public_answer_requirements(requirements):
+    return [{k: r.get(k, '') for k in ('id', 'question', 'criterion', 'target', 'situation', 'period')}
+            for r in requirements]
+
+
+def source_quote_answer(service, run, request, source_evidence, source_versions, reference_map, requirements=()):
+    """Experimental extractive answers: the model selects, the server quotes."""
+    evidence = {f't{i + 1}': row for i, row in enumerate(source_evidence)}
+    if not evidence:
+        return None
+    public_requirements = public_answer_requirements(requirements)
+    requested_text = [request.question, *(r[k] for r in public_requirements for k in ('question', 'criterion'))]
+    row = create_model('SourceAnswerItem', question_quote=(str, Field(min_length=1)),
+        coverage=(Literal['direct', 'partial', 'unknown'], Field(...)),
+        evidence_refs=(list[Literal[tuple(evidence)]], Field(...)),
+        missing_question_quote=(str, Field(description='Exact question fragment whose answer is not directly established; empty only for direct coverage.')))
+    response_type = create_model('SourceAnswerSelection', items=(list[row], Field(min_length=1)),
+                                 choice=(Literal['A', 'B', 'C', 'D'] | None, None))
+    output = business_run.json_call(service, run, 'business_qa',
+        '질문과 public_requirements의 question/criterion이 요청한 모든 항목에 직접 답하는 원문과 그 주체·조건·예외를 선택한다. 원문 주소를 선택하며 답변 문장은 쓰지 않는다. '
+        'question_quote는 질문 또는 공개 criterion의 정확한 구절이다. 대상/상황/기간은 적용 문맥이며 새 답변 항목이 아니다. '
+        'evidence_refs에는 답과 주체·조건·예외를 함께 해석하는 데 필요한 구간을 고른다. '
+        '원문의 기간 안내가 별도 행위의 허용 여부를 답하지 않으며, 조건부 의무는 조건 밖의 일반 의무를 답하지 않는다. '
+        '허용·의무·제외를 물으면 그 효과가 직접 명시된 구간이 필요하다. 인접 업무나 묵시적 추론으로 direct를 선언하지 않는다. '
+        '직접 답은 direct, 일부만 확인되면 partial, 직접 답을 확인할 수 없으면 unknown이다. '
+        'partial/unknown은 missing_question_quote에 직접 확인하지 못한 질문 또는 criterion 구절을 표시한다. 요청 항목을 생략하지 않는다. '
+        '관련 사실의 원문은 함께 선택할 수 있지만 답을 확인한 것으로 분류하지 않는다. '
+        '같은 원문의 다른 절을 과잉 인용하지 않되 주체/조건/예외를 빠뜨리지 않는다. choice는 선택지가 있을 때만 고른다.',
+        dict(question=request.question, choices=request.choices, public_requirements=public_requirements, source_versions=source_versions,
+             source_evidence=[dict(reference=ref, **value) for ref, value in evidence.items()]),
+        response_type, reference_map=reference_map)
+    run['answer_contract'] = 'source-selection-server-quotation-experimental-v1'
+    run['answer_selection'] = deepcopy(output)
+    if not output:
+        return None
+    lines, citations, limitations = [], [], []
+    for item in output['items']:
+        if not any(item['question_quote'] in text for text in requested_text) or (item['missing_question_quote']
+                and not any(item['missing_question_quote'] in text for text in requested_text)):
+            return None
+        if item['coverage'] == 'direct' and (not item['evidence_refs'] or item['missing_question_quote']):
+            return None
+        if item['coverage'] != 'direct' and not item['missing_question_quote']:
+            return None
+        lines.append(item['question_quote'])
+        for ref in dict.fromkeys(item['evidence_refs']):
+            source = evidence[ref]
+            lines.append('원문: ' + source['text'])
+            citations.extend(cid for link in source['claim_references'] for cid in link['claim_ids'])
+        if item['coverage'] != 'direct':
+            limitation = '직접 확인 불가: ' + item['missing_question_quote']
+            lines.append(limitation)
+            limitations.append(limitation)
+    return dict(answer='\n\n'.join(lines), choice=output['choice'],
+                citations=list(dict.fromkeys(citations)), limitations=limitations)
+
+
 def query(service, request, *, context_mode='graph'):
     """The same question/answer contract supports a recorded document baseline."""
     from .discovery_profile import FrozenIndex
+    if request.answer_mode == 'source_quotes' and (request.source_run_id or context_mode != 'graph'):
+        raise ValueError('원문 선택 답변 실험은 승인 그래프 근거에서만 지원합니다.')
     started = monotonic()
     source_reader = bool(request.source_run_id)
     if context_mode not in {'graph', 'document'}:
@@ -422,28 +481,35 @@ def query(service, request, *, context_mode='graph'):
     # Complete claim bundles retain conditions and source provenance; no gold mappings.
     limitations = [dict(requirement_id=r, status=a['status'], gaps=(a.get('source') or {}).get('gaps', []))
                    for r, a in snapshot['assessments'].items() if a['status'] != 'satisfied']
-    output = business_run.json_call(service, run, 'business_qa',
-        '제공된 검색 근거만으로 질문에 한국어로 답한다. 선택지가 있으면 choice에 선택지의 A/B/C/D를 반환한다. '
-        '부족하면 확인 불가와 구체 한계를 표시한다. citations에는 사용한 context id만 쓴다. '
-        '각 인용 ID는 한 번만 쓰며 제공된 context 개수를 넘지 않는다. 빈 답변을 반환하지 않는다. '
-        '미승인 개념이나 원문보다 강한 효과를 사실로 쓰지 않는다. 조건/예외/기간을 유지한다. '
-        'source_evidence는 연결된 승인 후보의 출처와 범위를 확인하는 원문이다. '
-        '같은 인용 안의 다른 의미까지 승인된 것으로 취급하지 않는다.' + (
-        'reviewed_meanings는 기존 검수의 주장·조건·예외·기간과 원문을 연결한 범위이지 정답표가 아니다. '
-        '질문에 해당하는 의미와 실제 인용을 함께 사용하고, 후보의 다른 절이나 검수 문장의 확대 해석을 그대로 확정하지 않는다. '
-        '원문에서 직접 확인되는 사실과 추가 해석이 필요한 결론을 구분해 답한다.' if not source_reader else '') + (
-        '\n이번 context는 검색된 원문 구간이다. 원문 자체를 대조하여 답한다. '
-        'source_context는 선택한 구간의 표 행·병합 셀·상위 조건·예외에 필요한 원문이다. '
-        'supports_context_ids와 표의 row/column/merged_span을 사용하여 귀속을 확인한다. '
-        'context_id만 있는 문맥은 같은 context의 원문을 참조한다. 문맥 근거도 연결된 context id로 인용한다. '
-        '검색에 사용한 그래프 연결은 미승인 추출일 수 있으며 그 존재가 의미 검증은 아니다. '
-        '원문에 없는 조건이나 연결을 추론해서 채우지 않는다. 이 답변은 온톨로지 승인이나 업무 요구 전체 충족 판정이 아니다.'
-        if source_reader else ''),
-        dict(question=request.question, choices=request.choices, context=context,
-             source_versions=snapshot['source_versions'], source_evidence=source_evidence,
-             requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader
-                                                     else {'reviewed_meanings': reviewed_meanings})), context_answer,
-        reference_map=reference_map)
+    answer_requirements = public_answer_requirements(requirements) if request.requirement_ids else []
+    if request.answer_mode == 'source_quotes':
+        output = source_quote_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)
+    else:
+        output = business_run.json_call(service, run, 'business_qa',
+            '제공된 검색 근거만으로 질문에 한국어로 답한다. 선택지가 있으면 choice에 선택지의 A/B/C/D를 반환한다. '
+            '부족하면 확인 불가와 구체 한계를 표시한다. citations에는 사용한 context id만 쓴다. '
+            '각 인용 ID는 한 번만 쓰며 제공된 context 개수를 넘지 않는다. 빈 답변을 반환하지 않는다. '
+            '미승인 개념이나 원문보다 강한 효과를 사실로 쓰지 않는다. 조건/예외/기간을 유지한다. '
+            'source_evidence는 연결된 승인 후보의 출처와 범위를 확인하는 원문이다. '
+            '같은 인용 안의 다른 의미까지 승인된 것으로 취급하지 않는다.' + (
+            'public_requirements의 question/criterion은 공개 답변 기준이다. 기준에서 요청한 항목도 답하거나 구체 공백을 표시한다. '
+            '대상·상황·시점은 적용 범위이며 기준 자체를 원문 근거나 정답으로 사용하지 않는다.' if answer_requirements else '') + (
+            'reviewed_meanings는 기존 검수의 주장·조건·예외·기간과 원문을 연결한 범위이지 정답표가 아니다. '
+            '질문에 해당하는 의미와 실제 인용을 함께 사용하고, 후보의 다른 절이나 검수 문장의 확대 해석을 그대로 확정하지 않는다. '
+            '원문에서 직접 확인되는 사실과 추가 해석이 필요한 결론을 구분해 답한다.' if not source_reader else '') + (
+            '\n이번 context는 검색된 원문 구간이다. 원문 자체를 대조하여 답한다. '
+            'source_context는 선택한 구간의 표 행·병합 셀·상위 조건·예외에 필요한 원문이다. '
+            'supports_context_ids와 표의 row/column/merged_span을 사용하여 귀속을 확인한다. '
+            'context_id만 있는 문맥은 같은 context의 원문을 참조한다. 문맥 근거도 연결된 context id로 인용한다. '
+            '검색에 사용한 그래프 연결은 미승인 추출일 수 있으며 그 존재가 의미 검증은 아니다. '
+            '원문에 없는 조건이나 연결을 추론해서 채우지 않는다. 이 답변은 온톨로지 승인이나 업무 요구 전체 충족 판정이 아니다.'
+            if source_reader else ''),
+            dict(question=request.question, choices=request.choices, context=context,
+                 source_versions=snapshot['source_versions'], source_evidence=source_evidence,
+                 **({'public_requirements': answer_requirements} if answer_requirements else {}),
+                 requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader
+                                                         else {'reviewed_meanings': reviewed_meanings})), context_answer,
+            reference_map=reference_map)
     if source_reader:
         run['answer_contract'] = 'source-unique-provided-citations-lossless-dedup-v3'
         raw_ids = ((run['units'][-1].get('response') or {}).get('parsed') or {}).get('citations', []) if run['units'] else []
