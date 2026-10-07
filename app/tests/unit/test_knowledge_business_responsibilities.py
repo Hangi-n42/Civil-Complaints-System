@@ -1,6 +1,8 @@
 """Source truth, question applicability and candidate repair have different owners."""
 from copy import deepcopy
 
+import pytest
+
 from app.knowledge import business_review as review, business_run
 from app.tests.unit.test_knowledge_business_local_review import local_run
 
@@ -92,7 +94,7 @@ def test_application_failure_is_local_and_missing_link_keeps_fact(monkeypatch):
     assert all(all(by_key[m['key']][k] == v for k, v in m.items()) for m in facts['meanings'])
 
 
-def setup_direct_receipt(monkeypatch, states=('supported', 'incorrect')):
+def setup_direct_receipt(monkeypatch, states=('supported', 'incorrect'), transform=None):
     run = local_run(); run['recipe'].update(review_contract=review.SOURCE_APPLICATION_CONTRACT,
         models=dict(review='local-review', draft='local-draft'), generation=dict(provider='ollama'))
     run.update(model_identity={'review': 'digest'}, id='r', metrics={})
@@ -104,6 +106,8 @@ def setup_direct_receipt(monkeypatch, states=('supported', 'incorrect')):
             evidence=c['evidence'], error_fields=[] if status == 'supported' else ['raw.Relation'],
             error_evidence=[] if status == 'supported' else c['evidence'], reason='실제 필드 검수')
             for c, status in zip(run['claims'], states)], preservation_checks=[])
+        if transform:
+            transform(output)
         limits = dict(max_tokens=options['review_tokens'], context_tokens=options['context_tokens'], think=options['think'])
         run['units'].append(dict(id='direct', stage=stage, status='succeeded', error=None,
             **{k: request[k] for k in ['messages', 'schema', 'reference_map', 'evidence_reference_map']},
@@ -114,8 +118,40 @@ def setup_direct_receipt(monkeypatch, states=('supported', 'incorrect')):
     monkeypatch.setattr(business_run, 'json_call', answer)
     monkeypatch.setattr(business_run, 'save', lambda *a: None)
     receipt = review.review_candidates(None, run, run['claims'])
-    assert not receipt['errors']
+    if transform is None:
+        assert not receipt['errors']
     return run, receipt
+
+
+@pytest.mark.parametrize('case', ['missing', 'duplicate', 'outside', 'bad_evidence', 'bad_field'])
+def test_partial_candidate_response_preserves_valid_rows_and_rechecks_only_pending(monkeypatch, case):
+    def transform(output):
+        rows = output['checks']
+        if case == 'missing':
+            rows.pop()
+        elif case == 'duplicate':
+            rows.append(deepcopy(rows[-1]))
+        elif case == 'outside':
+            rows.append(dict(deepcopy(rows[-1]), claim_id='unrequested'))
+        elif case == 'bad_evidence':
+            rows[-1]['evidence'] = [dict(block_id='body', quote='원문에 없는 인용')]
+        else:
+            rows[-1].update(claim_support='incorrect', error_fields=['raw.absent'],
+                            error_evidence=deepcopy(rows[-1]['evidence']))
+    run, receipt = setup_direct_receipt(monkeypatch, states=('supported', 'supported'), transform=transform)
+    normal, pending = [c['id'] for c in run['claims']]
+    expected = {normal, pending} if case == 'outside' else {normal}
+    assert set(review.current_candidate_reviews(run)) == expected
+    assert {c['claim_ids'][0] for c in receipt['checks']} == expected
+    assert all(not c['incorrect_claim_ids'] for c in receipt['checks'])
+    assert all(isinstance(error, dict) for error in receipt['errors'])
+    assert {e['claim_id'] for e in receipt['errors']} == ({'unrequested'} if case == 'outside' else {pending})
+    scheduled = []
+    monkeypatch.setattr(business_run, 'cancelled', lambda *a: False)
+    monkeypatch.setattr(review, 'review_candidates', lambda service, current, claims, **kwargs:
+        scheduled.extend(c['id'] for c in claims))
+    review.review_candidate_pool(None, run, run['claims'])
+    assert scheduled == ([] if case == 'outside' else [pending])
 
 
 def test_direct_receipt_reuse_requires_exact_input_contract_model_and_correction_context(monkeypatch):

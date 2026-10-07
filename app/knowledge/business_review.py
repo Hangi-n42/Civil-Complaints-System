@@ -1,4 +1,5 @@
 """Bounded inputs and dependency boundaries for the existing E/R calls."""
+from collections import Counter
 from copy import deepcopy
 import json
 import re
@@ -1086,11 +1087,18 @@ def review_candidates(service, run, claims, *, repair_context=()):
         provided_block_ids=[b['id'] for b in blocks], output=deepcopy(output), checks=[], errors=[])
     if output is None:
         receipt['errors'].append('candidate_source_call_failed')
-    elif (len(output['checks']) != len(provided) or {c['claim_id'] for c in output['checks']} != set(provided)):
-        receipt['errors'].append('candidate_source_scope_mismatch')
     else:
+        counts = Counter(row['claim_id'] for row in output['checks'])
+        for cid in dict.fromkeys([*provided, *counts]):
+            reason = ('candidate_source_outside_scope' if cid not in provided else
+                      'candidate_source_missing' if not counts[cid] else
+                      'candidate_source_duplicate' if counts[cid] > 1 else None)
+            if reason:
+                receipt['errors'].append(dict(claim_id=cid, reason=reason))
         for row in output['checks']:
             cid, status = row['claim_id'], row['claim_support']
+            if cid not in provided or counts[cid] != 1:
+                continue
             try:
                 refs = execution.exact_evidence(row['evidence'], blocks)
                 own = {b['id'] for b in candidate_source_basis(next(c for c in claims if c['id'] == cid), blocks)}
