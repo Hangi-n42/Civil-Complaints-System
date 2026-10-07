@@ -39,7 +39,8 @@ def stable(*parts):
 
 
 def recipe():
-    return dict(version='a5-lh-consumer-v1', model=settings.STRUCTURING_MODEL, mapping=contract.PROFILE,
+    from app.generation.model_client import configuration
+    return dict(version='a5-lh-consumer-v1', generation=configuration(), model=settings.STRUCTURING_MODEL, mapping=contract.PROFILE,
                 prompt_hash=sha256(PROMPT.encode()).hexdigest(),
                 contract_hash=sha256(Path(contract.__file__).read_bytes()).hexdigest(), alignment='langextract-1.7.0',
                 consumer_hash=sha256(Path(consumer.__file__).read_bytes()).hexdigest(),
@@ -275,8 +276,8 @@ def prompt_for(run, unit):
 
 
 async def model_call(prompt,schema,run):
-    return await GenerationService().call_ollama(prompt,temperature=0,response_schema=schema,model=run['recipe']['model'],
-                                                num_predict=run['recipe']['num_predict'],num_ctx=run['recipe']['num_ctx'],think=run['recipe'].get('think'),return_metadata=True,local_only=True)
+    return await GenerationService().call_model(prompt, schema=schema, stage='extraction', model=run['recipe']['model'], recipe=run['recipe'],
+                                                num_predict=run['recipe']['num_predict'], num_ctx=run['recipe']['num_ctx'], think=run['recipe'].get('think'))
 
 
 def materialize(run,unit,records):

@@ -9,6 +9,7 @@ import httpx
 
 from app.core.config import settings
 from app.generation.service import GenerationService, local_ollama_url
+from app.generation.model_client import ModelClient, configuration
 from . import discovery_run as grounding, discovery_models as models, discovery_profile as profile, discovery_segments as segments, discovery_review as reviews, discovery_design as design
 from .service import KnowledgeConflict, encode, utcnow
 from . import discovery_candidates as identities
@@ -21,7 +22,7 @@ def recipe(budgets):
     from . import discovery_meanings
     return dict(meaning_contract=discovery_meanings.CONTRACT, neighbor_contract='relation-neighbors-v1' if settings.KNOWLEDGE_DISCOVERY_NEIGHBORS else 'disabled', builder_correction_contract='inline-single-v1', context_applicability_contract='scoped-v1', source_context_contract='independent-v1', context_contract='scope-v1', claim_review_contract='claims-v1', revision_context_contract='target-source-v1', builder_definition_contract='roles-only-v1', review_evidence_contract='semantic-checks-v1', builder_declaration_contract='shared-types-v1', definition_contract='authored-v2', review_component_contract='proposition-binding-v1', binding_num_predict=8192, critic_num_predict=8192, requirements_num_predict=settings.KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_PREDICT, requirements_num_ctx=settings.KNOWLEDGE_DISCOVERY_REQUIREMENTS_NUM_CTX or settings.KNOWLEDGE_DISCOVERY_NUM_CTX, binding_think=False, review_dependency_contract='selected-types-v1', binding_reason_contract='per-endpoint-v1', correction_contract='per-target-v1', review_contract='checks-v1', reference_contract='canonical-v1', profile_version='a2-survey-v5', candidate_version=identities.VERSION, prompt_version=PROMPT_VERSION, prompt_hash=profile.digest([models.COMMON, models.PROMPTS, models.ROLE_DECLARATION_RULE, models.SHARED_TYPE_RULE, models.BUILDER_ROLE_RULE, models.AUTHORING_RULE, models.CLAIM_REVIEW_RULE, models.SCOPE_RULE, models.SOURCE_ROLE_REVIEW_RULE, models.PRESERVATION_RULE, models.PROPOSITION_PROMPT, binding_prompt, discovery_meanings.PROMPTS]),
         models=dict(draft=settings.STRUCTURING_MODEL, review=settings.KNOWLEDGE_DISCOVERY_REVIEW_MODEL),
-        endpoint=local_ollama_url(settings.OLLAMA_BASE_URL), budgets=budgets,
+        endpoint=ModelClient().endpoint, generation=configuration(), budgets=budgets,
         num_ctx=settings.KNOWLEDGE_DISCOVERY_NUM_CTX, num_predict=4096,
         builder_num_predict=8192 if settings.KNOWLEDGE_DISCOVERY_THINK else 4096,
         applicability_num_predict=8192 if settings.KNOWLEDGE_DISCOVERY_THINK else 4096,
@@ -32,21 +33,10 @@ def recipe(budgets):
 
 def model_identity(current):
     """Read installed model identity/context only; never pull a model or follow a redirect."""
-    with httpx.Client(trust_env=False, follow_redirects=False, timeout=15) as client:
-        response = client.get(current['endpoint'] + '/api/tags'); response.raise_for_status()
-        installed = {m['name']: m for m in response.json()['models']}
-        result = {}
-        for role, name in current['models'].items():
-            if name not in installed:
-                raise ValueError('설치된 로컬 모델이 없습니다: ' + name)
-            response = client.post(current['endpoint'] + '/api/show', json={'model': name})
-            response.raise_for_status()
-            lengths = [int(v) for k, v in response.json().get('model_info', {}).items() if k.endswith('.context_length')]
-            required_context=max(current['num_ctx'],context_tokens(current,'requirements')) if role=='review' else current['num_ctx']
-            if not lengths or min(lengths) < required_context:
-                raise ValueError('모델의 선언 컨텍스트가 실행 설정보다 작거나 확인 불가합니다.')
-            result[role] = dict(name=name, digest=installed[name]['digest'], context_length=min(lengths))
-        return result
+    config = current.get('generation') or dict(provider='ollama', endpoint=current['endpoint'])
+    required = {role: max(current['num_ctx'], context_tokens(current, 'requirements'))
+                if role == 'review' else current['num_ctx'] for role in current['models']}
+    return ModelClient(config).identities(current['models'], required)
 
 
 def load_blocks(service, run):
@@ -552,10 +542,10 @@ def model_stage(stage, context):
 
 
 async def model_call(prompt, schema, stage, run, timeout):
-    return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements','context','applicability','grounding'} else 'draft'],
+    return await GenerationService().call_model(prompt, schema=schema, stage=stage,
+        model=run['recipe']['models']['review' if stage in {'critic','binding','requirements','context','applicability','grounding'} else 'draft'], recipe=run['recipe'],
         num_predict=output_tokens(run['recipe'],stage), num_ctx=context_tokens(run['recipe'],stage), think=run['recipe']['binding_think'] if stage=='binding' else run['recipe'].get('think',False),
-        timeout=timeout, return_metadata=True, local_only=True)
+        timeout=timeout)
 
 
 def make_prompt(run, stage, context, deps, supplied, key='', source_scope=None):

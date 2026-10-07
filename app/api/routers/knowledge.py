@@ -22,6 +22,8 @@ from app.knowledge import ontology_consumer
 from app.knowledge import extraction_store
 from app.knowledge import snapshots
 from app.knowledge.schemas import SearchRequest, LocalEntityRequest
+from app.knowledge import business_store, business_use
+from app.knowledge.business_models import RequirementInput, BusinessRunRequest, BusinessDecision, BusinessQuery, ChangeRequest, ConceptRunRequest
 
 
 class KnowledgeRoute(APIRoute):
@@ -112,6 +114,66 @@ def evidence(evidence_id: str, run_id: str | None = None, service=Depends(get_kn
 @router.post('/runs', response_model=KnowledgeResponse)
 def start(request: RunRequest, service=Depends(get_knowledge_service)):
     return result(service.start(request))
+
+
+@router.put('/requirements/{requirement_id}', response_model=KnowledgeResponse)
+def put_requirement(requirement_id: str, request: RequirementInput, service=Depends(get_knowledge_service)):
+    if request.id != requirement_id:
+        raise ValueError('요구 ID가 일치하지 않습니다.')
+    return result(business_store.put_requirement(service, request))
+
+
+@router.get('/requirements', response_model=KnowledgeResponse)
+def requirements(service=Depends(get_knowledge_service)):
+    return result(business_store.requirements(service))
+
+
+@router.post('/business/runs', response_model=KnowledgeResponse)
+def start_business(request: BusinessRunRequest, service=Depends(get_knowledge_service)):
+    return result(service.start_business(request))
+
+
+@router.post('/business/concepts', response_model=KnowledgeResponse)
+def business_concepts(request: ConceptRunRequest, service=Depends(get_knowledge_service)):
+    from app.knowledge.business_concepts import start
+    return result(start(service, request))
+
+
+@router.get('/business/runs', response_model=KnowledgeResponse)
+def business_runs(service=Depends(get_knowledge_service)):
+    import json
+    with service.repository.connect() as db:
+        items = [dict(id=r['id'], status=r['status'], started_at=r['started_at'],
+                      questions=[q['question'] for q in r['requirements']])
+                 for row in db.execute('SELECT payload FROM runs ORDER BY rowid DESC')
+                 if (r := json.loads(row['payload'])).get('kind') == 'business']
+    return result(dict(items=items))
+
+
+@router.get('/business/changes/{changeset_id}', response_model=KnowledgeResponse)
+def business_change(changeset_id: str, service=Depends(get_knowledge_service)):
+    return result(business_use.change_view(service, changeset_id))
+
+
+@router.post('/business/changes/{changeset_id}/decisions', response_model=KnowledgeResponse)
+def business_decision(changeset_id: str, request: BusinessDecision, service=Depends(get_knowledge_service)):
+    return result(business_use.decide(service, changeset_id, request))
+
+
+@router.get('/business/snapshots', response_model=KnowledgeResponse)
+def business_snapshots(service=Depends(get_knowledge_service)):
+    return result(business_use.snapshots(service))
+
+
+@router.post('/business/search', response_model=KnowledgeResponse)
+def business_search(request: BusinessQuery, service=Depends(get_knowledge_service)):
+    return result(business_use.query(service, request))
+
+
+@router.post('/business/changes', response_model=KnowledgeResponse)
+def business_version_change(request: ChangeRequest, service=Depends(get_knowledge_service)):
+    from app.knowledge.business_changes import analyze
+    return result(analyze(service, request))
 
 
 @router.get('/runs/{run_id}', response_model=KnowledgeResponse)

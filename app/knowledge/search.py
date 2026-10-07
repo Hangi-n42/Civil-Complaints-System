@@ -306,8 +306,9 @@ def execute(service, run_id, request):
                         chosen_assertion_ids=[a['id'] for a in chosen])
             service.repository.save(db,'runs',live)
         try:
-            metadata=asyncio.run(GenerationService().call_ollama(prompt,temperature=0,response_schema=schema,
-                model=run['model'],num_predict=run.get('num_predict',1536),num_ctx=16384,think=run.get('think'),return_metadata=True))
+            metadata=asyncio.run(GenerationService().call_model(prompt, schema=schema, stage='knowledge_search',
+                model=run['model'], recipe={'generation':run.get('generation')}, num_predict=run.get('num_predict',1536),
+                num_ctx=16384, think=run.get('think')))
         finally:model_s=monotonic()-t
         with service.lock,service.repository.connect() as db:
             live=service.repository.get(db,'runs',run_id)
@@ -385,6 +386,7 @@ def execute(service, run_id, request):
 
 
 def search(service, request, *, answer_variant="A", model=None, think=None):
+    from app.generation.model_client import configuration
     # B/C/D are internal comparison candidates; none passed the targeted quality cases.
     # Keep A as the public API default until a concise candidate actually qualifies.
     request=SearchRequest.model_validate(request)
@@ -396,6 +398,7 @@ def search(service, request, *, answer_variant="A", model=None, think=None):
         if service.closed or any(json.loads(r['payload'])['status'] in {'queued','running','cancel_requested'} for r in db.execute('SELECT payload FROM runs')):
             raise KnowledgeConflict('실행 중이거나 종료 중인 작업이 있습니다.')
         run=dict(id=uuid4().hex,kind='search',status='queued',units=[],input_version_ids=[],request=request.model_dump(mode='json'),
+                 generation=configuration(),
                  started_at=None,finished_at=None,metrics=dict(llm_calls=0,model_total_s=0,elapsed_s=0),
                  model=model,think=think,num_predict=3072 if think else 1536,answer_variant=answer_variant,prompt_version='local-v6-reviewed-facts' if answer_variant=='A' else 'local-v8-D3' if answer_variant=='D' else 'local-v7-'+answer_variant,prompt_hash=sha256(PROMPT.encode()).hexdigest())
         db.execute('INSERT INTO runs VALUES(?,?)',(run['id'],encode(run)))

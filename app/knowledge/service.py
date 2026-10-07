@@ -53,8 +53,8 @@ class KnowledgeService:
         if not filename or '/' in filename or '\\' in filename or filename in {'.', '..'}:
             raise ValueError('경로를 포함하지 않는 파일명이 필요합니다.')
         format = Path(filename).suffix.lstrip('.').lower()
-        if format not in {'pdf', 'html', 'csv', 'hwpx', 'txt', 'md'} or not content:
-            raise ValueError('비어 있지 않은 PDF/HTML/CSV/HWPX/TXT/MD 파일만 등록할 수 있습니다.')
+        if format not in {'pdf', 'html', 'csv', 'hwpx', 'txt', 'md', 'json', 'xlsx'} or not content:
+            raise ValueError('비어 있지 않은 PDF/HTML/CSV/HWPX/TXT/MD/JSON/XLSX 파일만 등록할 수 있습니다.')
         digest = sha256(content).hexdigest()
         with self.lock, self.repository.connect() as db:
             source_id = metadata.source_id
@@ -203,6 +203,10 @@ class KnowledgeService:
         self.executor.submit(self._execute, run['id'])
         return dict(run_id=run['id'], status='queued')
 
+    def start_business(self, request):
+        from .business_run import start
+        return start(self, request)
+
     def _create_parse(self, db, request):
         from .parsers import plan_units, parser_info
         run = dict(id=uuid4().hex, kind='parse', status='queued', units=[], input_version_ids=[],
@@ -333,6 +337,7 @@ class KnowledgeService:
 
     def cancel(self, run_id):
         with self.lock, self.repository.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
             run = self.repository.get(db, 'runs', run_id)
             if run['status'] in {'queued', 'running'}:
                 run['status'] = 'cancel_requested'

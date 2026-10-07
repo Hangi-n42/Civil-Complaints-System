@@ -74,8 +74,9 @@ class Review(BaseModel):
 
 
 def recipe():
+    from app.generation.model_client import configuration
     models = {'draft': settings.STRUCTURING_MODEL, 'review': settings.KNOWLEDGE_REVIEW_MODEL}
-    return dict(models=models, prompt_version=PROMPT_VERSION, budgets=BUDGETS,
+    return dict(models=models, generation=configuration(), prompt_version=PROMPT_VERSION, budgets=BUDGETS,
                 think=False, timeouts={'design': settings.KNOWLEDGE_DESIGN_TIMEOUT},
                 prompt_hash=sha256((COMMON+ANALYZE+DESIGN+REVIEW).encode()).hexdigest())
 
@@ -246,11 +247,9 @@ def build_prompt(run, unit):
 async def model_call(prompt, schema, stage, run):
     predict, ctx = run['recipe']['budgets'][stage]
     model = run['recipe']['models']['review' if stage == 'review' else 'draft']
-    return await GenerationService().call_ollama(prompt, temperature=0, response_schema=schema,
-                                                model=model, num_predict=predict, num_ctx=ctx,
+    return await GenerationService().call_model(prompt, schema=schema, stage=stage, model=model, recipe=run['recipe'], num_predict=predict, num_ctx=ctx,
                                                 think=run['recipe'].get('think', False if stage == 'review' else None),
-                                                timeout=run['recipe'].get('timeouts', {}).get(stage),
-                                                return_metadata=True)
+                                                timeout=run['recipe'].get('timeouts', {}).get(stage))
 
 
 def execute(service, run_id):

@@ -1,0 +1,54 @@
+{
+  "repository": "HKUST-KnowComp/AutoSchemaKG",
+  "commit": "d0a1666ae6621806faf814504c73678de4e809f2",
+  "files": [
+    {
+      "upstream_path": "LICENSE",
+      "local_path": "app/knowledge/vendor/autoschemakg/LICENSE",
+      "sha256": "47158d3a1eb6cbebe82fab657c11d4959c453f4d803b103a132b4627b63719f0",
+      "bytes": 1071
+    },
+    {
+      "upstream_path": "atlas_rag/llm_generator/format/validate_json_schema.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/validate_json_schema.py",
+      "sha256": "6540487518748bf12af13ec2215832fdc660dedba2a0a212227c2589cd5e1c9c",
+      "bytes": 3650
+    },
+    {
+      "upstream_path": "atlas_rag/llm_generator/format/validate_json_output.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/validate_json_output.py",
+      "sha256": "5922f96e6d9c52ddc1414d9424be8ff265432c1b736e42a8d02ff6e37ab5a6ac",
+      "bytes": 5490
+    },
+    {
+      "upstream_path": "atlas_rag/llm_generator/prompt/triple_extraction_prompt.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/triple_extraction_prompt.py",
+      "sha256": "7d8ea6f6795fa4d85be7ba1e14c0cde231a4119e31953aae7716076c0eaf3d0a",
+      "bytes": 17455
+    },
+    {
+      "upstream_path": "atlas_rag/kg_construction/triple_extraction.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/triple_extraction.py",
+      "sha256": "71a9a3475adeaa2262e66cd002cae20053788fd807bdca0039aa7ac19770acdf",
+      "bytes": 29840
+    },
+    {
+      "upstream_path": "atlas_rag/kg_construction/concept_generation.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/concept_generation.py",
+      "sha256": "41029f07e197de1330a3228c22bbf870fdc835925206002c2c0d5b28ccab8586",
+      "bytes": 11549
+    },
+    {
+      "upstream_path": "atlas_rag/retriever/hipporag2.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/hipporag2_upstream.py",
+      "sha256": "6cb4562ec05a00efaa211e557dd83df254866142580db1e87b09601e332faba7",
+      "bytes": 13560
+    },
+    {
+      "upstream_path": "atlas_rag/llm_generator/prompt/rag_prompt.py",
+      "local_path": "app/knowledge/vendor/autoschemakg/rag_prompt.py",
+      "sha256": "ef7860e5da67cbea6c3d294f13727889063bb4d2f7f93d023b6e6b24648e9e42",
+      "bytes": 8676
+    }
+  ]
+}

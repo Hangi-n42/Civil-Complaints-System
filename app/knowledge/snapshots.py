@@ -151,6 +151,7 @@ def _capture_evidence(repo, db, identifier):
 
 def _integrity(snapshot):
     """Check frozen references, never rebuild an old snapshot from live candidates."""
+    _ontology_snapshot(snapshot)
     contract = snapshot.get('consumer_contract', {})
     definitions = {c['id']: c for c in consumer.definitions(snapshot['ontology'], contract)}
     for candidate in [*snapshot['links'].values(), *snapshot['assertions'].values()]:
@@ -284,8 +285,10 @@ def create(service, request):
 
 def list_snapshots(service):
     with service.lock, service.repository.connect() as db:
-        items = [json.loads(row['payload']) for row in db.execute('SELECT payload FROM snapshots ORDER BY rowid DESC')]
-        events = [json.loads(row['payload']) for row in db.execute('SELECT payload FROM snapshot_events ORDER BY rowid DESC')]
+        items = [s for row in db.execute('SELECT payload FROM snapshots ORDER BY rowid DESC')
+                 if (s := json.loads(row['payload'])).get('kind') != 'source_graph']
+        events = [e for row in db.execute('SELECT payload FROM snapshot_events ORDER BY rowid DESC')
+                  if (e := json.loads(row['payload'])).get('kind') != 'source_graph']
         return dict(**_state(db), items=[{k: s[k] for k in ('id', 'parent_id', 'created_at', 'actor', 'reason', 'counts')}
                                         for s in items], events=events)
 
@@ -301,7 +304,13 @@ def _validity(assertion, as_of):
         not bounds.get('valid_to') or as_of <= bounds['valid_to'])
 
 
+def _ontology_snapshot(snapshot):
+    if snapshot.get('kind') == 'source_graph':
+        raise ValueError('출처 그래프는 업무 지식의 검토·검색에서 조회하세요. 온톨로지 활성 버전으로 지정할 수 없습니다.')
+
+
 def _view(snapshot, statuses, state, entity_id=None, as_of=None):
+    _ontology_snapshot(snapshot)
     assertions, excluded = [], []
     for candidate in snapshot['assertions'].values():
         if entity_id and entity_id not in (candidate['subject_id'], candidate.get('object_entity_id')):

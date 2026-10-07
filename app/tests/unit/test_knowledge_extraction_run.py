@@ -15,7 +15,7 @@ def test_model_call_preserves_existing_recipe_thinking(monkeypatch):
     async def call(self, prompt, **kwargs):
         calls.append(kwargs)
         return {'text': '{}'}
-    monkeypatch.setattr(extraction.GenerationService, 'call_ollama', call)
+    monkeypatch.setattr(extraction.GenerationService, 'call_model', call)
     run = {'recipe': {'model': 'retained-model', 'num_predict': 4096, 'num_ctx': 32768}}
     asyncio.run(extraction.model_call('frozen input', {}, run))
     assert calls[0]['model'] == 'retained-model' and calls[0]['think'] is None
