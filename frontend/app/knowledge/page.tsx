@@ -6,6 +6,7 @@ import KnowledgeOntology from "@/components/KnowledgeOntology";
 import KnowledgeExtraction from "@/components/KnowledgeExtraction";
 import KnowledgeSearch from "@/components/KnowledgeSearch";
 import KnowledgeSnapshots from "@/components/KnowledgeSnapshots";
+import KnowledgeBusiness from "@/components/KnowledgeBusiness";
 import { API_BASE_URL } from "@/lib/api";
 
 type Version = { id: string; format: string; processing_status?: string; sha256: string; latest_parse_run_id?: string; verified_at?: string; acquired_at?: string; dates?: {role: string; value: string}[] };
@@ -30,7 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function KnowledgePage() {
-  const [tab, setTab] = useState<"sources" | "ontology" | "extraction" | "snapshots" | "search">("sources");
+  const [tab, setTab] = useState<"sources" | "ontology" | "extraction" | "snapshots" | "search" | "business">("sources");
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [selected, setSelected] = useState<{ source: Source; version: Version } | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -97,6 +98,10 @@ export default function KnowledgePage() {
       selected_scope.knowledge_input_complex_codes = String(form.get("codes")).split(",").map(x => x.trim()).filter(Boolean);
     } else if (format === "html") {
       selected_scope = { selector: String(form.get("selector") || "body") };
+    } else if (format === "xlsx" || format === "json") {
+      selected_scope = { sheet: String(form.get("sheet") || ""),
+        ...(form.get("columns") ? { columns: String(form.get("columns")).split(",").map(v => v.trim()) } : {}),
+        ...(form.get("filterColumn") ? { equals: { [String(form.get("filterColumn"))]: String(form.get("filterValue") || "") } } : {}) };
     } else if (format === "hwpx" && form.get("rental") === "on") {
       selected_scope = { include: "임대주택 Q1~Q16", metadata_include: { hwpx_member: "Contents/section0.xml", element_preorder_index_zero_based: 86, quote: "2026.03 기준" } };
     }
@@ -132,7 +137,8 @@ export default function KnowledgePage() {
     <AppSidebar activeMenu="knowledge" />
     <main className="min-w-0 flex-1 space-y-5 p-6">
       <header><h1 className="text-2xl font-bold">회사 지식 워크벤치</h1><p className="mt-1 text-sm text-slate-600">원문과 추출 후보를 검토하고, 선택한 지식 버전을 활성화하여 조회합니다.</p></header>
-      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button><button aria-pressed={tab === "snapshots"} className={tab === "snapshots" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("snapshots")}>지식 버전</button><button aria-pressed={tab === "search"} className={tab === "search" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("search")}>지식 검색</button></nav>
+      <nav aria-label="회사 지식 작업" className="flex gap-2"><button aria-pressed={tab === "sources"} className={tab === "sources" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("sources")}>자료</button><button aria-pressed={tab === "ontology"} className={tab === "ontology" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("ontology")}>온톨로지 초안</button><button aria-pressed={tab === "extraction"} className={tab === "extraction" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("extraction")}>개체·사실</button><button aria-pressed={tab === "snapshots"} className={tab === "snapshots" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("snapshots")}>지식 버전</button><button aria-pressed={tab === "search"} className={tab === "search" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("search")}>지식 검색</button><button aria-pressed={tab === "business"} className={tab === "business" ? buttonClass : "rounded border px-3 py-2 text-sm"} onClick={() => setTab("business")}>업무 지식</button></nav>
+      <div hidden={tab !== "business"}><KnowledgeBusiness request={request} sources={sources} visible={tab === "business"} /></div>
       <div hidden={tab !== "search"}><KnowledgeSearch request={request} visible={tab === "search"} /></div>
       <div hidden={tab !== "snapshots"}><KnowledgeSnapshots request={request} visible={tab === "snapshots"} /></div>
       <div hidden={tab !== "extraction"}><KnowledgeExtraction request={request} sources={sources} /></div>
@@ -143,7 +149,7 @@ export default function KnowledgePage() {
       <details className="rounded border bg-white p-4" open={sources.length === 0}>
         <summary className="cursor-pointer font-semibold">새 자료 / 후속 버전 등록</summary>
         <form onSubmit={register} className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="text-sm">자료 파일<input required type="file" accept=".csv,.html,.pdf,.hwpx" className={inputClass} onChange={e => { const f = e.target.files?.[0] || null; setFile(f); setFormat(f?.name.split(".").pop()?.toLowerCase() || ""); }} /></label>
+          <label className="text-sm">자료 파일<input required type="file" accept=".csv,.html,.pdf,.hwpx,.txt,.md,.json,.xlsx" className={inputClass} onChange={e => { const f = e.target.files?.[0] || null; setFile(f); setFormat(f?.name.split(".").pop()?.toLowerCase() || ""); }} /></label>
           <label className="text-sm">등록 대상<select value={existingSource} onChange={e => setExistingSource(e.target.value)} className={inputClass}><option value="">새 자료</option>{sources.map(s => <option key={s.source.id} value={s.source.id}>{s.source.title} · 후속 버전</option>)}</select></label>
           <label className="text-sm">자료 이름<input name="title" required className={inputClass} /></label>
           <label className="text-sm">발행기관<input name="publisher" required className={inputClass} /></label>
@@ -154,6 +160,7 @@ export default function KnowledgePage() {
           {format === "pdf" && <fieldset className="flex flex-wrap items-center gap-3 md:col-span-2"><legend className="text-sm">추출 범위 · 물리 페이지 (종료를 비우면 전체)</legend><label>시작 <input aria-label="시작 페이지" name="pageStart" type="number" min="1" defaultValue="1" className="w-20 rounded border p-2" /></label><label>종료 <input aria-label="종료 페이지" name="pageEnd" type="number" min="1" className="w-20 rounded border p-2" /></label><label><input name="twoUp" type="checkbox" /> 한 페이지에 좌우 두 면</label></fieldset>}
           {format === "csv" && <label className="text-sm md:col-span-2">대상 단지코드 (쉼표 구분, 비우면 전체)<input name="codes" className={inputClass} /></label>}
           {format === "html" && <label className="text-sm md:col-span-2">본문 영역 (CSS 선택자)<input name="selector" defaultValue="#cntntsView" className={inputClass} /></label>}
+          {(format === "xlsx" || format === "json") && <fieldset className="grid gap-3 md:col-span-2 md:grid-cols-2"><legend>표 자료 범위</legend>{format === "xlsx" && <label>시트 이름<input name="sheet" required className={inputClass} /></label>}{format === "json" && <label>배열 행의 열 이름 (쉼표 구분)<input name="columns" className={inputClass} /></label>}<label>선택할 열 (비우면 전체)<input name="filterColumn" className={inputClass} /></label><label>선택할 값<input name="filterValue" className={inputClass} /></label></fieldset>}
           {format === "hwpx" && <label className="text-sm md:col-span-2"><input name="rental" type="checkbox" /> LH 2026 Q&A의 표지 기준월·임대주택 Q1~Q16만 추출</label>}
           <button className={buttonClass} disabled={busy || !file}>자료 등록</button>
         </form>

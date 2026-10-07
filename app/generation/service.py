@@ -56,6 +56,11 @@ class GenerationService:
         self.model = settings.OLLAMA_MODEL
         self.timeout = settings.OLLAMA_TIMEOUT
 
+    async def call_model(self, prompt, schema, stage, model, **options):
+        """Provider-neutral knowledge entry point; civil generation remains unchanged."""
+        from .model_client import legacy_call
+        return await legacy_call(prompt, schema, stage, model, **options)
+
     def _extract_json_string(self, text: str) -> str:
         """응답 텍스트에서 JSON 블록을 추출한다."""
         return extract_json_string(text)

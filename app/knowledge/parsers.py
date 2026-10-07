@@ -16,11 +16,13 @@ def parser_info(format: str) -> dict:
     packages = {"pdf": "pdfplumber", "html": "beautifulsoup4", "hwpx": "python-hwpx"}
     if format == "csv":
         return {"name": "stdlib.csv", "version": "1", "adapter_version": "2"}
+    if format in {'json', 'xlsx'}:
+        return {'name': 'stdlib.json' if format == 'json' else 'stdlib.zipfile+xml', 'version': '1', 'adapter_version': '1'}
     if format in {"txt", "md"}:
         return {"name": "stdlib.text", "version": "1", "adapter_version": "2"}
     if format not in packages:
         raise ValueError(f"지원하지 않는 형식: {format}")
-    return {"name": packages[format], "version": version(packages[format]), "adapter_version": "1"}
+    return {"name": packages[format], "version": version(packages[format]), "adapter_version": "2" if format == "html" else "1"}
 
 
 def _csv_rows(path: Path, encoding="utf-8-sig"):
@@ -109,6 +111,8 @@ def plan_units(path: Path, format: str, scope: dict | str | None = None) -> list
         else:
             raise ValueError("구조화된 추출 범위를 입력하세요")
     scope = scope or {}
+    if format in {'json', 'xlsx'}:
+        return [{'id': 'table', 'locator': {'format': format}, 'scope': scope}]
     if format in {"txt", "md"}:
         return [{"id": "text", "locator": {"format": format}}]
     if format == "pdf":
@@ -215,6 +219,9 @@ def _html_blocks(path: Path, unit: dict) -> list[dict]:
             return
         if not isinstance(node, Tag) or node.name in {"script", "style", "button", "input", "noscript"}:
             return
+        if re.fullmatch(r"h[1-6]", node.name):
+            emit(node.get_text("\n", strip=True), {"element_path": css, "heading_level": int(node.name[1])})
+            return
         if node.name == "img":
             emit(node.get("alt", ""), {"element_path": css, "attribute": "alt"})
             return
@@ -280,6 +287,12 @@ def _pdf_blocks(path: Path, unit: dict) -> list[dict]:
 
 
 def parse_unit(path: Path, format: str, unit: dict) -> list[dict]:
+    if format in {'json', 'xlsx'}:
+        from .structured_tables import parse
+        blocks = parse(path, format, unit.get('scope', {}))
+        for n, block in enumerate(blocks):
+            block['locator']['block_order'] = n
+        return blocks
     if format == "pdf":
         blocks = _pdf_blocks(path, unit)
     elif format == "html":

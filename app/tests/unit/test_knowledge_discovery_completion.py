@@ -119,7 +119,7 @@ def test_critic_capacity_matches_http_and_input_reservation_with_legacy_fallback
     sent=[]
     async def capture(self,prompt,**kwargs):
         sent.append(kwargs);return {}
-    monkeypatch.setattr(a2.GenerationService,'call_ollama',capture)
+    monkeypatch.setattr(a2.GenerationService,'call_model',capture)
     for stage,expected in [('critic',8192),('binding',8192),('concept',4096),('context',4096),('requirements',8192)]:
         asyncio.run(a2.model_call('input',{},stage,run,720))
         assert sent[-1]['num_predict']==expected and sent[-1]['timeout']==720
@@ -1086,7 +1086,7 @@ def test_native_think_option_reaches_existing_calls_and_separates_source_cache(m
     from app.knowledge import discovery_scope as scope
     sent=[]
     async def capture(self,prompt,**kwargs):sent.append(kwargs);return {}
-    monkeypatch.setattr(a2.GenerationService,'call_ollama',capture)
+    monkeypatch.setattr(a2.GenerationService,'call_model',capture)
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_THINK',thinking)
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_NUM_CTX',65536)
     monkeypatch.setattr(a2.settings,'KNOWLEDGE_DISCOVERY_INPUT_CHARS',40000)
@@ -1223,7 +1223,7 @@ def test_requirements_capacity_changes_only_its_http_and_preserves_context_cache
     assert scope.applicability_request(run,target,[],[],{},[])[0]==scope.applicability_request(prior,target,[],[],{},[])[0]
     sent=[]
     async def capture(self,prompt,**kwargs):sent.append(kwargs);return {}
-    monkeypatch.setattr(a2.GenerationService,'call_ollama',capture)
+    monkeypatch.setattr(a2.GenerationService,'call_model',capture)
     for stage in ('requirements','context','applicability','critic','builder','binding'):
         asyncio.run(a2.model_call('input',{},stage,run,1800))
         assert sent[-1]['num_ctx']==(81920 if stage=='requirements' else 65536)

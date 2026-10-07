@@ -1,0 +1,820 @@
+{
+  "original_run_id": "fca859a4e52e4f6b9e14b6d0d67ba5df",
+  "scope": "Server control replay from original model E/R responses. Only referenced/declared source blocks and referenced claims are copied; this is not a new model quality evaluation. Fixture omits unrelated storage metadata; original DB and raw model responses are preserved.",
+  "model_calls": 0,
+  "cases": [
+    {
+      "requirement": {
+        "id": "BUS-CONTROL-47",
+        "revision": 1,
+        "question_ids": [
+          "BUS-CONTROL-47"
+        ],
+        "question": "1127번 순번 47 정차의 ID·명칭·좌표는 무엇인가?",
+        "target": "ROUTE_ID 100100143 순번 47",
+        "situation": "동명·인접 정차를 다른 순번과 혼동하지 않고 조회",
+        "period": "조회 원문 스냅샷",
+        "criterion": "해당 순번의 실제 행값을 보존하고 다른 행의 변경을 전이하지 않는다.",
+        "source_ids": [],
+        "required": true
+      },
+      "source": {
+        "examined_block_ids": [
+          "b3a80f57d31a473c9053328116f8af59",
+          "c58d8c031aef4228b6ddd31f663491e1"
+        ],
+        "meanings": [
+          {
+            "key": "seq47_row_v1",
+            "statement": "v1 스냅샷(1127_before.json)에서 ROUTE_ID 100100143, 노선명 1127, 순번 47 행은 NODE_ID 109000034, ARS_ID 10117, 정류소명 도봉보건소, X좌표 127.040227, Y좌표 37.657513이다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "b3a80f57d31a473c9053328116f8af59",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}"
+              }
+            ],
+            "conditions": [
+              "ROUTE_ID = 100100143",
+              "노선명 = 1127",
+              "순번 = 47",
+              "source_version = v1"
+            ],
+            "exceptions": [],
+            "period": "2025-05-13 file_snapshot",
+            "references": [],
+            "reason": "요구 대상인 ROUTE_ID 100100143 순번 47의 v1 행값을 원문에서 직접 확인했다."
+          },
+          {
+            "key": "seq47_row_v3",
+            "statement": "v3 스냅샷(1127_after.json)에서 ROUTE_ID 100100143, 노선명 1127, 순번 47 행은 NODE_ID 109000034, ARS_ID 10117, 정류소명 도봉보건소, X좌표 127.040227, Y좌표 37.657513이다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "c58d8c031aef4228b6ddd31f663491e1",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}"
+              }
+            ],
+            "conditions": [
+              "ROUTE_ID = 100100143",
+              "노선명 = 1127",
+              "순번 = 47",
+              "source_version = v3"
+            ],
+            "exceptions": [],
+            "period": "2025-06-24 file_snapshot",
+            "references": [],
+            "reason": "요구 대상인 ROUTE_ID 100100143 순번 47의 v3 행값을 원문에서 직접 확인했다."
+          },
+          {
+            "key": "seq47_same_across_snapshots",
+            "statement": "제공된 v1과 v3 스냅샷에서 ROUTE_ID 100100143 순번 47의 ID·명칭·좌표 값은 동일하다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "b3a80f57d31a473c9053328116f8af59",
+                "quote": "\"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513"
+              },
+              {
+                "block_id": "c58d8c031aef4228b6ddd31f663491e1",
+                "quote": "\"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513"
+              }
+            ],
+            "conditions": [
+              "비교 대상 = v1 b47과 v3 b108",
+              "ROUTE_ID = 100100143",
+              "순번 = 47"
+            ],
+            "exceptions": [],
+            "period": "v1 2025-05-13, v3 2025-06-24",
+            "references": [],
+            "reason": "두 스냅샷의 순번 47 행을 비교한 결과 제공된 값이 동일하다."
+          },
+          {
+            "key": "seq47_not_confused_with_seq13",
+            "statement": "순번 47과 순번 13은 모두 정류소명 도봉보건소일 수 있으나, v1에서 순번 13은 ARS_ID 10118이고 v3에서 순번 13은 ARS_ID 10011로, 순번 47의 ARS_ID 10117과 다르다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "233f259078e943f6b155e1fe2215f232",
+                "quote": "\"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\""
+              },
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "\"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\""
+              },
+              {
+                "block_id": "b3a80f57d31a473c9053328116f8af59",
+                "quote": "\"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\""
+              }
+            ],
+            "conditions": [
+              "동명 정류소 비교",
+              "순번 13 vs 순번 47"
+            ],
+            "exceptions": [],
+            "period": "v1, v3",
+            "references": [],
+            "reason": "요구의 situation에서 동명·인접 정차를 다른 순번과 혼동하지 말 것을 요구하므로, 순번 13의 도봉보건소와 순번 47의 도봉보건소를 구분했다."
+          }
+        ],
+        "completeness": "complete",
+        "gaps": [],
+        "conjunctions": [
+          "ROUTE_ID 100100143 AND 노선명 1127 AND 순번 47",
+          "v1 스냅샷 OR v3 스냅샷에서 해당 순번 행 확인"
+        ]
+      },
+      "representation": {
+        "source_checks": [
+          {
+            "meaning_key": "seq47_row_v1",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "b47(v1) 원문에 ROUTE_ID 100100143, 노선명 1127, 순번 47, NODE_ID 109000034, ARS_ID 10117, 정류소명 도봉보건소, X좌표 127.040227, Y좌표 37.657513이 정확히 존재하며, v1의 file_snapshot 날짜(2025-05-13)와 일치한다."
+          },
+          {
+            "meaning_key": "seq47_row_v3",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "b108(v3) 원문에 ROUTE_ID 100100143, 노선명 1127, 순번 47, NODE_ID 109000034, ARS_ID 10117, 정류소명 도봉보건소, X좌표 127.040227, Y좌표 37.657513이 정확히 존재하며, v3의 file_snapshot 날짜(2025-06-24)와 일치한다."
+          },
+          {
+            "meaning_key": "seq47_same_across_snapshots",
+            "required_for_requirement": false,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "b47과 b108의 순번 47 행값을 비교한 결과 모든 필드가 동일함을 확인했다. 이는 요구사항의 필수 범위는 아니지만, 원문에서 지지되는 사실이다."
+          },
+          {
+            "meaning_key": "seq47_not_confused_with_seq13",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "요구사항의 situation에서 '동명·인접 정차를 다른 순번과 혼동하지 않고 조회'를 명시하고 있다. b13(v1)과 b74(v3)에서 순번 13도 '도봉보건소'이지만 ARS_ID가 각각 10118, 10011로 순번 47의 10117과 다르므로, 원문은 이 구분을 지지한다."
+          }
+        ],
+        "checks": [
+          {
+            "meaning_key": "seq47_row_v1",
+            "status": "represented",
+            "claim_ids": [
+              "claim_6daccc061443e6822133cded"
+            ],
+            "reason": "c47은 v1의 순번 47 행을 정확히 표현하며, 요구된 ID(NODE_ID 109000034, ARS_ID 10117), 명칭(도봉보건소), 좌표(X 127.040227, Y 37.657513)를 모두 포함한다."
+          },
+          {
+            "meaning_key": "seq47_row_v3",
+            "status": "represented",
+            "claim_ids": [
+              "claim_6dfa4e1e8828560012020bbf"
+            ],
+            "reason": "c154는 v3의 순번 47 행을 정확히 표현하며, 요구된 ID(NODE_ID 109000034, ARS_ID 10117), 명칭(도봉보건소), 좌표(X 127.040227, Y 37.657513)를 모두 포함한다."
+          },
+          {
+            "meaning_key": "seq47_same_across_snapshots",
+            "status": "represented",
+            "claim_ids": [
+              "claim_6daccc061443e6822133cded",
+              "claim_6dfa4e1e8828560012020bbf"
+            ],
+            "reason": "c47과 c154의 필드값이 동일하므로, 두 스냅샷 간 동일성이 표현된다."
+          },
+          {
+            "meaning_key": "seq47_not_confused_with_seq13",
+            "status": "represented",
+            "claim_ids": [
+              "claim_d60cf12c95e74be31e049c8b",
+              "claim_500b4bd01c98a3c615a50692",
+              "claim_6daccc061443e6822133cded"
+            ],
+            "reason": "c13(v1 순번 13, ARS_ID 10118), c120(v3 순번 13, ARS_ID 10011), c47(v1 순번 47, ARS_ID 10117)을 통해 동명 정류소라도 순번과 ARS_ID가 다르다는 구분이 표현된다."
+          }
+        ],
+        "satisfied": true,
+        "conjunctions_satisfied": true,
+        "reason": "요구사항은 ROUTE_ID 100100143 순번 47의 ID·명칭·좌표를 조회하는 것이며, 후보 claims c47(v1)과 c154(v3)이 원문 b47, b108의 값을 정확히 반영한다. 또한 situation에서 요구하는 동명 정류소(순번 13)와의 혼동 방지를 위해 c13, c120이 존재하여 구분이 명확하다. 모든 필수 의미와 결합 전제가 성립한다.",
+        "source_challenges": [],
+        "preservation_checks": []
+      },
+      "blocks": [
+        {
+          "id": "233f259078e943f6b155e1fe2215f232",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c7cc4c7147794c3381dd7781fae442c9",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "b3a80f57d31a473c9053328116f8af59",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c7cc4c7147794c3381dd7781fae442c9",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "3267746b3f9143758ea6034307448140",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "c58d8c031aef4228b6ddd31f663491e1",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        }
+      ],
+      "claims": [
+        {
+          "id": "claim_d60cf12c95e74be31e049c8b",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c7cc4c7147794c3381dd7781fae442c9"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000035,
+              "ARS_ID": "10118",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.04,
+              "Y좌표": 37.657913
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_6daccc061443e6822133cded",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c7cc4c7147794c3381dd7781fae442c9"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 47,
+              "NODE_ID": 109000034,
+              "ARS_ID": "10117",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.040227,
+              "Y좌표": 37.657513
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_500b4bd01c98a3c615a50692",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c14386ec6798498eb00b0cc213eca468"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_6dfa4e1e8828560012020bbf",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c14386ec6798498eb00b0cc213eca468"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 47, \"NODE_ID\": 109000034, \"ARS_ID\": \"10117\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.040227, \"Y좌표\": 37.657513}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 47,
+              "NODE_ID": 109000034,
+              "ARS_ID": "10117",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.040227,
+              "Y좌표": 37.657513
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        }
+      ],
+      "expected_required_claim_ids": [
+        "claim_500b4bd01c98a3c615a50692",
+        "claim_6daccc061443e6822133cded",
+        "claim_6dfa4e1e8828560012020bbf",
+        "claim_d60cf12c95e74be31e049c8b"
+      ],
+      "optional_only_claim_ids": [],
+      "provenance": {
+        "source_unit_id": "bbca24cd049b42b582af91bb05817803",
+        "representation_unit_id": "4d1d4e8356b140dcb619ab5f24640364",
+        "source_message_sha256": "c6521c139c9ca61166ee12dfe55e4d1e958565c83885b35f3447bb9befad3df2",
+        "representation_message_sha256": "464f083ae51433a7cd5f32e9ee6498efbbbcad51160855e8d5c590b9f4572378"
+      }
+    },
+    {
+      "requirement": {
+        "id": "BUS-NEW-13",
+        "revision": 1,
+        "question_ids": [
+          "BUS-NEW-13"
+        ],
+        "question": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?",
+        "target": "ROUTE_ID 100100143 순번 13",
+        "situation": "신규 등록된 업무 질문",
+        "period": "최신 제공 정차표 스냅샷",
+        "criterion": "실제 행의 ID와 좌표를 함께 확인한다. 이름만으로 동일 정차를 추정하지 않는다.",
+        "source_ids": [],
+        "required": true
+      },
+      "source": {
+        "examined_block_ids": [
+          "233f259078e943f6b155e1fe2215f232",
+          "3267746b3f9143758ea6034307448140",
+          "03d6814864134a1ba94eec26c4c7f9d2",
+          "f204d37383d84a72af2ef5988e5b34df"
+        ],
+        "meanings": [
+          {
+            "key": "target_route_seq13",
+            "statement": "요구는 ROUTE_ID 100100143(노선명 1127)의 순번 13 정차의 현재 정류소 식별자와 좌표를 실제 행 기준으로 확인하는 것이다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "233f259078e943f6b155e1fe2215f232",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}"
+              },
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}"
+              }
+            ],
+            "conditions": [
+              "ROUTE_ID = 100100143",
+              "순번 = 13",
+              "최신 제공 정차표 스냅샷 기준"
+            ],
+            "exceptions": [],
+            "period": "최신 제공 정차표 스냅샷",
+            "references": [],
+            "reason": "v1과 v3의 ROUTE_ID 100100143 순번 13 행이 모두 제공되어 있고, v3가 더 최신 file_snapshot(2025-06-24)이다."
+          },
+          {
+            "key": "latest_seq13_row",
+            "statement": "최신 제공 정차표 스냅샷(v3, 1127_after.json)에서 ROUTE_ID 100100143 순번 13의 실제 행은 NODE_ID 109000011, ARS_ID 10011, 정류소명 도봉보건소, X 127.0407623758, Y 37.6589364195이다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}"
+              }
+            ],
+            "conditions": [
+              "source_version_id = v3",
+              "ROUTE_ID = 100100143",
+              "순번 = 13"
+            ],
+            "exceptions": [],
+            "period": "2025-06-24 file_snapshot",
+            "references": [],
+            "reason": "v3는 v1보다 최신이고, 같은 ROUTE_ID/순번 13에서 v1과 다른 NODE_ID/ARS_ID/좌표를 가진다."
+          },
+          {
+            "key": "prior_seq13_row",
+            "statement": "이전 제공 정차표 스냅샷(v1, 1127_before.json)에서 ROUTE_ID 100100143 순번 13의 실제 행은 NODE_ID 109000035, ARS_ID 10118, 정류소명 도봉보건소, X 127.04, Y 37.657913이다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "233f259078e943f6b155e1fe2215f232",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}"
+              }
+            ],
+            "conditions": [
+              "source_version_id = v1",
+              "ROUTE_ID = 100100143",
+              "순번 = 13"
+            ],
+            "exceptions": [],
+            "period": "2025-05-13 file_snapshot",
+            "references": [],
+            "reason": "v1은 제공된 이전 스냅샷이며, v3보다 오래된 file_snapshot이다."
+          },
+          {
+            "key": "name_not_sufficient",
+            "statement": "v1과 v3의 순번 13 정류소명이 모두 '도봉보건소'로 같지만, NODE_ID/ARS_ID/좌표가 다르므로 이름만으로 동일 정차를 추정할 수 없다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "233f259078e943f6b155e1fe2215f232",
+                "quote": "\"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913"
+              },
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "\"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195"
+              }
+            ],
+            "conditions": [
+              "정류소명 = 도봉보건소",
+              "순번 = 13"
+            ],
+            "exceptions": [],
+            "period": "v1과 v3 비교",
+            "references": [],
+            "reason": "요구 기준이 실제 행의 ID와 좌표를 함께 확인하고 이름만으로 동일 정차를 추정하지 않는 것이므로, 동일 명칭도 다른 식별자/좌표로 구분된다."
+          },
+          {
+            "key": "proposal_context",
+            "statement": "v2 구정질문 원문은 1127번 노선의 도봉보건소(10118) 정류장을 도봉보건소중앙차로(10011)로 이전하는 방안을 제안한 것으로, v3의 순번 13이 ARS_ID 10011로 나타난 것과 맥락적으로 연결된다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "03d6814864134a1ba94eec26c4c7f9d2",
+                "quote": "현재 도봉보건소(10118) 정류장은 가로변에 위치해 있어 버스가 다음 정류장인 창5동 현대아파트(10297) 방면으로 좌회전하기 위해 약 100m 구간에서 세 개의 차선을 변경해야 하는 상황입니다."
+              },
+              {
+                "block_id": "03d6814864134a1ba94eec26c4c7f9d2",
+                "quote": "이에 본 의원은 지난 아진교통(주) 관계자와 논의한 결과 사고 예방을 위해 후방 약 100m에 위치한 도봉보건소중앙차로(10011) 정류장으로 이전하는 방안을 제안 받았습니다."
+              }
+            ],
+            "conditions": [
+              "노선명 = 1127",
+              "정류소명 = 도봉보건소",
+              "ARS_ID 10118 → 10011 이전 제안"
+            ],
+            "exceptions": [],
+            "period": "v2 구정질문 시점",
+            "references": [],
+            "reason": "v2는 제안/논의 맥락이며, v3의 실제 정차표 행이 그 제안과 일치하는 식별자 10011을 가진다."
+          },
+          {
+            "key": "approval_context",
+            "statement": "v4 원문은 1127번 노선의 '도봉보건소 가변 정류장'을 '도봉보건소 중앙차로'로 이전하는 방안이 승인되었고 5월 20일 첫차부터 새 노선 운행이 시작된다고 서술한다.",
+            "source_status": "supported",
+            "availability": "provided",
+            "evidence": [
+              {
+                "block_id": "f204d37383d84a72af2ef5988e5b34df",
+                "quote": "먼저 1127번 버스 노선과 관련하여 ‘도봉보건소 가변 정류장’을 중앙차로 정류장인 ‘도봉보건소 중앙차로’로 이전하는 방안이 승인되었습니다."
+              },
+              {
+                "block_id": "f204d37383d84a72af2ef5988e5b34df",
+                "quote": "이에 따라 오는 5월 20일 첫차부터 새로운 노선을 운행을 시작하게 되었음을 말씀드립니다."
+              }
+            ],
+            "conditions": [
+              "노선명 = 1127",
+              "도봉보건소 가변 정류장 → 도봉보건소 중앙차로 이전 승인"
+            ],
+            "exceptions": [],
+            "period": "v4 승인 발표 시점, 5월 20일 첫차부터",
+            "references": [],
+            "reason": "v4는 승인/시행 맥락을 제공하며, v3의 순번 13 ARS_ID 10011과 정류소명 도봉보건소와 맥락적으로 연결된다."
+          }
+        ],
+        "completeness": "complete",
+        "gaps": [],
+        "conjunctions": [
+          "ROUTE_ID 100100143 AND 노선명 1127 AND 순번 13",
+          "최신 제공 정차표 스냅샷 AND 실제 행의 ID/좌표 확인",
+          "v1과 v3 모두 제공됨; v3가 최신 file_snapshot"
+        ]
+      },
+      "representation": {
+        "source_checks": [
+          {
+            "meaning_key": "target_route_seq13",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "요구사항은 ROUTE_ID 100100143, 순번 13의 현재 정차 식별자와 좌표를 확인하는 것이며, 원문(b13, b74)에 해당 조건을 만족하는 행이 존재한다. 예외나 참조는 요구사항에 명시되지 않아 해당 없음."
+          },
+          {
+            "meaning_key": "latest_seq13_row",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "v3(2025-06-24)는 v1(2025-05-13)보다 최신이며, b74는 v3에서 순번 13의 실제 행(NODE_ID 109000011, ARS_ID 10011, 좌표 포함)을 정확히 제공한다. 요구사항의 '최신 제공 정차표 스냅샷' 기준에 부합한다."
+          },
+          {
+            "meaning_key": "prior_seq13_row",
+            "required_for_requirement": false,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "v1의 순번 13 행(b13)은 원문에 존재하지만, 요구사항은 '현재' 정차를 묻고 있으므로 이전 스냅샷은 필수 범위에 포함되지 않는다. 비교 맥락으로만 유용하다."
+          },
+          {
+            "meaning_key": "name_not_sufficient",
+            "required_for_requirement": true,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "요구사항의 기준(criterion)은 '이름만으로 동일 정차를 추정하지 않는다'이며, v1과 v3에서 정류소명이 동일('도봉보건소')하지만 식별자(NODE_ID, ARS_ID)와 좌표가 다르므로 이 원칙이 원문 데이터에 의해 지지된다."
+          },
+          {
+            "meaning_key": "proposal_context",
+            "required_for_requirement": false,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "v2(b61)는 정류장 이전 '제안' 맥락이며, 요구사항이 묻는 '현재 정차 식별자/좌표'의 직접적 근거는 아니다. 배경 정보로만 관련이 있다."
+          },
+          {
+            "meaning_key": "approval_context",
+            "required_for_requirement": false,
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "supported",
+              "exceptions": "not_applicable",
+              "period": "supported",
+              "references": "not_applicable"
+            },
+            "reason": "v4(b122)는 승인 및 시행 시점(5월 20일)을 서술하며, v3의 데이터가 '현재' 상태임을 간접적으로 뒷받침하지만, 요구사항의 핵심인 '식별자와 좌표 확인' 자체는 정차표 데이터(v3)가 직접 제공한다."
+          }
+        ],
+        "checks": [
+          {
+            "meaning_key": "target_route_seq13",
+            "status": "represented",
+            "claim_ids": [
+              "claim_500b4bd01c98a3c615a50692"
+            ],
+            "reason": "c120은 v3에서 ROUTE_ID 100100143, 순번 13의 실제 행을 포함하며, 요구사항의 대상·조건을 정확히 충족한다."
+          },
+          {
+            "meaning_key": "latest_seq13_row",
+            "status": "represented",
+            "claim_ids": [
+              "claim_500b4bd01c98a3c615a50692"
+            ],
+            "reason": "c120은 최신 스냅샷(v3)의 순번 13 행으로, NODE_ID 109000011, ARS_ID 10011, 좌표(127.0407623758, 37.6589364195)를 포함하여 요구사항의 핵심 기준(실제 행의 ID와 좌표)을 완전히 표현한다."
+          },
+          {
+            "meaning_key": "prior_seq13_row",
+            "status": "represented",
+            "claim_ids": [
+              "claim_d60cf12c95e74be31e049c8b"
+            ],
+            "reason": "c13은 이전 스냅샷(v1)의 순번 13 행을 표현하지만, 요구사항은 '현재' 정차를 묻으므로 이 의미는 필수 범위에 포함되지 않는다. 존재는 확인되나 만족 판정에 필수적이지 않다."
+          },
+          {
+            "meaning_key": "name_not_sufficient",
+            "status": "represented",
+            "claim_ids": [
+              "claim_d60cf12c95e74be31e049c8b",
+              "claim_500b4bd01c98a3c615a50692"
+            ],
+            "reason": "c13(v1)과 c120(v3)을 비교하면 정류소명은 동일하지만 식별자와 좌표가 다르며, 이는 요구사항의 기준(이름만으로 추정 금지)을 데이터 수준에서 지지한다."
+          },
+          {
+            "meaning_key": "proposal_context",
+            "status": "represented",
+            "claim_ids": [
+              "claim_18625936022dae2e0818ba76"
+            ],
+            "reason": "c84는 v2의 제안 맥락을 표현하지만, 요구사항의 필수 범위(현재 정차 식별자/좌표 확인)에는 해당하지 않는다."
+          },
+          {
+            "meaning_key": "approval_context",
+            "status": "represented",
+            "claim_ids": [
+              "claim_2ed35bb8d16b208ded75ee3e"
+            ],
+            "reason": "c187은 v4의 승인 맥락을 표현하지만, 요구사항의 필수 범위(현재 정차 식별자/좌표 확인)에는 해당하지 않는다."
+          }
+        ],
+        "satisfied": true,
+        "conjunctions_satisfied": true,
+        "reason": "요구사항은 ROUTE_ID 100100143, 순번 13의 '현재' 정차 식별자와 좌표를 실제 행 기준으로 확인하는 것이다. 최신 제공 스냅샷(v3)의 c120은 NODE_ID 109000011, ARS_ID 10011, 좌표(127.0407623758, 37.6589364195)를 포함하여 이 요구를 정확히 충족한다. 또한 v1(c13)과 v3(c120)의 비교를 통해 이름만으로 동일 정차를 추정할 수 없다는 기준도 데이터로 지지된다. 모든 필수 의미(대상, 최신 스냅샷, 실제 행 ID/좌표, 이름 추정 금지)가 성립하므로 만족한다.",
+        "source_challenges": []
+      },
+      "blocks": [
+        {
+          "id": "233f259078e943f6b155e1fe2215f232",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c7cc4c7147794c3381dd7781fae442c9",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "03d6814864134a1ba94eec26c4c7f9d2",
+          "text": "○강신만의원\n존경하는 31만 도봉구민과 안병건 의장님, 그리고 선배·동료 의원 여러분!\n구민의 삶의 질을 위해 노력하시는 오언석 구청장님과 1,000여 도봉구 직원 여러분, 안녕하십니까?\n방학1·2동 출신 구의원 강신만입니다.\n(PPT 및 사진 제시)\n첫 번째 질문입니다.\n도봉구에서 시행 중인 쓰레기 종량제 봉투 제도는 폐기물처리 비용을 사용자에게 부담시키는 중요한 정책입니다.\n지난 8월 5일자 시사저널 보도에 따르면 도봉구는 종량제 봉투에 위조방지 표식조차 없는 4개 자치구 중 하나로 확인되었습니다.\n구청 관계자는 예산 문제를 이유로 위조방지 수단 도입이 어렵다고 설명했는데 이는 환경부의 지침을 명백히 위반한 행위입니다.\n덧붙여 지난 7월 16일자 SBS 뉴스에서 QR 복제하자 정품 종량제봉투 엉터리인증이라는 단독보도에 의하면 일부 자치구에서는 QR코드를 통해 위조방지를 시도했지만 QR코드가 제대로 인식되지 않거나 위조방지 기술이 유명무실한 경우가 많습니다.\n이로 인해 가짜 종량제 봉투가 유통되며, 이를 수거하는 과정에서 세금 누수가 발생하고 있다고 합니다.\n이에 도봉구는 QR코드 위조방지 시스템에 실효성 부족 문제를 어떻게 인식하고 있으며, QR코드 외에 홀로그램, 형광잉크, 고유식별번호 등 다른 위조방지 기술을 검토하고 있는지 궁금합니다.\n아울러 서초구는 지난 11월에 한국조폐공사와 종량제 봉투와 음식물류 폐기물 수수료 납부필증에 대해 위조방지 기능 강화를 위한 협력 등에 관하여 업무협약을 체결하였습니다.\n이처럼 예산 문제를 이유로 위조방지 기술 도입을 미루고 있다면, 이를 해결하기 위한 구체적인 계획은 무엇이 있는지 구청장님 답변을 부탁드립니다.\n두 번째 질문으로 도봉구 주민들의 교통안전과 편익을 위해 1127번 및 1128번 버스 노선 세 군데 정류장 문제에 대해 질의하고자 합니다.\nPPT를 보시는 것과 같이 1127번 간선버스 노선에 대해 문제점을 말씀드리겠습니다.\n현재 도봉보건소(10118) 정류장은 가로변에 위치해 있어 버스가 다음 정류장인 창5동 현대아파트(10297) 방면으로 좌회전하기 위해 약 100m 구간에서 세 개의 차선을 변경해야 하는 상황입니다. 이 구간은 과거 대형 사망사고가 발생한 곳으로 항상 사고 위험에 노출되어 있습니다.\n이에 본 의원은 지난 아진교통(주) 관계자와 논의한 결과 사고 예방을 위해 후방 약 100m에 위치한 도봉보건소중앙차로(10011) 정류장으로 이전하는 방안을 제안 받았습니다.\n이 방안은 교통사고 위험을 줄이고 버스 운행의 안전성을 높일 수 있을 것이라 보는데 구청장님께서는 어떻게 생각하시는지 답변 부탁드립니다.\n다음으로 1128 버스 노선 정류장 의정부 방향으로 운행하는 두 곳의 정류장이 중앙차선으로 이전될 필요성이 제기되었습니다.\n한 곳은 서울북부지방법원·검찰청·도봉역 성황당(10107) 정류장은 가변 정류장으로 운영되고 있어 승객들이 도봉역에서 하차 후 중앙차선 정류장으로 이동해야 하는 불편함이 있습니다. 또한 일반 차량이 우회전하는 과정에서 교통 혼잡이 발생하여 민원이 지속적으로 제기되고 있습니다.\n다른 곳은 한신아파트(10104) 정류장의 경우에도 많은 승객들이 중앙차선에 위치한 한신아파트 중앙(10004) 정류장을 더 많이 이용하고 있다는 민원이 제기되고 있습니다.\n따라서 해당 정류장의 중앙차로 이전을 통해 승객들과 이 구간 차량의 불편을 해소할 필요가 있다고 생각합니다.\n이에 따라 1127번 및 1128번 버스 노선 정류장 이전에 관하여 구청장님의 답변을 기대하는 바입니다.\n세 번째 질문으로 본 의원은 도봉구 주민으로서 구정발전과 지역사회의 역사적 의미를 되새기는 방안을 고민하던 중 워커 장군을 기념하기 위한 새로운 제안을 드리고자 합니다.\n6·25 전쟁 당시 월턴 해리스 워커 장군은 대한민국의 자유와 평화를 지키기 위해 헌신한 인물로 그의 업적은 우리 도봉구와도 깊은 연관이 있습니다.\n특히 워커 장군이 순직한 장소가 도봉구에 위치해 있다는 점에서 그의 희생을 기리는 일은 우리 지역사회의 중요한 역사적 의무라고 생각합니다.\n현재 도봉구에서는 워커 장군의 업적을 기리기 위해 기념비와 흉상을 설치하고 순직지를 중심으로 워커길을 조성하는 등 다양한 노력을 기울이고 그의 헌신을 기리기 위한 다양한 기념 사업을 진행하여야 한다고 봅니다.\nPPT를 보시는 것과 같이 기념 사업의 하나로 태극기는 대한민국의 상징으로 국가를 위해 헌신한 이들의 희생을 기리기 위해 적합한 상징물입니다.\n따라서 화면에 나와있는 곳 중심으로 도봉역 남부부터 도봉산역까지 태극기 거리를 조성한다면 워커 장군의 희생을 기리며, 동시에 지역 주민들에게 평화와 자유의 기치를 되새기는 중요한 역할을 할 수 있을 것이라 생각합니다.\n오언석 구청장님께서는 태극기 거리 조성에 대해 적극 검토해 주시기 바랍니다.\n네 번째, 도봉구는 서울시 내에서도 어르신 인구 비율이 높은 지역으로 주민 복지와 자연환경의 조화로운 발전이 무엇보다 중요한 곳입니다.\n특히 화면을 보시는 것과 같이 방학2동에 위치한 만성사는 역사적·문화적 가치를 지닌 장소로 입구에 자리한 오래된 느티나무는 약 300년이 넘는 것으로 추정되며 지역주민들에게 소중한 자연유산으로 여겨지고 있습니다.\n이에 더해 방학동 은행나무는 도봉구를 대표하는 역사적·문화적 상징으로 그 가치를 더욱 빛내고 있습니다.\n방학동 은행나무와 같이 만성사 느티나무도 도봉구의 소중한 자산일 뿐만 아니라 자연과 역사가 어우러진 공간으로서 주민들의 삶에 긍정적인 영향을 미칠 잠재력을 가지고 있습니다.\n이러한 자원을 적극적으로 활용한다면 도봉구민의 복지증진과 지역정체성 강화라는 두 가지 목표를 동시에 달성할 수 있을 것입니다.\n아울러 이곳 느티나무는 그늘이 풍부하고 웅장한 수형을 자랑하며, 여름철 더위를 피할 수 있는 쉼터로서의 주변 공간을 활용하여 어르신 및 지역주민들이 편안히 쉴 수 있는 쉼터를 조성한다면 단순히 휴식을 제공하는 것뿐만 아니라 지역의 소통과 화합의 장으로 가능할 수 있을 것이라 생각이 됩니다.\n이에 따라 도봉구 주민의 복지와 환경 개선을 위해 항상 애써 주시는 구청장님께 감사드리며, 본 의원이 도봉구 방학2동 출신 의원으로서 이 지역 어르신들과 주민들을 위한 쉼터 조성에 대한 제안을 드리고자 합니다.\n마지막으로 지난 7월 제338회 1차 본회의에서 발언했던 도봉구 도당로 일대 가로수 양버즘나무 관련된 문제점을 다시 한번 제기하며, 이에 대한 대책 마련과 가로수 교체 필요성에 대해 구정질의를 드리고자 합니다.\n양버즘나무는 지난 30여 년간 도봉구에서 가로수 역할을 해 왔지만 현재는 다음과 같은 문제점이 발생할 수 있었던 점입니다.\n첫째, 봄철 다량의 꽃가루로 인해 알레르기성 비염과 결막염을 유발하여 주민 건강에 악영향을 미치고 있으며 둘째, 매년 약 2m씩 자라는 가지가 고압선과 간섭하여 정전 사고의 위험을 초래하고 있습니다.\n셋째, 수명이 약 40년으로 짧고 뿌리내림이 약해 강풍에 쉽게 쓰러지는 등 구조적 취약성의 문제가 예상되며 넷째, 뿌리가 지표면 위로 돌출되어 보도블록을 훼손하고 보행자 안전사고를 유발하며 낙엽은 하수구를 막아 침수피해를 초래할 수도 있습니다.\n마지막으로 산림청의 가로수 조성·관리 매뉴얼에 따르면 양버즘나무는 도로 폭 40m 이상의 광로에 적합한 수종으로 현재 도봉구 주요거리와는 부합하지 않습니다.\n양버즘나무 문제는 주민 건강과 안전, 예산 효율성과 직결된 중요한 사안입니다.\n구청장님께서 이 사안을 심도있게 검토하시어 도봉구민 모두가 쾌적하고 안전한 환경에서 생활할 수 있도록 적극적인 조치를 취해 주실 것을 요청드립니다.\n아울러 본 의원은 양버즘나무를 은행나무로 교체하는 방안을 검토해 주실 것을 적극 요청드립니다.\n이상 구정질문을 마치며 경청해 주셔서 감사합니다.\n●의장 안병건\n강신만 의원님 구정질문하시느라 수고 많이 하셨습니다.\n원활한 회의 진행을 위하여 잠시 정회를 선포합니다.\n(의사봉 3타)\n●의장 안병건\n의원 여러분, 의석을 정돈해 주시기 바랍니다.\n성원이 되었으므로 회의를 속개하겠습니다.\n(의사봉 3타)\n다음은 황수빈 의원님 나오셔서 질문하여 주시기 바랍니다.",
+          "source_id": "9d3be656ea854ee3b4800904cc373239",
+          "source_version_id": "df315452ef2743e5b9e6d56a753f56b5",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "3267746b3f9143758ea6034307448140",
+          "text": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+          "source_id": "c0f39cdcd7e0461a95f3ff77510d474c",
+          "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        },
+        {
+          "id": "f204d37383d84a72af2ef5988e5b34df",
+          "text": "○강신만의원\n존경하고 사랑하는 31만 도봉구민 여러분!\n그리고 안병건 의장님을 비롯한 선배·동료의원 여러분!\n도봉구민의 복리 증진을 위해 열정을 다하시는 오언석 구청장님과 오늘 처음 등판하시는 백운석 부구청장님, 그리고 1,300여 명의 관계 공무원 여러분, 그리고 언론인 여러분!\n안녕하십니까? 방학 1·2동 출신 강신만 의원입니다.\n오늘 이 자리는 도봉구의 교통환경 개선을 위해 함께 노력해 주신 모든 분들께 감사의 마음을 전하고 그간의 성과를 주민 여러분께 말씀드리고자 합니다.\n지난해 11월 8일, 아진교통(주) 관계자와의 논의를 시작으로 제341회 정례회 2차 본회의에서 구정질문을 통해 제기했던 1127번 및 1128번 버스 노선 정류장 이전 관련 사항이 서울시의 최종 승인을 받았습니다.\n이에 따라 오는 5월 20일 첫차부터 새로운 노선을 운행을 시작하게 되었음을 말씀드립니다. 이는 주민 여러분의 안전과 편의를 최우선으로 고려한 결정으로 도봉구 교통환경 개선에 있어 매우 중요한 전환점이 될 것이라고 생각됩니다.\n먼저 1127번 버스 노선과 관련하여 ‘도봉보건소 가변 정류장’을 중앙차로 정류장인 ‘도봉보건소 중앙차로’로 이전하는 방안이 승인되었습니다.\n이는 과거 대형 사고가 발생했던 위험 구간에서 사고 가능성을 크게 줄일 수 있는 조치로, 주민들의 생명과 안전을 지키는 데에 있어 매우 중요한 의미라고 생각합니다.\n또한 1128번 버스 노선에서는 ‘서울북부지방법원·검찰청·도봉역성황당 ’과 ‘한신아파트’ 정류장을 중앙차선으로 이전하는 계획이 승인되었으며, 이를 통해 승객들의 불편함이 해소되고 교통 혼잡이 완화될 것으로 기대됩니다.\n특히 주민들께서 지속적으로 제기하셨던 민원이 해결됨으로써 더 나은 대중교통 환경을 제공할 수 있게 된 점은 매우 뜻깊은 일이라 생각합니다.\n이번 성과는 도봉구청장님을 비롯하여 교통건설국장 정문철 국장님, 그리고 인재형 과장님, 미래교통추진팀 최병현 팀장님 등 관계 공무원들의 적극적인 행정 덕분에 가능했습니다.\n또한 서울시의회 이경숙 시의원님의 협조와 노력이 없었다면 이러한 결실을 맺기 어려웠을 것입니다. 다시 한 번 이 자리를 빌려 깊은 감사의 말씀을 드립니다.\n아울러 현장을 직접 확인하며 주민들의 의견을 경청해 주신 지역 동주민센터 공무원 여러분께도 진심으로 감사드립니다.\n이번 성과는 도봉구가 서울시와 긴밀히 협력하며, 적극 행정을 펼친 결과로 우리 구가 한층 더 안전하고 편리한 교통 환경을 갖추게 되었음을 보여주는 모범사례라 할 수 있겠습니다.\n앞으로도 본 의원은 도봉구민 여러분의 목소리에 더욱 귀 기울이며, 주민들께 더 나은 삶의 질을 제공하기 위해 최선을 다하겠습니다.\n오늘 이 자리를 빌려 다시 한번 모든 관계자분들께 깊은 감사의 인사를 전하며, 앞으로도 지속적인 관심과 협조를 부탁드리면서 계속해서 이런 사례들이 많이 나올 수 있도록 적극 행정을 펼칠 수 있도록 노력해 주시기 바랍니다.\n경청해 주셔서 감사합니다.\n●의장 안병건\n강신만 의원님 수고하셨습니다.\n그러면 의사일정으로 들어가겠습니다.\n먼저, 운영위원회에서 심사한 안건을 심의하도록 하겠습니다.",
+          "source_id": "75b059cb033542ea8dd9751293e2f8f0",
+          "source_version_id": "9c4e9ec16dfb4e44a1cd801849a6e3a3",
+          "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a"
+        }
+      ],
+      "claims": [
+        {
+          "id": "claim_d60cf12c95e74be31e049c8b",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c7cc4c7147794c3381dd7781fae442c9"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000035, \"ARS_ID\": \"10118\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.04, \"Y좌표\": 37.657913}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000035,
+              "ARS_ID": "10118",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.04,
+              "Y좌표": 37.657913
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_18625936022dae2e0818ba76",
+          "role": "event_entity",
+          "source_version_ids": [
+            "df315452ef2743e5b9e6d56a753f56b5"
+          ],
+          "statement": "강신만 의원이 아진교통(주) 관계자와 논의하여 도봉보건소 정류장을 도봉보건소중앙차로 정류장으로 이전하는 방안을 제안받았다.",
+          "raw": {
+            "Event": "강신만 의원이 아진교통(주) 관계자와 논의하여 도봉보건소 정류장을 도봉보건소중앙차로 정류장으로 이전하는 방안을 제안받았다.",
+            "Entity": [
+              "강신만 의원",
+              "아진교통(주) 관계자"
+            ]
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_500b4bd01c98a3c615a50692",
+          "role": "structured_row",
+          "source_version_ids": [
+            "c14386ec6798498eb00b0cc213eca468"
+          ],
+          "statement": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+          "raw": {
+            "Event": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+            "fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            }
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        },
+        {
+          "id": "claim_2ed35bb8d16b208ded75ee3e",
+          "role": "event_entity",
+          "source_version_ids": [
+            "9c4e9ec16dfb4e44a1cd801849a6e3a3"
+          ],
+          "statement": "1127번 버스 노선의 ‘도봉보건소 가변 정류장’을 ‘도봉보건소 중앙차로’로 이전하는 방안이 승인되었다.",
+          "raw": {
+            "Event": "1127번 버스 노선의 ‘도봉보건소 가변 정류장’을 ‘도봉보건소 중앙차로’로 이전하는 방안이 승인되었다.",
+            "Entity": [
+              "1127번 버스 노선",
+              "도봉보건소 가변 정류장",
+              "도봉보건소 중앙차로"
+            ]
+          },
+          "conditions": [],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "semantic_status": "unknown"
+        }
+      ],
+      "expected_required_claim_ids": [
+        "claim_500b4bd01c98a3c615a50692",
+        "claim_d60cf12c95e74be31e049c8b"
+      ],
+      "optional_only_claim_ids": [
+        "claim_18625936022dae2e0818ba76",
+        "claim_2ed35bb8d16b208ded75ee3e"
+      ],
+      "provenance": {
+        "source_unit_id": "f8a4fc15a31c425fb9ebd3f14a672cc9",
+        "representation_unit_id": "1775fa0a353f49f8b18c38cfd14fd97f",
+        "source_message_sha256": "74346ceb4c205718c5114e695c3286ef7a01979ce34578203cae189a511bec29",
+        "representation_message_sha256": "11873d6675fe865498c776d952af1ab41076f8645ea51c8da67d7732550fbfcb"
+      }
+    }
+  ]
+}

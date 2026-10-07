@@ -33,7 +33,7 @@ def request(**kwargs):
 
 async def fake_model(self,prompt,**kwargs):
     payload=json.loads(prompt.split('INPUT:\n')[1]);group=payload['knowledge']['groups'][0]
-    assert kwargs['num_predict']==1536 and kwargs['return_metadata']
+    assert kwargs['num_predict']==1536 and kwargs['stage']=='knowledge_search'
     assert kwargs['think'] is False
     return dict(done=True,done_reason='stop',text=json.dumps(dict(selected_group_ids=[group['group_id']])))
 
@@ -42,7 +42,7 @@ async def fake_model(self,prompt,**kwargs):
 def test_answer_run_and_no_inference_branches(service,monkeypatch,search_model):
     monkeypatch.setattr(local.settings, 'OLLAMA_MODEL', 'generation-model')
     monkeypatch.setattr(local.settings, 'KNOWLEDGE_SEARCH_MODEL', search_model)
-    monkeypatch.setattr(local.GenerationService,'call_ollama',fake_model)
+    monkeypatch.setattr(local.GenerationService,'call_model',fake_model)
     result=local.search(service,request())
     assert result['status']=='answered' and result['metrics']['llm_calls']==1
     assert result['citations'][0]['quote']=='521' and result['assertion_ids']==['count1']
@@ -66,7 +66,7 @@ def test_answer_candidates_preserve_input_and_separate_details(service, monkeypa
     async def concise(self,prompt,**kwargs):
         assert kwargs['think'] is False
         return dict(done=True,done_reason='stop',text=json.dumps(dict(requirements=['세대수 조회'],answer_items=[dict(text='521세대입니다.',requirement_index=0,assertion_ids=['a1'])],limitations=[])))
-    monkeypatch.setattr(local.GenerationService,'call_ollama',concise)
+    monkeypatch.setattr(local.GenerationService,'call_model',concise)
     result=local.search(service,request(),answer_variant='C',model='qwen3.5:4b')
     assert result['answer']=='521세대입니다.' and result['answer_style']=='concise_grounded'
     assert result['fact_details'] and result['citations'][0]['quote']=='521'
@@ -78,7 +78,7 @@ def test_concise_answer_invalid_output_and_stale_clear(service,monkeypatch,bad):
     async def broken(self,prompt,**kwargs):
         if bad=='stale':state(service,'evidence','code','blocked')
         return dict(done=True,done_reason='length' if bad=='length' else 'stop',text=json.dumps(dict(requirements=['세대수'],answer_items=[dict(text='521세대입니다.',requirement_index=1 if bad=='requirement' else 0,assertion_ids=['missing' if bad=='unknown' else 'a1'])],limitations=[])))
-    monkeypatch.setattr(local.GenerationService,'call_ollama',broken)
+    monkeypatch.setattr(local.GenerationService,'call_model',broken)
     if bad=='stale':
         result=local.search(service,request(),answer_variant='B')
         assert result['status']=='stale' and not result['fact_details'] and not result['requirements'] and not result['answer']
@@ -101,7 +101,7 @@ def test_selected_facts_and_question_assessment(service,monkeypatch):
     async def selected(self,prompt,**kwargs):
         assert kwargs['think'] is False
         return dict(done=True,done_reason='stop',text=json.dumps(dict(checks=[dict(question_id='q1',question_condition='세대수?',verdict='not_established',basis_ids=['a1'],source_condition='521')])))
-    monkeypatch.setattr(local.GenerationService,'call_ollama',selected)
+    monkeypatch.setattr(local.GenerationService,'call_model',selected)
     result=local.search(service,request(),answer_variant='D',model='qwen3.5:4b')
     assert '제공된 근거로는 확인할 수 없습니다' in result['answer']
     assert result['sentences'][0]['verdict']=='not_established'
@@ -116,7 +116,7 @@ def test_selected_answer_does_not_allow_unquoted_claims(service,monkeypatch,bad)
         payload=dict(checks=[] if bad=='empty' else [item])
         if bad=='extra':payload['explanation']='수집 시점 차이 때문에 다릅니다.'
         return dict(done=True,done_reason='stop',text=json.dumps(payload))
-    monkeypatch.setattr(local.GenerationService,'call_ollama',selected)
+    monkeypatch.setattr(local.GenerationService,'call_model',selected)
     with pytest.raises(GenerationError):local.search(service,request(),answer_variant='D')
 
 
@@ -140,7 +140,7 @@ def test_dependency_change_no_stale_text(service,monkeypatch,timing):
     async def changed(*args,**kwargs):
         state(service,'evidence','code','blocked')
         return await fake_model(*args,**kwargs)
-    monkeypatch.setattr(local.GenerationService,'call_ollama',changed)
+    monkeypatch.setattr(local.GenerationService,'call_model',changed)
     result=local.search(service,request())
     assert result['status']=='stale' and result['answer'] is None
     assert not result['citations'] and not result.get('sentences') and not result['paths']
@@ -156,7 +156,7 @@ def test_bad_citation_or_truncation_fails_once(service,monkeypatch,bad):
         elif bad=='unknown':answer['selected_group_ids']=['missing']
         else:answer['text']='범위 밖 자유 문장'
         result['text']=json.dumps(answer);return result
-    monkeypatch.setattr(local.GenerationService,'call_ollama',broken)
+    monkeypatch.setattr(local.GenerationService,'call_model',broken)
     with pytest.raises(GenerationError):local.search(service,request())
     with service.repository.connect() as db:
         run=json.loads(db.execute('SELECT payload FROM runs ORDER BY rowid DESC LIMIT 1').fetchone()[0])
@@ -185,7 +185,7 @@ def test_unrelated_change_and_http_errors(service,monkeypatch):
     async def changed(*args,**kwargs):
         state(service,'evidence','other','blocked')
         return await fake_model(*args,**kwargs)
-    monkeypatch.setattr(local.GenerationService,'call_ollama',changed)
+    monkeypatch.setattr(local.GenerationService,'call_model',changed)
     assert local.search(service,request())['status']=='answered'
     app=FastAPI();app.include_router(knowledge.router,prefix='/api/v1')
     app.dependency_overrides[knowledge.get_knowledge_service]=lambda:service
@@ -196,7 +196,7 @@ def test_unrelated_change_and_http_errors(service,monkeypatch):
         assert client.post(url,json={'query':'x','mode':'local','source_ids':[]}).status_code==422
         assert client.post(url,json={'query':'C001','mode':'local','answer_variant':'C'}).status_code==422
         async def failed(*args,**kwargs):raise GenerationError('timeout',code='MODEL_TIMEOUT')
-        monkeypatch.setattr(local.GenerationService,'call_ollama',failed)
+        monkeypatch.setattr(local.GenerationService,'call_model',failed)
         result=client.post(url,json={'query':'C001','mode':'local'})
         assert result.status_code==504 and result.json()['error']['code']=='MODEL_TIMEOUT'
 
@@ -241,7 +241,7 @@ def test_seed_alias_change_and_same_type_direct_path(service,monkeypatch):
             link=service.repository.get(db,'entity_links','link1');link.update(revision=2,review_status='rejected')
             service.repository.save(db,'entity_links',link)
         return await fake_model(*args,**kwargs)
-    monkeypatch.setattr(local.GenerationService,'call_ollama',changed)
+    monkeypatch.setattr(local.GenerationService,'call_model',changed)
     assert local.search(service,request())['status']=='stale'
     assert local.search(service,request())['metrics']['llm_calls']==0
     edges=[dict(id='r',subject_id='a',object_entity_id='b',predicate_id='connects'),dict(id='v',subject_id='b',object_entity_id=None)]
@@ -283,7 +283,7 @@ def test_bundle_keeps_comparison_and_path_without_sibling_expansion():
 def test_no_selection_and_no_free_text_escape(service,monkeypatch):
     async def empty(*args,**kwargs):
         return dict(done=True,done_reason='stop',text=json.dumps(dict(selected_group_ids=[])))
-    monkeypatch.setattr(local.GenerationService,'call_ollama',empty)
+    monkeypatch.setattr(local.GenerationService,'call_model',empty)
     result=local.search(service,request())
     assert result['status']=='insufficient' and not result['citations'] and not result['paths']
     assert result['coverage']['not_selected_assertion_ids']==['count1'] and result['coverage']['partial']
@@ -291,7 +291,7 @@ def test_no_selection_and_no_free_text_escape(service,monkeypatch):
     async def injected(*args,**kwargs):
         value=await fake_model(*args,**kwargs);body=json.loads(value['text']);body['text']='다른 출처 990으로 합성'
         value['text']=json.dumps(body);return value
-    monkeypatch.setattr(local.GenerationService,'call_ollama',injected)
+    monkeypatch.setattr(local.GenerationService,'call_model',injected)
     with pytest.raises(GenerationError):local.search(service,request())
 
 
@@ -306,7 +306,7 @@ def test_nonrecommended_context_stays_visible_with_its_evidence(service,monkeypa
         groups['g2']=['context']
         return response,snapshot,chosen+[context],dependencies+[context],(prompt,groups)
     monkeypatch.setattr(local,'prepare',prepared)
-    monkeypatch.setattr(local.GenerationService,'call_ollama',fake_model)
+    monkeypatch.setattr(local.GenerationService,'call_model',fake_model)
     result=local.search(service,request())
     assert result['coverage']['recommended_assertion_ids']==['count1']
     assert result['coverage']['context_assertion_ids']==['context']

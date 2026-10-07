@@ -196,11 +196,18 @@ def _batch(file, blocks, selection):
 
 class FrozenIndex:
     """One in-memory index per execution; only ranking utilities from K6 are reused."""
-    def __init__(self, blocks):
+    def __init__(self, blocks, *, preserve_numbers=False):
         import bm25s
         from app.retrieval.pipeline.stages.bm25_retriever import _tokenize_korean, _to_bm25s_tokens
         self.blocks = blocks
-        self.tokenize = _tokenize_korean
+        def tokenize(texts):
+            tokens = _tokenize_korean(texts)
+            if preserve_numbers:
+                for text, row in zip(texts, tokens):
+                    row.extend('numeric_' + n.replace('.', '_') for n in
+                               re.findall(r'(?<![0-9A-Za-z_.])\d+(?:\.\d+)?(?![0-9A-Za-z_.])', text))
+            return tokens
+        self.tokenize = tokenize
         self.convert = _to_bm25s_tokens
         self.tokens = self.tokenize([b['text'] for b in blocks])
         self.engine = bm25s.BM25()

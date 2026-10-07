@@ -21,7 +21,7 @@ def test_draft_model_and_design_timeout_are_frozen_in_recipe(monkeypatch):
     async def call(self, prompt, **kwargs):
         calls.append(kwargs)
         return {'text': '{}'}
-    monkeypatch.setattr(ontology_run.GenerationService, 'call_ollama', call)
+    monkeypatch.setattr(ontology_run.GenerationService, 'call_model', call)
     for stage in ('analyze', 'design', 'revise'):
         asyncio.run(ontology_run.model_call('input', {}, stage, run))
     assert [c['model'] for c in calls] == ['draft-model'] * 3

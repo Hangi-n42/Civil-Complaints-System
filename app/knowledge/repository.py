@@ -18,6 +18,10 @@ class KnowledgeRepository:
                     id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id),
                     sha256 TEXT NOT NULL, payload TEXT NOT NULL, UNIQUE(source_id, sha256));
                 CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS requirements (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS requirement_versions (
+                    id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL,
+                    PRIMARY KEY(id, revision));
                 CREATE TABLE IF NOT EXISTS ontology_versions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS ontology_heads (
                     lineage_id TEXT PRIMARY KEY, reviewed_version_id TEXT REFERENCES ontology_versions(id));
@@ -66,7 +70,7 @@ class KnowledgeRepository:
     @staticmethod
     def get(db, table, object_id):
         if table not in {'sources', 'versions', 'runs', 'blocks', 'ontology_versions', 'changesets', 'decisions',
-                         'entities', 'entity_links', 'assertions', 'evidence', 'snapshots'}:
+                         'entities', 'entity_links', 'assertions', 'evidence', 'snapshots', 'requirements'}:
             raise ValueError('Unknown ledger table')
         row = db.execute(f'SELECT payload FROM {table} WHERE id=?', (object_id,)).fetchone()
         if row is None:
@@ -75,7 +79,7 @@ class KnowledgeRepository:
 
     @staticmethod
     def save(db, table, value):
-        if table not in {'versions', 'runs', 'changesets', 'entity_links', 'assertions', 'entities'}:
+        if table not in {'versions', 'runs', 'changesets', 'entity_links', 'assertions', 'entities', 'requirements'}:
             raise ValueError('Unsupported update')
         db.execute(f'UPDATE {table} SET payload=? WHERE id=?',
                    (json.dumps(value, ensure_ascii=False), value['id']))
