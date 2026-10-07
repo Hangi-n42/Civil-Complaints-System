@@ -4,16 +4,16 @@ from copy import deepcopy
 import json
 from time import monotonic
 from uuid import uuid4
-from typing import Literal, Any
+from typing import Literal, Any, get_args
 
 from pydantic import BaseModel, Field, create_model
 
 from app.core.config import settings
 from app.generation.model_client import ModelClient, ModelRequest, configuration
 from . import autoschema, business_store, business_review
-from .business_models import (GroundingCheck, MeaningCheck, RequirementCheck, RequirementJoinCheck,
-                              FindingResolution, Repairs, EvidenceQuote, RequiredMeaningCheck,
-                              RequirementGroundingCheck, RequirementSynthesisCheck,
+from .business_models import (GroundingCheck, RequirementCheck, RequirementJoinCheck,
+                              FindingResolution, Repairs, EvidenceQuote,
+                              RequirementSynthesisCheck,
                               ExpressionRevision, GroundedMeaningChallenge,
                               ExpressionReviewCheck, LocatedExpressionCheck)
 from .service import KnowledgeConflict, encode, utcnow
@@ -279,7 +279,7 @@ def request_tokens(messages, schema, max_tokens):
 
 def evidence_fields(output_type):
     if issubclass(output_type, GroundingCheck):
-        return {'meanings': RequiredMeaningCheck if output_type is RequirementGroundingCheck else MeaningCheck}
+        return {'meanings': get_args(output_type.model_fields['meanings'].annotation)[0]}
     if issubclass(output_type, ExpressionReviewCheck):
         return dict(checks=LocatedExpressionCheck, meaning_challenges=GroundedMeaningChallenge)
     fields = {'finding_resolutions': FindingResolution}
@@ -296,6 +296,16 @@ def selected_evidence_type(output_type, references):
         selected = {name: (selection, Field(max_length=len(references)))
                     for name in ('evidence', 'error_evidence') if name in row_type.model_fields}
         row = create_model('Selected' + row_type.__name__, __base__=row_type, **selected)
+        if issubclass(output_type, GroundingCheck):
+            unresolved = create_model('Unresolved' + row_type.__name__, __base__=row,
+                                      source_status=(Literal['unknown'], Field(...)))
+            if references:
+                grounded = create_model('Grounded' + row_type.__name__, __base__=row,
+                    source_status=(Literal['supported', 'refuted'], Field(...)),
+                    evidence=(selection, Field(min_length=1, max_length=len(references))))
+                row = grounded | unresolved
+            else:
+                row = unresolved
         overrides[field] = (list[row], Field(...) if output_type.model_fields[field].is_required() else Field(default_factory=list))
     return create_model('Selected' + output_type.__name__, __base__=output_type, **overrides)
 
@@ -323,6 +333,21 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
         output_type = selected_evidence_type(output_type, evidence_views)
         fields = 'evidence와 error_evidence' if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck)) else 'evidence'
         instruction += '\n' + fields + '에는 blocks의 evidence_ref ID만 선택한다. 여러 구간은 별도 ID로 반환한다. 문장을 재작성하지 않는다. 참조가 있다는 이유만으로 의미 지지/해소를 선언하지 않는다.\n'
+        if stage == 'source_reassessment':
+            for meaning in context.get('previous', {}).get('meanings', []):
+                try:
+                    previous_refs = exact_evidence(meaning['evidence'], context['blocks'])
+                except ValueError:
+                    previous_refs = []
+                meaning['previous_evidence_refs'] = [ref for ref, block in evidence_views.items() if any(
+                    e['block_id'] == block['id'] and e['source_version_id'] == block['source_version_id']
+                    and e['parse_run_id'] == (block.get('parse_run_id') or block.get('run_id'))
+                    and block.get('span', [0, len(block['text'])])[0] <= e['start_char']
+                    and e['end_char'] <= block.get('span', [0, len(block['text'])])[1] for e in previous_refs)]
+            instruction += ('\nprevious_evidence_refs는 이전 인용을 포함하는 현재 제공 구간의 주소이며 새 판단의 정답이 아니다. '
+                '기존 근거를 유지할 때도 evidence에 해당 ID를 명시적으로 선택한다. 진술·조건·예외·기간이 바뀌면 '
+                '바뀐 의미를 원문으로 다시 대조하여 지지/반박 근거를 선택한다. supported/refuted에는 근거가 필요하며, '
+                '확인할 수 없으면 unknown과 구체 미확정 사유를 반환한다. 빈 evidence는 근거 유지 지시가 아니다.\n')
     mapping = dict(reference_map or {})
     if stage != 'direct_definitions':
         if 'blocks' in context:
@@ -509,7 +534,7 @@ def assessment_fingerprint(run, requirement, source, scope=None):
     return autoschema.identifier('assessment_input', value if scope is None else [*value, inventory])
 
 
-COMPLETION_CONTRACT = 'required-meaning-completion-v1'
+COMPLETION_CONTRACT = 'required-meaning-completion-v2-applicability'
 
 
 def requirement_completion(assessment, accepted_ids=None):
@@ -521,6 +546,8 @@ def requirement_completion(assessment, accepted_ids=None):
     complete = (source.get('completeness') == 'complete' and not source.get('gaps') and not source.get('meaning_gaps')
         and bool(business_review.review_meanings(source)) and bool(required)
         and all(m['source_status'] == 'supported' and m['availability'] == 'provided' for m in business_review.review_meanings(source))
+        and all((m.get('requirement_link') or {}).get('applicability') != 'unresolved'
+                for m in business_review.review_meanings(source))
         and all(not c.get('incorrect_claim_ids') and ((c['status'] == 'represented' and c['claim_ids']) or
                 (c['status'] == 'missing' and c['meaning_key'] not in required)) for c in checks)
         and representation.get('satisfied') and representation.get('conjunctions_satisfied')

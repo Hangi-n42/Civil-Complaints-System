@@ -306,3 +306,53 @@ def test_expression_schema_places_locations_and_reason_before_final_verdict():
         assert keys[-2:] == ['reason', 'status']
         assert keys.index('error_evidence') < keys.index('reason')
         assert schema['$comment'] == 'expression-evidence-before-verdict-v1'
+
+
+def test_requirement_link_preserves_unresolved_scope_and_rejects_background_required():
+    import pytest
+    from app.knowledge.business_models import ScopedRequiredMeaningCheck, ScopedRequirementSourceCheck
+    from pydantic import ValidationError
+    m = dict(meaning('m'), required_for_requirement=True, requirement_link=dict(requested_fact='신청 기한',
+        applicability='unresolved', contribution='direct_answer', reason='대상 시점 미확정'))
+    assert ScopedRequiredMeaningCheck.model_validate(m).source_status == 'supported'
+    assessment = dict(source=dict(meanings=[m]), representation=judgments(['m']), errors=[], issues=[])
+    assert review.blocked(assessment)[0] == {'m'}
+    assessment['source'].update(completeness='complete', gaps=[])
+    assessment.update(preservation_complete=True)
+    assessment['representation']['checks'][0]['claim_ids'] = ['normal']
+    assert business_run.requirement_completion(assessment)['status'] == 'partial'
+    for field, value in [('applicability', 'outside_scope'), ('contribution', 'background'), ('requested_fact', '')]:
+        bad = deepcopy(m)
+        bad['requirement_link'][field] = value
+        with pytest.raises(ValidationError): ScopedRequiredMeaningCheck.model_validate(bad)
+        bad['required_for_requirement'] = False
+        assert not ScopedRequiredMeaningCheck.model_validate(bad).required_for_requirement
+    schema = ScopedRequirementSourceCheck.model_json_schema()['$defs']['ScopedRequiredMeaningCheck']
+    assert list(schema['properties']).index('requirement_link') < list(schema['properties']).index('required_for_requirement')
+
+
+def test_unresolved_applicability_blocks_only_linked_claim_and_legacy_records_still_work():
+    run = local_run()
+    run['recipe']['review_contract'] = review.CONTRACT
+    ids = [c['id'] for c in run['claims']]
+    source = dict(review_contract=review.CONTRACT, completeness='complete', gaps=[], meanings=[
+        dict(meaning(key), required_for_requirement=True, requirement_link=dict(requested_fact='접수 기관',
+            applicability=state, contribution='direct_answer', reason='적용 시점 대조'))
+        for key, state in [('uncertain', 'unresolved'), ('normal', 'applicable')]])
+    representation = judgments(['uncertain', 'normal'])
+    for row, cid in zip(representation['checks'], ids):
+        row.update(claim_ids=[cid], claim_support={cid: 'supported'})
+    assessment = dict(id='a', requirement_id='r', source=source, representation=representation,
+                      errors=[], issues=[], preservation_complete=True)
+    assessment['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], source)
+    run['assessments'] = [assessment]
+    original = deepcopy(source)
+    eligible, blocks = business_use.eligibility(run)
+    assert eligible == {ids[1]} and blocks[ids[0]][0] == 'meaning_dependency_blocked'
+    assert source == original and all(m['source_status'] == 'supported' for m in source['meanings'])
+    assert business_run.requirement_completion(assessment)['status'] == 'partial'
+    run['recipe']['review_contract'] = source['review_contract'] = 'requirement-local-review-v6-separated'
+    for row in source['meanings']: row.pop('requirement_link')
+    assessment['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], source)
+    assert business_use.eligibility(run)[0] == set(ids)
+    assert business_run.requirement_completion(assessment)['status'] == 'satisfied'

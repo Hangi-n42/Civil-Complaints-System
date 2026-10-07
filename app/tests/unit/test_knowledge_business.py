@@ -411,6 +411,7 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
                     quote = block['text'] if request.stage == 'source_reassessment' else '기관은 ... 접수한다.'
                     output = dict(examined_block_ids=[block['id']], meanings=[dict(key='batch1:accept' if request.stage == 'source_reassessment' else 'accept',
                         statement='기관은 신청을 접수한다.', source_status='supported', availability='provided', required_for_requirement=True,
+                        requirement_link=dict(requested_fact='신청 접수 기관', applicability='applicable', contribution='direct_answer', reason='질문 대상 기관'),
                         evidence=([block['evidence_ref']] if request.stage == 'source_reassessment' else
                                   [dict(block_id=block['id'], quote=quote)]), conditions=[], exceptions=[],
                         period='', references=[], reason='원문')], completeness='complete', gaps=[], conjunctions=[])
@@ -506,6 +507,7 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
                 block = context['blocks'][0]
                 output = dict(examined_block_ids=[block['id']], meanings=[dict(key='accept', statement=block['text'],
                     source_status='supported', availability='provided', required_for_requirement=True,
+                    requirement_link=dict(requested_fact='신청 접수 기관', applicability='applicable', contribution='direct_answer', reason='질문 대상 기관'),
                     evidence=[dict(block_id=block['id'], quote=block['text'])],
                     conditions=[], exceptions=[], period='', references=[], reason='원문')], inspection_status='complete', findings=[], conjunctions=[])
             elif request.stage == 'requirement_representation':
@@ -861,6 +863,21 @@ def test_query_citations_are_bounded_aliased_and_empty_answers_fail(tmp_path, mo
         result = business_use.query(service, request)
         assert result['status'] == 'unverified' and result['answer']['choice'] is None
         assert result['answer']['limitations'] == ['근거 부족']
+        from app.knowledge.discovery_profile import FrozenIndex
+        monkeypatch.setattr(FrozenIndex, 'search', lambda *args, **kwargs: [])
+        count = len(seen)
+        result = business_use.query(service, request)
+        assert result['status'] == 'unverified' and result['answer'] is None and result['qa_model_called'] is False
+        assert len(seen) == count and service.run(result['run_id'])['units'] == []
+        from app.knowledge import graph_retrieval
+        def empty_graph(service, run, snapshot, request):
+            run['metrics']['llm_calls'] = 1
+            run['units'].append(dict(stage='graph_retrieval_filter', status='succeeded'))
+            return []
+        monkeypatch.setattr(graph_retrieval, 'retrieve', empty_graph)
+        result = business_use.query(service, request.model_copy(update=dict(retrieval='hipporag2')))
+        assert result['qa_model_called'] is False and 'model_called' not in result
+        assert len(seen) == count and service.run(result['run_id'])['metrics']['llm_calls'] == 1
         with service.repository.connect() as db:
             assert service.repository.get(db, 'snapshots', 's') == snapshot
     finally:
@@ -1018,6 +1035,41 @@ def test_selected_source_evidence_retains_delivered_ranges_and_raw_response(monk
         business_run.exact_evidence([dict(evidence, start_char=7, end_char=12)], blocks)
 
 
+@pytest.mark.parametrize('status', ['supported', 'refuted', 'unknown'])
+def test_reassessment_never_inherits_evidence_for_an_empty_selection(monkeypatch, status):
+    from app.knowledge.business_models import RequirementGroundingCheck
+    blocks = [dict(id='old', source_version_id='v1', parse_run_id='p', text='기한은 2일이다.', span=[0, 9]),
+              dict(id='new', source_version_id='v2', parse_run_id='p', text='기한은 3일이다.', span=[0, 9])]
+    old = dict(key='m', statement='기한은 2일이다.', source_status='supported', availability='provided',
+        evidence=business_run.exact_evidence([dict(block_id='old', quote=blocks[0]['text'])], blocks),
+        conditions=[], exceptions=[], period='', references=[], reason='이전 검수', required_for_requirement=True,
+        requirement_link=dict(requested_fact='신청 기한', applicability='applicable', contribution='direct_answer', reason='질문 기한'))
+    run = dict(blocks=blocks, claims=[], sources={}, units=[], recipe=dict(options={}))
+    context = dict(blocks=blocks, previous=dict(meanings=[deepcopy(old)]))
+    raw = dict(examined_block_ids=['b1', 'b2'], meanings=[dict(old, statement='기한은 3일이다.',
+        source_status=status, evidence=[])], completeness='unknown', gaps=[], conjunctions=[])
+    def generate(*args, **kwargs):
+        run['units'].append(dict(response={'parsed': deepcopy(raw)}))
+        return run['units'][-1]['response']
+    monkeypatch.setattr(business_run, 'call', generate)
+    monkeypatch.setattr(business_run, 'save', lambda *_: None)
+    request = business_run.json_request(run, 'source_reassessment', '재검수', context, RequirementGroundingCheck)
+    previous = json.loads(request['messages'][1]['content'])['previous']['meanings'][0]
+    assert previous['previous_evidence_refs'] == ['e1']
+    assert context['previous']['meanings'] == [old]
+    output = business_run.json_call(None, run, 'source_reassessment', '재검수', context, RequirementGroundingCheck)
+    if status == 'unknown':
+        assert output['meanings'][0]['evidence'] == [] and output['meanings'][0]['source_status'] == 'unknown'
+    else:
+        assert output is None and run['units'][-1]['error'].startswith('schema_error')
+    raw['meanings'][0]['evidence'] = ['e2']  # Explicit selection replaces the old source; no quote inference.
+    output = business_run.json_call(None, run, 'source_reassessment', '재검수', context, RequirementGroundingCheck)
+    assert output['meanings'][0]['evidence'] == business_run.exact_evidence(
+        [dict(block_id='new', quote=blocks[1]['text'])], blocks)
+    assert output['meanings'][0]['source_status'] == status
+    assert run['units'][-1]['response']['parsed'] == raw
+
+
 def test_representation_requires_explicit_incorrect_ids_without_inference():
     from pydantic import ValidationError
     from app.knowledge.business_models import LocalRepresentationCheck
@@ -1104,5 +1156,75 @@ def test_requirement_query_keeps_approved_coverage_and_rejects_unknown_or_too_sm
             service.repository.save(db, 'requirements', req)
         assert business_use.query(service, BusinessQuery(**query, requirement_ids=['r']))['status'] == 'needs_review'
         assert len(supplied) == count
+    finally:
+        service.shutdown()
+
+
+def test_answer_meanings_keep_review_scope_and_uncertainty_without_promoting_source():
+    from app.tests.unit.test_knowledge_business_local_review import meaning
+    block = dict(id='body', source_version_id='v', parse_run_id='p', text='기관은 신청을 접수한다.', span=[0, 13])
+    normal = meaning('normal')
+    normal.update(conditions=['대리 신청'], exceptions=['다른 업무 제외'], period='접수 시')
+    uncertain = dict(deepcopy(normal), key='uncertain', source_status='unknown', reason='적용 미확정')
+    def assessment(rid, meanings, ids):
+        return dict(id=rid, source=dict(meanings=meanings), representation=dict(checks=[
+            dict(meaning_key=m['key'], status='represented' if m['source_status']=='supported' else 'unknown', claim_ids=ids)
+            for m in meanings]))
+    snapshot = dict(blocks=[block], assessments=dict(
+        chosen=assessment('a', [normal, uncertain], ['selected', 'unselected']),
+        other=assessment('other', [dict(deepcopy(normal), key='other')], ['selected'])))
+    before = deepcopy(snapshot)
+    rows = business_use.reviewed_answer_meanings(snapshot, {'selected'}, ['chosen'])
+    assert len(rows) == 2 and all(r['claim_ids'] == ['selected'] and r['requirement_id']=='chosen' for r in rows)
+    assert rows[0]['conditions'] == ['대리 신청'] and rows[0]['exceptions'] == ['다른 업무 제외']
+    assert rows[1]['source_status'] == 'unknown' and rows[1]['expression_status'] == 'unknown'
+    assert rows[0]['evidence'][0]['quote'] == block['text'] and snapshot == before
+    assert business_use.reviewed_answer_meanings(dict(blocks=[block], assessments={}), {'selected'}, []) == []
+    normal['evidence'][0]['quote'] = '원문에 없는 허용'
+    invalid = business_use.reviewed_answer_meanings(snapshot, {'selected'}, ['chosen'])[0]
+    assert invalid['record_error'] and invalid['evidence'] == []
+
+
+@pytest.mark.parametrize('support', ['supported', 'unknown', 'not_assessed'])
+def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_review(tmp_path, monkeypatch, support):
+    from app.knowledge.business_models import BusinessQuery
+    from app.knowledge.discovery_profile import FrozenIndex
+    from app.tests.unit.test_knowledge_business_scope import block
+    from app.tests.unit.test_knowledge_business_local_review import meaning
+    blocks = [dict(block('title', '접수 안내', path='h1:1'), source_id='s'),
+              dict(block('body', '기관은 신청을 접수한다.', path='div:1 > ul:1 > li:1'), source_id='s'),
+              dict(block('note', '다만, 대리 신청은 위임장이 필요하다.', path='div:1 > ul:1 > li:2'), source_id='s'),
+              dict(block('unrelated', '다른 부서 소식', path='div:2 > p:1'), source_id='s')]
+    refs = [dict(business_run.exact_evidence([dict(block_id=b['id'], quote=b['text'])], blocks)[0], precision='chunk') for b in blocks]
+    m = meaning('m')
+    m['evidence'] = business_run.exact_evidence(m['evidence'], blocks)
+    c = dict(id='c', role='entity_relation', raw=dict(Head='기관', Relation='접수', Tail='신청'),
+             source_version_ids=[blocks[0]['source_version_id']], evidence=refs)
+    req = dict(id='r', revision=1, status='ready')
+    a = dict(id='a', requirement_id='r', status='satisfied', source=dict(meanings=[m]), representation=dict(
+        source_checks=[dict(meaning_key='m', required_for_requirement=True)],
+        checks=[dict(meaning_key='m', status='represented' if support=='supported' else 'partial',
+                     claim_ids=['c'], claim_support={'c': support})]))
+    snap = dict(id='snap', kind='source_graph', run_id='origin', source_versions={blocks[0]['source_version_id']:{}},
+        requirements=[req], assessments={'r':a}, claims=[c], concepts=[], blocks=blocks)
+    options = BusinessRunRequest(source_version_ids=['v'], requirement_ids=['r']).model_dump()
+    seen = []
+    def answer(_service, run, stage, instruction, context, schema, **kwargs):
+        seen.append(context)
+        return dict(answer='기관은 신청을 접수한다.', choice=None, citations=['c'], limitations=[])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    monkeypatch.setattr(FrozenIndex, 'search', lambda *args: [dict(block_id='c', file_id=blocks[0]['source_version_id'], score=1.0)])
+    service = KnowledgeService(tmp_path/'knowledge.db')
+    try:
+        with service.repository.connect() as db:
+            db.execute('INSERT INTO runs VALUES(?,?)', ('origin', json.dumps(dict(id='origin', status='succeeded', recipe=dict(options=options), model_identity={}))))
+            db.execute('INSERT INTO requirements VALUES(?,?)', ('r', json.dumps(req)))
+            db.execute('INSERT INTO snapshots VALUES(?,?)', ('snap', json.dumps(snap)))
+        business_use.query(service, BusinessQuery(snapshot_id='snap', question='대리 신청 접수 조건은?', requirement_ids=['r'], retrieval='bm25'))
+        delivered = {b['id']:b['text'] for b in seen[0]['source_evidence']}
+        assert delivered['body']==blocks[1]['text'] and delivered['note']==blocks[2]['text']
+        assert ('unrelated' not in delivered) if support=='supported' else ('unrelated' in delivered)
+        assert seen[0]['reviewed_meanings'][0]['claim_support'] == {'c':support}
+        with service.repository.connect() as db: assert service.repository.get(db, 'snapshots', 'snap') == snap
     finally:
         service.shutdown()

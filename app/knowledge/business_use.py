@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, create_model, field_validator
 from . import business_run, business_review
 from .service import KnowledgeConflict, encode, utcnow
 
-ELIGIBILITY_CONTRACT = 'current-claim-local-dependencies-v7'
+ELIGIBILITY_CONTRACT = 'current-claim-local-dependencies-v8-applicability'
 ANSWER_CONTRACT = 'provided-unique-citations-nonempty-answer-v2'
 
 
@@ -214,6 +214,31 @@ def concept_hints(snapshot):
     return {cid: list(dict.fromkeys(values)) for cid, values in hints.items()}
 
 
+def reviewed_answer_meanings(snapshot, selected, requirement_ids):
+    """Carry existing review scope and literal evidence, not a new truth judgment."""
+    rows = []
+    for rid, assessment in snapshot.get('assessments', {}).items():
+        if requirement_ids and rid not in requirement_ids:
+            continue
+        checks = {c['meaning_key']: c for c in (assessment.get('representation') or {}).get('checks', [])}
+        for meaning in (assessment.get('source') or {}).get('meanings', []):
+            check = checks.get(meaning['key'], {})
+            ids = sorted(selected.intersection(check.get('claim_ids', [])))
+            if not ids:
+                continue
+            row = dict(requirement_id=rid, assessment_id=assessment['id'],
+                claim_ids=ids, expression_status=check['status'], **{k: deepcopy(meaning.get(k)) for k in
+                ('key', 'statement', 'conditions', 'exceptions', 'period', 'references', 'source_status',
+                 'availability', 'record_error', 'requirement_link')})
+            row['claim_support'] = {cid: check.get('claim_support', {}).get(cid, 'not_assessed') for cid in ids}
+            try:
+                row['evidence'] = business_run.exact_evidence(meaning['evidence'], snapshot['blocks'])
+            except ValueError as exc:
+                row.update(evidence=[], record_error=str(exc))
+            rows.append(row)
+    return rows
+
+
 def query(service, request, *, context_mode='graph'):
     """The same question/answer contract supports a recorded document baseline."""
     from .discovery_profile import FrozenIndex
@@ -318,6 +343,17 @@ def query(service, request, *, context_mode='graph'):
         hits = mandatory + [h for h in hits if h['block_id'] not in required_ids][:request.limit - len(mandatory)]
     selected = {h['block_id'] for h in hits}
     context = [c for c in candidates if c['id'] in selected]
+    if not context:
+        run.update(status='partial', finished_at=utcnow(), answer=None, answer_status='unverified',
+                   retrieval=hits, provided_ids=[])
+        run['metrics']['elapsed_s'] = monotonic() - started
+        business_run.save(service, run)
+        return dict(run_id=run['id'], status='unverified', answer=None, retrieval=hits,
+                    context_mode=context_mode, snapshot_id=None if source_reader else snapshot['id'],
+                    source_run_id=request.source_run_id, answer_basis=run['answer_basis'], qa_model_called=False)
+    reviewed_meanings = reviewed_answer_meanings(snapshot, selected, request.requirement_ids) if not source_reader else []
+    run['answer_scope_contract'] = 'reviewed-meanings-and-source-qualifications-v1'
+    run['reviewed_meanings'] = deepcopy(reviewed_meanings)
     required_source_context = []
     if source_reader:
         context = [{k: v for k, v in c.items() if k != 'linked_claim_ids'} for c in context]
@@ -327,10 +363,26 @@ def query(service, request, *, context_mode='graph'):
     source_evidence = {}
     if context_mode == 'graph' and not source_reader:
         blocks = {b['id']: b for b in snapshot['blocks']}
+        review_chunks = business_run.autoschema.chunks(snapshot['blocks'], run['recipe']['options']['context_tokens'],
+            run['recipe']['options']['review_tokens'], 1) if reviewed_meanings else []
         for claim in snapshot['claims']:
             if claim['id'] not in selected:
                 continue
-            for ref in claim.get('evidence', []):
+            meanings = [m for m in reviewed_meanings if claim['id'] in m['claim_ids'] and not m['record_error']
+                        and m['source_status'] == 'supported' and m['availability'] == 'provided'
+                        and (m.get('requirement_link') or {}).get('applicability') != 'unresolved'
+                        and m['expression_status'] == 'represented' and m['claim_support'][claim['id']] == 'supported']
+            meaning_refs = []
+            if meanings and any(m['evidence'] for m in meanings):
+                scoped = business_review.related_blocks(dict(blocks=snapshot['blocks'], recipe=run['recipe']),
+                                                        meanings, chunks=review_chunks)
+                meaning_refs = [business_run.exact_evidence([dict(block_id=b['id'], quote=b['text'])], [b])[0]
+                                for b in scoped]
+            # Chunk references locate extraction input. For an explicitly reviewed
+            # meaning retain the whole source unit and its existing mandatory
+            # context. Partial/unknown judgments cannot replace the chunk source.
+            refs = [e for e in claim.get('evidence', []) if not meaning_refs or e.get('precision') != 'chunk']
+            for ref in [*refs, *meaning_refs]:
                 key = json.dumps(ref, ensure_ascii=False, sort_keys=True)
                 row = source_evidence.setdefault(key, dict(evidence=deepcopy(ref),
                     locator=deepcopy(blocks.get(ref['block_id'], {}).get('locator', {})), claim_ids=[]))
@@ -377,6 +429,9 @@ def query(service, request, *, context_mode='graph'):
         '미승인 개념이나 원문보다 강한 효과를 사실로 쓰지 않는다. 조건/예외/기간을 유지한다. '
         'source_evidence는 연결된 승인 후보의 출처와 범위를 확인하는 원문이다. '
         '같은 인용 안의 다른 의미까지 승인된 것으로 취급하지 않는다.' + (
+        'reviewed_meanings는 기존 검수의 주장·조건·예외·기간과 원문을 연결한 범위이지 정답표가 아니다. '
+        '질문에 해당하는 의미와 실제 인용을 함께 사용하고, 후보의 다른 절이나 검수 문장의 확대 해석을 그대로 확정하지 않는다. '
+        '원문에서 직접 확인되는 사실과 추가 해석이 필요한 결론을 구분해 답한다.' if not source_reader else '') + (
         '\n이번 context는 검색된 원문 구간이다. 원문 자체를 대조하여 답한다. '
         'source_context는 선택한 구간의 표 행·병합 셀·상위 조건·예외에 필요한 원문이다. '
         'supports_context_ids와 표의 row/column/merged_span을 사용하여 귀속을 확인한다. '
@@ -386,7 +441,8 @@ def query(service, request, *, context_mode='graph'):
         if source_reader else ''),
         dict(question=request.question, choices=request.choices, context=context,
              source_versions=snapshot['source_versions'], source_evidence=source_evidence,
-             requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader else {})), context_answer,
+             requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader
+                                                     else {'reviewed_meanings': reviewed_meanings})), context_answer,
         reference_map=reference_map)
     if source_reader:
         run['answer_contract'] = 'source-unique-provided-citations-lossless-dedup-v3'

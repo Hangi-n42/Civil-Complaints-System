@@ -167,12 +167,45 @@ class RequiredMeaningCheck(MeaningCheck):
     required_for_requirement: bool
 
 
+class RequirementLink(BaseModel):
+    requested_fact: str = Field(description='The fact requested by question/criterion, not a restatement of every source fact. Empty when no requested fact needs this meaning.')
+    applicability: Literal['applicable', 'outside_scope', 'unresolved']
+    contribution: Literal['direct_answer', 'necessary_premise', 'background']
+    reason: str = Field(description='Compare target/situation/period; explain which requested fact cannot be answered without this meaning, or why it is background.')
+
+
+def requirement_link_before_decision(schema):
+    properties = schema['properties']
+    schema['properties'] = {**{k: v for k, v in properties.items() if k != 'required_for_requirement'},
+                            'required_for_requirement': properties['required_for_requirement']}
+
+
+class ScopedRequiredMeaningCheck(RequiredMeaningCheck):
+    model_config = dict(json_schema_extra=requirement_link_before_decision)
+    requirement_link: RequirementLink
+
+    @model_validator(mode='after')
+    def consistent_requirement_link(self):
+        if self.required_for_requirement and (self.requirement_link.applicability == 'outside_scope'
+                or self.requirement_link.contribution == 'background' or not self.requirement_link.requested_fact.strip()):
+            raise ValueError('A required meaning needs an applicable requested fact or its necessary premise')
+        return self
+
+
 class RequirementSourceCheck(LocalSourceCheck):
     meanings: list[RequiredMeaningCheck]
 
 
 class RequirementGroundingCheck(GroundingCheck):
     meanings: list[RequiredMeaningCheck]
+
+
+class ScopedRequirementSourceCheck(RequirementSourceCheck):
+    meanings: list[ScopedRequiredMeaningCheck]
+
+
+class ScopedRequirementGroundingCheck(RequirementGroundingCheck):
+    meanings: list[ScopedRequiredMeaningCheck]
 
 
 class GroundedMeaningChallenge(MeaningChallenge):
