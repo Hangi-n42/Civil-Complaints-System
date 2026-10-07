@@ -265,8 +265,21 @@ class RequirementLinkReassessment(GroundingCheck):
     meanings: list[RequirementLinkUpdate]
 
 
+class MeaningApplicability(BaseModel):
+    model_config = {'extra': 'forbid'}
+    key: str
+    requirement_link: RootedRequirementLink
+    required_for_requirement: bool
+
+
 class GroundedMeaningChallenge(MeaningChallenge):
     evidence: list[EvidenceQuote]
+
+
+class RequirementApplicationCheck(BaseModel):
+    model_config = {'extra': 'forbid'}
+    links: list[MeaningApplicability]
+    meaning_challenges: list[GroundedMeaningChallenge]
 
 
 def expression_evidence_before_verdict(schema):
@@ -294,6 +307,20 @@ class ExpressionReviewCheck(BaseModel):
     dependencies: list[MeaningDependency]
 
 
+class CandidateSourceCheck(BaseModel):
+    claim_id: str
+    claim_support: Literal['supported', 'incorrect', 'unknown']
+    evidence: list[EvidenceQuote]
+    error_fields: list[str]
+    error_evidence: list[EvidenceQuote]
+    reason: str
+
+
+class CandidateSourceReview(BaseModel):
+    checks: list[CandidateSourceCheck]
+    preservation_checks: list[PreservationCheck]
+
+
 class ExpressionRevision(LocatedExpressionCheck):
     revision_basis: Literal['new_evidence', 'contradiction', 'prior_misreading', 'combined_expression']
     evidence: list[EvidenceQuote]
@@ -312,6 +339,29 @@ class RequirementSynthesisCheck(BaseModel):
     source_completeness: Literal['complete', 'partial', 'unknown']
     unselected_source_required: bool | None
     finding_resolutions: list[FindingResolution]
+
+
+class ContributionCheck(BaseModel):
+    model_config = {'extra': 'forbid'}
+    meaning_key: str
+    status: Literal['represented', 'partial', 'missing', 'unknown']
+    claim_ids: list[str]
+    reason: str
+
+
+class ContributionReviewCheck(ExpressionReviewCheck):
+    checks: list[ContributionCheck]
+    candidate_challenges: list[GroundedMeaningChallenge]
+
+
+class ContributionRevision(ContributionCheck):
+    revision_basis: Literal['new_evidence', 'contradiction', 'prior_misreading', 'combined_expression']
+    evidence: list[EvidenceQuote]
+
+
+class ContributionSynthesisCheck(RequirementSynthesisCheck):
+    checks: list[ContributionRevision]
+    candidate_challenges: list[GroundedMeaningChallenge]
 
 
 class ClaimPatch(BaseModel):

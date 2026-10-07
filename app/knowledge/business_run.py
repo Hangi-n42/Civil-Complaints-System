@@ -14,8 +14,8 @@ from . import autoschema, business_store, business_review
 from .business_models import (GroundingCheck, LocalSourceCheck, RequirementCheck, RequirementJoinCheck,
                               FindingResolution, Repairs, EvidenceQuote,
                               RequirementSynthesisCheck,
-                              ExpressionRevision, GroundedMeaningChallenge,
-                              ExpressionReviewCheck, LocatedExpressionCheck,
+                              GroundedMeaningChallenge, CandidateSourceReview, RequirementApplicationCheck,
+                              ExpressionReviewCheck,
                               SelectedRequirementSourceCheck)
 from .service import KnowledgeConflict, encode, utcnow
 
@@ -280,15 +280,21 @@ def request_tokens(messages, schema, max_tokens):
 
 
 def evidence_fields(output_type):
+    if issubclass(output_type, RequirementApplicationCheck):
+        return dict(meaning_challenges=GroundedMeaningChallenge)
+    if issubclass(output_type, CandidateSourceReview):
+        return {'checks': get_args(output_type.model_fields['checks'].annotation)[0]}
     if issubclass(output_type, SelectedRequirementSourceCheck):
         return {name: get_args(output_type.model_fields[name].annotation)[0] for name in ('selections', 'additions')}
     if issubclass(output_type, (GroundingCheck, LocalSourceCheck)):
         return {'meanings': get_args(output_type.model_fields['meanings'].annotation)[0]}
     if issubclass(output_type, ExpressionReviewCheck):
-        return dict(checks=LocatedExpressionCheck, meaning_challenges=GroundedMeaningChallenge)
+        return dict(checks=get_args(output_type.model_fields['checks'].annotation)[0], meaning_challenges=GroundedMeaningChallenge,
+            **(dict(candidate_challenges=GroundedMeaningChallenge) if 'candidate_challenges' in output_type.model_fields else {}))
     fields = {'finding_resolutions': FindingResolution}
     if issubclass(output_type, RequirementSynthesisCheck):
-        fields.update(checks=ExpressionRevision, meaning_challenges=GroundedMeaningChallenge)
+        fields.update(checks=get_args(output_type.model_fields['checks'].annotation)[0], meaning_challenges=GroundedMeaningChallenge,
+            **(dict(candidate_challenges=GroundedMeaningChallenge) if 'candidate_challenges' in output_type.model_fields else {}))
     return fields
 
 
@@ -319,7 +325,7 @@ def remap_expression_keys(value, mapping):
         return [remap_expression_keys(v, mapping) for v in value]
     if isinstance(value, dict):
         return {k: {mapping.get(cid, cid): detail for cid, detail in v.items()}
-                if k in {'claim_support', 'error_fields'} else remap_expression_keys(v, mapping)
+                if k in {'claim_support', 'error_fields'} and isinstance(v, dict) else remap_expression_keys(v, mapping)
                 for k, v in value.items()}
     return value
 
@@ -333,10 +339,10 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
         if field in context:
             context[field] = {k: v for k, v in context[field].items() if k in public_keys}
     evidence_views = None
-    if issubclass(output_type, (LocalSourceCheck, RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck, SelectedRequirementSourceCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
+    if issubclass(output_type, (LocalSourceCheck, RequirementJoinCheck, RequirementSynthesisCheck, ExpressionReviewCheck, CandidateSourceReview, RequirementApplicationCheck, SelectedRequirementSourceCheck)) or (stage == 'source_reassessment' and issubclass(output_type, GroundingCheck)):
         evidence_views = {f'e{n + 1}': deepcopy(b) for n, b in enumerate(context.get('blocks', []))}
         output_type = selected_evidence_type(output_type, evidence_views)
-        fields = 'evidence와 error_evidence' if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck)) else 'evidence'
+        fields = 'evidence와 error_evidence' if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck, CandidateSourceReview)) else 'evidence'
         instruction += '\n' + fields + '에는 blocks의 evidence_ref ID만 선택한다. 여러 구간은 별도 ID로 반환한다. 문장을 재작성하지 않는다. 참조가 있다는 이유만으로 의미 지지/해소를 선언하지 않는다.\n'
         if issubclass(output_type, SelectedRequirementSourceCheck):
             # Provenance remains server-side. Historical keys are not new local
@@ -364,7 +370,7 @@ def json_request(run, stage, instruction, context, output_type, *, reference_map
     mapping = dict(reference_map or {})
     if stage != 'direct_definitions':
         if 'blocks' in context:
-            if issubclass(output_type, LocalSourceCheck) or stage == 'source_reassessment':
+            if issubclass(output_type, (LocalSourceCheck, CandidateSourceReview)) or stage == 'source_reassessment':
                 parents = {b['id']: list(dict.fromkeys(p['id'] for p in autoschema.list_parents(b, context['blocks'])))
                            for b in context['blocks']}
                 if any(parents.values()):
@@ -597,6 +603,11 @@ def assess(service, run, requirement, *, source=None, phase='initial', previous_
         previous_scope = previous['review_scope']
     source = deepcopy(source) if source is not None else None
     blocks = [b for b in run['blocks'] if not requirement['source_ids'] or b['source_id'] in requirement['source_ids']]
+    if business_review.separate_application(run):
+        selected_candidates = [c for c in run['claims'] if not c.get('superseded_by') and
+            (not requirement['source_ids'] or any(b['source_id'] in requirement['source_ids']
+                for b in business_review.candidate_source_basis(c, blocks)))]
+        business_review.review_candidate_pool(service, run, selected_candidates)
     if source is None:
         source = business_review.source(service, run, requirement) if business_review.current(run) else json_call(
             service, run, 'requirement_source', SOURCE_PROMPT, dict(requirement=requirement, blocks=blocks), GroundingCheck)
@@ -665,6 +676,10 @@ def assess(service, run, requirement, *, source=None, phase='initial', previous_
         assessment['input_fingerprint'] = assessment_fingerprint(run, requirement, source, assessment.get('review_scope'))
         assessment['representation'] = representation
         if representation:
+            if business_review.separate_application(run):
+                challenged_ids = {cid for c in run.get('candidate_challenges', []) for cid in c['claim_ids']}
+                business_review.review_candidate_pool(service, run, [c for c in run['claims'] if c['id'] in challenged_ids])
+                business_review.attach_candidate_support(run, representation, run['claims'], blocks)
             claim_ids = {c['id'] for c in run['claims']}
             checks = representation['checks']
             source_checks = representation.get('source_checks', [])
@@ -730,6 +745,20 @@ def assess(service, run, requirement, *, source=None, phase='initial', previous_
                          and p['before_normal_meanings'] and p['after_locations']}
             assessment['preservation_complete'] = expected_preservation <= preserved
             assessment['blocked_meaning_keys'], assessment['global_blocks'] = map(list, business_review.blocked(assessment))
+    if business_review.separate_application(run):
+        direct = business_review.current_candidate_reviews(run)
+        for cid, reviewed in direct.items():
+            check = reviewed['check']
+            if cid not in {c['id'] for c in selected_candidates}:
+                continue
+            status = check['claim_support'][cid]
+            # This action is grounded in a candidate receipt, never a fabricated E meaning.
+            assessment['actions'].append(dict(meaning_key='candidate:' + cid,
+                action='correct' if cid in check['incorrect_claim_ids'] else 'maintain' if status == 'supported' else 'hold',
+                claim_ids=[cid], reason=check['reason'], candidate_review_id=reviewed['receipt_id'],
+                review_unit_ids=[reviewed['unit_id']], error_fields=deepcopy(check['error_fields']),
+                error_evidence=deepcopy(check['error_evidence'])))
+        assessment['candidate_review_ids'] = sorted({v['receipt_id'] for v in direct.values()})
     assessment['claim_ids'] = sorted(set(assessment['claim_ids']))
     assessment.update(requirement_completion(assessment))
     run['assessments'].append(assessment)
@@ -775,6 +804,8 @@ def exact_direct_row(claim, blocks):
 def missing_tabular_rows(run, requirement, assessment, targets):
     """Recover exact parser rows only; their meaning still requires the usual R check."""
     if not business_review.current(run):
+        return [], []
+    if not any(t['action'] == 'recover' for t in targets):
         return [], []
     source = assessment['source']
     lookup = source.get('source_selection', {}).get('row_lookup', {})
@@ -838,6 +869,12 @@ def missing_tabular_rows(run, requirement, assessment, targets):
 def repair(service, run, requirement, assessment):
     targets = [a for a in assessment['actions'] if a['action'] in {'recover', 'correct'}]
     protected_claims = set()
+    direct = business_review.current_candidate_reviews(run) if business_review.separate_application(run) else {}
+    direct_targets = [deepcopy(t) for t in targets if t.get('candidate_review_id') and len(t['claim_ids']) == 1
+        and (v := direct.get(t['claim_ids'][0])) and v['receipt_id'] == t['candidate_review_id']
+        and t['action'] == 'correct' and t['claim_ids'][0] in v['check']['incorrect_claim_ids']]
+    direct_ids = {cid for t in direct_targets for cid in t['claim_ids']}
+    targets = [t for t in targets if not t.get('candidate_review_id') and not set(t['claim_ids']).intersection(direct_ids)]
     if business_review.current(run):
         blocked, global_blocks = business_review.blocked(assessment)
         protected_claims = {cid for c in (assessment.get('representation') or {}).get('checks', [])
@@ -847,6 +884,7 @@ def repair(service, run, requirement, assessment):
         targets = [t for t in targets if t['action'] == 'recover' or t['claim_ids']]
     elif assessment['errors'] or (assessment.get('representation') or {}).get('source_challenges'):
         targets = []
+    targets.extend(direct_targets)
     if not targets:
         return False
     for target in targets:
@@ -856,6 +894,10 @@ def repair(service, run, requirement, assessment):
             provided_block_ids=batch['provided_block_ids']) for batch in batches if not batch['error']
             for check in batch['output']['checks'] if check['meaning_key'] == target['meaning_key']
             and set(target['claim_ids']).intersection(check['claim_ids'] + check.get('incorrect_claim_ids', []))]
+        if target.get('candidate_review_id'):
+            reviewed = direct[target['claim_ids'][0]]
+            target['review_records'] = [dict(unit_id=reviewed['unit_id'], candidate_review_id=reviewed['receipt_id'],
+                check=deepcopy(reviewed['check']))]
         if target['action'] == 'recover':
             accounted = {cid for b in batches if not b['error'] for cid in b['claim_ids']}
             accounted.update(scope.get('exact_row_exclusions', {}).get(target['meaning_key'], []))
@@ -867,10 +909,10 @@ def repair(service, run, requirement, assessment):
     by_id = {c['id']: c for c in before}
     target_ids = {cid for t in targets for cid in t['claim_ids']}
     protected_rows = {cid: ref for cid in target_ids if (ref := exact_direct_row(by_id[cid], run['blocks']))}
-    preserve = [m for m in assessment['source']['meanings'] if any(
+    preserve = [m for m in (assessment.get('source') or {}).get('meanings', []) if any(
         a['meaning_key'] == m['key'] and a['action'] == 'maintain' and
         (not business_review.current(run) or target_ids.intersection(a['claim_ids'])) for a in assessment['actions'])]
-    source = assessment['source']
+    source = assessment.get('source') or dict(meanings=[])
     repair_blocks = run['blocks']
     if business_review.current(run):
         selected_keys = {t['meaning_key'] for t in targets} | {m['key'] for m in preserve}
@@ -879,6 +921,9 @@ def repair(service, run, requirement, assessment):
         source.pop('resolution_history', None)
         source.pop('reassessment_history', None)
         repair_blocks = business_review.related_blocks(run, source['meanings'], [by_id[c] for t in targets for c in t['claim_ids']])
+    if direct_targets:
+        extra = business_review.candidate_request(run, [by_id[cid] for cid in direct_ids])[1]['blocks']
+        repair_blocks = list({(b['id'], tuple(b.get('span', []))): b for b in [*repair_blocks, *extra]}.values())
     tabular_changes, tabular_mappings = missing_tabular_rows(run, requirement, assessment, targets)
     tabular_keys = {m['meaning_key'] for m in tabular_mappings}
     tasks = {}
@@ -892,7 +937,12 @@ def repair(service, run, requirement, assessment):
             tasks.setdefault(key, dict(target_id=cid, meanings=[]))['meanings'].append(deepcopy(target))
     output_type = create_model('TargetRepairs', __base__=Repairs,
         patches=(Repairs.model_fields['patches'].annotation, Field(max_length=len(tasks))))
-    output = json_call(service, run, 'requirement_repair', REPAIR_PROMPT, dict(
+    instruction = REPAIR_PROMPT + ('''\n
+candidate_review_id가 있는 correct는 후보 자체의 원문 오류 판정이다. meaning_key는 귀속 ID이며 검증된 원문 의미가 아니다.
+그 review_records의 실제 오류 필드·근거를 원문과 대조하여 고친다. source 의미의 누락/실패는 이 판정의 대체 정답이 아니다.
+before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정상 내용을 없애거나 질문 사용 시점을 원문 기간으로 넣지 않는다.
+''' if direct_targets else '')
+    output = json_call(service, run, 'requirement_repair', instruction, dict(
         requirement=requirement, tasks=list(tasks.values()), source=source, blocks=repair_blocks,
         before=[compact_claim(by_id[c]) for c in target_ids], preserve_meanings=preserve,
         reuse_candidates=[compact_claim(by_id[cid]) for cid in sorted({cid for a in assessment['actions']
@@ -995,7 +1045,8 @@ def repair(service, run, requirement, assessment):
         failed_keys.update(t['meaning_key'] for t in targets if t['meaning_key'] not in tabular_keys and
             (not any(p['before'] is None and p['meaning_key'] == t['meaning_key'] for p in proposed)
              if t['action'] == 'recover' else not t['claim_ids'] or not set(t['claim_ids']) <= proposed_ids))
-        blocked = business_review.affected(assessment, failed_keys) if business_review.current(run) else (
+        direct_keys = {t['meaning_key'] for t in direct_targets}
+        blocked = (business_review.affected(assessment, failed_keys - direct_keys) | (failed_keys & direct_keys)) if business_review.current(run) else (
             {t['meaning_key'] for t in targets} if receipt['errors'] else set())
         if unscoped:
             blocked = {t['meaning_key'] for t in targets}
@@ -1161,7 +1212,8 @@ def execute(service, run_id):
                     assessment = assess(service, run, requirement, source=expanded, phase='additional_source_read')
                     representation = assessment.get('representation') or {}
             challenges = [*representation.get('source_challenges', []), *representation.get('meaning_challenges', []),
-                          *assessment.get('source_record_challenges', []), *business_review.source_row_challenges(run, assessment),
+                          *assessment.get('source_record_challenges', []), *(assessment.get('source') or {}).get('application_challenges', []),
+                          *business_review.source_row_challenges(run, assessment),
                           *business_review.answer_scope_challenges(assessment.get('source') or {})]
             if challenges:
                 source = business_review.reassess_source(service, run, requirement, assessment, challenges) if business_review.current(run) else json_call(
