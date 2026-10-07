@@ -1,0 +1,168 @@
+{
+  "date": "2026-10-08",
+  "base_commit": "d6115aa4e25ad9f93a0cd56da5b41fa23f0f67ec",
+  "evidence_root": "data/knowledge/evaluations/business_condition_scope_20261008",
+  "default_contract": "requirement-local-review-v8-owned-errors",
+  "product_changes_adopted": 0,
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "qwen3.8:27b-q4_K_M",
+      "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+      "context_length": 262144
+    }
+  },
+  "limits": {
+    "temperature": 0,
+    "think": false,
+    "context_tokens": 49152,
+    "max_tokens": 8192
+  },
+  "original_db_sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+  "source_block_ids": [
+    "4dba31116db34b12889c30f1f05e68f7",
+    "384fc97259f848eea8d30c610503e21a",
+    "f114498fee924169a3ba2bc5e8cfa4cd",
+    "9aaab992bc0546a7a1f9e42afc74a686",
+    "8c8a179cfd3a4c0e8fcace19249f4e25",
+    "83ce2b9f9b5e4d7fb2fe84257ee195a8",
+    "f0ae85be78e54fa88a00a0bcf2d5f2e7",
+    "4e24a8b9921144eba70ae2b19f1c6e48",
+    "2b09e6b9bf284a4694d2af0dbac50877",
+    "a55dc972ad5c4f5d8e8c3c22c80c6735"
+  ],
+  "candidate_ids": [
+    "claim_ad6bfe8f0b9d960379667f2c",
+    "claim_9d2ba40285f82ff7bc48e7e7",
+    "claim_6804020432957407c5cf6595"
+  ],
+  "calls": [
+    {
+      "case": "direct_narrow",
+      "run_id": "833f0da486ff45dba3cd8467a5f3b60e",
+      "unit_id": "e9419ce023c3400d8eaac9f9ac86019f",
+      "model": "qwen3.8:27b-q4_K_M",
+      "actual_model_call": true,
+      "input_tokens": 1622,
+      "output_tokens": 460,
+      "model_s": 37.342408,
+      "source_views": 10,
+      "unique_blocks": 10
+    },
+    {
+      "case": "source_blind",
+      "run_id": "e180f6cb81f44c43a872a6f850011722",
+      "unit_id": "506a672e64424c11b3dc1a669f907307",
+      "model": "qwen3.8:27b-q4_K_M",
+      "actual_model_call": true,
+      "input_tokens": 1319,
+      "output_tokens": 1285,
+      "model_s": 73.999745,
+      "source_views": 10,
+      "unique_blocks": 10
+    },
+    {
+      "case": "source_exposed",
+      "run_id": "c52d10ce0ce6413d842faa811cf481ab",
+      "unit_id": "a9f1a0f2cd8d4226b83d96c5faf95418",
+      "model": "qwen3.8:27b-q4_K_M",
+      "actual_model_call": true,
+      "input_tokens": 1750,
+      "output_tokens": 1324,
+      "model_s": 75.352689,
+      "source_views": 10,
+      "unique_blocks": 10
+    },
+    {
+      "case": "direct_source_reference",
+      "run_id": "522cd3233f004289a7ee298cc2a8b879",
+      "unit_id": "6e860aa7d18e4d56a2c438b1478610bd",
+      "model": "qwen3.8:27b-q4_K_M",
+      "actual_model_call": true,
+      "input_tokens": 3437,
+      "output_tokens": 452,
+      "model_s": 35.891272,
+      "source_views": 10,
+      "unique_blocks": 10
+    }
+  ],
+  "totals": {
+    "actual_calls": 4,
+    "reused_responses": 0,
+    "input_tokens": 8128,
+    "output_tokens": 3521,
+    "model_s": 222.586114
+  },
+  "comparisons": {
+    "direct_narrow": {
+      "historical_run": "531384ff3c1b4fbe949daeb806f86289",
+      "only_changed": [
+        "blocks",
+        "source_parents"
+      ],
+      "normal_control_preserved": true,
+      "c47_scope_difference_detected": false
+    },
+    "source_pair": {
+      "only_changed": [
+        "unverified_interpretations"
+      ],
+      "meaning_keys_removed": true,
+      "blind_candidates_and_public_requirement": true,
+      "blind_missing_buyer_scope": true,
+      "blind_plate_return_scope": false,
+      "exposed_missing_buyer_scope": true,
+      "exposed_plate_return_scope": true
+    },
+    "adaptive": {
+      "initial_blind_failure_preserved": true,
+      "separately_declared": true,
+      "only_added": "unverified_source_read",
+      "full_actual_exposed_output": true,
+      "normal_control_preserved": true,
+      "c47_scope_difference_detected": false
+    }
+  },
+  "verification": {
+    "offline_check": "verify_comparison.py",
+    "status": "passed",
+    "exact_evidence": true,
+    "data_unchanged": true,
+    "raw_copies_identical": true,
+    "product_matches_base_commit": true
+  },
+  "not_executed": [
+    "new_candidate_repair",
+    "normal_meaning_preservation_after_new_repair",
+    "original_R05_recheck",
+    "new_graph_snapshot",
+    "full_retrieval",
+    "QA",
+    "extra_bus_control",
+    "LH"
+  ],
+  "limitations": [
+    "Manual diagnostic source selection is not a generalized selector.",
+    "Correct source interpretation did not establish candidate detection.",
+    "This comparison does not identify a unique internal model cause or prove a general model ranking."
+  ],
+  "frozen_files": {
+    "freeze.json": "7c72fc2e4c76e81256c3c4489107624842c96ce10cef562a744e8c482dc0407f",
+    "evaluation_criteria.json": "ea9edfa634da2982dfad130bb8bfc40d9fd6c698d7483083cc5e222f02f61d1a",
+    "baseline_reuse_audit.json": "244f6cdc6396453db12c54cf3b97c52845eaa58287ac69fc1502e7707535602e",
+    "preflight_integrity.json": "d5f37661c374373e5ad9c775499f1d7494b8b162628def6a9e5b7d2664a3796c",
+    "request_direct_narrow.json": "b5ac30b203eac9b203196c04bd7f3b16a918fc46daffff1ae7eb1c6082256dd9",
+    "request_source_blind.json": "2bca143accce1bdf4c6806f3db21c228106bc0473887f6a0631381470dc34176",
+    "request_source_exposed.json": "b65fafd714d3ee2382968bbcdb65795d7ea0167468e6a8bad2949a897f8f1176",
+    "request_direct_source_reference.json": "4b422a951c9ec98890c700d95557f02eef493b2356b060f462cd66c3c32cf88b",
+    "runtime_manifest.json": "11e93fc37174ca4bab042fb9848fb58b29e835330cc2998a0a9bb9f031e49a1e",
+    "adaptive_followup_plan.json": "cbc8d1e81e2510758bb5d36d7182ba19b2bbb2dd4b23f5c3ca7fc3eb23aacffd",
+    "adaptive_followup_freeze.json": "90cd67c336f1cebf7ea3b06e5344a825e0445bc78770e19e73820e893072a6df",
+    "final_integrity.json": "bbabb38f9832b3887523bc4498b7a19ad8731e699fe07f26355c96ebd94731b9",
+    "verify_comparison.py": "e37e8ac59d68670650decbaa940d3c2eace06dccbc401de8b4d080322a7c59cd"
+  }
+}
