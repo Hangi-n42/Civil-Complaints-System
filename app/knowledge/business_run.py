@@ -101,9 +101,10 @@ tasks의 각 항목은 실제 교정할 후보 하나 또는 누락 의미 하�
 모든 오류 이유와 정상 의미를 함께 대조하고 task당 패치는 최대 하나만 작성한다.
 패치의 target_id는 task의 값, meaning_key는 그 meanings 중 하나를 쓰되 나머지 의미도 보존한다.
 같은 target_id의 패치를 중복 생성하지 않는다. 관련 의미의 해소 여부는 후속 재검수에서 판정한다.
-statement/head/relation/tail에 주체와 대상, 조건부 의미를 정확히 보존한다. 관련 개념을 승인 is-a로 만들지 않는다.
-기존 entity_relation/event_relation은 같은 역할과 끝점 종류를 유지한다. 다른 역할로 변환해야 하면
-role과 conversion_reason을 명시한다. event_entity 등 다른 형식의 변환도 명시하지 않으면 적용할 수 없다.
+기존 역할과 끝점 종류를 유지한다. event_entity는 role과 raw.Event/raw.Entity만, 관계형은
+statement/head/relation/tail로 주체와 대상, 조건부 의미를 보존한다. 두 형식을 함께 작성하지 않는다.
+event_entity의 statement는 서버가 raw.Event에서 만든다. 다른 역할로 변환해야 하면
+role과 conversion_reason을 명시한다. 관련 개념을 승인 is-a로 만들지 않는다.
 근거는 정확한 원문 quote와 block_id다. 조건·예외·기간·참조를 유지한다.
 before의 정상 의미 및 preserve_meanings를 보존하고 잘못된 부분만 정정한다. 지지되지 않은 외부 상세를 생성하지 않는다.
 확정 불가능하면 unresolved로 남기며 성공한 것처럼 패치를 만들지 않는다.
@@ -111,7 +112,8 @@ scope에는 수정한 raw의 주체·조건·예외 대응과 실제 원문 주�
 정상 의미가 local_negation 등 다른 필드에 보존돼 있다면 소실로 취급하지 않는다.
 기존 정상 후보들이 이미 같은 의미를 정확히 표현하면 reuse_claim_ids로 그 후보를 사용한다.
 이는 잘못된 target을 기존 정상 표현으로 대체하는 것이며 정상 후보의 복제 생성이나 의미 삭제가 아니다.
-새 표현을 만들 경우 scope를 반드시 제공하고 모든 Head/Tail을 participants로 연결한다.
+새 표현은 scope를 제공하고 원형의 모든 Head/Tail 또는 Event/각 Entity를 participants로 연결한다.
+Event/Head/Tail의 entity_index는 null, Entity는 실제 배열 인덱스다.
 '''
 
 
@@ -990,14 +992,27 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                                  review_status='unreviewed', semantic_status='superseded_awaiting_preservation_check')
                     proposed.append(dict(before=old, after=value, meaning_key=patch['meaning_key']))
                     continue
-                if not all(patch[k].strip() for k in ('statement', 'head', 'relation', 'tail')):
-                    raise ValueError('교정 원문/관계 누락')
                 role = patch.get('role') or (old['role'] if old and old['role'] in {'entity_relation', 'event_relation'} else None)
                 if role is None and old:
                     raise ValueError('호환되지 않는 역할 변환의 명시 누락')
                 role = role or 'entity_relation'
                 if old and role != old['role'] and not patch.get('conversion_reason', '').strip():
                     raise ValueError('역할 변환 이유 누락')
+                patch_blocks = repair_blocks
+                if role == 'event_entity':
+                    raw = autoschema.normalize([patch['raw']], role)[0]
+                    statement = raw['Event']
+                    if old:
+                        patch_blocks = [b for b in repair_blocks if b['source_version_id'] in old['source_version_ids']]
+                        refs = exact_evidence(patch['evidence'], patch_blocks)
+                        own = {b['id'] for b in business_review.candidate_source_basis(old, patch_blocks)}
+                        if not any(ref['block_id'] in own for ref in refs):
+                            raise ValueError('교정 후보의 자기 출처 근거 누락')
+                else:
+                    if not all(patch[k].strip() for k in ('statement', 'head', 'relation', 'tail')):
+                        raise ValueError('교정 원문/관계 누락')
+                    raw = dict(Head=patch['head'], Relation=patch['relation'], Tail=patch['tail'])
+                    statement = patch['statement']
                 value = deepcopy(old) if old else dict(id=uuid4().hex, chunk_id=autoschema.identifier('repair_chunk', refs))
                 if old:
                     value.setdefault('source_extraction_raw', deepcopy(old['raw']))
@@ -1006,7 +1021,7 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                             correction_reason='claim_changed; previous_interpretation_retained_for_comparison')
                     if role != old['role']:
                         value['role_conversion'] = dict(before=old['role'], after=role, reason=patch['conversion_reason'])
-                value.update(statement=patch['statement'], raw=dict(Head=patch['head'], Relation=patch['relation'], Tail=patch['tail']),
+                value.update(statement=statement, raw=raw,
                              role=role, conditions=patch['conditions'], exceptions=patch['exceptions'],
                              period=patch['period'], references=patch['references'], evidence=refs,
                              source_version_ids=sorted({r['source_version_id'] for r in refs}),
@@ -1014,7 +1029,7 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                 if business_review.current(run):
                     if not patch.get('scope'):
                         raise ValueError('교정된 표현의 Scope 누락')
-                    corrected_blocks = deepcopy(repair_blocks)
+                    corrected_blocks = deepcopy(patch_blocks)
                     # json_call has already restored canonical IDs. Repair views
                     # use the same canonical keys, without model-generated IDs.
                     canonical = {b['id']: b for b in corrected_blocks}
@@ -1032,7 +1047,7 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                         raise ValueError('교정 Scope의 원문 주소/참여자 오류: ' + '; '.join(value['interpretation']['errors']))
                     value['qualifier_status'] = 'unverified_corrected_interpretation'
                 proposed.append(dict(before=old, after=value, meaning_key=patch['meaning_key']))
-            except ValueError as exc:
+            except (ValueError, autoschema.jsonschema.ValidationError) as exc:
                 receipt['errors'].append(str(exc))
                 if allowed:
                     failed_keys.add(allowed['meaning_key'])

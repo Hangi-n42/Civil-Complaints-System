@@ -2,6 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 from .discovery_meanings import SourceMeaning
+from .vendor.autoschemakg.validate_json_schema import ATLAS_SCHEMA
 
 
 class RequirementInput(BaseModel):
@@ -364,14 +365,10 @@ class ContributionSynthesisCheck(RequirementSynthesisCheck):
     candidate_challenges: list[GroundedMeaningChallenge]
 
 
-class ClaimPatch(BaseModel):
+class ClaimPatchBase(BaseModel):
+    model_config = {'extra': 'forbid'}
     meaning_key: str
     target_id: str | None
-    statement: str
-    head: str
-    relation: str
-    tail: str
-    role: Literal['entity_relation', 'event_relation'] | None = None
     conversion_reason: str = ''
     evidence: list[EvidenceQuote]
     conditions: list[str]
@@ -382,8 +379,21 @@ class ClaimPatch(BaseModel):
     reuse_claim_ids: list[str] = Field(default_factory=list)
 
 
+class ClaimPatch(ClaimPatchBase):
+    statement: str
+    head: str
+    relation: str
+    tail: str
+    role: Literal['entity_relation', 'event_relation'] | None = None
+
+
+class EventClaimPatch(ClaimPatchBase):
+    role: Literal['event_entity']
+    raw: dict = Field(json_schema_extra=ATLAS_SCHEMA['event_entity']['items'])
+
+
 class Repairs(BaseModel):
-    patches: list[ClaimPatch]
+    patches: list[ClaimPatch | EventClaimPatch]
     unresolved: list[str]
 
 
