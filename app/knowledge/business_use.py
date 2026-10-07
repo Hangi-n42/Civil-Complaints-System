@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, create_model, field_validator
 from . import business_run, business_review
 from .service import KnowledgeConflict, encode, utcnow
 
-ELIGIBILITY_CONTRACT = 'current-claim-local-dependencies-v5'
+ELIGIBILITY_CONTRACT = 'current-claim-local-dependencies-v7'
 ANSWER_CONTRACT = 'provided-unique-citations-nonempty-answer-v2'
 
 
@@ -23,6 +23,7 @@ def restricted_sources(db, version_ids):
 
 def eligibility(run):
     eligible, blocked, preserved_current = set(), {}, set()
+    requires_whole_check, whole_supported = set(), set()
     latest = {a['requirement_id']: a for a in run['assessments']}
     requirements = {r['id']: r for r in run['requirements']}
     changed_existing = {v['before']['id'] for repair in [*run.get('prior_repairs', []), *run['repairs']]
@@ -41,6 +42,12 @@ def eligibility(run):
         meanings = {m['key']: m for m in (assessment.get('source') or {}).get('meanings', [])}
         for check in checks:
             meaning = meanings.get(check['meaning_key'], {})
+            if business_review.separated(run):
+                requires_whole_check.update(check['claim_ids'])
+                exclude({cid for cid, state in check.get('claim_support', {}).items() if state == 'unknown'},
+                        'unresolved_claim_support')
+                exclude({cid for cid, state in check.get('claim_support', {}).items() if state == 'incorrect'},
+                        'confirmed_expression_error')
             exclude(check.get('incorrect_claim_ids', []), 'confirmed_expression_error')
             if check['status'] == 'incorrect' or meaning.get('source_status') == 'refuted':
                 exclude(check['claim_ids'], 'confirmed_error_or_refutation')
@@ -66,10 +73,14 @@ def eligibility(run):
                         if not c['required_for_requirement']}
         supported = {m['key'] for m in assessment['source']['meanings'] if m['key'] not in nonessential | blocked_keys and m['source_status'] == 'supported'
                      and m['availability'] == 'provided' and m['evidence'] and not m.get('record_error')}
+        if business_review.separated(run):
+            whole_supported.update(cid for check in checks if check['meaning_key'] in supported
+                                   for cid, state in check.get('claim_support', {}).items() if state == 'supported')
         for check in assessment['representation']['checks']:
             if check['meaning_key'] in supported and check['status'] == 'represented':
                 eligible.update(check['claim_ids'])
     exclude(changed_existing - preserved_current, 'normal_meaning_preservation_unconfirmed')
+    exclude(requires_whole_check - whole_supported, 'whole_claim_support_unconfirmed')
     return eligible - set(blocked) - {c['id'] for c in run['claims'] if c.get('extraction_error') or c.get('superseded_by')}, blocked
 
 
@@ -276,9 +287,17 @@ def query(service, request, *, context_mode='graph'):
                            source_group=b['source_version_id']) for b in snapshot['blocks']]
     hints = concept_hints(snapshot) if context_mode == 'graph' and not source_reader else {}
     if request.retrieval == 'bm25':
-        index = FrozenIndex([dict(c, text=c['text'] + '\n검색용 관련 표현: ' + ', '.join(hints.get(c['id'], [])))
-                             if hints.get(c['id']) else c for c in candidates], preserve_numbers=True)
-        hits = index.search(request.question + '\n' + '\n'.join(request.choices), {c['id'] for c in candidates}, request.limit)
+        if source_reader:
+            search_texts = graph_retrieval.passage_search_texts(candidates, snapshot['blocks'], run['recipe']['options'])
+            run['passage_index'] = dict(contract=graph_retrieval.INDEX_CONTRACT, texts=search_texts)
+            index_candidates = [dict(c, text=search_texts[c['id']]) for c in candidates]
+        else:
+            index_candidates = [dict(c, text=c['text'] + '\n검색용 관련 표현: ' + ', '.join(hints.get(c['id'], [])))
+                                if hints.get(c['id']) else c for c in candidates]
+        index = FrozenIndex(index_candidates, preserve_numbers=True)
+        query_text = request.question + '\n' + '\n'.join(request.choices)
+        allowed_ids = {c['id'] for c in candidates}
+        hits = index.rank(query_text, allowed_ids) if source_reader else index.search(query_text, allowed_ids, request.limit)
     else:
         from . import graph_retrieval
         try:
@@ -289,6 +308,9 @@ def query(service, request, *, context_mode='graph'):
             business_run.save(service, run)
             return dict(run_id=run['id'], status='retrieval_failed', answer=None,
                         snapshot_id=snapshot['id'], error=run['error'])
+    if source_reader:
+        hits, run['passage_selection'] = graph_retrieval.select_passages(
+            candidates, hits, snapshot['blocks'], run['recipe']['options'], request.limit)
     if required_ids:
         by_id = {h['block_id']: h for h in hits}
         mandatory = [dict(by_id.get(c['id']) or dict(block_id=c['id'], file_id=c['file_id'], score=None),
@@ -388,7 +410,7 @@ def query(service, request, *, context_mode='graph'):
         if request.retrieval != 'bm25':
             run.update(retrieval_contract=run['graph_retrieval']['contract'], retrieval_concept_hints={})
         elif source_reader:
-            run['retrieval_contract'] = 'bm25-source-passages-v1'
+            run['retrieval_contract'] = 'bm25-source-passages-raw-ranking-v2'
         run['metrics']['elapsed_s'] = monotonic() - started
         service.repository.save(db, 'runs', run)
     return dict(run_id=run['id'], status=status, answer=output, retrieval=hits,

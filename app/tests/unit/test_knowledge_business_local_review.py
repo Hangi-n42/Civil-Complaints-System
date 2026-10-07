@@ -29,7 +29,7 @@ def local_run():
     chunk = autoschema.chunks([b], 49152, 4096)[0]
     claims = [autoschema.graph_record(chunk, 'entity_relation', dict(Head='기관', Relation='접수', Tail='신청'), i)
               for i in range(2)]
-    run = dict(recipe=dict(review_contract=review.CONTRACT, options=BusinessRunRequest(
+    run = dict(recipe=dict(review_contract='requirement-local-review-v4', options=BusinessRunRequest(
         source_version_ids=['v'], requirement_ids=['r']).model_dump()), blocks=[b], chunks=[chunk], claims=claims,
         repairs=[], units=[], assessments=[], requirements=[dict(id='r', revision=1, source_ids=[])])
     return run

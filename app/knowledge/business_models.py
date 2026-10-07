@@ -163,6 +163,67 @@ class RequirementJoinCheck(RequirementCheck):
     unselected_source_required: bool | None = Field(...)
 
 
+class RequiredMeaningCheck(MeaningCheck):
+    required_for_requirement: bool
+
+
+class RequirementSourceCheck(LocalSourceCheck):
+    meanings: list[RequiredMeaningCheck]
+
+
+class RequirementGroundingCheck(GroundingCheck):
+    meanings: list[RequiredMeaningCheck]
+
+
+class GroundedMeaningChallenge(MeaningChallenge):
+    evidence: list[EvidenceQuote]
+
+
+def expression_evidence_before_verdict(schema):
+    properties = schema['properties']
+    schema['properties'] = {**{key: value for key, value in properties.items() if key not in {'reason', 'status'}},
+                            'reason': properties['reason'], 'status': properties['status']}
+    schema['$comment'] = 'expression-evidence-before-verdict-v1'
+
+
+class LocatedExpressionCheck(RepresentationCheck):
+    model_config = dict(json_schema_extra=expression_evidence_before_verdict)
+    status: Literal['represented', 'partial', 'missing', 'incorrect', 'unknown'] = Field(
+        description='Only this meaning_key, not the whole requirement. When this meaning is fully expressed, use represented even if other required meanings are absent from this batch. partial requires a missing part of this same meaning.')
+    claim_support: dict[str, Literal['supported', 'incorrect', 'unknown', 'not_assessed']] = Field(
+        description='Whole-candidate support. not_assessed means this call did not judge all its clauses; unknown means an actual unresolved candidate field, attributed in error_fields with error_evidence. Neither means false.')
+    error_fields: dict[str, list[str]] = Field(description='Incorrect or unresolved candidate ID to its disputed raw/Scope fields; empty when none.')
+    error_evidence: list[EvidenceQuote]
+
+
+class ExpressionReviewCheck(BaseModel):
+    checks: list[LocatedExpressionCheck]
+    source_challenges: list[str]
+    meaning_challenges: list[GroundedMeaningChallenge]
+    preservation_checks: list[PreservationCheck] = Field(default_factory=list)
+    dependencies: list[MeaningDependency]
+
+
+class ExpressionRevision(LocatedExpressionCheck):
+    revision_basis: Literal['new_evidence', 'contradiction', 'prior_misreading', 'combined_expression']
+    evidence: list[EvidenceQuote]
+
+
+class RequirementSynthesisCheck(BaseModel):
+    """Only changed expressions, premises and unresolved findings return from join."""
+    checks: list[ExpressionRevision]
+    dependencies: list[MeaningDependency]
+    source_challenges: list[str]
+    meaning_challenges: list[GroundedMeaningChallenge]
+    preservation_checks: list[PreservationCheck] = Field(default_factory=list)
+    satisfied: bool
+    conjunctions_satisfied: bool
+    reason: str
+    source_completeness: Literal['complete', 'partial', 'unknown']
+    unselected_source_required: bool | None
+    finding_resolutions: list[FindingResolution]
+
+
 class ClaimPatch(BaseModel):
     meaning_key: str
     target_id: str | None

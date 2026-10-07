@@ -17,6 +17,8 @@ from . import autoschema, business_run
 from .vendor.autoschemakg.rag_prompt import filter_triple_messages
 
 CONTRACT = 'autoschemakg-hipporag2-source-passages-v2'
+SELECTION_CONTRACT = 'ranked-novel-source-context-v1'
+INDEX_CONTRACT = 'passage-with-mandatory-source-context-v1'
 
 
 @lru_cache(maxsize=1)
@@ -167,6 +169,62 @@ def source_context(blocks, context, options):
     return list(views.values())
 
 
+def passage_search_texts(candidates, blocks, options):
+    """Index the same source scope that the reader will receive, for every arm."""
+    by_id = {c['id']: c for c in candidates}
+    texts = {cid: [c['text']] for cid, c in by_id.items()}
+    for row in source_context(blocks, [dict(c) for c in candidates], options):
+        text = by_id[row['context_id']]['text'] if row.get('context_id') else row['text']
+        for cid in row['supports_context_ids']:
+            texts[cid].append(text)
+    return {cid: '\n'.join(parts) for cid, parts in texts.items()}
+
+
+def select_passages(candidates, ranked, blocks, options, limit):
+    """Defer only evidence already supplied with the same mandatory source context.
+
+    No document quotas or text-only equivalence: source/version/parse/block/span
+    coverage is the proof of repetition. Uncovered bundles keep their raw order.
+    """
+    by_id = {c['id']: c for c in candidates}
+    def location(row):
+        ref = row.get('source_reference', row)
+        span = row.get('span', [ref.get('start_char', 0), ref.get('end_char', len(row.get('text', '')))])
+        return (ref['source_version_id'], ref.get('parse_run_id'),
+                ref.get('block_id', row.get('id')), *span)
+    bundles = {cid: [location(c)] for cid, c in by_id.items()}
+    context = source_context(blocks, [dict(c) for c in candidates], options)
+    for row in context:
+        span = location(by_id[row['context_id']]) if row.get('context_id') else location(row)
+        for cid in row['supports_context_ids']:
+            if span not in bundles[cid]:
+                bundles[cid].append(span)
+    selected, deferred, provided, decisions = [], [], [], []
+    for original_rank, hit in enumerate(ranked, 1):
+        cid = hit['block_id']
+        covering = [[owner for old, owner in provided
+                     if old[:3] == span[:3] and old[3] <= span[3] and old[4] >= span[4]]
+                    for span in bundles[cid]]
+        duplicate = all(covering)
+        reason = 'already_provided_source_context' if duplicate else 'novel_source_context'
+        row = dict(hit, original_rank=original_rank, selection_reason=reason,
+                   covered_by=list(dict.fromkeys(owner for owners in covering for owner in owners)) if duplicate else [],
+                   source_bundle=[dict(source_version_id=s[0], parse_run_id=s[1], block_id=s[2],
+                                       span=list(s[3:])) for s in bundles[cid]], selected_rank=None)
+        decisions.append(row)
+        if duplicate:
+            deferred.append(row)
+        elif len(selected) < limit:
+            selected.append(row)
+            provided.extend((span, cid) for span in bundles[cid])
+    selected.extend(deferred[:max(0, limit - len(selected))])
+    for selected_rank, row in enumerate(selected, 1):
+        row['selected_rank'] = selected_rank
+    hits = [{k: v for k, v in row.items() if k not in {'source_bundle', 'covered_by'}} for row in selected]
+    return hits, dict(contract=SELECTION_CONTRACT, limit=limit, ranked_candidates=decisions,
+                      policy_is_semantic_validation=False)
+
+
 def rank(graph, edges, passages, edge_scores, passage_scores, selected_ids, limit):
     """Upstream endpoint averaging + passage personalization + directed PPR."""
     nodes = {}
@@ -200,12 +258,16 @@ def retrieve(service, run, snapshot, request):
         topk_edges=30, topk_nodes=10, selected_edge_ids=[], fallback=None)
     run['graph_retrieval'] = trace
     query = request.question + '\n' + '\n'.join(request.choices)
+    search_texts = {pid: p['text'] for pid, p in passages.items()}
+    if run.get('answer_basis') == 'source_passages_not_ontology_approval':
+        search_texts = passage_search_texts(passage_candidates(passages), snapshot['blocks'], run['recipe']['options'])
+        run['passage_index'] = dict(contract=INDEX_CONTRACT, texts=search_texts)
     # Cached only on this service and immutable snapshot content; model/settings are in key.
     cache = getattr(service, '_graph_embedding_cache', {})
     key = autoschema.identifier('index', [snapshot['id'], request.graph_variant,
-        settings.EMBEDDING_MODEL, settings.EMBEDDING_DEVICE, edges, passages])
+        settings.EMBEDDING_MODEL, settings.EMBEDDING_DEVICE, edges, passages, search_texts])
     if key not in cache:
-        vectors = embed([e['text'] for e in edges] + [p['text'] for p in passages.values()])
+        vectors = embed([e['text'] for e in edges] + [search_texts[pid] for pid in passages])
         cache.clear()  # Keep only one snapshot/variant; no persistent stale index.
         cache[key] = (vectors[:len(edges)], vectors[len(edges):])
         service._graph_embedding_cache = cache
@@ -240,7 +302,7 @@ def retrieve(service, run, snapshot, request):
                                    claim_ids=passages[p]['claim_ids']) for p, s in ranked]
     if run.get('answer_basis') == 'source_passages_not_ontology_approval':
         hits = [dict(block_id=pid, file_id=passages[pid]['evidence']['source_version_id'],
-                     score=score, selection_reason=request.retrieval) for pid, score in ranked[:request.limit]]
+                     score=score, selection_reason=request.retrieval) for pid, score in ranked]
         trace['elapsed_s'] = monotonic() - started
         trace['ranking_is_semantic_validation'] = False
         business_run.save(service, run)

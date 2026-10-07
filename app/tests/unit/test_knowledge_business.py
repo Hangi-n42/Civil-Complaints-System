@@ -410,7 +410,7 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
                         assert block['id'] in challenge['provided_block_ids']
                     quote = block['text'] if request.stage == 'source_reassessment' else '기관은 ... 접수한다.'
                     output = dict(examined_block_ids=[block['id']], meanings=[dict(key='batch1:accept' if request.stage == 'source_reassessment' else 'accept',
-                        statement='기관은 신청을 접수한다.', source_status='supported', availability='provided',
+                        statement='기관은 신청을 접수한다.', source_status='supported', availability='provided', required_for_requirement=True,
                         evidence=([block['evidence_ref']] if request.stage == 'source_reassessment' else
                                   [dict(block_id=block['id'], quote=quote)]), conditions=[], exceptions=[],
                         period='', references=[], reason='원문')], completeness='complete', gaps=[], conjunctions=[])
@@ -418,11 +418,11 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
                         output.update(inspection_status='complete', findings=[])
                 elif request.stage == 'requirement_representation':
                     key = context['source']['meanings'][0]['key']
-                    output = dict(source_checks=[dict(meaning_key=key, required_for_requirement=True,
-                        field_checks=dict(statement='supported', conditions='not_applicable', exceptions='not_applicable',
-                                          period='not_applicable', references='not_applicable'), reason='지지')],
-                        checks=[dict(meaning_key=key, status='missing', claim_ids=[], incorrect_claim_ids=[], reason='후보 없음')],
-                        satisfied=False, conjunctions_satisfied=True, reason='누락', source_challenges=[], source_completeness='complete', unselected_source_required=False)
+                    output = dict(checks=([dict(meaning_key=key, status='missing', claim_ids=[], incorrect_claim_ids=[],
+                        claim_support={}, error_fields={}, error_evidence=[], reason='후보 없음')]
+                        if context['mode'] == 'meaning_batch' else []), dependencies=[], meaning_challenges=[],
+                        satisfied=False, conjunctions_satisfied=True, reason='누락', source_challenges=[],
+                        source_completeness='complete', unselected_source_required=False, finding_resolutions=[])
                 elif request.stage == 'business_qa':
                     assert '기관은 신청을 접수한다.' in context['context'][0]['text']
                     output = dict(answer='기관', choice='A', citations=[context['context'][0]['id']], limitations=[])
@@ -505,18 +505,18 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
             elif request.stage == 'requirement_source':
                 block = context['blocks'][0]
                 output = dict(examined_block_ids=[block['id']], meanings=[dict(key='accept', statement=block['text'],
-                    source_status='supported', availability='provided', evidence=[dict(block_id=block['id'], quote=block['text'])],
+                    source_status='supported', availability='provided', required_for_requirement=True,
+                    evidence=[dict(block_id=block['id'], quote=block['text'])],
                     conditions=[], exceptions=[], period='', references=[], reason='원문')], inspection_status='complete', findings=[], conjunctions=[])
             elif request.stage == 'requirement_representation':
                 key = context['source']['meanings'][0]['key']
                 ids = ([context['claims'][0]['id']] if context['mode'] == 'meaning_batch'
                        else context['local_judgments']['checks'][0]['claim_ids'])
-                output = dict(checks=[dict(meaning_key=key, status='represented', claim_ids=ids, incorrect_claim_ids=[], reason='원문과 표현 일치')],
-                              source_checks=[dict(meaning_key=key, required_for_requirement=True,
-                                  field_checks=dict(statement='supported', conditions='not_applicable', exceptions='not_applicable',
-                                                    period='not_applicable', references='not_applicable'),
-                                  reason='원문과 필드 일치')],
-                              satisfied=True, conjunctions_satisfied=True, reason='전체 의미', source_challenges=[], source_completeness='complete', unselected_source_required=False)
+                output = dict(checks=([dict(meaning_key=key, status='represented', claim_ids=ids, incorrect_claim_ids=[],
+                                  claim_support={cid: 'supported' for cid in ids}, error_fields={}, error_evidence=[], reason='원문과 표현 일치')]
+                                  if context['mode'] == 'meaning_batch' else []), dependencies=[], meaning_challenges=[],
+                              satisfied=True, conjunctions_satisfied=True, reason='전체 의미', source_challenges=[],
+                              source_completeness='complete', unselected_source_required=False, finding_resolutions=[])
             else: raise AssertionError(request.stage)
             return dict(text='기관, 접수처' if output is None else json.dumps(output, ensure_ascii=False), parsed=output,
                         failure_kind=None, elapsed_s=.001, prompt_eval_count=10, eval_count=5, done=True, done_reason='stop')
