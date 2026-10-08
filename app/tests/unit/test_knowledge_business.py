@@ -385,6 +385,22 @@ def test_source_versions_keep_distinct_filenames_under_shared_title(tmp_path, mo
 
 
 def test_server_quote_error_reaches_source_reassessment_without_model_challenge(tmp_path, monkeypatch):
+    import jsonschema
+    from app.knowledge import business_review
+
+    read_source = business_review.source
+    stored_source = tmp_path / 'legacy_source.json'
+
+    def restore_invalid_source(*args, **kwargs):
+        source = read_source(*args, **kwargs)
+        assert len(source['meanings']) == 1 and source['source_batches'][0]['errors'] == []
+        # Synthetic old stored record: current model responses select evidence IDs
+        # and cannot freely write this malformed quotation.
+        source['meanings'][0]['evidence'][0]['quote'] = '기관은 ... 접수한다.'
+        stored_source.write_text(json.dumps(source, ensure_ascii=False), encoding='utf-8')
+        return json.loads(stored_source.read_text(encoding='utf-8'))
+
+    monkeypatch.setattr(business_review, 'source', restore_invalid_source)
     calls = []
     class Client:
         def __init__(self, *_): pass
@@ -408,17 +424,19 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
                         assert challenge['record_error'] == '원문에 없는 근거 인용'
                         assert challenge['evidence'][0]['quote'] == '기관은 ... 접수한다.'
                         assert block['id'] in challenge['provided_block_ids']
-                    quote = block['text'] if request.stage == 'source_reassessment' else '기관은 ... 접수한다.'
                     output = dict(examined_block_ids=[block['id']], meanings=[dict(key='batch1:accept' if request.stage == 'source_reassessment' else 'accept',
                         statement='기관은 신청을 접수한다.', source_status='supported', availability='provided', required_for_requirement=True,
                         requirement_link=dict(requested_fact='신청 접수 기관', applicability='applicable', contribution='direct_answer', reason='질문 대상 기관'),
-                        evidence=([block['evidence_ref']] if request.stage == 'source_reassessment' else
-                                  [dict(block_id=block['id'], quote=quote)]), conditions=[], exceptions=[],
-                        period='', references=[], reason='원문')], completeness='complete', gaps=[], conjunctions=[])
+                        evidence=[block['evidence_ref']], conditions=[], exceptions=[],
+                        period='', references=[], premise_keys=[], reason='원문')], completeness='complete', gaps=[], conjunctions=[])
                     if request.stage == 'requirement_source':
                         output.update(inspection_status='complete', findings=[])
                 elif request.stage == 'requirement_representation':
+                    assert [m['key'] for m in context['source']['meanings']] == ['batch1:accept']
                     key = context['source']['meanings'][0]['key']
+                    if context['mode'] == 'requirement_join':
+                        assert context['local_judgments']['checks'][0]['status'] == 'missing'
+                        assert context['review_meaning_keys'] == []
                     output = dict(checks=([dict(meaning_key=key, status='missing', claim_ids=[], incorrect_claim_ids=[],
                         claim_support={}, error_fields={}, error_evidence=[], reason='후보 없음')]
                         if context['mode'] == 'meaning_batch' else []), dependencies=[], meaning_challenges=[],
@@ -429,6 +447,8 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
                     output = dict(answer='기관', choice='A', citations=[context['context'][0]['id']], limitations=[])
                 else:
                     raise AssertionError(request.stage)
+            if request.schema:
+                jsonschema.validate(output, request.schema)
             return dict(parsed=output, text=json.dumps(output, ensure_ascii=False), failure_kind=None, elapsed_s=.001)
 
     monkeypatch.setattr(business_run, 'ModelClient', Client)
@@ -449,6 +469,13 @@ def test_server_quote_error_reaches_source_reassessment_without_model_challenge(
         assert calls.count('source_reassessment') == 1
         assert run['assessments'][0]['errors'] == ['원문에 없는 근거 인용']
         assert run['assessments'][-1]['errors'] == []
+        assert run['assessments'][0]['representation']['meaning_challenges'] == []
+        assert run['assessments'][0]['source_record_challenges'][0]['meaning_key'] == 'batch1:accept'
+        source = run['assessments'][-1]['source']
+        assert source['meanings'][0]['statement'] == '기관은 신청을 접수한다.'
+        assert source['meanings'][0]['evidence'][0]['quote'] == '기관은 신청을 접수한다.'
+        assert source['reassessment_history'][0]['previous'][0]['record_error'] == '원문에 없는 근거 인용'
+        assert json.loads(stored_source.read_text(encoding='utf-8'))['meanings'][0]['evidence'][0]['quote'] == '기관은 ... 접수한다.'
         assert run['assessments'][-1]['status'] == 'partial' and run['repairs'] == []
         assert business_use.change_view(service, run['changeset_id'])['eligible_ids'] == []
         decision = business_use.decide(service, run['changeset_id'], BusinessDecision(
@@ -492,14 +519,23 @@ def test_independent_extraction_multiedges_and_relation_source():
 
 
 def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
+    import jsonschema
+
     class FakeClient:
         def __init__(self, *_): pass
         def identities(self, models, required):
             return {k: {'name': v, 'digest': 'mock', 'context_length': required[k]} for k, v in models.items()}
         async def generate(self, request, cancelled=None):
-            context = json.loads(request.messages[-1]['content']) if request.stage.startswith(('requirement_', 'direct_')) else {}
+            context = json.loads(request.messages[-1]['content']) if request.stage.startswith(('requirement_', 'direct_', 'business_')) else {}
             if request.stage == 'entity_relation':
-                output = [dict(Head='기관', Relation='접수한다', Tail='본인 신청')]
+                evidence = [dict(block_id='b1', quote='기관은 본인 신청을 접수한다.')]
+                scope = dict(evidence=evidence, meanings=[dict(statement_type='rule', relation_kind='authority',
+                    subject='기관', action='접수한다', object='본인 신청', applies_to='본인 신청', modality='permission',
+                    **{field: dict(state='absent', text=None)
+                       for field in ('conditions', 'exceptions', 'time', 'local_negation', 'references')},
+                    premises=dict(state='absent', meaning_indices=[]), evidence=evidence,
+                    participants=[dict(field=field, entity_index=None, evidence=evidence) for field in ('Head', 'Tail')])])
+                output = [dict(Head='기관', Relation='접수한다', Tail='본인 신청', Scope=scope)]
             elif request.stage in {'event_entity', 'event_relation'}: output = []
             elif request.stage == 'direct_definitions': output = {'definitions': []}
             elif request.stage.startswith('concept_'): output = None
@@ -508,18 +544,33 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
                 output = dict(examined_block_ids=[block['id']], meanings=[dict(key='accept', statement=block['text'],
                     source_status='supported', availability='provided', required_for_requirement=True,
                     requirement_link=dict(requested_fact='신청 접수 기관', applicability='applicable', contribution='direct_answer', reason='질문 대상 기관'),
-                    evidence=[dict(block_id=block['id'], quote=block['text'])],
-                    conditions=[], exceptions=[], period='', references=[], reason='원문')], inspection_status='complete', findings=[], conjunctions=[])
+                    evidence=[block['evidence_ref']],
+                    conditions=[], exceptions=[], period='', references=[], premise_keys=[], reason='원문')], inspection_status='complete', findings=[], conjunctions=[])
             elif request.stage == 'requirement_representation':
-                key = context['source']['meanings'][0]['key']
-                ids = ([context['claims'][0]['id']] if context['mode'] == 'meaning_batch'
-                       else context['local_judgments']['checks'][0]['claim_ids'])
+                assert [m['key'] for m in context['source']['meanings']] == ['batch1:accept']
+                if context['mode'] == 'meaning_batch':
+                    key = context['source']['meanings'][0]['key']
+                    ids = [context['claims'][0]['id']]
+                else:
+                    assert context['mode'] == 'requirement_join'
+                    assert context['review_meaning_keys'] == (['batch1:accept'] if context['preservation_targets'] else [])
+                    assert context['local_judgments']['checks'][0]['status'] == 'represented'
+                    assert context['local_judgments']['checks'][0]['claim_ids']
                 output = dict(checks=([dict(meaning_key=key, status='represented', claim_ids=ids, incorrect_claim_ids=[],
                                   claim_support={cid: 'supported' for cid in ids}, error_fields={}, error_evidence=[], reason='원문과 표현 일치')]
                                   if context['mode'] == 'meaning_batch' else []), dependencies=[], meaning_challenges=[],
                               satisfied=True, conjunctions_satisfied=True, reason='전체 의미', source_challenges=[],
                               source_completeness='complete', unselected_source_required=False, finding_resolutions=[])
+                if context['mode'] == 'requirement_join' and context['preservation_targets']:
+                    output['preservation_checks'] = [dict(target_id=t['target_id'], status='unknown',
+                        before_normal_meanings=[], after_locations=[], reason='수정 전후 정상 의미 보존 판단 미확정')
+                        for t in context['preservation_targets']]
+            elif request.stage == 'business_qa':
+                assert json.loads(context['context'][0]['text'])['raw'] == dict(Head='기관', Relation='접수한다', Tail='본인 신청')
+                output = dict(answer='기관', choice=None, citations=[context['context'][0]['id']], limitations=[])
             else: raise AssertionError(request.stage)
+            if request.schema:
+                jsonschema.validate(output, request.schema)
             return dict(text='기관, 접수처' if output is None else json.dumps(output, ensure_ascii=False), parsed=output,
                         failure_kind=None, elapsed_s=.001, prompt_eval_count=10, eval_count=5, done=True, done_reason='stop')
     monkeypatch.setattr(business_run, 'ModelClient', FakeClient)
@@ -536,6 +587,10 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
         assert run['status'] == 'review_ready', run.get('error')
         assert {u['stage'] for u in run['units']} >= set(autoschema.ROLES)
         assert len(run['assessments']) == 1 and run['assessments'][0]['status'] == 'satisfied'
+        assert [m['statement'] for m in run['assessments'][0]['source']['meanings']] == ['기관은 본인 신청을 접수한다.']
+        assert run['claims'][0]['interpretation']['errors'] == []
+        assert run['claims'][0]['interpretation']['target_status'] == 'addressed'
+        assert run['claims'][0]['interpretation']['meanings']
         selected = [c['id'] for c in run['claims']]
         # A previous eligibility policy may have withheld this unchanged claim.
         with service.repository.connect() as db:
@@ -578,9 +633,13 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
         assert all(u['stage'] not in autoschema.ROLES for u in reassessed['units'])
         from app.knowledge import snapshots
         from app.knowledge.business_models import BusinessQuery
+        query = BusinessQuery(question='접수 기관은?', snapshot_id=result['snapshot_id'], retrieval='bm25')
+        answer = business_use.query(service, query)
+        assert answer['status'] == 'answered' and answer['answer']['answer'] == '기관'
+        assert answer['answer']['citations'] == selected
         snapshots.set_availability(service, dict(actor='test', reason='원문 사용 중단',
             targets=[dict(type='source_version', id=vid)], state='blocked', expected_status_revision=0))
-        blocked = business_use.query(service, BusinessQuery(question='접수 기관은?', snapshot_id=result['snapshot_id']))
+        blocked = business_use.query(service, query)
         assert blocked['status'] == 'needs_review' and blocked['answer'] is None
         with pytest.raises(KnowledgeConflict, match='제한된'):
             business_use.decide(service, run['changeset_id'], BusinessDecision(
@@ -596,6 +655,8 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
         assert business_run.assessment_fingerprint(run, run['requirements'][0], source) != old_fingerprint
         after = business_run.assess(service, run, run['requirements'][0], source=source, phase='after_repair')
         assert after['status'] == 'partial' and not after['preservation_complete']
+        assert after['representation']['preservation_checks'][0]['status'] == 'unknown'
+        assert run['units'][-1]['status'] == 'succeeded' and not run['units'][-1]['error']
         unit = next(u for u in reversed(run['units']) if u['stage'] == 'requirement_representation'
                     and json.loads(u['messages'][-1]['content'])['mode'] == 'meaning_batch')
         packet = json.loads(unit['messages'][-1]['content'])
@@ -998,7 +1059,7 @@ def test_exact_evidence_connects_only_delivered_contiguous_consistent_source_ran
 
 
 def test_selected_source_evidence_retains_delivered_ranges_and_raw_response(monkeypatch):
-    from app.knowledge.business_models import GroundingCheck, RequirementJoinCheck
+    from app.knowledge.business_models import GroundingCheck, LocalSourceCheck, RequirementJoinCheck
     blocks = [dict(id='block', source_version_id='version', parse_run_id='parse',
                    text='같은 문장', span=[n, n + 5], context_only=bool(n)) for n in (0, 10)]
     run = dict(blocks=blocks, claims=[], sources={}, units=[],
@@ -1026,9 +1087,15 @@ def test_selected_source_evidence_retains_delivered_ranges_and_raw_response(monk
     assert [b['evidence_ref'] for b in payload['blocks']] == ['e1', 'e2']
     assert payload['blocks'][1]['context_only'] is True
     assert request['schema']['$defs']['SelectedFindingResolution']['properties']['evidence']['items']['enum'] == ['e1', 'e2']
-    raw['meanings'][0]['evidence'] = ['outside']
-    assert business_run.json_call(None, run, 'source_reassessment', '원문 재판정', context, GroundingCheck) is None
-    assert run['units'][-1]['error'].startswith('schema_error')
+    raw.update(inspection_status='complete', findings=[])
+    for stage, output_type in [('requirement_source', LocalSourceCheck), ('source_reassessment', GroundingCheck)]:
+        for selection in [['outside'], [dict(block_id='b2', quote='같은 문장')],
+                          [dict(block_id='b2', quote='같은 ... 문장')]]:
+            raw['meanings'][0]['evidence'] = selection
+            assert business_run.json_call(None, run, stage, '원문 확인', context, output_type) is None
+            assert run['units'][-1]['error'].startswith('schema_error')
+            assert run['units'][-1]['response']['parsed'] == raw
+            assert 'restored_evidence_output' not in run['units'][-1]
     with pytest.raises(ValueError):
         business_run.exact_evidence([dict(evidence, source_version_id='other')], blocks)
     with pytest.raises(ValueError):

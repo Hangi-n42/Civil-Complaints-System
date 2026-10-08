@@ -1,0 +1,591 @@
+{
+  "date": "2026-10-08",
+  "start_head": "7b7d074af36f926294ef671df00079131f8a5aed",
+  "worktree": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System",
+  "branch": "feature/business-knowledge-repair-retrieval",
+  "review_contract": "requirement-local-review-v8-owned-errors",
+  "product_code_changed": false,
+  "test_file": "app/tests/unit/test_knowledge_business.py",
+  "test_file_sha256": "4dc8c1d16b0ad32e8a2e5cbec3e558181ec3a64999b04613b2cb4043801895d5",
+  "actual_model_calls": 0,
+  "actual_c47_repairs": 0,
+  "actual_R05_runs": 0,
+  "actual_bus_LH_runs": 0,
+  "actual_graph_full_retrieval_QA_runs": 0,
+  "approval_policy_changed": false,
+  "evidence_kind": "synthetic model mocks, legacy source JSON injection, SQLite service storage, BM25 with mock QA; not actual model quality or historical-data replay",
+  "original_failure_receipts": [
+    {
+      "database": "/private/var/folders/v7/hssls9jx5034s6rnm9jpr8nm0000gn/T/pytest-of-hyeongi/pytest-401/test_server_quote_error_reache0/knowledge.db",
+      "exists": true,
+      "run_id": "4583ae36c6e64e1ca968d6627cab8c45",
+      "review_contract": "requirement-local-review-v8-owned-errors",
+      "status": "failed",
+      "source_units": [
+        {
+          "id": "7efa8b63f350408aa47faad045141e1d",
+          "stage": "requirement_source",
+          "status": "failed",
+          "error": "schema_error: 3 validation errors for SelectedScopedRequirementSourceCheck\nmeanings.0.function-after[consistent_requirement_link(), GroundedScopedRequiredMeaningCheck].evidence.0\n  Input should be 'e1' [type=literal_error, input_value={'block_id': 'baa8623b508...은 ... 접수한다.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error\nmeanings.0.function-after[consistent_requirement_link(), UnresolvedScopedRequiredMeaningCheck].source_status\n  Input should be 'unknown' [type=literal_error, input_value='supported', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error\nmeanings.0.function-after[consistent_requirement_link(), UnresolvedScopedRequiredMeaningCheck].evidence.0\n  Input should be 'e1' [type=literal_error, input_value={'block_id': 'baa8623b508...은 ... 접수한다.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error",
+          "response": {
+            "parsed": {
+              "examined_block_ids": [
+                "b1"
+              ],
+              "meanings": [
+                {
+                  "key": "accept",
+                  "statement": "기관은 신청을 접수한다.",
+                  "source_status": "supported",
+                  "availability": "provided",
+                  "required_for_requirement": true,
+                  "requirement_link": {
+                    "requested_fact": "신청 접수 기관",
+                    "applicability": "applicable",
+                    "contribution": "direct_answer",
+                    "reason": "질문 대상 기관"
+                  },
+                  "evidence": [
+                    {
+                      "block_id": "b1",
+                      "quote": "기관은 ... 접수한다."
+                    }
+                  ],
+                  "conditions": [],
+                  "exceptions": [],
+                  "period": "",
+                  "references": [],
+                  "reason": "원문"
+                }
+              ],
+              "completeness": "complete",
+              "gaps": [],
+              "conjunctions": [],
+              "inspection_status": "complete",
+              "findings": []
+            },
+            "text": "{\"examined_block_ids\": [\"b1\"], \"meanings\": [{\"key\": \"accept\", \"statement\": \"기관은 신청을 접수한다.\", \"source_status\": \"supported\", \"availability\": \"provided\", \"required_for_requirement\": true, \"requirement_link\": {\"requested_fact\": \"신청 접수 기관\", \"applicability\": \"applicable\", \"contribution\": \"direct_answer\", \"reason\": \"질문 대상 기관\"}, \"evidence\": [{\"block_id\": \"b1\", \"quote\": \"기관은 ... 접수한다.\"}], \"conditions\": [], \"exceptions\": [], \"period\": \"\", \"references\": [], \"reason\": \"원문\"}], \"completeness\": \"complete\", \"gaps\": [], \"conjunctions\": [], \"inspection_status\": \"complete\", \"findings\": []}",
+            "failure_kind": null,
+            "elapsed_s": 0.001
+          },
+          "evidence_reference_map": {
+            "e1": {
+              "id": "baa8623b508e4fc08c759c36ff62dd6b",
+              "evidence_id": "baa8623b508e4fc08c759c36ff62dd6b",
+              "source_version_id": "6931fe64a0c8446792011abf370807ae",
+              "parse_run_id": "725fc823771246c68395adea0ec39bac",
+              "unit_id": "6931fe64a0c8446792011abf370807ae:text",
+              "order": 0,
+              "text": "기관은 신청을 접수한다.",
+              "locator": {
+                "format": "txt",
+                "line": 1,
+                "start_char": 0,
+                "end_char": 13,
+                "section": "",
+                "table_headers": [],
+                "block_order": 0
+              },
+              "source_id": "3dd8ca11abf743a6be92bed2bdd88cdc",
+              "span": [
+                0,
+                13
+              ],
+              "context_only": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "database": "/private/var/folders/v7/hssls9jx5034s6rnm9jpr8nm0000gn/T/pytest-of-hyeongi/pytest-401/test_requirement_revision_and_0/knowledge.db",
+      "exists": true,
+      "run_id": "8b88cb6aab9c4a3d808ad7c5a5e75c67",
+      "review_contract": "requirement-local-review-v8-owned-errors",
+      "status": "failed",
+      "source_units": [
+        {
+          "id": "4f4088be2f5d430bbddd4ec40f6a5093",
+          "stage": "requirement_source",
+          "status": "failed",
+          "error": "schema_error: 3 validation errors for SelectedScopedRequirementSourceCheck\nmeanings.0.function-after[consistent_requirement_link(), GroundedScopedRequiredMeaningCheck].evidence.0\n  Input should be 'e1' [type=literal_error, input_value={'block_id': 'd695ec22e6b...청을 접수한다.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error\nmeanings.0.function-after[consistent_requirement_link(), UnresolvedScopedRequiredMeaningCheck].source_status\n  Input should be 'unknown' [type=literal_error, input_value='supported', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error\nmeanings.0.function-after[consistent_requirement_link(), UnresolvedScopedRequiredMeaningCheck].evidence.0\n  Input should be 'e1' [type=literal_error, input_value={'block_id': 'd695ec22e6b...청을 접수한다.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/literal_error",
+          "response": {
+            "text": "{\"examined_block_ids\": [\"b1\"], \"meanings\": [{\"key\": \"accept\", \"statement\": \"기관은 본인 신청을 접수한다.\", \"source_status\": \"supported\", \"availability\": \"provided\", \"required_for_requirement\": true, \"requirement_link\": {\"requested_fact\": \"신청 접수 기관\", \"applicability\": \"applicable\", \"contribution\": \"direct_answer\", \"reason\": \"질문 대상 기관\"}, \"evidence\": [{\"block_id\": \"b1\", \"quote\": \"기관은 본인 신청을 접수한다.\"}], \"conditions\": [], \"exceptions\": [], \"period\": \"\", \"references\": [], \"reason\": \"원문\"}], \"inspection_status\": \"complete\", \"findings\": [], \"conjunctions\": []}",
+            "parsed": {
+              "examined_block_ids": [
+                "b1"
+              ],
+              "meanings": [
+                {
+                  "key": "accept",
+                  "statement": "기관은 본인 신청을 접수한다.",
+                  "source_status": "supported",
+                  "availability": "provided",
+                  "required_for_requirement": true,
+                  "requirement_link": {
+                    "requested_fact": "신청 접수 기관",
+                    "applicability": "applicable",
+                    "contribution": "direct_answer",
+                    "reason": "질문 대상 기관"
+                  },
+                  "evidence": [
+                    {
+                      "block_id": "b1",
+                      "quote": "기관은 본인 신청을 접수한다."
+                    }
+                  ],
+                  "conditions": [],
+                  "exceptions": [],
+                  "period": "",
+                  "references": [],
+                  "reason": "원문"
+                }
+              ],
+              "inspection_status": "complete",
+              "findings": [],
+              "conjunctions": []
+            },
+            "failure_kind": null,
+            "elapsed_s": 0.001,
+            "prompt_eval_count": 10,
+            "eval_count": 5,
+            "done": true,
+            "done_reason": "stop"
+          },
+          "evidence_reference_map": {
+            "e1": {
+              "id": "d695ec22e6b24001affad8e7e9857bb7",
+              "evidence_id": "d695ec22e6b24001affad8e7e9857bb7",
+              "source_version_id": "1a5cc3853f8f4c7c8031db13aaa41f56",
+              "parse_run_id": "dab48696c15846d5877c8c865388053d",
+              "unit_id": "1a5cc3853f8f4c7c8031db13aaa41f56:text",
+              "order": 0,
+              "text": "기관은 본인 신청을 접수한다.",
+              "locator": {
+                "format": "txt",
+                "line": 1,
+                "start_char": 0,
+                "end_char": 16,
+                "section": "",
+                "table_headers": [],
+                "block_order": 0
+              },
+              "source_id": "50e9f115180644789b6eb2a77fa743f3",
+              "span": [
+                0,
+                16
+              ],
+              "context_only": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "confirmed_causes": [
+    "Old quote-object mocks rejected by current evidence-ID schema; downstream empty-array accesses are secondary",
+    "Explicit empty premises encode independence; absent premise_keys leaves dependency unconfirmed",
+    "Extraction fixture lacked required Scope; current mock schema is now validated",
+    "Join preserves local judgments and receives preservation targets; valid unknown preservation must remain partial"
+  ],
+  "rejected_hypotheses": [
+    "requirement_quote is required by the default v8 contract",
+    "Two first-element access guards alone repair the flows",
+    "Product removed normal meanings despite valid source response"
+  ],
+  "tests": {
+    "distinct_final_verified": 13,
+    "full_previous_134_suite_rerun": false,
+    "logs": {
+      "before": {
+        "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/before.log",
+        "sha256": "3939d237c79b5f352d4c87efe01919c76598bab1034c2220973217ab8f1a2b3a",
+        "passed": 0,
+        "failed": 2,
+        "seconds": 5.77,
+        "summary": "2 failed in 5.77s"
+      },
+      "evidence_alignment": {
+        "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/evidence_alignment.log",
+        "sha256": "9e56a50cf6cde1a2de4b3f61fb6f50a42c3f8e506ca0a8602c34c83d54643907",
+        "passed": 1,
+        "failed": 1,
+        "seconds": 20.1,
+        "summary": "1 failed, 1 passed in 20.10s"
+      },
+      "current_schema": {
+        "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/current_schema.log",
+        "sha256": "ff14b563540ac933cd20804e75f50c90f27d515aa2c6bcc50a084ad800d18829",
+        "passed": 2,
+        "failed": 0,
+        "seconds": 16.88,
+        "summary": "2 passed in 16.88s"
+      },
+      "final": {
+        "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/final.log",
+        "sha256": "957cab59e00608fc16f9647f89c7961ac9395455de04f2c8eb9d87b0bb897b10",
+        "passed": 12,
+        "failed": 0,
+        "seconds": 33.26,
+        "summary": "12 passed in 33.26s"
+      }
+    },
+    "final_nodes": [
+      "app/tests/unit/test_knowledge_business.py::test_server_quote_error_reaches_source_reassessment_without_model_challenge",
+      "app/tests/unit/test_knowledge_business.py::test_requirement_revision_and_service_review_path",
+      "app/tests/unit/test_knowledge_business.py::test_reassessment_never_inherits_evidence_for_an_empty_selection[supported]",
+      "app/tests/unit/test_knowledge_business.py::test_reassessment_never_inherits_evidence_for_an_empty_selection[refuted]",
+      "app/tests/unit/test_knowledge_business.py::test_reassessment_never_inherits_evidence_for_an_empty_selection[unknown]",
+      "app/tests/unit/test_knowledge_business_scope.py::test_scope_schema_raw_and_address_identity_survive_chunk_change",
+      "app/tests/unit/test_knowledge_business_local_review.py::test_keyed_source_batch_error_uses_existing_reassessment_without_erasing_history",
+      "app/tests/unit/test_knowledge_business_local_review.py::test_join_omitted_dependency_rows_keep_local_decisions_but_explicit_unknown_is_preserved",
+      "app/tests/unit/test_knowledge_business_local_review.py::test_join_receives_required_unknown_dependencies_without_unrelated_candidates",
+      "app/tests/unit/test_knowledge_business_local_review.py::test_join_receives_compact_changes_and_requires_explicit_preservation_for_each_target",
+      "app/tests/unit/test_knowledge_business_separated_review.py::test_existing_representation_path_uses_expression_only_and_delta_join",
+      "app/tests/unit/test_knowledge_business_separated_review.py::test_selected_source_evidence_restores_only_current_explicit_address"
+    ],
+    "additional_previously_passed_node": "app/tests/unit/test_knowledge_business.py::test_selected_source_evidence_retains_delivered_ranges_and_raw_response"
+  },
+  "synthetic_databases": [
+    {
+      "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/final_test_databases/test_requirement_revision_and_0/knowledge.db",
+      "sha256": "f4d71cbe9f7dd11527ac29e927826efe2f828b05c61c3eeda9a8acd35a470ce9",
+      "kind": "synthetic fixture database",
+      "runs": [
+        {
+          "id": "4e21bfeb957a466496b4e69ecceee087",
+          "kind": "business",
+          "status": "review_ready",
+          "parent_run_id": null,
+          "metrics_mock_only": {
+            "llm_calls": 12,
+            "model_total_s": 0.012000000000000004,
+            "elapsed_s": 3.295944374985993
+          },
+          "unit_errors": [],
+          "assessment_phases": [
+            {
+              "id": "6944180a1926439481062ebbd511a6b8",
+              "phase": "initial",
+              "status": "satisfied",
+              "errors": [],
+              "preservation_complete": true,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            },
+            {
+              "id": "0136e21066cc4ecd8dfd61a65ac73af5",
+              "phase": "after_repair",
+              "status": "partial",
+              "errors": [],
+              "preservation_complete": false,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": [
+                {
+                  "target_id": "claim_16f8fe30f417d37da36e9086",
+                  "status": "unknown",
+                  "before_normal_meanings": [],
+                  "after_locations": [],
+                  "reason": "수정 전후 정상 의미 보존 판단 미확정"
+                }
+              ]
+            }
+          ],
+          "answer": null,
+          "context_mode": null,
+          "query": null,
+          "source_reassessment_unit_ids": []
+        },
+        {
+          "id": "6b2be102e77448b3ba8e1ec7253fcd61",
+          "kind": "business",
+          "status": "review_ready",
+          "parent_run_id": "4e21bfeb957a466496b4e69ecceee087",
+          "metrics_mock_only": {
+            "llm_calls": 0,
+            "model_total_s": 0,
+            "elapsed_s": 3.2646245830110274,
+            "reused_responses": 10
+          },
+          "unit_errors": [],
+          "assessment_phases": [
+            {
+              "id": "71a1b5d1937547a6aa62050c313ce834",
+              "phase": "initial",
+              "status": "satisfied",
+              "errors": [],
+              "preservation_complete": true,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            }
+          ],
+          "answer": null,
+          "context_mode": null,
+          "query": null,
+          "source_reassessment_unit_ids": []
+        },
+        {
+          "id": "067657fb66d2451db1c67efa6b377dc8",
+          "kind": "business",
+          "status": "review_ready",
+          "parent_run_id": "4e21bfeb957a466496b4e69ecceee087",
+          "metrics_mock_only": {
+            "llm_calls": 0,
+            "model_total_s": 0,
+            "elapsed_s": 3.2716114160139114,
+            "reused_responses": 7
+          },
+          "unit_errors": [],
+          "assessment_phases": [
+            {
+              "id": "ad0d0388d6de49939c0cc82eef7df2a1",
+              "phase": "initial",
+              "status": "satisfied",
+              "errors": [],
+              "preservation_complete": true,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            }
+          ],
+          "answer": null,
+          "context_mode": null,
+          "query": null,
+          "source_reassessment_unit_ids": []
+        },
+        {
+          "id": "7483f900c1834f23b7beeb1a509a7a90",
+          "kind": "business",
+          "status": "review_ready",
+          "parent_run_id": "4e21bfeb957a466496b4e69ecceee087",
+          "metrics_mock_only": {
+            "llm_calls": 0,
+            "model_total_s": 0,
+            "elapsed_s": 3.2162279590265825,
+            "reused_responses": 3
+          },
+          "unit_errors": [],
+          "assessment_phases": [
+            {
+              "id": "501fd3b2d9824bf98876e3b62d220c27",
+              "phase": "initial",
+              "status": "satisfied",
+              "errors": [],
+              "preservation_complete": true,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            }
+          ],
+          "answer": null,
+          "context_mode": null,
+          "query": null,
+          "source_reassessment_unit_ids": []
+        },
+        {
+          "id": "bdb2535fb38f4489acc7f0a2891ac51e",
+          "kind": "business_query",
+          "status": "succeeded",
+          "parent_run_id": null,
+          "metrics_mock_only": {
+            "llm_calls": 1,
+            "model_total_s": 0.001,
+            "elapsed_s": 1.6066544170025736
+          },
+          "unit_errors": [],
+          "assessment_phases": [],
+          "answer": {
+            "answer": "기관",
+            "choice": null,
+            "citations": [
+              "claim_16f8fe30f417d37da36e9086"
+            ],
+            "limitations": []
+          },
+          "context_mode": "graph",
+          "query": {
+            "question": "접수 기관은?",
+            "choices": [],
+            "snapshot_id": "8632858edf484508945b3aacc7b48d91",
+            "source_run_id": null,
+            "requirement_ids": [],
+            "limit": 12,
+            "retrieval": "bm25",
+            "graph_variant": "full",
+            "answer_mode": "synthesis",
+            "answer_items": []
+          },
+          "source_reassessment_unit_ids": []
+        }
+      ],
+      "snapshot_ids": [
+        "8632858edf484508945b3aacc7b48d91"
+      ]
+    },
+    {
+      "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/final_test_databases/test_server_quote_error_reache0/knowledge.db",
+      "sha256": "28c2a050c1fab3247a4edfa92fb7ede1ffe723e2f4fb585698700179e9300ba8",
+      "kind": "synthetic fixture database",
+      "runs": [
+        {
+          "id": "a22f402a96fc47f682aaf4acc333d860",
+          "kind": "business",
+          "status": "partial",
+          "parent_run_id": null,
+          "metrics_mock_only": {
+            "llm_calls": 14,
+            "model_total_s": 0.014000000000000005,
+            "elapsed_s": 3.6957550839870237
+          },
+          "unit_errors": [],
+          "assessment_phases": [
+            {
+              "id": "ecff5dfba6ab455d8b6b1be6aa44e6a6",
+              "phase": "initial",
+              "status": "partial",
+              "errors": [
+                "원문에 없는 근거 인용"
+              ],
+              "preservation_complete": true,
+              "source_record_challenges": [
+                {
+                  "meaning_key": "batch1:accept",
+                  "record_error": "원문에 없는 근거 인용",
+                  "evidence": [
+                    {
+                      "block_id": "ddbff00b64664464a1f2b2bca07bb740",
+                      "quote": "기관은 ... 접수한다.",
+                      "source_version_id": "0e9e7ff2c8c24cf193c55d6c173fae68",
+                      "parse_run_id": "18df48045d5144f284b8d89fc62cecf7",
+                      "start_char": 0,
+                      "end_char": 13,
+                      "precision": "exact"
+                    }
+                  ],
+                  "provided_block_ids": [
+                    "ddbff00b64664464a1f2b2bca07bb740"
+                  ],
+                  "correction_scope": "원문에 맞는 정확 인용과 자료 상태를 정정한다. 인용 오류만으로 정상 의미를 바꾸거나 새 의미를 만들지 않는다."
+                }
+              ],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            },
+            {
+              "id": "355e1ad1be4e4925b2ee4522b1dfd2d1",
+              "phase": "source_reassessment",
+              "status": "partial",
+              "errors": [],
+              "preservation_complete": true,
+              "source_record_challenges": [],
+              "source_meaning_keys": [
+                "batch1:accept"
+              ],
+              "preservation_checks": []
+            }
+          ],
+          "answer": null,
+          "context_mode": null,
+          "query": null,
+          "source_reassessment_unit_ids": [
+            "037434e831e14e4bafafab63914c473c"
+          ]
+        },
+        {
+          "id": "9693451065aa43db94df24624ffe2a26",
+          "kind": "business_query",
+          "status": "succeeded",
+          "parent_run_id": null,
+          "metrics_mock_only": {
+            "llm_calls": 1,
+            "model_total_s": 0.001,
+            "elapsed_s": 1.5785416669677943
+          },
+          "unit_errors": [],
+          "assessment_phases": [],
+          "answer": {
+            "answer": "기관",
+            "choice": "A",
+            "citations": [
+              "ddbff00b64664464a1f2b2bca07bb740"
+            ],
+            "limitations": []
+          },
+          "context_mode": "document",
+          "query": {
+            "question": "접수 기관은?",
+            "choices": [],
+            "snapshot_id": "5c62dab61cf14c10a506d17f8729b35d",
+            "source_run_id": null,
+            "requirement_ids": [],
+            "limit": 12,
+            "retrieval": "bm25",
+            "graph_variant": "full",
+            "answer_mode": "synthesis",
+            "answer_items": []
+          },
+          "source_reassessment_unit_ids": []
+        }
+      ],
+      "snapshot_ids": [
+        "5c62dab61cf14c10a506d17f8729b35d"
+      ],
+      "synthetic_legacy_source": {
+        "path": "data/knowledge/evaluations/business_service_contract_alignment_20261008/final_test_databases/test_server_quote_error_reache0/legacy_source.json",
+        "sha256": "98a535924a9bd7ee899c61e8d1ed05e18d4f103e8ba974f20cb6f6502573ff96"
+      }
+    }
+  ],
+  "preserved_original_databases": [
+    {
+      "role": "parent_input_db",
+      "path": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db",
+      "sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+      "observed_sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+      "matches_prior_report": true
+    },
+    {
+      "role": "initial_evaluation_db",
+      "path": "/Users/hyeongi/.codex/worktrees/ontology-grounded-recovery/Civil-Complaints-System/data/knowledge/evaluations/autoschemakg_business_20261006/busan_v1/knowledge.db",
+      "sha256": "62f6eda378eb1258d84c6b85e6b2ce414a595fcbeef62260b6cdae22a7fecde3",
+      "observed_sha256": "62f6eda378eb1258d84c6b85e6b2ce414a595fcbeef62260b6cdae22a7fecde3",
+      "matches_prior_report": true
+    }
+  ],
+  "issues": [
+    {
+      "number": 616,
+      "state": "OPEN",
+      "title": "[업무 지식 R1] 근거·표현·종합 책임 분리와 정상 판정 재사용",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/616"
+    },
+    {
+      "number": 617,
+      "state": "OPEN",
+      "title": "[업무 지식 R2] 오류 귀속부터 부분 교정·정상 의미 보존까지 연결",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/617"
+    },
+    {
+      "number": 620,
+      "state": "OPEN",
+      "title": "[업무 지식 R5] 부산 수정→그래프 QA와 버스 변경 대응의 실제 종단 확인",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/620"
+    }
+  ],
+  "github_account": "Hangi-n42"
+}
