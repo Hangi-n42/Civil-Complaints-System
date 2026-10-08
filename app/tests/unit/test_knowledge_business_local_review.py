@@ -1111,3 +1111,22 @@ def test_completed_local_absence_stays_unresolved_without_refuting_independent_f
                 unit_id='inspection', provided_block_ids=['body'])
         else:
             assert review.blocked(assessment)[1] == ['unscoped_source_challenge']
+
+
+def test_scoped_finding_retrieves_disputed_context_outside_existing_meaning(monkeypatch):
+    run = local_run()
+    run['blocks'].append(dict(block('disputed', '예약 취소 예외는 본인 확인을 거친다.', path='section:2'), source_id='s'))
+    source = current_source()
+    source['findings'][0].update(text='예약 취소 예외는 본인 확인을 거친다. 이 관계의 확인이 필요하다.',
+        meaning_keys=['m'], scope_meaning_keys=['m'])
+    supplied = []
+    monkeypatch.setattr(business_run, 'cancelled', lambda *a: False)
+    def answer(_service, _run, stage, instruction, context, schema):
+        run['units'].append(dict(id=str(len(run['units']))))
+        if context['mode'] == 'requirement_join':
+            supplied.extend(b['id'] for b in context['blocks'])
+            return None
+        return judgments(['m'], ids=[run['claims'][0]['id']])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    review.represent(None, run, run['requirements'][0], source, [])
+    assert {'body', 'disputed'} <= set(supplied)

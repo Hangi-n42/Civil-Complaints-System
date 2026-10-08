@@ -1728,8 +1728,7 @@ claim_support는 후보가 자기 출처/버전에서 지지되는지를 대조�
                      for b in source_blocks(run, requirement)]
         source_index = FrozenIndex(documents, preserve_numbers=True)
         for finding in findings:
-            if join_keys.intersection(finding['meaning_keys'] or finding['scope_meaning_keys']):
-                continue  # Actual selected meanings already supply this finding's source context.
+            # A scoped dispute may need source context beyond the meaning's existing evidence.
             finding_blocks.update(h['block_id'] for h in source_index.search(finding['text'], {d['id'] for d in documents}, 4))
     # Keep each selected parser unit's mandatory context, without unrelated packed targets.
     join_chunks = autoschema.chunks(run['blocks'], options['context_tokens'], options['review_tokens'], 1)
