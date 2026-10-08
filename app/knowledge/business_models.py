@@ -404,6 +404,17 @@ class BusinessDecision(BaseModel):
     accept_ids: list[str]  # An explicit empty review approves no claims.
 
 
+class BusinessEventEdit(BaseModel):
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    expected_revision: int = Field(ge=0)
+    expected_claim_version: str = Field(min_length=1)
+    claim_id: str = Field(min_length=1)
+    actor: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    event: str = Field(min_length=1)
+    evidence: list[EvidenceQuote] = Field(min_length=1)
+
+
 class PublicAnswerItem(BaseModel):
     """Execution-only decomposition of an unchanged public request, never an expected answer."""
     model_config = {'extra': 'forbid', 'str_strip_whitespace': True}

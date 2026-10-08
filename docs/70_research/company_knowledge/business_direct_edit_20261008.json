@@ -1,0 +1,713 @@
+{
+  "date": "2026-10-08",
+  "scope": "direct Event edit implementation and frozen c47 diagnostic",
+  "verdict": {
+    "feature_contract": "passed",
+    "automatic_detection": "not_tested",
+    "conditioned_model_edit": "failed",
+    "conditioned_model_edit_meaning_preservation": "failed",
+    "reference_edit_source_comparison": "materials and explicit regional obligation retained; other 118 candidates unchanged",
+    "reference_edit_model_preservation_verification": "incomplete_due_to_contradictory_judgments",
+    "graph_and_answer_input_delivery": "confirmed",
+    "corrected_meaning_used_in_answer": "failed",
+    "end_to_end_R05": "failed",
+    "actual_human_review": false,
+    "production_approval": false
+  },
+  "start_head": "54072f6bf3190bd81d5bb3fb98e3397eb102da07",
+  "parent_database_sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+  "model_identity": {
+    "draft": {
+      "name": "gemma4:31b-it-q4_K_M",
+      "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+      "context_length": 262144
+    },
+    "review": {
+      "name": "qwen3.8:27b-q4_K_M",
+      "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+      "context_length": 262144
+    }
+  },
+  "executed_review_contract": "requirement-local-review-v6-separated",
+  "source_quote": {
+    "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+    "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+  },
+  "corrected_event": "번호판 변경 시 구비항목은 기존번호판 2매 및 봉인이다. 지역 번호는 반드시 기존번호판 2매 및 봉인을 반납한 후 번호를 변경하여야 한다.",
+  "stages": {
+    "conditioned_v1": {
+      "run_id": "68b1f3cd9df9460e90e9a8e32079fb87",
+      "metrics": {
+        "llm_calls": 1,
+        "model_total_s": 62.23545,
+        "elapsed_s": 62.851145458000246
+      },
+      "result_sha256": "f4be09388ba1201b9d50842877c360b9f1310c528b387263cf87bce01b2d0d0e",
+      "freeze_sha256": "b5ccced7b47bb216eec0877a2eabc33f3d2039863e8256eac4b01e408ec247b1"
+    },
+    "conditioned_v2": {
+      "run_id": "6706aeb5515a49a7a1e39656ffd95024",
+      "metrics": {
+        "llm_calls": 1,
+        "model_total_s": 62.624373,
+        "elapsed_s": 63.21867445803946
+      },
+      "result_sha256": "d06db53319e9fe4aad358313a4c5beda50213d2aa6fb44f30f4f81e827063afa",
+      "freeze_sha256": "0f0aed061e4349b04dcbf5db428368c3e5376b3cd78868c9d90dd03f73cffe50"
+    },
+    "reference_v2": {
+      "run_id": "fe05cc588651481e89c62e50325acf54",
+      "metrics": {
+        "llm_calls": 10,
+        "model_total_s": 535.216502,
+        "elapsed_s": 561.3992582079954,
+        "reused_responses": 7
+      },
+      "result_sha256": "d6bb983835895bc11424cd4333beb2317af59117992fd3c271c38f2ca2d0fb79",
+      "freeze_sha256": "f8c0e8db8b1445f8b854dfa3ceafae1e62b8a4dd495b07df68ecfb968a3ea46a"
+    },
+    "reference_qa_v2": {
+      "run_id": "9334d4c077504651916b064338a353b4",
+      "metrics": {
+        "llm_calls": 2,
+        "model_total_s": 127.05824100000001,
+        "elapsed_s": 140.82901470799698
+      },
+      "result_sha256": "3f988db2783da928dc493cbbfc8d44d9e4ad0d2f8fbbc4f1e40d17e91c6d710c",
+      "freeze_sha256": "3c501edbe5cb76a2f7acb71cb3c7d9c54c122bf9ed1d347c9f1f007813823793"
+    }
+  },
+  "conditioned_v1": {
+    "valid_edit_ability_test": false,
+    "reason": "blocks=[] due diagnostic source.meanings omission; tasks.error_evidence still contained source quote",
+    "errors": [
+      "원문에 없는 근거 인용"
+    ]
+  },
+  "conditioned_v2": {
+    "valid_edit_ability_test": true,
+    "applied": false,
+    "errors": [
+      "교정 Scope의 원문 주소/참여자 오류: entity mention is absent or ambiguous inside evidence; entity mention is absent or ambiguous inside evidence"
+    ],
+    "model_patches": {
+      "patches": [
+        {
+          "meaning_key": "diagnostic_scope_edit",
+          "target_id": "claim_6804020432957407c5cf6595",
+          "conversion_reason": "",
+          "evidence": [
+            {
+              "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+              "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+            }
+          ],
+          "conditions": [
+            "지역 번호인 경우"
+          ],
+          "exceptions": [],
+          "period": "",
+          "references": [],
+          "scope": {
+            "evidence": [
+              {
+                "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+                "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+              }
+            ],
+            "meanings": [
+              {
+                "statement_type": "rule",
+                "relation_kind": "obligation",
+                "subject": "지역 번호",
+                "action": "반납 후 번호 변경",
+                "object": "기존번호판 2매 및 봉인",
+                "applies_to": "지역 번호 변경 업무",
+                "modality": "obligation",
+                "conditions": {
+                  "state": "unresolved",
+                  "text": "지역 번호인 경우"
+                },
+                "exceptions": {
+                  "state": "unresolved",
+                  "text": ""
+                },
+                "time": {
+                  "state": "unresolved",
+                  "text": ""
+                },
+                "local_negation": {
+                  "state": "unresolved",
+                  "text": ""
+                },
+                "references": {
+                  "state": "unresolved",
+                  "text": ""
+                },
+                "premises": {
+                  "state": "unresolved",
+                  "meaning_indices": []
+                },
+                "evidence": [
+                  {
+                    "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+                    "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+                  }
+                ],
+                "participants": [
+                  {
+                    "field": "Event",
+                    "entity_index": null,
+                    "evidence": [
+                      {
+                        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+                        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+                      }
+                    ]
+                  },
+                  {
+                    "field": "Entity",
+                    "entity_index": 0,
+                    "evidence": [
+                      {
+                        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+                        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+                      }
+                    ]
+                  },
+                  {
+                    "field": "Entity",
+                    "entity_index": 1,
+                    "evidence": [
+                      {
+                        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+                        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "reuse_claim_ids": [],
+          "role": "event_entity",
+          "raw": {
+            "Event": "지역 번호 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.",
+            "Entity": [
+              "기존번호판",
+              "봉인"
+            ]
+          }
+        }
+      ],
+      "unresolved": []
+    },
+    "semantic_verdict": "regional obligation retained but general plate-change materials meaning lost"
+  },
+  "direct_edit": {
+    "run_id": "fe05cc588651481e89c62e50325acf54",
+    "status": "partial",
+    "changeset_id": "8f7167cb02ea4c3096e7aac11b9ecbbc",
+    "receipt_id": "ffd498bba4d6490090789bed7e53baae",
+    "origin": "user",
+    "assessment_id": "7831be9401444809937cf071efe4b7f0",
+    "other_claim_count": 118,
+    "other_claims_unchanged": true,
+    "source_unchanged": true,
+    "assessment_source_reused": true,
+    "inherited_plate_change_meaning": {
+      "key": "plate_change_documents",
+      "statement": "번호판 변경 시 기존번호판 2매 및 봉인을 반납해야 하며, 지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+      "source_status": "supported",
+      "availability": "provided",
+      "evidence": [
+        {
+          "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+          "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)",
+          "source_version_id": "7b42ae519cbd4184b4de800623559005",
+          "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+          "start_char": 0,
+          "end_char": 62,
+          "precision": "exact"
+        }
+      ],
+      "conditions": [
+        "번호판 변경"
+      ],
+      "exceptions": [],
+      "period": "번호 변경 시",
+      "references": [],
+      "reason": "v1의 번호판 변경 시 구비서류가 원문에 명시되어 있다.",
+      "required_for_requirement": true
+    },
+    "preservation_checks": [
+      {
+        "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+        "status": "lost",
+        "before_normal_meanings": [
+          "금련산센터의 이전등록(자가용) 업무 범위 (자동차 소유권 이전(변경) 등록, 등록원부/등록증 발급, 취득세 및 등록세 부과, 건설기계 변경/말소/저당, 사업용자동차 이전등록)"
+        ],
+        "after_locations": [
+          "c89 (replacements)"
+        ],
+        "reason": "c116은 'at the same time' 관계 오류로 인해 c89으로 대체되었습니다. c89은 금련산센터의 업무 범위를 정확히 표현하므로, c116에 포함된 정상 의미(금련산센터 업무 범위)는 c89에서 보존됩니다. c116 자체는 오류 관계이므로 제거 대상이며, 그 정상 의미는 c89으로 이관되었습니다."
+      },
+      {
+        "target_id": "claim_6804020432957407c5cf6595",
+        "status": "preserved",
+        "before_normal_meanings": [
+          "번호판 변경 시 기존번호판 2매 및 봉인 반납 의무",
+          "지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경"
+        ],
+        "after_locations": [
+          "c47 (after)"
+        ],
+        "reason": "c47의 수정 전후 비교 시, 수정 후 버전(after)이 원문(b32)의 일반적 반납 의무와 지역 번호에 대한 선행 반납 조건을 모두 명시적으로 포함하고 있습니다. 따라서 c47의 정상 의미는 수정 후에도 정확히 보존되어 있습니다."
+      }
+    ],
+    "runtime_python_freeze_matches": true
+  },
+  "downstream": {
+    "snapshot_id": "00547c250b6f44068b96715283de061c",
+    "query_run_id": "9334d4c077504651916b064338a353b4",
+    "selection_is_diagnostic_operator_not_human": true,
+    "accepted_candidate_count": 19,
+    "retrieval_c47": {
+      "block_id": "claim_6804020432957407c5cf6595",
+      "file_id": "7b42ae519cbd4184b4de800623559005",
+      "score": 0.008185104925589588,
+      "passage_id": "passage_1ac718041ac900f8a7aeb365",
+      "selection_reason": "required_reviewed_meaning"
+    },
+    "graph": {
+      "contract": "autoschemakg-hipporag2-source-passages-v2",
+      "variant": "full",
+      "directed": true,
+      "nodes": 370,
+      "edges": 5271,
+      "passages": 172,
+      "concept_nodes": 137,
+      "embedding_model": "BAAI/bge-m3",
+      "embedding_device": "cpu",
+      "alpha": 0.9,
+      "passage_weight": 0.9,
+      "topk_edges": 30,
+      "topk_nodes": 10,
+      "fallback": null,
+      "index_cache_hit": false,
+      "elapsed_s": 44.91828550002538,
+      "ranking_is_semantic_validation": false
+    },
+    "qa_unit_id": "e3097e11e61e4853b0de1c9b30167387",
+    "corrected_event_in_actual_qa_messages": true,
+    "c47_in_final_citations": false,
+    "answer": {
+      "answer": "제공된 근거에 따르면, 번호판 변경을 수반하는 이전등록은 명지 본소(관리팀)와 금련산센터에서 처리할 수 있습니다. 명지 본소는 번호판 교부가 당일이며, 금련산센터는 번호판 교부에 2~3일이 소요됩니다. 반면, 부전센터, 구포센터, 동부산센터는 번호 변경 및 번호판 재발급·재봉인을 제외하므로 번호판 변경을 수반하는 이전등록은 처리할 수 없습니다. 번호판 변경을 수반하지 않는 이전등록은 5개 기관(명지 본소, 금련산센터, 부전센터, 구포센터, 동부산센터) 모두에서 처리할 수 있습니다. 다만 동부산센터는 말소·저당 업무를 제외하며, 금련산센터는 자가용(비사업용) 신규등록 및 임시운행 허가 처리가 불가합니다.",
+      "choice": null,
+      "citations": [
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34"
+      ],
+      "limitations": [
+        "구체적인 구비서류 목록은 제공된 근거에 포함되어 있으나, 질문의 핵심인 '번호판 변경 수반 여부별 처리 가능 기관'에 초점을 맞춰 답변했습니다.",
+        "명지 본소와 금련산센터의 번호판 변경 처리 가능 여부는 '번호판 교부' 업무가 포함되어 있음을 근거로 추론한 것입니다. 원문에 '번호 변경'이라는 명시적 표현은 부전·구포·동부산센터의 제외 항목에서만 확인됩니다."
+      ]
+    },
+    "corrected_materials_and_regional_obligation_in_answer": false,
+    "limitation": "limitations declares plate issuance to change-processing inference, while answer body asserts it as available"
+  },
+  "cost": {
+    "new_model_calls": 14,
+    "exact_response_reuses": 7,
+    "input_tokens": 89938,
+    "output_tokens": 4506,
+    "model_total_s": 787.134566
+  },
+  "units": [
+    {
+      "experiment": "conditioned_v1",
+      "unit_id": "0ba192621e5e4997a352d89fa1f09bcf",
+      "stage": "requirement_repair",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 1222,
+      "output_tokens": 933,
+      "model_elapsed_s": 62.23545,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "92d439652338c92c15ecc96b5f4115a6c5ad2cf3d8e377efbb5b24c4d83058e0"
+    },
+    {
+      "experiment": "conditioned_v2",
+      "unit_id": "5186a4f27f54469691c207578ecdcc7b",
+      "stage": "requirement_repair",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 3210,
+      "output_tokens": 922,
+      "model_elapsed_s": 62.624373,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "ecb4b8118aa95116806b8b0f540c4b234c3386ecd1143ce7dd2b4bb37858349d"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "5332d011d7c949e580b113c56ffc3404",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "27f314bdd62e4add8de2629640c82adf",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 4216,
+      "output_tokens": 274,
+      "model_elapsed_s": 37.730857,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "96c96a4a69e212b05279fb7af501458ddf2b4b3c68c7f06ce4955ed37f3a31f4"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "a99a28b8c2524824b0b2a85f0ff38e2f",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "4f29996ca79a4b44bcd2a0c068b374ec",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 4119,
+      "output_tokens": 347,
+      "model_elapsed_s": 47.226375,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "3c7181656e9e6beee08f8e87745e89695948e305490676d3a0e3b90559b5ba0e"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "7007325e338949d9a0c7dd91f0650ba6",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "825794f20ca6426f807a75583bea1ddc",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 4114,
+      "output_tokens": 236,
+      "model_elapsed_s": 42.153862,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "b82d47d328dd7c3380d3c2ee25df3810449880c9a898ef639719e69e1d30caf8"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "ffaa7774fb304126818f09a6110eb089",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 4565,
+      "output_tokens": 219,
+      "model_elapsed_s": 41.178558,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "a0a7824eb61178ec0ce295014a006ba277cc5315f4c91463f241ddd184301309"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "a1e584937fd04dfb8b5f5e96ef6fe184",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "f7a94698eda24b8990ddc4488dada73c",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 4250,
+      "output_tokens": 303,
+      "model_elapsed_s": 46.940413,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "171b33e792482176bcf721fdf2fe7797c3f759b4d5afb31b10285cb2fde47a14"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "8d302a30d18e4ee8a7b66b9831c5e60b",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "ddf1359c0ffe47068edf6c533cb607fd",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 4083,
+      "output_tokens": 201,
+      "model_elapsed_s": 36.745276,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "625c3728607c4a117c01edc7f8b005dc46f9518c8de86f339c6b61e30269cc15"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "91e15f2dc759421d968b6c8f04ea56dc",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "b848826d078b4ca19c285d19404a2f40",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 5778,
+      "output_tokens": 246,
+      "model_elapsed_s": 49.554024,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "6ffa79608d0504294989d91dd77b0bcb8a246e1967abf08de66f0bf6c93e42a4"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "d4344b39ea7546ffb96af71ef58bea71",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 11641,
+      "output_tokens": 272,
+      "model_elapsed_s": 81.412179,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "7c9233f8f48e3104ef8c23c9931a83a998a92934c9d193e99247e06128be9e7c"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "b2920691c7c345bb9fb86f3bbe008648",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": {
+        "run_id": "cedacf0841e540cf83934db6d821140c",
+        "unit_id": "b945b8276dec4d0fb8ec6184ce45ebf4",
+        "original_status": "succeeded"
+      },
+      "input_tokens": 5638,
+      "output_tokens": 189,
+      "model_elapsed_s": 47.029045,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "755bd0651bca3d8ddff404f347772cb535c98ba099f738f22cc77bc4734dd9c9"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "1543152ca33a46208e8dd83136f6a2d4",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 6863,
+      "output_tokens": 198,
+      "model_elapsed_s": 47.370565,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "b914cae0cb68aa7b0e8c7167e13d0c03ad757ddca9e940f9ab9cf6cc24630b0a"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "0cf7f1bfad7e420c85c24d374b5a4d7a",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 6862,
+      "output_tokens": 347,
+      "model_elapsed_s": 57.468991,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "7e8299a96ac292eaa90f94d23b071c4feedeac9d1d301da7e09f9aa319e4e343"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "3ab3abf031464e3b98533c1db264c69c",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 6954,
+      "output_tokens": 212,
+      "model_elapsed_s": 51.973459,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "14222ba8d68c2c4c3ad700aa6a6fe69786af5a5113f6e92726482fded99ef457"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "4424e6c2ffea4becba9a65c343b297a2",
+      "stage": "requirement_representation",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 13944,
+      "output_tokens": 894,
+      "model_elapsed_s": 147.288864,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "734daa419c586c2f8565d18d0c03666cc44a85c0dac211d581c5adbd88c7726e"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "9094e5fc97294791bdc923aa557cd81b",
+      "stage": "concept_event",
+      "model": "gemma4:31b-it-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 3438,
+      "output_tokens": 22,
+      "model_elapsed_s": 37.395885,
+      "requested_limits": {
+        "max_tokens": 512,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "0b3acb3583f921da2890545a4af00f8a0ccf17db99d817a851b4a3507c21fc2e"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "1c56a4d5964f426c802d3971e0819010",
+      "stage": "concept_entity",
+      "model": "gemma4:31b-it-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 3660,
+      "output_tokens": 23,
+      "model_elapsed_s": 6.438177,
+      "requested_limits": {
+        "max_tokens": 512,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "fc71ad5d347e8a8579e18575c2e1caf64e3c480823b99450459d4b4edb04cced"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "cfd204461a3b453d80297f35d489b026",
+      "stage": "concept_entity",
+      "model": "gemma4:31b-it-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 3656,
+      "output_tokens": 19,
+      "model_elapsed_s": 3.384757,
+      "requested_limits": {
+        "max_tokens": 512,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "ddbce38fb83869d0ffd61c21f7d7880e3a2f1b433b9470f8f0e8f373fc10b63b"
+    },
+    {
+      "experiment": "reference_v2",
+      "unit_id": "2e7593b0d48b499d831488d53f9d61ed",
+      "stage": "concept_relation",
+      "model": "gemma4:31b-it-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 7620,
+      "output_tokens": 14,
+      "model_elapsed_s": 61.305067,
+      "requested_limits": {
+        "max_tokens": 512,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "13021a5002c3967a9e47382bca277766ee1cee97a7e04c1d5a7c30c2347330fa"
+    },
+    {
+      "experiment": "reference_qa_v2",
+      "unit_id": "a895f88242124f20b36021953c916a79",
+      "stage": "graph_retrieval_filter",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 3346,
+      "output_tokens": 51,
+      "model_elapsed_s": 32.075662,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "94a0ebc06e2818783e36e66a3ff143ff58e56b300cd9f41ede0214153d1bc98a"
+    },
+    {
+      "experiment": "reference_qa_v2",
+      "unit_id": "e3097e11e61e4853b0de1c9b30167387",
+      "stage": "business_qa",
+      "model": "qwen3.8:27b-q4_K_M",
+      "reused_from": null,
+      "input_tokens": 12957,
+      "output_tokens": 380,
+      "model_elapsed_s": 94.982579,
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      },
+      "messages_sha256": "18e3271f1a1ac7ceccdfc44c8bc3d75627259ce54092d7934efae168bf52acc6"
+    }
+  ],
+  "verification": {
+    "backend_passed": 26,
+    "frontend_passed": 8,
+    "eslint": "passed",
+    "typescript": "passed",
+    "browser": "actual product UI, pre-save form and missing-evidence validation; valid write checked by API test and reference run",
+    "browser_screenshot": "data/knowledge/evaluations/business_direct_edit_20261008/editor_screen.png",
+    "no_new_models": true,
+    "no_full_extraction_rerun": true,
+    "no_additional_qa_retry": true
+  },
+  "next_work": [
+    "challenge/correct inherited erroneous source interpretation before representation checks",
+    "resolve preservation status/reason contradiction and canonical after_locations",
+    "evaluate answer coverage and unsupported positive processing claims against fixed R05 criterion"
+  ]
+}

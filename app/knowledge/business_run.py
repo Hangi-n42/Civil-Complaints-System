@@ -868,6 +868,72 @@ def missing_tabular_rows(run, requirement, assessment, targets):
     return list(rows.values()), mappings
 
 
+def materialize_patch(run, patch, old, repair_id, repair_blocks, *, origin='model'):
+    refs = exact_evidence(patch['evidence'], repair_blocks)
+    if not refs:
+        raise ValueError('교정 원문 근거 누락')
+    role = patch.get('role') or (old['role'] if old and old['role'] in {'entity_relation', 'event_relation'} else None)
+    if role is None and old:
+        raise ValueError('호환되지 않는 역할 변환의 명시 누락')
+    role = role or 'entity_relation'
+    if old and role != old['role'] and not patch.get('conversion_reason', '').strip():
+        raise ValueError('역할 변환 이유 누락')
+    patch_blocks = repair_blocks
+    if role == 'event_entity':
+        raw = autoschema.normalize([patch['raw']], role)[0]
+        statement = raw['Event']
+        if old:
+            patch_blocks = [b for b in repair_blocks if b['source_version_id'] in old['source_version_ids']]
+            refs = exact_evidence(patch['evidence'], patch_blocks)
+            own = {b['id'] for b in business_review.candidate_source_basis(old, patch_blocks)}
+            if not any(ref['block_id'] in own for ref in refs):
+                raise ValueError('교정 후보의 자기 출처 근거 누락')
+    else:
+        if not all(patch[k].strip() for k in ('statement', 'head', 'relation', 'tail')):
+            raise ValueError('교정 원문/관계 누락')
+        raw = dict(Head=patch['head'], Relation=patch['relation'], Tail=patch['tail'])
+        statement = patch['statement']
+    value = deepcopy(old) if old else dict(id=uuid4().hex, chunk_id=autoschema.identifier('repair_chunk', refs))
+    if old:
+        value.setdefault('source_extraction_raw', deepcopy(old['raw']))
+        if value.get('interpretation'):
+            value['interpretation'] = dict(value['interpretation'], semantic_status='needs_review',
+                correction_reason='claim_changed; previous_interpretation_retained_for_comparison')
+        if role != old['role']:
+            value['role_conversion'] = dict(before=old['role'], after=role, reason=patch['conversion_reason'])
+    value.update(statement=statement, raw=raw,
+                 role=role, conditions=patch['conditions'], exceptions=patch['exceptions'],
+                 period=patch['period'], references=patch['references'], evidence=refs,
+                 source_version_ids=sorted({r['source_version_id'] for r in refs}),
+                 review_status='unreviewed', semantic_status='unknown', repair_id=repair_id)
+    if origin == 'user':
+        if old and old.get('interpretation'):
+            value.setdefault('interpretation_history', []).append(deepcopy(old['interpretation']))
+        value.pop('interpretation', None)
+        value['qualifier_status'] = 'unparsed_user_text_requires_review'
+    elif business_review.current(run):
+        if not patch.get('scope'):
+            raise ValueError('교정된 표현의 Scope 누락')
+        corrected_blocks = deepcopy(patch_blocks)
+        # json_call has already restored canonical IDs. Repair views
+        # use the same canonical keys, without model-generated IDs.
+        canonical = {b['id']: b for b in corrected_blocks}
+        for b in corrected_blocks:
+            if b.get('span'):
+                canonical[b['id']] = next(v for v in run['blocks'] if v['id'] == b['id'])
+        corrected_blocks = list(canonical.values())
+        chunk = dict(id=value['chunk_id'], blocks=corrected_blocks,
+            source_reference_map={b['id']: dict(block_id=b['id'], span=b.get('span')) for b in corrected_blocks})
+        if old and old.get('interpretation'):
+            value.setdefault('interpretation_history', []).append(deepcopy(old['interpretation']))
+        value['interpretation'] = autoschema.scope_record(patch['scope'], chunk, value['raw'], role)
+        value['interpretation'].update(claim_id=value['id'], corrected_by=repair_id)
+        if value['interpretation']['errors'] or value['interpretation']['target_status'] != 'addressed':
+            raise ValueError('교정 Scope의 원문 주소/참여자 오류: ' + '; '.join(value['interpretation']['errors']))
+        value['qualifier_status'] = 'unverified_corrected_interpretation'
+    return value
+
+
 def repair(service, run, requirement, assessment):
     targets = [a for a in assessment['actions'] if a['action'] in {'recover', 'correct'}]
     protected_claims = set()
@@ -951,7 +1017,7 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
             if a['action'] == 'maintain' and a['meaning_key'] not in business_review.blocked(assessment)[0]
             for cid in a['claim_ids']}) if cid in by_id and cid not in protected_claims
             and cid not in target_ids and not by_id[cid].get('superseded_by')]), output_type) if tasks else None
-    receipt = dict(id=uuid4().hex, requirement_id=requirement['id'], assessment_id=assessment['id'],
+    receipt = dict(id=uuid4().hex, origin='model', requirement_id=requirement['id'], assessment_id=assessment['id'],
                    before=before, patches=output, targets=targets, preserve_meanings=preserve,
                    status='unresolved', changes=[], errors=[], tabular_recovery=tabular_mappings)
     if protected_rows:
@@ -992,60 +1058,7 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                                  review_status='unreviewed', semantic_status='superseded_awaiting_preservation_check')
                     proposed.append(dict(before=old, after=value, meaning_key=patch['meaning_key']))
                     continue
-                role = patch.get('role') or (old['role'] if old and old['role'] in {'entity_relation', 'event_relation'} else None)
-                if role is None and old:
-                    raise ValueError('호환되지 않는 역할 변환의 명시 누락')
-                role = role or 'entity_relation'
-                if old and role != old['role'] and not patch.get('conversion_reason', '').strip():
-                    raise ValueError('역할 변환 이유 누락')
-                patch_blocks = repair_blocks
-                if role == 'event_entity':
-                    raw = autoschema.normalize([patch['raw']], role)[0]
-                    statement = raw['Event']
-                    if old:
-                        patch_blocks = [b for b in repair_blocks if b['source_version_id'] in old['source_version_ids']]
-                        refs = exact_evidence(patch['evidence'], patch_blocks)
-                        own = {b['id'] for b in business_review.candidate_source_basis(old, patch_blocks)}
-                        if not any(ref['block_id'] in own for ref in refs):
-                            raise ValueError('교정 후보의 자기 출처 근거 누락')
-                else:
-                    if not all(patch[k].strip() for k in ('statement', 'head', 'relation', 'tail')):
-                        raise ValueError('교정 원문/관계 누락')
-                    raw = dict(Head=patch['head'], Relation=patch['relation'], Tail=patch['tail'])
-                    statement = patch['statement']
-                value = deepcopy(old) if old else dict(id=uuid4().hex, chunk_id=autoschema.identifier('repair_chunk', refs))
-                if old:
-                    value.setdefault('source_extraction_raw', deepcopy(old['raw']))
-                    if value.get('interpretation'):
-                        value['interpretation'] = dict(value['interpretation'], semantic_status='needs_review',
-                            correction_reason='claim_changed; previous_interpretation_retained_for_comparison')
-                    if role != old['role']:
-                        value['role_conversion'] = dict(before=old['role'], after=role, reason=patch['conversion_reason'])
-                value.update(statement=statement, raw=raw,
-                             role=role, conditions=patch['conditions'], exceptions=patch['exceptions'],
-                             period=patch['period'], references=patch['references'], evidence=refs,
-                             source_version_ids=sorted({r['source_version_id'] for r in refs}),
-                             review_status='unreviewed', semantic_status='unknown', repair_id=receipt['id'])
-                if business_review.current(run):
-                    if not patch.get('scope'):
-                        raise ValueError('교정된 표현의 Scope 누락')
-                    corrected_blocks = deepcopy(patch_blocks)
-                    # json_call has already restored canonical IDs. Repair views
-                    # use the same canonical keys, without model-generated IDs.
-                    canonical = {b['id']: b for b in corrected_blocks}
-                    for b in corrected_blocks:
-                        if b.get('span'):
-                            canonical[b['id']] = next(v for v in run['blocks'] if v['id'] == b['id'])
-                    corrected_blocks = list(canonical.values())
-                    chunk = dict(id=value['chunk_id'], blocks=corrected_blocks,
-                        source_reference_map={b['id']: dict(block_id=b['id'], span=b.get('span')) for b in corrected_blocks})
-                    if old and old.get('interpretation'):
-                        value.setdefault('interpretation_history', []).append(deepcopy(old['interpretation']))
-                    value['interpretation'] = autoschema.scope_record(patch['scope'], chunk, value['raw'], role)
-                    value['interpretation'].update(claim_id=value['id'], corrected_by=receipt['id'])
-                    if value['interpretation']['errors'] or value['interpretation']['target_status'] != 'addressed':
-                        raise ValueError('교정 Scope의 원문 주소/참여자 오류: ' + '; '.join(value['interpretation']['errors']))
-                    value['qualifier_status'] = 'unverified_corrected_interpretation'
+                value = materialize_patch(run, patch, old, receipt['id'], repair_blocks)
                 proposed.append(dict(before=old, after=value, meaning_key=patch['meaning_key']))
             except (ValueError, autoschema.jsonschema.ValidationError) as exc:
                 receipt['errors'].append(str(exc))
@@ -1140,6 +1153,21 @@ def repair_extraction(service, run):
             except (ValueError, autoschema.jsonschema.ValidationError) as exc:
                 item['repair_error'] = str(exc)
         save(service, run)
+
+
+def refresh_repaired_graph(service, run):
+    options = run['recipe']['options']
+    run['graph'] = autoschema.graph(run['claims'])
+    changed_ids = {v['after']['id'] for r in run['repairs'] for v in r['changes']}
+    for concept in run['concepts']:
+        if changed_ids.intersection(concept['target'].get('claim_ids', [])):
+            concept.update(previous_status=concept['status'], status='needs_review',
+                           stale_reason='source_claim_changed', target_fingerprint=autoschema.identifier('target', concept['target']))
+    if run['concepts'] or options.get('conceptualize', True):
+        from .business_concepts import refresh_changed
+        replacement_ids = {cid for r in run['repairs'] for v in r['changes']
+                           for cid in v['after'].get('superseded_by', [])}
+        refresh_changed(service, run, changed_ids | replacement_ids)
 
 
 def execute(service, run_id):
@@ -1247,17 +1275,7 @@ def execute(service, run_id):
                 previous = next(a for a in reversed(run['assessments']) if a['requirement_id'] == requirement['id'])
                 if previous.get('input_fingerprint') != assessment_fingerprint(run, requirement, previous['source'], previous.get('review_scope')):
                     assess(service, run, requirement, source=previous['source'], phase='shared_claim_recheck')
-            run['graph'] = autoschema.graph(run['claims'])
-            changed_ids = {v['after']['id'] for r in run['repairs'] for v in r['changes']}
-            for concept in run['concepts']:
-                if changed_ids.intersection(concept['target'].get('claim_ids', [])):
-                    concept.update(previous_status=concept['status'], status='needs_review',
-                                   stale_reason='source_claim_changed', target_fingerprint=autoschema.identifier('target', concept['target']))
-            if run['concepts'] or options.get('conceptualize', True):
-                from .business_concepts import refresh_changed
-                replacement_ids = {cid for r in run['repairs'] for v in r['changes']
-                                   for cid in v['after'].get('superseded_by', [])}
-                refresh_changed(service, run, changed_ids | replacement_ids)
+            refresh_repaired_graph(service, run)
         from .business_use import publish
         run['changeset_id'] = publish(service, run)['id']
         latest = {a['requirement_id']: a for a in run['assessments']}

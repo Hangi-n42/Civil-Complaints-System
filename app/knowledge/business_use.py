@@ -115,6 +115,7 @@ def change_view(service, changeset_id):
         run = service.repository.get(db, 'runs', change['run_id'])
     eligible, blocked = review_eligibility(change, run)
     return dict(change, eligible_ids=sorted(eligible), published_eligible_ids=change['eligible_ids'],
+                candidate_versions={c['id']: business_run.autoschema.identifier('claim', c) for c in change['candidates']},
                 completion_contract=business_run.COMPLETION_CONTRACT,
                 published_completion_contract=change.get('completion_contract'),
                 published_eligibility_contract=change.get('eligibility_contract', 'current-claim-all-requirements-v1'),

@@ -5,10 +5,10 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 type Request = <T>(path: string, init?: RequestInit) => Promise<T>;
 type Source = { source: { id: string; title: string }; versions: { id: string; processing_status?: string }[] };
 type Requirement = { id: string; question_ids: string[]; question: string; target: string; situation: string; period: string; criterion: string; source_ids: string[]; required: boolean; revision: number; status: string };
-type Claim = { id: string; statement: string; evidence: { block_id: string; quote?: string; precision?: string }[]; superseded_by?: string[] };
+type Claim = { role?: string; raw?: { Event: string; Entity: string[] }; conditions?: string[]; exceptions?: string[]; period?: string; references?: string[]; extraction_error?: string; id: string; statement: string; evidence: { block_id: string; quote?: string; precision?: string }[]; superseded_by?: string[] };
 type Assessment = { id: string; requirement_id: string; phase: string; status: string; errors: string[]; source_scope?: { provided_block_ids: string[]; model_examined_block_ids: string[]; provided_not_declared_ids: string[] }; source?: { gaps: string[]; meanings: { key: string; statement: string; conditions?: string[]; exceptions?: string[]; period?: string; references?: string[]; source_status: string; availability: string; evidence: { quote: string }[] }[] }; representation?: { reason: string; source_challenges?: string[]; source_checks?: { meaning_key: string; required_for_requirement: boolean; field_checks: Record<string, string>; reason: string }[] }; preservation_complete?: boolean };
-type Run = { recipe: { options: Record<string, unknown> }; id: string; status: string; changeset_id?: string; metrics?: { llm_calls: number; reused_responses?: number }; units: { id: string; stage: string; status: string; error?: string }[]; assessments: Assessment[]; repairs: { id: string; status: string; changes: { before?: Claim; after: Claim }[]; after?: Claim[] }[] };
-type Change = { id: string; revision: number; candidates: Claim[]; eligible_ids: string[] };
+type Run = { recipe: { options: Record<string, unknown> }; id: string; status: string; changeset_id?: string; metrics?: { llm_calls: number; reused_responses?: number }; units: { id: string; stage: string; status: string; error?: string }[]; assessments: Assessment[]; repairs: { id: string; status: string; origin?: string; actor?: string; reason?: string; changes: { before?: Claim; after: Claim }[]; after?: Claim[] }[] };
+type Change = { id: string; revision: number; candidate_versions?: Record<string, string>; candidates: Claim[]; eligible_ids: string[] };
 type Snapshot = { id: string; reason: string; counts: { claims: number } };
 const field = "w-full rounded border border-slate-300 px-3 py-2 text-sm";
 const button = "rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-40";
@@ -25,6 +25,43 @@ export function RepairChange({ before, after, claims }: { before?: Claim; after:
         : <p key={id} className="text-amber-800">대체 후보를 확인할 수 없습니다: {id}</p>;
     })}</> : <><p>후: {after.statement}</p>{after.evidence.map((e, i) => <blockquote key={i}>{e.quote}</blockquote>)}</>}
   </div>;
+}
+
+
+export function eventEditRequest(change: Change, claim: Claim, form: FormData) {
+  return { expected_revision: change.revision, expected_claim_version: change.candidate_versions?.[claim.id],
+    claim_id: claim.id, actor: form.get("actor"), reason: form.get("reason"), event: form.get("event"),
+    evidence: form.getAll("evidence").map(index => ({ block_id: claim.evidence[Number(index)].block_id, quote: claim.evidence[Number(index)].quote })) };
+}
+
+export function EventEditor({ change, busy, onSubmit }: {
+  change: Change; busy: boolean; onSubmit: (value: ReturnType<typeof eventEditRequest>) => Promise<void>;
+}) {
+  const candidates = change.candidates.filter(c => c.role === "event_entity" && c.raw && !c.superseded_by?.length && !c.extraction_error);
+  const [id, setId] = useState(candidates[0]?.id || "");
+  const [validation, setValidation] = useState("");
+  const claim = candidates.find(c => c.id === id);
+  return <details className="rounded border bg-white p-4"><summary>원문 근거로 문장 직접 수정</summary>
+    <p className="text-sm">업무 내용 문장과 그 안의 조건만 수정합니다. 연결된 대상 목록·관계형 주장·대체된 후보는 편집하지 않습니다. 수정은 승인이 아니며 정상 의미 보존과 업무 요구를 다시 확인합니다.</p>
+    {!claim ? <p>이 실행에는 편집 가능한 업무 내용 문장이 없습니다.</p> : <>
+      <label className="block">수정할 문장<select className={field} value={id} onChange={e => setId(e.target.value)} disabled={busy}>{candidates.map(c => <option key={c.id} value={c.id}>{c.statement}</option>)}</select></label>
+      <form key={claim.id} className="mt-3 space-y-3" onChange={() => setValidation("")} onSubmit={e => {
+        e.preventDefault(); const form = new FormData(e.currentTarget);
+        if (!form.getAll("evidence").length) { setValidation("수정 근거를 하나 이상 선택하세요."); return; }
+        onSubmit(eventEditRequest(change, claim, form));
+      }}>
+        {validation && <p role="alert" className="text-red-800">{validation}</p>}
+        <p className="text-sm">유지되는 연결 대상: {claim.raw?.Entity.join(" / ")}</p>
+        <p className="text-sm">기존 조건·예외·기간·참조 중 정상 내용도 아래 문장에 보존하세요. 이전 해석은 이력으로 남고 수정문에 대한 검증으로 재사용되지 않습니다.</p>
+        {([['conditions', claim.conditions?.join(' / ')], ['exceptions', claim.exceptions?.join(' / ')], ['period', claim.period], ['references', claim.references?.join(' / ')]] as const).map(([key, value]) => value ? <p key={key}>{meaningFields[key]}: {value}</p> : null)}
+        <label className="block">수정 문장 (조건 포함)<textarea name="event" required className={field} defaultValue={claim.raw?.Event} /></label>
+        <fieldset className="max-h-72 overflow-auto rounded border p-2"><legend>수정 근거 선택</legend>{claim.evidence.filter(e => e.quote).map(e => <label key={claim.evidence.indexOf(e)} className="block whitespace-pre-wrap"><input type="checkbox" name="evidence" value={claim.evidence.indexOf(e)} /> {e.quote}</label>)}</fieldset>
+        <label className="block">수정자<input name="actor" required className={field} /></label>
+        <label className="block">수정 이유<textarea name="reason" required className={field} /></label>
+        <button className={button} disabled={busy || !change.candidate_versions?.[claim.id]}>수정 저장·재검수</button>
+      </form>
+    </>}
+  </details>;
 }
 
 
@@ -46,7 +83,9 @@ function retryCapacityFields(run: Run): RetryLimit[] {
 
 export function resumeBusinessRequest(run: Run, limits: Record<string, number>) {
   const changed = Object.fromEntries(retryCapacityFields(run).filter(f => f.key in limits).map(f => [f.key, limits[f.key]]));
-  return { ...run.recipe.options, ...changed, resume_run_id: run.id, reuse_run_id: null };
+  const edited = run.repairs.some(r => r.origin === "user") || !!run.recipe.options.reassess_run_id;
+  return { ...run.recipe.options, ...changed, resume_run_id: edited ? null : run.id, reuse_run_id: null,
+    reassess_run_id: edited ? run.id : null, ...(edited ? { repair: false } : {}) };
 }
 
 export function CapacityRetrySettings({ run, values, onChange }: {
@@ -154,8 +193,12 @@ export default function KnowledgeBusiness({ request, sources, visible }: { reque
           {a.representation?.source_checks?.filter(c => c.meaning_key === m.key).map(c => <div key={c.meaning_key} className="text-sm"><p>요구 필수 범위: {c.required_for_requirement ? '해당' : '해당하지 않음'}</p><p>{Object.entries(c.field_checks).map(([k, v]) => `${meaningFields[k] || k}: ${v === 'not_applicable' ? '주장 내용 없음' : status[v] || v}`).join(' · ')}</p><p>{c.reason}</p></div>)}
           {m.evidence.map((e, i) => <blockquote key={i} className="whitespace-pre-wrap bg-slate-50 p-2">{e.quote}</blockquote>)}</div>)}
       </details>)}
-      {(run.repairs || []).map(r => <details key={r.id} className="rounded border p-3"><summary>교정·누락 복구 · {status[r.status] || r.status}</summary>{r.changes.map(c => <RepairChange key={c.after.id} before={c.before} after={c.after} claims={r.after || []} />)}</details>)}
+      {(run.repairs || []).map(r => <details key={r.id} className="rounded border p-3"><summary>교정·누락 복구 · {status[r.status] || r.status}</summary>{r.origin === "user" && <p>직접 입력 · 수정자: {r.actor} · 이유: {r.reason}</p>}{r.origin === "model" && <p>모델 제안으로 교정</p>}{r.changes.map(c => <RepairChange key={c.after.id} before={c.before} after={c.after} claims={r.after || []} />)}</details>)}
     </div>}
+    {change && <EventEditor key={change.id} change={change} busy={busy || running} onSubmit={value => action(async () => {
+      const next = await request<{ run_id: string }>(`/business/changes/${change.id}/edits`, json(value));
+      setAccepted([]); await loadRun(next.run_id); setNotice("수정 기록을 저장했습니다. 재검수 후 승인할 항목을 다시 선택하세요.");
+    })} />}
     {change && <form className="space-y-3 rounded border bg-white p-4" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); action(async () => { const value = await request<{ snapshot_id: string }>(`/business/changes/${change.id}/decisions`, json({ expected_revision: change.revision, actor: f.get("actor"), reason: f.get("reason"), accept_ids: accepted })); setSnapshotId(value.snapshot_id); setAccepted([]); await loadRun(run!.id); setNotice("선택한 지식을 검토 버전으로 저장했습니다."); }); }}>
       <h3 className="font-semibold">원문 대조 후 승인할 지식 선택</h3><p className="text-sm">자동 검수는 사람의 승인이 아닙니다. 목록에서 검토한 항목을 직접 선택하세요. 검색용 개념을 승인된 상위 유형으로 승격하지 않습니다.</p>
       <div className="max-h-80 overflow-auto">{change.candidates.map(c => <div key={c.id} className="mb-2"><label><input type="checkbox" disabled={!change.eligible_ids.includes(c.id) || busy} checked={accepted.includes(c.id)} onChange={e => setAccepted(toggle(accepted, c.id, e.target.checked))} /> {c.statement}</label>{!change.eligible_ids.includes(c.id) && <span className="text-amber-800"> · 근거·표현 확인 미완료</span>}<details><summary>근거</summary>{c.evidence.map((e, i) => <blockquote key={i}>{e.quote || `원문 구간 ${e.block_id} (${e.precision || '구간 단위'})`}</blockquote>)}</details></div>)}</div>
