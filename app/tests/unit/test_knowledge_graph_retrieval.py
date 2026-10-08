@@ -100,7 +100,8 @@ def test_unlinked_source_passage_remains_retrievable_without_invented_claims():
 def test_product_query_runs_filter_then_qa_and_does_not_pass_concepts_as_facts(tmp_path, monkeypatch):
     s = snapshot()
     service = KnowledgeService(tmp_path/'knowledge.db')
-    original = dict(id='origin', status='succeeded', units=[], model_identity={}, recipe={})
+    original = dict(id='origin', status='succeeded', units=[], model_identity={},
+                    recipe=dict(options=dict(context_tokens=49152, review_tokens=4096)))
     with service.repository.connect() as db:
         db.execute('INSERT INTO snapshots VALUES(?,?)', ('s', json.dumps(s)))
         db.execute('INSERT INTO runs VALUES(?,?)', ('origin', json.dumps(original)))

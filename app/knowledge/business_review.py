@@ -233,12 +233,73 @@ def source_selection(run, requirement):
                         lookup_miss=bool(bindings and not matched)))
 
 
+INSPECTION_ERRORS = {'local_source_inspection_scope_mismatch', 'local_source_inspection_incomplete',
+                     'local_source_call_failed'}
+
+
+def pending_inspections(source):
+    """Accumulate declared coverage over the same target; keep errors until fully covered."""
+    from .business_run import exact_evidence
+    pending = {}
+    batches = source.get('source_batches', [])
+    for batch in batches:
+        if not INSPECTION_ERRORS.intersection(e for e in batch.get('errors', []) if isinstance(e, str)):
+            continue
+        output = batch.get('output') or {}
+        targets = set(batch.get('target_block_ids', []))
+        if not targets or not batch.get('unit_id'):
+            continue
+        declared = set(output.get('examined_block_ids', []))
+        if output.get('inspection_status') == 'complete' and declared <= set(batch['provided_block_ids']):
+            targets -= declared
+        expected = source.get('inspection_rechecks', {}).get(batch['unit_id'])
+        if expected:
+            views = []
+            for followup in batches:
+                result = followup.get('output') or {}
+                declared = set(result.get('examined_block_ids', []))
+                if (batch['unit_id'] not in followup.get('reinspection_of', [])
+                        or (INSPECTION_ERRORS - {'local_source_inspection_scope_mismatch'}).intersection(
+                            e for e in followup.get('errors', []) if isinstance(e, str))
+                        or followup.get('inspection_context') != expected['context']
+                        or result.get('inspection_status') != 'complete'
+                        or not declared <= set(followup['provided_block_ids'])):
+                    continue
+                views.extend(dict(id=e['block_id'], text=e['quote'], span=[e['start_char'], e['end_char']],
+                    source_version_id=e['source_version_id'], parse_run_id=e['parse_run_id'])
+                    for e in followup.get('target_evidence', [])
+                    if e['block_id'] in declared.intersection(followup['target_block_ids']))
+            for ref in expected['targets']:
+                try:
+                    if exact_evidence([ref], views):
+                        targets.discard(ref['block_id'])
+                except ValueError:
+                    pass
+        if targets:
+            pending[batch['unit_id']] = targets
+    return pending
+
+
 def needs_source_read(source, representation):
     selection = source.get('source_selection', {})
     unread = set(selection.get('unselected_block_ids', []))
     # A lexical hit or an ID inventory never proves other prose unnecessary.
-    return bool(unread and (not unread <= set(selection.get('exact_row_excluded_block_ids', []))
-                            or representation.get('unselected_source_required') is not False))
+    return bool(pending_inspections(source) or unread and (
+        not unread <= set(selection.get('exact_row_excluded_block_ids', []))
+        or representation.get('unselected_source_required') is not False))
+
+
+def inspection_summaries(source):
+    """Expose current verified coverage beside unchanged historical errors."""
+    pending = pending_inspections(source)
+    return [{k: batch[k] for k in ('unit_id', 'target_block_ids', 'provided_block_ids', 'errors') if k in batch}
+            | dict(inspection_status=(batch.get('output') or {}).get('inspection_status'),
+                reinspection_of=batch.get('reinspection_of', []),
+                remaining_target_block_ids=sorted(pending.get(batch.get('unit_id'), [])),
+                inspection_error_active=bool(INSPECTION_ERRORS.intersection(
+                    e for e in batch.get('errors', []) if isinstance(e, str))) and (
+                    batch.get('unit_id') in pending or batch.get('unit_id') not in source.get('inspection_rechecks', {})))
+            for batch in source.get('source_batches', [])]
 
 
 def related_blocks(run, meanings, claims=(), *, chunks=None):
@@ -850,17 +911,29 @@ def source(service, run, requirement, *, previous=None):
     merged = dict(examined_block_ids=[], meanings=[], completeness='unknown', gaps=[], conjunctions=[],
                   meaning_gaps=[], meaning_conjunctions=[], findings=[], source_selection=selection,
                   source_batches=[], review_contract=run['recipe']['review_contract'] if separated(run) else 'requirement-local-review-v4')
+    rechecks = {}
+    inspection_context = dict(requirement_id=requirement['id'], revision=requirement.get('revision'),
+        source_version_ids=sorted({b['source_version_id'] for b in source_blocks(run, requirement)}))
     if previous is not None:
         merged = deepcopy(previous)
-        unread = set(previous['source_selection']['unselected_block_ids'])
+        rechecks = pending_inspections(previous)
+        unread = set(previous['source_selection']['unselected_block_ids']) | set().union(*rechecks.values())
+        for unit_id, ids in rechecks.items():
+            expected = dict(context=inspection_context, targets=execution.exact_evidence([
+                dict(block_id=b['id'], quote=b['text']) for b in source_blocks(run, requirement) if b['id'] in ids], run['blocks']))
+            existing = merged.setdefault('inspection_rechecks', {}).setdefault(unit_id, expected)
+            if existing['context'] != inspection_context:
+                raise ValueError('source_reinspection_context_changed')
         options = run['recipe']['options']
         bundles = autoschema.chunks(source_blocks(run, requirement), options['context_tokens'],
                                    options.get('source_tokens') or options['review_tokens'], 1000)
         bundles = [c for c in bundles if any(b['id'] in unread and not b.get('context_only') for b in c['blocks'])]
+        bundles = [dict(c, blocks=[dict(b, context_only=True) if b['id'] not in unread else b
+                                   for b in c['blocks']]) for c in bundles]
         selected = set(previous['source_selection']['selected_block_ids']) | {
             b['id'] for c in bundles for b in c['blocks'] if not b.get('context_only')}
         merged['source_selection'].update(selected_block_ids=sorted(selected), unselected_block_ids=sorted(unread - selected),
-                                          additional_read_reason='unselected_source_requires_inspection')
+                                          additional_read_reason='incomplete_source_inspection' if rechecks else 'unselected_source_requires_inspection')
     if run['recipe']['review_contract'] in {ANSWER_SCOPE_EXPERIMENT, MEANING_SELECTION_EXPERIMENT}:
         merged.update(answer_scope_contract=ANSWER_SCOPE_CONTRACT,
                       answer_request={k: requirement.get(k, '') for k in ('question', 'criterion')})
@@ -873,7 +946,12 @@ def source(service, run, requirement, *, previous=None):
         provided = {b['id'] for b in bundle['blocks']}
         targets = {b['id'] for b in bundle['blocks'] if not b.get('context_only')}
         receipt = dict(chunk_id=bundle['id'], provided_block_ids=sorted(provided), target_block_ids=sorted(targets),
-                       unit_id=response_unit_id(run), output=deepcopy(output), meaning_keys=[], errors=[])
+                       unit_id=response_unit_id(run), output=deepcopy(output), meaning_keys=[], errors=[],
+                       inspection_context=deepcopy(inspection_context),
+                       target_evidence=execution.exact_evidence([dict(block_id=b['id'], quote=b['text'],
+                           start_char=b.get('span', [0])[0], end_char=b.get('span', [0])[0] + len(b['text']))
+                           for b in bundle['blocks'] if not b.get('context_only')], bundle['blocks']),
+                       reinspection_of=[uid for uid, ids in rechecks.items() if targets.intersection(ids)])
         merged['source_batches'].append(receipt)
         if output is None:
             receipt['errors'].append('local_source_call_failed')
@@ -1465,15 +1543,18 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
                     result['source_challenges'].append(row['reason'])
     if source.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
         required_scope = {m['key'] for m in review_meanings(source)}
+        pending = pending_inspections(source)
         for batch in source.get('source_batches', []):
             for error in batch.get('errors', []):
                 if isinstance(error, dict):
                     if error['meaning_key'] in required_scope and error['meaning_key'] not in source.get('reassessed_meaning_keys', []):
                         gaps.append(error['reason'])
                 else:
-                    gaps.append(error)
+                    if (error not in INSPECTION_ERRORS or batch.get('unit_id') in pending
+                            or batch.get('unit_id') not in source.get('inspection_rechecks', {})):
+                        gaps.append(error)
         if needs_source_read(source, result):
-            gaps.append('관련성 미확정 미선택 원문이 남아 있다.')
+            gaps.append('조사가 끝나지 않은 원문 구간이 남아 있다.')
         source.setdefault('resolution_history', []).append(dict(previous_gaps=source.get('gaps', []),
             previous_meaning_gaps=source.get('meaning_gaps', []), resolutions=deepcopy(current), joined=joined))
         source.update(finding_resolutions=current, gaps=list(dict.fromkeys(gaps)), meaning_gaps=meaning_gaps,
@@ -1846,9 +1927,7 @@ source_completeness는 필수 범위 조사 상태이며 unselected_source_requi
                     or any(c['meaning_key'] == row['meaning_key'] for c in compact['meaning_challenges'])))}
                 for row in compact[field]] for field in (('checks', 'dependencies') if split_roles
                     else ('checks', 'source_checks', 'dependencies'))}, local_failures=failures,
-            source_inspections=[{k: batch[k] for k in ('unit_id', 'target_block_ids', 'provided_block_ids', 'errors') if k in batch}
-                | dict(inspection_status=(batch.get('output') or {}).get('inspection_status'))
-                for batch in source.get('source_batches', [])],
+            source_inspections=inspection_summaries(source),
             preservation_targets=[dict(target_id=v['before']['id'], after_id=v['after']['id'])
                 for r in context for v in r['changes'] if v['before'] and v['after']],
             **(dict(repair_context=[dict(r, targets=[{k: v for k, v in target.items() if k != 'review_records'}

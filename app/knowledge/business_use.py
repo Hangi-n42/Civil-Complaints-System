@@ -198,6 +198,13 @@ def decide(service, changeset_id, request):
                         blocks=deepcopy(run['blocks']), assertions={}, entity_links={},
                         ontology_version_id=None, activation='explicit_query_only')
         snapshot['explicit_meaning_reviews'] = deepcopy(explicit)
+        direct = business_review.current_candidate_reviews(run)
+        snapshot['reviewed_claim_evidence'] = {
+            c['id']: dict(claim_version=business_run.autoschema.identifier('claim', c),
+                receipt_id=direct[c['id']]['receipt_id'], unit_id=direct[c['id']]['unit_id'],
+                evidence=deepcopy(direct[c['id']]['check']['evidence']))
+            for c in selected if c['id'] in direct
+            and direct[c['id']]['check']['claim_support'].get(c['id']) == 'supported'}
         db.execute('INSERT INTO snapshots VALUES(?,?)', (snapshot['id'], encode(snapshot)))
         db.execute('INSERT INTO snapshot_events VALUES(?,?)', (decision['id'], encode(dict(
             decision, event='reviewed_source_graph_snapshot', snapshot_id=snapshot['id']))))

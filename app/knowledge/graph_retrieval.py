@@ -46,15 +46,33 @@ def normalize(values):
     return np.ones_like(values) if span == 0 else (values - np.min(values)) / span
 
 
+def reviewed_evidence(snapshot, claim):
+    """Project whole-candidate review evidence only for the unchanged approved claim."""
+    review = snapshot.get('reviewed_claim_evidence', {}).get(claim['id'], {})
+    if (claim.get('review_status') != 'accepted' or not review.get('receipt_id') or not review.get('unit_id')
+            or review.get('claim_version') != autoschema.identifier('claim', claim)):
+        return claim.get('evidence', [])
+    try:
+        refs = business_run.exact_evidence(review.get('evidence', []), snapshot['blocks'])
+        if (refs and refs == review['evidence'] and all(e['source_version_id'] in claim['source_version_ids']
+                and any(all(old.get(k) == e[k] for k in ('source_version_id', 'parse_run_id', 'block_id'))
+                        and old['start_char'] <= e['start_char'] < e['end_char'] <= old['end_char']
+                        for old in claim.get('evidence', [])) for e in refs)):
+            return refs
+    except ValueError:
+        pass
+    return claim.get('evidence', [])
+
+
 def build(snapshot, variant):
     """Keep source-specific identities and parallel edges; concepts are search only."""
+    claims = {c['id']: dict(c, evidence=reviewed_evidence(snapshot, c)) for c in snapshot['claims']}
     extracted = autoschema.graph(snapshot['claims'])
     graph = nx.MultiDiGraph()
     for node in extracted['nodes']:
         if variant == 'entity' and node['kind'] != 'entity':
             continue
         graph.add_node(node['id'], **{k: v for k, v in node.items() if k != 'id'})
-    claims = {c['id']: c for c in snapshot['claims']}
     edges = []
     for edge in extracted['edges']:
         if edge['head'] in graph and edge['tail'] in graph:
@@ -258,10 +276,8 @@ def retrieve(service, run, snapshot, request):
         topk_edges=30, topk_nodes=10, selected_edge_ids=[], fallback=None)
     run['graph_retrieval'] = trace
     query = request.question + '\n' + '\n'.join(request.choices)
-    search_texts = {pid: p['text'] for pid, p in passages.items()}
-    if run.get('answer_basis') == 'source_passages_not_ontology_approval':
-        search_texts = passage_search_texts(passage_candidates(passages), snapshot['blocks'], run['recipe']['options'])
-        run['passage_index'] = dict(contract=INDEX_CONTRACT, texts=search_texts)
+    search_texts = passage_search_texts(passage_candidates(passages), snapshot['blocks'], run['recipe']['options'])
+    run['passage_index'] = dict(contract=INDEX_CONTRACT, texts=search_texts)
     # Cached only on this service and immutable snapshot content; model/settings are in key.
     cache = getattr(service, '_graph_embedding_cache', {})
     key = autoschema.identifier('index', [snapshot['id'], request.graph_variant,
