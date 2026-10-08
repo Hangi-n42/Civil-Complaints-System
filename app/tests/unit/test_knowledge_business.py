@@ -571,7 +571,7 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
             else: raise AssertionError(request.stage)
             if request.schema:
                 jsonschema.validate(output, request.schema)
-            return dict(text='기관, 접수처' if output is None else json.dumps(output, ensure_ascii=False), parsed=output,
+            return dict(request_id=request.request_id, text='기관, 접수처' if output is None else json.dumps(output, ensure_ascii=False), parsed=output,
                         failure_kind=None, elapsed_s=.001, prompt_eval_count=10, eval_count=5, done=True, done_reason='stop')
     monkeypatch.setattr(business_run, 'ModelClient', FakeClient)
     service = KnowledgeService(tmp_path / 'knowledge.db')
@@ -631,6 +631,16 @@ def test_requirement_revision_and_service_review_path(tmp_path, monkeypatch):
         assert all(u['reused_from']['run_id'] == run['id'] for u in reassessed['units'])
         assert not reassessed['stored_pool']['approval_inherited']
         assert all(u['stage'] not in autoschema.ROLES for u in reassessed['units'])
+        continued = finish(service, service.start_business(BusinessRunRequest(source_version_ids=[vid],
+            requirement_ids=['r1'], resume_run_id=reassessed['id']))['run_id'])
+        assert continued['status'] == 'review_ready', continued.get('error')
+        assert continued['stored_pool'] == reassessed['stored_pool']
+        assert continued['reference_meanings'] == reassessed['reference_meanings']
+        assert continued['claims'] == reassessed['claims'] and continued['concepts'] == reassessed['concepts']
+        assert continued['metrics']['llm_calls'] == 0
+        assert continued['metrics']['reused_responses'] == len(reassessed['units'])
+        assert all(u['stage'] not in autoschema.ROLES and u['reused_from']['run_id'] == reassessed['id']
+                   for u in continued['units'])
         from app.knowledge import snapshots
         from app.knowledge.business_models import BusinessQuery
         query = BusinessQuery(question='접수 기관은?', snapshot_id=result['snapshot_id'], retrieval='bm25')

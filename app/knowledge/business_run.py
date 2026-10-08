@@ -195,6 +195,12 @@ def start(service, request):
                 construction_recipe=deepcopy(parent.get('stored_pool', {}).get('construction_recipe') or parent['recipe']),
                 construction_model_identity=deepcopy(parent.get('stored_pool', {}).get('construction_model_identity') or parent['model_identity']),
                 assessment_inherited=False, approval_inherited=False)
+        elif request.resume_run_id and parent.get('stored_pool'):
+            # Resume the same stored input; rebuilding references would change cached requests.
+            for key in ('claims', 'graph', 'concepts', 'extraction_rejections', 'source_corrections',
+                        'answer_items', 'prior_repairs', 'reference_meanings', 'stored_pool'):
+                if key in parent:
+                    run[key] = deepcopy(parent[key])
         db.execute('INSERT INTO runs VALUES(?,?)', (run['id'], encode(run)))
     service.executor.submit(execute, service, run['id'])
     return dict(run_id=run['id'], status='queued')

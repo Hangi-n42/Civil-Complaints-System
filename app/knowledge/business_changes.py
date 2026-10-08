@@ -9,7 +9,7 @@ from typing import Literal
 
 from app.core.config import settings
 from app.generation.model_client import configuration, ModelClient
-from . import business_run
+from . import autoschema, business_run, business_review
 from .service import KnowledgeConflict, encode, utcnow
 
 
@@ -61,13 +61,80 @@ def differences(before, after, key_fields):
     return dict(changes=changes, unchanged=unchanged, comparison='exact_row_values' if key_fields else 'ordered_source_text')
 
 
+def stored_dependencies(service, requirements):
+    """Read the exact assessment behind each pointer, retaining its semantic limits."""
+    records, blocks = [], {}
+    with service.repository.connect() as db:
+        for requirement in requirements:
+            pointer = requirement.get('current_assessment')
+            record = dict(requirement_id=requirement['id'], assessment_pointer={k: pointer[k] for k in
+                          ('run_id', 'assessment_id', 'revision', 'source_version_ids')} if pointer else None,
+                          status='unassessed' if not pointer else 'unavailable')
+            records.append(record)
+            if not pointer:
+                continue
+            try:
+                prior = service.repository.get(db, 'runs', pointer['run_id'])
+            except KeyError:
+                continue
+            assessment = next((a for a in prior.get('assessments', []) if a['id'] == pointer['assessment_id']), None)
+            if (not assessment or assessment['requirement_id'] != requirement['id']
+                    or assessment['revision'] != requirement['revision']
+                    or pointer['revision'] != requirement['revision']
+                    or pointer['source_version_ids'] != prior['input_version_ids']):
+                continue
+            source = assessment.get('source') or {}
+            meanings = [business_review.join_source_meaning(m) for m in source.get('meanings', [])]
+            representation = assessment.get('representation') or {}
+            checks = [{k: c[k] for k in ('meaning_key', 'status', 'claim_ids', 'incorrect_claim_ids') if k in c}
+                      for c in representation.get('checks', [])]
+            ids = set(assessment.get('claim_ids', [])) | {cid for c in checks
+                for key in ('claim_ids', 'incorrect_claim_ids') for cid in c.get(key, [])}
+            linked = [c for c in prior.get('claims', []) if c['id'] in ids]
+            claims = [business_run.compact_claim(c) for c in linked]
+            options = prior['recipe']['options']
+            related = business_review.related_blocks(prior, meanings, linked,
+                chunks=autoschema.chunks(prior['blocks'], options['context_tokens'], options['review_tokens'], 1))
+            for b in related:
+                blocks[b['source_version_id'], b['id'], tuple(b.get('span', []))] = b
+            record.update(status='provided', assessment_id=assessment['id'], run_id=prior['id'],
+                meanings=meanings, representation_checks=checks,
+                dependencies=representation.get('dependencies'), conjunctions=source.get('conjunctions'),
+                meaning_conjunctions=source.get('meaning_conjunctions'), claims=claims,
+                source_block_ids=list(dict.fromkeys(b['id'] for b in related)))
+    return records, list(blocks.values())
+
+
 def review_impacts(service, run, requirements, diff, versions, direct):
+    dependencies, blocks = stored_dependencies(service, requirements)
+    # Full receipts remain in the run. Reuse existing projections for repeated
+    # source quotations and audit fields without dropping semantic uncertainty.
+    changes = []
+    for change in diff['changes']:
+        value = dict(change)
+        if 'source_corrections' in value:
+            value['source_corrections'] = [{k: business_review.join_source_meaning(v) if k in {'before', 'after'} else v
+                for k, v in c.items() if k in {'id', 'requirement_id', 'before', 'after', 'fields', 'mode', 'status'}}
+                for c in value['source_corrections']]
+        if 'changes' in value:
+            value['changes'] = [{k: business_run.compact_claim(v) if v and k in {'before', 'after'} else v
+                                for k, v in c.items()} for c in value['changes']]
+        changes.append(value)
     result = business_run.json_call(service, run, 'change_impact',
         '원문 또는 근거 해석·후보 전후의 실제 변경과 각 업무 요구의 범위/조건을 대조한다. 기존 연결은 영향 후보이며 영향 확정이 아니다. '
         '기존 연결이 없어도 새 조건·예외·대상으로 관련되는 요구를 affected/new_relevance로 찾는다. '
         '각 요구를 빠짐없이 판정하고 실제 변경 id와 이유를 기록한다. 미변경 행/다른 대상은 유지한다. '
+        'stored_dependencies의 실제 저장 의미·조건·후보·전제와 blocks를 변경 전후에 대조한다. '
+        '저장 의미와 후보의 검수상태는 이전 판단이며 원문 지지의 정답이 아니다. '
+        '정정의 소유 요구 ID가 다르다는 이유만으로 비영향으로 판정하지 않는다. '
+        'unaffected에는 저장 의미와 변경의 독립성 또는 의미가 그대로 유지되는 구체 근거가 필요하다. '
+        '저장 연결이 없는 unassessed는 비영향의 증거가 아니다. unavailable이나 미확정 전제는 독립성 증거가 아니다. '
         '자료없는 보행·수요·안전·인과 효과는 추정하지 않는다. 결정 불가하면 unknown이다.',
-        dict(requirements=requirements, direct_dependency_ids=direct, diff=diff, versions=versions), Impacts)
+        dict(requirements=[{k: v for k, v in r.items() if k not in {'history', 'change_history', 'current_assessment'}} for r in requirements],
+             direct_dependency_ids=direct, diff=dict(diff, changes=changes), versions=versions,
+             stored_dependencies=dependencies, blocks=blocks,
+             source_parents=[dict(block_id=b['id'], parent_block_ids=[p['id'] for p in autoschema.list_parents(b, blocks)])
+                             for b in blocks if autoschema.list_parents(b, blocks)]), Impacts)
     valid = bool(result and len(result['items']) == len(requirements)
         and {r['requirement_id'] for r in result['items']} == {r['id'] for r in requirements})
     if valid and any(not set(r['change_ids']) <= {c['id'] for c in diff['changes']} for r in result['items']):
@@ -75,7 +142,26 @@ def review_impacts(service, run, requirements, diff, versions, direct):
     if not valid:
         result = dict(items=[dict(requirement_id=r['id'], status='unknown', reason='불완전 변경 검수',
                                   change_ids=[], new_relevance=False) for r in requirements])
+    unavailable = {d['requirement_id'] for d in dependencies if d['status'] == 'unavailable'}
+    for impact in result['items']:
+        if impact['requirement_id'] in unavailable:
+            impact.update(status='unknown', reason='현재 평가 포인터에 일치하는 저장 의미·근거를 확인할 수 없음')
     return result, valid
+
+
+def apply_impacts(service, run, requirements, impacts):
+    """Share the same stale-assessment guard for source and interpretation changes."""
+    with service.lock, service.repository.connect() as db:
+        for impact in impacts:
+            current = service.repository.get(db, 'requirements', impact['requirement_id'])
+            before = next(r for r in requirements if r['id'] == current['id'])
+            if (current['revision'] != before['revision']
+                    or current.get('current_assessment') != before.get('current_assessment')):
+                impact.update(status='unknown', reason='판정 중 요구 또는 현재 평가 변경')
+            current.setdefault('change_history', []).append(dict(run_id=run['id'], impact=impact, recorded_at=utcnow()))
+            if impact['status'] != 'unaffected':
+                current['status'] = 'needs_review'
+            service.repository.save(db, 'requirements', current)
 
 
 def analyze(service, request):
@@ -116,16 +202,8 @@ def analyze(service, request):
     # ponytail: inspect all selected requirements, including unlinked ones. Add a
     # measured candidate index only when the requirement inventory outgrows this.
     result, valid = review_impacts(service, run, requirements, diff, versions, direct)
+    apply_impacts(service, run, requirements, result['items'])
     with service.lock, service.repository.connect() as db:
-        for impact in result['items']:
-            current = service.repository.get(db, 'requirements', impact['requirement_id'])
-            old = next(r for r in requirements if r['id'] == current['id'])
-            if current['revision'] != old['revision']:
-                impact.update(status='unknown', reason='판정 중 요구 버전 변경')
-            current.setdefault('change_history', []).append(dict(run_id=run['id'], impact=impact, recorded_at=utcnow()))
-            if impact['status'] != 'unaffected':
-                current['status'] = 'needs_review'
-            service.repository.save(db, 'requirements', current)
         run.update(status='cancelled' if run['status'] == 'cancel_requested' else 'succeeded' if valid else 'partial', impacts=result['items'], finished_at=utcnow())
         run['metrics']['elapsed_s'] = monotonic() - started
         service.repository.save(db, 'runs', run)

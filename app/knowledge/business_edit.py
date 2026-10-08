@@ -177,22 +177,16 @@ def recheck(service, run_id):
                 review=max(options['context_tokens'], options.get('representation_context_tokens') or options['context_tokens'])))
         receipt = run['repairs'][-1]
         if run.get('impact_candidates'):
-            from .business_changes import review_impacts
+            from .business_changes import review_impacts, apply_impacts
             diff = dict(changes=[dict(id=receipt['id'], kind='interpretation_or_candidate',
                 changes=receipt['changes'], source_corrections=[c for c in run['source_corrections'] if c['edit_id'] == receipt['id']])], unchanged=[])
             impacts, valid = review_impacts(service, run, run['impact_candidates'], diff, run['sources'], [])
+            apply_impacts(service, run, run['impact_candidates'], impacts['items'])
             run['edit_impact'].update(items=impacts['items'], record_valid=valid)
             needs_review = {i['requirement_id'] for i in impacts['items'] if i['status'] != 'unaffected'}
             run['edit_impact']['pending_requirement_ids'] = sorted(needs_review)
             # Existing change workflow marks related requirements stale. It does
             # not turn a small edit into extraction/review of every stored task.
-            with service.lock, service.repository.connect() as db:
-                for impact in impacts['items']:
-                    current = service.repository.get(db, 'requirements', impact['requirement_id'])
-                    current.setdefault('change_history', []).append(dict(run_id=run['id'], impact=deepcopy(impact), recorded_at=utcnow()))
-                    if impact['requirement_id'] in needs_review:
-                        current['status'] = 'needs_review'
-                    service.repository.save(db, 'requirements', current)
         reviewed = []
         for requirement in run['requirements']:
             if business_run.cancelled(service, run):
