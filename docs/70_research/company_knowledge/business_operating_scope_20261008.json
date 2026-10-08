@@ -1,0 +1,187 @@
+{
+  "start_head": "c7952c738b489538f63ccb0344bae277516aab8d",
+  "date": "2026-10-08",
+  "scope": "Existing evidence audit and replacement display fix; no new inference or approval",
+  "new_activity": {
+    "model_calls": 0,
+    "repairs": 0,
+    "approvals": 0,
+    "qa_calls": 0,
+    "default_contract_changes": 0
+  },
+  "roles": [
+    {
+      "role": "source_meaning",
+      "result": "mixed; source_exposed bounded success; source_blind scope failure",
+      "runs": [
+        "e180f6cb81f44c43a872a6f850011722",
+        "c52d10ce0ce6413d842faa811cf481ab"
+      ]
+    },
+    {
+      "role": "whole_candidate_support",
+      "result": "c47 failure remains; narrower context and correct source reference insufficient",
+      "runs": [
+        "833f0da486ff45dba3cd8467a5f3b60e",
+        "522cd3233f004289a7ee298cc2a8b879",
+        "8f558efe88a84662b49ee44e2eb59c94",
+        "5091a876903d4a43855a835e02001305",
+        "b1bfb046aad84cf98def47eae197e223",
+        "8a090d8126d74c04a8451552f8b28dae",
+        "2543a48fcbdc483f90acae3fb8285209"
+      ]
+    },
+    {
+      "role": "editing_with_error_location",
+      "result": "c116 reused existing c89; not stored fresh generated statement",
+      "unit_id": "cc91e765f4ed44e1b10bcbc2ede597a0",
+      "error_fields": {
+        "claim_b040fc7be8bc9d01cb2fadc8": [
+          "raw.Relation"
+        ]
+      },
+      "reuse_claim_ids": [
+        "claim_b75ccdd9c2c09c66d0f5428a"
+      ]
+    },
+    {
+      "role": "normal_meaning_preservation",
+      "assessment_id": "245f637b3ac14d4789e98fed496ea456",
+      "recorded_status": "satisfied",
+      "checks": [
+        {
+          "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+          "status": "preserved",
+          "before_normal_meanings": [
+            "geumryongsan_center_scope"
+          ],
+          "after_locations": [
+            "claim_b75ccdd9c2c09c66d0f5428a",
+            "claim_d34252c5e269cb5463c100c6"
+          ],
+          "reason": "c116의 'at the same time' 관계 오류는 제거되었고, 금련산센터의 정상 업무 범위 의미는 c89과 c105에 의해 원문(b146)과 일치하게 표현되어 보존되었습니다."
+        }
+      ],
+      "limit": "one stored replacement case; not general proof"
+    },
+    {
+      "role": "storage_and_downstream",
+      "result": "c116 supersession and graph consumption previously verified; R05 full QA still failed",
+      "report": "business_selection_repair_20261007.md"
+    }
+  ],
+  "no_label_edit": {
+    "run_id": "55d15375fedd43a799e13c11f6a04b5d",
+    "c47": "unchanged raw; correction failed",
+    "c13": "preserved",
+    "c46": "source-supported unnecessary enrichment",
+    "not_equivalent_to": "error-conditioned native edit"
+  },
+  "display_fix": {
+    "issue": 617,
+    "provenance": {
+      "kind": "read-only projection of existing actual repair; no new model call",
+      "database": "data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db",
+      "sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+      "run_id": "cedacf0841e540cf83934db6d821140c",
+      "repair_id": "93c2a734b3c74199930312341e763cb0",
+      "projection": "receipt.changes before/after: id, statement, superseded_by; replacements from receipt.after; evidence restricted to original repair source b146"
+    },
+    "fixture_matches_receipt": true,
+    "replacement_pool": "repair.after immutable historical claim snapshot",
+    "current_run_claims_used": false,
+    "missing_replacement": "explicit unavailable; never old statement as after",
+    "ordinary_edit_and_recovery": "preserved",
+    "stored_replacement_is_approval": false
+  },
+  "rejected_guard_relaxation": {
+    "result": "not independently demonstrated defect",
+    "dependencies": [
+      "decide snapshots all sources, blocks, requirements, assessments, concepts",
+      "query checks all snapshot source restrictions",
+      "document baseline consumes snapshot blocks"
+    ],
+    "change_made": false
+  },
+  "validation": {
+    "before": {
+      "passed": 3,
+      "failed": 2
+    },
+    "after": {
+      "passed": 5,
+      "failed": 0,
+      "duration_ms": 157
+    },
+    "eslint_exit_code": 0,
+    "typescript_exit_code": 0,
+    "browser_render": "actual RepairChange static render inspected; not full API end-to-end",
+    "prior_13_backend_tests_repeated": false
+  },
+  "databases": [
+    {
+      "path": "data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db",
+      "sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+      "matches_prior": true,
+      "access": "read-only"
+    },
+    {
+      "path": "/Users/hyeongi/.codex/worktrees/ontology-grounded-recovery/Civil-Complaints-System/data/knowledge/evaluations/autoschemakg_business_20261006/busan_v1/knowledge.db",
+      "sha256": "62f6eda378eb1258d84c6b85e6b2ce414a595fcbeef62260b6cdae22a7fecde3",
+      "matches_prior": true,
+      "access": "hash-only"
+    }
+  ],
+  "artifacts": {
+    "frontend/__tests__/fixtures/knowledgeBusinessReplacement.json": {
+      "sha256": "8fb50deae036c78ecbbf2d921f35136f7acb248e60639e160d2069b2cd0634ce",
+      "bytes": 3982
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/ui_before.log": {
+      "sha256": "8c56a856528dc1a3693ddd14b0cd3d48ea7d63cb24475f53527006be1eaad5a5",
+      "bytes": 5620
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/ui_after.log": {
+      "sha256": "c4afd62e4c1f174a19ea155f1c049b054c38a798bd640194c592a7d6eb1c2d9f",
+      "bytes": 270
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/ui_lint.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/typecheck.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/repair_preview.html": {
+      "sha256": "f4893ac9f86b327ad72d1acf95bbba076074227d65cba1bcdbe617bcaa08cc6e",
+      "bytes": 1729
+    },
+    "data/knowledge/evaluations/business_operating_scope_20261008/issues.json": {
+      "sha256": "086ccb75367f08350814ba26e9960411ae70f466691cb8dd880c3f8d2e9f9d7f",
+      "bytes": 661
+    }
+  },
+  "issues": [
+    {
+      "number": 616,
+      "title": "[업무 지식 R1] 근거·표현·종합 책임 분리와 정상 판정 재사용",
+      "state": "OPEN",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/616"
+    },
+    {
+      "number": 617,
+      "title": "[업무 지식 R2] 오류 귀속부터 부분 교정·정상 의미 보존까지 연결",
+      "state": "OPEN",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/617"
+    },
+    {
+      "number": 620,
+      "title": "[업무 지식 R5] 부산 수정→그래프 QA와 버스 변경 대응의 실제 종단 확인",
+      "state": "OPEN",
+      "url": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/620"
+    }
+  ],
+  "merge": false,
+  "deployment": false
+}

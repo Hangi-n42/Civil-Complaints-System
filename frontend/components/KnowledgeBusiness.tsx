@@ -5,9 +5,9 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 type Request = <T>(path: string, init?: RequestInit) => Promise<T>;
 type Source = { source: { id: string; title: string }; versions: { id: string; processing_status?: string }[] };
 type Requirement = { id: string; question_ids: string[]; question: string; target: string; situation: string; period: string; criterion: string; source_ids: string[]; required: boolean; revision: number; status: string };
-type Claim = { id: string; statement: string; evidence: { block_id: string; quote?: string; precision?: string }[] };
+type Claim = { id: string; statement: string; evidence: { block_id: string; quote?: string; precision?: string }[]; superseded_by?: string[] };
 type Assessment = { id: string; requirement_id: string; phase: string; status: string; errors: string[]; source_scope?: { provided_block_ids: string[]; model_examined_block_ids: string[]; provided_not_declared_ids: string[] }; source?: { gaps: string[]; meanings: { key: string; statement: string; conditions?: string[]; exceptions?: string[]; period?: string; references?: string[]; source_status: string; availability: string; evidence: { quote: string }[] }[] }; representation?: { reason: string; source_challenges?: string[]; source_checks?: { meaning_key: string; required_for_requirement: boolean; field_checks: Record<string, string>; reason: string }[] }; preservation_complete?: boolean };
-type Run = { recipe: { options: Record<string, unknown> }; id: string; status: string; changeset_id?: string; metrics?: { llm_calls: number; reused_responses?: number }; units: { id: string; stage: string; status: string; error?: string }[]; assessments: Assessment[]; repairs: { id: string; status: string; changes: { before?: Claim; after: Claim }[] }[] };
+type Run = { recipe: { options: Record<string, unknown> }; id: string; status: string; changeset_id?: string; metrics?: { llm_calls: number; reused_responses?: number }; units: { id: string; stage: string; status: string; error?: string }[]; assessments: Assessment[]; repairs: { id: string; status: string; changes: { before?: Claim; after: Claim }[]; after?: Claim[] }[] };
 type Change = { id: string; revision: number; candidates: Claim[]; eligible_ids: string[] };
 type Snapshot = { id: string; reason: string; counts: { claims: number } };
 const field = "w-full rounded border border-slate-300 px-3 py-2 text-sm";
@@ -15,6 +15,17 @@ const button = "rounded bg-slate-800 px-3 py-2 text-sm text-white disabled:opaci
 const meaningFields: Record<string, string> = { statement: "문장", conditions: "조건", exceptions: "예외", period: "기간", references: "참조" };
 const status: Record<string, string> = { retrieval_failed: "근거 검색 실패", no_source_passages: "검색할 원문 구간 없음", no_reviewed_claims: "승인된 지식 없음", answered: "답변 생성", unverified: "답변 확인 미완료", unassessed: "미검수", satisfied: "충족", partial: "일부 미완료", unknown: "판정 미확정", needs_review: "변경 후 재검토 필요", review_ready: "검토 대기", running: "실행 중", queued: "대기", failed: "실패", cancelled: "취소됨", cancel_requested: "취소 요청됨", succeeded: "완료", rechecked: "수정 후 요구 재확인", recheck_incomplete: "수정 후 재확인 미완료", supported: "원문 지지", refuted: "원문 반박", provided: "제공됨", missing: "자료 부족", unread: "미읽기", unselected: "미선택", ambiguous: "해석 미확정" };
 const json = (value: unknown, method = "POST") => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+
+export function RepairChange({ before, after, claims }: { before?: Claim; after: Claim; claims: Claim[] }) {
+  const replacements = after.superseded_by || [];
+  return <div className="mt-2"><p>전: {before?.statement || "표현 없음"}</p>
+    {replacements.length ? <><p>후: 기존 후보로 대체</p><p className="text-sm">교정 시점에 저장된 대체 내용입니다. 승인 여부는 별도 검토 결과를 확인하세요.</p>{replacements.map(id => {
+      const replacement = claims.find(c => c.id === id);
+      return replacement ? <div key={id}><p>{replacement.statement}</p>{replacement.evidence.map((e, i) => <blockquote key={i} className="whitespace-pre-wrap">{e.quote || `원문 구간 ${e.block_id}`}</blockquote>)}</div>
+        : <p key={id} className="text-amber-800">대체 후보를 확인할 수 없습니다: {id}</p>;
+    })}</> : <><p>후: {after.statement}</p>{after.evidence.map((e, i) => <blockquote key={i}>{e.quote}</blockquote>)}</>}
+  </div>;
+}
 
 
 type RetryLimit = { key: string; label: string; value: number; min: number };
@@ -143,7 +154,7 @@ export default function KnowledgeBusiness({ request, sources, visible }: { reque
           {a.representation?.source_checks?.filter(c => c.meaning_key === m.key).map(c => <div key={c.meaning_key} className="text-sm"><p>요구 필수 범위: {c.required_for_requirement ? '해당' : '해당하지 않음'}</p><p>{Object.entries(c.field_checks).map(([k, v]) => `${meaningFields[k] || k}: ${v === 'not_applicable' ? '주장 내용 없음' : status[v] || v}`).join(' · ')}</p><p>{c.reason}</p></div>)}
           {m.evidence.map((e, i) => <blockquote key={i} className="whitespace-pre-wrap bg-slate-50 p-2">{e.quote}</blockquote>)}</div>)}
       </details>)}
-      {(run.repairs || []).map(r => <details key={r.id} className="rounded border p-3"><summary>교정·누락 복구 · {status[r.status] || r.status}</summary>{r.changes.map(c => <div key={c.after.id} className="mt-2"><p>전: {c.before?.statement || "표현 없음"}</p><p>후: {c.after.statement}</p>{c.after.evidence.map((e, i) => <blockquote key={i}>{e.quote}</blockquote>)}</div>)}</details>)}
+      {(run.repairs || []).map(r => <details key={r.id} className="rounded border p-3"><summary>교정·누락 복구 · {status[r.status] || r.status}</summary>{r.changes.map(c => <RepairChange key={c.after.id} before={c.before} after={c.after} claims={r.after || []} />)}</details>)}
     </div>}
     {change && <form className="space-y-3 rounded border bg-white p-4" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); action(async () => { const value = await request<{ snapshot_id: string }>(`/business/changes/${change.id}/decisions`, json({ expected_revision: change.revision, actor: f.get("actor"), reason: f.get("reason"), accept_ids: accepted })); setSnapshotId(value.snapshot_id); setAccepted([]); await loadRun(run!.id); setNotice("선택한 지식을 검토 버전으로 저장했습니다."); }); }}>
       <h3 className="font-semibold">원문 대조 후 승인할 지식 선택</h3><p className="text-sm">자동 검수는 사람의 승인이 아닙니다. 목록에서 검토한 항목을 직접 선택하세요. 검색용 개념을 승인된 상위 유형으로 승격하지 않습니다.</p>

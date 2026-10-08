@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import KnowledgeBusiness, { CapacityRetrySettings, resumeBusinessRequest } from "../components/KnowledgeBusiness";
+import KnowledgeBusiness, { CapacityRetrySettings, RepairChange, resumeBusinessRequest } from "../components/KnowledgeBusiness";
+import replacement from "./fixtures/knowledgeBusinessReplacement.json";
 
 it("offers public criteria and parsed source versions with explicit review and change controls", () => {
   const html = renderToStaticMarkup(createElement(KnowledgeBusiness, {
@@ -50,4 +51,39 @@ it("only exposes capacity fields for failed stages and carries explicit changes 
     source_tokens: 16384, requirement_ids: ["same-requirement"], resume_run_id: "previous", reuse_run_id: null });
   expect(run.recipe.options.review_tokens).toBe(4096);
   expect(resumeBusinessRequest(run, {})).toMatchObject({ review_tokens: 4096, representation_context_tokens: 65536 });
+});
+
+it("shows the actual stored replacement instead of the superseded statement as the repair result", () => {
+  const before = JSON.stringify(replacement);
+  const { change, claims } = replacement;
+  expect(change.after.statement).toBe(change.before.statement);
+  const html = renderToStaticMarkup(createElement(RepairChange, { ...change, claims }));
+  expect(html).toContain(`전: ${change.before.statement}`);
+  expect(html).not.toContain(`후: ${change.after.statement}`);
+  expect(html).toContain("후: 기존 후보로 대체");
+  expect(html).toContain(claims[0].statement);
+  expect(html).toContain(claims[0].evidence[0].quote);
+  expect(JSON.stringify(replacement)).toBe(before);
+});
+
+it("keeps all replacement locations and reports an unavailable candidate without reviving the old claim", () => {
+  const second = { id: "second", statement: "다른 대체 후보", evidence: [] };
+  const claims = [...replacement.claims, second];
+  const after = { ...replacement.change.after, superseded_by: [claims[0].id, "missing", second.id] };
+  const html = renderToStaticMarkup(createElement(RepairChange, { ...replacement.change, after, claims }));
+  expect(html).toContain(claims[0].statement);
+  expect(html).toContain(second.statement);
+  expect(html).toContain("대체 후보를 확인할 수 없습니다: missing");
+  expect(html).not.toContain(`후: ${after.statement}`);
+});
+
+it("retains ordinary edits and recovered claims without treating them as replacements", () => {
+  const after = { id: "edited", statement: "수정된 문장", evidence: [{ block_id: "b", quote: "수정 근거" }] };
+  const html = renderToStaticMarkup(createElement(RepairChange, { before: replacement.change.before, after, claims: [] }));
+  expect(html).toContain("후: 수정된 문장");
+  expect(html).toContain("수정 근거");
+  expect(html).not.toContain("기존 후보로 대체");
+  const recovered = renderToStaticMarkup(createElement(RepairChange, { after, claims: [] }));
+  expect(recovered).toContain("전: 표현 없음");
+  expect(recovered).toContain("후: 수정된 문장");
 });
