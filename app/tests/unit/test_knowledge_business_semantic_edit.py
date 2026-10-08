@@ -133,7 +133,9 @@ def reviewed(key='m', **updates):
         exceptions=[], period='2~3일', references=[], claim_ids=['c'], required_claim_ids=['c'],
         complete_claim_bundle=True, expression_status='represented', source_status='supported', availability='provided',
         record_error=None, evidence=[dict(block_id='b', quote='원문')], claim_support={'c':'supported'},
-        premise_keys=[], judgment_origin={'origin':'user'}, interpretation_version='v1', **updates)
+        premise_keys=[], judgment_origin={'origin':'user'}, interpretation_version='v1',
+        field_judgments={field: dict(status='supported', reason='합성 원문 개별 대조')
+                         for field in ('statement', 'conditions', 'period')}, **updates)
 
 
 @pytest.mark.parametrize('prior_applicability', ['outside_scope', 'unresolved'])

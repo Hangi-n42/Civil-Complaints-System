@@ -498,7 +498,7 @@ def test_selection_without_catalog_uses_claims_or_original_additions():
         applicability='applicable', contribution='direct_answer', reason='원문에서 새 발견', requirement_quote='접수 기관'))
     output = schema.model_validate(dict(examined_block_ids=['body'], inspection_status='complete', selections=[],
         additions=[new], findings=[], conjunctions=[], meaning_conjunctions=[])).model_dump()
-    assert review.selected_source_output(output, [])['meanings'] == [new]
+    assert review.selected_source_output(output, [])['meanings'] == [dict(new, field_judgments={})]
 
 
 def test_selected_source_evidence_restores_only_current_explicit_address(monkeypatch):

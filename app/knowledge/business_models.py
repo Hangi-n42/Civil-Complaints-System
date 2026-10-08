@@ -51,6 +51,12 @@ class EvidenceQuote(BaseModel):
     quote: str = Field(min_length=1)
 
 
+class SourceFieldJudgment(BaseModel):
+    status: Literal['supported', 'refuted', 'unknown', 'not_applicable']
+    reason: str = Field(min_length=1)
+    statement_affected: bool = True
+
+
 class MeaningCheck(BaseModel):
     key: str = Field(min_length=1)
     statement: str = Field(min_length=1)
@@ -62,7 +68,15 @@ class MeaningCheck(BaseModel):
     period: str
     references: list[str]
     reason: str
+    field_judgments: dict[Literal['statement', 'conditions', 'exceptions', 'period', 'references'], SourceFieldJudgment] = Field(default_factory=dict)
     premise_keys: list[str] | None = None  # None means dependencies have not been established.
+
+    @model_validator(mode='after')
+    def field_content(self):
+        for field, judgment in self.field_judgments.items():
+            if judgment.status == 'supported' and not getattr(self, field) or judgment.status == 'not_applicable' and getattr(self, field):
+                raise ValueError('필드의 추가 주장과 지지/해당 없음 판정이 일치해야 합니다.')
+        return self
 
 
 class MeaningAnnotation(BaseModel):
@@ -125,7 +139,7 @@ class SourceMeaningCheck(BaseModel):
     meaning_key: str
     required_for_requirement: bool
     field_checks: dict[Literal['statement', 'conditions', 'exceptions', 'period', 'references'],
-                       Literal['supported', 'refuted', 'unknown', 'not_applicable']]
+                       Literal['supported', 'refuted', 'unknown', 'not_applicable', 'not_assessed']]
     reason: str
 
 
@@ -420,6 +434,9 @@ class SourceMeaningEdit(BaseModel):
     period: str = ''
     references: list[str] = Field(default_factory=list)
     premise_keys: list[str] | None = None
+    fields: list[Literal['statement', 'conditions', 'exceptions', 'period', 'references', 'premise_keys']] = Field(
+        default_factory=lambda: ['statement', 'conditions', 'exceptions', 'period', 'references', 'premise_keys'])
+    field_judgments: dict[Literal['statement', 'conditions', 'exceptions', 'period', 'references'], SourceFieldJudgment] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def replacement_content(self):
@@ -427,6 +444,12 @@ class SourceMeaningEdit(BaseModel):
             raise ValueError('명시적 원문 해석 정정에는 문장이 필요합니다.')
         if self.mode == 'reassess' and self.statement is not None:
             raise ValueError('자동 재판정 요청에 정정문을 제공하지 않습니다.')
+        if self.mode == 'reassess' and self.field_judgments:
+            raise ValueError('자동 재판정 요청에 정정 판정을 제공하지 않습니다.')
+        if self.mode == 'replace' and any(j.status == 'supported' and not getattr(self, k)
+                                        or j.status == 'not_applicable' and getattr(self, k)
+                                        for k, j in self.field_judgments.items()):
+            raise ValueError('필드의 추가 주장과 지지/해당 없음 판정이 일치해야 합니다.')
         return self
 
 

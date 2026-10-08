@@ -68,11 +68,14 @@ def start(service, changeset_id, request):
                 actor=request.actor, reason=edit.reason, error_owner=request.error_owner,
                 requirement_id=edit.requirement_id, requirement_revision=requirement['revision'],
                 source_versions=deepcopy(run['input_version_ids']), before=deepcopy(previous), evidence=refs,
-                expected_version=edit.expected_meaning_version, mode=edit.mode, status='pending')
+                expected_version=edit.expected_meaning_version, fields=list(edit.fields), mode=edit.mode, status='pending')
             if edit.mode == 'replace':
                 corrected = dict(deepcopy(previous), **{k: getattr(edit, k) for k in
                     ('statement', 'conditions', 'exceptions', 'period', 'references', 'premise_keys')},
                     evidence=refs, reason=edit.reason, source_status='supported', availability='provided')
+                corrected['field_judgments'] = {k: dict(status='supported' if corrected[k] else 'not_applicable',
+                    reason=edit.reason, statement_affected=True) for k in ('statement', 'conditions', 'exceptions', 'period', 'references')}
+                corrected['field_judgments'].update({k: v.model_dump() for k, v in edit.field_judgments.items()})
                 corrected.pop('record_error', None)
                 corrected['correction'] = {k: correction[k] for k in ('id', 'origin', 'actor', 'reason', 'expected_version')}
                 correction.update(after=corrected, after_version=autoschema.identifier('meaning', corrected),
@@ -92,7 +95,9 @@ def start(service, changeset_id, request):
             receipt.update(changes=[], targets=[], patches=dict(patches=[], unresolved=[]))
         run['repairs'].append(receipt)
         # New conditions can matter to a requirement with no old claim edge.
-        changed_sources = {b['source_id'] for b in run['blocks'] if b['source_version_id'] in old['source_version_ids']}
+        changed_versions = set(old['source_version_ids']) | {e['source_version_id'] for c in run['source_corrections']
+            if c['edit_id'] == receipt_id for e in c['evidence']}
+        changed_sources = {b['source_id'] for b in run['blocks'] if b['source_version_id'] in changed_versions}
         known = {r['id'] for r in run['requirements']}
         run['impact_candidates'] = []
         for row in db.execute('SELECT payload FROM requirements'):
@@ -203,7 +208,8 @@ def recheck(service, run_id):
             if source:
                 for correction in corrections:
                     if correction['mode'] == 'reassess' and correction['status'] == 'pending':
-                        challenge = dict(meaning_key=correction['before']['key'], fields=['statement', 'conditions', 'premise_keys'],
+                        challenge = dict(meaning_key=correction['before']['key'], fields=correction.get('fields',
+                            ['statement', 'conditions', 'exceptions', 'period', 'references', 'premise_keys']),
                             reason=correction['reason'], evidence=correction['evidence'], error_owner=correction['error_owner'])
                         updated = business_review.reassess_source(service, run, requirement,
                             dict(previous, source=source), [challenge])
@@ -212,12 +218,22 @@ def recheck(service, run_id):
                         if updated:
                             source = updated
                             correction['after'] = deepcopy(next(m for m in source['meanings'] if m['key'] == correction['before']['key']))
+                            correction['after_version'] = autoschema.identifier('meaning', correction['after'])
                 source = business_run.apply_source_corrections(run, requirement, source)
                 changed_keys = {c['before']['key'] for c in corrections if c['edit_id'] == receipt['id']}
                 if changed_keys:
-                    facts = dict(source, meanings=[m for m in source['meanings'] if m['key'] in changed_keys])
+                    facts = dict(source, meanings=[m for m in source['meanings'] if m['key'] in changed_keys],
+                                 application_history=[], application_challenges=[])
+                    blocks = business_review.related_blocks(run, facts['meanings'])
                     applied = business_review.apply_requirement(service, run, requirement, facts,
-                        business_review.related_blocks(run, facts['meanings']))
+                        blocks)
+                    application = applied.get('application_history', [])[-1:]
+                    if application and application[0]['output'] is not None and any(isinstance(error, dict) and error.get('reason') ==
+                            'requirement_application_missing_or_duplicate' for error in application[0]['errors']):
+                        # One bounded protocol completion, never infer omitted
+                        # cells or regenerate successful applicability judgments.
+                        applied = business_review.apply_requirement(service, run, requirement, applied, blocks,
+                            resume=dict(run_id=run['id'], unit=deepcopy(run['units'][-1]), receipt=application[0]))
                     replacements = {m['key']: m for m in applied['meanings']}
                     source['meanings'] = [replacements.get(m['key'], m) for m in source['meanings']]
                     source.setdefault('application_history', []).extend(applied.get('application_history', []))

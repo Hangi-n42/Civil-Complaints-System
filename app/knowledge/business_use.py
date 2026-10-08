@@ -273,7 +273,9 @@ def reviewed_answer_meanings(snapshot, selected, requirement_ids):
             row = dict(requirement_id=rid, assessment_id=assessment['id'],
                 claim_ids=ids, expression_status=check['status'], **{k: deepcopy(meaning.get(k)) for k in
                 ('key', 'statement', 'conditions', 'exceptions', 'period', 'references', 'source_status',
-                 'availability', 'record_error', 'requirement_link')})
+                 'availability', 'record_error', 'requirement_link')},
+                field_judgments=deepcopy(meaning.get('field_judgments', {})))
+            row['field_checks'] = business_review.source_judgment(meaning)['field_checks']
             row['claim_support'] = {cid: check.get('claim_support', {}).get(cid, 'not_assessed') for cid in ids}
             row.update(required_claim_ids=deepcopy(check.get('claim_ids', [])),
                 complete_claim_bundle=set(check.get('claim_ids', [])) <= selected,
@@ -314,6 +316,7 @@ def reviewed_item_answer(service, run, request, requirements):
         explicit = meaning['expression_status'] == 'explicitly_reviewed'
         valid = (meaning['complete_claim_bundle'] and meaning['expression_status'] in {'represented', 'explicitly_reviewed'}
             and meaning['source_status'] == 'supported' and meaning['availability'] == 'provided'
+            and not business_review.unresolved_source_fields(meaning)
             and meaning['evidence'] and not meaning['record_error']
             and all(meaning['claim_support'].get(cid) == ('explicitly_reviewed' if explicit else 'supported') for cid in meaning['required_claim_ids']))
         if valid:
@@ -377,7 +380,10 @@ def reviewed_item_answer(service, run, request, requirements):
             lines.append(prefix + m['statement'])
             for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:
                 value = m.get(field)
-                if value:
+                status = (m.get('field_checks') or business_review.source_judgment(m)['field_checks'])[field]
+                # Preserve every legacy qualifier in its whole-meaning bundle;
+                # do not invent a separate field verdict or silently broaden it.
+                if value and status in {'supported', 'not_assessed'}:
                     lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))
             citations.extend(m['required_claim_ids'])
             if m.get('premise_keys') is None:
@@ -386,6 +392,7 @@ def reviewed_item_answer(service, run, request, requirements):
                 errors.append(item['id'] + ': inference_link_not_specified')
         for gap in row['unconfirmed']:
             lines.append('확인 불가: ' + gap)
+            limitations.append(gap)
         if not row['selected'] and not row['unconfirmed']:
             errors.append(item['id'] + ': empty_item')
         rendered.append('\n'.join(lines))
