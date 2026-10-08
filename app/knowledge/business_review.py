@@ -1431,7 +1431,19 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
                         and finding['kind'] in {'local_not_found', 'reference_missing_here'}))
                         if source.get('review_contract') in SEPARATED_CONTRACTS else {})) for k in scope)
             else:
-                result['source_challenges'].append(row['reason'])
+                batch = next((b for b in source.get('source_batches', [])
+                              if b.get('unit_id') == finding.get('unit_id')), {})
+                if (row['status'] == 'unresolved' and finding['origin'] == 'source'
+                        and finding['kind'] == 'local_not_found' and not finding['claim_ids']
+                        and batch.get('provided_block_ids') == finding['provided_block_ids']
+                        and finding['provided_block_ids'] and not batch.get('errors')
+                        and (batch.get('output') or {}).get('inspection_status') == 'complete'):
+                    # A completed local search still leaves the requirement unresolved,
+                    # but says nothing against independently supported source facts.
+                    row['inspection_scope'] = dict(unit_id=finding['unit_id'],
+                        provided_block_ids=list(finding['provided_block_ids']))
+                else:
+                    result['source_challenges'].append(row['reason'])
     if source.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
         required_scope = {m['key'] for m in review_meanings(source)}
         for batch in source.get('source_batches', []):

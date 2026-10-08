@@ -1,6 +1,7 @@
 """Review source claims without turning search concepts into approved ontology types."""
 from copy import deepcopy
 import json
+import re
 from time import monotonic
 from uuid import uuid4
 from typing import Literal
@@ -396,6 +397,12 @@ def reviewed_item_answer(service, run, request, requirements):
             value = {k:v for k,v in value.items() if k not in row_keys}
             value['row_context_id'] = cid
         payload[ref] = value
+    # Literal column names only; this does not infer unnamed fields from a question.
+    requested_fields = {item['id']: [name for name in dict.fromkeys(
+        m['field_name'] for m in available.values() if m.get('kind') == 'exact_row_field'
+        and m['requirement_id'] == item['requirement_id']) if re.search(
+            r'(?<![A-Za-z0-9_])' + r'\s*'.join(map(re.escape, re.sub(r'\s+', '', name))) + r'(?![A-Za-z0-9_])',
+            item['request_quote'], re.IGNORECASE)] for item in run['answer_items']}
     output = business_run.json_call(service, run, 'business_qa',
         '공개 질문/criterion의 항목별로 해당하는 검토 의미 ID만 선택한다. 문장·결론을 새로 작성하지 않는다. '
         '각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, '
@@ -409,6 +416,7 @@ def reviewed_item_answer(service, run, request, requirements):
         '파일 기준일은 현실 최신성이나 전체 요구 충족의 증거가 아니며 assessment_limitations를 유지한다.'
         if run.get('exact_row_answer_fields') else ''),
         dict(question=request.question, public_requirements=requirements, public_answer_items=run['answer_items'],
+             requested_row_fields=requested_fields,
              **(dict(row_contexts=row_contexts) if row_contexts else {}),
              **(dict(assessment_limitations=run['answer_assessment_limitations'])
                 if run.get('answer_assessment_limitations') else {}),
@@ -426,12 +434,13 @@ def reviewed_item_answer(service, run, request, requirements):
             continue
         row = matches[0]
         lines = [item['request_quote']]
-        shown_rows = set()
+        shown_rows, selected_fields = set(), set()
         for selected in row['selected']:
             m = available[selected['meaning_ref']]
             if m['requirement_id'] != item['requirement_id']:
                 errors.append(item['id'] + ': wrong_requirement'); continue
             if m.get('kind') == 'exact_row_field':
+                selected_fields.add(m['field_name'])
                 lines.append(('원문 행 값 (결론 연결 미확인): ' if selected['use'] == 'premise_only'
                               else '원문 행 값: ') + m['statement'])
                 if selected['use'] == 'premise_only' and not row['unconfirmed']:
@@ -466,6 +475,12 @@ def reviewed_item_answer(service, run, request, requirements):
             limitations.append(gap)
         if not row['selected'] and not row['unconfirmed']:
             errors.append(item['id'] + ': empty_item')
+        for name in requested_fields[item['id']]:
+            if name not in selected_fields:
+                errors.append(item['id'] + ': requested_row_field_not_selected:' + name)
+                gap = '요청한 필드가 답변 근거 선택에서 빠졌습니다: ' + name
+                lines.append(gap)
+                limitations.append(gap)
         rendered.append('\n'.join(lines))
     for limitation in run.get('answer_assessment_limitations', []):
         text = ('요청한 내용의 전체 충족은 아직 확인되지 않았습니다'

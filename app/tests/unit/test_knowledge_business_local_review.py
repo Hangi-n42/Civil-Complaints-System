@@ -1086,3 +1086,28 @@ def test_valid_expression_join_keeps_local_errors_when_source_row_is_rejected(mo
     assert result['checks'][0]['claim_ids'] == [normal]
     assert result['checks'][0]['incorrect_claim_ids'] == [bad]
     assert result['meaning_challenges'][0]['meaning_key'] == 'm'
+
+
+def test_completed_local_absence_stays_unresolved_without_refuting_independent_fact():
+    run = local_run()
+    for kind, complete in [('local_not_found', True), ('reference_missing_here', True), ('local_not_found', False)]:
+        source = current_source()
+        f = source['findings'][0]
+        f.update(kind=kind, unit_id='inspection', meaning_keys=[], scope_meaning_keys=[])
+        source['source_batches'] = [dict(unit_id='inspection', provided_block_ids=['body'], errors=[],
+            output=dict(inspection_status='complete' if complete else 'partial'))]
+        before = deepcopy(source['meanings'])
+        result = judgments(['m'])
+        result.update(source_completeness='complete', finding_resolutions=[dict(resolution(status='not_required'),
+            meaning_keys=[], evidence=[])])
+        review.resolve_findings(source, result, [f], run['blocks'], [], joined=True)
+        assessment = dict(source=source, representation=result, errors=[], issues=[])
+        assert source['completeness'] == 'partial'
+        assert source['finding_resolutions'][0]['status'] == 'unresolved'
+        assert source['meanings'] == before and source['findings'] == [f]
+        if kind == 'local_not_found' and complete:
+            assert review.blocked(assessment) == (set(), [])
+            assert source['finding_resolutions'][0]['inspection_scope'] == dict(
+                unit_id='inspection', provided_block_ids=['body'])
+        else:
+            assert review.blocked(assessment)[1] == ['unscoped_source_challenge']
