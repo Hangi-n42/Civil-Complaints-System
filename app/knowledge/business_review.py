@@ -258,6 +258,17 @@ def related_blocks(run, meanings, claims=(), *, chunks=None):
     return list(selected.values())
 
 
+def finding_block_ids(run, requirement, findings):
+    from .discovery_profile import FrozenIndex
+    if not findings:
+        return set()
+    documents = [dict(id=b['id'], text=b['text'], file_id=b['source_version_id'], source_group=b['source_version_id'])
+                 for b in source_blocks(run, requirement)]
+    index = FrozenIndex(documents, preserve_numbers=True)
+    return {hit['block_id'] for finding in findings
+            for hit in index.search(finding['text'], {d['id'] for d in documents}, 4)}
+
+
 def valid_preservation_reuses(run, requirement, meanings):
     claims = {c['id']: autoschema.identifier('claim', c) for c in run['claims']}
     versions = {m['key']: autoschema.identifier('meaning', m) for m in meanings}
@@ -394,11 +405,19 @@ def reassess_source(service, run, requirement, assessment, challenges):
     meanings = [m for m in previous['meanings'] if m['key'] in selected]
     options = run['recipe']['options']
     chunks = autoschema.chunks(run['blocks'], options['context_tokens'], options['review_tokens'], 1) if separated(run) else None
-    supplied = related_blocks(run, meanings, chunks=chunks)
-    rooted = previous.get('answer_scope_contract') == ANSWER_SCOPE_CONTRACT
     selected_challenges = [c for c in challenges if isinstance(c, dict) and c.get('meaning_key') in selected]
+    rooted = previous.get('answer_scope_contract') == ANSWER_SCOPE_CONTRACT
     link_only = rooted and selected == {c['meaning_key'] for c in selected_challenges} and all(
         c.get('reassessment_scope') == 'requirement_link_and_evidence' for c in selected_challenges)
+    application_only = separate_application(run) and all(
+        c.get('fields') and set(c['fields']) <= {'requirement_link', 'required_for_requirement'} for c in selected_challenges)
+    attributed = {r['finding_id']: set(r['meaning_keys']) for r in previous.get('finding_resolutions', [])}
+    findings = [f for f in previous.get('findings', []) if selected.intersection(
+        set(f['meaning_keys']) or attributed.get(f['id']) or set(f.get('scope_meaning_keys', [])))]
+    context_refs = [dict(block_id=bid) for bid in finding_block_ids(
+        run, requirement, [] if application_only or link_only else findings)]
+    context_refs.extend(e for c in selected_challenges for e in c.get('evidence', []))
+    supplied = related_blocks(run, [*meanings, dict(evidence=context_refs)], chunks=chunks)
     request_context = (dict(answer_request=previous['answer_request'],
         application_context={k: v for k, v in requirement.items() if k not in {'question', 'criterion'}})
         if rooted else dict(requirement=requirement))
@@ -406,15 +425,15 @@ def reassess_source(service, run, requirement, assessment, challenges):
         fact_meanings = [{k: v for k, v in m.items() if k not in
                          {'requirement_link', 'required_for_requirement', 'requirement_applications'}} for m in meanings]
         # Public applicability challenges never rewrite source facts.
-        application_only = all(c.get('fields') and set(c['fields']) <= {'requirement_link', 'required_for_requirement'}
-                               for c in selected_challenges)
         output = dict(meanings=deepcopy(fact_meanings), examined_block_ids=[], completeness='unknown', gaps=[],
                       conjunctions=[], meaning_gaps=[], meaning_conjunctions=[]) if application_only else execution.json_call(
-            service, run, 'source_reassessment', FACT_PROMPT + 'previous의 지정 key만 원문으로 다시 검수한다. key를 보존한다.',
-            dict(blocks=supplied, previous=dict(meanings=fact_meanings),
+            service, run, 'source_reassessment', FACT_PROMPT + 'previous의 지정 key만 원문으로 다시 검수한다. key를 보존한다. findings는 이전 이의이며 정답이 아니다. 의미 갱신이나 gaps=[]는 개별 이의 해소의 증거가 아니다.',
+            dict(blocks=supplied, findings=findings, previous=dict(meanings=fact_meanings),
                  challenges=[{k: v for k, v in c.items() if k in {'meaning_key', 'fields', 'evidence', 'reason'}}
                              for c in selected_challenges]), GroundingCheck)
         if output is not None:
+            if not application_only:
+                source_unit, source_unit_id = run['units'][-1], response_unit_id(run)
             output = apply_requirement(service, run, requirement, output, supplied)
             if application_only:
                 result = deepcopy(previous)
@@ -438,16 +457,17 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
 의미가 다른 필드에 정상 보존된 경우 같은 내용을 새로 만들지 않는다.
 의미에 귀속된 공백/결합 전제는 meaning_gaps/meaning_conjunctions로 함께 갱신한다.
 해결된 공백은 반환하지 않는다. 이번 범위의 조사 block_id도 갱신한다. 자유 gaps는 전체 범위의 미귀속 공백만 쓴다.
-''', dict(**request_context, blocks=supplied,
+''', dict(**request_context, blocks=supplied, findings=findings,
                previous=dict(meanings=meanings, **{field: [a for a in previous.get(field, [])
                              if selected.intersection(a['meaning_keys'])] for field in ('meaning_gaps', 'meaning_conjunctions')}),
                challenges=selected_challenges),
                RequirementLinkReassessment if link_only else RootedRequirementGroundingCheck if rooted else ScopedRequirementGroundingCheck if scoped(run) else RequirementGroundingCheck if separated(run) else GroundingCheck)
+        source_unit, source_unit_id = run['units'][-1], response_unit_id(run)
     if output is None:
         return None
     returned = [m['key'] for m in output['meanings']]
     if set(returned) != selected or len(returned) != len(selected):
-        run['units'][-1].update(status='failed', error='source_reassessment_outside_selected_meanings')
+        source_unit.update(status='failed', error='source_reassessment_outside_selected_meanings')
         execution.save(service, run)
         return None
     if link_only:
@@ -463,7 +483,7 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
                 restored.append(meaning)
             output['meanings'] = restored
         except ValueError as exc:
-            run['units'][-1].update(status='failed', error='invalid_requirement_link_update: ' + str(exc))
+            source_unit.update(status='failed', error='invalid_requirement_link_update: ' + str(exc))
             execution.save(service, run)
             return None
     result = deepcopy(previous)
@@ -475,7 +495,7 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
     result['meanings'] = [replacements.get(m['key'], m) for m in previous['meanings']]
     for field in ('meaning_gaps', 'meaning_conjunctions'):
         if any(not a['meaning_keys'] or not set(a['meaning_keys']) <= selected for a in output.get(field, [])):
-            run['units'][-1].update(status='failed', error='source_annotation_outside_selected_meanings')
+            source_unit.update(status='failed', error='source_annotation_outside_selected_meanings')
             execution.save(service, run)
             return None
         # A mixed annotation depends on an unchanged meaning too; preserve it
@@ -483,18 +503,14 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
         result[field] = [a for a in previous.get(field, []) if not set(a['meaning_keys']) <= selected] + output.get(field, [])
     result['examined_block_ids'] = list(dict.fromkeys([*previous['examined_block_ids'], *output['examined_block_ids']]))
     if previous.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
-        # The next existing join judges current findings anew. Preserve raw E/R
-        # receipts and only replace findings attributed to this reconsidered group.
-        attributed = {r['finding_id']: set(r['meaning_keys']) for r in previous.get('finding_resolutions', [])
-                      if r.get('meaning_keys')}
-        result['findings'] = [f for f in previous.get('findings', [])
-            if not (scope := set(f['meaning_keys']) or attributed.get(f['id'])) or not scope <= selected]
+        # Updating a meaning is not resolving its findings; the existing join needs their original IDs.
+        result['findings'] = deepcopy(previous.get('findings', []))
         annotations = [dict(meaning_keys=sorted(selected), text=text) for text in output['gaps']]
         annotations.extend(output.get('meaning_gaps', []))
         for n, annotation in enumerate(annotations):
-            result['findings'].append(dict(id=f'reassessment:{run["units"][-1]["id"]}:{n}', origin='source',
+            result['findings'].append(dict(id=f'reassessment:{source_unit_id}:{n}', origin='source',
                 kind='interpretation_uncertain', text=annotation['text'], meaning_keys=annotation['meaning_keys'], scope_meaning_keys=sorted(selected),
-                claim_ids=[], fields=[], provided_block_ids=output['examined_block_ids'], unit_id=response_unit_id(run)))
+                claim_ids=[], fields=[], provided_block_ids=output['examined_block_ids'], unit_id=source_unit_id))
         result.update(gaps=[], completeness='unknown')
         validated = []
         for meaning in output['meanings']:
@@ -505,7 +521,7 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
                 pass  # The following assessment retains the actual invalid-address issue.
         result['reassessed_meaning_keys'] = sorted(set(previous.get('reassessed_meaning_keys', [])) | set(validated))
         result.setdefault('reassessment_history', []).append(dict(previous=deepcopy(meanings), output=deepcopy(output),
-                                                                 unit_id=response_unit_id(run)))
+                                                                 unit_id=source_unit_id))
         return result
     result['gaps'] = list(dict.fromkeys([*previous['gaps'], *output['gaps']]))
     result['conjunctions'] = list(dict.fromkeys([*previous['conjunctions'], *output['conjunctions']]))
@@ -1485,6 +1501,34 @@ def meaning_groups(source):
     return groups
 
 
+def literal_relation_candidates(claims, meaning, blocks):
+    """Find whole relation values in this meaning's source span; selection is not support."""
+    from .business_run import exact_evidence
+    linked = set()
+    for evidence in meaning['evidence']:
+        if not all(evidence.get(k) is not None for k in
+                   ('source_version_id', 'parse_run_id', 'start_char', 'end_char')):
+            continue
+        try:
+            ref = exact_evidence([evidence], blocks)[0]
+        except ValueError:
+            continue
+        for claim in claims:
+            value = claim.get('raw', {}).get('Tail')
+            if (claim.get('superseded_by') or claim['role'] not in {'entity_relation', 'event_relation'}
+                    or not isinstance(value, str) or not value.strip()
+                    or value not in meaning['statement'] or value not in ref['quote']
+                    or ref['source_version_id'] not in claim['source_version_ids']):
+                continue
+            start = ref['start_char'] + ref['quote'].index(value)
+            if any(all(e.get(k) == ref[k] for k in ('source_version_id', 'parse_run_id', 'block_id'))
+                   and e.get('start_char', start + 1) <= start
+                   and start + len(value) <= e.get('end_char', start)
+                   for e in claim.get('evidence', [])):
+                linked.add(claim['id'])
+    return linked
+
+
 def connected_event_candidates(claims, selected, block_ids):
     """Select raw event links for review; never merge nodes or certify their meaning."""
     events = {}
@@ -1602,6 +1646,7 @@ claim_support는 후보가 자기 출처/버전에서 지지되는지를 대조�
             evidence_ids = {e['block_id'] for e in meaning['evidence']}
             selected.update(c['id'] for c in claims if c['id'] not in excluded and any(e['block_id'] in evidence_ids and e.get('precision') != 'chunk'
                                                         for e in c.get('evidence', [])))
+            selected.update(literal_relation_candidates(claims, meaning, run['blocks']) - excluded)
         selected.update(connected_event_candidates(claims, selected,
             {e['block_id'] for meaning in group for e in meaning['evidence']}))
         initial = [c for c in claims if c['id'] in selected]
@@ -1725,14 +1770,7 @@ claim_support는 후보가 자기 출처/버전에서 지지되는지를 대조�
         for c in [*v.get('replacements', []), *([v['after']] if v.get('after') and not v['after'].get('superseded_by') else [])]
         if c['id'] in all_ids)
     join_claims = [c for c in claims if c['id'] in matched]
-    finding_blocks = set()
-    if findings:
-        documents = [dict(id=b['id'], text=b['text'], file_id=b['source_version_id'], source_group=b['source_version_id'])
-                     for b in source_blocks(run, requirement)]
-        source_index = FrozenIndex(documents, preserve_numbers=True)
-        for finding in findings:
-            # A scoped dispute may need source context beyond the meaning's existing evidence.
-            finding_blocks.update(h['block_id'] for h in source_index.search(finding['text'], {d['id'] for d in documents}, 4))
+    finding_blocks = finding_block_ids(run, requirement, findings)
     # Keep each selected parser unit's mandatory context, without unrelated packed targets.
     join_chunks = autoschema.chunks(run['blocks'], options['context_tokens'], options['review_tokens'], 1)
     join_blocks = related_blocks(run, [*join_meanings, dict(evidence=[dict(block_id=bid) for bid in finding_blocks])], join_claims, chunks=join_chunks)

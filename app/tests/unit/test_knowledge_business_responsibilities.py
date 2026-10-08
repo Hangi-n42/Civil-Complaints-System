@@ -297,7 +297,7 @@ def test_application_only_reassessment_preserves_all_source_annotations(monkeypa
             applicability='outside_scope', contribution='background', reason='질문 밖', requirement_quote=''))
             for item in ('question', 'criterion')], meaning_challenges=[])
     monkeypatch.setattr(business_run, 'json_call', answer)
-    result = review.reassess_source(None, run, dict(question='담당?', criterion='기관'), dict(source=old),
+    result = review.reassess_source(None, run, dict(question='담당?', criterion='기관', source_ids=[]), dict(source=old),
         [dict(meaning_key='m', fields=['requirement_link'], reason='적용성만 재검토')])
     assert old == original and result['meanings'][1] == original['meanings'][1]
     assert all(result[k] == v for k, v in original.items() if k != 'meanings')

@@ -95,3 +95,28 @@ def test_exact_cell_as_premise_keeps_missing_link(snapshot, monkeypatch):
         selected=[dict(meaning_ref='f1', use='premise_only')], unconfirmed=[])]))
     use.reviewed_item_answer(None, run, SimpleNamespace(question='연결 결론'), [])
     assert run['answer_item_errors'] == ['i: inference_link_not_specified']
+
+
+@pytest.mark.parametrize('statuses', [[], ['resolved'], ['not_required'], ['resolved', 'resolved'],
+    ['resolved', 'unresolved'], ['unknown'], ['required_gap'], ['source_error'], ['claim_error'], ['unresolved']])
+def test_current_answer_notes_follow_unique_resolution_without_erasing_history(snapshot, monkeypatch, statuses):
+    source = snapshot['assessments']['r']['source']
+    source.update(findings=[dict(id='finding', text='이전 조사 이의')],
+                  finding_resolutions=[dict(finding_id='finding', status=s, reason='과거 판정 설명') for s in statuses])
+    before = deepcopy(snapshot)
+    notes = use.unresolved_finding_notes(source)
+    active = statuses not in (['resolved'], ['not_required'])
+    assert notes == (['이전 조사 이의'] if active else [])
+    limit = dict(requirement_id='r', period='', status='partial', gaps=['local_source_inspection_scope_mismatch'],
+                 review_notes=notes, finding_resolutions=deepcopy(source['finding_resolutions']))
+    run = dict(reviewed_meanings=[], exact_row_answer_fields=use.exact_row_answer_fields(snapshot, {'c'}, ['r']),
+        answer_assessment_limitations=[limit], answer_items=[dict(id='i', requirement_id='r', request_quote='NODE_ID')])
+    def choose(service, active_run, stage, prompt, context, schema):
+        assert context['assessment_limitations'][0]['review_notes'] == notes
+        ref = next(k for k, m in context['reviewed_meanings'].items() if m.get('field_name') == 'NODE_ID')
+        return dict(items=[dict(item_id='i', selected=[dict(meaning_ref=ref, use='direct_fact')], unconfirmed=[])])
+    monkeypatch.setattr(business_run, 'json_call', choose)
+    answer = use.reviewed_item_answer(None, run, SimpleNamespace(question='NODE_ID'), [])
+    assert ('이전 조사 이의' in answer['answer']) == active
+    assert 'local_source_inspection_scope_mismatch' in answer['answer'] and '전체 충족은 아직 확인되지' in answer['answer']
+    assert snapshot == before

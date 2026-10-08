@@ -345,6 +345,15 @@ def exact_row_answer_fields(snapshot, selected, requirement_ids):
     return rows
 
 
+def unresolved_finding_notes(source):
+    """Consume validated resolution states without rewriting findings or judging their reasons."""
+    states = {}
+    for row in source.get('finding_resolutions', []):
+        states.setdefault(row['finding_id'], []).append(row['status'])
+    return [f['text'] for f in source.get('findings', [])
+            if states.get(f['id']) not in (['resolved'], ['not_required'])]
+
+
 def reviewed_item_answer(service, run, request, requirements):
     """Select complete reviewed propositions; the server renders their unchanged content."""
     available = {}
@@ -852,7 +861,7 @@ def query(service, request, *, context_mode='graph'):
         run['answer_assessment_limitations'] = [dict(requirement_id=r['id'], period=r.get('period', ''),
             status=a['status'], source_completeness=(a.get('source') or {}).get('completeness', 'unknown'),
             synthesis_source_completeness=(a.get('representation') or {}).get('source_completeness', 'unknown'),
-            review_notes=[f['text'] for f in (a.get('source') or {}).get('findings', [])],
+            review_notes=unresolved_finding_notes(a.get('source') or {}),
             finding_resolutions=deepcopy((a.get('source') or {}).get('finding_resolutions', [])),
             synthesis_reason=(a.get('representation') or {}).get('reason', ''),
             gaps=(a.get('source') or {}).get('gaps', [])) for r in requirements

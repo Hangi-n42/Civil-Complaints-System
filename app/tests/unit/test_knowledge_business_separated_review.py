@@ -164,7 +164,7 @@ def test_unresolved_local_absence_stays_blocked_without_rewriting_source(monkeyp
     monkeypatch.setattr(business_run, 'json_call', answer)
     assert review.reassess_source(None, run, {}, assessment, result['meaning_challenges']) is None
     assert not calls
-    corrected = review.reassess_source(None, run, {}, assessment,
+    corrected = review.reassess_source(None, run, run['requirements'][0], assessment,
         [*result['meaning_challenges'], dict(meaning_key='m', record_error='meaning_outside_local_target')])
     assert len(calls) == 1 and corrected['meanings'][0]['source_status'] == 'unknown'
     assert corrected['meanings'][1] == source['meanings'][1]
