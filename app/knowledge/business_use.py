@@ -308,6 +308,42 @@ def bind_answer_items(request, requirements):
     return items
 
 
+def exact_row_answer_fields(snapshot, selected, requirement_ids):
+    """Expose accepted literal cells, not new model-reviewed propositions."""
+    rows = []
+    for rid, assessment in snapshot['assessments'].items():
+        if rid not in requirement_ids:
+            continue
+        checks = {c['meaning_key']: c for c in (assessment.get('representation') or {}).get('checks', [])}
+        for claim in snapshot['claims']:
+            if claim['id'] not in selected or claim.get('review_status') != 'accepted':
+                continue
+            ref = business_run.exact_direct_row(claim, snapshot['blocks'])
+            if not ref or ref['source_version_id'] not in snapshot['source_versions']:
+                continue
+            linked = [m for m in (assessment.get('source') or {}).get('meanings', [])
+                if checks.get(m['key'], {}).get('status') == 'represented'
+                and claim['id'] in checks[m['key']]['claim_ids']
+                and checks[m['key']].get('claim_support', {}).get(claim['id']) == 'supported'
+                and m['source_status'] == 'supported' and m['availability'] == 'provided'
+                and not m.get('record_error') and any(e['block_id'] == ref['block_id']
+                    and e.get('source_version_id') == ref['source_version_id'] for e in m['evidence'])]
+            if not linked:
+                continue
+            block = business_run.exact_tabular_block(ref, snapshot['blocks'])
+            version = snapshot['source_versions'][ref['source_version_id']]
+            for field, value in claim['raw']['fields'].items():
+                rows.append(dict(kind='exact_row_field', requirement_id=rid,
+                    key=f"field:{claim['id']}:{field}", field_name=field, field_value=deepcopy(value),
+                    statement=field + ': ' + encode(value), required_claim_ids=[claim['id']], premise_keys=[],
+                    row_fields=deepcopy(claim['raw']['fields']), evidence=[deepcopy(ref)],
+                    source_version_id=ref['source_version_id'], source_filename=version.get('filename', ''),
+                    source_dates=deepcopy(version.get('dates', [])),
+                    row_locator={k:v for k,v in block['locator'].items() if k != 'fields'},
+                    judgment_origin=dict(origin='exact_source_row_match', semantic_review=False)))
+    return rows
+
+
 def reviewed_item_answer(service, run, request, requirements):
     """Select complete reviewed propositions; the server renders their unchanged content."""
     available = {}
@@ -335,6 +371,8 @@ def reviewed_item_answer(service, run, request, requirements):
         for ref in missing:
             m = available.pop(ref)
             excluded.append(dict(key=m['key'], requirement_id=m['requirement_id'], reason='missing_required_premise'))
+    for field in run.get('exact_row_answer_fields', []):
+        available[f'f{len(available)+1}'] = field
     # Applicability belongs to the prior request. Select afresh for these bound
     # public items, including when the prior request's applicability was unknown.
     run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded,
@@ -348,18 +386,34 @@ def reviewed_item_answer(service, run, request, requirements):
         selected=(list[selection], Field(...)),
         unconfirmed=(list[str], Field(description='Concrete requested fact or inference link not established; never an affirmative conclusion.')))
     output_type = create_model('ReviewedItemSelections', items=(list[row], Field(...)))
+    payload, row_contexts = {}, {}
+    row_keys = ('row_fields', 'evidence', 'source_version_id', 'source_filename', 'source_dates', 'row_locator')
+    for ref, meaning in available.items():
+        value = {k:v for k,v in meaning.items() if k not in {'requirement_link', 'requirement_applications'}}
+        if meaning.get('kind') == 'exact_row_field':
+            cid = meaning['required_claim_ids'][0]
+            row_contexts[cid] = {k:meaning[k] for k in row_keys}
+            value = {k:v for k,v in value.items() if k not in row_keys}
+            value['row_context_id'] = cid
+        payload[ref] = value
     output = business_run.json_call(service, run, 'business_qa',
         '공개 질문/criterion의 항목별로 해당하는 검토 의미 ID만 선택한다. 문장·결론을 새로 작성하지 않는다. '
         '각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, '
         '결론에 추가 연결이 필요하면 premise_only로 고르고 그 구체 미확인 연결을 unconfirmed에 쓴다. '
         '명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. '
         '모든 공개 항목에 유용한 의미 또는 구체 공백이 필요하다. 불필요한 의미는 선택하지 않는다. '
-        '검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다.',
+        '검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다.' + (
+        ' kind=exact_row_field는 승인된 후보와 원문 행이 일치하는 직접 셀값이며 새 의미 검수 결과가 아니다. '
+        'row_context_id의 row_contexts에 원문 행·출처 문맥이 있다. 질문/공개 항목이 요청한 필드만 선택하고 비요청 필드는 나열하지 않는다. '
+        '열 이름과 자연어가 섞인 요청도 각 요청 사실에 해당하는 필드를 빠짐없이 대조한다. '
+        '파일 기준일은 현실 최신성이나 전체 요구 충족의 증거가 아니며 assessment_limitations를 유지한다.'
+        if run.get('exact_row_answer_fields') else ''),
         dict(question=request.question, public_requirements=requirements, public_answer_items=run['answer_items'],
+             **(dict(row_contexts=row_contexts) if row_contexts else {}),
+             **(dict(assessment_limitations=run['answer_assessment_limitations'])
+                if run.get('answer_assessment_limitations') else {}),
              # Earlier whole-requirement applicability is not a verdict on the current public item.
-             reviewed_meanings={ref: {k: v for k, v in meaning.items()
-                                     if k not in {'requirement_link', 'requirement_applications'}}
-                                for ref, meaning in available.items()}), output_type)
+             reviewed_meanings=payload), output_type)
     if output is None:
         return None
     run['answer_meaning_selection']['output'] = deepcopy(output)
@@ -372,10 +426,27 @@ def reviewed_item_answer(service, run, request, requirements):
             continue
         row = matches[0]
         lines = [item['request_quote']]
+        shown_rows = set()
         for selected in row['selected']:
             m = available[selected['meaning_ref']]
             if m['requirement_id'] != item['requirement_id']:
                 errors.append(item['id'] + ': wrong_requirement'); continue
+            if m.get('kind') == 'exact_row_field':
+                lines.append(('원문 행 값 (결론 연결 미확인): ' if selected['use'] == 'premise_only'
+                              else '원문 행 값: ') + m['statement'])
+                if selected['use'] == 'premise_only' and not row['unconfirmed']:
+                    errors.append(item['id'] + ': inference_link_not_specified')
+                citations.extend(m['required_claim_ids'])
+                row_id = m['required_claim_ids'][0]
+                if row_id not in shown_rows:
+                    shown_rows.add(row_id)
+                    locator = m['row_locator']
+                    position = (locator['json_pointer'] if 'json_pointer' in locator else
+                        str(locator.get('sheet', '')) + ' ' + str(locator.get('physical_row', '')) + '행')
+                    lines.append('자료: ' + m['source_filename'] + '; 원문 행 위치: ' + position)
+                    if m['source_dates']:
+                        lines.append('자료에 기록된 날짜: ' + ', '.join(d['value'] for d in m['source_dates']))
+                continue
             prefix = '확인된 전제 (결론 연결 미확인): ' if selected['use'] == 'premise_only' else '검토된 원문 의미: '
             lines.append(prefix + m['statement'])
             for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:
@@ -396,6 +467,16 @@ def reviewed_item_answer(service, run, request, requirements):
         if not row['selected'] and not row['unconfirmed']:
             errors.append(item['id'] + ': empty_item')
         rendered.append('\n'.join(lines))
+    for limitation in run.get('answer_assessment_limitations', []):
+        text = ('요청한 내용의 전체 충족은 아직 확인되지 않았습니다'
+            + (' (기준 시점: ' + limitation['period'] + ')' if limitation['period'] else '') + '. '
+            + '제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.')
+        rendered.append(text)
+        limitations.append(text)
+        for note in dict.fromkeys([*limitation['gaps'], *limitation.get('review_notes', [])]):
+            text = '기존 검수의 미확정 관련 기록 (확정 사실 아님): ' + note
+            rendered.append(text)
+            limitations.append(text)
     run['answer_item_errors'] = errors
     return dict(answer='\n\n'.join(rendered), citations=list(dict.fromkeys(citations)), choice=None,
                 limitations=list(dict.fromkeys(limitations)))
@@ -681,6 +762,8 @@ def query(service, request, *, context_mode='graph'):
     reviewed_meanings = reviewed_answer_meanings(snapshot, selected, request.requirement_ids) if not source_reader else []
     run['answer_scope_contract'] = 'reviewed-meanings-and-source-qualifications-v1'
     run['reviewed_meanings'] = deepcopy(reviewed_meanings)
+    if request.answer_mode == 'reviewed_items':
+        run['exact_row_answer_fields'] = exact_row_answer_fields(snapshot, selected, request.requirement_ids)
     required_source_context = []
     if source_reader:
         context = [{k: v for k, v in c.items() if k != 'linked_claim_ids'} for c in context]
@@ -751,6 +834,14 @@ def query(service, request, *, context_mode='graph'):
                    for r, a in snapshot['assessments'].items() if a['status'] != 'satisfied']
     answer_requirements = public_answer_requirements(requirements) if request.requirement_ids else []
     if request.answer_mode == 'reviewed_items':
+        run['answer_assessment_limitations'] = [dict(requirement_id=r['id'], period=r.get('period', ''),
+            status=a['status'], source_completeness=(a.get('source') or {}).get('completeness', 'unknown'),
+            synthesis_source_completeness=(a.get('representation') or {}).get('source_completeness', 'unknown'),
+            review_notes=[f['text'] for f in (a.get('source') or {}).get('findings', [])],
+            finding_resolutions=deepcopy((a.get('source') or {}).get('finding_resolutions', [])),
+            synthesis_reason=(a.get('representation') or {}).get('reason', ''),
+            gaps=(a.get('source') or {}).get('gaps', [])) for r in requirements
+            if (a := snapshot['assessments'][r['id']])['status'] != 'satisfied']
         output = reviewed_item_answer(service, run, request, answer_requirements)
     elif request.answer_mode == 'items':
         output = item_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)
