@@ -61,6 +61,23 @@ def differences(before, after, key_fields):
     return dict(changes=changes, unchanged=unchanged, comparison='exact_row_values' if key_fields else 'ordered_source_text')
 
 
+def review_impacts(service, run, requirements, diff, versions, direct):
+    result = business_run.json_call(service, run, 'change_impact',
+        '원문 또는 근거 해석·후보 전후의 실제 변경과 각 업무 요구의 범위/조건을 대조한다. 기존 연결은 영향 후보이며 영향 확정이 아니다. '
+        '기존 연결이 없어도 새 조건·예외·대상으로 관련되는 요구를 affected/new_relevance로 찾는다. '
+        '각 요구를 빠짐없이 판정하고 실제 변경 id와 이유를 기록한다. 미변경 행/다른 대상은 유지한다. '
+        '자료없는 보행·수요·안전·인과 효과는 추정하지 않는다. 결정 불가하면 unknown이다.',
+        dict(requirements=requirements, direct_dependency_ids=direct, diff=diff, versions=versions), Impacts)
+    valid = bool(result and len(result['items']) == len(requirements)
+        and {r['requirement_id'] for r in result['items']} == {r['id'] for r in requirements})
+    if valid and any(not set(r['change_ids']) <= {c['id'] for c in diff['changes']} for r in result['items']):
+        valid = False
+    if not valid:
+        result = dict(items=[dict(requirement_id=r['id'], status='unknown', reason='불완전 변경 검수',
+                                  change_ids=[], new_relevance=False) for r in requirements])
+    return result, valid
+
+
 def analyze(service, request):
     started = monotonic()
     config = configuration()
@@ -98,18 +115,7 @@ def analyze(service, request):
         db.execute('INSERT INTO runs VALUES(?,?)', (run['id'], encode(run)))
     # ponytail: inspect all selected requirements, including unlinked ones. Add a
     # measured candidate index only when the requirement inventory outgrows this.
-    result = business_run.json_call(service, run, 'change_impact',
-        '원문 전후의 실제 변경과 각 업무 요구의 범위/조건을 대조한다. 기존 연결은 영향 후보이며 영향 확정이 아니다. '
-        '기존 연결이 없어도 새 조건·예외·대상으로 관련되는 요구를 affected/new_relevance로 찾는다. '
-        '각 요구를 빠짐없이 판정하고 실제 변경 id와 이유를 기록한다. 미변경 행/다른 대상은 유지한다. '
-        '자료없는 보행·수요·안전·인과 효과는 추정하지 않는다. 결정 불가하면 unknown이다.',
-        dict(requirements=requirements, direct_dependency_ids=direct, diff=diff, versions=versions), Impacts)
-    valid = result and len(result['items']) == len(requirements) and {r['requirement_id'] for r in result['items']} == {r['id'] for r in requirements}
-    if valid and any(not set(r['change_ids']) <= {c['id'] for c in diff['changes']} for r in result['items']):
-        valid = False
-    if not valid:
-        result = dict(items=[dict(requirement_id=r['id'], status='unknown', reason='불완전 변경 검수',
-                                  change_ids=[], new_relevance=False) for r in requirements])
+    result, valid = review_impacts(service, run, requirements, diff, versions, direct)
     with service.lock, service.repository.connect() as db:
         for impact in result['items']:
             current = service.repository.get(db, 'requirements', impact['requirement_id'])

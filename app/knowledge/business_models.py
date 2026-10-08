@@ -402,6 +402,31 @@ class BusinessDecision(BaseModel):
     actor: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     accept_ids: list[str]  # An explicit empty review approves no claims.
+    confirm_source_correction_ids: list[str] = Field(default_factory=list)
+
+
+class SourceMeaningEdit(BaseModel):
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    requirement_id: str
+    meaning_key: str
+    expected_meaning_version: str
+    mode: Literal['reassess', 'replace']
+    reason: str = Field(min_length=1)
+    evidence: list[EvidenceQuote] = Field(min_length=1)
+    statement: str | None = None
+    conditions: list[str] = Field(default_factory=list)
+    exceptions: list[str] = Field(default_factory=list)
+    period: str = ''
+    references: list[str] = Field(default_factory=list)
+    premise_keys: list[str] | None = None
+
+    @model_validator(mode='after')
+    def replacement_content(self):
+        if self.mode == 'replace' and not (self.statement or '').strip():
+            raise ValueError('명시적 원문 해석 정정에는 문장이 필요합니다.')
+        if self.mode == 'reassess' and self.statement is not None:
+            raise ValueError('자동 재판정 요청에 정정문을 제공하지 않습니다.')
+        return self
 
 
 class BusinessEventEdit(BaseModel):
@@ -413,6 +438,14 @@ class BusinessEventEdit(BaseModel):
     reason: str = Field(min_length=1)
     event: str = Field(min_length=1)
     evidence: list[EvidenceQuote] = Field(min_length=1)
+    error_owner: Literal['candidate', 'source', 'both'] = 'candidate'
+    source_edits: list[SourceMeaningEdit] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def edit_owner(self):
+        if bool(self.source_edits) != (self.error_owner in {'source', 'both'}):
+            raise ValueError('오류 귀속과 원문 해석 정정 대상이 일치해야 합니다.')
+        return self
 
 
 class PublicAnswerItem(BaseModel):
@@ -434,7 +467,7 @@ class BusinessQuery(BaseModel):
     limit: int = Field(default=12, ge=1, le=50)
     retrieval: Literal['bm25', 'dense', 'hipporag2'] = 'hipporag2'
     graph_variant: Literal['entity', 'entity_event', 'full'] = 'full'
-    answer_mode: Literal['synthesis', 'source_quotes', 'items'] = 'synthesis'
+    answer_mode: Literal['synthesis', 'source_quotes', 'items', 'reviewed_items'] = 'synthesis'
     answer_items: list[PublicAnswerItem] = Field(default_factory=list)
 
     @model_validator(mode='after')
@@ -443,9 +476,9 @@ class BusinessQuery(BaseModel):
             raise ValueError('snapshot_id 또는 source_run_id 중 하나를 선택하세요.')
         if self.source_run_id and self.requirement_ids:
             raise ValueError('원문 QA는 요구 충족 판정이 아닙니다. 요구별 승인 지식 활용에는 snapshot을 선택하세요.')
-        if self.answer_mode == 'items' and not self.answer_items:
+        if self.answer_mode in {'items', 'reviewed_items'} and not self.answer_items:
             raise ValueError('항목별 답변에는 공개 요청에서 고정한 answer_items가 필요합니다.')
-        if self.answer_items and (self.answer_mode != 'items' or not self.requirement_ids):
+        if self.answer_items and (self.answer_mode not in {'items', 'reviewed_items'} or not self.requirement_ids):
             raise ValueError('answer_items는 요구를 선택한 항목별 답변에서만 사용합니다.')
         if len({i.id for i in self.answer_items}) != len(self.answer_items):
             raise ValueError('공개 답변 항목 ID가 중복됩니다.')

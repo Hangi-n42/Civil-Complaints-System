@@ -193,13 +193,24 @@ def related_blocks(run, meanings, claims=(), *, chunks=None):
     return list(selected.values())
 
 
+def valid_preservation_reuses(run, requirement, meanings):
+    claims = {c['id']: autoschema.identifier('claim', c) for c in run['claims']}
+    versions = {m['key']: autoschema.identifier('meaning', m) for m in meanings}
+    return [r for r in run.get('preservation_reuses', []) if r['requirement_id'] == requirement['id']
+        and r['requirement_revision'] == requirement['revision']
+        and all(claims.get(cid) == version for cid, version in r['claim_versions'].items())
+        and all(versions.get(key) == version for key, version in r['meaning_versions'].items())]
+
+
 def repair_context(run, requirement, meanings):
     ids = {e['block_id'] for m in meanings for e in m.get('evidence', [])}
     relevant = {c['id'] for c in run['claims'] if any(e['block_id'] in ids for e in c.get('evidence', []))}
     selected = []
+    reused = {r['check']['target_id'] for r in valid_preservation_reuses(run, requirement, meanings)}
     for receipt in [*run.get('prior_repairs', []), *run['repairs']]:
-        changes = [c for c in receipt['changes'] if receipt.get('requirement_id') == requirement['id']
-                   or (c.get('before') or {}).get('id') in relevant or c['after']['id'] in relevant]
+        changes = [c for c in receipt['changes'] if (c.get('before') or {}).get('id') not in reused and
+                   (receipt.get('requirement_id') == requirement['id']
+                   or (c.get('before') or {}).get('id') in relevant or c['after']['id'] in relevant)]
         if changes:
             selected.append(dict(receipt, changes=changes))
     return selected

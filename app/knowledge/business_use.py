@@ -86,6 +86,9 @@ def eligibility(run):
 
 def review_eligibility(change, run):
     eligible, blocked = eligibility(run)
+    for cid in change.get('invalidated_claim_ids', []):
+        eligible.discard(cid)
+        blocked.setdefault(cid, []).append('corrected_in_new_run')
     current = {c['id']: c for c in run['claims']}
     unchanged = {c['id'] for c in change['candidates'] if c == current.get(c['id'])}
     for cid in {c['id'] for c in change['candidates']} - unchanged:
@@ -107,6 +110,27 @@ def publish(service, run):
     return change
 
 
+def explicit_correction_options(run):
+    """A reviewer may confirm only the exact jointly corrected text, separately from model review."""
+    latest = {a['requirement_id']: a for a in run['assessments']}
+    choices = []
+    for correction in run.get('source_corrections', []):
+        if correction['mode'] != 'replace' or correction['error_owner'] != 'both':
+            continue
+        assessment = latest.get(correction['requirement_id'], {})
+        meaning = next((m for m in (assessment.get('source') or {}).get('meanings', [])
+            if m['key'] == correction['before']['key'] and (m.get('correction') or {}).get('id') == correction['id']), None)
+        if not meaning or correction['source_versions'] != run['input_version_ids'] or correction['requirement_revision'] != assessment.get('revision'):
+            continue
+        receipts = [r for r in [*run.get('prior_repairs', []), *run['repairs']] if r['id'] == correction['edit_id']]
+        ids = [c['id'] for receipt in receipts for edit in receipt['changes'] for c in run['claims']
+            if c == edit['after'] and c.get('raw', {}).get('Event') == meaning['statement'] and not c.get('superseded_by')]
+        if ids:
+            choices.append(dict(correction_id=correction['id'], claim_ids=ids, requirement_id=correction['requirement_id'],
+                assessment_id=assessment.get('id'), meaning=deepcopy(meaning), basis='explicit_reviewer_not_model_validation'))
+    return choices
+
+
 def change_view(service, changeset_id):
     with service.repository.connect() as db:
         change = service.repository.get(db, 'changesets', changeset_id)
@@ -115,7 +139,13 @@ def change_view(service, changeset_id):
         run = service.repository.get(db, 'runs', change['run_id'])
     eligible, blocked = review_eligibility(change, run)
     return dict(change, eligible_ids=sorted(eligible), published_eligible_ids=change['eligible_ids'],
+                explicit_review_options=[o for o in explicit_correction_options(run)
+                    if not set(o['claim_ids']).intersection(change.get('invalidated_claim_ids', []))],
                 candidate_versions={c['id']: business_run.autoschema.identifier('claim', c) for c in change['candidates']},
+                source_meanings=[dict(requirement_id=rid, meaning=deepcopy(m),
+                    version=business_run.autoschema.identifier('meaning', m))
+                    for rid, a in {a['requirement_id']: a for a in run['assessments']}.items()
+                    for m in (a.get('source') or {}).get('meanings', [])],
                 completion_contract=business_run.COMPLETION_CONTRACT,
                 published_completion_contract=change.get('completion_contract'),
                 published_eligibility_contract=change.get('eligibility_contract', 'current-claim-all-requirements-v1'),
@@ -129,7 +159,12 @@ def decide(service, changeset_id, request):
             raise KnowledgeConflict('검토 변경안의 종류/버전이 다릅니다.')
         run = service.repository.get(db, 'runs', change['run_id'])
         eligible, _ = review_eligibility(change, run)
-        if not set(request.accept_ids) <= eligible:
+        explicit = [o for o in explicit_correction_options(run) if o['correction_id'] in request.confirm_source_correction_ids
+                    and not set(o['claim_ids']).intersection(change.get('invalidated_claim_ids', []))]
+        if {o['correction_id'] for o in explicit} != set(request.confirm_source_correction_ids) or any(
+                not set(o['claim_ids']) <= set(request.accept_ids) for o in explicit):
+            raise ValueError('현재 정정본의 후보를 선택하고 정정 해석 확인을 명시해야 합니다.')
+        if not set(request.accept_ids) <= eligible | {cid for o in explicit for cid in o['claim_ids']}:
             raise ValueError('근거·표현 검수에서 확인되지 않은 후보는 승인할 수 없습니다.')
         if restricted_sources(db, run['input_version_ids']):
             raise KnowledgeConflict('사용이 제한된 원문 버전의 후보는 승인할 수 없습니다.')
@@ -142,6 +177,7 @@ def decide(service, changeset_id, request):
                         completion_contract=business_run.COMPLETION_CONTRACT,
                         eligibility_contract=ELIGIBILITY_CONTRACT, eligible_ids_at_review=sorted(eligible),
                         reason=request.reason, accepted_ids=request.accept_ids, created_at=utcnow())
+        decision['explicit_meaning_reviews'] = deepcopy(explicit)
         change['decisions'].append(decision['id'])
         change['revision'] += 1
         service.repository.save(db, 'changesets', change)
@@ -160,6 +196,7 @@ def decide(service, changeset_id, request):
                         assessments=latest, source_versions=deepcopy(run['sources']),
                         blocks=deepcopy(run['blocks']), assertions={}, entity_links={},
                         ontology_version_id=None, activation='explicit_query_only')
+        snapshot['explicit_meaning_reviews'] = deepcopy(explicit)
         db.execute('INSERT INTO snapshots VALUES(?,?)', (snapshot['id'], encode(snapshot)))
         db.execute('INSERT INTO snapshot_events VALUES(?,?)', (decision['id'], encode(dict(
             decision, event='reviewed_source_graph_snapshot', snapshot_id=snapshot['id']))))
@@ -218,12 +255,18 @@ def concept_hints(snapshot):
 def reviewed_answer_meanings(snapshot, selected, requirement_ids):
     """Carry existing review scope and literal evidence, not a new truth judgment."""
     rows = []
+    explicit = {(e['requirement_id'], e['meaning']['key']): e for e in snapshot.get('explicit_meaning_reviews', [])}
     for rid, assessment in snapshot.get('assessments', {}).items():
         if requirement_ids and rid not in requirement_ids:
             continue
         checks = {c['meaning_key']: c for c in (assessment.get('representation') or {}).get('checks', [])}
         for meaning in (assessment.get('source') or {}).get('meanings', []):
             check = checks.get(meaning['key'], {})
+            confirmation = explicit.get((rid, meaning['key']))
+            if confirmation:
+                meaning = confirmation['meaning']
+                check = dict(status='explicitly_reviewed', claim_ids=confirmation['claim_ids'],
+                    claim_support={cid:'explicitly_reviewed' for cid in confirmation['claim_ids']})
             ids = sorted(selected.intersection(check.get('claim_ids', [])))
             if not ids:
                 continue
@@ -232,6 +275,11 @@ def reviewed_answer_meanings(snapshot, selected, requirement_ids):
                 ('key', 'statement', 'conditions', 'exceptions', 'period', 'references', 'source_status',
                  'availability', 'record_error', 'requirement_link')})
             row['claim_support'] = {cid: check.get('claim_support', {}).get(cid, 'not_assessed') for cid in ids}
+            row.update(required_claim_ids=deepcopy(check.get('claim_ids', [])),
+                complete_claim_bundle=set(check.get('claim_ids', [])) <= selected,
+                premise_keys=meaning.get('premise_keys'),
+                interpretation_version=business_run.autoschema.identifier('meaning', meaning),
+                judgment_origin=deepcopy(meaning.get('correction', {'origin': 'model'})))
             try:
                 row['evidence'] = business_run.exact_evidence(meaning['evidence'], snapshot['blocks'])
             except ValueError as exc:
@@ -256,6 +304,91 @@ def bind_answer_items(request, requirements):
         if item['request_quote'] not in requirement[item['field']]:
             raise ValueError('공개 답변 항목은 원래 question/criterion의 정확한 구절이어야 합니다.')
     return items
+
+
+def reviewed_item_answer(service, run, request, requirements):
+    """Select complete reviewed propositions; the server renders their unchanged content."""
+    available = {}
+    excluded = []
+    for meaning in run['reviewed_meanings']:
+        explicit = meaning['expression_status'] == 'explicitly_reviewed'
+        valid = (meaning['complete_claim_bundle'] and meaning['expression_status'] in {'represented', 'explicitly_reviewed'}
+            and meaning['source_status'] == 'supported' and meaning['availability'] == 'provided'
+            and meaning['evidence'] and not meaning['record_error']
+            and all(meaning['claim_support'].get(cid) == ('explicitly_reviewed' if explicit else 'supported') for cid in meaning['required_claim_ids'])
+            and (meaning.get('requirement_link') or {}).get('applicability') != 'unresolved')
+        if valid:
+            available[f'm{len(available)+1}'] = meaning
+        else:
+            excluded.append(dict(key=meaning['key'], requirement_id=meaning['requirement_id'],
+                reason='incomplete_current_approved_bundle_or_review'))
+    # Missing premise edges are unknown, not proof of independence. Known AND
+    # premises must also be provided before a compound meaning can be selected.
+    while True:
+        keys = {(m['requirement_id'], m['key']) for m in available.values()}
+        missing = [ref for ref, m in available.items() if any(
+            (m['requirement_id'], key) not in keys for key in m.get('premise_keys') or [])]
+        if not missing:
+            break
+        for ref in missing:
+            m = available.pop(ref)
+            excluded.append(dict(key=m['key'], requirement_id=m['requirement_id'], reason='missing_required_premise'))
+    run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded)
+    if not available:
+        return dict(answer='확인된 후보·조건·전제가 함께 제공된 의미가 없습니다.', citations=[], choice=None,
+                    limitations=['현재 검토 버전의 표현 연결을 확인해야 합니다.'])
+    selection = create_model('ReviewedSelection', meaning_ref=(Literal[tuple(available)], Field(...)),
+        use=(Literal['direct_fact', 'premise_only'], Field(...)))
+    row = create_model('ReviewedItemSelection', item_id=(Literal[tuple(i['id'] for i in run['answer_items'])], Field(...)),
+        selected=(list[selection], Field(...)),
+        unconfirmed=(list[str], Field(description='Concrete requested fact or inference link not established; never an affirmative conclusion.')))
+    output_type = create_model('ReviewedItemSelections', items=(list[row], Field(...)))
+    output = business_run.json_call(service, run, 'business_qa',
+        '공개 질문/criterion의 항목별로 해당하는 검토 의미 ID만 선택한다. 문장·결론을 새로 작성하지 않는다. '
+        '각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, '
+        '결론에 추가 연결이 필요하면 premise_only로 고르고 그 구체 미확인 연결을 unconfirmed에 쓴다. '
+        '명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. '
+        '모든 공개 항목에 유용한 의미 또는 구체 공백이 필요하다. 불필요한 의미는 선택하지 않는다. '
+        '검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다.',
+        dict(question=request.question, public_requirements=requirements, public_answer_items=run['answer_items'],
+             # Earlier whole-requirement applicability is not a verdict on the current public item.
+             reviewed_meanings={ref: {k: v for k, v in meaning.items() if k != 'requirement_link'}
+                                for ref, meaning in available.items()}), output_type)
+    if output is None:
+        return None
+    run['answer_meaning_selection']['output'] = deepcopy(output)
+    rendered, citations, limitations, errors = [], [], [], []
+    for item in run['answer_items']:
+        matches = [r for r in output['items'] if r['item_id'] == item['id']]
+        if len(matches) != 1:
+            errors.append(item['id'] + ': selection_missing_or_duplicate')
+            rendered.append(item['request_quote'] + '\n응답 기록 미완성')
+            continue
+        row = matches[0]
+        lines = [item['request_quote']]
+        for selected in row['selected']:
+            m = available[selected['meaning_ref']]
+            if m['requirement_id'] != item['requirement_id']:
+                errors.append(item['id'] + ': wrong_requirement'); continue
+            prefix = '확인된 전제 (결론 연결 미확인): ' if selected['use'] == 'premise_only' else '검토된 원문 의미: '
+            lines.append(prefix + m['statement'])
+            for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:
+                value = m.get(field)
+                if value:
+                    lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))
+            citations.extend(m['required_claim_ids'])
+            if m.get('premise_keys') is None:
+                limitations.append(m['key'] + ': 추가 연결 전제의 독립성은 확인되지 않았습니다.')
+            if selected['use'] == 'premise_only' and not row['unconfirmed']:
+                errors.append(item['id'] + ': inference_link_not_specified')
+        for gap in row['unconfirmed']:
+            lines.append('확인 불가: ' + gap)
+        if not row['selected'] and not row['unconfirmed']:
+            errors.append(item['id'] + ': empty_item')
+        rendered.append('\n'.join(lines))
+    run['answer_item_errors'] = errors
+    return dict(answer='\n\n'.join(rendered), citations=list(dict.fromkeys(citations)), choice=None,
+                limitations=list(dict.fromkeys(limitations)))
 
 
 def item_answer(service, run, request, source_evidence, source_versions, reference_map, requirements):
@@ -410,7 +543,7 @@ def source_quote_answer(service, run, request, source_evidence, source_versions,
 def query(service, request, *, context_mode='graph'):
     """The same question/answer contract supports a recorded document baseline."""
     from .discovery_profile import FrozenIndex
-    if request.answer_mode in {'source_quotes', 'items'} and (request.source_run_id or context_mode != 'graph'):
+    if request.answer_mode in {'source_quotes', 'items', 'reviewed_items'} and (request.source_run_id or context_mode != 'graph'):
         raise ValueError('원문 선택 답변 실험은 승인 그래프 근거에서만 지원합니다.')
     started = monotonic()
     source_reader = bool(request.source_run_id)
@@ -435,6 +568,16 @@ def query(service, request, *, context_mode='graph'):
             snapshot = service.repository.get(db, 'snapshots', request.snapshot_id)
         if snapshot.get('kind') != 'source_graph':
             raise ValueError('출처 그래프 snapshot이 필요합니다.')
+        invalidations = [event for row in db.execute('SELECT payload FROM snapshot_events')
+            if (event := json.loads(row['payload'])).get('event') == 'business_correction'
+            and event['snapshot_id'] == snapshot['id']]
+        if invalidations:
+            affected = {rid for i in invalidations for rid in i['requirement_ids']}
+            if affected.intersection(request.requirement_ids):
+                return dict(status='needs_review', answer=None, snapshot_id=snapshot['id'], invalidations=invalidations)
+            excluded = {cid for i in invalidations for cid in i['claim_ids']}
+            snapshot = dict(snapshot, claims=[c for c in snapshot['claims'] if c['id'] not in excluded],
+                            assessments={rid:a for rid,a in snapshot['assessments'].items() if rid not in affected})
         if not set(request.requirement_ids) <= {r['id'] for r in snapshot['requirements']}:
             raise ValueError('선택한 요구가 해당 snapshot에 없습니다.')
         original = service.repository.get(db, 'runs', snapshot['run_id'])
@@ -454,6 +597,9 @@ def query(service, request, *, context_mode='graph'):
             return dict(status='no_source_passages', answer=None, source_run_id=request.source_run_id, model_called=False)
         required_ids = set()
         if context_mode == 'graph' and request.requirement_ids:
+            required_ids.update(cid for e in snapshot.get('explicit_meaning_reviews', [])
+                if e['requirement_id'] in request.requirement_ids and e['meaning'].get('required_for_requirement')
+                for cid in e['claim_ids'])
             for rid in request.requirement_ids:
                 representation = snapshot['assessments'][rid].get('representation') or {}
                 keys = {row['meaning_key'] for row in representation.get('source_checks', [])
@@ -594,7 +740,9 @@ def query(service, request, *, context_mode='graph'):
     limitations = [dict(requirement_id=r, status=a['status'], gaps=(a.get('source') or {}).get('gaps', []))
                    for r, a in snapshot['assessments'].items() if a['status'] != 'satisfied']
     answer_requirements = public_answer_requirements(requirements) if request.requirement_ids else []
-    if request.answer_mode == 'items':
+    if request.answer_mode == 'reviewed_items':
+        output = reviewed_item_answer(service, run, request, answer_requirements)
+    elif request.answer_mode == 'items':
         output = item_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)
     elif request.answer_mode == 'source_quotes':
         output = source_quote_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)

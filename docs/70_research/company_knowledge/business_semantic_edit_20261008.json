@@ -1,0 +1,1263 @@
+{
+  "selection_comparison_adopted": true,
+  "automatic_source_reassessment_succeeded": false,
+  "automatic_model_edit_end_to_end_tested": false,
+  "reference_requirement_status": "partial",
+  "remaining_relation_error": "c117: claim_a325528595da5d2df0ed5b9e",
+  "scope": "U1-U4 bounded local evidence, not automatic end-to-end success",
+  "base_commit": "98c25268229b5bb1632e483b04c31413aae15b54",
+  "original_busan_sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+  "automatic_detection": false,
+  "actual_human_trial": false,
+  "whole_dataset_evaluation": false,
+  "extraction_rerun": false,
+  "runs": {
+    "conditioned_event_v1": {
+      "run_id": "4beef5e0e5f249808d2190ce3cc12901",
+      "status": "partial",
+      "metrics": {
+        "llm_calls": 1,
+        "model_total_s": 27.005413,
+        "elapsed_s": 27.6317747500143
+      },
+      "new_input_tokens": 3128,
+      "new_output_tokens": 93,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/conditioned_event_v1",
+      "result_sha256": "604268fb0f56c71c3a65b04995c65e5bec0cf58d1beb8ca9c7d866b7e5b5a69d",
+      "applied": true,
+      "event": "번호판변경시 기존번호판 2매 및 봉인 지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함",
+      "evidence_count": 45,
+      "context_count": 0,
+      "entity_unchanged": true,
+      "other_118_claims_unchanged": true,
+      "original_unchanged": true
+    },
+    "event_storage_replay_v1": {
+      "run_id": "8fc6108443354b4ca6a72e0fd8f0dc60",
+      "status": "partial",
+      "metrics": {
+        "llm_calls": 0,
+        "model_total_s": 0,
+        "elapsed_s": 0.35387200000695884
+      },
+      "new_input_tokens": 0,
+      "new_output_tokens": 0,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/event_storage_replay_v1",
+      "result_sha256": "2bf695ba1e4d23174e1cf43dcb766c3943163c4b0fe6661c808f3bb81e3cbff6",
+      "applied": true,
+      "event": "번호판변경시 기존번호판 2매 및 봉인\n지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함",
+      "evidence_count": 1,
+      "context_count": 4,
+      "entity_unchanged": true,
+      "other_118_claims_unchanged": true,
+      "original_unchanged": true
+    },
+    "source_auto_v1": {
+      "run_id": "ff0e18a0daa64d9b8c7800f47fb801d9",
+      "status": "review_ready",
+      "metrics": {
+        "llm_calls": 6,
+        "model_total_s": 386.91013499999997,
+        "elapsed_s": 414.1090685839881,
+        "reused_responses": 9
+      },
+      "new_input_tokens": 38931,
+      "new_output_tokens": 2918,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/source_auto_v1",
+      "result_sha256": "f4c4451cde5214d82dd0215af505fe9b7644485f2afcf8d73261c7caf975dd3c",
+      "source_meaning": {
+        "key": "plate_change_documents",
+        "statement": "번호판 변경 시 기존번호판 2매 및 봉인을 반납해야 하며, 지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+        "source_status": "supported",
+        "availability": "provided",
+        "evidence": [
+          {
+            "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+            "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+            "source_version_id": "7b42ae519cbd4184b4de800623559005",
+            "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+            "start_char": 0,
+            "end_char": 116,
+            "precision": "exact"
+          }
+        ],
+        "conditions": [
+          "번호판 변경"
+        ],
+        "exceptions": [],
+        "period": "번호 변경 시",
+        "references": [],
+        "reason": "v1의 번호판 변경 시 구비서류가 원문에 명시되어 있다.",
+        "premise_keys": [],
+        "required_for_requirement": false,
+        "requirement_link": {
+          "requested_fact": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+          "applicability": "outside_scope",
+          "contribution": "background",
+          "reason": "요청 사실은 기관별 처리 가능 범위와 제외 업무이며, 해당 원문은 번호판 변경 시 구비서류(기존번호판 2매 및 봉인 반납)만 명시하고 기관별 처리 가능 여부나 제외 업무를 다루지 않는다.",
+          "requirement_quote": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+        }
+      },
+      "assessment_status": "satisfied",
+      "preservation_checks": [
+        {
+          "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+          "status": "preserved",
+          "before_normal_meanings": [
+            "geumryongsan_center_scope"
+          ],
+          "after_locations": [
+            "claim_b75ccdd9c2c09c66d0f5428a",
+            "claim_d34252c5e269cb5463c100c6"
+          ],
+          "reason": "c116의 'at the same time' 관계 오류는 제거되었고, 금련산센터의 정상 업무 범위 의미는 c89과 c105에 의해 원문(b146)과 일치하게 표현되어 보존되었습니다."
+        }
+      ],
+      "preservation_reuses": [
+        {
+          "requirement_id": "busan-R05",
+          "assessment_id": "245f637b3ac14d4789e98fed496ea456",
+          "check": {
+            "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+            "status": "preserved",
+            "before_normal_meanings": [
+              "geumryongsan_center_scope"
+            ],
+            "after_locations": [
+              "claim_b75ccdd9c2c09c66d0f5428a",
+              "claim_d34252c5e269cb5463c100c6"
+            ],
+            "reason": "c116의 'at the same time' 관계 오류는 제거되었고, 금련산센터의 정상 업무 범위 의미는 c89과 c105에 의해 원문(b146)과 일치하게 표현되어 보존되었습니다."
+          },
+          "claim_versions": {
+            "claim_b75ccdd9c2c09c66d0f5428a": "claim_d151329955140e67c75bdc5c",
+            "claim_d34252c5e269cb5463c100c6": "claim_f7521980c80a3e04d1cce9ad",
+            "claim_b040fc7be8bc9d01cb2fadc8": "claim_f6fb3e98bb89e03bd0e74faa"
+          },
+          "requirement_revision": 1,
+          "meaning_versions": {
+            "myeongji_main_office_scope": "meaning_8d471bdf66b8eb355beae003",
+            "geumryongsan_center_scope": "meaning_b26ed4ec88d718e930a36b00",
+            "geumryongsan_center_exclusion": "meaning_c8185b838e1c4dbe45b7d03a",
+            "bujon_center_scope": "meaning_0b6d3df8755420e57ff7db35",
+            "gupo_center_scope": "meaning_bdf98ab04d64f99ca15be221",
+            "dongbusan_center_scope": "meaning_1d348f5026c73d69e562f0f4"
+          },
+          "source_versions": [
+            "14476d2f18bf407d969301fcb68b01a1"
+          ],
+          "scope": "local_preservation_only_not_requirement_independence"
+        }
+      ],
+      "edit_impact": {
+        "changed_claim_ids": [],
+        "source_correction_ids": [
+          "2e3a3f59158945679a88808054173d6d"
+        ],
+        "related_requirement_ids": [
+          "busan-R05"
+        ],
+        "candidate_requirement_ids": [
+          "busan-R01",
+          "busan-R02",
+          "busan-R03",
+          "busan-R04",
+          "busan-R06"
+        ],
+        "basis": "shared source scope is an impact candidate, not confirmed semantic impact",
+        "items": [
+          {
+            "requirement_id": "busan-R01",
+            "status": "unaffected",
+            "reason": "변경 id 28d16aea0cb74e21b5cc9f3b94ddd1ac은 busan-R05의 번호판 반납/지역 번호 적용 범위 해석 후보이며, busan-R01의 매매 취득 양수인 직접 신청 준비(공통 요건·본인확인·매매 추가 서류) 범위와 직접 관련이 없다. 기존 satisfied 상태 유지.",
+            "change_ids": [],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R02",
+            "status": "unaffected",
+            "reason": "변경 id 28d16aea0cb74e21b5cc9f3b94ddd1ac은 대리 신청 시 위임·신분 확인·법인 대체 서류 등 busan-R02의 핵심 조건과 무관하다. 기존 satisfied 상태 유지.",
+            "change_ids": [],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R03",
+            "status": "unaffected",
+            "reason": "변경 id 28d16aea0cb74e21b5cc9f3b94ddd1ac은 양도인 방문 여부·개인/법인 서류 예외(busan-R03)의 적용 대상이 아니다. 기존 partial 상태 유지.",
+            "change_ids": [],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R04",
+            "status": "unaffected",
+            "reason": "변경 id 28d16aea0cb74e21b5cc9f3b94ddd1ac은 신청기한·번호판 교부기간(busan-R04)의 기간 대상·기산점·단위와 무관하다. 기존 partial 상태 유지.",
+            "change_ids": [],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R06",
+            "status": "unaffected",
+            "reason": "변경 id 28d16aea0cb74e21b5cc9f3b94ddd1ac은 busan-R05에 귀속된 번호판 반납 해석 후보이며, busan-R06의 신규등록·임시운행·말소·저당·번호판 업무 추가 제한 범위와 직접 연결되지 않는다. 기존 unknown 상태 유지.",
+            "change_ids": [],
+            "new_relevance": false
+          }
+        ],
+        "record_valid": true,
+        "pending_requirement_ids": []
+      },
+      "claims_other_than_c47_unchanged": true,
+      "blocks_unchanged": true,
+      "original_unchanged": true
+    },
+    "reference_both_v1": {
+      "run_id": "a4d583344bad476daa287633c689de5d",
+      "status": "partial",
+      "metrics": {
+        "llm_calls": 12,
+        "model_total_s": 675.0474029999999,
+        "elapsed_s": 702.0444080830202,
+        "reused_responses": 6
+      },
+      "new_input_tokens": 89724,
+      "new_output_tokens": 3279,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/reference_both_v1",
+      "result_sha256": "417d7a778737057877cf99e39cca641c04728a8f48ab65f77e7b3b66c3127835",
+      "source_meaning": {
+        "key": "plate_change_documents",
+        "statement": "번호판 변경 시 구비항목은 기존번호판 2매 및 봉인이다. 지역 번호는 반드시 기존번호판 2매 및 봉인을 반납한 후 번호를 변경하여야 한다.",
+        "source_status": "supported",
+        "availability": "provided",
+        "evidence": [
+          {
+            "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+            "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)",
+            "source_version_id": "7b42ae519cbd4184b4de800623559005",
+            "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+            "start_char": 0,
+            "end_char": 62,
+            "precision": "exact"
+          }
+        ],
+        "conditions": [
+          "번호판 변경 시"
+        ],
+        "exceptions": [],
+        "period": "",
+        "references": [],
+        "reason": "별도 기준 수정본: 원문 일반 구비항목과 지역 번호에 명시된 반납 의무를 구분. 자동 검출/모델 교정 결과가 아님.",
+        "required_for_requirement": false,
+        "premise_keys": null,
+        "correction": {
+          "id": "b5184023226c480583a01a016bb96bd6",
+          "origin": "user",
+          "actor": "diagnostic-reference-editor (not a human trial)",
+          "reason": "별도 기준 수정본: 원문 일반 구비항목과 지역 번호에 명시된 반납 의무를 구분. 자동 검출/모델 교정 결과가 아님.",
+          "expected_version": "meaning_d2a80fd13778fcc1e48aab38"
+        },
+        "requirement_link": {
+          "requested_fact": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+          "applicability": "outside_scope",
+          "contribution": "background",
+          "reason": "요청 사실은 기관별 처리 가능 범위(담당과/센터별 제외 업무)이며, 해당 사실은 번호판 변경 시 구비서류(기존번호판 2매 및 봉인 반납)를 규정함. 기관 처리 범위와 무관한 서류 요건이므로 필수 전제가 아님.",
+          "requirement_quote": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+        }
+      },
+      "assessment_status": "partial",
+      "preservation_checks": [
+        {
+          "target_id": "claim_6804020432957407c5cf6595",
+          "status": "preserved",
+          "before_normal_meanings": [
+            "번호판 변경 시 기존번호판 2매 및 봉인 반납",
+            "지역 번호는 반납 후 번호 변경"
+          ],
+          "after_locations": [
+            "c47.raw.Event"
+          ],
+          "reason": "수정 전후 모두 원문 b32의 '번호판변경시 기존번호판 2매 및 봉인' 및 '지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경' 의미를 포함하고 있습니다. 수정은 문장 구조를 명확히 한 것으로, 핵심 의미(반납 의무, 지역 번호 조건)가 유지되었습니다."
+        },
+        {
+          "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+          "status": "preserved",
+          "before_normal_meanings": [
+            "geumryongsan_center_scope"
+          ],
+          "after_locations": [
+            "claim_b75ccdd9c2c09c66d0f5428a",
+            "claim_d34252c5e269cb5463c100c6"
+          ],
+          "reason": "c116의 'at the same time' 관계 오류는 제거되었고, 금련산센터의 정상 업무 범위 의미는 c89과 c105에 의해 원문(b146)과 일치하게 표현되어 보존되었습니다."
+        }
+      ],
+      "preservation_reuses": [
+        {
+          "requirement_id": "busan-R05",
+          "assessment_id": "245f637b3ac14d4789e98fed496ea456",
+          "check": {
+            "target_id": "claim_b040fc7be8bc9d01cb2fadc8",
+            "status": "preserved",
+            "before_normal_meanings": [
+              "geumryongsan_center_scope"
+            ],
+            "after_locations": [
+              "claim_b75ccdd9c2c09c66d0f5428a",
+              "claim_d34252c5e269cb5463c100c6"
+            ],
+            "reason": "c116의 'at the same time' 관계 오류는 제거되었고, 금련산센터의 정상 업무 범위 의미는 c89과 c105에 의해 원문(b146)과 일치하게 표현되어 보존되었습니다."
+          },
+          "claim_versions": {
+            "claim_b75ccdd9c2c09c66d0f5428a": "claim_d151329955140e67c75bdc5c",
+            "claim_d34252c5e269cb5463c100c6": "claim_f7521980c80a3e04d1cce9ad",
+            "claim_b040fc7be8bc9d01cb2fadc8": "claim_f6fb3e98bb89e03bd0e74faa"
+          },
+          "requirement_revision": 1,
+          "meaning_versions": {
+            "myeongji_main_office_scope": "meaning_8d471bdf66b8eb355beae003",
+            "geumryongsan_center_scope": "meaning_b26ed4ec88d718e930a36b00",
+            "geumryongsan_center_exclusion": "meaning_c8185b838e1c4dbe45b7d03a",
+            "bujon_center_scope": "meaning_0b6d3df8755420e57ff7db35",
+            "gupo_center_scope": "meaning_bdf98ab04d64f99ca15be221",
+            "dongbusan_center_scope": "meaning_1d348f5026c73d69e562f0f4"
+          },
+          "source_versions": [
+            "14476d2f18bf407d969301fcb68b01a1"
+          ],
+          "scope": "local_preservation_only_not_requirement_independence"
+        }
+      ],
+      "edit_impact": {
+        "changed_claim_ids": [
+          "claim_6804020432957407c5cf6595"
+        ],
+        "source_correction_ids": [
+          "b5184023226c480583a01a016bb96bd6"
+        ],
+        "related_requirement_ids": [
+          "busan-R05"
+        ],
+        "candidate_requirement_ids": [
+          "busan-R01",
+          "busan-R02",
+          "busan-R03",
+          "busan-R04",
+          "busan-R06"
+        ],
+        "basis": "shared source scope is an impact candidate, not confirmed semantic impact",
+        "items": [
+          {
+            "requirement_id": "busan-R01",
+            "status": "affected",
+            "reason": "변경 id 1cee85dacfdb484e8276860ac3fb5151은 c47(번호판 변경 시 구비항목)의 문장을 '반납하여 변경한다'에서 '구비항목은 ...이다. 지역 번호는 반드시 ... 반납한 후 변경하여야 한다'로 수정함. R01은 '매매 추가 서류'를 포함하며, 번호판 변경 시 기존번호판 2매 및 봉인 반납은 매매 이전등록 시 번호 변경을 선택하는 경우의 추가 구비사항에 해당함. 따라서 R01의 '매매 추가 서류' 범위 내에서 번호판 변경 관련 설명이 수정된 문장에 의해 영향을 받음.",
+            "change_ids": [
+              "1cee85dacfdb484e8276860ac3fb5151"
+            ],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R02",
+            "status": "affected",
+            "reason": "변경 id 1cee85dacfdb484e8276860ac3fb5151은 c47(번호판 변경 시 구비항목)의 문장을 수정함. R02는 대리 신청 시 '무엇이 달라지는가'를 묻고, 대리 신청 시에도 번호판 변경을 원할 경우 동일한 구비서류(기존번호판 2매, 봉인)가 필요함. 변경된 문장은 구비항목의 성격을 명확히 하므로, 대리 신청 시 준비물 설명에 포함되는 번호판 변경 관련 내용이 영향을 받음.",
+            "change_ids": [
+              "1cee85dacfdb484e8276860ac3fb5151"
+            ],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R03",
+            "status": "affected",
+            "reason": "변경 id 1cee85dacfdb484e8276860ac3fb5151은 c47(번호판 변경 시 구비항목)의 문장을 수정함. R03는 '서류 예외'를 다루며, 번호판 변경 시 구비서류는 양도인 방문 여부와 무관하게 필요한 공통/추가 서류에 해당함. 변경된 문장은 구비항목의 범위를 명확히 하므로, R03의 '서류의 주체·대안 관계' 설명에서 번호판 변경 관련 부분이 영향을 받음.",
+            "change_ids": [
+              "1cee85dacfdb484e8276860ac3fb5151"
+            ],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R04",
+            "status": "unaffected",
+            "reason": "변경 id 1cee85dacfdb484e8276860ac3fb5151은 c47(번호판 변경 시 구비항목)의 문장을 수정함. R04는 '신청기한'과 '번호판 교부기간'을 다루며, 변경된 문장은 구비서류(기존번호판, 봉인)의 반납 의무를 명확히 하는 것으로, 기한(매매일로부터 15일 이내)이나 교부기간(센터별 처리 시간)과는 직접적인 관련이 없음. 따라서 R04의 범위(기간·기산점·단위)에는 영향이 없음.",
+            "change_ids": [],
+            "new_relevance": false
+          },
+          {
+            "requirement_id": "busan-R06",
+            "status": "unaffected",
+            "reason": "변경 id 1cee85dacfdb484e8276860ac3fb5151은 c47(번호판 변경 시 구비항목)의 문장을 수정함. R06는 '신규등록·임시운행·말소·저당·번호판 업무'의 추가 처리 제한을 다루며, 변경된 문장은 번호판 변경 시 구비서류(기존번호판, 봉인)의 반납 의무를 명확히 하는 것으로, 업무 처리 가능 여부나 제한(예: 특정 센터에서 불가)과는 직접적인 관련이 없음. 따라서 R06의 범위(업무 종류 구분, 제외 사항)에는 영향이 없음.",
+            "change_ids": [],
+            "new_relevance": false
+          }
+        ],
+        "record_valid": true,
+        "pending_requirement_ids": [
+          "busan-R01",
+          "busan-R02",
+          "busan-R03"
+        ]
+      },
+      "claims_other_than_c47_unchanged": true,
+      "blocks_unchanged": true,
+      "original_unchanged": true
+    },
+    "reviewed_qa_v1": {
+      "run_id": "ddcab0d27c064770b0aaf31f001b2f31",
+      "status": "succeeded",
+      "metrics": {
+        "llm_calls": 2,
+        "model_total_s": 110.025326,
+        "elapsed_s": 123.75026354100555
+      },
+      "new_input_tokens": 12814,
+      "new_output_tokens": 514,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/reviewed_qa_v1",
+      "result_sha256": "61c4998d79cc4a818c34fc9d514eaef02270cd2a209ffc4bf52bc3d89cf5db8a",
+      "answer": {
+        "answer": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n조건: 명지 본소 방문\n기간: 상시\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n조건: 금련산센터 방문\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n기간: 상시\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 부전센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 구포센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n조건: 동부산센터 방문\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n조건: 금련산센터 방문\n기간: 상시\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 부전센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 구포센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n조건: 동부산센터 방문\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 요구된다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+        "citations": [
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017"
+        ],
+        "choice": null,
+        "limitations": [
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "transfer_certificate: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+        ]
+      },
+      "answer_status": "answered",
+      "provided_ids": [
+        "claim_026829f70fe89ca9f770bee7",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_4039be13b6671fc592118c23",
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_61b6c69d9a2e9c1dd9d939dd",
+        "claim_6804020432957407c5cf6595",
+        "claim_7cff5e461f1287f5d492d06e",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_9bb0b2df8d384265d1018017",
+        "claim_9d2ba40285f82ff7bc48e7e7",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_ad6bfe8f0b9d960379667f2c",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_c8a9b52a5b358426db1acf34",
+        "claim_d34252c5e269cb5463c100c6"
+      ],
+      "selection": {
+        "output": {
+          "items": [
+            {
+              "item_id": "scope",
+              "selected": [
+                {
+                  "meaning_ref": "m7",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m8",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m10",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m11",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m12",
+                  "use": "direct_fact"
+                }
+              ],
+              "unconfirmed": []
+            },
+            {
+              "item_id": "excluded",
+              "selected": [
+                {
+                  "meaning_ref": "m9",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m10",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m11",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m12",
+                  "use": "direct_fact"
+                }
+              ],
+              "unconfirmed": []
+            },
+            {
+              "item_id": "documents",
+              "selected": [
+                {
+                  "meaning_ref": "m1",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m2",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m3",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m5",
+                  "use": "direct_fact"
+                },
+                {
+                  "meaning_ref": "m6",
+                  "use": "direct_fact"
+                }
+              ],
+              "unconfirmed": []
+            }
+          ]
+        },
+        "excluded": [],
+        "available": {
+          "m1": {
+            "key": "common_documents",
+            "statement": "자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.",
+            "conditions": [
+              "자가용 이전등록"
+            ],
+            "exceptions": [],
+            "period": "신청 시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_81faf0bf266e5df11823c977",
+            "required_claim_ids": [
+              "claim_46cf1e37c4889c2dc8e94b8b",
+              "claim_4eeafcbb9a37b6398026cd26",
+              "claim_7cff5e461f1287f5d492d06e",
+              "claim_91ed8b4772cb89d716f2dcd1"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m2": {
+            "key": "proxy_documents",
+            "statement": "양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.",
+            "conditions": [
+              "양수인 미방문"
+            ],
+            "exceptions": [],
+            "period": "신청 시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_24c7352dda35333ce6f7fe22",
+            "required_claim_ids": [
+              "claim_61b6c69d9a2e9c1dd9d939dd",
+              "claim_9d2ba40285f82ff7bc48e7e7"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m3": {
+            "key": "transfer_certificate",
+            "statement": "양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 요구된다.",
+            "conditions": [
+              "자가용 이전등록"
+            ],
+            "exceptions": [],
+            "period": "신청 시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_1d7b625b1373b43e78d2fcc0",
+            "required_claim_ids": [
+              "claim_ad6bfe8f0b9d960379667f2c"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m4": {
+            "key": "plate_change_documents",
+            "statement": "번호판 변경 시 구비항목은 기존번호판 2매 및 봉인이다. 지역 번호는 반드시 기존번호판 2매 및 봉인을 반납한 후 번호를 변경하여야 한다.",
+            "conditions": [
+              "번호판 변경 시"
+            ],
+            "exceptions": [],
+            "period": "",
+            "references": [],
+            "requirement_link": {
+              "requested_fact": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+              "applicability": "outside_scope",
+              "contribution": "background",
+              "reason": "요청 사실은 기관별 처리 가능 범위(담당과/센터별 제외 업무)이며, 해당 사실은 번호판 변경 시 구비서류(기존번호판 2매 및 봉인 반납)를 규정함. 기관 처리 범위와 무관한 서류 요건이므로 필수 전제가 아님.",
+              "requirement_quote": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+            },
+            "judgment_origin": {
+              "id": "b5184023226c480583a01a016bb96bd6",
+              "origin": "user",
+              "actor": "diagnostic-reference-editor (not a human trial)",
+              "reason": "별도 기준 수정본: 원문 일반 구비항목과 지역 번호에 명시된 반납 의무를 구분. 자동 검출/모델 교정 결과가 아님.",
+              "expected_version": "meaning_d2a80fd13778fcc1e48aab38"
+            },
+            "interpretation_version": "meaning_c45a2390fe08561ae6656a35",
+            "required_claim_ids": [
+              "claim_6804020432957407c5cf6595"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m5": {
+            "key": "sale_additional_documents",
+            "statement": "매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.",
+            "conditions": [
+              "매매 이전등록"
+            ],
+            "exceptions": [
+              "양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)"
+            ],
+            "period": "신청 시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_73c920eb69aa4446b876c663",
+            "required_claim_ids": [
+              "claim_026829f70fe89ca9f770bee7",
+              "claim_49c9d7ed3051939ea3440cd3",
+              "claim_57bde5abc4e4e9b299c856e6",
+              "claim_9bb0b2df8d384265d1018017"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m6": {
+            "key": "sale_exception",
+            "statement": "양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.",
+            "conditions": [
+              "양도인 방문",
+              "매매 이전등록"
+            ],
+            "exceptions": [
+              "법인"
+            ],
+            "period": "신청 시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_5075468d9b9c8f5e1b224af7",
+            "required_claim_ids": [
+              "claim_026829f70fe89ca9f770bee7"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m7": {
+            "key": "myeongji_main_office_scope",
+            "statement": "명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.",
+            "conditions": [
+              "명지 본소 방문"
+            ],
+            "exceptions": [],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_8d471bdf66b8eb355beae003",
+            "required_claim_ids": [
+              "claim_2c8f650b6c06ccdd142da788",
+              "claim_4039be13b6671fc592118c23"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m8": {
+            "key": "geumryongsan_center_scope",
+            "statement": "금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.",
+            "conditions": [
+              "금련산센터 방문"
+            ],
+            "exceptions": [
+              "자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가"
+            ],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_b26ed4ec88d718e930a36b00",
+            "required_claim_ids": [
+              "claim_b75ccdd9c2c09c66d0f5428a",
+              "claim_d34252c5e269cb5463c100c6"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m9": {
+            "key": "geumryongsan_center_exclusion",
+            "statement": "금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.",
+            "conditions": [
+              "금련산센터 방문"
+            ],
+            "exceptions": [],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_c8185b838e1c4dbe45b7d03a",
+            "required_claim_ids": [
+              "claim_d34252c5e269cb5463c100c6"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m10": {
+            "key": "bujon_center_scope",
+            "statement": "부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.",
+            "conditions": [
+              "부전센터 방문"
+            ],
+            "exceptions": [
+              "번호 변경",
+              "번호판 재발급",
+              "번호판 재봉인"
+            ],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_0b6d3df8755420e57ff7db35",
+            "required_claim_ids": [
+              "claim_9e7a51e7f7b3446d7af4f340"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m11": {
+            "key": "gupo_center_scope",
+            "statement": "구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.",
+            "conditions": [
+              "구포센터 방문"
+            ],
+            "exceptions": [
+              "번호 변경",
+              "번호판 재발급",
+              "번호판 재봉인"
+            ],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_bdf98ab04d64f99ca15be221",
+            "required_claim_ids": [
+              "claim_1ae59a75e84c1aac5c10c13b"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          },
+          "m12": {
+            "key": "dongbusan_center_scope",
+            "statement": "동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.",
+            "conditions": [
+              "동부산센터 방문"
+            ],
+            "exceptions": [
+              "말소",
+              "저당",
+              "번호 변경",
+              "번호판 재발급",
+              "번호판 재봉인"
+            ],
+            "period": "상시",
+            "references": [],
+            "requirement_link": null,
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "interpretation_version": "meaning_1d348f5026c73d69e562f0f4",
+            "required_claim_ids": [
+              "claim_c8a9b52a5b358426db1acf34"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": null
+          }
+        }
+      },
+      "retrieval": [
+        {
+          "block_id": "claim_46cf1e37c4889c2dc8e94b8b",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_91ed8b4772cb89d716f2dcd1",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_4eeafcbb9a37b6398026cd26",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_61b6c69d9a2e9c1dd9d939dd",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_ad6bfe8f0b9d960379667f2c",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_49c9d7ed3051939ea3440cd3",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_7cff5e461f1287f5d492d06e",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_9d2ba40285f82ff7bc48e7e7",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_57bde5abc4e4e9b299c856e6",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_9bb0b2df8d384265d1018017",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_026829f70fe89ca9f770bee7",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.011204912013064967,
+          "passage_id": "passage_86606b83616247a8527f543d",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_4039be13b6671fc592118c23",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_b75ccdd9c2c09c66d0f5428a",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_2c8f650b6c06ccdd142da788",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_d34252c5e269cb5463c100c6",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_9e7a51e7f7b3446d7af4f340",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_1ae59a75e84c1aac5c10c13b",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_c8a9b52a5b358426db1acf34",
+          "file_id": "14476d2f18bf407d969301fcb68b01a1",
+          "score": 0.010448392487155476,
+          "passage_id": "passage_71a6cdb7a2fd8597b9408ff0",
+          "selection_reason": "required_reviewed_meaning"
+        },
+        {
+          "block_id": "claim_6804020432957407c5cf6595",
+          "file_id": "7b42ae519cbd4184b4de800623559005",
+          "score": 0.008185104925589588,
+          "passage_id": "passage_1ac718041ac900f8a7aeb365",
+          "selection_reason": "hipporag2"
+        }
+      ],
+      "retrieval_contract": "autoschemakg-hipporag2-source-passages-v2",
+      "graph_retrieval": {
+        "contract": "autoschemakg-hipporag2-source-passages-v2",
+        "variant": "full",
+        "nodes": 370,
+        "edges": 5271,
+        "passages": 172,
+        "concept_nodes": 137,
+        "embedding_model": "BAAI/bge-m3",
+        "embedding_device": "cpu",
+        "fallback": null,
+        "elapsed_s": 44.580577457963955,
+        "ranking_is_semantic_validation": false
+      },
+      "snapshot_id": "8d322b787712465ea87777b7bf2483d2"
+    },
+    "reviewed_selection_v2": {
+      "run_id": "b5a19ce00cf5408eb733c3662dfda197",
+      "status": "completed_selection_comparison",
+      "metrics": {
+        "llm_calls": 1,
+        "model_total_s": 77.304263,
+        "elapsed_s": 77.38414791604737
+      },
+      "new_input_tokens": 9243,
+      "new_output_tokens": 488,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/reviewed_selection_v2",
+      "result_sha256": "3f54d172e749641a2129769536c01e32d7abd6b6cc9aa7f10a7b1fe411e90831",
+      "comparison": {
+        "replayed_context_from": "ddcab0d27c064770b0aaf31f001b2f31",
+        "replayed_retrieval": true,
+        "new_retrieval_calls": 0,
+        "new_review_calls": 0,
+        "changed_input": "remove prior requirement_link from every offered meaning; retain in trace",
+        "frozen_first_failure": true
+      },
+      "selection": {
+        "items": [
+          {
+            "item_id": "scope",
+            "selected": [
+              {
+                "meaning_ref": "m7",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m8",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "excluded",
+            "selected": [
+              {
+                "meaning_ref": "m9",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "documents",
+            "selected": [
+              {
+                "meaning_ref": "m1",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m2",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m3",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m4",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m5",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m6",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          }
+        ]
+      },
+      "answer": {
+        "answer": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n조건: 명지 본소 방문\n기간: 상시\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n조건: 금련산센터 방문\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n기간: 상시\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 부전센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 구포센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n조건: 동부산센터 방문\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n조건: 금련산센터 방문\n기간: 상시\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 부전센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n조건: 구포센터 방문\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n조건: 동부산센터 방문\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n기간: 상시\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 요구된다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 번호판 변경 시 구비항목은 기존번호판 2매 및 봉인이다. 지역 번호는 반드시 기존번호판 2매 및 봉인을 반납한 후 번호를 변경하여야 한다.\n조건: 번호판 변경 시\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+        "citations": [
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c",
+          "claim_6804020432957407c5cf6595",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017"
+        ],
+        "choice": null,
+        "limitations": [
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "transfer_certificate: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "plate_change_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+        ]
+      },
+      "c47_in_citations": true,
+      "same_available_meanings": true,
+      "scope_excluded_unchanged": true,
+      "fresh_end_to_end_execution": false
+    },
+    "bus_impact_v1": {
+      "run_id": "bfc931f8d75140ed9db9c25d55e4516b",
+      "status": "succeeded",
+      "metrics": {
+        "llm_calls": 1,
+        "model_total_s": 151.225193,
+        "elapsed_s": 151.41586187499342
+      },
+      "new_input_tokens": 21453,
+      "new_output_tokens": 442,
+      "artifact": "data/knowledge/evaluations/business_semantic_edit_20261008/bus_impact_v1",
+      "result_sha256": "dcbcc957c5e4cfd790623bbe94b9d4e21513f5d4a120da37c9a45cfc86832abc",
+      "impacts": [
+        {
+          "requirement_id": "BUS-CONTROL-12",
+          "status": "unaffected",
+          "reason": "BUS-CONTROL-12은 ROUTE_ID 100100143 순번 12 정차의 ID·명칭·좌표를 조회하는 요구이다. diff의 changes에는 순번 13에 대한 변경만 존재하며, 순번 12 행은 unchanged 목록에 포함되어 before와 after 값이 동일하다. 따라서 해당 요구의 대상 행값은 변경되지 않았으므로 영향을 받지 않는다.",
+          "change_ids": [],
+          "new_relevance": false
+        },
+        {
+          "requirement_id": "BUS-NEW-13",
+          "status": "affected",
+          "reason": "BUS-NEW-13은 ROUTE_ID 100100143 순번 13 정차의 현재 식별자(NODE_ID, ARS_ID)와 좌표를 확인하는 요구이다. diff의 changes에서 key [100100143, 13]에 대해 NODE_ID(109000035 -> 109000011), ARS_ID(10118 -> 10011), X좌표(127.04 -> 127.0407623758), Y좌표(37.657913 -> 37.6589364195)가 변경된 것으로 확인된다. 이는 요구의 대상인 '현재 정차 식별자와 좌표'에 직접적인 변경이 발생한 것이므로 영향을 받는다.",
+          "change_ids": [
+            "4dc67150b89b4ce487161d698edccb2b"
+          ],
+          "new_relevance": false
+        }
+      ],
+      "direct_dependency_ids": [
+        "BUS-CONTROL-12"
+      ],
+      "changed": [
+        {
+          "key": [
+            "100100143",
+            "13"
+          ],
+          "before_block_id": "233f259078e943f6b155e1fe2215f232",
+          "after_block_id": "3267746b3f9143758ea6034307448140",
+          "before": {
+            "ROUTE_ID": 100100143,
+            "노선명": "1127",
+            "순번": 13,
+            "NODE_ID": 109000035,
+            "ARS_ID": "10118",
+            "정류소명": "도봉보건소",
+            "X좌표": 127.04,
+            "Y좌표": 37.657913
+          },
+          "after": {
+            "ROUTE_ID": 100100143,
+            "노선명": "1127",
+            "순번": 13,
+            "NODE_ID": 109000011,
+            "ARS_ID": "10011",
+            "정류소명": "도봉보건소",
+            "X좌표": 127.0407623758,
+            "Y좌표": 37.6589364195
+          },
+          "fields": [
+            {
+              "field": "ARS_ID",
+              "before": "10118",
+              "after": "10011"
+            },
+            {
+              "field": "NODE_ID",
+              "before": 109000035,
+              "after": 109000011
+            },
+            {
+              "field": "X좌표",
+              "before": 127.04,
+              "after": 127.0407623758
+            },
+            {
+              "field": "Y좌표",
+              "before": 37.657913,
+              "after": 37.6589364195
+            }
+          ],
+          "id": "4dc67150b89b4ce487161d698edccb2b",
+          "kind": "modified"
+        }
+      ],
+      "unchanged_count": 59,
+      "control_12": {
+        "key": [
+          "100100143",
+          "12"
+        ],
+        "before_block_id": "7bff4b6ac05b491e9098bfb203aff5e3",
+        "after_block_id": "c6c49ac9166e409bb865477229d14fa2",
+        "before": {
+          "ROUTE_ID": 100100143,
+          "노선명": "1127",
+          "순번": 12,
+          "NODE_ID": 109000033,
+          "ARS_ID": "10116",
+          "정류소명": "방학사거리",
+          "X좌표": 127.0421039333,
+          "Y좌표": 37.6622176747
+        },
+        "after": {
+          "ROUTE_ID": 100100143,
+          "노선명": "1127",
+          "순번": 12,
+          "NODE_ID": 109000033,
+          "ARS_ID": "10116",
+          "정류소명": "방학사거리",
+          "X좌표": 127.0421039333,
+          "Y좌표": 37.6622176747
+        },
+        "fields": []
+      }
+    }
+  },
+  "checks": {
+    "backend": 38,
+    "frontend": 10,
+    "selection_contract_after_final_change": 8,
+    "typecheck": true,
+    "lint": true,
+    "diff_check": true
+  },
+  "issues_left_open": [
+    616,
+    617,
+    620
+  ]
+}
