@@ -1,0 +1,1382 @@
+{
+  "freeze": {
+    "model": "qwen3.8:27b-q4_K_M",
+    "identity": {
+      "review": {
+        "name": "qwen3.8:27b-q4_K_M",
+        "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+        "context_length": 262144
+      }
+    },
+    "context_tokens": 49152,
+    "max_tokens": 12288,
+    "think": false,
+    "temperature": 0,
+    "timeout": 1800,
+    "maximum_calls": 3,
+    "parse_instruction": "주어진 각 문서를 서로 독립적으로 조건-효과 분기로 해석한다. 다른 문서나 외부 사실로 보완하거나 정정하지 않는다. 원문에 연결된 SG-DT의 제한 변형이다. 최종 참거짓/지지 판정은 하지 않는다. atoms의 id는 반드시 document.id+\":\"로 시작하고 문서 전체에서 유일하다. kind는 condition/effect이다. 각 atom은 실제 블록의 정확한 연속 인용 refs와 조건/효과의 의미 meaning을 가진다. 인용에 없는 생략 주체를 만들지 않는다. 부모 제목이 조건이나 구비 맥락을 정하면 실제 부모 refs도 보존한다. condition은 적용 주체/전제/경우/시점의 Boolean 명제다. effect는 조건이 성립할 때의 행위/구비항목/사실이며 주체·행위·대상·수량·시점·순서·날인·양태 등 실제 한정 의미를 빠짐없이 유지한다. 여러 구비항목의 포함/요구는 서로 다른 effect로 나눠 일부 항목만 말한 후보도 비교 가능하게 한다. 구비품목(required_item), 의무(obligation), 허용(permission), 금지(prohibition), 절차(procedure), 사실(fact)를 구별한다. 단순 구비품목에 반납/제출 등 원문에 없는 행위나 must를 보태지 않는다. 명시된 시간·순서는 효과 안에 보존한다. condition의 modality는 none, effect는 none이 아닌 실제 양태다. branches의 guard는 OR-of-AND이다. 바깥 배열의 각 항은 OR, 안의 literal들은 AND이다. literal은 condition atom의 id와 positive(true=명제성립,false=명제부정)이다. 조건없음은 [[]]다. 조건 미해석을 빈조건으로 만들지 않는다. 각 branch effects에는 해당 guard가 적용되는 effect id만 넣는다. 예외/부정은 실제 원문이 그 적용을 제외할 때에만 negative literal로 나타내며, 예외 밖에 원문 없는 효과를 만들지 않는다. 조건부 의무는 조건 밖 면제/금지를 뜻하지 않는다. 명시 대체효과가 없으면 예외 branch의 효과를 발명하지 않는다. 구비 문서 괄호의 조건/대체 대상도 그 항목에만 붙이며 다른 항목 전체로 퍼뜨리지 않는다. 각 block은 coverage에 한번 나타내고 extracted/context/unresolved 및 이유를 남긴다. 제목도 필요한 맥락으로 사용하고 참조/논리/양태를 보존할 수 없으면 status=unsupported, reason으로 남긴다. 산술·복잡시간·미해석참조·중첩양태 등 이 Boolean 조건-효과로 보존 불가한 표현은 unsupported다. 반드시 모든 실제 효과와 연결 조건을 포함하고 쓰지 않는 atom은 만들지 않는다. status=complete는 형식 선언일 뿐이다.",
+    "alignment_instruction": "자동 추출된 source와 claim 구조의 atom 의미만 대응시킨다. 구조/조건 귀속을 고치거나 최종 후보판정을 하지 않는다. 조건 대응은 source condition에서 claim condition으로의 방향이다. equivalent는 양방향, source_implies_claim은 원문조건이 후보조건을 함의, claim_implies_source는 반대, disjoint는 양립불가, independent는 서로 제약 없는 별개 조건이다. 모호하면 unknown이다. 모든 원문-후보 condition 조합을 한번씩 출력한다. effects는 각 claim effect마다 모든 source effect id를 entails/opposes/unrelated/unknown 중 정확히 한 목록에 넣는다. entails는 조건을 제외한 효과 명제 자체에서 source가 claim을 함의할 때다. 조건 적용 여부는 이후 계산한다. 효과 대응에는 주체·행위·대상·수량·시점·순서·양태·괄호 한정을 함께 보존한다. 원문이 더 상세하고 후보가 참인 일부만 말한 경우 단방향 함의를 허용하되 구비와 의무를 자동 동치로 묶지 않는다. required_item에 반납의무를 보태거나 permission을obligation으로 바꾸지 않는다. opposes는 같은 대상/시점/의미에서 실제 명시적 부정/양태 충돌이 있을 때만이다. 자료 부족, 다른 항목, 빠진 조건은 반증이 아니다. 원문 조건 밖 금지/면제를 만들지 않는다. 모델이 파싱을 잘못한 것을 발견해도 정정하지 않고 unknown과 이유에 남긴다. 각 대응의 reason을 남긴다.",
+    "schemas": [
+      {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "complete",
+                    "unsupported"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "atoms": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "condition",
+                          "effect"
+                        ]
+                      },
+                      "meaning": {
+                        "type": "string"
+                      },
+                      "modality": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "required_item",
+                          "obligation",
+                          "permission",
+                          "prohibition",
+                          "procedure",
+                          "fact",
+                          "other"
+                        ]
+                      },
+                      "refs": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "block_id": {
+                              "type": "string"
+                            },
+                            "quote": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "block_id",
+                            "quote"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "meaning",
+                      "modality",
+                      "refs"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "branches": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "guard": {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "atom": {
+                                "type": "string"
+                              },
+                              "positive": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "atom",
+                              "positive"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "effects": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "guard",
+                      "effects"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "coverage": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "block_id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "extracted",
+                          "context",
+                          "unresolved"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "block_id",
+                      "status",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "reason",
+                "atoms",
+                "branches",
+                "coverage"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "condition_links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "claim": {
+                  "type": "string"
+                },
+                "relation": {
+                  "type": "string",
+                  "enum": [
+                    "equivalent",
+                    "source_implies_claim",
+                    "claim_implies_source",
+                    "disjoint",
+                    "independent",
+                    "unknown"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "claim",
+                "relation",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "effect_links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "claim": {
+                  "type": "string"
+                },
+                "entails": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "opposes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "unrelated": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "unknown": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "claim",
+                "entails",
+                "opposes",
+                "unrelated",
+                "unknown",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "condition_links",
+          "effect_links"
+        ],
+        "additionalProperties": false
+      }
+    ],
+    "condition_limit": 12,
+    "reference_revision": "bd56aff7eb9518db02b10e189576331f271564cc",
+    "reference_license": "CC BY 4.0; independent diagnostic, no upstream code copied",
+    "method": "SG-DT-inspired automatic source/claim parsing plus directional atom mapping and finite guard inclusion; not NormBench reproduction.",
+    "files": {
+      "data/knowledge/evaluations/business_scope_tree_20261009/inputs.json": "edb4a6e6b40cf33a7f584458680617bb01aa25706dea0a4eaca72881200b1fe5",
+      "data/knowledge/evaluations/business_scope_tree_20261009/criteria.json": "24257b82b5f215dca49edaebfa6fc0b99e4efbd016975db012d5866dba8228f4",
+      "data/knowledge/evaluations/business_nli_20261009/inputs.json": "c1c32e7b151c0704f6507ecbd7ca88b51902c7b32799da23fc669931b7ba2712",
+      "data/knowledge/evaluations/business_nli_20261009/source_packet.json": "560911ab2ccbe8dba1004a0c1f16c72eb3e70de0086e32d3a10ea9d582ce7a22",
+      "scripts/compare_business_scope_tree.py": "2ac43fca1e5223bc19179cf2f2d47ab546ae7fcb119c46c7d68217951b45c9c6",
+      "scripts/compare_business_nli.py": "d632e08b14062c5627c9361b1ae1e6aec85f59367ea9e06609a8b47a4f7c61e6",
+      "scripts/compare_business_natlogic.py": "da84a71103c7fd87842e9ea8be73df0be0ceb6cc55966ef24399906916523a9c",
+      "app/generation/model_client.py": "9aad473ef47635d028cdb3c9842978a3fff887f0accd9b43230fc1f3dad37173",
+      "app/generation/service.py": "6a2f4b30db35e968c81eaa27ebabf768c925c03ab057bbfc9cca404ebb850a6b"
+    }
+  },
+  "inputs": {
+    "source": {
+      "id": "source",
+      "blocks": [
+        {
+          "id": "b9",
+          "text": "자가용(비사업용)자동차 이전등록",
+          "source_version_id": "v1",
+          "locator": {
+            "heading_level": 3
+          },
+          "evidence_ref": "e9"
+        },
+        {
+          "id": "b24",
+          "text": "자가용(비사업용)자동차 이전등록",
+          "source_version_id": "v1",
+          "locator": {
+            "heading_level": 4
+          },
+          "evidence_ref": "e32"
+        },
+        {
+          "id": "b25",
+          "text": "구비서류",
+          "source_version_id": "v1",
+          "locator": {
+            "heading_level": 5
+          },
+          "evidence_ref": "e34"
+        },
+        {
+          "id": "b26",
+          "text": "공통사항",
+          "source_version_id": "v1",
+          "locator": {
+            "heading_level": 6
+          },
+          "evidence_ref": "e37"
+        },
+        {
+          "id": "b27",
+          "text": "이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납",
+          "source_version_id": "v1",
+          "evidence_ref": "e39"
+        },
+        {
+          "id": "b28",
+          "text": "양수인(사는사람) 본인이 직접등록 [신분증 지참]",
+          "source_version_id": "v1",
+          "evidence_ref": "e40"
+        },
+        {
+          "id": "b29",
+          "text": "양수인 미방문시\n\t\t\t\t\t\t",
+          "source_version_id": "v1",
+          "evidence_ref": "e41"
+        },
+        {
+          "id": "b30",
+          "text": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증",
+          "source_version_id": "v1",
+          "evidence_ref": "e45"
+        },
+        {
+          "id": "b31",
+          "text": "양도증명서(양수인란 및 특약사항란 도장날인)",
+          "source_version_id": "v1",
+          "evidence_ref": "e46"
+        },
+        {
+          "id": "b32",
+          "text": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+          "source_version_id": "v1",
+          "evidence_ref": "e47"
+        }
+      ],
+      "source_parents": [
+        {
+          "block_id": "b30",
+          "parent_block_ids": [
+            "b29"
+          ]
+        },
+        {
+          "block_id": "b31",
+          "parent_block_ids": [
+            "b29"
+          ]
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "c13",
+        "blocks": [
+          {
+            "id": "c13",
+            "text": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "source_parents": []
+      },
+      {
+        "id": "c46",
+        "blocks": [
+          {
+            "id": "c46",
+            "text": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+          }
+        ],
+        "source_parents": []
+      },
+      {
+        "id": "c47",
+        "blocks": [
+          {
+            "id": "c47",
+            "text": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+          }
+        ],
+        "source_parents": []
+      },
+      {
+        "id": "c11",
+        "blocks": [
+          {
+            "id": "c11",
+            "text": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+          }
+        ],
+        "source_parents": []
+      }
+    ]
+  },
+  "criteria": {
+    "expected": {
+      "c13": "S",
+      "c46": "S",
+      "c47": "N",
+      "c11": "S"
+    },
+    "gate": "All exact labels AND source-faithful automatic structures/mapping required; status complete is not semantic validation.",
+    "exposure": "Four development-exposed cases; no downstream if failed.",
+    "failures": "Unknown/unsupported/empty/contract failures stay in denominator, never counted as detected errors."
+  },
+  "source_structure": {
+    "documents": [
+      {
+        "id": "source",
+        "status": "complete",
+        "reason": "모든 블록이 조건-효과 분기로 해석되었거나, 단순 제목/맥락으로 처리되었습니다.",
+        "atoms": [
+          {
+            "id": "source:b27",
+            "kind": "effect",
+            "meaning": "이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납을 구비해야 함",
+            "modality": "required_item",
+            "refs": [
+              {
+                "block_id": "b27",
+                "quote": "이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납"
+              }
+            ]
+          },
+          {
+            "id": "source:b28",
+            "kind": "effect",
+            "meaning": "양수인(사는사람) 본인이 직접등록 시 신분증을 지참해야 함",
+            "modality": "required_item",
+            "refs": [
+              {
+                "block_id": "b28",
+                "quote": "양수인(사는사람) 본인이 직접등록 [신분증 지참]"
+              }
+            ]
+          },
+          {
+            "id": "source:b29",
+            "kind": "condition",
+            "meaning": "양수인이 방문하지 않는 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "b29",
+                "quote": "양수인 미방문시"
+              }
+            ]
+          },
+          {
+            "id": "source:b30",
+            "kind": "effect",
+            "meaning": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증을 구비해야 함",
+            "modality": "required_item",
+            "refs": [
+              {
+                "block_id": "b30",
+                "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+              }
+            ]
+          },
+          {
+            "id": "source:b31",
+            "kind": "effect",
+            "meaning": "양도증명서(양수인란 및 특약사항란 도장날인)를 구비해야 함",
+            "modality": "required_item",
+            "refs": [
+              {
+                "block_id": "b31",
+                "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+              }
+            ]
+          },
+          {
+            "id": "source:b32",
+            "kind": "condition",
+            "meaning": "번호판을 변경하는 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "b32",
+                "quote": "번호판변경시"
+              }
+            ]
+          },
+          {
+            "id": "source:b32_effect",
+            "kind": "effect",
+            "meaning": "기존번호판 2매 및 봉인을 반납해야 함",
+            "modality": "obligation",
+            "refs": [
+              {
+                "block_id": "b32",
+                "quote": "번호판변경시 기존번호판 2매 및 봉인"
+              }
+            ]
+          },
+          {
+            "id": "source:b32_condition2",
+            "kind": "condition",
+            "meaning": "지역 번호를 변경하는 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "b32",
+                "quote": "지역 번호는 반드시"
+              }
+            ]
+          },
+          {
+            "id": "source:b32_effect2",
+            "kind": "effect",
+            "meaning": "기존번호판 2매 및 봉인을 반납한 후에 번호를 변경해야 함",
+            "modality": "obligation",
+            "refs": [
+              {
+                "block_id": "b32",
+                "quote": "지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함"
+              }
+            ]
+          }
+        ],
+        "branches": [
+          {
+            "id": "source:branch_common",
+            "guard": [],
+            "effects": [
+              "source:b27",
+              "source:b28"
+            ]
+          },
+          {
+            "id": "source:branch_no_visit",
+            "guard": [
+              [
+                {
+                  "atom": "source:b29",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "source:b30",
+              "source:b31"
+            ]
+          },
+          {
+            "id": "source:branch_plate_change",
+            "guard": [
+              [
+                {
+                  "atom": "source:b32",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "source:b32_effect"
+            ]
+          },
+          {
+            "id": "source:branch_region_plate_change",
+            "guard": [
+              [
+                {
+                  "atom": "source:b32_condition2",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "source:b32_effect2"
+            ]
+          }
+        ],
+        "coverage": [
+          {
+            "block_id": "b9",
+            "status": "context",
+            "reason": "상위 제목으로, 구체적인 조건/효과를 포함하지 않음"
+          },
+          {
+            "block_id": "b24",
+            "status": "context",
+            "reason": "상위 제목으로, 구체적인 조건/효과를 포함하지 않음"
+          },
+          {
+            "block_id": "b25",
+            "status": "context",
+            "reason": "구비서류 섹션 제목으로, 구체적인 조건/효과를 포함하지 않음"
+          },
+          {
+            "block_id": "b26",
+            "status": "context",
+            "reason": "공통사항 섹션 제목으로, 구체적인 조건/효과를 포함하지 않음"
+          },
+          {
+            "block_id": "b27",
+            "status": "extracted",
+            "reason": "공통 구비서류로 추출"
+          },
+          {
+            "block_id": "b28",
+            "status": "extracted",
+            "reason": "본인 방문 시 구비서류로 추출"
+          },
+          {
+            "block_id": "b29",
+            "status": "extracted",
+            "reason": "대리 방문 조건으로 추출"
+          },
+          {
+            "block_id": "b30",
+            "status": "extracted",
+            "reason": "대리 방문 시 구비서류로 추출"
+          },
+          {
+            "block_id": "b31",
+            "status": "extracted",
+            "reason": "대리 방문 시 구비서류로 추출"
+          },
+          {
+            "block_id": "b32",
+            "status": "extracted",
+            "reason": "번호판 변경 조건 및 효과로 추출"
+          }
+        ]
+      }
+    ]
+  },
+  "claim_structures": {
+    "documents": [
+      {
+        "id": "c13",
+        "status": "complete",
+        "reason": "조건과 효과(구비서류 포함)를 명확히 추출 가능",
+        "atoms": [
+          {
+            "id": "c13:cond_1",
+            "kind": "condition",
+            "meaning": "양수인이 미방문인 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c13",
+                "quote": "양수인 미방문 시"
+              }
+            ]
+          },
+          {
+            "id": "c13:eff_1",
+            "kind": "effect",
+            "meaning": "구비서류에 양도증명서(양수인란 및 특약사항란 도장날인)를 포함한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c13",
+                "quote": "구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+              }
+            ]
+          }
+        ],
+        "branches": [
+          {
+            "id": "c13:branch_1",
+            "guard": [
+              [
+                {
+                  "atom": "c13:cond_1",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "c13:eff_1"
+            ]
+          }
+        ],
+        "coverage": [
+          {
+            "block_id": "c13",
+            "status": "extracted",
+            "reason": "전체 텍스트가 조건-효과 구조로 해석됨"
+          }
+        ]
+      },
+      {
+        "id": "c46",
+        "status": "complete",
+        "reason": "조건과 효과(구비 서류 목록)를 명확히 추출 가능",
+        "atoms": [
+          {
+            "id": "c46:cond_1",
+            "kind": "condition",
+            "meaning": "양수인이 미방문인 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c46",
+                "quote": "양수인이 미방문 시"
+              }
+            ]
+          },
+          {
+            "id": "c46:eff_1",
+            "kind": "effect",
+            "meaning": "위임장을 구비한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c46",
+                "quote": "위임장"
+              }
+            ]
+          },
+          {
+            "id": "c46:eff_2",
+            "kind": "effect",
+            "meaning": "양수인 신분증 사본(법인의 경우 법인인감증명서)을 구비한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c46",
+                "quote": "양수인 신분증 사본(법인의 경우 법인인감증명서)"
+              }
+            ]
+          },
+          {
+            "id": "c46:eff_3",
+            "kind": "effect",
+            "meaning": "대리인 신분증을 구비한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c46",
+                "quote": "대리인 신분증"
+              }
+            ]
+          },
+          {
+            "id": "c46:eff_4",
+            "kind": "effect",
+            "meaning": "양도증명서를 구비한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c46",
+                "quote": "양도증명서"
+              }
+            ]
+          }
+        ],
+        "branches": [
+          {
+            "id": "c46:branch_1",
+            "guard": [
+              [
+                {
+                  "atom": "c46:cond_1",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "c46:eff_1",
+              "c46:eff_2",
+              "c46:eff_3",
+              "c46:eff_4"
+            ]
+          }
+        ],
+        "coverage": [
+          {
+            "block_id": "c46",
+            "status": "extracted",
+            "reason": "전체 텍스트가 조건-효과 구조로 해석됨"
+          }
+        ]
+      },
+      {
+        "id": "c47",
+        "status": "complete",
+        "reason": "조건과 효과(반납 및 변경 행위)를 명확히 추출 가능",
+        "atoms": [
+          {
+            "id": "c47:cond_1",
+            "kind": "condition",
+            "meaning": "번호판 변경 시",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c47",
+                "quote": "번호판 변경 시"
+              }
+            ]
+          },
+          {
+            "id": "c47:eff_1",
+            "kind": "effect",
+            "meaning": "기존번호판 2매 및 봉인을 반납한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c47",
+                "quote": "기존번호판 2매 및 봉인을 반납하여"
+              }
+            ]
+          },
+          {
+            "id": "c47:eff_2",
+            "kind": "effect",
+            "meaning": "번호를 변경한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c47",
+                "quote": "번호를 변경한다"
+              }
+            ]
+          }
+        ],
+        "branches": [
+          {
+            "id": "c47:branch_1",
+            "guard": [
+              [
+                {
+                  "atom": "c47:cond_1",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "c47:eff_1",
+              "c47:eff_2"
+            ]
+          }
+        ],
+        "coverage": [
+          {
+            "block_id": "c47",
+            "status": "extracted",
+            "reason": "전체 텍스트가 조건-효과 구조로 해석됨"
+          }
+        ]
+      },
+      {
+        "id": "c11",
+        "status": "complete",
+        "reason": "조건과 효과(구비서류 포함)를 명확히 추출 가능",
+        "atoms": [
+          {
+            "id": "c11:cond_1",
+            "kind": "condition",
+            "meaning": "양수인 미방문인 경우",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c11",
+                "quote": "양수인 미방문 시"
+              }
+            ]
+          },
+          {
+            "id": "c11:eff_1",
+            "kind": "effect",
+            "meaning": "구비서류에 양수인 신분증 사본(법인의 경우 법인인감증명서)을 포함한다",
+            "modality": "none",
+            "refs": [
+              {
+                "block_id": "c11",
+                "quote": "구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+              }
+            ]
+          }
+        ],
+        "branches": [
+          {
+            "id": "c11:branch_1",
+            "guard": [
+              [
+                {
+                  "atom": "c11:cond_1",
+                  "positive": true
+                }
+              ]
+            ],
+            "effects": [
+              "c11:eff_1"
+            ]
+          }
+        ],
+        "coverage": [
+          {
+            "block_id": "c11",
+            "status": "extracted",
+            "reason": "전체 텍스트가 조건-효과 구조로 해석됨"
+          }
+        ]
+      }
+    ]
+  },
+  "atom_mapping": {
+    "condition_links": [
+      {
+        "source": "source:b29",
+        "claim": "c13:cond_1",
+        "relation": "equivalent",
+        "reason": "양쪽 모두 '양수인이 방문하지 않는 경우'라는 동일한 조건을 명시함."
+      },
+      {
+        "source": "source:b29",
+        "claim": "c46:cond_1",
+        "relation": "equivalent",
+        "reason": "양쪽 모두 '양수인이 방문하지 않는 경우'라는 동일한 조건을 명시함."
+      },
+      {
+        "source": "source:b29",
+        "claim": "c47:cond_1",
+        "relation": "disjoint",
+        "reason": "'양수인 미방문'과 '번호판 변경'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b29",
+        "claim": "c11:cond_1",
+        "relation": "equivalent",
+        "reason": "양쪽 모두 '양수인이 방문하지 않는 경우'라는 동일한 조건을 명시함."
+      },
+      {
+        "source": "source:b32",
+        "claim": "c13:cond_1",
+        "relation": "disjoint",
+        "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b32",
+        "claim": "c46:cond_1",
+        "relation": "disjoint",
+        "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b32",
+        "claim": "c47:cond_1",
+        "relation": "equivalent",
+        "reason": "양쪽 모두 '번호판을 변경하는 경우'라는 동일한 조건을 명시함."
+      },
+      {
+        "source": "source:b32",
+        "claim": "c11:cond_1",
+        "relation": "disjoint",
+        "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b32_condition2",
+        "claim": "c13:cond_1",
+        "relation": "disjoint",
+        "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b32_condition2",
+        "claim": "c46:cond_1",
+        "relation": "disjoint",
+        "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      },
+      {
+        "source": "source:b32_condition2",
+        "claim": "c47:cond_1",
+        "relation": "claim_implies_source",
+        "reason": "원문은 '지역 번호 변경'이라는 더 구체적인 조건을 명시하고 있으며, 후보의 '번호판 변경'은 이를 포함하는 상위 개념임. 즉, 지역 번호 변경은 번호판 변경의 일종이므로 후보 조건이 원문 조건을 함의함."
+      },
+      {
+        "source": "source:b32_condition2",
+        "claim": "c11:cond_1",
+        "relation": "disjoint",
+        "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+      }
+    ],
+    "effect_links": [
+      {
+        "claim": "c13:eff_1",
+        "entails": [
+          "source:b31"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b30",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c13:eff_1은 '양도증명서(양수인란 및 특약사항란 도장날인) 구비'를 요구하며, source:b31은 동일한 내용을 명시함. source:b30은 위임장 등 다른 서류를 포함하므로 c13:eff_1의 특정 항목을 함의하지는 않으나, b31이 정확히 대응함."
+      },
+      {
+        "claim": "c46:eff_1",
+        "entails": [
+          "source:b30"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b31",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c46:eff_1은 '위임장 구비'를 요구하며, source:b30은 '위임장(양수인 도장 날인)'을 포함하는 더 상세한 구비서류 목록임. 원문이 더 상세하므로 단방향 함의(entails) 성립."
+      },
+      {
+        "claim": "c46:eff_2",
+        "entails": [
+          "source:b30"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b31",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c46:eff_2은 '양수인 신분증 사본(법인의 경우 법인인감증명서) 구비'를 요구하며, source:b30은 동일한 내용을 포함함."
+      },
+      {
+        "claim": "c46:eff_3",
+        "entails": [
+          "source:b30"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b31",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c46:eff_3은 '대리인 신분증 구비'를 요구하며, source:b30은 동일한 내용을 포함함."
+      },
+      {
+        "claim": "c46:eff_4",
+        "entails": [
+          "source:b31"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b30",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c46:eff_4은 '양도증명서 구비'를 요구하며, source:b31은 '양도증명서(양수인란 및 특약사항란 도장날인)'를 명시함. 원문이 더 상세하므로 단방향 함의(entails) 성립."
+      },
+      {
+        "claim": "c47:eff_1",
+        "entails": [
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b30",
+          "source:b31"
+        ],
+        "unknown": [],
+        "reason": "c47:eff_1은 '기존번호판 2매 및 봉인 반납'을 명시하며, source:b32_effect와 source:b32_effect2 모두 동일한 반납 의무를 포함함."
+      },
+      {
+        "claim": "c47:eff_2",
+        "entails": [
+          "source:b32_effect2"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b30",
+          "source:b31",
+          "source:b32_effect"
+        ],
+        "unknown": [],
+        "reason": "c47:eff_2은 '번호 변경' 행위를 명시함. source:b32_effect2는 '번호 변경'을 포함하며, source:b32_effect는 반납만 명시하고 번호 변경 행위를 직접적으로 효과로 명시하지 않음(조건부 맥락). 따라서 b32_effect2가 c47:eff_2을 함의함."
+      },
+      {
+        "claim": "c11:eff_1",
+        "entails": [
+          "source:b30"
+        ],
+        "opposes": [],
+        "unrelated": [
+          "source:b27",
+          "source:b28",
+          "source:b31",
+          "source:b32_effect",
+          "source:b32_effect2"
+        ],
+        "unknown": [],
+        "reason": "c11:eff_1은 '양수인 신분증 사본(법인의 경우 법인인감증명서) 구비'를 요구하며, source:b30은 동일한 내용을 포함함."
+      }
+    ]
+  },
+  "result": {
+    "cases": [
+      {
+        "id": "c13",
+        "status": "unsupported_or_contract_failure",
+        "verdict": null,
+        "error": "source:empty_guard_or_effect"
+      },
+      {
+        "id": "c46",
+        "status": "unsupported_or_contract_failure",
+        "verdict": null,
+        "error": "source:empty_guard_or_effect"
+      },
+      {
+        "id": "c47",
+        "status": "unsupported_or_contract_failure",
+        "verdict": null,
+        "error": "source:empty_guard_or_effect"
+      },
+      {
+        "id": "c11",
+        "status": "unsupported_or_contract_failure",
+        "verdict": null,
+        "error": "source:empty_guard_or_effect"
+      }
+    ],
+    "gate_passed": false,
+    "label_gate_passed": false,
+    "semantic_gate": "Pending raw structure and mapping review; not inferred from complete/status or label equality.",
+    "calls": 3,
+    "cost": {
+      "input_tokens": 5943,
+      "output_tokens": 6166,
+      "elapsed_s": 361.12818200000004
+    }
+  },
+  "source_review": {
+    "review_type": "source-grounded analysis, not model input or corrected structure",
+    "source_structure_sha256": "f7fd6ed6c49912f90349395fcac583a6663bcbda0364db6f262dc5633684d022",
+    "automatic_status": "complete",
+    "semantic_gate_passed": false,
+    "findings": [
+      {
+        "category": "contract",
+        "path": "branches[source:branch_common].guard",
+        "actual": [],
+        "required_unconditional": [
+          []
+        ],
+        "effect": "Shared source validation prevents all four finite comparisons; not four wrong semantic verdicts."
+      },
+      {
+        "category": "semantic_error",
+        "path": "atoms[source:b32_effect]",
+        "actual": {
+          "id": "source:b32_effect",
+          "kind": "effect",
+          "meaning": "기존번호판 2매 및 봉인을 반납해야 함",
+          "modality": "obligation",
+          "refs": [
+            {
+              "block_id": "b32",
+              "quote": "번호판변경시 기존번호판 2매 및 봉인"
+            }
+          ]
+        },
+        "source_basis": "The quoted outside-parentheses text lists plates and seal under plate change; return-before-change obligation appears only inside regional-number parentheses.",
+        "effect": "Automatic source parser added a general return obligation. Separate regional branch does not remove this expansion."
+      },
+      {
+        "category": "representation_limit",
+        "path": "atoms[source:b30]",
+        "effect": "Multiple documents and corporate alternative remain a compound effect rather than separate effect/condition atoms."
+      },
+      {
+        "category": "representation_limit",
+        "path": "atoms[source:b28]",
+        "effect": "Direct-registration condition remains inside effect meaning under common branch, not a separate Boolean guard."
+      }
+    ],
+    "no_posthoc_repair": true
+  },
+  "contract_review": {
+    "checks": [
+      {
+        "id": "source",
+        "validation": "failed",
+        "error": "empty_guard_or_effect"
+      },
+      {
+        "id": "c13",
+        "validation": "failed",
+        "error": "modality_kind"
+      },
+      {
+        "id": "c46",
+        "validation": "failed",
+        "error": "modality_kind"
+      },
+      {
+        "id": "c47",
+        "validation": "failed",
+        "error": "modality_kind"
+      },
+      {
+        "id": "c11",
+        "validation": "failed",
+        "error": "modality_kind"
+      }
+    ],
+    "scope": "Read-only validation of unchanged automatic outputs, no structure repair and no new model calls.",
+    "note": "The frozen runtime short-circuits on shared source failure. Independent claim validation here records additional defects, not model reruns."
+  },
+  "mapping_review": {
+    "mapping_sha256": "7e23722fe988d8ac104acec860bc07363bbc2227d6a8ffaae463508550c38506",
+    "semantic_gate_passed": false,
+    "findings": [
+      {
+        "category": "direction_error",
+        "actual": {
+          "source": "source:b32_condition2",
+          "claim": "c47:cond_1",
+          "relation": "claim_implies_source",
+          "reason": "원문은 '지역 번호 변경'이라는 더 구체적인 조건을 명시하고 있으며, 후보의 '번호판 변경'은 이를 포함하는 상위 개념임. 즉, 지역 번호 변경은 번호판 변경의 일종이므로 후보 조건이 원문 조건을 함의함."
+        },
+        "basis": "A regional-number-change condition is the narrower condition; its inclusion supports source_implies_claim, not the emitted reverse. No corrected mapping was fed into computation."
+      },
+      {
+        "category": "relation_reason_conflict",
+        "count": 7,
+        "actual": [
+          {
+            "source": "source:b29",
+            "claim": "c47:cond_1",
+            "relation": "disjoint",
+            "reason": "'양수인 미방문'과 '번호판 변경'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32",
+            "claim": "c13:cond_1",
+            "relation": "disjoint",
+            "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32",
+            "claim": "c46:cond_1",
+            "relation": "disjoint",
+            "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32",
+            "claim": "c11:cond_1",
+            "relation": "disjoint",
+            "reason": "'번호판 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32_condition2",
+            "claim": "c13:cond_1",
+            "relation": "disjoint",
+            "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32_condition2",
+            "claim": "c46:cond_1",
+            "relation": "disjoint",
+            "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          },
+          {
+            "source": "source:b32_condition2",
+            "claim": "c11:cond_1",
+            "relation": "disjoint",
+            "reason": "'지역 번호 변경'과 '양수인 미방문'은 서로 다른 상황의 조건으로, 한쪽이 다른 쪽을 함의하지 않으며 양립할 수 있는 별개 조건임."
+          }
+        ],
+        "basis": "The reason explicitly says the two conditions can coexist, while disjoint requires that they cannot both hold. There is no source basis for excluding their joint assignments."
+      },
+      {
+        "category": "upstream_semantic_error_consumed",
+        "actual": {
+          "claim": "c47:eff_1",
+          "entails": [
+            "source:b32_effect",
+            "source:b32_effect2"
+          ],
+          "opposes": [],
+          "unrelated": [
+            "source:b27",
+            "source:b28",
+            "source:b30",
+            "source:b31"
+          ],
+          "unknown": [],
+          "reason": "c47:eff_1은 '기존번호판 2매 및 봉인 반납'을 명시하며, source:b32_effect와 source:b32_effect2 모두 동일한 반납 의무를 포함함."
+        },
+        "basis": "The entailment list consumes source:b32_effect, whose return obligation was added by the parser rather than stated in the cited outer list."
+      }
+    ],
+    "calculation_after_repair": false
+  },
+  "decision": "rejected_fixed_local_scope_configuration",
+  "semantic_gate_passed": false,
+  "calculated_cases": 0,
+  "blocked_cases": 4,
+  "denominator": 4,
+  "evidence": {
+    "data/knowledge/evaluations/business_scope_tree_20261009/criteria.json": "24257b82b5f215dca49edaebfa6fc0b99e4efbd016975db012d5866dba8228f4",
+    "data/knowledge/evaluations/business_scope_tree_20261009/reference_benchmark_article2unit2structure_prompts_stage1_major_premise_extraction.md": "692206d5eed6f40a60c9d605b22da1744123c28642e2ba148486cbce2293cbbf",
+    "data/knowledge/evaluations/business_scope_tree_20261009/reference_LICENSE": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+    "data/knowledge/evaluations/business_scope_tree_20261009/result.json": "ab72a152a5758a4927edfd9d7b0bc1eeb6b4f33aa37d4fa440bd144a13112527",
+    "data/knowledge/evaluations/business_scope_tree_20261009/reference_README.md": "f0f77fdb1ecd3312112e1c27f40e4d771a4073dc9223acf92f36616afd155aab",
+    "data/knowledge/evaluations/business_scope_tree_20261009/run.log": "e9e1ba0b5c55b70cccadb33386458570a416b0b2b9f495a8e2fadbcb5f0c1d56",
+    "data/knowledge/evaluations/business_scope_tree_20261009/contract_review.json": "28197b767808b66ad307c139e4c9e30fecae164abea0ee5509585d56bcf8747c",
+    "data/knowledge/evaluations/business_scope_tree_20261009/claim_structures.json": "7b90abf2a97c387485ebefb9e758b5e35bd799e058504bf279a813989cbab01e",
+    "data/knowledge/evaluations/business_scope_tree_20261009/source_review.json": "c3faad3b540f5b108daf50b266fbbfe2c27e713de20df4a9f21fab5f004ecbd3",
+    "data/knowledge/evaluations/business_scope_tree_20261009/mapping_review.json": "3c48d1a7b3d454f5a35e49d93772274bf54e3266fe7eade71b5baa9642cfaa37",
+    "data/knowledge/evaluations/business_scope_tree_20261009/started.json": "bd0670ee39cc44d6d7211925f916b963836ac65c14a7eac7b87a1fad04ac467d",
+    "data/knowledge/evaluations/business_scope_tree_20261009/inputs.json": "edb4a6e6b40cf33a7f584458680617bb01aa25706dea0a4eaca72881200b1fe5",
+    "data/knowledge/evaluations/business_scope_tree_20261009/reference_benchmark_article2unit2structure_pipeline_oneshot.py": "695816bf9acb77c7305ab1f9b112c47d2809c72d58c3a48ef0f153baf2ccb1af",
+    "data/knowledge/evaluations/business_scope_tree_20261009/tests.log": "ef0e7ef49e71fa999842be0cb8d22ec1058d3a384ed5c0a2ec6efb8f434975ac",
+    "data/knowledge/evaluations/business_scope_tree_20261009/atom_mapping.json": "7e23722fe988d8ac104acec860bc07363bbc2227d6a8ffaae463508550c38506",
+    "data/knowledge/evaluations/business_scope_tree_20261009/source_structure.json": "f7fd6ed6c49912f90349395fcac583a6663bcbda0364db6f262dc5633684d022",
+    "data/knowledge/evaluations/business_scope_tree_20261009/reference_benchmark_article2unit2structure_evaluation_schema.py": "d4ec18105a3d3eb535696b114b95b06da462e971ba98d30c1d3a357a71c8fa36",
+    "data/knowledge/evaluations/business_scope_tree_20261009/freeze.json": "49862790d3e10996fb8c1ab86617ec45e3e1b755b908962756b2f3c340243cdb",
+    "data/knowledge/evaluations/business_scope_tree_20261009/calls.json": "4a14414a0289578e5dddb46fb3f6f87118ea73af6a0e48573b759b6299e6afd8"
+  },
+  "product_completion": false,
+  "tests": {
+    "passed": 5,
+    "elapsed_s": 0.02,
+    "scope": "Synthetic Boolean/address contracts, not model-quality evaluation."
+  }
+}
