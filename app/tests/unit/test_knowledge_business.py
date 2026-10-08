@@ -1309,3 +1309,47 @@ def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_rev
         with service.repository.connect() as db: assert service.repository.get(db, 'snapshots', 'snap') == snap
     finally:
         service.shutdown()
+
+
+@pytest.mark.parametrize('field', ['finding_resolutions', 'meaning_challenges', 'candidate_challenges'])
+def test_evidence_selection_preserves_declared_nested_contract_in_sent_request(monkeypatch, field):
+    from typing import Literal, get_args
+    from pydantic import Field, create_model
+    from app.knowledge.business_models import ContributionSynthesisCheck
+    row_type = get_args(ContributionSynthesisCheck.model_fields[field].annotation)[0]
+    row_type = create_model('RequiredAttribution', __base__=row_type,
+        independent_meaning_keys=(list[Literal['m']], Field(..., max_length=1)))
+    output_type = create_model('AttributedSynthesis', __base__=ContributionSynthesisCheck,
+        **{field: (list[row_type], Field(...))})
+    blocks = [dict(id='block', source_version_id='version', parse_run_id='parse', text='확인된 사실')]
+    run = dict(blocks=blocks, claims=[], sources={}, units=[], recipe=dict(options={}))
+    row = (dict(finding_id='f', status='unresolved', meaning_keys=['m'], claim_ids=[], fields=[], reason='관계 미확정')
+        if field == 'finding_resolutions' else dict(meaning_key='m', claim_ids=[], fields=['statement'], reason='원문 대조'))
+    row.update(evidence=['e1'], independent_meaning_keys=['m'])
+    raw = dict(checks=[], dependencies=[], source_challenges=[], meaning_challenges=[], candidate_challenges=[],
+        satisfied=False, conjunctions_satisfied=False, reason='전체 미완료', source_completeness='partial',
+        unselected_source_required=False, finding_resolutions=[])
+    raw[field] = [row]
+    def generate(_service, _run, _stage, messages, schema, **kwargs):
+        nested = schema['$defs']['SelectedRequiredAttribution']
+        assert 'independent_meaning_keys' in nested['required']
+        assert nested['properties']['independent_meaning_keys']['items']['const'] == 'm'
+        assert nested['properties']['independent_meaning_keys']['maxItems'] == 1
+        assert nested['properties']['evidence']['items']['const'] == 'e1'
+        run['units'].append(dict(response={'parsed': deepcopy(raw)}, schema=schema))
+        return run['units'][-1]['response']
+    monkeypatch.setattr(business_run, 'call', generate)
+    monkeypatch.setattr(business_run, 'save', lambda *_: None)
+    output = business_run.json_call(None, run, 'requirement_representation', '종합', dict(blocks=blocks), output_type)
+    assert output[field][0]['independent_meaning_keys'] == ['m']
+    assert output[field][0]['evidence'] == business_run.exact_evidence(
+        [dict(block_id='block', quote=blocks[0]['text'])], blocks)
+    assert run['units'][-1]['response']['parsed'] == raw
+    for value in (None, ['outside'], 'm'):
+        if value is None:
+            row.pop('independent_meaning_keys')
+        else:
+            row['independent_meaning_keys'] = value
+        assert business_run.json_call(None, run, 'requirement_representation', '종합', dict(blocks=blocks), output_type) is None
+        assert run['units'][-1]['error'].startswith('schema_error')
+        assert run['units'][-1]['response']['parsed'] == raw

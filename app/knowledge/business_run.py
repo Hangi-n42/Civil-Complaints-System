@@ -12,9 +12,9 @@ from app.core.config import settings
 from app.generation.model_client import ModelClient, ModelRequest, configuration
 from . import autoschema, business_store, business_review
 from .business_models import (GroundingCheck, LocalSourceCheck, RequirementCheck, RequirementJoinCheck,
-                              FindingResolution, Repairs, EvidenceQuote,
+                              Repairs, EvidenceQuote,
                               RequirementSynthesisCheck,
-                              GroundedMeaningChallenge, CandidateSourceReview, RequirementApplicationCheck,
+                              CandidateSourceReview, RequirementApplicationCheck,
                               ExpressionReviewCheck,
                               SelectedRequirementSourceCheck)
 from .service import KnowledgeConflict, encode, utcnow
@@ -293,21 +293,20 @@ def request_tokens(messages, schema, max_tokens):
 
 def evidence_fields(output_type):
     if issubclass(output_type, RequirementApplicationCheck):
-        return dict(meaning_challenges=GroundedMeaningChallenge)
-    if issubclass(output_type, CandidateSourceReview):
-        return {'checks': get_args(output_type.model_fields['checks'].annotation)[0]}
-    if issubclass(output_type, SelectedRequirementSourceCheck):
-        return {name: get_args(output_type.model_fields[name].annotation)[0] for name in ('selections', 'additions')}
-    if issubclass(output_type, (GroundingCheck, LocalSourceCheck)):
-        return {'meanings': get_args(output_type.model_fields['meanings'].annotation)[0]}
-    if issubclass(output_type, ExpressionReviewCheck):
-        return dict(checks=get_args(output_type.model_fields['checks'].annotation)[0], meaning_challenges=GroundedMeaningChallenge,
-            **(dict(candidate_challenges=GroundedMeaningChallenge) if 'candidate_challenges' in output_type.model_fields else {}))
-    fields = {'finding_resolutions': FindingResolution}
-    if issubclass(output_type, RequirementSynthesisCheck):
-        fields.update(checks=get_args(output_type.model_fields['checks'].annotation)[0], meaning_challenges=GroundedMeaningChallenge,
-            **(dict(candidate_challenges=GroundedMeaningChallenge) if 'candidate_challenges' in output_type.model_fields else {}))
-    return fields
+        names = ['meaning_challenges']
+    elif issubclass(output_type, CandidateSourceReview):
+        names = ['checks']
+    elif issubclass(output_type, SelectedRequirementSourceCheck):
+        names = ['selections', 'additions']
+    elif issubclass(output_type, (GroundingCheck, LocalSourceCheck)):
+        names = ['meanings']
+    else:
+        names = [] if issubclass(output_type, ExpressionReviewCheck) else ['finding_resolutions']
+        if issubclass(output_type, (ExpressionReviewCheck, RequirementSynthesisCheck)):
+            names.extend(['checks', 'meaning_challenges'])
+            if 'candidate_challenges' in output_type.model_fields:
+                names.append('candidate_challenges')
+    return {name: get_args(output_type.model_fields[name].annotation)[0] for name in names}
 
 
 def selected_evidence_type(output_type, references):

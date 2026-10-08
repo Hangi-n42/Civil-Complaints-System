@@ -1130,3 +1130,17 @@ def test_scoped_finding_retrieves_disputed_context_outside_existing_meaning(monk
     monkeypatch.setattr(business_run, 'json_call', answer)
     review.represent(None, run, run['requirements'][0], source, [])
     assert {'body', 'disputed'} <= set(supplied)
+
+
+def test_gap_outside_required_scope_does_not_block_independent_required_facts():
+    run = local_run(); cid = run['claims'][0]['id']
+    source = current_source()
+    source['meanings'][0]['required_for_requirement'] = True
+    source['meanings'].append(meaning('background', required_for_requirement=False))
+    a = dict(id='a', requirement_id='r', source=source, representation=judgments(['m'], ids=[cid]), errors=[], issues=[])
+    run['assessments'] = [a]
+    for key, expected in [('background', set()), ('m', {'m'}), ('invalid', {'m'})]:
+        source['meaning_gaps'] = [dict(meaning_keys=[key], text='필수 전제 미확정')]
+        assert review.blocked(a)[0] == expected
+        a['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], source)
+        assert business_use.eligibility(run)[0] == ({cid} if key == 'background' else set())

@@ -326,6 +326,9 @@ def blocked(assessment, *, include_global=True):
     if global_reason and include_global:
         return known, [global_reason]
     keys = {i['meaning_key'] for i in issues if i.get('meaning_key') in known}
+    source = assessment.get('source') or {}
+    gap_keys = {k for gap in source.get('meaning_gaps', []) for k in gap['meaning_keys']}
+    keys.update(gap_keys - ({m['key'] for m in source.get('meanings', [])} - known))
     keys.update(m['key'] for m in meanings
                 if m['source_status'] == 'unknown' or m['availability'] != 'provided'
                 or unresolved_source_fields(m)
