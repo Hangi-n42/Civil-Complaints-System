@@ -6988,5 +6988,1865 @@
     "bus_qa/code/configs/knowledge/bus_ontology_sources_20260929/README.md": "474b752c98bf6ad0373d011b5e0d7b4bba47317b94926b2f6a2d4ccfe89f0b37",
     "bus_qa/code/configs/knowledge/demo_selection_20260929/sources.json": "f359a6500bea7ed75ce3e695b5e88920d822c948bdc42a26fb19d58b27444396",
     "bus_qa/code/configs/knowledge/demo_selection_20260929/README.md": "58568bffb88d9c0a7b52937fc03960e20e5d0218ec27aa8c3260e97128c832c6"
+  },
+  "public_question_clarification": {
+    "freeze": {
+      "created_at": "2026-10-08T16:47:56.005662+00:00",
+      "code_commit": "0e99f405a28a999a013122d59fbef16bc8972dc8",
+      "original_question": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?",
+      "changed_fields": [
+        "question"
+      ],
+      "answer_items": "Original public requirement quote/revision retained; product binder requires original exact quote.",
+      "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+      "previous_freeze_sha256": "4c59805339a62b35009c581e5365e99c40930432ccb176c907465ff7ee8e9585",
+      "source_db_sha256": "4062b200e3ee96a6bf71a17a8a67e919a14dff57b01cf9148f79af6bb42bb2fc",
+      "request_sha256": "5a674f7e245113aabaf6a431010c0802c9ad4588e4e4626cbfd29931e98ca9ca",
+      "script_sha256": "20742ec1e7de2e3e072b98ebca2bb024336cf48478ff5a32a572663de7523eaf",
+      "gate": {
+        "expected_fields": [
+          "NODE_ID",
+          "ARS_ID",
+          "X좌표",
+          "Y좌표"
+        ],
+        "original_frozen_qa_result_unchanged": true,
+        "latestness_limitations_required": true,
+        "qa_attempts": 1,
+        "no_retry": true
+      },
+      "scope": "Public request clarification diagnostic only; not original-question success or single-factor model-quality proof. No answer values or labels added to request."
+    },
+    "request": {
+      "question": "제공된 최신 정차표에서 1127번 순번 13의 NODE_ID, ARS_ID, X 좌표, Y 좌표는 각각 무엇인가?",
+      "choices": [],
+      "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+      "source_run_id": null,
+      "requirement_ids": [
+        "BUS-NEW-13"
+      ],
+      "limit": 50,
+      "retrieval": "hipporag2",
+      "graph_variant": "full",
+      "answer_mode": "reviewed_items",
+      "answer_items": [
+        {
+          "id": "row",
+          "requirement_id": "BUS-NEW-13",
+          "requirement_revision": 1,
+          "field": "question",
+          "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+        }
+      ]
+    },
+    "result": {
+      "result": {
+        "run_id": "409352a20a414f5bbdf7fb0917eb6ca9",
+        "status": "answered",
+        "answer": {
+          "answer": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?\n원문 행 값: NODE_ID: 109000011\n자료: 1127_after.json; 원문 행 위치: /12\n자료에 기록된 날짜: 2025-06-24\n원문 행 값: ARS_ID: \"10011\"\n원문 행 값: X좌표: 127.0407623758\n원문 행 값: Y좌표: 37.6589364195\n\n요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.\n\n기존 검수의 미확정 관련 기록 (확정 사실 아님): source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다.",
+          "citations": [
+            "claim_88b7672a6a3c6e5701ea202e"
+          ],
+          "choice": null,
+          "limitations": [
+            "요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.",
+            "기존 검수의 미확정 관련 기록 (확정 사실 아님): source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다."
+          ]
+        },
+        "retrieval": [
+          {
+            "block_id": "claim_88b7672a6a3c6e5701ea202e",
+            "file_id": "c14386ec6798498eb00b0cc213eca468",
+            "score": 0.48617737850048925,
+            "passage_id": "passage_de27688889fa2cbacf953c39",
+            "selection_reason": "required_reviewed_meaning"
+          },
+          {
+            "block_id": "claim_fc97562dd821d3873eefd03e",
+            "file_id": "c14386ec6798498eb00b0cc213eca468",
+            "score": 0.0,
+            "passage_id": "passage_0f79ed89f01e49b54d71048e",
+            "selection_reason": "hipporag2"
+          }
+        ],
+        "context_mode": "graph",
+        "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+        "source_run_id": null,
+        "answer_basis": "reviewed_claims",
+        "limitations": [
+          {
+            "requirement_id": "BUS-NEW-13",
+            "status": "partial",
+            "gaps": []
+          }
+        ]
+      },
+      "query_run": {
+        "id": "409352a20a414f5bbdf7fb0917eb6ca9",
+        "kind": "business_query",
+        "status": "succeeded",
+        "units": [
+          {
+            "id": "00a6dab38369473f9a44607f3ed5a508",
+            "stage": "graph_retrieval_filter",
+            "status": "succeeded",
+            "error": null,
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are a critical component of a high-stakes question-answering system used by top researchers and decision-makers worldwide. \n        Your task is to filter facts based on their relevance to a given query. \n        The query requires careful analysis and possibly multi-hop reasoning to connect different pieces of information. \n        You must select all relevant facts from the provided candidate list, aiding in reasoning and providing an accurate answer. \n        The output should be in JSON format, e.g., {\"fact\": [[\"s1\", \"p1\", \"o1\"], [\"s2\", \"p2\", \"o2\"]]}, and if no facts are relevant, return an empty list, {\"fact\": []}. \n        The accuracy of your response is paramount, as it will directly impact the decisions made by these high-level stakeholders. You must only use facts from the candidate list and not generate new facts. \n        The future of critical decision-making relies on your ability to accurately filter and present relevant information.\n\nYour input fields are:\n1. question (str): Query for retrieval\n2. fact_before_filter (str): Candidate facts to be filtered\n\nYour output fields are:\n1. fact_after_filter (Fact): Filtered facts in JSON format\n\nAll interactions will be structured as:\n[[ ## question ## ]]\n{question}\n\n[[ ## fact_before_filter ## ]]\n{fact_before_filter}\n\n[[ ## fact_after_filter ## ]]\n{fact_after_filter}\n\nThe output must be parseable according to JSON schema: {\"type\": \"object\", \"properties\": {\"fact\": {\"type\": \"array\", \"items\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}}, \"required\": [\"fact\"]}\n프로젝트 출력 계약: fact 대신 selected_ids에 제공 id만 반환한다. 여러 단계의 연결에 필요한 관계도 선택한다. has_concept는 검색 연결이며 승인된 사실이나 is-a가 아니다."
+              },
+              {
+                "role": "user",
+                "content": "{\"question\": \"제공된 최신 정차표에서 1127번 순번 13의 NODE_ID, ARS_ID, X 좌표, Y 좌표는 각각 무엇인가?\\n\", \"candidate_facts\": [{\"id\": \"e1\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} NODE_ID 109000011\", \"status\": \"accepted\"}, {\"id\": \"e2\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} 순번 13\", \"status\": \"accepted\"}, {\"id\": \"e3\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} NODE_ID 109000033\", \"status\": \"accepted\"}, {\"id\": \"e4\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} X좌표 127.0407623758\", \"status\": \"accepted\"}, {\"id\": \"e5\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} Y좌표 37.6589364195\", \"status\": \"accepted\"}, {\"id\": \"e6\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} ARS_ID \\\"10116\\\"\", \"status\": \"accepted\"}, {\"id\": \"e7\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} X좌표 127.0421039333\", \"status\": \"accepted\"}, {\"id\": \"e8\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} Y좌표 37.6622176747\", \"status\": \"accepted\"}, {\"id\": \"e9\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} ARS_ID \\\"10011\\\"\", \"status\": \"accepted\"}, {\"id\": \"e10\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} ROUTE_ID 100100143\", \"status\": \"accepted\"}, {\"id\": \"e11\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} 노선명 \\\"1127\\\"\", \"status\": \"accepted\"}, {\"id\": \"e12\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} 순번 12\", \"status\": \"accepted\"}, {\"id\": \"e13\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} 노선명 \\\"1127\\\"\", \"status\": \"accepted\"}, {\"id\": \"e14\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} ROUTE_ID 100100143\", \"status\": \"accepted\"}, {\"id\": \"e15\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195} 정류소명 \\\"도봉보건소\\\"\", \"status\": \"accepted\"}, {\"id\": \"e16\", \"triple\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 12, \\\"NODE_ID\\\": 109000033, \\\"ARS_ID\\\": \\\"10116\\\", \\\"정류소명\\\": \\\"방학사거리\\\", \\\"X좌표\\\": 127.0421039333, \\\"Y좌표\\\": 37.6622176747} 정류소명 \\\"방학사거리\\\"\", \"status\": \"accepted\"}]}"
+              }
+            ],
+            "schema": {
+              "properties": {
+                "selected_ids": {
+                  "items": {
+                    "enum": [
+                      "e1",
+                      "e2",
+                      "e3",
+                      "e4",
+                      "e5",
+                      "e6",
+                      "e7",
+                      "e8",
+                      "e9",
+                      "e10",
+                      "e11",
+                      "e12",
+                      "e13",
+                      "e14",
+                      "e15",
+                      "e16"
+                    ],
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "title": "Selected Ids",
+                  "type": "array",
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "selected_ids"
+              ],
+              "title": "RelevantEdges",
+              "type": "object"
+            },
+            "reference_map": {
+              "edge_3c7cfcd84d71ce9d1d7fbab4": "e1",
+              "edge_ce34debb1da46466466b7f39": "e2",
+              "edge_f31263f26ced6f93c67e019f": "e3",
+              "edge_3f822a1b76dbf08679a05cd4": "e4",
+              "edge_c188579bc51f8d46c2b68aab": "e5",
+              "edge_23fceb699fe67ad8f45ce697": "e6",
+              "edge_243baf192150a97c31ade092": "e7",
+              "edge_025f9e0b078268310067b33e": "e8",
+              "edge_244226a07d89e526c1f3c6f4": "e9",
+              "edge_ca25de698f29dee4a09a88c1": "e10",
+              "edge_3a497bc6df8b9cea464a5291": "e11",
+              "edge_81541beb523586d25fb30964": "e12",
+              "edge_3c05f580fb43015231a1b6c2": "e13",
+              "edge_f1613133ef21a893b64b81df": "e14",
+              "edge_ba4f35a9d0b6338ab2d76dfc": "e15",
+              "edge_905a196c1d3e0f2a3c65a5f4": "e16"
+            },
+            "started_at": "2026-10-08T16:47:59.773548+00:00",
+            "request_configuration": {
+              "model": "qwen3.8:27b-q4_K_M",
+              "generation": {
+                "provider": "ollama",
+                "endpoint": "http://localhost:11434",
+                "auth_env": "KNOWLEDGE_API_KEY",
+                "context_length": 49152
+              },
+              "identity": {
+                "draft": {
+                  "name": "gemma4:31b-it-q4_K_M",
+                  "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+                  "context_length": 262144
+                },
+                "review": {
+                  "name": "qwen3.8:27b-q4_K_M",
+                  "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+                  "context_length": 262144
+                }
+              },
+              "temperature": 0,
+              "timeout": 1800.0
+            },
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "input_budget": {
+              "estimate_tokens": 13085,
+              "method": "utf8_bytes/2+output+1000",
+              "exact": false
+            },
+            "executed_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response": {
+              "request_id": "00a6dab38369473f9a44607f3ed5a508",
+              "stage": "graph_retrieval_filter",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "text": "{\"selected_ids\": [\"e1\", \"e2\", \"e4\", \"e5\", \"e9\"]}",
+              "parsed": {
+                "selected_ids": [
+                  "e1",
+                  "e2",
+                  "e4",
+                  "e5",
+                  "e9"
+                ]
+              },
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-08T16:48:22.829193Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\"selected_ids\": [\"e1\", \"e2\", \"e4\", \"e5\", \"e9\"]}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 23015867625,
+                "load_duration": 7379642917,
+                "prompt_eval_count": 2752,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 14358430000,
+                "eval_count": 25,
+                "eval_duration": 1264709000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 2752,
+              "eval_count": 25,
+              "usage_source": "provider_reported",
+              "elapsed_s": 23.055824,
+              "input_chars": 5587,
+              "total_duration": 23015867625
+            },
+            "finished_at": "2026-10-08T16:48:22.832402+00:00"
+          },
+          {
+            "id": "4117469750f84142b8a130b3f9c95b65",
+            "stage": "business_qa",
+            "status": "succeeded",
+            "error": null,
+            "messages": [
+              {
+                "role": "system",
+                "content": "공개 질문/criterion의 항목별로 해당하는 검토 의미 ID만 선택한다. 문장·결론을 새로 작성하지 않는다. 각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, 결론에 추가 연결이 필요하면 premise_only로 고르고 그 구체 미확인 연결을 unconfirmed에 쓴다. 명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. 모든 공개 항목에 유용한 의미 또는 구체 공백이 필요하다. 불필요한 의미는 선택하지 않는다. 검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다. kind=exact_row_field는 승인된 후보와 원문 행이 일치하는 직접 셀값이며 새 의미 검수 결과가 아니다. row_context_id의 row_contexts에 원문 행·출처 문맥이 있다. 질문/공개 항목이 요청한 필드만 선택하고 비요청 필드는 나열하지 않는다. 열 이름과 자연어가 섞인 요청도 각 요청 사실에 해당하는 필드를 빠짐없이 대조한다. 파일 기준일은 현실 최신성이나 전체 요구 충족의 증거가 아니며 assessment_limitations를 유지한다."
+              },
+              {
+                "role": "user",
+                "content": "{\"question\": \"제공된 최신 정차표에서 1127번 순번 13의 NODE_ID, ARS_ID, X 좌표, Y 좌표는 각각 무엇인가?\", \"public_requirements\": [{\"id\": \"BUS-NEW-13\", \"question\": \"1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?\", \"criterion\": \"실제 행의 ID와 좌표를 함께 확인한다. 이름만으로 동일 정차를 추정하지 않는다.\", \"target\": \"ROUTE_ID 100100143 순번 13\", \"situation\": \"신규 등록된 업무 질문\", \"period\": \"최신 제공 정차표 스냅샷\"}], \"public_answer_items\": [{\"id\": \"row\", \"requirement_id\": \"BUS-NEW-13\", \"requirement_revision\": 1, \"field\": \"question\", \"request_quote\": \"1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?\"}], \"row_contexts\": {\"claim_88b7672a6a3c6e5701ea202e\": {\"row_fields\": {\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}, \"evidence\": [{\"block_id\": \"3267746b3f9143758ea6034307448140\", \"source_version_id\": \"c14386ec6798498eb00b0cc213eca468\", \"parse_run_id\": \"e648c3678f0e4238aaaa3caf4d63a51a\", \"start_char\": 0, \"end_char\": 151, \"quote\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195}\", \"precision\": \"exact\"}], \"source_version_id\": \"c14386ec6798498eb00b0cc213eca468\", \"source_filename\": \"1127_after.json\", \"source_dates\": [{\"role\": \"file_snapshot\", \"value\": \"2025-06-24\"}], \"row_locator\": {\"format\": \"json\", \"json_pointer\": \"/12\", \"block_order\": 12}}}, \"assessment_limitations\": [{\"requirement_id\": \"BUS-NEW-13\", \"period\": \"최신 제공 정차표 스냅샷\", \"status\": \"partial\", \"source_completeness\": \"partial\", \"synthesis_source_completeness\": \"unknown\", \"review_notes\": [\"source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다.\"], \"finding_resolutions\": [{\"finding_id\": \"e1:1\", \"status\": \"not_required\", \"meaning_keys\": [\"batch1:route_1127_seq13_node_id\", \"batch1:route_1127_seq13_coordinates\"], \"claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"fields\": [], \"evidence\": [{\"block_id\": \"3267746b3f9143758ea6034307448140\", \"quote\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195}\", \"source_version_id\": \"c14386ec6798498eb00b0cc213eca468\", \"parse_run_id\": \"e648c3678f0e4238aaaa3caf4d63a51a\", \"start_char\": 0, \"end_char\": 151, \"precision\": \"exact\"}], \"reason\": \"해당 finding은 '최신' 스냅샷 여부 불확실성에 관한 해석적 이의입니다. 제공된 v1 스냅샷(b2) 내에서 질문이 요구하는 ROUTE_ID, 순번, NODE_ID, 좌표가 모두 명확히 존재하며, 이 값들이 후보 c2에 정확히 표현되어 있으므로, '최신'이라는 기간 조건에 대한 불확실성은 현재 후보 묶음의 의미 표현 완전성(represented)을 반박하지 않습니다. 따라서 이 finding은 현재 의미 표현의 충족을 방해하지 않는 요구 밖/해소 불필요 항목으로 처리됩니다.\"}], \"synthesis_reason\": \"review_meaning_keys에 포함된 두 의미 모두 local_judgments에서 represented로 판정되었으며, claim c2가 원문 b2의 실제 행 데이터(ROUTE_ID 100100143, 순번 13, NODE_ID 109000011, X/Y 좌표)를 정확히 반영하고 있습니다. finding e1:1은 '최신' 여부 불확실성에 관한 해석적 이의이며, 제공된 v1 스냅샷 내에서 요구된 식별자와 좌표가 명확히 존재하므로 현재 후보 묶음의 표현 완전성을 훼손하지 않습니다. 따라서 변경할 checks가 없습니다.\", \"gaps\": []}], \"reviewed_meanings\": {\"m1\": {\"requirement_id\": \"BUS-NEW-13\", \"assessment_id\": \"18f3861a334041a6a2f428852c784c07\", \"claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"expression_status\": \"represented\", \"key\": \"batch1:route_1127_seq13_node_id\", \"statement\": \"노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 정차 식별자(NODE_ID)는 109000011이다.\", \"conditions\": [\"ROUTE_ID가 100100143이고\", \"노선명이 1127이고\", \"순번이 13인 행\"], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_applicable\", \"period\": \"not_applicable\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_88b7672a6a3c6e5701ea202e\": \"supported\"}, \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"complete_claim_bundle\": true, \"premise_keys\": [], \"interpretation_version\": \"meaning_a0444883314387fbd963791c\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"3267746b3f9143758ea6034307448140\", \"quote\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195}\", \"source_version_id\": \"c14386ec6798498eb00b0cc213eca468\", \"parse_run_id\": \"e648c3678f0e4238aaaa3caf4d63a51a\", \"start_char\": 0, \"end_char\": 151, \"precision\": \"exact\"}]}, \"m2\": {\"requirement_id\": \"BUS-NEW-13\", \"assessment_id\": \"18f3861a334041a6a2f428852c784c07\", \"claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"expression_status\": \"represented\", \"key\": \"batch1:route_1127_seq13_coordinates\", \"statement\": \"노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 좌표는 X 127.0407623758, Y 37.6589364195이다.\", \"conditions\": [\"ROUTE_ID가 100100143이고\", \"노선명이 1127이고\", \"순번이 13인 행\"], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_applicable\", \"period\": \"not_applicable\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_88b7672a6a3c6e5701ea202e\": \"supported\"}, \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"complete_claim_bundle\": true, \"premise_keys\": [], \"interpretation_version\": \"meaning_be035dab8fa78abec7d352ce\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"3267746b3f9143758ea6034307448140\", \"quote\": \"{\\\"ROUTE_ID\\\": 100100143, \\\"노선명\\\": \\\"1127\\\", \\\"순번\\\": 13, \\\"NODE_ID\\\": 109000011, \\\"ARS_ID\\\": \\\"10011\\\", \\\"정류소명\\\": \\\"도봉보건소\\\", \\\"X좌표\\\": 127.0407623758, \\\"Y좌표\\\": 37.6589364195}\", \"source_version_id\": \"c14386ec6798498eb00b0cc213eca468\", \"parse_run_id\": \"e648c3678f0e4238aaaa3caf4d63a51a\", \"start_char\": 0, \"end_char\": 151, \"precision\": \"exact\"}]}, \"f3\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:ROUTE_ID\", \"field_name\": \"ROUTE_ID\", \"field_value\": 100100143, \"statement\": \"ROUTE_ID: 100100143\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f4\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:노선명\", \"field_name\": \"노선명\", \"field_value\": \"1127\", \"statement\": \"노선명: \\\"1127\\\"\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f5\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:순번\", \"field_name\": \"순번\", \"field_value\": 13, \"statement\": \"순번: 13\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f6\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:NODE_ID\", \"field_name\": \"NODE_ID\", \"field_value\": 109000011, \"statement\": \"NODE_ID: 109000011\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f7\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:ARS_ID\", \"field_name\": \"ARS_ID\", \"field_value\": \"10011\", \"statement\": \"ARS_ID: \\\"10011\\\"\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f8\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:정류소명\", \"field_name\": \"정류소명\", \"field_value\": \"도봉보건소\", \"statement\": \"정류소명: \\\"도봉보건소\\\"\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f9\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:X좌표\", \"field_name\": \"X좌표\", \"field_value\": 127.0407623758, \"statement\": \"X좌표: 127.0407623758\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}, \"f10\": {\"kind\": \"exact_row_field\", \"requirement_id\": \"BUS-NEW-13\", \"key\": \"field:claim_88b7672a6a3c6e5701ea202e:Y좌표\", \"field_name\": \"Y좌표\", \"field_value\": 37.6589364195, \"statement\": \"Y좌표: 37.6589364195\", \"required_claim_ids\": [\"claim_88b7672a6a3c6e5701ea202e\"], \"premise_keys\": [], \"judgment_origin\": {\"origin\": \"exact_source_row_match\", \"semantic_review\": false}, \"row_context_id\": \"claim_88b7672a6a3c6e5701ea202e\"}}}"
+              }
+            ],
+            "schema": {
+              "$defs": {
+                "ReviewedItemSelection": {
+                  "properties": {
+                    "item_id": {
+                      "const": "row",
+                      "title": "Item Id",
+                      "type": "string"
+                    },
+                    "selected": {
+                      "items": {
+                        "$ref": "#/$defs/ReviewedSelection"
+                      },
+                      "title": "Selected",
+                      "type": "array"
+                    },
+                    "unconfirmed": {
+                      "description": "Concrete requested fact or inference link not established; never an affirmative conclusion.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Unconfirmed",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "item_id",
+                    "selected",
+                    "unconfirmed"
+                  ],
+                  "title": "ReviewedItemSelection",
+                  "type": "object"
+                },
+                "ReviewedSelection": {
+                  "properties": {
+                    "meaning_ref": {
+                      "enum": [
+                        "m1",
+                        "m2",
+                        "f3",
+                        "f4",
+                        "f5",
+                        "f6",
+                        "f7",
+                        "f8",
+                        "f9",
+                        "f10"
+                      ],
+                      "title": "Meaning Ref",
+                      "type": "string"
+                    },
+                    "use": {
+                      "enum": [
+                        "direct_fact",
+                        "premise_only"
+                      ],
+                      "title": "Use",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "meaning_ref",
+                    "use"
+                  ],
+                  "title": "ReviewedSelection",
+                  "type": "object"
+                }
+              },
+              "properties": {
+                "items": {
+                  "items": {
+                    "$ref": "#/$defs/ReviewedItemSelection"
+                  },
+                  "title": "Items",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "items"
+              ],
+              "title": "ReviewedItemSelections",
+              "type": "object"
+            },
+            "reference_map": null,
+            "started_at": "2026-10-08T16:48:22.847112+00:00",
+            "request_configuration": {
+              "model": "qwen3.8:27b-q4_K_M",
+              "generation": {
+                "provider": "ollama",
+                "endpoint": "http://localhost:11434",
+                "auth_env": "KNOWLEDGE_API_KEY",
+                "context_length": 49152
+              },
+              "identity": {
+                "draft": {
+                  "name": "gemma4:31b-it-q4_K_M",
+                  "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+                  "context_length": 262144
+                },
+                "review": {
+                  "name": "qwen3.8:27b-q4_K_M",
+                  "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+                  "context_length": 262144
+                }
+              },
+              "temperature": 0,
+              "timeout": 1800.0
+            },
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "input_budget": {
+              "estimate_tokens": 16109,
+              "method": "utf8_bytes/2+output+1000",
+              "exact": false
+            },
+            "executed_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response": {
+              "request_id": "4117469750f84142b8a130b3f9c95b65",
+              "stage": "business_qa",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "text": "{\n  \"items\": [\n    {\n      \"item_id\": \"row\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"f6\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f7\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f9\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f10\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    }\n  ]\n}",
+              "parsed": {
+                "items": [
+                  {
+                    "item_id": "row",
+                    "selected": [
+                      {
+                        "meaning_ref": "f6",
+                        "use": "direct_fact"
+                      },
+                      {
+                        "meaning_ref": "f7",
+                        "use": "direct_fact"
+                      },
+                      {
+                        "meaning_ref": "f9",
+                        "use": "direct_fact"
+                      },
+                      {
+                        "meaning_ref": "f10",
+                        "use": "direct_fact"
+                      }
+                    ],
+                    "unconfirmed": []
+                  }
+                ]
+              },
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-08T16:48:55.481435Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\n  \"items\": [\n    {\n      \"item_id\": \"row\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"f6\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f7\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f9\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f10\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    }\n  ]\n}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 32624246084,
+                "load_duration": 1184584,
+                "prompt_eval_count": 4621,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 24882364000,
+                "eval_count": 145,
+                "eval_duration": 7695121000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 4621,
+              "eval_count": 145,
+              "usage_source": "provider_reported",
+              "elapsed_s": 32.635576,
+              "input_chars": 9725,
+              "total_duration": 32624246084
+            },
+            "finished_at": "2026-10-08T16:48:55.484967+00:00"
+          }
+        ],
+        "input_version_ids": [
+          "c14386ec6798498eb00b0cc213eca468"
+        ],
+        "recipe": {
+          "version": "autoschemakg-business-v5-local-review",
+          "scope_contract": "unverified-local-extraction-scope-v3",
+          "review_contract": "requirement-local-review-v8-owned-errors",
+          "generation": {
+            "provider": "ollama",
+            "endpoint": "http://localhost:11434",
+            "auth_env": "KNOWLEDGE_API_KEY",
+            "context_length": 49152
+          },
+          "models": {
+            "draft": "gemma4:31b-it-q4_K_M",
+            "review": "qwen3.8:27b-q4_K_M"
+          },
+          "options": {
+            "source_version_ids": [
+              "c14386ec6798498eb00b0cc213eca468"
+            ],
+            "requirement_ids": [
+              "BUS-CONTROL-12",
+              "BUS-NEW-13"
+            ],
+            "block_ids": [
+              "c6c49ac9166e409bb865477229d14fa2",
+              "3267746b3f9143758ea6034307448140"
+            ],
+            "selection_reason": "기존 실제 변경 영향의 동일 BUS-NEW-13 현재 행과 BUS-CONTROL-12 불변 행. 업데이트된 저장 JSON에서 ROUTE_ID/순번 키로 선택. 다른 행·전후 혼합버전·정책문서의 검수로 확대하지 않음.",
+            "neighbor_mode": "plain",
+            "model": "gemma4:31b-it-q4_K_M",
+            "review_model": "qwen3.8:27b-q4_K_M",
+            "context_tokens": 49152,
+            "extraction_target_chars": 1000,
+            "representation_context_tokens": null,
+            "extraction_tokens": 4096,
+            "concept_tokens": 512,
+            "review_tokens": 8192,
+            "representation_tokens": 8192,
+            "source_tokens": 8192,
+            "source_reassessment_tokens": 8192,
+            "timeout": 1800.0,
+            "think": false,
+            "repair": false,
+            "resume_run_id": null,
+            "reuse_run_id": null,
+            "reassess_run_id": null,
+            "conceptualize": false
+          }
+        },
+        "model_identity": {
+          "draft": {
+            "name": "gemma4:31b-it-q4_K_M",
+            "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+            "context_length": 262144
+          },
+          "review": {
+            "name": "qwen3.8:27b-q4_K_M",
+            "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+            "context_length": 262144
+          }
+        },
+        "metrics": {
+          "llm_calls": 2,
+          "model_total_s": 55.6914,
+          "elapsed_s": 59.09254712500842
+        },
+        "started_at": "2026-10-08T16:47:56.478729+00:00",
+        "finished_at": "2026-10-08T16:48:55.490609+00:00",
+        "query": {
+          "question": "제공된 최신 정차표에서 1127번 순번 13의 NODE_ID, ARS_ID, X 좌표, Y 좌표는 각각 무엇인가?",
+          "choices": [],
+          "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+          "source_run_id": null,
+          "requirement_ids": [
+            "BUS-NEW-13"
+          ],
+          "limit": 50,
+          "retrieval": "hipporag2",
+          "graph_variant": "full",
+          "answer_mode": "reviewed_items",
+          "answer_items": [
+            {
+              "id": "row",
+              "requirement_id": "BUS-NEW-13",
+              "requirement_revision": 1,
+              "field": "question",
+              "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+            }
+          ]
+        },
+        "answer_items": [
+          {
+            "id": "row",
+            "requirement_id": "BUS-NEW-13",
+            "requirement_revision": 1,
+            "field": "question",
+            "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+          }
+        ],
+        "context_mode": "graph",
+        "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+        "answer_basis": "reviewed_claims",
+        "source_extraction_status": null,
+        "answer_contract": "provided-unique-citations-nonempty-answer-v2",
+        "required_context_ids": [
+          "claim_88b7672a6a3c6e5701ea202e"
+        ],
+        "graph_retrieval": {
+          "contract": "autoschemakg-hipporag2-source-passages-v2",
+          "variant": "full",
+          "directed": true,
+          "nodes": 20,
+          "edges": 34,
+          "passages": 2,
+          "concept_nodes": 0,
+          "ignored_concept_targets": [],
+          "embedding_model": "BAAI/bge-m3",
+          "embedding_device": "cpu",
+          "alpha": 0.9,
+          "passage_weight": 0.9,
+          "topk_edges": 30,
+          "topk_nodes": 10,
+          "selected_edge_ids": [
+            "edge_3c7cfcd84d71ce9d1d7fbab4",
+            "edge_ce34debb1da46466466b7f39",
+            "edge_3f822a1b76dbf08679a05cd4",
+            "edge_c188579bc51f8d46c2b68aab",
+            "edge_244226a07d89e526c1f3c6f4"
+          ],
+          "fallback": null,
+          "index_cache_hit": false,
+          "candidate_edge_ids": [
+            "edge_3c7cfcd84d71ce9d1d7fbab4",
+            "edge_ce34debb1da46466466b7f39",
+            "edge_f31263f26ced6f93c67e019f",
+            "edge_3f822a1b76dbf08679a05cd4",
+            "edge_c188579bc51f8d46c2b68aab",
+            "edge_23fceb699fe67ad8f45ce697",
+            "edge_243baf192150a97c31ade092",
+            "edge_025f9e0b078268310067b33e",
+            "edge_244226a07d89e526c1f3c6f4",
+            "edge_ca25de698f29dee4a09a88c1",
+            "edge_3a497bc6df8b9cea464a5291",
+            "edge_81541beb523586d25fb30964",
+            "edge_3c05f580fb43015231a1b6c2",
+            "edge_f1613133ef21a893b64b81df",
+            "edge_ba4f35a9d0b6338ab2d76dfc",
+            "edge_905a196c1d3e0f2a3c65a5f4"
+          ],
+          "seed_node_scores": {
+            "node_6d2a9ccd70fad1a8955a9848": 1.0,
+            "node_5ba126b5d0fbe07d7bdea074": 0.900205456633486,
+            "node_11bad48f977da2f606c253c2": 0.8078038259135809,
+            "node_0f9173e3c70e9d3d4a51407b": 0.7856269679057409,
+            "node_94640a74939939875cb9d6dd": 0.7761879924574967,
+            "node_a71f909652531120b2b6d088": 0.5769987125711807
+          },
+          "ranked_passages": [
+            {
+              "id": "passage_de27688889fa2cbacf953c39",
+              "score": 0.48617737850048925,
+              "evidence": {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ]
+            },
+            {
+              "id": "passage_0f79ed89f01e49b54d71048e",
+              "score": 0.0,
+              "evidence": {
+                "block_id": "c6c49ac9166e409bb865477229d14fa2",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 12, \"NODE_ID\": 109000033, \"ARS_ID\": \"10116\", \"정류소명\": \"방학사거리\", \"X좌표\": 127.0421039333, \"Y좌표\": 37.6622176747}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_fc97562dd821d3873eefd03e"
+              ]
+            }
+          ],
+          "elapsed_s": 26.22895229200367,
+          "ranking_is_semantic_validation": false
+        },
+        "answer_scope_contract": "reviewed-meanings-and-source-qualifications-v1",
+        "reviewed_meanings": [
+          {
+            "requirement_id": "BUS-NEW-13",
+            "assessment_id": "18f3861a334041a6a2f428852c784c07",
+            "claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "expression_status": "represented",
+            "key": "batch1:route_1127_seq13_node_id",
+            "statement": "노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 정차 식별자(NODE_ID)는 109000011이다.",
+            "conditions": [
+              "ROUTE_ID가 100100143이고",
+              "노선명이 1127이고",
+              "순번이 13인 행"
+            ],
+            "exceptions": [],
+            "period": "",
+            "references": [],
+            "source_status": "supported",
+            "availability": "provided",
+            "record_error": null,
+            "requirement_link": {
+              "requested_fact": "1127번 순번 13의 현재 정차 식별자",
+              "applicability": "applicable",
+              "contribution": "direct_answer",
+              "reason": "target의 ROUTE_ID/노선명/순번이 질문과 일치하고, criterion이 요구하는 실제 행의 ID를 제공한다."
+            },
+            "field_judgments": {},
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "not_assessed",
+              "exceptions": "not_applicable",
+              "period": "not_applicable",
+              "references": "not_applicable"
+            },
+            "claim_support": {
+              "claim_88b7672a6a3c6e5701ea202e": "supported"
+            },
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": [],
+            "interpretation_version": "meaning_a0444883314387fbd963791c",
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "precision": "exact"
+              }
+            ]
+          },
+          {
+            "requirement_id": "BUS-NEW-13",
+            "assessment_id": "18f3861a334041a6a2f428852c784c07",
+            "claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "expression_status": "represented",
+            "key": "batch1:route_1127_seq13_coordinates",
+            "statement": "노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 좌표는 X 127.0407623758, Y 37.6589364195이다.",
+            "conditions": [
+              "ROUTE_ID가 100100143이고",
+              "노선명이 1127이고",
+              "순번이 13인 행"
+            ],
+            "exceptions": [],
+            "period": "",
+            "references": [],
+            "source_status": "supported",
+            "availability": "provided",
+            "record_error": null,
+            "requirement_link": {
+              "requested_fact": "1127번 순번 13의 현재 좌표",
+              "applicability": "applicable",
+              "contribution": "direct_answer",
+              "reason": "target의 ROUTE_ID/노선명/순번이 질문과 일치하고, criterion이 요구하는 실제 행의 좌표를 제공한다."
+            },
+            "field_judgments": {},
+            "field_checks": {
+              "statement": "supported",
+              "conditions": "not_assessed",
+              "exceptions": "not_applicable",
+              "period": "not_applicable",
+              "references": "not_applicable"
+            },
+            "claim_support": {
+              "claim_88b7672a6a3c6e5701ea202e": "supported"
+            },
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "complete_claim_bundle": true,
+            "premise_keys": [],
+            "interpretation_version": "meaning_be035dab8fa78abec7d352ce",
+            "judgment_origin": {
+              "origin": "model"
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "precision": "exact"
+              }
+            ]
+          }
+        ],
+        "exact_row_answer_fields": [
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:ROUTE_ID",
+            "field_name": "ROUTE_ID",
+            "field_value": 100100143,
+            "statement": "ROUTE_ID: 100100143",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:노선명",
+            "field_name": "노선명",
+            "field_value": "1127",
+            "statement": "노선명: \"1127\"",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:순번",
+            "field_name": "순번",
+            "field_value": 13,
+            "statement": "순번: 13",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:NODE_ID",
+            "field_name": "NODE_ID",
+            "field_value": 109000011,
+            "statement": "NODE_ID: 109000011",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:ARS_ID",
+            "field_name": "ARS_ID",
+            "field_value": "10011",
+            "statement": "ARS_ID: \"10011\"",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:정류소명",
+            "field_name": "정류소명",
+            "field_value": "도봉보건소",
+            "statement": "정류소명: \"도봉보건소\"",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:X좌표",
+            "field_name": "X좌표",
+            "field_value": 127.0407623758,
+            "statement": "X좌표: 127.0407623758",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          },
+          {
+            "kind": "exact_row_field",
+            "requirement_id": "BUS-NEW-13",
+            "key": "field:claim_88b7672a6a3c6e5701ea202e:Y좌표",
+            "field_name": "Y좌표",
+            "field_value": 37.6589364195,
+            "statement": "Y좌표: 37.6589364195",
+            "required_claim_ids": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "premise_keys": [],
+            "row_fields": {
+              "ROUTE_ID": 100100143,
+              "노선명": "1127",
+              "순번": 13,
+              "NODE_ID": 109000011,
+              "ARS_ID": "10011",
+              "정류소명": "도봉보건소",
+              "X좌표": 127.0407623758,
+              "Y좌표": 37.6589364195
+            },
+            "evidence": [
+              {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              }
+            ],
+            "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+            "source_filename": "1127_after.json",
+            "source_dates": [
+              {
+                "role": "file_snapshot",
+                "value": "2025-06-24"
+              }
+            ],
+            "row_locator": {
+              "format": "json",
+              "json_pointer": "/12",
+              "block_order": 12
+            },
+            "judgment_origin": {
+              "origin": "exact_source_row_match",
+              "semantic_review": false
+            }
+          }
+        ],
+        "answer_assessment_limitations": [
+          {
+            "requirement_id": "BUS-NEW-13",
+            "period": "최신 제공 정차표 스냅샷",
+            "status": "partial",
+            "source_completeness": "partial",
+            "synthesis_source_completeness": "unknown",
+            "review_notes": [
+              "source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다."
+            ],
+            "finding_resolutions": [
+              {
+                "finding_id": "e1:1",
+                "status": "not_required",
+                "meaning_keys": [
+                  "batch1:route_1127_seq13_node_id",
+                  "batch1:route_1127_seq13_coordinates"
+                ],
+                "claim_ids": [
+                  "claim_88b7672a6a3c6e5701ea202e"
+                ],
+                "fields": [],
+                "evidence": [
+                  {
+                    "block_id": "3267746b3f9143758ea6034307448140",
+                    "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                    "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                    "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                    "start_char": 0,
+                    "end_char": 151,
+                    "precision": "exact"
+                  }
+                ],
+                "reason": "해당 finding은 '최신' 스냅샷 여부 불확실성에 관한 해석적 이의입니다. 제공된 v1 스냅샷(b2) 내에서 질문이 요구하는 ROUTE_ID, 순번, NODE_ID, 좌표가 모두 명확히 존재하며, 이 값들이 후보 c2에 정확히 표현되어 있으므로, '최신'이라는 기간 조건에 대한 불확실성은 현재 후보 묶음의 의미 표현 완전성(represented)을 반박하지 않습니다. 따라서 이 finding은 현재 의미 표현의 충족을 방해하지 않는 요구 밖/해소 불필요 항목으로 처리됩니다."
+              }
+            ],
+            "synthesis_reason": "review_meaning_keys에 포함된 두 의미 모두 local_judgments에서 represented로 판정되었으며, claim c2가 원문 b2의 실제 행 데이터(ROUTE_ID 100100143, 순번 13, NODE_ID 109000011, X/Y 좌표)를 정확히 반영하고 있습니다. finding e1:1은 '최신' 여부 불확실성에 관한 해석적 이의이며, 제공된 v1 스냅샷 내에서 요구된 식별자와 좌표가 명확히 존재하므로 현재 후보 묶음의 표현 완전성을 훼손하지 않습니다. 따라서 변경할 checks가 없습니다.",
+            "gaps": []
+          }
+        ],
+        "answer_meaning_selection": {
+          "available": {
+            "m1": {
+              "requirement_id": "BUS-NEW-13",
+              "assessment_id": "18f3861a334041a6a2f428852c784c07",
+              "claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "expression_status": "represented",
+              "key": "batch1:route_1127_seq13_node_id",
+              "statement": "노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 정차 식별자(NODE_ID)는 109000011이다.",
+              "conditions": [
+                "ROUTE_ID가 100100143이고",
+                "노선명이 1127이고",
+                "순번이 13인 행"
+              ],
+              "exceptions": [],
+              "period": "",
+              "references": [],
+              "source_status": "supported",
+              "availability": "provided",
+              "record_error": null,
+              "requirement_link": {
+                "requested_fact": "1127번 순번 13의 현재 정차 식별자",
+                "applicability": "applicable",
+                "contribution": "direct_answer",
+                "reason": "target의 ROUTE_ID/노선명/순번이 질문과 일치하고, criterion이 요구하는 실제 행의 ID를 제공한다."
+              },
+              "field_judgments": {},
+              "field_checks": {
+                "statement": "supported",
+                "conditions": "not_assessed",
+                "exceptions": "not_applicable",
+                "period": "not_applicable",
+                "references": "not_applicable"
+              },
+              "claim_support": {
+                "claim_88b7672a6a3c6e5701ea202e": "supported"
+              },
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "complete_claim_bundle": true,
+              "premise_keys": [],
+              "interpretation_version": "meaning_a0444883314387fbd963791c",
+              "judgment_origin": {
+                "origin": "model"
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "precision": "exact"
+                }
+              ]
+            },
+            "m2": {
+              "requirement_id": "BUS-NEW-13",
+              "assessment_id": "18f3861a334041a6a2f428852c784c07",
+              "claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "expression_status": "represented",
+              "key": "batch1:route_1127_seq13_coordinates",
+              "statement": "노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 좌표는 X 127.0407623758, Y 37.6589364195이다.",
+              "conditions": [
+                "ROUTE_ID가 100100143이고",
+                "노선명이 1127이고",
+                "순번이 13인 행"
+              ],
+              "exceptions": [],
+              "period": "",
+              "references": [],
+              "source_status": "supported",
+              "availability": "provided",
+              "record_error": null,
+              "requirement_link": {
+                "requested_fact": "1127번 순번 13의 현재 좌표",
+                "applicability": "applicable",
+                "contribution": "direct_answer",
+                "reason": "target의 ROUTE_ID/노선명/순번이 질문과 일치하고, criterion이 요구하는 실제 행의 좌표를 제공한다."
+              },
+              "field_judgments": {},
+              "field_checks": {
+                "statement": "supported",
+                "conditions": "not_assessed",
+                "exceptions": "not_applicable",
+                "period": "not_applicable",
+                "references": "not_applicable"
+              },
+              "claim_support": {
+                "claim_88b7672a6a3c6e5701ea202e": "supported"
+              },
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "complete_claim_bundle": true,
+              "premise_keys": [],
+              "interpretation_version": "meaning_be035dab8fa78abec7d352ce",
+              "judgment_origin": {
+                "origin": "model"
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "precision": "exact"
+                }
+              ]
+            },
+            "f3": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:ROUTE_ID",
+              "field_name": "ROUTE_ID",
+              "field_value": 100100143,
+              "statement": "ROUTE_ID: 100100143",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f4": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:노선명",
+              "field_name": "노선명",
+              "field_value": "1127",
+              "statement": "노선명: \"1127\"",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f5": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:순번",
+              "field_name": "순번",
+              "field_value": 13,
+              "statement": "순번: 13",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f6": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:NODE_ID",
+              "field_name": "NODE_ID",
+              "field_value": 109000011,
+              "statement": "NODE_ID: 109000011",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f7": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:ARS_ID",
+              "field_name": "ARS_ID",
+              "field_value": "10011",
+              "statement": "ARS_ID: \"10011\"",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f8": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:정류소명",
+              "field_name": "정류소명",
+              "field_value": "도봉보건소",
+              "statement": "정류소명: \"도봉보건소\"",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f9": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:X좌표",
+              "field_name": "X좌표",
+              "field_value": 127.0407623758,
+              "statement": "X좌표: 127.0407623758",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            },
+            "f10": {
+              "kind": "exact_row_field",
+              "requirement_id": "BUS-NEW-13",
+              "key": "field:claim_88b7672a6a3c6e5701ea202e:Y좌표",
+              "field_name": "Y좌표",
+              "field_value": 37.6589364195,
+              "statement": "Y좌표: 37.6589364195",
+              "required_claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ],
+              "premise_keys": [],
+              "row_fields": {
+                "ROUTE_ID": 100100143,
+                "노선명": "1127",
+                "순번": 13,
+                "NODE_ID": 109000011,
+                "ARS_ID": "10011",
+                "정류소명": "도봉보건소",
+                "X좌표": 127.0407623758,
+                "Y좌표": 37.6589364195
+              },
+              "evidence": [
+                {
+                  "block_id": "3267746b3f9143758ea6034307448140",
+                  "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                  "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                  "start_char": 0,
+                  "end_char": 151,
+                  "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                  "precision": "exact"
+                }
+              ],
+              "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+              "source_filename": "1127_after.json",
+              "source_dates": [
+                {
+                  "role": "file_snapshot",
+                  "value": "2025-06-24"
+                }
+              ],
+              "row_locator": {
+                "format": "json",
+                "json_pointer": "/12",
+                "block_order": 12
+              },
+              "judgment_origin": {
+                "origin": "exact_source_row_match",
+                "semantic_review": false
+              }
+            }
+          },
+          "excluded": [],
+          "public_answer_items": [
+            {
+              "id": "row",
+              "requirement_id": "BUS-NEW-13",
+              "requirement_revision": 1,
+              "field": "question",
+              "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+            }
+          ],
+          "output": {
+            "items": [
+              {
+                "item_id": "row",
+                "selected": [
+                  {
+                    "meaning_ref": "f6",
+                    "use": "direct_fact"
+                  },
+                  {
+                    "meaning_ref": "f7",
+                    "use": "direct_fact"
+                  },
+                  {
+                    "meaning_ref": "f9",
+                    "use": "direct_fact"
+                  },
+                  {
+                    "meaning_ref": "f10",
+                    "use": "direct_fact"
+                  }
+                ],
+                "unconfirmed": []
+              }
+            ]
+          }
+        },
+        "answer_item_errors": [],
+        "answer": {
+          "answer": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?\n원문 행 값: NODE_ID: 109000011\n자료: 1127_after.json; 원문 행 위치: /12\n자료에 기록된 날짜: 2025-06-24\n원문 행 값: ARS_ID: \"10011\"\n원문 행 값: X좌표: 127.0407623758\n원문 행 값: Y좌표: 37.6589364195\n\n요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.\n\n기존 검수의 미확정 관련 기록 (확정 사실 아님): source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다.",
+          "citations": [
+            "claim_88b7672a6a3c6e5701ea202e"
+          ],
+          "choice": null,
+          "limitations": [
+            "요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.",
+            "기존 검수의 미확정 관련 기록 (확정 사실 아님): source_versions의 title은 1127_before.json이고 filename은 1127_after.json이며, 제공된 v1 스냅샷이 질문의 '최신 제공 정차표 스냅샷'에 해당하는지 원문만으로 확정할 수 없다."
+          ]
+        },
+        "answer_status": "answered",
+        "retrieval": [
+          {
+            "block_id": "claim_88b7672a6a3c6e5701ea202e",
+            "file_id": "c14386ec6798498eb00b0cc213eca468",
+            "score": 0.48617737850048925,
+            "passage_id": "passage_de27688889fa2cbacf953c39",
+            "selection_reason": "required_reviewed_meaning"
+          },
+          {
+            "block_id": "claim_fc97562dd821d3873eefd03e",
+            "file_id": "c14386ec6798498eb00b0cc213eca468",
+            "score": 0.0,
+            "passage_id": "passage_0f79ed89f01e49b54d71048e",
+            "selection_reason": "hipporag2"
+          }
+        ],
+        "provided_ids": [
+          "claim_88b7672a6a3c6e5701ea202e",
+          "claim_fc97562dd821d3873eefd03e"
+        ],
+        "retrieval_concept_hints": {},
+        "retrieval_contract": "autoschemakg-hipporag2-source-passages-v2",
+        "concept_hints_are_answer_evidence": false,
+        "counts": {
+          "queued": 0,
+          "running": 0,
+          "succeeded": 2,
+          "failed": 0,
+          "cancelled": 0
+        }
+      }
+    },
+    "verification": {
+      "expected": {
+        "NODE_ID": 109000011,
+        "ARS_ID": "10011",
+        "X좌표": 127.0407623758,
+        "Y좌표": 37.6589364195
+      },
+      "present": {
+        "NODE_ID": true,
+        "ARS_ID": true,
+        "X좌표": true,
+        "Y좌표": true
+      },
+      "all_requested_fields_present": true,
+      "latestness_limit_in_text": true,
+      "latestness_limit_stored": true,
+      "snapshot_unchanged": true,
+      "old_runs_unchanged": true,
+      "source_db_unchanged": true,
+      "same_recipe_model_settings": true,
+      "original_failure_preserved": true
+    },
+    "metrics": {
+      "new_model_calls": 2,
+      "input_tokens": 7373,
+      "output_tokens": 170,
+      "model_s": 55.6914
+    },
+    "comparison": "The original public question/criterion did not name both identifiers. Nonselection is observed; the original omission alone does not establish model selection ability as its cause. No regrading of the original gate. Both explicit field names and the provided-latest-table source scope changed within question; this is not a pure field-name effect. No automatic requirement clarification feature was implemented.",
+    "artifacts_sha256": {
+      "request.json": "5a674f7e245113aabaf6a431010c0802c9ad4588e4e4626cbfd29931e98ca9ca",
+      "snapshot_after.json": "4efa02f44a3a3518ec2f76a882186fe44fdd9bda1d5bac883477729566ef2656",
+      "started.json": "be30c9b1560968b8969cdf856b9ee61154ada5304abf3f05bd62eb44dd2bb33c",
+      "answer.json": "ed7f76972a2dfaeb14170c88701ef5b2577d301045e48de7b5c798ad6e4621d1",
+      "freeze.json": "1fe42c34de3a51d924f0758f7f10ff30bcc6c945a99b4dba75b8f00d4eddbfb4"
+    }
+  },
+  "encoding_portability_followup": {
+    "executed_commit": "0e99f405a28a999a013122d59fbef16bc8972dc8",
+    "executed_script_sha256": "27f889066a0cc470d001861230f8e7d085a4031890c77654634e598023447842",
+    "preserved_script": "data/knowledge/evaluations/business_nli_20261009/compare_business_nli_executed.py",
+    "new_script_sha256": "d632e08b14062c5627c9361b1ae1e6aec85f59367ea9e06609a8b47a4f7c61e6",
+    "reason": "Explicit UTF-8 input/output for Korean JSON instead of platform default encoding",
+    "model_rerun": false,
+    "verification": "Korean JSON UTF-8 write/read round trip passed without model import/loading/call."
+  },
+  "bus_all_new_cost_including_clarification": {
+    "new_model_calls": 6,
+    "input_tokens": 20536,
+    "output_tokens": 577,
+    "model_s": 153.63255300000003
   }
 }
