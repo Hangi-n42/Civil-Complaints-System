@@ -1,0 +1,2093 @@
+{
+  "freeze": {
+    "model": "qwen3.8:27b-q4_K_M",
+    "identity": {
+      "review": {
+        "name": "qwen3.8:27b-q4_K_M",
+        "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+        "context_length": 262144
+      }
+    },
+    "context_tokens": 49152,
+    "max_tokens": 8192,
+    "think": false,
+    "temperature": 0,
+    "timeout": 1800,
+    "max_calls": 7,
+    "max_questions_per_candidate": 3,
+    "question_instruction": "각 후보만 읽고 그 후보가 실제 주장하는 내용을 검증할 질문을 1~3개 생성한다. 원문과 정답은 제공되지 않는다. 질문당 answer_quote는 후보에서 질문의 답에 해당하는 정확한 연속 인용이다. 후보를 수정하거나 없는 조건/주체/의무를 보태지 않는다. 주체·행위·대상·조건·시점·순서·의무/허용 중 실제 주장의 핵심이 질문과 답에서 빠지지 않게 한다. 조건부 주장은 적용 조건/범위 자체도 검증할 수 있게 묻고, 그 조건을 이미 맞는 사실로 질문에 숨겨 넣지 않는다. 질문은 독립 문서에 물어볼 수 있어야 하며 잘못된 전제의 이유를 요구하거나 참거짓 정답을 유도하지 않는다. 일부 포함 관계를 전체 목록 충분성 질문으로 바꾸지 않는다. 복합 주장은 여러 항목을 묶어 물어도 되지만 빠진 핵심이 있으면 coverage=incomplete로 남긴다. 질문 개수만으로 coverage를 complete라 하지 않는다. 각 질문 id는 후보 id+\":\"+번호로 만든다. 출력에는 후보별 id, questions, coverage(complete/incomplete), coverage_reason만 담는다.",
+    "answer_instruction": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다.",
+    "comparison_instruction": "동일 질문의 candidate_answer와 source_answer를 대조한다. 두 QA는 서로 다른 문맥에서 생성됐다. 질문, 후보에서 질문을 만들 때 선택한 answer_quote, 양쪽 답/근거와 실제 인용 블록/부모를 확인한다. 질문이 후보의 뜻을 바꾸거나 잘못된 전제를 강요하면 valid_question=false다. candidate_answer가 후보의 해당 주장에 충실한지도 확인하고, 질문에 핵심 조건/주체/양태가 빠지면 성공 처리하지 않는다. source_answer와 근거가 candidate_answer의 내용을 단방향으로 지지하는지 판정한다. 원문이 더 상세하고 후보가 참인 일부 포함만 말해도 supported이며 두 답의 완전 동등/문자열 일치를 요구하지 않는다. 짧은 인용이 같아도 전체 인용 블록이나 부모의 조건·양태와 다르면 supported가 아니다. 관측된 적용 범위 확대 등 원문 미지지는 not_supported, 명시적인 반대 내용은 contradicted다. 제공 답/근거가 부족하거나 QA가 답변 불가이면 unresolved다. 그 자체를 not_supported 성공으로 바꾸지 않는다. 원문 조건 밖의 면제/금지를 만들지 않는다. 정정문이나 새질문을 만들지 말고 질문별 id,valid_question,verdict,reason을 출력한다.",
+    "schemas": [
+      {
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "answer_quote": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "question",
+                      "answer_quote"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "coverage": {
+                  "type": "string",
+                  "enum": [
+                    "complete",
+                    "incomplete"
+                  ]
+                },
+                "coverage_reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "questions",
+                "coverage",
+                "coverage_reason"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "candidates"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "answerable": {
+                  "type": "boolean"
+                },
+                "answer": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "block_id": {
+                        "type": "string"
+                      },
+                      "quote": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "block_id",
+                      "quote"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "answerable",
+                "answer",
+                "evidence",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "comparisons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "valid_question": {
+                  "type": "boolean"
+                },
+                "verdict": {
+                  "type": "string",
+                  "enum": [
+                    "supported",
+                    "not_supported",
+                    "contradicted",
+                    "unresolved"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "valid_question",
+                "verdict",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "comparisons"
+        ],
+        "additionalProperties": false
+      }
+    ],
+    "reference_revision": "01177f11cc05f8b3e75511a0cfa54bac19324d09",
+    "reference_license": "BSD-3-Clause; original algorithm idea, no upstream code copied.",
+    "variant": "Korean Qwen QA task substitution; not original QAFactEval F1/LERC or English model reproduction.",
+    "batching": "QG sees all claims but no source; each claim QA separate; source QA all questions together; comparison batched.",
+    "files": {
+      "data/knowledge/evaluations/business_qa_compare_20261009/inputs.json": "092dc9c52bb23302f17a1bc2bdd8f408a356ea07bbbb2f03bf7cd00ca045af01",
+      "data/knowledge/evaluations/business_qa_compare_20261009/criteria.json": "7bd7c0ceab7675b3767425cd63c315f1530d1b9f9dc4b8fc0943b54928a3796e",
+      "data/knowledge/evaluations/business_nli_20261009/inputs.json": "c1c32e7b151c0704f6507ecbd7ca88b51902c7b32799da23fc669931b7ba2712",
+      "data/knowledge/evaluations/business_nli_20261009/source_packet.json": "560911ab2ccbe8dba1004a0c1f16c72eb3e70de0086e32d3a10ea9d582ce7a22",
+      "scripts/compare_business_qa.py": "54e34458cdb75e1c503d6893085755dd1271a9b07e0aba11a01699197542b10e",
+      "scripts/compare_business_nli.py": "d632e08b14062c5627c9361b1ae1e6aec85f59367ea9e06609a8b47a4f7c61e6",
+      "scripts/compare_business_natlogic.py": "da84a71103c7fd87842e9ea8be73df0be0ceb6cc55966ef24399906916523a9c",
+      "app/generation/model_client.py": "9aad473ef47635d028cdb3c9842978a3fff887f0accd9b43230fc1f3dad37173",
+      "app/generation/service.py": "6a2f4b30db35e968c81eaa27ebabf768c925c03ab057bbfc9cca404ebb850a6b"
+    }
+  },
+  "started": {
+    "freeze_sha256": "abc0694d450ef025ea817c9ec08269b01deb6ad42df796587046cf2cc735ec24"
+  },
+  "inputs": {
+    "candidates": [
+      {
+        "id": "c13",
+        "text": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+      },
+      {
+        "id": "c46",
+        "text": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+      },
+      {
+        "id": "c47",
+        "text": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+      },
+      {
+        "id": "c11",
+        "text": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b9",
+        "text": "자가용(비사업용)자동차 이전등록",
+        "source_version_id": "v1",
+        "locator": {
+          "heading_level": 3
+        },
+        "evidence_ref": "e9"
+      },
+      {
+        "id": "b24",
+        "text": "자가용(비사업용)자동차 이전등록",
+        "source_version_id": "v1",
+        "locator": {
+          "heading_level": 4
+        },
+        "evidence_ref": "e32"
+      },
+      {
+        "id": "b25",
+        "text": "구비서류",
+        "source_version_id": "v1",
+        "locator": {
+          "heading_level": 5
+        },
+        "evidence_ref": "e34"
+      },
+      {
+        "id": "b26",
+        "text": "공통사항",
+        "source_version_id": "v1",
+        "locator": {
+          "heading_level": 6
+        },
+        "evidence_ref": "e37"
+      },
+      {
+        "id": "b27",
+        "text": "이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납",
+        "source_version_id": "v1",
+        "evidence_ref": "e39"
+      },
+      {
+        "id": "b28",
+        "text": "양수인(사는사람) 본인이 직접등록 [신분증 지참]",
+        "source_version_id": "v1",
+        "evidence_ref": "e40"
+      },
+      {
+        "id": "b29",
+        "text": "양수인 미방문시\n\t\t\t\t\t\t",
+        "source_version_id": "v1",
+        "evidence_ref": "e41"
+      },
+      {
+        "id": "b30",
+        "text": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증",
+        "source_version_id": "v1",
+        "evidence_ref": "e45"
+      },
+      {
+        "id": "b31",
+        "text": "양도증명서(양수인란 및 특약사항란 도장날인)",
+        "source_version_id": "v1",
+        "evidence_ref": "e46"
+      },
+      {
+        "id": "b32",
+        "text": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+        "source_version_id": "v1",
+        "evidence_ref": "e47"
+      }
+    ],
+    "source_parents": [
+      {
+        "block_id": "b30",
+        "parent_block_ids": [
+          "b29"
+        ]
+      },
+      {
+        "block_id": "b31",
+        "parent_block_ids": [
+          "b29"
+        ]
+      }
+    ]
+  },
+  "criteria": {
+    "expected": {
+      "c13": "S",
+      "c46": "S",
+      "c47": "N",
+      "c11": "S"
+    },
+    "gate": "All four labels plus question coverage, faithful independent answers and source-grounded comparison.",
+    "exposure": "All cases development-exposed; no holdout or product calls after failure.",
+    "failures": "Missing questions, incomplete coverage, failed/unanswerable QA and invalid citations remain unresolved, never dropped."
+  },
+  "questions": {
+    "candidates": [
+      {
+        "id": "c13",
+        "questions": [
+          {
+            "id": "c13:1",
+            "question": "양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?",
+            "answer_quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "coverage": "complete",
+        "coverage_reason": "주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양도증명서), 조건(양수인란 및 특약사항란 도장날인)이 모두 질문과 답에 포함되어 있다."
+      },
+      {
+        "id": "c46",
+        "questions": [
+          {
+            "id": "c46:1",
+            "question": "양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?",
+            "answer_quote": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서"
+          }
+        ],
+        "coverage": "complete",
+        "coverage_reason": "조건(양수인이 미방문 시), 행위(구비한다), 대상(위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서)이 모두 질문과 답에 포함되어 있다."
+      },
+      {
+        "id": "c47",
+        "questions": [
+          {
+            "id": "c47:1",
+            "question": "번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?",
+            "answer_quote": "기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+          }
+        ],
+        "coverage": "complete",
+        "coverage_reason": "조건(번호판 변경 시), 행위(반납), 대상(기존번호판 2매 및 봉인), 목적(번호를 변경한다)이 모두 질문과 답에 포함되어 있다."
+      },
+      {
+        "id": "c11",
+        "questions": [
+          {
+            "id": "c11:1",
+            "question": "양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?",
+            "answer_quote": "양수인 신분증 사본(법인의 경우 법인인감증명서)"
+          }
+        ],
+        "coverage": "complete",
+        "coverage_reason": "주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양수인 신분증 사본), 조건(법인의 경우 법인인감증명서)이 모두 질문과 답에 포함되어 있다."
+      }
+    ]
+  },
+  "questions_freeze": {
+    "questions_sha256": "cc6b57eda5f8ed9991d0d8a1bc7b360985e38fd1de1ba9c38b23b2a297bde6a8",
+    "freeze_sha256": "abc0694d450ef025ea817c9ec08269b01deb6ad42df796587046cf2cc735ec24"
+  },
+  "c13_answers": {
+    "answers": [
+      {
+        "id": "c13:1",
+        "answerable": true,
+        "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+        "evidence": [
+          {
+            "block_id": "c13",
+            "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다."
+      }
+    ]
+  },
+  "c46_answers": {
+    "answers": [
+      {
+        "id": "c46:1",
+        "answerable": true,
+        "answer": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서",
+        "evidence": [
+          {
+            "block_id": "c46",
+            "quote": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+          }
+        ],
+        "reason": "문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음"
+      }
+    ]
+  },
+  "c47_answers": {
+    "answers": [
+      {
+        "id": "c47:1",
+        "answerable": true,
+        "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.",
+        "evidence": [
+          {
+            "block_id": "c47",
+            "quote": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+          }
+        ],
+        "reason": "문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함."
+      }
+    ]
+  },
+  "c11_answers": {
+    "answers": [
+      {
+        "id": "c11:1",
+        "answerable": true,
+        "answer": "법인의 경우 법인인감증명서가 요구된다.",
+        "evidence": [
+          {
+            "block_id": "c11",
+            "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+          }
+        ],
+        "reason": "문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다."
+      }
+    ]
+  },
+  "source_answers": {
+    "answers": [
+      {
+        "id": "c13:1",
+        "answerable": true,
+        "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+        "evidence": [
+          {
+            "block_id": "b31",
+            "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다."
+      },
+      {
+        "id": "c46:1",
+        "answerable": true,
+        "answer": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.",
+        "evidence": [
+          {
+            "block_id": "b30",
+            "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+          },
+          {
+            "block_id": "b31",
+            "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다."
+      },
+      {
+        "id": "c47:1",
+        "answerable": true,
+        "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.",
+        "evidence": [
+          {
+            "block_id": "b32",
+            "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+          }
+        ],
+        "reason": "문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다."
+      },
+      {
+        "id": "c11:1",
+        "answerable": true,
+        "answer": "법인의 경우 법인인감증명서가 요구된다.",
+        "evidence": [
+          {
+            "block_id": "b30",
+            "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+          }
+        ],
+        "reason": "문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다."
+      }
+    ]
+  },
+  "comparison_inputs": [
+    {
+      "id": "c13:1",
+      "question": "양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?",
+      "answer_quote": "양도증명서(양수인란 및 특약사항란 도장날인)",
+      "candidate_id": "c13",
+      "candidate_answer": {
+        "id": "c13:1",
+        "answerable": true,
+        "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+        "evidence": [
+          {
+            "block_id": "c13",
+            "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다.",
+        "cited_blocks": [
+          {
+            "id": "c13",
+            "text": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "source_parents": []
+      },
+      "source_answer": {
+        "id": "c13:1",
+        "answerable": true,
+        "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+        "evidence": [
+          {
+            "block_id": "b31",
+            "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다.",
+        "cited_blocks": [
+          {
+            "id": "b29",
+            "text": "양수인 미방문시\n\t\t\t\t\t\t",
+            "source_version_id": "v1",
+            "evidence_ref": "e41"
+          },
+          {
+            "id": "b31",
+            "text": "양도증명서(양수인란 및 특약사항란 도장날인)",
+            "source_version_id": "v1",
+            "evidence_ref": "e46"
+          }
+        ],
+        "source_parents": [
+          {
+            "block_id": "b31",
+            "parent_block_ids": [
+              "b29"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c46:1",
+      "question": "양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?",
+      "answer_quote": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서",
+      "candidate_id": "c46",
+      "candidate_answer": {
+        "id": "c46:1",
+        "answerable": true,
+        "answer": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서",
+        "evidence": [
+          {
+            "block_id": "c46",
+            "quote": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+          }
+        ],
+        "reason": "문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음",
+        "cited_blocks": [
+          {
+            "id": "c46",
+            "text": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+          }
+        ],
+        "source_parents": []
+      },
+      "source_answer": {
+        "id": "c46:1",
+        "answerable": true,
+        "answer": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.",
+        "evidence": [
+          {
+            "block_id": "b30",
+            "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+          },
+          {
+            "block_id": "b31",
+            "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+          }
+        ],
+        "reason": "source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다.",
+        "cited_blocks": [
+          {
+            "id": "b29",
+            "text": "양수인 미방문시\n\t\t\t\t\t\t",
+            "source_version_id": "v1",
+            "evidence_ref": "e41"
+          },
+          {
+            "id": "b30",
+            "text": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증",
+            "source_version_id": "v1",
+            "evidence_ref": "e45"
+          },
+          {
+            "id": "b31",
+            "text": "양도증명서(양수인란 및 특약사항란 도장날인)",
+            "source_version_id": "v1",
+            "evidence_ref": "e46"
+          }
+        ],
+        "source_parents": [
+          {
+            "block_id": "b30",
+            "parent_block_ids": [
+              "b29"
+            ]
+          },
+          {
+            "block_id": "b31",
+            "parent_block_ids": [
+              "b29"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c47:1",
+      "question": "번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?",
+      "answer_quote": "기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.",
+      "candidate_id": "c47",
+      "candidate_answer": {
+        "id": "c47:1",
+        "answerable": true,
+        "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.",
+        "evidence": [
+          {
+            "block_id": "c47",
+            "quote": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+          }
+        ],
+        "reason": "문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함.",
+        "cited_blocks": [
+          {
+            "id": "c47",
+            "text": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+          }
+        ],
+        "source_parents": []
+      },
+      "source_answer": {
+        "id": "c47:1",
+        "answerable": true,
+        "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.",
+        "evidence": [
+          {
+            "block_id": "b32",
+            "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+          }
+        ],
+        "reason": "문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다.",
+        "cited_blocks": [
+          {
+            "id": "b32",
+            "text": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+            "source_version_id": "v1",
+            "evidence_ref": "e47"
+          }
+        ],
+        "source_parents": []
+      }
+    },
+    {
+      "id": "c11:1",
+      "question": "양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?",
+      "answer_quote": "양수인 신분증 사본(법인의 경우 법인인감증명서)",
+      "candidate_id": "c11",
+      "candidate_answer": {
+        "id": "c11:1",
+        "answerable": true,
+        "answer": "법인의 경우 법인인감증명서가 요구된다.",
+        "evidence": [
+          {
+            "block_id": "c11",
+            "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+          }
+        ],
+        "reason": "문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다.",
+        "cited_blocks": [
+          {
+            "id": "c11",
+            "text": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+          }
+        ],
+        "source_parents": []
+      },
+      "source_answer": {
+        "id": "c11:1",
+        "answerable": true,
+        "answer": "법인의 경우 법인인감증명서가 요구된다.",
+        "evidence": [
+          {
+            "block_id": "b30",
+            "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+          }
+        ],
+        "reason": "문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다.",
+        "cited_blocks": [
+          {
+            "id": "b29",
+            "text": "양수인 미방문시\n\t\t\t\t\t\t",
+            "source_version_id": "v1",
+            "evidence_ref": "e41"
+          },
+          {
+            "id": "b30",
+            "text": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증",
+            "source_version_id": "v1",
+            "evidence_ref": "e45"
+          }
+        ],
+        "source_parents": [
+          {
+            "block_id": "b30",
+            "parent_block_ids": [
+              "b29"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "comparisons": {
+    "comparisons": [
+      {
+        "id": "c13:1",
+        "valid_question": true,
+        "verdict": "supported",
+        "reason": "질문은 양수인 미방문 시 구비서류인 양도증명서에 대해 어떤 란에 도장날인이 요구되는지 묻고 있다. 후보 답은 '양수인란 및 특약사항란'이라고 답하며, 근거 인용 블록(c13)에도 '양도증명서(양수인란 및 특약사항란 도장날인)'으로 명시되어 있어 충실하다. 소스 답 역시 동일한 내용을 b31 블록을 근거로 제시하고 있으며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+      },
+      {
+        "id": "c46:1",
+        "valid_question": true,
+        "verdict": "supported",
+        "reason": "질문은 양수인 미방문 시 구비해야 하는 서류 목록을 묻고 있다. 후보 답은 '위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서'라고 답하며, 근거 인용 블록(c46)에도 이 목록이 명시되어 있다. 소스 답은 위임장과 양도증명서에 각각 '양수인 도장 날인', '양수인란 및 특약사항란 도장날인'이라는 세부 조건을 추가하여 더 상세하게 서술하고 있으나, 이는 후보 답이 언급한 항목들의 하위 세부 사항에 해당한다. 후보 답이 소스 원문의 핵심 목록을 포함하고 있으며, 소스 원문이 후보 답의 내용을 지지한다. (참고: 후보 답은 세부 도장 조건을 생략했으나, 질문이 '어떤 항목들이 포함되는가'를 묻고 있으므로 항목 목록 자체의 정확성은 유지된다.)"
+      },
+      {
+        "id": "c47:1",
+        "valid_question": true,
+        "verdict": "supported",
+        "reason": "질문은 번호판 변경 시 반납해야 할 물품과 그 목적을 묻고 있다. 후보 답은 '기존번호판 2매 및 봉인'을 반납하고 목적은 '번호 변경'이라고 답하며, 근거 인용 블록(c47)에도 '번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다'로 명시되어 있다. 소스 답은 b32 블록을 근거로 동일한 반납 물품과 목적을 제시하며, '지역 번호는 반드시... 반납 후 번호 변경'이라는 추가 조건을 포함하고 있다. 후보 답은 이 추가 조건을 생략했으나, 질문의 핵심인 '반납 물품'과 '목적'에 대해서는 소스 원문과 일치하며, 소스 원문이 후보 답의 내용을 지지한다."
+      },
+      {
+        "id": "c11:1",
+        "valid_question": true,
+        "verdict": "supported",
+        "reason": "질문은 양수인 미방문 시 구비서류인 양수인 신분증 사본에 대해 법인의 경우 어떤 서류가 요구되는지 묻고 있다. 후보 답은 '법인인감증명서'라고 답하며, 근거 인용 블록(c11)에도 '양수인 신분증 사본(법인의 경우 법인인감증명서)'으로 명시되어 있다. 소스 답 역시 b30 블록을 근거로 '법인의 경우 법인인감증명서'라고 답하며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 정확히 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+      }
+    ]
+  },
+  "result": {
+    "cases": [
+      {
+        "id": "c13",
+        "status": "calculated",
+        "verdict": "S",
+        "coverage": "complete",
+        "question_ids": [
+          "c13:1"
+        ],
+        "comparisons": [
+          {
+            "id": "c13:1",
+            "valid_question": true,
+            "verdict": "supported",
+            "reason": "질문은 양수인 미방문 시 구비서류인 양도증명서에 대해 어떤 란에 도장날인이 요구되는지 묻고 있다. 후보 답은 '양수인란 및 특약사항란'이라고 답하며, 근거 인용 블록(c13)에도 '양도증명서(양수인란 및 특약사항란 도장날인)'으로 명시되어 있어 충실하다. 소스 답 역시 동일한 내용을 b31 블록을 근거로 제시하고 있으며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+          }
+        ]
+      },
+      {
+        "id": "c46",
+        "status": "calculated",
+        "verdict": "S",
+        "coverage": "complete",
+        "question_ids": [
+          "c46:1"
+        ],
+        "comparisons": [
+          {
+            "id": "c46:1",
+            "valid_question": true,
+            "verdict": "supported",
+            "reason": "질문은 양수인 미방문 시 구비해야 하는 서류 목록을 묻고 있다. 후보 답은 '위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서'라고 답하며, 근거 인용 블록(c46)에도 이 목록이 명시되어 있다. 소스 답은 위임장과 양도증명서에 각각 '양수인 도장 날인', '양수인란 및 특약사항란 도장날인'이라는 세부 조건을 추가하여 더 상세하게 서술하고 있으나, 이는 후보 답이 언급한 항목들의 하위 세부 사항에 해당한다. 후보 답이 소스 원문의 핵심 목록을 포함하고 있으며, 소스 원문이 후보 답의 내용을 지지한다. (참고: 후보 답은 세부 도장 조건을 생략했으나, 질문이 '어떤 항목들이 포함되는가'를 묻고 있으므로 항목 목록 자체의 정확성은 유지된다.)"
+          }
+        ]
+      },
+      {
+        "id": "c47",
+        "status": "calculated",
+        "verdict": "S",
+        "coverage": "complete",
+        "question_ids": [
+          "c47:1"
+        ],
+        "comparisons": [
+          {
+            "id": "c47:1",
+            "valid_question": true,
+            "verdict": "supported",
+            "reason": "질문은 번호판 변경 시 반납해야 할 물품과 그 목적을 묻고 있다. 후보 답은 '기존번호판 2매 및 봉인'을 반납하고 목적은 '번호 변경'이라고 답하며, 근거 인용 블록(c47)에도 '번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다'로 명시되어 있다. 소스 답은 b32 블록을 근거로 동일한 반납 물품과 목적을 제시하며, '지역 번호는 반드시... 반납 후 번호 변경'이라는 추가 조건을 포함하고 있다. 후보 답은 이 추가 조건을 생략했으나, 질문의 핵심인 '반납 물품'과 '목적'에 대해서는 소스 원문과 일치하며, 소스 원문이 후보 답의 내용을 지지한다."
+          }
+        ]
+      },
+      {
+        "id": "c11",
+        "status": "calculated",
+        "verdict": "S",
+        "coverage": "complete",
+        "question_ids": [
+          "c11:1"
+        ],
+        "comparisons": [
+          {
+            "id": "c11:1",
+            "valid_question": true,
+            "verdict": "supported",
+            "reason": "질문은 양수인 미방문 시 구비서류인 양수인 신분증 사본에 대해 법인의 경우 어떤 서류가 요구되는지 묻고 있다. 후보 답은 '법인인감증명서'라고 답하며, 근거 인용 블록(c11)에도 '양수인 신분증 사본(법인의 경우 법인인감증명서)'으로 명시되어 있다. 소스 답 역시 b30 블록을 근거로 '법인의 경우 법인인감증명서'라고 답하며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 정확히 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+          }
+        ]
+      }
+    ],
+    "gate_passed": false,
+    "label_gate_passed": false,
+    "semantic_gate": "Requires question/QA/context review; no automatic success from declared coverage.",
+    "calls": 7,
+    "cost": {
+      "input_tokens": 5288,
+      "output_tokens": 2994,
+      "elapsed_s": 195.376605
+    }
+  },
+  "calls": [
+    {
+      "request": {
+        "stage": "qa_generate_questions",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "각 후보만 읽고 그 후보가 실제 주장하는 내용을 검증할 질문을 1~3개 생성한다. 원문과 정답은 제공되지 않는다. 질문당 answer_quote는 후보에서 질문의 답에 해당하는 정확한 연속 인용이다. 후보를 수정하거나 없는 조건/주체/의무를 보태지 않는다. 주체·행위·대상·조건·시점·순서·의무/허용 중 실제 주장의 핵심이 질문과 답에서 빠지지 않게 한다. 조건부 주장은 적용 조건/범위 자체도 검증할 수 있게 묻고, 그 조건을 이미 맞는 사실로 질문에 숨겨 넣지 않는다. 질문은 독립 문서에 물어볼 수 있어야 하며 잘못된 전제의 이유를 요구하거나 참거짓 정답을 유도하지 않는다. 일부 포함 관계를 전체 목록 충분성 질문으로 바꾸지 않는다. 복합 주장은 여러 항목을 묶어 물어도 되지만 빠진 핵심이 있으면 coverage=incomplete로 남긴다. 질문 개수만으로 coverage를 complete라 하지 않는다. 각 질문 id는 후보 id+\":\"+번호로 만든다. 출력에는 후보별 id, questions, coverage(complete/incomplete), coverage_reason만 담는다."
+          },
+          {
+            "role": "user",
+            "content": "{\"candidates\": [{\"id\": \"c13\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"}, {\"id\": \"c46\", \"text\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"}, {\"id\": \"c47\", \"text\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"}, {\"id\": \"c11\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "candidates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "questions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "question": {
+                          "type": "string"
+                        },
+                        "answer_quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "question",
+                        "answer_quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "coverage": {
+                    "type": "string",
+                    "enum": [
+                      "complete",
+                      "incomplete"
+                    ]
+                  },
+                  "coverage_reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "questions",
+                  "coverage",
+                  "coverage_reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "candidates"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "10fa7f8917fb4df1b330ef2dbb7f3c7e"
+      },
+      "response": {
+        "request_id": "10fa7f8917fb4df1b330ef2dbb7f3c7e",
+        "stage": "qa_generate_questions",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"candidates\": [\n    {\n      \"id\": \"c13\",\n      \"questions\": [\n        {\n          \"id\": \"c13:1\",\n          \"question\": \"양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?\",\n          \"answer_quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양도증명서), 조건(양수인란 및 특약사항란 도장날인)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c46\",\n      \"questions\": [\n        {\n          \"id\": \"c46:1\",\n          \"question\": \"양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?\",\n          \"answer_quote\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"조건(양수인이 미방문 시), 행위(구비한다), 대상(위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c47\",\n      \"questions\": [\n        {\n          \"id\": \"c47:1\",\n          \"question\": \"번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?\",\n          \"answer_quote\": \"기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"조건(번호판 변경 시), 행위(반납), 대상(기존번호판 2매 및 봉인), 목적(번호를 변경한다)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c11\",\n      \"questions\": [\n        {\n          \"id\": \"c11:1\",\n          \"question\": \"양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?\",\n          \"answer_quote\": \"양수인 신분증 사본(법인의 경우 법인인감증명서)\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양수인 신분증 사본), 조건(법인의 경우 법인인감증명서)이 모두 질문과 답에 포함되어 있다.\"\n    }\n  ]\n}",
+        "parsed": {
+          "candidates": [
+            {
+              "id": "c13",
+              "questions": [
+                {
+                  "id": "c13:1",
+                  "question": "양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?",
+                  "answer_quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+                }
+              ],
+              "coverage": "complete",
+              "coverage_reason": "주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양도증명서), 조건(양수인란 및 특약사항란 도장날인)이 모두 질문과 답에 포함되어 있다."
+            },
+            {
+              "id": "c46",
+              "questions": [
+                {
+                  "id": "c46:1",
+                  "question": "양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?",
+                  "answer_quote": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서"
+                }
+              ],
+              "coverage": "complete",
+              "coverage_reason": "조건(양수인이 미방문 시), 행위(구비한다), 대상(위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서)이 모두 질문과 답에 포함되어 있다."
+            },
+            {
+              "id": "c47",
+              "questions": [
+                {
+                  "id": "c47:1",
+                  "question": "번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?",
+                  "answer_quote": "기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+                }
+              ],
+              "coverage": "complete",
+              "coverage_reason": "조건(번호판 변경 시), 행위(반납), 대상(기존번호판 2매 및 봉인), 목적(번호를 변경한다)이 모두 질문과 답에 포함되어 있다."
+            },
+            {
+              "id": "c11",
+              "questions": [
+                {
+                  "id": "c11:1",
+                  "question": "양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?",
+                  "answer_quote": "양수인 신분증 사본(법인의 경우 법인인감증명서)"
+                }
+              ],
+              "coverage": "complete",
+              "coverage_reason": "주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양수인 신분증 사본), 조건(법인의 경우 법인인감증명서)이 모두 질문과 답에 포함되어 있다."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:51:58.936263Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"candidates\": [\n    {\n      \"id\": \"c13\",\n      \"questions\": [\n        {\n          \"id\": \"c13:1\",\n          \"question\": \"양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?\",\n          \"answer_quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양도증명서), 조건(양수인란 및 특약사항란 도장날인)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c46\",\n      \"questions\": [\n        {\n          \"id\": \"c46:1\",\n          \"question\": \"양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?\",\n          \"answer_quote\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"조건(양수인이 미방문 시), 행위(구비한다), 대상(위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c47\",\n      \"questions\": [\n        {\n          \"id\": \"c47:1\",\n          \"question\": \"번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?\",\n          \"answer_quote\": \"기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"조건(번호판 변경 시), 행위(반납), 대상(기존번호판 2매 및 봉인), 목적(번호를 변경한다)이 모두 질문과 답에 포함되어 있다.\"\n    },\n    {\n      \"id\": \"c11\",\n      \"questions\": [\n        {\n          \"id\": \"c11:1\",\n          \"question\": \"양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?\",\n          \"answer_quote\": \"양수인 신분증 사본(법인의 경우 법인인감증명서)\"\n        }\n      ],\n      \"coverage\": \"complete\",\n      \"coverage_reason\": \"주체(양수인 미방문 시 구비서류), 행위(포함), 대상(양수인 신분증 사본), 조건(법인의 경우 법인인감증명서)이 모두 질문과 답에 포함되어 있다.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 45949904667,
+          "load_duration": 7359225833,
+          "prompt_eval_count": 448,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 2501948000,
+          "eval_count": 694,
+          "eval_duration": 36075634000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 448,
+        "eval_count": 694,
+        "usage_source": "provider_reported",
+        "elapsed_s": 45.95971,
+        "input_chars": 887,
+        "total_duration": 45949904667
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_candidate_c13",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"blocks\": [{\"id\": \"c13\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"}], \"source_parents\": [], \"questions\": [{\"id\": \"c13:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "answerable": {
+                    "type": "boolean"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "block_id": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "block_id",
+                        "quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerable",
+                  "answer",
+                  "evidence",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "answers"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "a7afb8acaf3d427aa1c6e0c7fcf02606"
+      },
+      "response": {
+        "request_id": "a7afb8acaf3d427aa1c6e0c7fcf02606",
+        "stage": "qa_candidate_c13",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"answers\": [\n    {\n      \"id\": \"c13:1\",\n      \"answerable\": true,\n      \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c13\",\n          \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다.\"\n    }\n  ]\n}",
+        "parsed": {
+          "answers": [
+            {
+              "id": "c13:1",
+              "answerable": true,
+              "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+              "evidence": [
+                {
+                  "block_id": "c13",
+                  "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)"
+                }
+              ],
+              "reason": "문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:52:11.324431Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"answers\": [\n    {\n      \"id\": \"c13:1\",\n      \"answerable\": true,\n      \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c13\",\n          \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 12368733541,
+          "load_duration": 933000,
+          "prompt_eval_count": 326,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 2008233000,
+          "eval_count": 199,
+          "eval_duration": 10336377000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 326,
+        "eval_count": 199,
+        "usage_source": "provider_reported",
+        "elapsed_s": 12.378531,
+        "input_chars": 675,
+        "total_duration": 12368733541
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_candidate_c46",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"blocks\": [{\"id\": \"c46\", \"text\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"}], \"source_parents\": [], \"questions\": [{\"id\": \"c46:1\", \"question\": \"양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "answerable": {
+                    "type": "boolean"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "block_id": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "block_id",
+                        "quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerable",
+                  "answer",
+                  "evidence",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "answers"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "a793078003a04571aa0a0a14c4ba2713"
+      },
+      "response": {
+        "request_id": "a793078003a04571aa0a0a14c4ba2713",
+        "stage": "qa_candidate_c46",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"answers\": [\n    {\n      \"id\": \"c46:1\",\n      \"answerable\": true,\n      \"answer\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c46\",\n          \"quote\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"\n        }\n      ],\n      \"reason\": \"문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음\"\n    }\n  ]\n}",
+        "parsed": {
+          "answers": [
+            {
+              "id": "c46:1",
+              "answerable": true,
+              "answer": "위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서",
+              "evidence": [
+                {
+                  "block_id": "c46",
+                  "quote": "양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다."
+                }
+              ],
+              "reason": "문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음"
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:52:22.983129Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"answers\": [\n    {\n      \"id\": \"c46:1\",\n      \"answerable\": true,\n      \"answer\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c46\",\n          \"quote\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"\n        }\n      ],\n      \"reason\": \"문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 11650830334,
+          "load_duration": 903709,
+          "prompt_eval_count": 323,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 1948421000,
+          "eval_count": 185,
+          "eval_duration": 9681252000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 323,
+        "eval_count": 185,
+        "usage_source": "provider_reported",
+        "elapsed_s": 11.658154,
+        "input_chars": 683,
+        "total_duration": 11650830334
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_candidate_c47",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"blocks\": [{\"id\": \"c47\", \"text\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"}], \"source_parents\": [], \"questions\": [{\"id\": \"c47:1\", \"question\": \"번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "answerable": {
+                    "type": "boolean"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "block_id": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "block_id",
+                        "quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerable",
+                  "answer",
+                  "evidence",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "answers"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "721c621de8a14e63a9641efbd03872e1"
+      },
+      "response": {
+        "request_id": "721c621de8a14e63a9641efbd03872e1",
+        "stage": "qa_candidate_c47",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"answers\": [\n    {\n      \"id\": \"c47:1\",\n      \"answerable\": true,\n      \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c47\",\n          \"quote\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"\n        }\n      ],\n      \"reason\": \"문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함.\"\n    }\n  ]\n}",
+        "parsed": {
+          "answers": [
+            {
+              "id": "c47:1",
+              "answerable": true,
+              "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.",
+              "evidence": [
+                {
+                  "block_id": "c47",
+                  "quote": "번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다."
+                }
+              ],
+              "reason": "문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:52:33.495712Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"answers\": [\n    {\n      \"id\": \"c47:1\",\n      \"answerable\": true,\n      \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c47\",\n          \"quote\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"\n        }\n      ],\n      \"reason\": \"문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 10496902417,
+          "load_duration": 1388250,
+          "prompt_eval_count": 298,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 1928971000,
+          "eval_count": 161,
+          "eval_duration": 8544996999
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 298,
+        "eval_count": 161,
+        "usage_source": "provider_reported",
+        "elapsed_s": 10.509034,
+        "input_chars": 651,
+        "total_duration": 10496902417
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_candidate_c11",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"blocks\": [{\"id\": \"c11\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"}], \"source_parents\": [], \"questions\": [{\"id\": \"c11:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "answerable": {
+                    "type": "boolean"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "block_id": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "block_id",
+                        "quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerable",
+                  "answer",
+                  "evidence",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "answers"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "809608d0af424781ab5d8ed7ca406bb1"
+      },
+      "response": {
+        "request_id": "809608d0af424781ab5d8ed7ca406bb1",
+        "stage": "qa_candidate_c11",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"answers\": [\n    {\n      \"id\": \"c11:1\",\n      \"answerable\": true,\n      \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c11\",\n          \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"\n        }\n      ],\n      \"reason\": \"문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다.\"\n    }\n  ]\n}",
+        "parsed": {
+          "answers": [
+            {
+              "id": "c11:1",
+              "answerable": true,
+              "answer": "법인의 경우 법인인감증명서가 요구된다.",
+              "evidence": [
+                {
+                  "block_id": "c11",
+                  "quote": "양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)"
+                }
+              ],
+              "reason": "문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:52:44.862114Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"answers\": [\n    {\n      \"id\": \"c11:1\",\n      \"answerable\": true,\n      \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"c11\",\n          \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"\n        }\n      ],\n      \"reason\": \"문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 11348463667,
+          "load_duration": 1134833,
+          "prompt_eval_count": 325,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 2056163000,
+          "eval_count": 177,
+          "eval_duration": 9263545000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 325,
+        "eval_count": 177,
+        "usage_source": "provider_reported",
+        "elapsed_s": 11.362456,
+        "input_chars": 684,
+        "total_duration": 11348463667
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_source",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "주어진 문서만으로 각 질문에 답한다. 질문은 검증할 대상이며 질문 속 전제를 문서의 사실로 받아들이지 않는다. 외부 지식이나 다른 문서의 내용을 보태지 않는다. 문서가 질문의 일반화/의무/대상/조건을 뒷받침하지 않으면 문서가 실제로 말하는 적용 범위와 한정을 답에 명시한다. 자료 부족과 명시 반증, 조건 밖 면제/금지를 구별한다. 답을 결정할 수 없으면 answerable=false로 남기고 임의로 답하지 않는다. answer에는 실제 조건·주체·순서·양태와 필요한 괄호 내용을 보존한다. 일부 항목 질문에 전체 서류가 없다고 답변 불가로 하지 않는다. evidence는 block_id와 그 블록에 한번 등장하는 정확한 연속 quote 목록이다. 답의 의미에 필요한 부모/제목 조건과 같은 문장 내 한정도 근거에 포함한다. 모든 질문 id에 answerable, answer, evidence, 짧은 reason을 한번씩 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"blocks\": [{\"id\": \"b9\", \"text\": \"자가용(비사업용)자동차 이전등록\", \"source_version_id\": \"v1\", \"locator\": {\"heading_level\": 3}, \"evidence_ref\": \"e9\"}, {\"id\": \"b24\", \"text\": \"자가용(비사업용)자동차 이전등록\", \"source_version_id\": \"v1\", \"locator\": {\"heading_level\": 4}, \"evidence_ref\": \"e32\"}, {\"id\": \"b25\", \"text\": \"구비서류\", \"source_version_id\": \"v1\", \"locator\": {\"heading_level\": 5}, \"evidence_ref\": \"e34\"}, {\"id\": \"b26\", \"text\": \"공통사항\", \"source_version_id\": \"v1\", \"locator\": {\"heading_level\": 6}, \"evidence_ref\": \"e37\"}, {\"id\": \"b27\", \"text\": \"이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e39\"}, {\"id\": \"b28\", \"text\": \"양수인(사는사람) 본인이 직접등록 [신분증 지참]\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e40\"}, {\"id\": \"b29\", \"text\": \"양수인 미방문시\\n\\t\\t\\t\\t\\t\\t\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e41\"}, {\"id\": \"b30\", \"text\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e45\"}, {\"id\": \"b31\", \"text\": \"양도증명서(양수인란 및 특약사항란 도장날인)\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e46\"}, {\"id\": \"b32\", \"text\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \\\"양도\\\"로 검색, 출력하여 사용할 수 있음\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e47\"}], \"source_parents\": [{\"block_id\": \"b30\", \"parent_block_ids\": [\"b29\"]}, {\"block_id\": \"b31\", \"parent_block_ids\": [\"b29\"]}], \"questions\": [{\"id\": \"c13:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?\"}, {\"id\": \"c46:1\", \"question\": \"양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?\"}, {\"id\": \"c47:1\", \"question\": \"번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?\"}, {\"id\": \"c11:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?\"}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "answerable": {
+                    "type": "boolean"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "block_id": {
+                          "type": "string"
+                        },
+                        "quote": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "block_id",
+                        "quote"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerable",
+                  "answer",
+                  "evidence",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "answers"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "1829599e9de04a3aa213620b9963078b"
+      },
+      "response": {
+        "request_id": "1829599e9de04a3aa213620b9963078b",
+        "stage": "qa_source",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"answers\": [\n    {\n      \"id\": \"c13:1\",\n      \"answerable\": true,\n      \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b31\",\n          \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다.\"\n    },\n    {\n      \"id\": \"c46:1\",\n      \"answerable\": true,\n      \"answer\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b30\",\n          \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"\n        },\n        {\n          \"block_id\": \"b31\",\n          \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다.\"\n    },\n    {\n      \"id\": \"c47:1\",\n      \"answerable\": true,\n      \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b32\",\n          \"quote\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\"\n        }\n      ],\n      \"reason\": \"문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다.\"\n    },\n    {\n      \"id\": \"c11:1\",\n      \"answerable\": true,\n      \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b30\",\n          \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"\n        }\n      ],\n      \"reason\": \"문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다.\"\n    }\n  ]\n}",
+        "parsed": {
+          "answers": [
+            {
+              "id": "c13:1",
+              "answerable": true,
+              "answer": "양수인란 및 특약사항란에 도장날인이 요구된다.",
+              "evidence": [
+                {
+                  "block_id": "b31",
+                  "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+                }
+              ],
+              "reason": "문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다."
+            },
+            {
+              "id": "c46:1",
+              "answerable": true,
+              "answer": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.",
+              "evidence": [
+                {
+                  "block_id": "b30",
+                  "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+                },
+                {
+                  "block_id": "b31",
+                  "quote": "양도증명서(양수인란 및 특약사항란 도장날인)"
+                }
+              ],
+              "reason": "source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다."
+            },
+            {
+              "id": "c47:1",
+              "answerable": true,
+              "answer": "기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.",
+              "evidence": [
+                {
+                  "block_id": "b32",
+                  "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)"
+                }
+              ],
+              "reason": "문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다."
+            },
+            {
+              "id": "c11:1",
+              "answerable": true,
+              "answer": "법인의 경우 법인인감증명서가 요구된다.",
+              "evidence": [
+                {
+                  "block_id": "b30",
+                  "quote": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+                }
+              ],
+              "reason": "문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:53:27.922785Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"answers\": [\n    {\n      \"id\": \"c13:1\",\n      \"answerable\": true,\n      \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b31\",\n          \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다.\"\n    },\n    {\n      \"id\": \"c46:1\",\n      \"answerable\": true,\n      \"answer\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b30\",\n          \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"\n        },\n        {\n          \"block_id\": \"b31\",\n          \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"\n        }\n      ],\n      \"reason\": \"source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다.\"\n    },\n    {\n      \"id\": \"c47:1\",\n      \"answerable\": true,\n      \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b32\",\n          \"quote\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\"\n        }\n      ],\n      \"reason\": \"문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다.\"\n    },\n    {\n      \"id\": \"c11:1\",\n      \"answerable\": true,\n      \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\",\n      \"evidence\": [\n        {\n          \"block_id\": \"b30\",\n          \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"\n        }\n      ],\n      \"reason\": \"문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 43045834791,
+          "load_duration": 1217250,
+          "prompt_eval_count": 992,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 5426239000,
+          "eval_count": 709,
+          "eval_duration": 37593266000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 992,
+        "eval_count": 709,
+        "usage_source": "provider_reported",
+        "elapsed_s": 43.056575,
+        "input_chars": 2151,
+        "total_duration": 43045834791
+      }
+    },
+    {
+      "request": {
+        "stage": "qa_compare_answers",
+        "model": "qwen3.8:27b-q4_K_M",
+        "messages": [
+          {
+            "role": "system",
+            "content": "동일 질문의 candidate_answer와 source_answer를 대조한다. 두 QA는 서로 다른 문맥에서 생성됐다. 질문, 후보에서 질문을 만들 때 선택한 answer_quote, 양쪽 답/근거와 실제 인용 블록/부모를 확인한다. 질문이 후보의 뜻을 바꾸거나 잘못된 전제를 강요하면 valid_question=false다. candidate_answer가 후보의 해당 주장에 충실한지도 확인하고, 질문에 핵심 조건/주체/양태가 빠지면 성공 처리하지 않는다. source_answer와 근거가 candidate_answer의 내용을 단방향으로 지지하는지 판정한다. 원문이 더 상세하고 후보가 참인 일부 포함만 말해도 supported이며 두 답의 완전 동등/문자열 일치를 요구하지 않는다. 짧은 인용이 같아도 전체 인용 블록이나 부모의 조건·양태와 다르면 supported가 아니다. 관측된 적용 범위 확대 등 원문 미지지는 not_supported, 명시적인 반대 내용은 contradicted다. 제공 답/근거가 부족하거나 QA가 답변 불가이면 unresolved다. 그 자체를 not_supported 성공으로 바꾸지 않는다. 원문 조건 밖의 면제/금지를 만들지 않는다. 정정문이나 새질문을 만들지 말고 질문별 id,valid_question,verdict,reason을 출력한다."
+          },
+          {
+            "role": "user",
+            "content": "{\"pairs\": [{\"id\": \"c13:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해, 어떤 란에 도장날인이 요구되는가?\", \"answer_quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\", \"candidate_id\": \"c13\", \"candidate_answer\": {\"id\": \"c13:1\", \"answerable\": true, \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\", \"evidence\": [{\"block_id\": \"c13\", \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"}], \"reason\": \"문서 c13에서 양수인 미방문 시 구비서류로 포함되는 양도증명서에 대해 '양수인란 및 특약사항란 도장날인'이 명시되어 있어, 해당 란에 도장날인이 요구됨을 직접적으로 뒷받침한다.\", \"cited_blocks\": [{\"id\": \"c13\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양도증명서(양수인란 및 특약사항란 도장날인)\"}], \"source_parents\": []}, \"source_answer\": {\"id\": \"c13:1\", \"answerable\": true, \"answer\": \"양수인란 및 특약사항란에 도장날인이 요구된다.\", \"evidence\": [{\"block_id\": \"b31\", \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"}], \"reason\": \"문서 b31에서 양도증명서에 대해 양수인란 및 특약사항란의 도장날인을 명시하고 있다.\", \"cited_blocks\": [{\"id\": \"b29\", \"text\": \"양수인 미방문시\\n\\t\\t\\t\\t\\t\\t\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e41\"}, {\"id\": \"b31\", \"text\": \"양도증명서(양수인란 및 특약사항란 도장날인)\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e46\"}], \"source_parents\": [{\"block_id\": \"b31\", \"parent_block_ids\": [\"b29\"]}]}}, {\"id\": \"c46:1\", \"question\": \"양수인이 미방문 시 구비해야 하는 서류 목록에는 어떤 항목들이 포함되는가?\", \"answer_quote\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\", \"candidate_id\": \"c46\", \"candidate_answer\": {\"id\": \"c46:1\", \"answerable\": true, \"answer\": \"위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서\", \"evidence\": [{\"block_id\": \"c46\", \"quote\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"}], \"reason\": \"문서 c46에서 양수인 미방문 시 구비해야 하는 서류 목록을 명시하고 있음\", \"cited_blocks\": [{\"id\": \"c46\", \"text\": \"양수인이 미방문 시 위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서를 구비한다.\"}], \"source_parents\": []}, \"source_answer\": {\"id\": \"c46:1\", \"answerable\": true, \"answer\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서(양수인란 및 특약사항란 도장날인)가 포함된다.\", \"evidence\": [{\"block_id\": \"b30\", \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"}, {\"block_id\": \"b31\", \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\"}], \"reason\": \"source_parents에 따르면 b30과 b31은 b29(양수인 미방문시)의 자식 블록으로, 해당 조건의 구비서류 목록을 구성한다.\", \"cited_blocks\": [{\"id\": \"b29\", \"text\": \"양수인 미방문시\\n\\t\\t\\t\\t\\t\\t\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e41\"}, {\"id\": \"b30\", \"text\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e45\"}, {\"id\": \"b31\", \"text\": \"양도증명서(양수인란 및 특약사항란 도장날인)\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e46\"}], \"source_parents\": [{\"block_id\": \"b30\", \"parent_block_ids\": [\"b29\"]}, {\"block_id\": \"b31\", \"parent_block_ids\": [\"b29\"]}]}}, {\"id\": \"c47:1\", \"question\": \"번호판 변경 시 어떤 물품을 반납해야 하며, 그 목적은 무엇인가?\", \"answer_quote\": \"기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\", \"candidate_id\": \"c47\", \"candidate_answer\": {\"id\": \"c47:1\", \"answerable\": true, \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호를 변경하는 것이다.\", \"evidence\": [{\"block_id\": \"c47\", \"quote\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"}], \"reason\": \"문서에 명시된 반납 물품(기존번호판 2매, 봉인)과 목적(번호 변경)을 그대로 추출함.\", \"cited_blocks\": [{\"id\": \"c47\", \"text\": \"번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다.\"}], \"source_parents\": []}, \"source_answer\": {\"id\": \"c47:1\", \"answerable\": true, \"answer\": \"기존번호판 2매 및 봉인을 반납해야 하며, 그 목적은 번호 변경이다.\", \"evidence\": [{\"block_id\": \"b32\", \"quote\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\"}], \"reason\": \"문서 b32에서 번호판 변경 시 기존번호판 2매 및 봉인 반납 후 번호 변경해야 한다고 명시하고 있다.\", \"cited_blocks\": [{\"id\": \"b32\", \"text\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \\\"양도\\\"로 검색, 출력하여 사용할 수 있음\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e47\"}], \"source_parents\": []}}, {\"id\": \"c11:1\", \"question\": \"양수인 미방문 시 구비서류로 포함되는 양수인 신분증 사본에 대해, 법인의 경우 어떤 서류가 요구되는가?\", \"answer_quote\": \"양수인 신분증 사본(법인의 경우 법인인감증명서)\", \"candidate_id\": \"c11\", \"candidate_answer\": {\"id\": \"c11:1\", \"answerable\": true, \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\", \"evidence\": [{\"block_id\": \"c11\", \"quote\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"}], \"reason\": \"문서 c11에서 양수인 미방문 시 구비서류로 양수인 신분증 사본이 포함되며, 그 괄호 내 조건으로 법인의 경우 법인인감증명서가 명시되어 있다.\", \"cited_blocks\": [{\"id\": \"c11\", \"text\": \"양수인 미방문 시 구비서류 — 포함한다 — 양수인 신분증 사본(법인의 경우 법인인감증명서)\"}], \"source_parents\": []}, \"source_answer\": {\"id\": \"c11:1\", \"answerable\": true, \"answer\": \"법인의 경우 법인인감증명서가 요구된다.\", \"evidence\": [{\"block_id\": \"b30\", \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\"}], \"reason\": \"문서 b30에서 양수인 신분증 사본 항목에 대해 법인의 경우 법인인감증명서가 요구된다고 명시하고 있다.\", \"cited_blocks\": [{\"id\": \"b29\", \"text\": \"양수인 미방문시\\n\\t\\t\\t\\t\\t\\t\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e41\"}, {\"id\": \"b30\", \"text\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\", \"source_version_id\": \"v1\", \"evidence_ref\": \"e45\"}], \"source_parents\": [{\"block_id\": \"b30\", \"parent_block_ids\": [\"b29\"]}]}}]}"
+          }
+        ],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "comparisons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "valid_question": {
+                    "type": "boolean"
+                  },
+                  "verdict": {
+                    "type": "string",
+                    "enum": [
+                      "supported",
+                      "not_supported",
+                      "contradicted",
+                      "unresolved"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "valid_question",
+                  "verdict",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "comparisons"
+          ],
+          "additionalProperties": false
+        },
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "temperature": 0,
+        "think": false,
+        "timeout": 1800,
+        "request_id": "f75fd7d5e8b24ff0ad5b2db2c7224bcd"
+      },
+      "response": {
+        "request_id": "f75fd7d5e8b24ff0ad5b2db2c7224bcd",
+        "stage": "qa_compare_answers",
+        "provider": "ollama",
+        "model": "qwen3.8:27b-q4_K_M",
+        "text": "{\n  \"comparisons\": [\n    {\n      \"id\": \"c13:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비서류인 양도증명서에 대해 어떤 란에 도장날인이 요구되는지 묻고 있다. 후보 답은 '양수인란 및 특약사항란'이라고 답하며, 근거 인용 블록(c13)에도 '양도증명서(양수인란 및 특약사항란 도장날인)'으로 명시되어 있어 충실하다. 소스 답 역시 동일한 내용을 b31 블록을 근거로 제시하고 있으며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다.\"\n    },\n    {\n      \"id\": \"c46:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비해야 하는 서류 목록을 묻고 있다. 후보 답은 '위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서'라고 답하며, 근거 인용 블록(c46)에도 이 목록이 명시되어 있다. 소스 답은 위임장과 양도증명서에 각각 '양수인 도장 날인', '양수인란 및 특약사항란 도장날인'이라는 세부 조건을 추가하여 더 상세하게 서술하고 있으나, 이는 후보 답이 언급한 항목들의 하위 세부 사항에 해당한다. 후보 답이 소스 원문의 핵심 목록을 포함하고 있으며, 소스 원문이 후보 답의 내용을 지지한다. (참고: 후보 답은 세부 도장 조건을 생략했으나, 질문이 '어떤 항목들이 포함되는가'를 묻고 있으므로 항목 목록 자체의 정확성은 유지된다.)\"\n    },\n    {\n      \"id\": \"c47:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 번호판 변경 시 반납해야 할 물품과 그 목적을 묻고 있다. 후보 답은 '기존번호판 2매 및 봉인'을 반납하고 목적은 '번호 변경'이라고 답하며, 근거 인용 블록(c47)에도 '번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다'로 명시되어 있다. 소스 답은 b32 블록을 근거로 동일한 반납 물품과 목적을 제시하며, '지역 번호는 반드시... 반납 후 번호 변경'이라는 추가 조건을 포함하고 있다. 후보 답은 이 추가 조건을 생략했으나, 질문의 핵심인 '반납 물품'과 '목적'에 대해서는 소스 원문과 일치하며, 소스 원문이 후보 답의 내용을 지지한다.\"\n    },\n    {\n      \"id\": \"c11:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비서류인 양수인 신분증 사본에 대해 법인의 경우 어떤 서류가 요구되는지 묻고 있다. 후보 답은 '법인인감증명서'라고 답하며, 근거 인용 블록(c11)에도 '양수인 신분증 사본(법인의 경우 법인인감증명서)'으로 명시되어 있다. 소스 답 역시 b30 블록을 근거로 '법인의 경우 법인인감증명서'라고 답하며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 정확히 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다.\"\n    }\n  ]\n}",
+        "parsed": {
+          "comparisons": [
+            {
+              "id": "c13:1",
+              "valid_question": true,
+              "verdict": "supported",
+              "reason": "질문은 양수인 미방문 시 구비서류인 양도증명서에 대해 어떤 란에 도장날인이 요구되는지 묻고 있다. 후보 답은 '양수인란 및 특약사항란'이라고 답하며, 근거 인용 블록(c13)에도 '양도증명서(양수인란 및 특약사항란 도장날인)'으로 명시되어 있어 충실하다. 소스 답 역시 동일한 내용을 b31 블록을 근거로 제시하고 있으며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+            },
+            {
+              "id": "c46:1",
+              "valid_question": true,
+              "verdict": "supported",
+              "reason": "질문은 양수인 미방문 시 구비해야 하는 서류 목록을 묻고 있다. 후보 답은 '위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서'라고 답하며, 근거 인용 블록(c46)에도 이 목록이 명시되어 있다. 소스 답은 위임장과 양도증명서에 각각 '양수인 도장 날인', '양수인란 및 특약사항란 도장날인'이라는 세부 조건을 추가하여 더 상세하게 서술하고 있으나, 이는 후보 답이 언급한 항목들의 하위 세부 사항에 해당한다. 후보 답이 소스 원문의 핵심 목록을 포함하고 있으며, 소스 원문이 후보 답의 내용을 지지한다. (참고: 후보 답은 세부 도장 조건을 생략했으나, 질문이 '어떤 항목들이 포함되는가'를 묻고 있으므로 항목 목록 자체의 정확성은 유지된다.)"
+            },
+            {
+              "id": "c47:1",
+              "valid_question": true,
+              "verdict": "supported",
+              "reason": "질문은 번호판 변경 시 반납해야 할 물품과 그 목적을 묻고 있다. 후보 답은 '기존번호판 2매 및 봉인'을 반납하고 목적은 '번호 변경'이라고 답하며, 근거 인용 블록(c47)에도 '번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다'로 명시되어 있다. 소스 답은 b32 블록을 근거로 동일한 반납 물품과 목적을 제시하며, '지역 번호는 반드시... 반납 후 번호 변경'이라는 추가 조건을 포함하고 있다. 후보 답은 이 추가 조건을 생략했으나, 질문의 핵심인 '반납 물품'과 '목적'에 대해서는 소스 원문과 일치하며, 소스 원문이 후보 답의 내용을 지지한다."
+            },
+            {
+              "id": "c11:1",
+              "valid_question": true,
+              "verdict": "supported",
+              "reason": "질문은 양수인 미방문 시 구비서류인 양수인 신분증 사본에 대해 법인의 경우 어떤 서류가 요구되는지 묻고 있다. 후보 답은 '법인인감증명서'라고 답하며, 근거 인용 블록(c11)에도 '양수인 신분증 사본(법인의 경우 법인인감증명서)'으로 명시되어 있다. 소스 답 역시 b30 블록을 근거로 '법인의 경우 법인인감증명서'라고 답하며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 정확히 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다."
+            }
+          ]
+        },
+        "raw_response": {
+          "model": "qwen3.8:27b-q4_K_M",
+          "created_at": "2026-10-08T18:54:28.381335Z",
+          "message": {
+            "role": "assistant",
+            "content": "{\n  \"comparisons\": [\n    {\n      \"id\": \"c13:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비서류인 양도증명서에 대해 어떤 란에 도장날인이 요구되는지 묻고 있다. 후보 답은 '양수인란 및 특약사항란'이라고 답하며, 근거 인용 블록(c13)에도 '양도증명서(양수인란 및 특약사항란 도장날인)'으로 명시되어 있어 충실하다. 소스 답 역시 동일한 내용을 b31 블록을 근거로 제시하고 있으며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다.\"\n    },\n    {\n      \"id\": \"c46:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비해야 하는 서류 목록을 묻고 있다. 후보 답은 '위임장, 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증, 양도증명서'라고 답하며, 근거 인용 블록(c46)에도 이 목록이 명시되어 있다. 소스 답은 위임장과 양도증명서에 각각 '양수인 도장 날인', '양수인란 및 특약사항란 도장날인'이라는 세부 조건을 추가하여 더 상세하게 서술하고 있으나, 이는 후보 답이 언급한 항목들의 하위 세부 사항에 해당한다. 후보 답이 소스 원문의 핵심 목록을 포함하고 있으며, 소스 원문이 후보 답의 내용을 지지한다. (참고: 후보 답은 세부 도장 조건을 생략했으나, 질문이 '어떤 항목들이 포함되는가'를 묻고 있으므로 항목 목록 자체의 정확성은 유지된다.)\"\n    },\n    {\n      \"id\": \"c47:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 번호판 변경 시 반납해야 할 물품과 그 목적을 묻고 있다. 후보 답은 '기존번호판 2매 및 봉인'을 반납하고 목적은 '번호 변경'이라고 답하며, 근거 인용 블록(c47)에도 '번호판 변경 시 기존번호판 2매 및 봉인을 반납하여 번호를 변경한다'로 명시되어 있다. 소스 답은 b32 블록을 근거로 동일한 반납 물품과 목적을 제시하며, '지역 번호는 반드시... 반납 후 번호 변경'이라는 추가 조건을 포함하고 있다. 후보 답은 이 추가 조건을 생략했으나, 질문의 핵심인 '반납 물품'과 '목적'에 대해서는 소스 원문과 일치하며, 소스 원문이 후보 답의 내용을 지지한다.\"\n    },\n    {\n      \"id\": \"c11:1\",\n      \"valid_question\": true,\n      \"verdict\": \"supported\",\n      \"reason\": \"질문은 양수인 미방문 시 구비서류인 양수인 신분증 사본에 대해 법인의 경우 어떤 서류가 요구되는지 묻고 있다. 후보 답은 '법인인감증명서'라고 답하며, 근거 인용 블록(c11)에도 '양수인 신분증 사본(법인의 경우 법인인감증명서)'으로 명시되어 있다. 소스 답 역시 b30 블록을 근거로 '법인의 경우 법인인감증명서'라고 답하며, b29(양수인 미방문시)의 자식 블록임을 확인했다. 두 답의 핵심 내용과 조건이 정확히 일치하며, 소스 원문이 후보 답을 단방향으로 지지한다.\"\n    }\n  ]\n}"
+          },
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 60441565000,
+          "load_duration": 1226167,
+          "prompt_eval_count": 2576,
+          "prompt_eval_cached_count": 0,
+          "prompt_eval_duration": 14041515000,
+          "eval_count": 869,
+          "eval_duration": 46347643000
+        },
+        "done": true,
+        "done_reason": "stop",
+        "failure_kind": null,
+        "prompt_eval_count": 2576,
+        "eval_count": 869,
+        "usage_source": "provider_reported",
+        "elapsed_s": 60.452145,
+        "input_chars": 5372,
+        "total_duration": 60441565000
+      }
+    }
+  ],
+  "contract_checks": {
+    "frozen_inputs_code_unchanged": true,
+    "generated_questions_hash_unchanged": true,
+    "source_qa_no_claim_text_or_answer_quote": true,
+    "candidate_qa_separate_contexts": true,
+    "model_calls": 7
+  },
+  "semantic_review": {
+    "decision": "rejected_fixed_korean_qa_variant",
+    "semantic_gate_passed": false,
+    "findings": [
+      {
+        "stage": "question_generation",
+        "candidate": "c47",
+        "finding": "Question asks return objects and purpose while presupposing general plate-change return; coverage complete is not a validated scope check."
+      },
+      {
+        "stage": "source_qa",
+        "candidate": "c47",
+        "finding": "Answer and reason omit regional scope although evidence quotes the full scoped sentence."
+      },
+      {
+        "stage": "answer_comparison",
+        "candidate": "c47",
+        "finding": "Reason notices regional restriction but treats its omission as acceptable because the question focuses on objects and purpose; final supported is an incorrect whole-claim judgment."
+      },
+      {
+        "stage": "answer_comparison",
+        "candidate": "c47",
+        "finding": "Reason says source answer contains regional condition, but only the evidence contains it, not the answer text."
+      },
+      {
+        "stage": "normal_cases",
+        "finding": "Three final labels preserved. Questions about seal fields/corporate substitution do not by themselves prove complete coverage of all premise conditions."
+      }
+    ],
+    "observed_chain_not_unique_causal_proof": true,
+    "no_question_repair": true,
+    "no_model_retry": true,
+    "downstream_executed": false
+  },
+  "reference_metadata": {
+    "revision": "01177f11cc05f8b3e75511a0cfa54bac19324d09",
+    "tree": {
+      "sha": "01177f11cc05f8b3e75511a0cfa54bac19324d09",
+      "url": "https://api.github.com/repos/salesforce/QAFactEval/git/trees/01177f11cc05f8b3e75511a0cfa54bac19324d09",
+      "tree": [
+        {
+          "path": "CODEOWNERS",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "522fa4a0f715cd0328b9b9dbacae00e060193f43",
+          "size": 140,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/522fa4a0f715cd0328b9b9dbacae00e060193f43"
+        },
+        {
+          "path": "CODE_OF_CONDUCT.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "b6724718c9512d730bb7f1bcc5848cd420241407",
+          "size": 5159,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/b6724718c9512d730bb7f1bcc5848cd420241407"
+        },
+        {
+          "path": "LICENSE.txt",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8184ccecc9b211237d3132de59e51466c91b74f9",
+          "size": 1507,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/8184ccecc9b211237d3132de59e51466c91b74f9"
+        },
+        {
+          "path": "README.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "7ee4a32e5fc5c586cb799f48318ca4e16e1805f7",
+          "size": 2974,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/7ee4a32e5fc5c586cb799f48318ca4e16e1805f7"
+        },
+        {
+          "path": "SECURITY.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "8d523f552cb7e1ed264b4ba5ee51c98b5c87a06c",
+          "size": 407,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/8d523f552cb7e1ed264b4ba5ee51c98b5c87a06c"
+        },
+        {
+          "path": "download_models.sh",
+          "mode": "100755",
+          "type": "blob",
+          "sha": "6ce9eff5c7a4084165882532e6ab6a964c69b213",
+          "size": 770,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/6ce9eff5c7a4084165882532e6ab6a964c69b213"
+        },
+        {
+          "path": "lerc_quip.py",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "48402a05c645dd987a2c44b1ab155e0a962b1ba1",
+          "size": 2546,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/48402a05c645dd987a2c44b1ab155e0a962b1ba1"
+        },
+        {
+          "path": "qaeval",
+          "mode": "040000",
+          "type": "tree",
+          "sha": "287c62e7d13cb1d335102a0aa60368efa21edbe9",
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/trees/287c62e7d13cb1d335102a0aa60368efa21edbe9"
+        },
+        {
+          "path": "qaeval/LICENSE",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "size": 11357,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+        },
+        {
+          "path": "qaeval/changes",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "29437c5a4563c051ce88bb3d11b157bff35378a5",
+          "size": 221,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/29437c5a4563c051ce88bb3d11b157bff35378a5"
+        },
+        {
+          "path": "qafacteval.py",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "da481d0e90e0b62462b6ec27fcd03a561998035f",
+          "size": 4149,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/da481d0e90e0b62462b6ec27fcd03a561998035f"
+        },
+        {
+          "path": "run.py",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "a2a1c183ef38e44d5b4618c256bb280df40c718c",
+          "size": 2710,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/a2a1c183ef38e44d5b4618c256bb280df40c718c"
+        },
+        {
+          "path": "setup.py",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "1d223b02a1dd24ada445d057392aabc34097a62e",
+          "size": 798,
+          "url": "https://api.github.com/repos/salesforce/QAFactEval/git/blobs/1d223b02a1dd24ada445d057392aabc34097a62e"
+        }
+      ],
+      "truncated": false
+    }
+  },
+  "decision": {
+    "status": "rejected_fixed_korean_qa_variant",
+    "issue": 629,
+    "baseline_commit": "57b23f1724f0a5e4353f6a6efd89d76ebc06138c",
+    "semantic_gate_passed": false,
+    "normal_case_labels_preserved": [
+      "c13",
+      "c46",
+      "c11"
+    ],
+    "critical_failure": "c47: expected N, actual S; regional restriction omitted from source QA answer and treated as optional detail in final comparison",
+    "scope": "Exposed development examples; no general performance estimate or reproduction of original QAFactEval performance",
+    "product_source_changed": false,
+    "default_model_configuration_changed": false,
+    "question_or_answer_repaired": false,
+    "model_retry": false,
+    "holdout_executed": false,
+    "downstream_executed": false
+  },
+  "evidence": {
+    "data/knowledge/evaluations/business_qa_compare_20261009/c11_answers.json": "33b6c2481f6076085da4b98af4f352425f545645fa9fc98ba96a7303d1b9aa6c",
+    "data/knowledge/evaluations/business_qa_compare_20261009/c13_answers.json": "215a6d1ed4fe5968aba4b639d704b92c9cceeaf7881a75b00f06ef25c6278a17",
+    "data/knowledge/evaluations/business_qa_compare_20261009/c46_answers.json": "902e6b8975fdf86f0c0330c65b9329dc38f20aa4f7c77b2ab9e43a57c2691d90",
+    "data/knowledge/evaluations/business_qa_compare_20261009/c47_answers.json": "f456c2261e78b8d2f57be7167a28a398be356a385be0e0033cc797f9fcc316e1",
+    "data/knowledge/evaluations/business_qa_compare_20261009/calls.json": "f7ffd6abe84b4c23bb4e573490ca1c9678533004484cccb39142bb68c1a5bf4f",
+    "data/knowledge/evaluations/business_qa_compare_20261009/comparison_inputs.json": "9a3f417445c8bcc90f82268fd58baa2c84a16b1f85df9cfad5de6943aa4bd125",
+    "data/knowledge/evaluations/business_qa_compare_20261009/comparisons.json": "ea692b0f33a5926d5e370e5d0288862a1e1eb50895e15152af4cebd1a7064f81",
+    "data/knowledge/evaluations/business_qa_compare_20261009/contract_checks.json": "261d87b8c237147442147033f8aa89682a0d61a780fc93812c2668018d640802",
+    "data/knowledge/evaluations/business_qa_compare_20261009/criteria.json": "7bd7c0ceab7675b3767425cd63c315f1530d1b9f9dc4b8fc0943b54928a3796e",
+    "data/knowledge/evaluations/business_qa_compare_20261009/freeze.json": "abc0694d450ef025ea817c9ec08269b01deb6ad42df796587046cf2cc735ec24",
+    "data/knowledge/evaluations/business_qa_compare_20261009/inputs.json": "092dc9c52bb23302f17a1bc2bdd8f408a356ea07bbbb2f03bf7cd00ca045af01",
+    "data/knowledge/evaluations/business_qa_compare_20261009/questions.json": "cc6b57eda5f8ed9991d0d8a1bc7b360985e38fd1de1ba9c38b23b2a297bde6a8",
+    "data/knowledge/evaluations/business_qa_compare_20261009/questions_freeze.json": "e87aa9858eb266a480e1f71329ed366e615fbfa6eb5b1cc22d315523f9090434",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_LICENSE.txt": "79e3de4165725ff4e9a429ed4d634dd44cace47fdc19048774c9d0aa24468adc",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_download_models.sh": "575417fd82fc4e2ec2dd4b698359f46f88e7cdfd6f95c28b47b26550f807292f",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_metadata.json": "d7b1d038ed8143e553b0cd774cb19d833c0cea33456fa04ab48d4f4feea09016",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_qafacteval.py": "cac1080c145cdf860aeebd1c72de69ce79cc0e7a22eabaa7925ed1af1edc9b7e",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_run.py": "11da8e45197e4a8fe93b34e7ade91257d962fde09cafbf52d723a6a09ad21523",
+    "data/knowledge/evaluations/business_qa_compare_20261009/reference_setup.py": "4f3230a9ac976a391142cf25003db7bdaaf7a45e53c660d09fa4a6de1c009d31",
+    "data/knowledge/evaluations/business_qa_compare_20261009/result.json": "816c671fdf549a3e055459fec0155556205b290a84ee4de1c95c2823d59876af",
+    "data/knowledge/evaluations/business_qa_compare_20261009/run.log": "3247c492111ae429cdf4edb9d02854f571c219877d72fa3bb39a97fcaff55ace",
+    "data/knowledge/evaluations/business_qa_compare_20261009/semantic_review.json": "802717e48302915d9822f29089a30bda4075084ec078faf5910703d4e94d31db",
+    "data/knowledge/evaluations/business_qa_compare_20261009/source_answers.json": "9aa2ab251a23b5a34bc0f44aca78203d88e825fc34608ede024384dd77e74ebf",
+    "data/knowledge/evaluations/business_qa_compare_20261009/started.json": "e7704806974420022fddca48cf4c38465a12b210e7611f8156dbdf2101aa1361",
+    "data/knowledge/evaluations/business_qa_compare_20261009/tests.log": "cdf8d13a3f141b449c7d92c9b86d6fd681de17445a1d661236b92f93860eafac"
+  },
+  "call_accounting": [
+    {
+      "request_id": "10fa7f8917fb4df1b330ef2dbb7f3c7e",
+      "stage": "qa_generate_questions",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 448,
+      "eval_count": 694,
+      "elapsed_s": 45.95971
+    },
+    {
+      "request_id": "a7afb8acaf3d427aa1c6e0c7fcf02606",
+      "stage": "qa_candidate_c13",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 326,
+      "eval_count": 199,
+      "elapsed_s": 12.378531
+    },
+    {
+      "request_id": "a793078003a04571aa0a0a14c4ba2713",
+      "stage": "qa_candidate_c46",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 323,
+      "eval_count": 185,
+      "elapsed_s": 11.658154
+    },
+    {
+      "request_id": "721c621de8a14e63a9641efbd03872e1",
+      "stage": "qa_candidate_c47",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 298,
+      "eval_count": 161,
+      "elapsed_s": 10.509034
+    },
+    {
+      "request_id": "809608d0af424781ab5d8ed7ca406bb1",
+      "stage": "qa_candidate_c11",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 325,
+      "eval_count": 177,
+      "elapsed_s": 11.362456
+    },
+    {
+      "request_id": "1829599e9de04a3aa213620b9963078b",
+      "stage": "qa_source",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 992,
+      "eval_count": 709,
+      "elapsed_s": 43.056575
+    },
+    {
+      "request_id": "f75fd7d5e8b24ff0ad5b2db2c7224bcd",
+      "stage": "qa_compare_answers",
+      "model": "qwen3.8:27b-q4_K_M",
+      "done": true,
+      "done_reason": "stop",
+      "failure_kind": null,
+      "prompt_eval_count": 2576,
+      "eval_count": 869,
+      "elapsed_s": 60.452145
+    }
+  ]
+}
