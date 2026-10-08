@@ -136,9 +136,10 @@ def reviewed(key='m', **updates):
         premise_keys=[], judgment_origin={'origin':'user'}, interpretation_version='v1', **updates)
 
 
-def test_reviewed_selection_renders_exact_meaning_and_rejects_partial_bundle(monkeypatch):
+@pytest.mark.parametrize('prior_applicability', ['outside_scope', 'unresolved'])
+def test_reviewed_selection_renders_exact_meaning_and_rejects_partial_bundle(monkeypatch, prior_applicability):
     good = reviewed()
-    good['requirement_link'] = dict(applicability='outside_scope', contribution='background', requested_fact='이전 질문')
+    good['requirement_link'] = dict(applicability=prior_applicability, contribution='background', requested_fact='이전 질문')
     partial = dict(reviewed('partial'), complete_claim_bundle=False, required_claim_ids=['c','missing'])
     run = dict(reviewed_meanings=[good,partial], answer_items=[dict(id='docs', requirement_id='r', request_quote='구비서류')])
     def choose(_s, _r, _stage, prompt, context, schema):
@@ -152,6 +153,7 @@ def test_reviewed_selection_renders_exact_meaning_and_rejects_partial_bundle(mon
     assert 'v1' not in answer['answer'] and 'user' not in answer['answer']
     assert answer['citations'] == ['c'] and run['answer_meaning_selection']['excluded'][0]['key'] == 'partial'
     assert run['answer_meaning_selection']['available']['m1']['requirement_link'] == good['requirement_link']
+    assert run['answer_meaning_selection']['public_answer_items'] == run['answer_items']
 
 
 def test_reviewed_selection_missing_and_premise_only_are_not_final_facts(monkeypatch):

@@ -315,8 +315,7 @@ def reviewed_item_answer(service, run, request, requirements):
         valid = (meaning['complete_claim_bundle'] and meaning['expression_status'] in {'represented', 'explicitly_reviewed'}
             and meaning['source_status'] == 'supported' and meaning['availability'] == 'provided'
             and meaning['evidence'] and not meaning['record_error']
-            and all(meaning['claim_support'].get(cid) == ('explicitly_reviewed' if explicit else 'supported') for cid in meaning['required_claim_ids'])
-            and (meaning.get('requirement_link') or {}).get('applicability') != 'unresolved')
+            and all(meaning['claim_support'].get(cid) == ('explicitly_reviewed' if explicit else 'supported') for cid in meaning['required_claim_ids']))
         if valid:
             available[f'm{len(available)+1}'] = meaning
         else:
@@ -333,7 +332,10 @@ def reviewed_item_answer(service, run, request, requirements):
         for ref in missing:
             m = available.pop(ref)
             excluded.append(dict(key=m['key'], requirement_id=m['requirement_id'], reason='missing_required_premise'))
-    run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded)
+    # Applicability belongs to the prior request. Select afresh for these bound
+    # public items, including when the prior request's applicability was unknown.
+    run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded,
+                                         public_answer_items=deepcopy(run['answer_items']))
     if not available:
         return dict(answer='확인된 후보·조건·전제가 함께 제공된 의미가 없습니다.', citations=[], choice=None,
                     limitations=['현재 검토 버전의 표현 연결을 확인해야 합니다.'])
@@ -352,7 +354,8 @@ def reviewed_item_answer(service, run, request, requirements):
         '검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다.',
         dict(question=request.question, public_requirements=requirements, public_answer_items=run['answer_items'],
              # Earlier whole-requirement applicability is not a verdict on the current public item.
-             reviewed_meanings={ref: {k: v for k, v in meaning.items() if k != 'requirement_link'}
+             reviewed_meanings={ref: {k: v for k, v in meaning.items()
+                                     if k not in {'requirement_link', 'requirement_applications'}}
                                 for ref, meaning in available.items()}), output_type)
     if output is None:
         return None

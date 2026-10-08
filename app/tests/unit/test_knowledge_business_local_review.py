@@ -195,7 +195,8 @@ def test_repair_protects_unknown_part_of_compound_claim_without_blocking_indepen
     assert not business_run.repair(None, run, run['requirements'][0], assessment)
 
 
-def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(monkeypatch):
+@pytest.mark.parametrize('aggregate_action', ['maintain', 'correct'])
+def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(monkeypatch, aggregate_action):
     run = local_run()
     bad, normal = [c['id'] for c in run['claims']]
     keys = ['first', 'second']
@@ -212,9 +213,11 @@ def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(m
         row['premise_keys'] = None
     for check in representation['checks']:
         check['incorrect_claim_ids'] = [bad]
+        check['claim_support'] = {normal: 'supported', bad: 'incorrect'}
     assessment = dict(id='a', source=source, representation=representation, errors=[], issues=[],
         actions=[dict(meaning_key=k, action='correct', claim_ids=[bad], reason=k) for k in keys] +
-                [dict(meaning_key=k, action='maintain', claim_ids=[normal]) for k in keys],
+                ([dict(meaning_key=k, action='maintain', claim_ids=[normal]) for k in keys]
+                 if aggregate_action == 'maintain' else []),
         review_scope=dict(batches=[dict(unit_id='local', meaning_keys=keys, claim_ids=[bad, normal],
             provided_block_ids=['body'], output=representation, error=None)]))
     def answer(_service, _run, stage, instruction, context, schema):

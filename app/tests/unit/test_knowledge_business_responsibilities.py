@@ -50,6 +50,7 @@ def test_application_cannot_overwrite_fact_fields_and_outside_scope_is_not_false
     output = dict(links=[dict(key='m', required_for_requirement=False, requirement_link=dict(
         requested_fact='', applicability='outside_scope', contribution='background', reason='요구 밖', requirement_quote=''))],
         meaning_challenges=[])
+    output['links'] = [dict(row, item_id=item) for item in ('question', 'criterion') for row in output['links']]
     def answer(*args):
         run['units'].append(dict(id='application'))
         return deepcopy(output)
@@ -79,10 +80,11 @@ def test_application_failure_is_local_and_missing_link_keeps_fact(monkeypatch):
     normal = dict(key='normal', required_for_requirement=False, requirement_link=dict(requested_fact='',
         applicability='outside_scope', contribution='background', reason='요구 밖 정상 사실', requirement_quote=''))
     invalid = dict(key='invalid', required_for_requirement=True, requirement_link=dict(requested_fact='담당',
-        applicability='applicable', contribution='direct_answer', reason='연결', requirement_quote='질문에 없는 구절'))
+        applicability='outside_scope', contribution='direct_answer', reason='필수성 모순', requirement_quote='질문에 없는 구절'))
     def answer(*a):
         run['units'].append(dict(id='application'))
-        return dict(links=[normal, invalid], meaning_challenges=[])
+        return dict(links=[dict(row, item_id=item) for item in ('question', 'criterion')
+                          for row in (normal, invalid)], meaning_challenges=[])
     monkeypatch.setattr(business_run, 'json_call', answer)
     result = review.apply_requirement(None, run, dict(question='기관?', criterion='담당'), facts, run['blocks'])
     by_key = {m['key']: m for m in result['meanings']}
@@ -92,6 +94,50 @@ def test_application_failure_is_local_and_missing_link_keeps_fact(monkeypatch):
     assert all(by_key[k]['requirement_link']['applicability'] == 'unresolved' for k in ['invalid', 'missing'])
     assert facts == original
     assert all(all(by_key[m['key']][k] == v for k, v in m.items()) for m in facts['meanings'])
+
+
+def test_criterion_item_remains_required_when_institution_question_is_outside_scope(monkeypatch):
+    from app.tests.unit.test_knowledge_business_local_review import meaning
+    run = local_run()
+    requirement = dict(id='r', revision=1, question='담당 기관?', criterion='구비서류 요건과 기관 범위')
+    run['answer_items'] = [dict(id=key, requirement_id='r', requirement_revision=1, field=field, request_quote=quote)
+        for key, field, quote in [('institution', 'question', '담당 기관?'), ('docs', 'criterion', '구비서류 요건')]]
+    facts = dict(meanings=[meaning('m')]); before = deepcopy(facts)
+    def answer(_s, _r, _stage, _prompt, context, schema):
+        assert context['public_answer_items'] == run['answer_items']
+        assert 'requirement_quote' not in str(schema.model_json_schema())
+        run['units'].append(dict(id='items'))
+        output = schema.model_validate(dict(links=[
+            dict(item_id='institution', key='m', required_for_requirement=False, requirement_link=dict(
+                requested_fact='담당 기관', applicability='outside_scope', contribution='background', requirement_quote='', reason='기관 정보 없음')),
+            dict(item_id='docs', key='m', required_for_requirement=True, requirement_link=dict(
+                requested_fact='구비서류 요건', applicability='applicable', contribution='direct_answer', requirement_quote='구비서류 요건', reason='서류 요청에 기여'))],
+            meaning_challenges=[])).model_dump()
+        # A recorded legacy response selected the right item but quoted another.
+        output['links'][1]['requirement_link']['requirement_quote'] = '담당 기관?'
+        return output
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    result = review.apply_requirement(None, run, requirement, facts, run['blocks'])
+    assert facts == before and result['meanings'][0]['required_for_requirement']
+    assert result['meanings'][0]['requirement_link']['requirement_quote'] == '구비서류 요건'
+    assert len(result['meanings'][0]['requirement_applications']) == 2
+    assert not result['application_history'][-1]['errors']
+    assert result['application_history'][-1]['output']['links'][1]['requirement_link']['requirement_quote'] == '담당 기관?'
+    assert result['application_history'][-1]['request_quote_bindings'][1]['bound_quote'] == '구비서류 요건'
+    run['answer_items'][1]['requirement_revision'] = 0
+    with pytest.raises(ValueError, match='revision'):
+        review.apply_requirement(None, run, requirement, facts, run['blocks'])
+
+
+def test_assessment_reuse_is_bound_to_current_public_item_scope():
+    run = local_run(); requirement = run['requirements'][0]; source = dict(meanings=[])
+    before = business_run.assessment_fingerprint(run, requirement, source)
+    run['answer_items'] = [dict(id='docs', requirement_id=requirement['id'], requirement_revision=1,
+                               field='criterion', request_quote='구비서류')]
+    with_item = business_run.assessment_fingerprint(run, requirement, source)
+    assert before != with_item
+    run['answer_items'][0]['request_quote'] = '기관 범위'
+    assert with_item != business_run.assessment_fingerprint(run, requirement, source)
 
 
 def setup_direct_receipt(monkeypatch, states=('supported', 'incorrect'), transform=None):
@@ -247,8 +293,9 @@ def test_application_only_reassessment_preserves_all_source_annotations(monkeypa
     def answer(service, current, stage, instruction, context, schema):
         assert stage == 'requirement_application'  # No fact re-judge for a link-only question.
         run['units'].append(dict(id='application'))
-        return dict(links=[dict(key='m', required_for_requirement=False, requirement_link=dict(requested_fact='',
-            applicability='outside_scope', contribution='background', reason='질문 밖', requirement_quote=''))], meaning_challenges=[])
+        return dict(links=[dict(item_id=item, key='m', required_for_requirement=False, requirement_link=dict(requested_fact='',
+            applicability='outside_scope', contribution='background', reason='질문 밖', requirement_quote=''))
+            for item in ('question', 'criterion')], meaning_challenges=[])
     monkeypatch.setattr(business_run, 'json_call', answer)
     result = review.reassess_source(None, run, dict(question='담당?', criterion='기관'), dict(source=old),
         [dict(meaning_key='m', fields=['requirement_link'], reason='적용성만 재검토')])

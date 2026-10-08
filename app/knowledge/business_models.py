@@ -268,8 +268,9 @@ class RequirementLinkReassessment(GroundingCheck):
 
 class MeaningApplicability(BaseModel):
     model_config = {'extra': 'forbid'}
+    item_id: str
     key: str
-    requirement_link: RootedRequirementLink
+    requirement_link: RequirementLink
     required_for_requirement: bool
 
 

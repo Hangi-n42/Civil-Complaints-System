@@ -13,6 +13,7 @@ from .discovery_meanings import affected_keys
 
 CONTRACT = 'requirement-local-review-v8-owned-errors'
 SOURCE_APPLICATION_CONTRACT = 'requirement-local-review-v13-source-application'
+APPLICATION_CONTRACT = 'public-item-applicability-v2-bound-quotes'
 ANSWER_SCOPE_EXPERIMENT = 'requirement-local-review-v9-answer-roots-experimental'
 MEANING_SELECTION_EXPERIMENT = 'requirement-local-review-v10-selection-experimental'
 SEPARATED_CONTRACTS = {'requirement-local-review-v5-separated', 'requirement-local-review-v6-separated',
@@ -334,7 +335,8 @@ def reassess_source(service, run, requirement, assessment, challenges):
         application_context={k: v for k, v in requirement.items() if k not in {'question', 'criterion'}})
         if rooted else dict(requirement=requirement))
     if separate_application(run):
-        fact_meanings = [{k: v for k, v in m.items() if k not in {'requirement_link', 'required_for_requirement'}} for m in meanings]
+        fact_meanings = [{k: v for k, v in m.items() if k not in
+                         {'requirement_link', 'required_for_requirement', 'requirement_applications'}} for m in meanings]
         # Public applicability challenges never rewrite source facts.
         application_only = all(c.get('fields') and set(c['fields']) <= {'requirement_link', 'required_for_requirement'}
                                for c in selected_challenges)
@@ -547,55 +549,81 @@ def selected_source_output(output, references):
 
 
 def apply_requirement(service, run, requirement, facts, blocks):
-    """Attach applicability metadata without granting write access to source facts."""
-    from . import business_run as execution
-    from .business_models import RequirementApplicationCheck, RootedRequiredMeaningCheck
-    content = [{k: v for k, v in m.items() if k not in {'requirement_link', 'required_for_requirement'}}
-               for m in facts['meanings']]
-    output = execution.json_call(service, run, 'requirement_application', REQUIREMENT_LINK_PROMPT + ANSWER_SCOPE_PROMPT + """
+    """Judge applicability per bound public item; never overwrite source facts."""
+    from types import SimpleNamespace
+    from . import business_run as execution, business_use
+    from .business_models import PublicAnswerItem, RequirementApplicationCheck, RootedRequiredMeaningCheck
+    rid = requirement.get('id', '')
+    planned = [i for i in run.get('answer_items', []) if i['requirement_id'] == rid]
+    if not planned:
+        planned = [dict(id=field, requirement_id=rid, requirement_revision=requirement.get('revision', 0),
+                        field=field, request_quote=requirement[field])
+                   for field in ('question', 'criterion') if requirement.get(field, '').strip()]
+    items = business_use.bind_answer_items(SimpleNamespace(requirement_ids=[rid],
+        answer_items=[PublicAnswerItem.model_validate(i) for i in planned]),
+        [dict(requirement, id=rid, revision=requirement.get('revision', 0))])
+    content = [{k: v for k, v in m.items() if k not in
+                {'requirement_link', 'required_for_requirement', 'requirement_applications'}} for m in facts['meanings']]
+    output = execution.json_call(service, run, 'requirement_application', REQUIREMENT_LINK_PROMPT + """
 source_facts는 별도 원문 검수 결과다. 사실 문장·조건·예외·기간·자료 상태·원문 지지는 수정하지 않는다.
-links는 각 key의 질문 적용성과 필수성만 반환한다. outside_scope는 사실 오류가 아니다.
-새 원문 모순이 있으면 meaning_challenges에 실제 의미키·필드·원문 인용을 남긴다. 여기서 사실을 고치지 않는다.
+public_answer_items는 원래 question/criterion의 검증된 요청 구절이다. links는 각 item_id와 의미 key 조합을 한 번씩 반환한다.
+각 항목의 request_quote 자체에 대한 기여를 판단한다. 다른 항목에 불필요하다는 이유로 이 항목의 요청도 없다고 하지 않는다.
+question에 없는 항목도 criterion이 명시하면 직접 답변 대상이다. 요청 구절의 주소는 item_id로 선택하며 서버가 원문 구절을 연결한다. 요청 구절을 다시 작성하지 않는다.
+outside_scope는 사실 오류가 아니다. 새 원문 모순은 meaning_challenges에 실제 의미키·필드·원문 인용을 남기며 여기서 사실을 고치지 않는다.
 """, dict(answer_request={k: requirement.get(k, '') for k in ('question', 'criterion')},
+        public_answer_items=items,
         application_context={k: v for k, v in requirement.items() if k not in {'question', 'criterion'}},
         source_facts=content, blocks=blocks), RequirementApplicationCheck)
-    receipt = dict(unit_id=response_unit_id(run), output=deepcopy(output), errors=[])
+    receipt = dict(contract=APPLICATION_CONTRACT, unit_id=response_unit_id(run), output=deepcopy(output), errors=[], request_quote_bindings=[],
+        answer_request={k: requirement.get(k, '') for k in ('question', 'criterion')}, public_answer_items=deepcopy(items),
+        application_context={k: deepcopy(v) for k, v in requirement.items() if k not in {'question', 'criterion'}})
     result = deepcopy(facts)
-    # A failed application judgment remains unresolved, while source evidence survives.
-    links = {m['key']: dict(required_for_requirement=True, requirement_link=dict(requested_fact='',
-        applicability='unresolved', contribution='direct_answer', requirement_quote='',
-        reason='requirement_application_unresolved')) for m in content}
-    challenges = []
+    unresolved = dict(required_for_requirement=True, requirement_link=dict(requested_fact='',
+        applicability='unresolved', contribution='direct_answer', requirement_quote='', reason='requirement_application_unresolved'))
+    links = {m['key']: [] for m in content}
     if output is None:
         receipt['errors'].append('requirement_application_failed')
-    else:
-        for key in links:
-            updates = [u for u in output['links'] if u['key'] == key]
+    for original in content:
+        key = original['key']
+        for item in items:
+            metadata = deepcopy(unresolved)
+            updates = [u for u in (output or {}).get('links', []) if u['key'] == key and u['item_id'] == item['id']]
             try:
                 if len(updates) != 1:
                     raise ValueError('requirement_application_missing_or_duplicate')
-                update = updates[0]
-                original = next(m for m in content if m['key'] == key)
-                metadata = {k: update[k] for k in ('requirement_link', 'required_for_requirement')}
-                RootedRequiredMeaningCheck.model_validate(dict(original, **metadata))
-                quote = metadata['requirement_link']['requirement_quote'].strip()
-                if (metadata['requirement_link']['contribution'] == 'direct_answer'
-                        and (not quote or not any(quote in requirement.get(k, '') for k in ('question', 'criterion')))):
-                    raise ValueError('requirement_application_invalid_request_quote')
-                links[key] = deepcopy(metadata)
+                proposed = {k: deepcopy(updates[0][k]) for k in ('requirement_link', 'required_for_requirement')}
+                link = proposed['requirement_link']
+                bound = item['request_quote'] if link['contribution'] == 'direct_answer' else ''
+                receipt['request_quote_bindings'].append(dict(meaning_key=key, item_id=item['id'],
+                    model_quote=link.get('requirement_quote'), bound_quote=bound))
+                link['requirement_quote'] = bound
+                RootedRequiredMeaningCheck.model_validate(dict(original, **proposed))
+                metadata = deepcopy(proposed)
             except ValueError as exc:
-                receipt['errors'].append(dict(meaning_key=key, reason=str(exc)))
-        for update in output['links']:
-            if update['key'] not in links:
-                receipt['errors'].append(dict(meaning_key=update['key'], reason='requirement_application_outside_scope'))
-        for challenge in output['meaning_challenges']:
-            try:
-                if challenge['meaning_key'] not in links or not execution.exact_evidence(challenge['evidence'], blocks):
-                    raise ValueError('application_challenge_without_source')
-                challenges.append(deepcopy(challenge))
-            except ValueError as exc:
-                receipt['errors'].append(dict(meaning_key=challenge['meaning_key'], reason=str(exc)))
-    result['meanings'] = [dict(m, **links[m['key']]) for m in result['meanings']]
+                receipt['errors'].append(dict(meaning_key=key, item_id=item['id'], reason=str(exc)))
+            links[key].append(dict(item_id=item['id'], **metadata))
+    allowed = {(key, item['id']) for key in links for item in items}
+    for update in (output or {}).get('links', []):
+        if (update['key'], update['item_id']) not in allowed:
+            receipt['errors'].append(dict(meaning_key=update['key'], item_id=update['item_id'], reason='requirement_application_outside_scope'))
+    def priority(row):
+        link = row['requirement_link']
+        if link['applicability'] == 'applicable' and row['required_for_requirement']:
+            return 0 if link['contribution'] == 'direct_answer' else 1
+        return 2 if link['applicability'] == 'unresolved' else 3
+    for meaning in result['meanings']:
+        applications = links[meaning['key']]
+        chosen = min(applications, key=priority) if applications else unresolved
+        meaning.update({k: deepcopy(chosen[k]) for k in ('requirement_link', 'required_for_requirement')})
+        meaning['requirement_applications'] = deepcopy(applications)
+    challenges = []
+    for challenge in (output or {}).get('meaning_challenges', []):
+        try:
+            if challenge['meaning_key'] not in links or not execution.exact_evidence(challenge['evidence'], blocks):
+                raise ValueError('application_challenge_without_source')
+            challenges.append(deepcopy(challenge))
+        except ValueError as exc:
+            receipt['errors'].append(dict(meaning_key=challenge['meaning_key'], reason=str(exc)))
     result['application_challenges'] = challenges
     result.setdefault('application_history', []).append(receipt)
     return result

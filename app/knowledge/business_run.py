@@ -180,7 +180,7 @@ def start(service, request):
                    parent_model_identity=deepcopy(parent['model_identity']) if parent else None,
                    metrics=dict(llm_calls=0, model_total_s=0, elapsed_s=0), started_at=None, finished_at=None)
         if request.reassess_run_id:
-            for key in ('claims', 'graph', 'concepts', 'extraction_rejections', 'source_corrections'):
+            for key in ('claims', 'graph', 'concepts', 'extraction_rejections', 'source_corrections', 'answer_items'):
                 run[key] = deepcopy(parent.get(key, []))
             run['prior_repairs'] = deepcopy([*parent.get('prior_repairs', []), *parent['repairs']])
             run['reference_meanings'] = business_review.stored_meanings(parent)
@@ -558,6 +558,9 @@ def assessment_fingerprint(run, requirement, source, scope=None):
     # Missing judgments depend on the entire candidate pool, including new claims.
     inventory = business_review.pool_hash(run) if scope and scope.get('pool_hash') else None
     value = [requirement, source, [compact_claim(c) for c in selected]]
+    items = [i for i in run.get('answer_items', []) if i['requirement_id'] == requirement['id']]
+    if items:
+        value.append(dict(public_answer_items=items))
     return autoschema.identifier('assessment_input', value if scope is None else [*value, inventory])
 
 
@@ -601,7 +604,7 @@ def apply_source_corrections(run, requirement, source):
             continue
         key = correction['before']['key']
         result['meanings'] = [dict(deepcopy(correction['after']), **{k: deepcopy(m[k]) for k in
-            ('requirement_link', 'required_for_requirement') if k in m}) if m['key'] == key else m for m in result['meanings']]
+            ('requirement_link', 'required_for_requirement', 'requirement_applications') if k in m}) if m['key'] == key else m for m in result['meanings']]
         result['reassessed_meaning_keys'] = sorted(set(result.get('reassessed_meaning_keys', [])) | {key})
         result.setdefault('explicit_correction_ids', [])
         if correction['id'] not in result['explicit_correction_ids']:
@@ -1125,6 +1128,16 @@ def repair(service, run, requirement, assessment):
         tasks.pop((task['target_id'], None))
     semantic_patches = [patch for task in semantic_tasks
         if (patch := event_meaning_edit(service, run, task, by_id[task['target_id']], repair_blocks))]
+    # One meaning may contain both a healthy candidate and an erroneous edge.
+    # Its aggregate correct action must not hide the healthy endpoint from reuse.
+    blocked_keys = business_review.blocked(assessment)[0]
+    maintained = {cid for a in assessment['actions'] if a['action'] == 'maintain'
+                  and a['meaning_key'] not in blocked_keys for cid in a['claim_ids']}
+    maintained.update(cid for check in (assessment.get('representation') or {}).get('checks', [])
+        if check['meaning_key'] not in blocked_keys for cid, support in check.get('claim_support', {}).items()
+        if support == 'supported' and cid not in check.get('incorrect_claim_ids', [])
+        and not check.get('error_fields', {}).get(cid))
+    maintained -= protected_claims | target_ids
     output_type = create_model('TargetRepairs', __base__=Repairs,
         patches=(Repairs.model_fields['patches'].annotation, Field(max_length=len(tasks))))
     instruction = REPAIR_PROMPT + ('''\n
@@ -1135,10 +1148,8 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
     output = json_call(service, run, 'requirement_repair', instruction, dict(
         requirement=requirement, tasks=list(tasks.values()), source=source, blocks=repair_blocks,
         before=[compact_claim(by_id[c]) for c in target_ids], preserve_meanings=preserve,
-        reuse_candidates=[compact_claim(by_id[cid]) for cid in sorted({cid for a in assessment['actions']
-            if a['action'] == 'maintain' and a['meaning_key'] not in business_review.blocked(assessment)[0]
-            for cid in a['claim_ids']}) if cid in by_id and cid not in protected_claims
-            and cid not in target_ids and not by_id[cid].get('superseded_by')]), output_type) if tasks else None
+        reuse_candidates=[compact_claim(by_id[cid]) for cid in sorted(maintained)
+            if cid in by_id and not by_id[cid].get('superseded_by')]), output_type) if tasks else None
     if semantic_tasks:
         output = dict(patches=[*(output or {}).get('patches', []), *semantic_patches],
                       unresolved=(output or {}).get('unresolved', []))
@@ -1174,9 +1185,6 @@ before의 다른 정상 내용은 모두 보존한다. 요구에 무관한 정�
                 old = by_id.get(patch['target_id'])
                 reuse = patch.get('reuse_claim_ids', [])
                 if reuse:
-                    maintained = {cid for a in assessment['actions'] if a['action'] == 'maintain'
-                                  and a['meaning_key'] not in business_review.blocked(assessment)[0]
-                                  for cid in a['claim_ids'] if cid not in protected_claims}
                     if not old or not set(reuse) <= maintained - target_ids:
                         raise ValueError('현재 정상 검수로 확인되지 않은 대체 후보')
                     value = dict(deepcopy(old), superseded_by=list(dict.fromkeys(reuse)), repair_id=receipt['id'],
