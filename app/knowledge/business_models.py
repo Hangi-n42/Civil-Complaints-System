@@ -24,6 +24,7 @@ class BusinessRunRequest(BaseModel):
     source_version_ids: list[str] = Field(min_length=1)
     requirement_ids: list[str] = Field(min_length=1)
     block_ids: list[str] = Field(default_factory=list)
+    target_parse_run_ids: dict[str, str] = Field(default_factory=dict)
     selection_reason: str = ''
     neighbor_mode: Literal['structured', 'plain'] = 'plain'
     model: str | None = None

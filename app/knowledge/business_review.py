@@ -191,10 +191,53 @@ def source_blocks(run, requirement):
     return [b for b in run['blocks'] if not requirement['source_ids'] or b['source_id'] in requirement['source_ids']]
 
 
+def freeze_target_plan(service, db, run, parse_ids):
+    """Bind an explicitly chosen parse policy to unchanged stored evidence addresses."""
+    if not set(parse_ids) <= {b['source_version_id'] for b in run['blocks']}:
+        raise ValueError('대상 계획의 원문 버전이 실행 범위를 벗어납니다.')
+    plan = dict(policy='explicit-document-controls-v1', source_hash=autoschema.identifier('source', run['blocks']),
+                parses=[], exclusions=[])
+    for vid, rid in parse_ids.items():
+        version = service.repository.get(db, 'versions', vid)
+        parsed = service.repository.get(db, 'runs', rid)
+        if parsed['status'] != 'succeeded':
+            raise ValueError('대상 계획에는 완료된 명시 parse가 필요합니다.')
+        blocks = service.parse_blocks(db, rid, vid)
+        plan['parses'].append(dict(source_version_id=vid, parse_run_id=rid, source_sha256=version['sha256'],
+            units=[{k: deepcopy(u[k]) for k in ('id', 'parser', 'options') if k in u}
+                   for u, _ in service.parse_units(db, parsed, vid)]))
+        for block in blocks:
+            declarations = block['locator'].get('document_controls', [])
+            if not declarations:
+                continue
+            locator = {k: v for k, v in block['locator'].items() if k != 'document_controls'}
+            matches = [old for old in run['blocks'] if old['source_version_id'] == vid and old['text'] == block['text']
+                and {k: v for k, v in old['locator'].items() if k != 'document_controls'} == locator]
+            if len(matches) != 1:
+                raise ValueError('문서 도구 영역의 기존 원문 위치 대응이 유일하지 않습니다.')
+            plan['exclusions'].append(dict(block_id=matches[0]['id'], parse_run_id=matches[0]['parse_run_id'],
+                classified_block_id=block['id'], classified_parse_run_id=rid, declarations=deepcopy(declarations)))
+    return plan
+
+
+def non_target_blocks(run, requirement):
+    plan = run.get('source_target_plan')
+    if plan and plan['source_hash'] != autoschema.identifier('source', run['blocks']):
+        raise ValueError('고정 대상 계획의 원문이 변경되었습니다.')
+    blocks = source_blocks(run, requirement)
+    records = {b['id']: dict(block_id=b['id'], parse_run_id=b.get('parse_run_id'),
+        declarations=deepcopy(b['locator']['document_controls'])) for b in blocks if b.get('locator', {}).get('document_controls')}
+    records.update({e['block_id']: deepcopy(e) for e in (plan or {}).get('exclusions', [])
+                    if e['block_id'] in {b['id'] for b in blocks}})
+    return list(records.values())
+
+
 def source_selection(run, requirement):
     """Rank existing source units and perform explicit field/value row lookups."""
     from .discovery_profile import FrozenIndex
-    blocks = source_blocks(run, requirement)
+    inventory = source_blocks(run, requirement)
+    non_targets = non_target_blocks(run, requirement)
+    blocks = [b for b in inventory if b['id'] not in {e['block_id'] for e in non_targets}]
     query = ' '.join(str(requirement.get(k, '')) for k in ('question', 'target', 'situation', 'period', 'criterion'))
     compact_query = re.sub(r'[\s_:`\"\'·]+', '', query)
     bindings = {}
@@ -211,7 +254,7 @@ def source_selection(run, requirement):
                 and b['id'] not in matched}
     documents = [dict(id=b['id'], text=b['text'], file_id=b['source_version_id'],
                       source_group=b['source_version_id']) for b in blocks]
-    ranked = FrozenIndex(documents, preserve_numbers=True).search(query, {b['id'] for b in blocks}, 12)
+    ranked = FrozenIndex(documents, preserve_numbers=True).search(query, {b['id'] for b in blocks}, 12) if documents else []
     options = run['recipe']['options']
     bundles = autoschema.chunks(blocks, options['context_tokens'], options.get('source_tokens') or options['review_tokens'], 1000)
     if excluded:
@@ -224,7 +267,8 @@ def source_selection(run, requirement):
         bundles = [c for c in bundles if any(b['id'] in ranks and not b.get('context_only') for b in c['blocks'])]
     bundles.sort(key=lambda c: min((ranks.get(b['id'], len(ranks)) for b in c['blocks'] if not b.get('context_only')), default=len(ranks)))
     selected = {b['id'] for c in bundles for b in c['blocks'] if not b.get('context_only')}
-    return bundles, dict(inventory_block_ids=[b['id'] for b in blocks],
+    return bundles, dict(inventory_block_ids=[b['id'] for b in inventory],
+        target_policy='explicit-document-controls-v1', non_target_blocks=non_targets,
         selected_block_ids=[b['id'] for b in blocks if b['id'] in selected],
         unselected_block_ids=[b['id'] for b in blocks if b['id'] not in selected],
         exact_row_excluded_block_ids=sorted(excluded),
@@ -284,18 +328,26 @@ def needs_source_read(source, representation):
     selection = source.get('source_selection', {})
     unread = set(selection.get('unselected_block_ids', []))
     # A lexical hit or an ID inventory never proves other prose unnecessary.
-    return bool(pending_inspections(source) or unread and (
+    return bool(pending_source_targets(source) or unread and (
         not unread <= set(selection.get('exact_row_excluded_block_ids', []))
         or representation.get('unselected_source_required') is not False))
+
+
+def pending_source_targets(source):
+    excluded = {e['block_id'] for e in source.get('source_selection', {}).get('non_target_blocks', [])}
+    return {uid: ids - excluded for uid, ids in pending_inspections(source).items() if ids - excluded}
 
 
 def inspection_summaries(source):
     """Expose current verified coverage beside unchanged historical errors."""
     pending = pending_inspections(source)
+    current = pending_source_targets(source)
     return [{k: batch[k] for k in ('unit_id', 'target_block_ids', 'provided_block_ids', 'errors') if k in batch}
             | dict(inspection_status=(batch.get('output') or {}).get('inspection_status'),
                 reinspection_of=batch.get('reinspection_of', []),
                 remaining_target_block_ids=sorted(pending.get(batch.get('unit_id'), [])),
+                current_plan_remaining_target_block_ids=sorted(current.get(batch.get('unit_id'), [])),
+                excluded_by_target_plan=sorted(pending.get(batch.get('unit_id'), set()) - current.get(batch.get('unit_id'), set())),
                 inspection_error_active=bool(INSPECTION_ERRORS.intersection(
                     e for e in batch.get('errors', []) if isinstance(e, str))) and (
                     batch.get('unit_id') in pending or batch.get('unit_id') not in source.get('inspection_rechecks', {})))
@@ -360,7 +412,7 @@ def issue(assessment, reason, meaning_key=None, claim_ids=()):
 
 
 def dependency_rows(assessment):
-    meanings = review_meanings(assessment.get('source') or {})
+    meanings = (assessment.get('source') or {}).get('meanings', [])
     rows = {m['key']: dict(meaning_key=m['key'], premise_keys=m.get('premise_keys')) for m in meanings}
     for d in (assessment.get('representation') or {}).get('dependencies', []):
         if d['meaning_key'] in rows:
@@ -371,21 +423,23 @@ def dependency_rows(assessment):
 def affected(assessment, keys):
     rows = dependency_rows(assessment)
     known = {r['meaning_key'] for r in rows}
+    reviewed = {m['key'] for m in review_meanings(assessment.get('source') or {})}
     keys = set(keys)
     if not keys <= known:
-        return known
+        return reviewed
     # Unknown dependencies cannot establish that an erroneous sibling is independent.
     if keys:
         keys.update(r['meaning_key'] for r in rows if r['premise_keys'] is None)
     normalized = [dict(r, premise_keys=r['premise_keys'] or []) for r in rows]
     # Sharing a claim is not a premise dependency. The consumer blocks that
     # compound claim, without poisoning a common meaning and its other claims.
-    return affected_keys(normalized, keys)
+    return affected_keys(normalized, keys) & reviewed
 
 
 def blocked(assessment, *, include_global=True):
     meanings = review_meanings(assessment.get('source') or {})
     known = {m['key'] for m in meanings}
+    source_keys = {m['key'] for m in (assessment.get('source') or {}).get('meanings', [])}
     representation = assessment.get('representation') or {}
     issues = list(assessment.get('issues', []))
     covered = [i['reason'] for i in issues]
@@ -393,11 +447,11 @@ def blocked(assessment, *, include_global=True):
     issues.extend(dict(i, meaning_key=i.get('meaning_key')) for i in representation.get('meaning_challenges', []))
     if representation.get('source_challenges'):
         global_reason = global_reason or 'unscoped_source_challenge'  # Free text does not identify a candidate fault.
-    if any(i.get('meaning_key') not in known for i in issues):
+    if any(i.get('meaning_key') not in source_keys for i in issues):
         global_reason = global_reason or 'unscoped_or_unknown_meaning_issue'
     if global_reason and include_global:
         return known, [global_reason]
-    keys = {i['meaning_key'] for i in issues if i.get('meaning_key') in known}
+    keys = {i['meaning_key'] for i in issues if i.get('meaning_key') in source_keys}
     source = assessment.get('source') or {}
     gap_keys = {k for gap in source.get('meaning_gaps', []) for k in gap['meaning_keys']}
     keys.update(gap_keys - ({m['key'] for m in source.get('meanings', [])} - known))
@@ -904,6 +958,79 @@ context_only는 조건 해석에만 쓰며 새 의미의 본문은 target에 있
     return instruction, context, output_type
 
 
+def admit_source_output(output, blocks):
+    """Quarantine invalid locations and their explicit dependencies before any applicability call."""
+    from .business_run import exact_evidence
+    result = deepcopy(output)
+    counts = Counter(m['key'] for m in result['meanings'])
+    rejected = {}
+    targets = [b for b in blocks if not b.get('context_only')]
+    for meaning in result['meanings']:
+        key = meaning['key']
+        try:
+            if counts[key] != 1 or meaning.get('record_error'):
+                raise ValueError(meaning.get('record_error') or 'duplicate_local_meaning_key')
+            refs = exact_evidence(meaning['evidence'], blocks)
+            target_refs = []
+            for ref in refs:
+                try:
+                    target_refs.extend(exact_evidence([ref], targets))
+                except ValueError:
+                    pass
+            if not target_refs:
+                raise ValueError('meaning_outside_local_target')
+            meaning['evidence'] = refs
+        except ValueError as exc:
+            rejected[key] = str(exc)
+    while True:
+        previous = set(rejected)
+        for meaning in result['meanings']:
+            if set(meaning.get('premise_keys') or []) - (counts.keys() - rejected.keys()):
+                rejected.setdefault(meaning['key'], 'dependency_on_unadmitted_meaning')
+        if set(rejected) == previous:
+            break
+    audit = dict(contract='source-target-admission-v1',
+        excluded_meanings=[dict(meaning=deepcopy(m), reason=rejected[m['key']])
+                           for m in output['meanings'] if m['key'] in rejected],
+        admitted_meaning_keys=[m['key'] for m in result['meanings'] if m['key'] not in rejected])
+    result['meanings'] = [m for m in result['meanings'] if m['key'] not in rejected]
+    # Connections and findings remain in the raw receipt; downstream gaps must not become repair targets.
+    audit['excluded_connections'] = [deepcopy(c) for c in result.get('meaning_conjunctions', [])
+                                    if set(c['meaning_keys']) & rejected.keys()]
+    result['meaning_conjunctions'] = [c for c in result.get('meaning_conjunctions', [])
+                                    if not set(c['meaning_keys']) & rejected.keys()]
+    for finding in result.get('findings', []):
+        excluded = [k for k in finding['meaning_keys'] if k in rejected]
+        if excluded:
+            finding['unadmitted_meaning_keys'] = excluded
+    return result, audit
+
+
+def admission_finding(key, meaning, reason, unit_id, provided):
+    return dict(id=f'admission:{unit_id}:{key}', origin='source_boundary', kind='unadmitted_source_record',
+        text=f'새 원문 의미로 채택하지 않은 기록 ({reason}): {meaning["statement"]}',
+        meaning_keys=[], scope_meaning_keys=[], claim_ids=[], fields=[], unit_id=unit_id,
+        provided_block_ids=list(provided), unadmitted_record_key=key)
+
+
+def admission_findings(output, audit, unit_id, provided, key_map):
+    related = {k for m in output['meanings'] for k in m.get('premise_keys') or []}
+    connections = audit['excluded_connections']
+    related.update(k for c in connections for k in c['meaning_keys'])
+    admitted = set(audit['admitted_meaning_keys'])
+    findings = []
+    for entry in audit['excluded_meanings']:
+        key = entry['meaning']['key']
+        if entry['reason'] == 'meaning_outside_local_target' and key not in related:
+            continue  # An independent context-only record is an ownership audit, not a semantic gap.
+        row = admission_finding(key_map[key], entry['meaning'], entry['reason'], unit_id, provided)
+        row['meaning_keys'] = sorted({key_map[k] for c in connections if key in c['meaning_keys']
+                                     for k in c['meaning_keys'] if k in admitted})
+        row['scope_meaning_keys'] = list(row['meaning_keys'])
+        findings.append(row)
+    return findings
+
+
 def source(service, run, requirement, *, previous=None):
     """Keep local inspection findings separate from the later whole-requirement judgment."""
     from . import business_run as execution
@@ -916,8 +1043,34 @@ def source(service, run, requirement, *, previous=None):
         source_version_ids=sorted({b['source_version_id'] for b in source_blocks(run, requirement)}))
     if previous is not None:
         merged = deepcopy(previous)
-        rechecks = pending_inspections(previous)
-        unread = set(previous['source_selection']['unselected_block_ids']) | set().union(*rechecks.values())
+        record_errors = {e['meaning_key']: e['reason'] for batch in previous.get('source_batches', [])
+                         for e in batch.get('errors', []) if isinstance(e, dict)
+                         and e['meaning_key'] not in previous.get('reassessed_meaning_keys', [])}
+        if record_errors.keys() & {m['key'] for m in merged['meanings']}:
+            frozen = deepcopy(merged)
+            for meaning in frozen['meanings']:
+                if meaning['key'] in record_errors:
+                    meaning['record_error'] = record_errors[meaning['key']]
+            admitted, audit = admit_source_output(frozen, source_blocks(run, requirement))
+            rejected = {m['meaning']['key']: m['reason'] for m in audit['excluded_meanings']}
+            merged['meanings'] = [m for m in merged['meanings'] if m['key'] not in rejected]
+            merged.setdefault('unadmitted_meanings', []).extend(dict(meaning=deepcopy(m), reason=rejected[m['key']],
+                origin='recorded_source_boundary_error') for m in previous['meanings'] if m['key'] in rejected)
+            merged['findings'] = admitted['findings']
+            merged['meaning_conjunctions'] = admitted['meaning_conjunctions']
+            merged.setdefault('unadmitted_connections', []).extend(audit['excluded_connections'])
+            for finding in admission_findings(frozen, audit, None, [], {m['key']: m['key'] for m in frozen['meanings']}):
+                key = finding['unadmitted_record_key']
+                batch = next((b for b in previous['source_batches'] if key in b.get('meaning_keys', [])), {})
+                finding.update(id=f'admission:{batch.get("unit_id")}:{key}', unit_id=batch.get('unit_id'),
+                               provided_block_ids=batch.get('provided_block_ids', []))
+                merged['findings'].append(finding)
+        if previous['source_selection'] != selection:
+            merged.setdefault('selection_history', []).append(deepcopy(previous['source_selection']))
+        merged['source_selection'] = selection
+        rechecks = pending_source_targets(merged)
+        non_targets = {e['block_id'] for e in selection.get('non_target_blocks', [])}
+        unread = (set(previous['source_selection']['unselected_block_ids']) | set().union(*rechecks.values())) - non_targets
         for unit_id, ids in rechecks.items():
             expected = dict(context=inspection_context, targets=execution.exact_evidence([
                 dict(block_id=b['id'], quote=b['text']) for b in source_blocks(run, requirement) if b['id'] in ids], run['blocks']))
@@ -925,12 +1078,12 @@ def source(service, run, requirement, *, previous=None):
             if existing['context'] != inspection_context:
                 raise ValueError('source_reinspection_context_changed')
         options = run['recipe']['options']
-        bundles = autoschema.chunks(source_blocks(run, requirement), options['context_tokens'],
+        bundles = autoschema.chunks([b for b in source_blocks(run, requirement) if b['id'] not in non_targets], options['context_tokens'],
                                    options.get('source_tokens') or options['review_tokens'], 1000)
         bundles = [c for c in bundles if any(b['id'] in unread and not b.get('context_only') for b in c['blocks'])]
         bundles = [dict(c, blocks=[dict(b, context_only=True) if b['id'] not in unread else b
                                    for b in c['blocks']]) for c in bundles]
-        selected = set(previous['source_selection']['selected_block_ids']) | {
+        selected = (set(previous['source_selection']['selected_block_ids']) - non_targets) | {
             b['id'] for c in bundles for b in c['blocks'] if not b.get('context_only')}
         merged['source_selection'].update(selected_block_ids=sorted(selected), unselected_block_ids=sorted(unread - selected),
                                           additional_read_reason='incomplete_source_inspection' if rechecks else 'unselected_source_requires_inspection')
@@ -963,7 +1116,22 @@ def source(service, run, requirement, *, previous=None):
             except (ValueError, KeyError) as exc:
                 receipt['errors'].append('source_selection_error: ' + str(exc))
                 continue
-        if separate_application(run):
+        all_keys = {m['key']: f'batch{index + 1}:{m["key"]}' for m in output['meanings']}
+        raw_meanings = output
+        output, admission = admit_source_output(output, bundle['blocks'])
+        receipt['admission'] = admission
+        merged.setdefault('unadmitted_meanings', []).extend(dict(entry,
+            meaning=dict(entry['meaning'], key=all_keys[entry['meaning']['key']],
+                premise_keys=None if entry['meaning'].get('premise_keys') is None else
+                [all_keys.get(k, f'unresolved:{k}') for k in entry['meaning']['premise_keys']]), unit_id=receipt['unit_id'])
+            for entry in admission['excluded_meanings'])
+        merged.setdefault('unadmitted_connections', []).extend(dict(c,
+            meaning_keys=[all_keys.get(k, f'unresolved:{k}') for k in c['meaning_keys']], unit_id=receipt['unit_id'])
+            for c in admission['excluded_connections'])
+        receipt['errors'].extend(dict(meaning_key=all_keys[e['meaning']['key']], reason=e['reason'])
+                                 for e in admission['excluded_meanings'])
+        merged['findings'].extend(admission_findings(raw_meanings, admission, receipt['unit_id'], sorted(provided), all_keys))
+        if separate_application(run) and output['meanings']:
             output = apply_requirement(service, run, requirement, output, bundle['blocks'])
             receipt['application_history'] = deepcopy(output['application_history'])
             # Applicability errors are not source-record errors; unresolved links block only their dependencies.
@@ -981,13 +1149,6 @@ def source(service, run, requirement, *, previous=None):
                 receipt['errors'].append(dict(meaning_key=meaning['key'], reason=meaning['record_error']))
             if meaning.get('premise_keys') is not None:
                 meaning['premise_keys'] = [keys.get(k, f'unresolved:{k}') for k in meaning['premise_keys']]
-            try:
-                refs = execution.exact_evidence(meaning['evidence'], bundle['blocks'])
-                if refs and not any(e['block_id'] in targets and any(b['id'] == e['block_id']
-                    and not b.get('context_only') and e['quote'] in b['text'] for b in bundle['blocks']) for e in refs):
-                    raise ValueError('meaning_outside_local_target')
-            except ValueError as exc:
-                receipt['errors'].append(dict(meaning_key=meaning['key'], reason=str(exc)))
         if separate_application(run):
             merged.setdefault('application_challenges', []).extend(dict(c, meaning_key=keys.get(c['meaning_key'], c['meaning_key']))
                 for c in output.get('application_challenges', []))
@@ -999,7 +1160,8 @@ def source(service, run, requirement, *, previous=None):
                                               for a in output.get('meaning_conjunctions', []))
         for n, finding in enumerate(output['findings']):
             merged['findings'].append(dict(finding, id=f'e{index + 1}:{n + 1}', origin='source',
-                meaning_keys=[keys.get(k, f'unresolved:{k}') for k in finding['meaning_keys']],
+                meaning_keys=[all_keys.get(k, f'unresolved:{k}') for k in finding['meaning_keys']],
+                unadmitted_meaning_keys=[all_keys.get(k, f'unresolved:{k}') for k in finding.get('unadmitted_meaning_keys', [])],
                 scope_meaning_keys=list(keys.values()), provided_block_ids=sorted(provided), claim_ids=[], fields=[],
                 unit_id=receipt['unit_id']))
     merged['examined_block_ids'] = list(dict.fromkeys(merged['examined_block_ids']))
@@ -1514,6 +1676,12 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
         current.append(row)
         if row['status'] in {'resolved', 'not_required', 'claim_error'}:
             continue
+        if finding.get('unadmitted_record_key') or finding.get('unadmitted_meaning_keys'):
+            gaps.append(row['reason'])
+            scope = [k for k in finding['meaning_keys'] if k in keys]
+            if scope:
+                meaning_gaps.append(dict(meaning_keys=scope, text=row['reason']))
+            continue
         scope = row['meaning_keys'] or finding['meaning_keys']
         if row['status'] == 'required_gap':
             gaps.append(row['reason'])
@@ -1543,13 +1711,17 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
                     result['source_challenges'].append(row['reason'])
     if source.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
         required_scope = {m['key'] for m in review_meanings(source)}
-        pending = pending_inspections(source)
+        pending = pending_source_targets(source)
+        historical = pending_inspections(source)
         for batch in source.get('source_batches', []):
             for error in batch.get('errors', []):
                 if isinstance(error, dict):
                     if error['meaning_key'] in required_scope and error['meaning_key'] not in source.get('reassessed_meaning_keys', []):
                         gaps.append(error['reason'])
                 else:
+                    if (error in INSPECTION_ERRORS and batch.get('unit_id') in historical
+                            and batch.get('unit_id') not in pending):
+                        continue  # Excluded by the new explicit target plan, never recorded as examined.
                     if (error not in INSPECTION_ERRORS or batch.get('unit_id') in pending
                             or batch.get('unit_id') not in source.get('inspection_rechecks', {})):
                         gaps.append(error)
@@ -1560,7 +1732,9 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
         source.update(finding_resolutions=current, gaps=list(dict.fromkeys(gaps)), meaning_gaps=meaning_gaps,
             completeness='complete' if (joined if source_joined is None else source_joined)
             and result.get('source_completeness') == 'complete'
-            and not gaps and not any(r['status'] in {'required_gap', 'source_error', 'unresolved'} for r in current)
+            and not gaps and not any(r['status'] in {'required_gap', 'source_error', 'unresolved'}
+                and (not r['meaning_keys'] or affected(dict(source=source, representation=result), r['meaning_keys']))
+                for r in current)
             and all(m['availability'] == 'provided' for m in review_meanings(source)) else 'partial')
 
 
@@ -1914,7 +2088,7 @@ source_completeness는 필수 범위 조사 상태이며 unselected_source_requi
 '''
     result = execution.json_call(service, run, 'requirement_representation', join_instruction,
         dict(mode='requirement_join', requirement=requirement, review_meaning_keys=sorted(join_keys),
-            source=dict({k: v for k, v in source.items() if k in {'completeness', 'conjunctions', 'meaning_conjunctions'}},
+            source=dict({k: v for k, v in source.items() if k in {'completeness', 'conjunctions', 'meaning_conjunctions', 'unadmitted_connections'}},
                 meanings=[join_source_meaning(m) for m in meanings]),
             public_answer_items=[i for i in run.get('answer_items', []) if i['requirement_id'] == requirement['id']],
             blocks=join_blocks, findings=[{k: v for k, v in f.items() if k != 'provided_block_ids'} for f in findings],

@@ -132,6 +132,8 @@ def start(service, request):
                                  for r in db.execute('SELECT payload FROM runs')):
             raise KnowledgeConflict('실행 중이거나 종료 중입니다.')
         requirements = [service.repository.get(db, 'requirements', rid) for rid in request.requirement_ids]
+        parent_id = request.resume_run_id or request.reuse_run_id or request.reassess_run_id
+        parent = service.repository.get(db, 'runs', parent_id) if parent_id else None
         blocks, sources = [], {}
         for vid in dict.fromkeys(request.source_version_ids):
             version = service.repository.get(db, 'versions', vid)
@@ -140,7 +142,10 @@ def start(service, request):
             source = service.repository.get(db, 'sources', version['source_id'])
             sources[vid] = dict(source_id=source['id'], title=source['title'], filename=version['filename'],
                                 sha256=version['sha256'], dates=version['dates'])
-            blocks.extend(service.parse_blocks(db, version['latest_parse_run_id'], vid))
+            blocks.extend(deepcopy([b for b in parent['blocks'] if b['source_version_id'] == vid])
+                if parent and (request.target_parse_run_ids or request.resume_run_id and parent.get('source_target_plan'))
+                and (request.resume_run_id or request.reassess_run_id)
+                else service.parse_blocks(db, version['latest_parse_run_id'], vid))
         if request.block_ids:
             if not request.selection_reason.strip() or not set(request.block_ids) <= {b['id'] for b in blocks}:
                 raise ValueError('선택 블록과 선택 이유를 확인하세요.')
@@ -152,8 +157,6 @@ def start(service, request):
         chunks = autoschema.chunks(blocks, request.context_tokens, request.extraction_tokens, request.extraction_target_chars)
         if sum(bool(v) for v in (request.resume_run_id, request.reuse_run_id, request.reassess_run_id)) > 1:
             raise ValueError('재개·일부 재사용·저장 후보 재검토는 하나만 지정하세요.')
-        parent_id = request.resume_run_id or request.reuse_run_id or request.reassess_run_id
-        parent = service.repository.get(db, 'runs', parent_id) if parent_id else None
         if parent:
             if parent.get('kind') != 'business':
                 raise ValueError('업무 지식 실행만 재사용할 수 있습니다.')
@@ -201,6 +204,12 @@ def start(service, request):
                         'answer_items', 'prior_repairs', 'reference_meanings', 'stored_pool'):
                 if key in parent:
                     run[key] = deepcopy(parent[key])
+        if request.target_parse_run_ids:
+            run['source_target_plan'] = business_review.freeze_target_plan(service, db, run, request.target_parse_run_ids)
+        elif request.resume_run_id and parent.get('source_target_plan'):
+            run['source_target_plan'] = deepcopy(parent['source_target_plan'])
+        if request.resume_run_id and run.get('source_target_plan') != parent.get('source_target_plan'):
+            raise ValueError('재개는 같은 고정 원문 대상 계획에서만 가능합니다. 새 재검토 실행을 사용하세요.')
         db.execute('INSERT INTO runs VALUES(?,?)', (run['id'], encode(run)))
     service.executor.submit(execute, service, run['id'])
     return dict(run_id=run['id'], status='queued')
@@ -592,7 +601,7 @@ def requirement_completion(assessment, accepted_ids=None):
         and all(not c.get('incorrect_claim_ids') and ((c['status'] == 'represented' and c['claim_ids']) or
                 (c['status'] == 'missing' and c['meaning_key'] not in required)) for c in checks)
         and representation.get('satisfied') and representation.get('conjunctions_satisfied')
-        and not representation.get('source_challenges') and not representation.get('meaning_challenges') and not assessment['errors']
+        and not representation.get('source_challenges') and not any(business_review.blocked(assessment)) and not assessment['errors']
         and assessment.get('preservation_complete', False)
         and (accepted_ids is None or required_ids <= set(accepted_ids)))
     if assessment.get('candidate_accuracy_contract'):

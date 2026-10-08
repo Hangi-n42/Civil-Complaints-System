@@ -476,14 +476,19 @@ def test_selection_scope_failure_keeps_healthy_sibling_and_surfaces_error(monkey
         return deepcopy(output)
     monkeypatch.setattr(business_run, 'json_call', response)
     source = review.source(None, run, run['requirements'][0])
-    assert len(source['meanings']) == 2 and source['source_batches'][0]['errors']
+    assert len(source['meanings']) == 1 and source['source_batches'][0]['errors']
+    assert source['unadmitted_meanings'][0]['meaning']['key'] == 'batch1:s2'
+    assert source['source_batches'][0]['output'] == output
     assert [m['key'] for m in review.review_meanings(source)] == ['batch1:s1']
-    assert review.answer_scope_issues(source)[0]['meaning_key'] == 'batch1:s2'
-    assert review.answer_scope_challenges(source)[0]['reassessment_scope'] == 'requirement_link_and_evidence'
-    source.update(completeness='complete', gaps=[], meaning_gaps=[])
-    assessment = dict(source=source, representation=judgments(['batch1:s1'], ids=['normal']), errors=[], issues=[], preservation_complete=True)
+    assert not review.answer_scope_issues(source) and not review.answer_scope_challenges(source)
+    result = judgments(['batch1:s1'], ids=['normal'])
+    result.update(source_completeness='complete', finding_resolutions=[])
+    review.resolve_findings(source, result, source['findings'], run['blocks'], [], joined=True)
+    assessment = dict(source=source, representation=result, errors=[], issues=[], preservation_complete=True)
     assert business_run.requirement_completion(assessment)['status'] == 'partial'
-    source['meanings'].pop()
+    result['finding_resolutions'] = [dict(finding_id=f['id'], status='not_required', meaning_keys=['batch1:s1'],
+        claim_ids=[], fields=[], evidence=source['meanings'][0]['evidence'], reason='기존 유효 의미로 충족되어 격리 기록 불필요') for f in source['findings']]
+    review.resolve_findings(source, result, source['findings'], run['blocks'], [], joined=True)
     assert business_run.requirement_completion(assessment)['status'] == 'satisfied'
 
 
