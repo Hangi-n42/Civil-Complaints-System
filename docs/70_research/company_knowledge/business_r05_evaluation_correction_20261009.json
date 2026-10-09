@@ -1,0 +1,326 @@
+{
+  "version": "r05-evaluation-correction-v1",
+  "date": "2026-10-09",
+  "base_commit": "1daac292f51005c6cc92664058a217fe4c412528",
+  "method": "Retrospective, non-blind AI review of previously exposed stored sources and outputs. Not a human review, new model evaluation, score, or replacement gold.",
+  "public_requirement": {
+    "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+    "json_pointer": "/p0/public_requirement"
+  },
+  "partial_coverage_reference": {
+    "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+    "json_pointer": "/p0/r05_reference_items"
+  },
+  "historical_source_snapshot_id": "f238a00cc00b474fad2f890782510a35",
+  "source_excerpt_scope": "Block aliases refer to Flow A actual request; institution and private-transfer headings must be read with the duty rows. Earlier e2c used a different snapshot.",
+  "source_excerpts": [
+    {
+      "request_block_id": "b7",
+      "block_id": "f0ae85be78e54fa88a00a0bcf2d5f2e7",
+      "source_version_id": "7b42ae519cbd4184b4de800623559005",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/6"
+      },
+      "text": "양수인 미방문시\n\t\t\t\t\t\t"
+    },
+    {
+      "request_block_id": "b8",
+      "block_id": "4e24a8b9921144eba70ae2b19f1c6e48",
+      "source_version_id": "7b42ae519cbd4184b4de800623559005",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/7"
+      },
+      "text": "위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증"
+    },
+    {
+      "request_block_id": "b9",
+      "block_id": "2b09e6b9bf284a4694d2af0dbac50877",
+      "source_version_id": "7b42ae519cbd4184b4de800623559005",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/8"
+      },
+      "text": "양도증명서(양수인란 및 특약사항란 도장날인)"
+    },
+    {
+      "request_block_id": "b17",
+      "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+      "source_version_id": "7b42ae519cbd4184b4de800623559005",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/16"
+      },
+      "text": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음"
+    },
+    {
+      "request_block_id": "b24",
+      "block_id": "a3fba913af2c4c65a61fea9062576e8b",
+      "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/23"
+      },
+      "text": "- 자동차 소유권 이전(변경) 등록 ※ 번호판 교부: 당일\n- 「자동차관리법」 위반 과태료\n- 자동차 운행정지명령 등록 및 공고\n- 온라인 이전 등록\n- 이전등록 지연 범칙금"
+    },
+    {
+      "request_block_id": "b28",
+      "block_id": "89cee83e2e9e4721941eb154f809d717",
+      "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/27"
+      },
+      "text": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\n- 취득세 및 등록세 부과\n- 건설기계 변경, 말소, 저당\n- 사업용자동차 이전등록\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가"
+    },
+    {
+      "request_block_id": "b32",
+      "block_id": "caad152924954040bed7ba5451ca53ad",
+      "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/31"
+      },
+      "text": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\n- 취득세 및 등록세 부과"
+    },
+    {
+      "request_block_id": "b36",
+      "block_id": "b92b407eb9a24197af34f54326d33fb5",
+      "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/35"
+      },
+      "text": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\n- 취득세 및 등록세 부과"
+    },
+    {
+      "request_block_id": "b40",
+      "block_id": "cc38a40410cb41e18e05c93e67c86cf5",
+      "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+      "original": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/actual_input/source_evidence/39"
+      },
+      "text": "- 자동차 소유권 이전(변경) 등록 ※ 말소/저당 제외\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\n- 취득세 및 등록세 부과"
+    }
+  ],
+  "runs": [
+    {
+      "run_id": "4b02113d47a042e981e590752ec79d03",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/live/failures"
+      }
+    },
+    {
+      "run_id": "5aacdbb9b2b749a8a41408d48dde4be9",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/reason_boundary_comparison/candidate_answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/reason_boundary_comparison/comparison"
+      }
+    },
+    {
+      "run_id": "331cbe46fc2a4a0084818c1b396f6c81",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_support_mechanism_20261008.json",
+        "json_pointer": "/conditional_qa~1result.json/result/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/2"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_support_mechanism_20261008.json",
+        "json_pointer": "/conditional_qa~1result.json/selected_meanings/output"
+      }
+    },
+    {
+      "run_id": "cb9bd0684d594d7d940ac41dec59ffdf",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_answer_preservation_20261009.json",
+        "json_pointer": "/live/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_answer_preservation_20261009.json",
+        "json_pointer": "/live/semantic_review"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_answer_preservation_20261009.json",
+        "json_pointer": "/live/selection"
+      }
+    },
+    {
+      "run_id": "83c7cbd25a304bef956c0bb984ae851f",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_scope_boundary_20261009.json",
+        "json_pointer": "/runs/2/result/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/3"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_scope_boundary_20261009.json",
+        "json_pointer": "/runs/2/answer_meaning_selection/output"
+      }
+    },
+    {
+      "run_id": "3147fe3653d84154a27d99ddad2dc7cd",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_finding_usage_20261009.json",
+        "json_pointer": "/runs/2/result/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/4"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_finding_usage_20261009.json",
+        "json_pointer": "/runs/2/answer_meaning_selection/output"
+      }
+    },
+    {
+      "run_id": "cd1ec56ce3ee4e6e9f37c77aed761e14",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_finding_usage_20261009.json",
+        "json_pointer": "/runs/3/result/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/5"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_finding_usage_20261009.json",
+        "json_pointer": "/runs/3/answer_meaning_selection/output"
+      }
+    },
+    {
+      "run_id": "6f7bc55945484fb086c00ad3641a616b",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_source_fields_20261008.json",
+        "json_pointer": "/qa/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/1"
+      },
+      "stored_selection": {
+        "path": "docs/70_research/company_knowledge/business_source_fields_20261008.json",
+        "json_pointer": "/qa/selection/output"
+      }
+    },
+    {
+      "run_id": "e2c440e0a60f41b89fb35ceadce14931",
+      "stored_answer": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/prior_arms/3/answer"
+      },
+      "original_judgment": {
+        "path": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json",
+        "json_pointer": "/p0/common_audit/0"
+      }
+    }
+  ],
+  "future_guidance_agreement": {
+    "version": "r05-guidance-scope-v1",
+    "date": "2026-10-09",
+    "provenance": "User selected option 1 in coordinator chat 01a11fd9-f71b-7261-832b-0681548a03c4; coordinator relayed the explicit selection and confirmed the stored-answer interpretation in this product chat.",
+    "scope": "문서의 담당·제외 업무를 종합해 안내하고, 복합 처리나 용어 대응의 미확인은 명시.",
+    "historical_question_criterion_gold_unchanged": true,
+    "retrospective_read_only_comparison": [
+      {
+        "run_id": "331cbe46fc2a4a0084818c1b396f6c81",
+        "achieved": "답변 전체의 기관 담당·정확한 제외·서류 및 조건 보존",
+        "remaining": "네 항목 모두 unconfirmed가 비어 있고 일반 경고만 있어 구체적 용어·복합 처리의 미확인 연결은 표시하지 않음"
+      },
+      {
+        "run_id": "cb9bd0684d594d7d940ac41dec59ffdf",
+        "achieved": "새 사용자 기준의 해당 저장 답변은 담당·제외·서류 종합 안내와 구체 미확인 표시를 달성",
+        "boundary": "세 센터의 번호 변경 제외와 번호판 변경 수반 이전등록·이전등록 부분 처리의 미확인 연결을 명시. 표현을 더 명료하게 할 여지는 새 오류나 완료 선행조건이 아님.",
+        "not_claimed": [
+          "new_model_quality_gain",
+          "strict_same_input_ab_superiority",
+          "automatic_error_discovery",
+          "saved_claim_repair",
+          "graph_recovery",
+          "overall_product_completion"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "unchanged_files_sha256": {
+      "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.json": "cf5eb2f48810bb1709eb84cab7d3b71d453c8b0c811e1ef62d060590b4fec90c",
+      "docs/70_research/company_knowledge/business_answer_preservation_20261009.json": "82c64e624fc8f762a50e711f506aadde706f12efb2ba9a4c08e02367f0f8818c",
+      "docs/70_research/company_knowledge/business_scope_boundary_20261009.json": "dd0174d9c12064845def4e9f33c7546267968b8c6669465e83c6d9ba40af70ee",
+      "docs/70_research/company_knowledge/business_finding_usage_20261009.json": "8855d34c1b21f3c5ecd6251fbb6a91b15297150e0a3fc2dd15aaa135c3ae4f90",
+      "docs/70_research/company_knowledge/business_source_fields_20261008.json": "88aeafb607bbcf8dacaf2d03885633a99be75f795d390aba90fa1fd44856b171",
+      "docs/70_research/company_knowledge/business_support_mechanism_20261008.json": "424d927b834f194bcc6f447f448ffd53eacea2bf2c1adea242a9a2fffb8dfcc3",
+      "docs/05_plans/company_knowledge/evaluation_protocol.md": "055774ba706643619cac4bc388ae08ad0ca585211a66212c58ba082cbff31b52",
+      "docs/05_plans/company_knowledge/autoschemakg_business_knowledge_plan_20261006.md": "7825557508a23b36c95df23ee8934404e7fe9b56c1602768060f6e0085649e23",
+      "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_support_mechanism_20261008/conditional_qa/knowledge.db": "d93e080f0e4e1c7f092bb60aff1a5dd2903331520ad0baa9d37c9e10a4bd256f"
+    },
+    "historical_markdown_before_notice_sha256": {
+      "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.md": "72df678a02bbf9ba149cf832796839e50ab153cd6dbdb268506f3f1007adf0b4",
+      "docs/70_research/company_knowledge/business_answer_preservation_20261009.md": "56742922bdba8796f08dc92f62e449763662c77226d813e5df2c2656f9509c2b",
+      "docs/70_research/company_knowledge/business_scope_boundary_20261009.md": "a30bc8bf5dd953fdbaaff0a95dfe5ac55e8dbb7b8c67adf28c46a952cddb6c51",
+      "docs/70_research/company_knowledge/business_finding_usage_20261009.md": "22be83d6b102c14c304990ec0e6d89db059184d3bc5d7d431961796468351a54",
+      "docs/70_research/company_knowledge/business_source_fields_20261008.md": "e30afb76b367b61509121c011d39e6bde3ec1fb80cb797aeb944f0582a7e9208",
+      "docs/70_research/company_knowledge/business_support_mechanism_20261008.md": "4e24a5da9381e45d5900e895a9f1aa60a808dc305b19acf619f75ceb015bcdce"
+    },
+    "artifact_trees": [
+      {
+        "path": "data/knowledge/evaluations/business_requirement_answer_flow_20261009",
+        "files": 1143,
+        "bytes": 1615216139,
+        "sha256": "e990b05d130444ab3806c3872941328c2b6d2d193d1eb1fe5a7530872e9a2310"
+      },
+      {
+        "path": "data/knowledge/evaluations/business_answer_preservation_20261009",
+        "files": 1099,
+        "bytes": 415521258,
+        "sha256": "8d5fa3bfc8f1d93248647da66bea3312cb587fb25b6982d17144e37685cebf3a"
+      }
+    ],
+    "tree_hash_algorithm": "Sort file paths, then SHA256 of concatenated UTF-8 relative_path + NUL + lowercase file SHA256 hex + LF; includes every file under each listed tree."
+  },
+  "scope_limits": {
+    "new_model_calls": 0,
+    "new_embedding_calls": 0,
+    "product_tests_run": 0,
+    "replay_runs": 0,
+    "product_code_or_prompt_changes": false,
+    "original_json_or_gold_changes": false,
+    "research_criteria_or_issue_637_results_changed": false,
+    "new_scores": false,
+    "retroactive_success_label_changes": false,
+    "additional_experiment_needed_from_this_review": false,
+    "issues_remaining_open": [
+      616,
+      617,
+      620
+    ]
+  },
+  "document_validation": {
+    "json_syntax": "pass",
+    "json_pointers_resolved": 35,
+    "source_excerpts_exact": 9,
+    "local_links_exist": 10,
+    "historical_markdown_only_notice_added": 6,
+    "unchanged_file_hashes": 9,
+    "unchanged_artifact_files": 2242,
+    "changed_files_exactly": 8,
+    "product_code_tests_and_original_json_changed": false,
+    "product_tests_or_model_calls_run": false,
+    "initial_pointer_correction": "The first pointer check found that cb9 live.selection already contains items; corrected only the new index from /live/selection/output to /live/selection and reran successfully. No original evidence was changed."
+  }
+}
