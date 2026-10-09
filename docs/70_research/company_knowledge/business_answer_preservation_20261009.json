@@ -1,0 +1,1063 @@
+{
+  "version": "business-answer-preservation-v1",
+  "base_commit": "b1e1f65a7a04db548ab4ad9fcfc1dcfb5b456233",
+  "branch": "feature/business-requirement-answer-flow",
+  "decision": {
+    "adopted": "server preservation of unselected required valid meaning bundles and known premise closure in reviewed_items only",
+    "rejected": "residual-connection task instruction and required_preserved_meaning_refs model input",
+    "r05_complete": false,
+    "semantic_quality_improvement_demonstrated": false,
+    "current_user_decision_needed": false,
+    "issues_open": [
+      616,
+      617,
+      620
+    ],
+    "pr_merge_or_deploy": false
+  },
+  "required_scope": {
+    "stored_fields": [
+      "representation.source_checks.required_for_requirement",
+      "explicit_meaning_reviews.meaning.required_for_requirement"
+    ],
+    "selection_boundaries": [
+      "current selected Requirement revision and state",
+      "source restrictions and invalidations",
+      "complete approved claim bundle",
+      "represented or explicitly reviewed",
+      "supported/provided source",
+      "existing unresolved-source-field exclusion",
+      "supported or explicitly reviewed whole claims",
+      "exact evidence",
+      "known premise closure"
+    ],
+    "wrong_application_reason_not_used": true,
+    "required_r05_keys": {
+      "busan-R05": [
+        "bujon_center_scope",
+        "common_documents",
+        "dongbusan_center_scope",
+        "geumryongsan_center_exclusion",
+        "geumryongsan_center_scope",
+        "gupo_center_scope",
+        "myeongji_main_office_scope",
+        "plate_change_documents",
+        "proxy_documents",
+        "sale_additional_documents",
+        "sale_exception",
+        "transfer_certificate"
+      ]
+    },
+    "unassigned_behavior": "Preserve literal full bundles and linked premises without guessing public-item assignment; record mapping errors, leaving query unverified when triggered.",
+    "background_policy": "Only required valid roots and their same-Requirement premise closure; never all unrelated meanings.",
+    "field_policy": "Preserve supported/legacy whole-bundle qualifiers; exclude independent unknown extras; do not split statement or infer obligations."
+  },
+  "replay": {
+    "new_model_calls": 0,
+    "new_embedding_calls": 0,
+    "r05": {
+      "run_id": "331cbe46fc2a4a0084818c1b396f6c81",
+      "selected": {
+        "items": [
+          {
+            "item_id": "plate_change",
+            "selected": [
+              {
+                "meaning_ref": "m4",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "without_plate_change",
+            "selected": [
+              {
+                "meaning_ref": "m7",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m8",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "excluded",
+            "selected": [
+              {
+                "meaning_ref": "m9",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "documents",
+            "selected": [
+              {
+                "meaning_ref": "m1",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m2",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m3",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m4",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m5",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m6",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          }
+        ]
+      },
+      "before": {
+        "answer": "번호판 변경을 수반하거나\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 양수인이 방문하지 않는 경우, 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 제시된다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+        "citations": [
+          "claim_6804020432957407c5cf6595",
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017"
+        ],
+        "choice": null,
+        "limitations": [
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+        ]
+      },
+      "after": {
+        "answer": "번호판 변경을 수반하거나\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 양수인이 방문하지 않는 경우, 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 제시된다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+        "citations": [
+          "claim_6804020432957407c5cf6595",
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017"
+        ],
+        "choice": null,
+        "limitations": [
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+        ]
+      },
+      "answer_unchanged": true,
+      "fallback_triggered": 0
+    },
+    "derived_omission": {
+      "label": "derived diagnostic selection; not a model response or new factual source",
+      "removed_refs": [
+        "m3",
+        "m4"
+      ],
+      "selected": {
+        "items": [
+          {
+            "item_id": "plate_change",
+            "selected": [
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "without_plate_change",
+            "selected": [
+              {
+                "meaning_ref": "m7",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m8",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "excluded",
+            "selected": [
+              {
+                "meaning_ref": "m9",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m10",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m11",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m12",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          },
+          {
+            "item_id": "documents",
+            "selected": [
+              {
+                "meaning_ref": "m1",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m2",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m5",
+                "use": "direct_fact"
+              },
+              {
+                "meaning_ref": "m6",
+                "use": "direct_fact"
+              }
+            ],
+            "unconfirmed": []
+          }
+        ]
+      },
+      "before": {
+        "answer": "번호판 변경을 수반하거나\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+        "citations": [
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017"
+        ],
+        "choice": null,
+        "limitations": [
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+        ]
+      },
+      "after": {
+        "answer": "번호판 변경을 수반하거나\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시\n\n요구의 필수 검토 내용 (답변 항목 배치 미완료):\n자가용(비사업용)자동차 이전등록 시 양수인이 방문하지 않는 경우, 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 제시된다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n\n요구의 필수 검토 내용 (답변 항목 배치 미완료):\n자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경",
+        "citations": [
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34",
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_4039be13b6671fc592118c23",
+          "claim_b75ccdd9c2c09c66d0f5428a",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_46cf1e37c4889c2dc8e94b8b",
+          "claim_4eeafcbb9a37b6398026cd26",
+          "claim_7cff5e461f1287f5d492d06e",
+          "claim_91ed8b4772cb89d716f2dcd1",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_026829f70fe89ca9f770bee7",
+          "claim_49c9d7ed3051939ea3440cd3",
+          "claim_57bde5abc4e4e9b299c856e6",
+          "claim_9bb0b2df8d384265d1018017",
+          "claim_ad6bfe8f0b9d960379667f2c",
+          "claim_6804020432957407c5cf6595"
+        ],
+        "choice": null,
+        "limitations": [
+          "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+          "필수 검토 내용은 보존했으나 요청 항목과의 연결이 답변에서 빠졌습니다: transfer_certificate",
+          "필수 검토 내용은 보존했으나 요청 항목과의 연결이 답변에서 빠졌습니다: plate_change_documents"
+        ]
+      },
+      "unassigned": [
+        "m3",
+        "m4"
+      ],
+      "errors": [
+        "busan-R05: required_meaning_not_assigned:transfer_certificate",
+        "busan-R05: required_meaning_not_assigned:plate_change_documents"
+      ]
+    },
+    "normal_direct_question": {
+      "run_id": "477e1a49ad2f4637a160f026f670480c",
+      "question": "양수인이 방문하지 못하고 대리인이 신청하면 무엇이 달라지는가?",
+      "before": {
+        "answer": "양수인이 방문하지 못하고 대리인이 신청하면 무엇이 달라지는가?\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 구비서류로 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증을 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 양도증명서에는 양수인란 및 특약사항란에 도장 날인이 필요하다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않고 양수인이 법인인 경우, 양수인 신분증 사본 대신 법인인감증명서를 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문 / 양수인 법인\n\n미방문 조건, 위임·신분 확인, 양도증명서의 날인 위치, 법인인 경우의 대체 서류를 구분한다.\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 구비서류로 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증을 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 양도증명서에는 양수인란 및 특약사항란에 도장 날인이 필요하다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않고 양수인이 법인인 경우, 양수인 신분증 사본 대신 법인인감증명서를 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문 / 양수인 법인",
+        "citations": [
+          "claim_05b9382c1028126d1aa778ea",
+          "claim_4ac9c4011b8d99b5c377e9ac",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c"
+        ],
+        "choice": null,
+        "limitations": []
+      },
+      "after": {
+        "answer": "양수인이 방문하지 못하고 대리인이 신청하면 무엇이 달라지는가?\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 구비서류로 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증을 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 양도증명서에는 양수인란 및 특약사항란에 도장 날인이 필요하다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않고 양수인이 법인인 경우, 양수인 신분증 사본 대신 법인인감증명서를 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문 / 양수인 법인\n\n미방문 조건, 위임·신분 확인, 양도증명서의 날인 위치, 법인인 경우의 대체 서류를 구분한다.\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 구비서류로 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증을 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않는 경우, 양도증명서에는 양수인란 및 특약사항란에 도장 날인이 필요하다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록에서 양수인이 방문하지 않고 양수인이 법인인 경우, 양수인 신분증 사본 대신 법인인감증명서를 제출해야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문 / 양수인 법인",
+        "citations": [
+          "claim_05b9382c1028126d1aa778ea",
+          "claim_4ac9c4011b8d99b5c377e9ac",
+          "claim_61b6c69d9a2e9c1dd9d939dd",
+          "claim_9d2ba40285f82ff7bc48e7e7",
+          "claim_ad6bfe8f0b9d960379667f2c"
+        ],
+        "choice": null,
+        "limitations": []
+      },
+      "answer_unchanged": true
+    },
+    "initial_normal_run_id_correction": "Initial preparation used qa_final 329f436c025c4ae59ceccd600954c5ac while a message named 477e1a49ad2f4637a160f026f670480c. V1 preserved; final preparation actually replayed qa_completion 477e1a49ad2f4637a160f026f670480c."
+  },
+  "live": {
+    "run_id": "cb9bd0684d594d7d940ac41dec59ffdf",
+    "qa_unit_id": "be1240dd4358446ab8e0e78338d25672",
+    "snapshot_id": "f238a00cc00b474fad2f890782510a35",
+    "request": {
+      "question": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+      "choices": [],
+      "snapshot_id": "f238a00cc00b474fad2f890782510a35",
+      "source_run_id": null,
+      "requirement_ids": [
+        "busan-R05"
+      ],
+      "limit": 50,
+      "retrieval": "hipporag2",
+      "graph_variant": "full",
+      "answer_mode": "reviewed_items",
+      "answer_items": [
+        {
+          "id": "plate_change",
+          "requirement_id": "busan-R05",
+          "requirement_revision": 1,
+          "field": "question",
+          "request_quote": "번호판 변경을 수반하거나"
+        },
+        {
+          "id": "without_plate_change",
+          "requirement_id": "busan-R05",
+          "requirement_revision": 1,
+          "field": "question",
+          "request_quote": "수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+        },
+        {
+          "id": "excluded",
+          "requirement_id": "busan-R05",
+          "requirement_revision": 1,
+          "field": "criterion",
+          "request_quote": "센터별 제외 업무"
+        },
+        {
+          "id": "documents",
+          "requirement_id": "busan-R05",
+          "requirement_revision": 1,
+          "field": "criterion",
+          "request_quote": "구비서류 요건"
+        }
+      ]
+    },
+    "status": "answered",
+    "metrics": {
+      "llm_calls": 1,
+      "model_total_s": 127.289311,
+      "elapsed_s": 142.1231939169811,
+      "reused_responses": 1
+    },
+    "input_tokens": 13825,
+    "output_tokens": 777,
+    "actual_qa_request": {
+      "stage": "business_qa",
+      "messages": [
+        {
+          "role": "system",
+          "content": "공개 질문/criterion에 답하기 위해 검토된 사실 사이에 아직 필요한 연결을 찾는다. required_preserved_meaning_refs의 온전한 사실·조건은 서버가 보존한다. 이를 다시 요약하거나 새 결론으로 쓰지 않는다. selected는 해당 공개 항목에 사실을 배치하는 선택이며, 선택만으로 질문에 답했다는 뜻이 아니다. 각 항목에서 확인된 문장 자체로 답할 수 있는 부분은 그대로 선택한다. 이미 명시된 조건 결론에 불필요한 추가 확인을 요구하지 않는다. 그 사실을 알아도 질문의 조건별 결론에 답하려면 추가로 알아야 할 주체·행위·조건의 연결이 있으면 unconfirmed에 구체적으로 쓴다. 질문 조건이 여럿이면 각각 대조한다. 일반적 주의문이나 사실 목록으로 빠진 연결을 대신하지 않는다. 각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, 결론에 추가 연결이 필요하면 premise_only로 고르고 그 구체 미확인 연결을 unconfirmed에 쓴다. 명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. 모든 공개 항목에 유용한 의미 또는 구체 공백이 필요하다. 불필요한 의미는 선택하지 않는다. 검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다."
+        },
+        {
+          "role": "user",
+          "content": "{\"question\": \"번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\", \"public_requirements\": [{\"id\": \"busan-R05\", \"question\": \"번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\", \"criterion\": \"이전등록 담당과 센터별 제외 업무를 모두 유지하고 구비서류 요건과 기관의 처리 가능 범위를 함께 확인한다.\", \"target\": \"자가용 매매 이전등록 신청인\", \"situation\": \"명지 본소·금련산·부전·구포·동부산센터 비교\", \"period\": \"방문 전 기관 및 서류 확인\"}], \"public_answer_items\": [{\"id\": \"plate_change\", \"requirement_id\": \"busan-R05\", \"requirement_revision\": 1, \"field\": \"question\", \"request_quote\": \"번호판 변경을 수반하거나\"}, {\"id\": \"without_plate_change\", \"requirement_id\": \"busan-R05\", \"requirement_revision\": 1, \"field\": \"question\", \"request_quote\": \"수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\"}, {\"id\": \"excluded\", \"requirement_id\": \"busan-R05\", \"requirement_revision\": 1, \"field\": \"criterion\", \"request_quote\": \"센터별 제외 업무\"}, {\"id\": \"documents\", \"requirement_id\": \"busan-R05\", \"requirement_revision\": 1, \"field\": \"criterion\", \"request_quote\": \"구비서류 요건\"}], \"required_preserved_meaning_refs\": [\"m1\", \"m2\", \"m3\", \"m4\", \"m5\", \"m6\", \"m7\", \"m8\", \"m9\", \"m10\", \"m11\", \"m12\"], \"requested_row_fields\": {\"plate_change\": [], \"without_plate_change\": [], \"excluded\": [], \"documents\": []}, \"reviewed_meanings\": {\"m1\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_46cf1e37c4889c2dc8e94b8b\", \"claim_4eeafcbb9a37b6398026cd26\", \"claim_7cff5e461f1287f5d492d06e\", \"claim_91ed8b4772cb89d716f2dcd1\"], \"expression_status\": \"represented\", \"key\": \"common_documents\", \"statement\": \"자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\", \"conditions\": [\"자가용 이전등록\"], \"exceptions\": [], \"period\": \"신청 시\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_applicable\", \"period\": \"not_assessed\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_46cf1e37c4889c2dc8e94b8b\": \"supported\", \"claim_4eeafcbb9a37b6398026cd26\": \"supported\", \"claim_7cff5e461f1287f5d492d06e\": \"supported\", \"claim_91ed8b4772cb89d716f2dcd1\": \"supported\"}, \"required_claim_ids\": [\"claim_46cf1e37c4889c2dc8e94b8b\", \"claim_4eeafcbb9a37b6398026cd26\", \"claim_7cff5e461f1287f5d492d06e\", \"claim_91ed8b4772cb89d716f2dcd1\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_81faf0bf266e5df11823c977\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"8c8a179cfd3a4c0e8fcace19249f4e25\", \"quote\": \"이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 35, \"precision\": \"exact\"}, {\"block_id\": \"83ce2b9f9b5e4d7fb2fe84257ee195a8\", \"quote\": \"양수인(사는사람) 본인이 직접등록 [신분증 지참]\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 27, \"precision\": \"exact\"}]}, \"m2\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_61b6c69d9a2e9c1dd9d939dd\", \"claim_9d2ba40285f82ff7bc48e7e7\"], \"expression_status\": \"represented\", \"key\": \"proxy_documents\", \"statement\": \"양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\", \"conditions\": [\"양수인 미방문\"], \"exceptions\": [], \"period\": \"신청 시\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_applicable\", \"period\": \"not_assessed\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_61b6c69d9a2e9c1dd9d939dd\": \"supported\", \"claim_9d2ba40285f82ff7bc48e7e7\": \"supported\"}, \"required_claim_ids\": [\"claim_61b6c69d9a2e9c1dd9d939dd\", \"claim_9d2ba40285f82ff7bc48e7e7\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_24c7352dda35333ce6f7fe22\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"f0ae85be78e54fa88a00a0bcf2d5f2e7\", \"quote\": \"양수인 미방문시\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 8, \"precision\": \"exact\"}, {\"block_id\": \"4e24a8b9921144eba70ae2b19f1c6e48\", \"quote\": \"위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 51, \"precision\": \"exact\"}]}, \"m3\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_ad6bfe8f0b9d960379667f2c\"], \"expression_status\": \"represented\", \"key\": \"transfer_certificate\", \"statement\": \"자가용(비사업용)자동차 이전등록 시 양수인이 방문하지 않는 경우, 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 제시된다.\", \"conditions\": [\"자가용(비사업용)자동차 이전등록\", \"양수인 미방문\"], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"exceptions\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"supported\", \"exceptions\": \"not_applicable\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_ad6bfe8f0b9d960379667f2c\": \"supported\"}, \"required_claim_ids\": [\"claim_ad6bfe8f0b9d960379667f2c\"], \"complete_claim_bundle\": true, \"premise_keys\": [], \"interpretation_version\": \"meaning_f71d0eaa5d884987f891ed95\", \"judgment_origin\": {\"id\": \"0ae7bed056e34dd2a9e0fba7e1bedb56\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 같은 원문의 기존 실제 모델 m4 문장을 운영자가 선택했다. 부모 양수인 미방문 조건과 양수인란/특약사항란 도장날인을 보존한다. 다른 경우 불필요하다는 배타적 결론은 없다.\", \"expected_version\": \"meaning_1d7b625b1373b43e78d2fcc0\"}, \"evidence\": [{\"block_id\": \"384fc97259f848eea8d30c610503e21a\", \"quote\": \"자가용(비사업용)자동차 이전등록\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 17, \"precision\": \"exact\"}, {\"block_id\": \"f114498fee924169a3ba2bc5e8cfa4cd\", \"quote\": \"구비서류\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 4, \"precision\": \"exact\"}, {\"block_id\": \"f0ae85be78e54fa88a00a0bcf2d5f2e7\", \"quote\": \"양수인 미방문시\\n\\t\\t\\t\\t\\t\\t\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 15, \"precision\": \"exact\"}, {\"block_id\": \"2b09e6b9bf284a4694d2af0dbac50877\", \"quote\": \"양도증명서(양수인란 및 특약사항란 도장날인)\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 24, \"precision\": \"exact\"}]}, \"m4\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_6804020432957407c5cf6595\"], \"expression_status\": \"represented\", \"key\": \"plate_change_documents\", \"statement\": \"자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\", \"conditions\": [\"자가용(비사업용)자동차 이전등록\", \"번호판 변경\"], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_applicable\", \"period\": \"not_applicable\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_6804020432957407c5cf6595\": \"supported\"}, \"required_claim_ids\": [\"claim_6804020432957407c5cf6595\"], \"complete_claim_bundle\": true, \"premise_keys\": [], \"interpretation_version\": \"meaning_5f7955533de2ee1bf8a7a95a\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"a55dc972ad5c4f5d8e8c3c22c80c6735\", \"quote\": \"번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \\\"양도\\\"로 검색, 출력하여 사용할 수 있음\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 116, \"precision\": \"exact\"}]}, \"m5\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_026829f70fe89ca9f770bee7\", \"claim_49c9d7ed3051939ea3440cd3\", \"claim_57bde5abc4e4e9b299c856e6\", \"claim_9bb0b2df8d384265d1018017\"], \"expression_status\": \"represented\", \"key\": \"sale_additional_documents\", \"statement\": \"매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\", \"conditions\": [\"매매 이전등록\"], \"exceptions\": [\"양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\"], \"period\": \"신청 시\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_assessed\", \"period\": \"not_assessed\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_026829f70fe89ca9f770bee7\": \"supported\", \"claim_49c9d7ed3051939ea3440cd3\": \"supported\", \"claim_57bde5abc4e4e9b299c856e6\": \"supported\", \"claim_9bb0b2df8d384265d1018017\": \"supported\"}, \"required_claim_ids\": [\"claim_026829f70fe89ca9f770bee7\", \"claim_49c9d7ed3051939ea3440cd3\", \"claim_57bde5abc4e4e9b299c856e6\", \"claim_9bb0b2df8d384265d1018017\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_73c920eb69aa4446b876c663\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"4491b64e7ffc4b1581da9d2dda4961af\", \"quote\": \"양도증명서(양도인(파는사람)란 도장날인)\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 22, \"precision\": \"exact\"}, {\"block_id\": \"6770952f5e2c4a1f9a90b48ae622cdc4\", \"quote\": \"양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 38, \"precision\": \"exact\"}, {\"block_id\": \"86f2462259004af7a4f59934d257f0cc\", \"quote\": \"※ 법인의 경우 자동차 매도용 법인인감증명서\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 24, \"precision\": \"exact\"}]}, \"m6\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_026829f70fe89ca9f770bee7\"], \"expression_status\": \"represented\", \"key\": \"sale_exception\", \"statement\": \"양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\", \"conditions\": [\"양도인 방문\", \"매매 이전등록\"], \"exceptions\": [\"법인\"], \"period\": \"신청 시\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"not_assessed\", \"exceptions\": \"not_assessed\", \"period\": \"not_assessed\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_026829f70fe89ca9f770bee7\": \"supported\"}, \"required_claim_ids\": [\"claim_026829f70fe89ca9f770bee7\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_5075468d9b9c8f5e1b224af7\", \"judgment_origin\": {\"origin\": \"model\"}, \"evidence\": [{\"block_id\": \"e013c0236bff47a78f8184fb2b646873\", \"quote\": \"※ 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\", \"source_version_id\": \"7b42ae519cbd4184b4de800623559005\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 39, \"precision\": \"exact\"}]}, \"m7\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_2c8f650b6c06ccdd142da788\", \"claim_4039be13b6671fc592118c23\"], \"expression_status\": \"represented\", \"key\": \"myeongji_main_office_scope\", \"statement\": \"명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\", \"conditions\": [], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"not_applicable\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_2c8f650b6c06ccdd142da788\": \"supported\", \"claim_4039be13b6671fc592118c23\": \"supported\"}, \"required_claim_ids\": [\"claim_2c8f650b6c06ccdd142da788\", \"claim_4039be13b6671fc592118c23\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_03554473104b93520b1cdf10\", \"judgment_origin\": {\"id\": \"5ff046d947f54e2f968009d0d7e5ceef\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_8d471bdf66b8eb355beae003\"}, \"evidence\": [{\"block_id\": \"f1d5d441e9aa413fa0b8a0fd21fe9ea0\", \"quote\": \"관리팀\\n(명지 본소)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 11, \"precision\": \"exact\"}, {\"block_id\": \"0d5c8db5468d4f42ae6539edffe0ce44\", \"quote\": \"이전등록\\n(자가용)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 10, \"precision\": \"exact\"}, {\"block_id\": \"a3fba913af2c4c65a61fea9062576e8b\", \"quote\": \"- 자동차 소유권 이전(변경) 등록 ※ 번호판 교부: 당일\\n- 「자동차관리법」 위반 과태료\\n- 자동차 운행정지명령 등록 및 공고\\n- 온라인 이전 등록\\n- 이전등록 지연 범칙금\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 97, \"precision\": \"exact\"}]}, \"m8\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_b75ccdd9c2c09c66d0f5428a\", \"claim_d34252c5e269cb5463c100c6\"], \"expression_status\": \"represented\", \"key\": \"geumryongsan_center_scope\", \"statement\": \"금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\", \"conditions\": [], \"exceptions\": [\"자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\"], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"supported\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_b75ccdd9c2c09c66d0f5428a\": \"supported\", \"claim_d34252c5e269cb5463c100c6\": \"supported\"}, \"required_claim_ids\": [\"claim_b75ccdd9c2c09c66d0f5428a\", \"claim_d34252c5e269cb5463c100c6\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_12efc9c2cc825ffe0bf8b92a\", \"judgment_origin\": {\"id\": \"74bb11626c4440599561ee8c3b3c1ada\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_b26ed4ec88d718e930a36b00\"}, \"evidence\": [{\"block_id\": \"a1f8992f722346179f984fc662aa66f9\", \"quote\": \"금련산센터\\n(지하철 2호선\\n금련산역)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 20, \"precision\": \"exact\"}, {\"block_id\": \"d382e5c0966c4331a2c42e62a6f5f314\", \"quote\": \"이전등록\\n(자가용)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 10, \"precision\": \"exact\"}, {\"block_id\": \"89cee83e2e9e4721941eb154f809d717\", \"quote\": \"- 자동차 소유권 이전(변경) 등록\\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\\n- 취득세 및 등록세 부과\\n- 건설기계 변경, 말소, 저당\\n- 사업용자동차 이전등록\\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 131, \"precision\": \"exact\"}]}, \"m9\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_d34252c5e269cb5463c100c6\"], \"expression_status\": \"represented\", \"key\": \"geumryongsan_center_exclusion\", \"statement\": \"금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\", \"conditions\": [], \"exceptions\": [], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"not_applicable\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_d34252c5e269cb5463c100c6\": \"supported\"}, \"required_claim_ids\": [\"claim_d34252c5e269cb5463c100c6\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_01fbedd89bebdfce440e5858\", \"judgment_origin\": {\"id\": \"51712773568c47e394983fc46d336e62\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_c8185b838e1c4dbe45b7d03a\"}, \"evidence\": [{\"block_id\": \"a1f8992f722346179f984fc662aa66f9\", \"quote\": \"금련산센터\\n(지하철 2호선\\n금련산역)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 20, \"precision\": \"exact\"}, {\"block_id\": \"89cee83e2e9e4721941eb154f809d717\", \"quote\": \"- 자동차 소유권 이전(변경) 등록\\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\\n- 취득세 및 등록세 부과\\n- 건설기계 변경, 말소, 저당\\n- 사업용자동차 이전등록\\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 131, \"precision\": \"exact\"}]}, \"m10\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_9e7a51e7f7b3446d7af4f340\"], \"expression_status\": \"represented\", \"key\": \"bujon_center_scope\", \"statement\": \"부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\", \"conditions\": [], \"exceptions\": [\"번호 변경\", \"번호판 재발급\", \"번호판 재봉인\"], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"supported\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_9e7a51e7f7b3446d7af4f340\": \"supported\"}, \"required_claim_ids\": [\"claim_9e7a51e7f7b3446d7af4f340\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_38be0314c6ac8e9eebbfe2de\", \"judgment_origin\": {\"id\": \"a5db6ce8c6d34602bd853a73f2aa79fe\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_0b6d3df8755420e57ff7db35\"}, \"evidence\": [{\"block_id\": \"825af0bb15c14400910060cef3ee4fff\", \"quote\": \"부전센터\\n(지하철 1호선\\n부전역)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 18, \"precision\": \"exact\"}, {\"block_id\": \"031615508037428fa580758e36682155\", \"quote\": \"이전등록\\n(자가용)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 10, \"precision\": \"exact\"}, {\"block_id\": \"caad152924954040bed7ba5451ca53ad\", \"quote\": \"- 자동차 소유권 이전(변경) 등록\\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\\n- 취득세 및 등록세 부과\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 72, \"precision\": \"exact\"}]}, \"m11\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_1ae59a75e84c1aac5c10c13b\"], \"expression_status\": \"represented\", \"key\": \"gupo_center_scope\", \"statement\": \"구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\", \"conditions\": [], \"exceptions\": [\"번호 변경\", \"번호판 재발급\", \"번호판 재봉인\"], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"supported\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_1ae59a75e84c1aac5c10c13b\": \"supported\"}, \"required_claim_ids\": [\"claim_1ae59a75e84c1aac5c10c13b\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_a68d6659a340291649526cb1\", \"judgment_origin\": {\"id\": \"b0406472414d44c5b500220d0dd6c62e\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_bdf98ab04d64f99ca15be221\"}, \"evidence\": [{\"block_id\": \"48be45f50bd8482ba7f1d983c5f9fa74\", \"quote\": \"구포센터\\n(지하철 3호선\\n구포역)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 18, \"precision\": \"exact\"}, {\"block_id\": \"0eee212002c94c02b9e11fda0b9110bb\", \"quote\": \"이전등록\\n(자가용)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 10, \"precision\": \"exact\"}, {\"block_id\": \"b92b407eb9a24197af34f54326d33fb5\", \"quote\": \"- 자동차 소유권 이전(변경) 등록\\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\\n- 취득세 및 등록세 부과\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 72, \"precision\": \"exact\"}]}, \"m12\": {\"requirement_id\": \"busan-R05\", \"assessment_id\": \"33e4d80c5b584a95af397a991faa21f2\", \"claim_ids\": [\"claim_c8a9b52a5b358426db1acf34\"], \"expression_status\": \"represented\", \"key\": \"dongbusan_center_scope\", \"statement\": \"동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\", \"conditions\": [], \"exceptions\": [\"말소\", \"저당\", \"번호 변경\", \"번호판 재발급\", \"번호판 재봉인\"], \"period\": \"\", \"references\": [], \"source_status\": \"supported\", \"availability\": \"provided\", \"record_error\": null, \"field_judgments\": {\"statement\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"conditions\": {\"status\": \"unknown\", \"reason\": \"기관 이름은 원문에 있으나 방문이 업무 범위 전체의 필수 조건이라는 추가 해석은 확인하지 못했다. 기관별 업무 주체/대상과 명시 제외는 본문에 이미 유지되어 독립적으로 사용한다.\", \"statement_affected\": false}, \"exceptions\": {\"status\": \"supported\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}, \"period\": {\"status\": \"unknown\", \"reason\": \"이전 추가 기간 주장의 원문 지지를 확인하지 못했다. 본문에 명시된 업무/서류와 교부 당일·2~3일의 지지는 별도로 유지한다. 현실의 운영 기간이 없거나 거짓이라는 판정이 아니다.\", \"statement_affected\": false}, \"references\": {\"status\": \"not_applicable\", \"reason\": \"제공한 원문의 본문/부모/표 항목을 직접 대조한 명시적 판정. 빈 필드는 추가 주장 없음이며 원문 전체의 부재 판정이 아니다.\", \"statement_affected\": true}}, \"field_checks\": {\"statement\": \"supported\", \"conditions\": \"unknown\", \"exceptions\": \"supported\", \"period\": \"unknown\", \"references\": \"not_applicable\"}, \"claim_support\": {\"claim_c8a9b52a5b358426db1acf34\": \"supported\"}, \"required_claim_ids\": [\"claim_c8a9b52a5b358426db1acf34\"], \"complete_claim_bundle\": true, \"premise_keys\": null, \"interpretation_version\": \"meaning_4655f8d38add6bc4bba9e3af\", \"judgment_origin\": {\"id\": \"15f50933aff24c7590f9d72758bb2889\", \"origin\": \"user\", \"actor\": \"coordinating AI explicit source reviewer; not a human trial\", \"reason\": \"조율 AI의 명시적 원문 대조. 자동 오류 검출/자동 원문 교정이나 실제 사람 검토 결과가 아니다. 원문 본문/표의 업무·대상·구비항목·제외 내용을 기존 statement와 대조하여 본문 문장은 유지했다.\", \"expected_version\": \"meaning_1d348f5026c73d69e562f0f4\"}, \"evidence\": [{\"block_id\": \"f6aebe92567d4d74a51f3756bdef1420\", \"quote\": \"동부산센터\\n(기장체육관)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 13, \"precision\": \"exact\"}, {\"block_id\": \"4b65196024904c0189669273bfd5d9bf\", \"quote\": \"이전등록\\n(자가용)\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 10, \"precision\": \"exact\"}, {\"block_id\": \"cc38a40410cb41e18e05c93e67c86cf5\", \"quote\": \"- 자동차 소유권 이전(변경) 등록 ※ 말소/저당 제외\\n등록원부, 등록증 발급 ※ 번호 변경 및 번호판 재발급·재봉인 제외\\n- 취득세 및 등록세 부과\", \"source_version_id\": \"14476d2f18bf407d969301fcb68b01a1\", \"parse_run_id\": \"c07b68e5135e49118fbae958f46125bf\", \"start_char\": 0, \"end_char\": 83, \"precision\": \"exact\"}]}}}"
+        }
+      ],
+      "schema": {
+        "$defs": {
+          "ReviewedItemSelection": {
+            "properties": {
+              "item_id": {
+                "enum": [
+                  "plate_change",
+                  "without_plate_change",
+                  "excluded",
+                  "documents"
+                ],
+                "title": "Item Id",
+                "type": "string"
+              },
+              "selected": {
+                "items": {
+                  "$ref": "#/$defs/ReviewedSelection"
+                },
+                "title": "Selected",
+                "type": "array"
+              },
+              "unconfirmed": {
+                "description": "Concrete requested fact or inference link not established; never an affirmative conclusion.",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Unconfirmed",
+                "type": "array"
+              }
+            },
+            "required": [
+              "item_id",
+              "selected",
+              "unconfirmed"
+            ],
+            "title": "ReviewedItemSelection",
+            "type": "object"
+          },
+          "ReviewedSelection": {
+            "properties": {
+              "meaning_ref": {
+                "enum": [
+                  "m1",
+                  "m2",
+                  "m3",
+                  "m4",
+                  "m5",
+                  "m6",
+                  "m7",
+                  "m8",
+                  "m9",
+                  "m10",
+                  "m11",
+                  "m12"
+                ],
+                "title": "Meaning Ref",
+                "type": "string"
+              },
+              "use": {
+                "enum": [
+                  "direct_fact",
+                  "premise_only"
+                ],
+                "title": "Use",
+                "type": "string"
+              }
+            },
+            "required": [
+              "meaning_ref",
+              "use"
+            ],
+            "title": "ReviewedSelection",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/$defs/ReviewedItemSelection"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ReviewedItemSelections",
+        "type": "object"
+      },
+      "reference_map": null,
+      "request_configuration": {
+        "model": "qwen3.8:27b-q4_K_M",
+        "generation": {
+          "provider": "ollama",
+          "endpoint": "http://localhost:11434",
+          "auth_env": "KNOWLEDGE_API_KEY",
+          "context_length": 49152
+        },
+        "identity": {
+          "draft": {
+            "name": "gemma4:31b-it-q4_K_M",
+            "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+            "context_length": 262144
+          },
+          "review": {
+            "name": "qwen3.8:27b-q4_K_M",
+            "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+            "context_length": 262144
+          }
+        },
+        "temperature": 0,
+        "timeout": 1800.0
+      },
+      "requested_limits": {
+        "max_tokens": 8192,
+        "context_tokens": 49152,
+        "think": false
+      }
+    },
+    "executed_limits": {
+      "max_tokens": 8192,
+      "context_tokens": 49152,
+      "think": false
+    },
+    "raw_response": {
+      "model": "qwen3.8:27b-q4_K_M",
+      "created_at": "2026-10-09T13:26:17.824341Z",
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"items\": [\n    {\n      \"item_id\": \"plate_change\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m4\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m7\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m8\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m10\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m11\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m12\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": [\n        \"번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터는 번호판 교부 가능(당일/2~3일)으로 명시되어 있으나, 부전·구포·동부산센터는 '번호 변경'이 제외 업무로 명시되어 있어 번호판 변경을 수반하는 이전등록을 처리할 수 있는지, 아니면 번호 변경 없이 이전등록만 처리하는지 원문에 연결이 불분명함\"\n      ]\n    },\n    {\n      \"item_id\": \"without_plate_change\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m7\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m8\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m10\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m11\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m12\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    },\n    {\n      \"item_id\": \"excluded\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m9\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m10\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m11\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m12\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    },\n    {\n      \"item_id\": \"documents\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m1\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m2\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m3\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m4\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m5\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m6\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    }\n  ]\n}"
+      },
+      "done": true,
+      "done_reason": "stop",
+      "total_duration": 127267121584,
+      "load_duration": 5868835959,
+      "prompt_eval_count": 13825,
+      "prompt_eval_cached_count": 0,
+      "prompt_eval_duration": 78300869000,
+      "eval_count": 777,
+      "eval_duration": 43067375000
+    },
+    "selection": {
+      "items": [
+        {
+          "item_id": "plate_change",
+          "selected": [
+            {
+              "meaning_ref": "m4",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m7",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m8",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m10",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m11",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m12",
+              "use": "direct_fact"
+            }
+          ],
+          "unconfirmed": [
+            "번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터는 번호판 교부 가능(당일/2~3일)으로 명시되어 있으나, 부전·구포·동부산센터는 '번호 변경'이 제외 업무로 명시되어 있어 번호판 변경을 수반하는 이전등록을 처리할 수 있는지, 아니면 번호 변경 없이 이전등록만 처리하는지 원문에 연결이 불분명함"
+          ]
+        },
+        {
+          "item_id": "without_plate_change",
+          "selected": [
+            {
+              "meaning_ref": "m7",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m8",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m10",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m11",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m12",
+              "use": "direct_fact"
+            }
+          ],
+          "unconfirmed": []
+        },
+        {
+          "item_id": "excluded",
+          "selected": [
+            {
+              "meaning_ref": "m9",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m10",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m11",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m12",
+              "use": "direct_fact"
+            }
+          ],
+          "unconfirmed": []
+        },
+        {
+          "item_id": "documents",
+          "selected": [
+            {
+              "meaning_ref": "m1",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m2",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m3",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m4",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m5",
+              "use": "direct_fact"
+            },
+            {
+              "meaning_ref": "m6",
+              "use": "direct_fact"
+            }
+          ],
+          "unconfirmed": []
+        }
+      ]
+    },
+    "unassigned_required": [],
+    "answer_item_errors": [],
+    "answer": {
+      "answer": "번호판 변경을 수반하거나\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n확인 불가: 번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터는 번호판 교부 가능(당일/2~3일)으로 명시되어 있으나, 부전·구포·동부산센터는 '번호 변경'이 제외 업무로 명시되어 있어 번호판 변경을 수반하는 이전등록을 처리할 수 있는지, 아니면 번호 변경 없이 이전등록만 처리하는지 원문에 연결이 불분명함\n\n수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?\n검토된 원문 의미: 명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.\n검토된 원문 의미: 금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.\n예외: 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n센터별 제외 업무\n검토된 원문 의미: 금련산센터에서는 자가용(비사업용) 신규등록 및 임시운행 허가를 처리할 수 없다.\n검토된 원문 의미: 부전센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 구포센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 번호 변경 및 번호판 재발급·재봉인은 제외된다.\n예외: 번호 변경 / 번호판 재발급 / 번호판 재봉인\n검토된 원문 의미: 동부산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과를 포함하며, 말소·저당, 번호 변경, 번호판 재발급·재봉인은 제외된다.\n예외: 말소 / 저당 / 번호 변경 / 번호판 재발급 / 번호판 재봉인\n\n구비서류 요건\n검토된 원문 의미: 자가용 이전등록 공통 구비서류는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이며, 양수인 본인이 직접 등록할 경우 신분증을 지참해야 한다.\n조건: 자가용 이전등록\n기간: 신청 시\n검토된 원문 의미: 양수인이 방문하지 않는 경우 위임장(양수인 도장 날인), 양수인 신분증 사본(법인의 경우 법인인감증명서), 대리인 신분증이 추가로 필요하다.\n조건: 양수인 미방문\n기간: 신청 시\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 양수인이 방문하지 않는 경우, 양도증명서(양수인란 및 특약사항란 도장날인)가 구비서류로 제시된다.\n조건: 자가용(비사업용)자동차 이전등록 / 양수인 미방문\n검토된 원문 의미: 자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.\n조건: 자가용(비사업용)자동차 이전등록 / 번호판 변경\n검토된 원문 의미: 매매 이전등록 추가 구비서류는 양도증명서(양도인(파는사람)란 도장날인)와 양도인의 자동차매도용 본인서명사실확인서(또는 자동차매도용 인감증명서)이며, 법인의 경우 자동차 매도용 법인인감증명서가 필요하다.\n조건: 매매 이전등록\n예외: 양도인이 방문시 생략가능(법인은 대표가 방문하더라도 인감 생략불가)\n기간: 신청 시\n검토된 원문 의미: 양도인이 방문하는 경우 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서는 생략 가능하지만, 법인의 경우 대표가 방문하더라도 인감 생략은 불가하다.\n조건: 양도인 방문 / 매매 이전등록\n예외: 법인\n기간: 신청 시",
+      "citations": [
+        "claim_6804020432957407c5cf6595",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34",
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_7cff5e461f1287f5d492d06e",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_61b6c69d9a2e9c1dd9d939dd",
+        "claim_9d2ba40285f82ff7bc48e7e7",
+        "claim_ad6bfe8f0b9d960379667f2c",
+        "claim_026829f70fe89ca9f770bee7",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_9bb0b2df8d384265d1018017"
+      ],
+      "choice": null,
+      "limitations": [
+        "myeongji_main_office_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "geumryongsan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "bujon_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "gupo_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "dongbusan_center_scope: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터는 번호판 교부 가능(당일/2~3일)으로 명시되어 있으나, 부전·구포·동부산센터는 '번호 변경'이 제외 업무로 명시되어 있어 번호판 변경을 수반하는 이전등록을 처리할 수 있는지, 아니면 번호 변경 없이 이전등록만 처리하는지 원문에 연결이 불분명함",
+        "geumryongsan_center_exclusion: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "common_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "proxy_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "sale_additional_documents: 추가 연결 전제의 독립성은 확인되지 않았습니다.",
+        "sale_exception: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+      ]
+    },
+    "execution_boundary": {
+      "answer_mode": "reviewed_items",
+      "answer_contract": "provided-unique-citations-nonempty-answer-v2",
+      "unadopted_answer_mode": false,
+      "source_review_run_id": "fd10ffa6e523437eb2ab1b31411dba8b",
+      "source_run_review_contract": "requirement-local-review-v6-separated",
+      "source_run_review_experimental": false,
+      "review_provenance_scope": "source_run_recipe_not_all_snapshot_assessments",
+      "status_semantics": "answered는 응답 형식·제공 근거 참조 검사 상태이며 의미 정확성이나 요구 전체 충족을 보증하지 않는다."
+    },
+    "new_required_preservation_triggered": 0,
+    "required_meanings_selected": 12,
+    "approved_claims_cited": 19,
+    "semantic_review": {
+      "source_fidelity": "All twelve required reviewed bundles selected and preserved, including regional return, absent-buyer conditions, seal locations, corporate seal exception, center exclusions and correct plate issuance timing. Same preservation as stored331; not a new fallback effect.",
+      "selection_change": "m7/m8 added to plate_change; documents six and other public item selections unchanged.",
+      "new_gap_count": 1,
+      "gap_result": "Did not identify the missing connection from Myeongji/Geumryeonsan general duties/plate issuance to specific conditional authority. Instead placed uncertainty on three centers with explicit number-change exclusions.",
+      "without_plate_change": "Five existing duty facts and empty unconfirmed; no completed condition-specific answer beyond the fact list.",
+      "outcome": "R05 conditional answer completeness failed. A nonempty gap or direct_fact label is not sufficient. No inference that real offices are unable to perform the work."
+    },
+    "new_candidate_edits": 0,
+    "automatic_error_discovery": 0,
+    "new_graph_updates": 0,
+    "new_snapshot_approvals": 0
+  },
+  "input_comparison": {
+    "old_request_run_id": "331cbe46fc2a4a0084818c1b396f6c81",
+    "response_replayed_unchanged": true,
+    "preservation_only_answer_matches_replay": true,
+    "stored_request_vs_preservation_only": {
+      "messages": false,
+      "schema": true,
+      "reference_map": true
+    },
+    "stored_request_vs_new_task": {
+      "messages": false,
+      "schema": true,
+      "reference_map": true,
+      "request_configuration": true,
+      "requested_limits": true
+    },
+    "new_model_calls": 0,
+    "stored_vs_preservation_payload_equal": false,
+    "stored_vs_preservation_different_payload_keys": [
+      "requested_row_fields"
+    ],
+    "stored_vs_preservation_system_diff": "",
+    "stored_vs_final_different_payload_fields": {
+      "requested_row_fields": {
+        "before": null,
+        "after": {
+          "plate_change": [],
+          "without_plate_change": [],
+          "excluded": [],
+          "documents": []
+        }
+      },
+      "required_preserved_meaning_refs": {
+        "before": null,
+        "after": [
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10",
+          "m11",
+          "m12"
+        ]
+      }
+    },
+    "existing_facts_question_criterion_items_exactly_equal": true,
+    "actual_comparison_boundary": "Historical response plus current one-call behavior; system instruction and two request metadata fields differ. Not a strict prompt-only paired rerun."
+  },
+  "final_current_request_check": {
+    "base_commit": "b1e1f65a",
+    "new_calls": 0,
+    "same_actual_selection_replay_answer": true,
+    "full_current_product_qa_request_identical_to_base": true,
+    "request_sha256": "cee86bf3588d0f0c953ee9a4641552534ecf721f78fcc2766b0a35e86c872182"
+  },
+  "integrity": {
+    "original_database_unchanged": true,
+    "snapshot_unchanged": true,
+    "stored_source_run_unchanged": true,
+    "requirement_unchanged": true,
+    "code_unchanged": true,
+    "new_model_calls": 1
+  },
+  "freeze": {
+    "created_at": "2026-10-09T13:23:55.702240+00:00",
+    "original_database": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_support_mechanism_20261008/conditional_qa/knowledge.db",
+    "original_sha256": "d93e080f0e4e1c7f092bb60aff1a5dd2903331520ad0baa9d37c9e10a4bd256f",
+    "snapshot_id": "f238a00cc00b474fad2f890782510a35",
+    "snapshot_sha256": "2ab23588ca07900d6221e36127562d92ab22aa3b2e3f4a65b6a473ee145211cc",
+    "recipe": {
+      "version": "autoschemakg-business-v2-compact-source",
+      "generation": {
+        "provider": "ollama",
+        "endpoint": "http://localhost:11434",
+        "auth_env": "KNOWLEDGE_API_KEY",
+        "context_length": 49152
+      },
+      "models": {
+        "draft": "gemma4:31b-it-q4_K_M",
+        "review": "qwen3.8:27b-q4_K_M"
+      },
+      "options": {
+        "source_version_ids": [
+          "7b42ae519cbd4184b4de800623559005",
+          "14476d2f18bf407d969301fcb68b01a1"
+        ],
+        "requirement_ids": [
+          "busan-R05"
+        ],
+        "block_ids": [],
+        "selection_reason": "",
+        "neighbor_mode": "structured",
+        "model": null,
+        "review_model": null,
+        "context_tokens": 49152,
+        "representation_context_tokens": 49152,
+        "extraction_tokens": 4096,
+        "concept_tokens": 512,
+        "review_tokens": 8192,
+        "representation_tokens": 8192,
+        "source_tokens": 8192,
+        "source_reassessment_tokens": 8192,
+        "timeout": 1800.0,
+        "think": false,
+        "repair": true,
+        "resume_run_id": null,
+        "reuse_run_id": null,
+        "conceptualize": false
+      },
+      "review_contract": "requirement-local-review-v6-separated"
+    },
+    "model_identity": {
+      "draft": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      },
+      "review": {
+        "name": "qwen3.8:27b-q4_K_M",
+        "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+        "context_length": 262144
+      }
+    },
+    "question": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+    "public_requirement": {
+      "id": "busan-R05",
+      "question": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+      "criterion": "이전등록 담당과 센터별 제외 업무를 모두 유지하고 구비서류 요건과 기관의 처리 가능 범위를 함께 확인한다.",
+      "target": "자가용 매매 이전등록 신청인",
+      "situation": "명지 본소·금련산·부전·구포·동부산센터 비교",
+      "period": "방문 전 기관 및 서류 확인",
+      "revision": 1
+    },
+    "product_entrypoint": "business_use.query",
+    "experiment": "required_meaning_preservation_and_residual_connection_task",
+    "baseline_run_id": "331cbe46fc2a4a0084818c1b396f6c81",
+    "gold_loaded": false,
+    "available_cache_units": 14,
+    "max_new_model_calls": 1,
+    "criteria_file": "docs/70_research/company_knowledge/business_answer_preservation_20261009.md"
+  },
+  "cache_lookups": [
+    {
+      "stage": "graph_retrieval_filter",
+      "request_sha256": "6e9cd1640aaa5abbc4c0174daeea592c305b6756e4c2b172ee7f1c1612cfdc96",
+      "reuse_run_id": "e2c440e0a60f41b89fb35ceadce14931",
+      "reuse_unit_id": "d3fa6ffad3574013b9fb6f926d879fac"
+    },
+    {
+      "stage": "business_qa",
+      "request_sha256": "30a86f0202432ce5bb37a60f03868c08f82fa15d2db8ca42f06d548e4c9c5110",
+      "reuse_run_id": null,
+      "reuse_unit_id": null
+    }
+  ],
+  "resource_released": {
+    "created_at": "2026-10-09T13:27:16.707205+00:00",
+    "task_loaded_model_stopped": "qwen3.8:27b-q4_K_M",
+    "ollama_ps": {
+      "models": []
+    },
+    "compute_released": true
+  },
+  "tests": {
+    "post_prompt_removal_66": "..................................................................       [100%]\n66 passed in 17.73s\n",
+    "final_query_boundary_15": "...............                                                          [100%]\n15 passed in 18.15s\n",
+    "overlap_note": "The 15 includes ten preservation tests already in the 66; do not sum. The final scope-only metadata change was covered by the 15.",
+    "before_dependency_regression": "FFF                                                                      [100%]\n=================================== FAILURES ===================================\n__ test_required_meaning_keeps_its_unselected_nonessential_premise[selected0] __\napp/tests/unit/test_knowledge_business_answer_preservation.py:80: in test_required_meaning_keeps_its_unselected_nonessential_premise\n    assert answer['answer'].count(m['statement']) == answer['answer'].count(p['statement']) == 1\nE   AssertionError: assert 1 == 0\nE    +  where 1 = <built-in method count of str object at 0x106824490>('연결된 전제 아래 서류를 구비한다.')\nE    +    where <built-in method count of str object at 0x106824490> = '서류\\n\\n요구의 필수 검토 내용 (답변 항목 배치 미완료):\\n연결된 전제 아래 서류를 구비한다.\\n조건: 대리 방문\\n기간: 2~3일'.count\nE    +  and   0 = <built-in method count of str object at 0x106824490>('대리 방문의 경우에 적용된다.')\nE    +    where <built-in method count of str object at 0x106824490> = '서류\\n\\n요구의 필수 검토 내용 (답변 항목 배치 미완료):\\n연결된 전제 아래 서류를 구비한다.\\n조건: 대리 방문\\n기간: 2~3일'.count\n__ test_required_meaning_keeps_its_unselected_nonessential_premise[selected1] __\napp/tests/unit/test_knowledge_business_answer_preservation.py:80: in test_required_meaning_keeps_its_unselected_nonessential_premise\n    assert answer['answer'].count(m['statement']) == answer['answer'].count(p['statement']) == 1\nE   AssertionError: assert 1 == 0\nE    +  where 1 = <built-in method count of str object at 0x106754ab0>('연결된 전제 아래 서류를 구비한다.')\nE    +    where <built-in method count of str object at 0x106754ab0> = '서류\\n검토된 원문 의미: 연결된 전제 아래 서류를 구비한다.\\n조건: 대리 방문\\n기간: 2~3일'.count\nE    +  and   0 = <built-in method count of str object at 0x106754ab0>('대리 방문의 경우에 적용된다.')\nE    +    where <built-in method count of str object at 0x106754ab0> = '서류\\n검토된 원문 의미: 연결된 전제 아래 서류를 구비한다.\\n조건: 대리 방문\\n기간: 2~3일'.count\n__ test_required_meaning_keeps_its_unselected_nonessential_premise[selected2] __\napp/tests/unit/test_knowledge_business_answer_preservation.py:81: in test_required_meaning_keeps_its_unselected_nonessential_premise\n    assert answer['answer'].count(prerequisite['statement']) == 1\nE   AssertionError: assert 0 == 1\nE    +  where 0 = <built-in method count of str object at 0x10662ee70>('등록된 대리 신청을 전제로 한다.')\nE    +    where <built-in method count of str object at 0x10662ee70> = '서류\\n검토된 원문 의미: 대리 방문의 경우에 적용된다.\\n조건: 대리 방문\\n기간: 2~3일\\n\\n요구의 필수 검토 내용 (답변 항목 배치 미완료):\\n연결된 전제 아래 서류를 구비한다.\\n조건: 대리 방문\\n기간: 2~3일'.count\n=========================== short test summary info ============================\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_required_meaning_keeps_its_unselected_nonessential_premise[selected0]\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_required_meaning_keeps_its_unselected_nonessential_premise[selected1]\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_required_meaning_keeps_its_unselected_nonessential_premise[selected2]\n3 failed, 7 deselected in 0.06s\n",
+    "initial_before_tests": "FFFFF                                                                    [100%]\n=================================== FAILURES ===================================\n_ test_required_scope_comes_from_snapshot_checks_not_application_explanations __\n\n    def test_required_scope_comes_from_snapshot_checks_not_application_explanations():\n        text = '대리 방문 때 서류를 구비한다.'\n        block = dict(id='b', source_version_id='v', parse_run_id='p', text=text)\n        meanings = [dict(reviewed(key), evidence=[dict(block_id='b', quote=text)],\n                         required_for_requirement=True, requirement_link={'reason': '필수라는 자유 설명'})\n                    for key in ['required', 'background']]\n        snapshot = dict(blocks=[block], assessments={'r':dict(id='a', source=dict(meanings=meanings),\n            representation=dict(source_checks=[dict(meaning_key=key, required_for_requirement=key=='required')\n                                              for key in ['required', 'background']],\n                                checks=[dict(meaning_key=m['key'], status='represented', claim_ids=['c'],\n                                             claim_support={'c':'supported'}) for m in meanings]))})\n        before = deepcopy(snapshot)\n        rows = use.reviewed_answer_meanings(snapshot, {'c'}, ['r'])\n>       assert {m['key']:m['required_for_requirement'] for m in rows} == {'required':True, 'background':False}\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:24: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x106564d00>\n\n>   assert {m['key']:m['required_for_requirement'] for m in rows} == {'required':True, 'background':False}\nE   KeyError: 'required_for_requirement'\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:24: KeyError\n_ test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[empty_selection] _\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1071a5a50>\nomission = 'empty_selection'\n\n    @pytest.mark.parametrize('omission', ['empty_selection', 'missing_item', 'duplicate_item'])\n    def test_unselected_required_bundle_is_preserved_without_inventing_item_assignment(monkeypatch, omission):\n        required = dict(reviewed('needed'), required_for_requirement=True,\n                        statement='대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.', exceptions=['법인'])\n        required['field_judgments']['period'] = dict(status='unknown', statement_affected=False, reason='기간은 미확인')\n        background = dict(reviewed('background'), statement='별도 업무의 안내.', required_for_requirement=False)\n        blocked = dict(reviewed('blocked'), statement='미검토 추가 조건.', required_for_requirement=True,\n                       complete_claim_bundle=False)\n        other = dict(reviewed('other'), requirement_id='other', statement='다른 요구의 사실.', required_for_requirement=True)\n        item = dict(item_id='i', selected=[], unconfirmed=['요청 조건과 담당 업무 사이의 연결을 확인해야 한다.'])\n        response = dict(items=[] if omission=='missing_item' else [item] * (2 if omission=='duplicate_item' else 1))\n        run = dict(reviewed_meanings=[required, background, blocked, other],\n                   answer_items=[dict(id='i', requirement_id='r', request_quote='서류와 기관')])\n        before = deepcopy(run['reviewed_meanings'])\n        monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: response)\n        answer = use.reviewed_item_answer(None, run, SimpleNamespace(question='서류와 기관'), [])\n>       assert required['statement'] in answer['answer'] and '조건: 대리 방문' in answer['answer']\nE       AssertionError: assert ('대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.' in '서류와 기관\\n확인 불가: 요청 조건과 담당 업무 사이의 연결을 확인해야 한다.')\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:44: AssertionError\n_ test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[missing_item] _\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1073b1bd0>\nomission = 'missing_item'\n\n    @pytest.mark.parametrize('omission', ['empty_selection', 'missing_item', 'duplicate_item'])\n    def test_unselected_required_bundle_is_preserved_without_inventing_item_assignment(monkeypatch, omission):\n        required = dict(reviewed('needed'), required_for_requirement=True,\n                        statement='대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.', exceptions=['법인'])\n        required['field_judgments']['period'] = dict(status='unknown', statement_affected=False, reason='기간은 미확인')\n        background = dict(reviewed('background'), statement='별도 업무의 안내.', required_for_requirement=False)\n        blocked = dict(reviewed('blocked'), statement='미검토 추가 조건.', required_for_requirement=True,\n                       complete_claim_bundle=False)\n        other = dict(reviewed('other'), requirement_id='other', statement='다른 요구의 사실.', required_for_requirement=True)\n        item = dict(item_id='i', selected=[], unconfirmed=['요청 조건과 담당 업무 사이의 연결을 확인해야 한다.'])\n        response = dict(items=[] if omission=='missing_item' else [item] * (2 if omission=='duplicate_item' else 1))\n        run = dict(reviewed_meanings=[required, background, blocked, other],\n                   answer_items=[dict(id='i', requirement_id='r', request_quote='서류와 기관')])\n        before = deepcopy(run['reviewed_meanings'])\n        monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: response)\n        answer = use.reviewed_item_answer(None, run, SimpleNamespace(question='서류와 기관'), [])\n>       assert required['statement'] in answer['answer'] and '조건: 대리 방문' in answer['answer']\nE       AssertionError: assert ('대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.' in '서류와 기관\\n응답 기록 미완성')\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:44: AssertionError\n_ test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[duplicate_item] _\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1073a56d0>\nomission = 'duplicate_item'\n\n    @pytest.mark.parametrize('omission', ['empty_selection', 'missing_item', 'duplicate_item'])\n    def test_unselected_required_bundle_is_preserved_without_inventing_item_assignment(monkeypatch, omission):\n        required = dict(reviewed('needed'), required_for_requirement=True,\n                        statement='대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.', exceptions=['법인'])\n        required['field_judgments']['period'] = dict(status='unknown', statement_affected=False, reason='기간은 미확인')\n        background = dict(reviewed('background'), statement='별도 업무의 안내.', required_for_requirement=False)\n        blocked = dict(reviewed('blocked'), statement='미검토 추가 조건.', required_for_requirement=True,\n                       complete_claim_bundle=False)\n        other = dict(reviewed('other'), requirement_id='other', statement='다른 요구의 사실.', required_for_requirement=True)\n        item = dict(item_id='i', selected=[], unconfirmed=['요청 조건과 담당 업무 사이의 연결을 확인해야 한다.'])\n        response = dict(items=[] if omission=='missing_item' else [item] * (2 if omission=='duplicate_item' else 1))\n        run = dict(reviewed_meanings=[required, background, blocked, other],\n                   answer_items=[dict(id='i', requirement_id='r', request_quote='서류와 기관')])\n        before = deepcopy(run['reviewed_meanings'])\n        monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: response)\n        answer = use.reviewed_item_answer(None, run, SimpleNamespace(question='서류와 기관'), [])\n>       assert required['statement'] in answer['answer'] and '조건: 대리 방문' in answer['answer']\nE       AssertionError: assert ('대리 방문 때 서류를 구비한다. 법인 서류는 생략할 수 없다.' in '서류와 기관\\n응답 기록 미완성')\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:44: AssertionError\n____ test_selected_required_meaning_is_not_repeated_in_preservation_section ____\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x107353f50>\n\n    def test_selected_required_meaning_is_not_repeated_in_preservation_section(monkeypatch):\n        m = dict(reviewed(), required_for_requirement=True)\n        run = dict(reviewed_meanings=[m], answer_items=[dict(id='i', requirement_id='r', request_quote='서류')])\n        monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: dict(items=[dict(item_id='i',\n            selected=[dict(meaning_ref='m1', use='direct_fact')], unconfirmed=[])]))\n        answer = use.reviewed_item_answer(None, run, SimpleNamespace(question='서류'), [])\n        assert answer['answer'].count(m['statement']) == 1\n>       assert not run['answer_meaning_selection']['unassigned_required']\nE       KeyError: 'unassigned_required'\n\napp/tests/unit/test_knowledge_business_answer_preservation.py:60: KeyError\n=========================== short test summary info ============================\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_required_scope_comes_from_snapshot_checks_not_application_explanations\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[empty_selection]\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[missing_item]\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_unselected_required_bundle_is_preserved_without_inventing_item_assignment[duplicate_item]\nFAILED app/tests/unit/test_knowledge_business_answer_preservation.py::test_selected_required_meaning_is_not_repeated_in_preservation_section\n5 failed in 0.22s\n",
+    "prepare_serialization_failure": "Traceback (most recent call last):\n  File \"/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_answer_preservation_20261009/prepare.py\", line 64, in <module>\n    write(B/'replay.json',dict(baseline_commit='b1e1f65a',actual_r05_run_id=source['id'],actual_r05_output=selected,\n  File \"/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_answer_preservation_20261009/prepare.py\", line 13, in <lambda>\n    write=lambda p,j:p.write_text(json.dumps(j,ensure_ascii=False,indent=2)+'\\n')\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/__init__.py\", line 238, in dumps\n    **kw).encode(obj)\n          ^^^^^^^^^^^\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 202, in encode\n    chunks = list(chunks)\n             ^^^^^^^^^^^^\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 432, in _iterencode\n    yield from _iterencode_dict(o, _current_indent_level)\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 406, in _iterencode_dict\n    yield from chunks\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 406, in _iterencode_dict\n    yield from chunks\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 439, in _iterencode\n    o = _default(o)\n        ^^^^^^^^^^^\n  File \"/Users/hyeongi/projects/.local/civil-mac-runtime/lib/python3.11/json/encoder.py\", line 180, in default\n    raise TypeError(f'Object of type {o.__class__.__name__} '\nTypeError: Object of type Connection is not JSON serializable\n"
+  },
+  "patches": {
+    "adopted": "diff --git a/app/knowledge/business_use.py b/app/knowledge/business_use.py\nindex 28371f49..af5cddd5 100644\n--- a/app/knowledge/business_use.py\n+++ b/app/knowledge/business_use.py\n@@ -316,6 +316,26 @@ def bind_answer_items(request, requirements):\n     return items\n \n \n+def required_answer_meaning_keys(snapshot, requirement_ids):\n+    keys = {rid: {row['meaning_key'] for row in (snapshot['assessments'][rid].get('representation') or {}).get('source_checks', [])\n+                  if row['required_for_requirement']} for rid in requirement_ids}\n+    for review in snapshot.get('explicit_meaning_reviews', []):\n+        if review['requirement_id'] in keys and review['meaning'].get('required_for_requirement'):\n+            keys[review['requirement_id']].add(review['meaning']['key'])\n+    return {rid: sorted(values) for rid, values in keys.items()}\n+\n+\n+def reviewed_meaning_lines(meaning):\n+    lines = [meaning['statement']]\n+    for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:\n+        value = meaning.get(field)\n+        status = (meaning.get('field_checks') or business_review.source_judgment(meaning)['field_checks'])[field]\n+        # Legacy qualifiers remain in the reviewed bundle, without inventing a field verdict.\n+        if value and status in {'supported', 'not_assessed'}:\n+            lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))\n+    return lines\n+\n+\n def exact_row_answer_fields(snapshot, selected, requirement_ids):\n     \"\"\"Expose accepted literal cells, not new model-reviewed propositions.\"\"\"\n     rows = []\n@@ -394,6 +414,19 @@ def reviewed_item_answer(service, run, request, requirements):\n     # public items, including when the prior request's applicability was unknown.\n     run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded,\n                                          public_answer_items=deepcopy(run['answer_items']))\n+    item_requirements = {item['requirement_id'] for item in run['answer_items']}\n+    required_refs = {ref for ref, m in available.items() if m['requirement_id'] in item_requirements\n+        and m['key'] in run.get('required_answer_meaning_keys', {}).get(m['requirement_id'], [])}\n+    preserved_refs = set(required_refs)\n+    by_key = {(m['requirement_id'], m['key']): ref for ref, m in available.items()}\n+    pending = list(required_refs)\n+    while pending:\n+        m = available[pending.pop()]\n+        for key in m.get('premise_keys') or []:\n+            ref = by_key[m['requirement_id'], key]\n+            if ref not in preserved_refs:\n+                preserved_refs.add(ref)\n+                pending.append(ref)\n     if not available:\n         return dict(answer='확인된 후보·조건·전제가 함께 제공된 의미가 없습니다.', citations=[], choice=None,\n                     limitations=['현재 검토 버전의 표현 연결을 확인해야 합니다.'])\n@@ -438,10 +471,13 @@ def reviewed_item_answer(service, run, request, requirements):\n                 if run.get('answer_assessment_limitations') else {}),\n              # Earlier whole-requirement applicability is not a verdict on the current public item.\n              reviewed_meanings=payload), output_type)\n-    if output is None:\n-        return None\n     run['answer_meaning_selection']['output'] = deepcopy(output)\n+    if output is None:\n+        if not required_refs:\n+            return None\n+        output = dict(items=[])\n     rendered, citations, limitations, errors = [], [], [], []\n+    shown_meanings = set()\n     for item in run['answer_items']:\n         matches = [r for r in output['items'] if r['item_id'] == item['id']]\n         if len(matches) != 1:\n@@ -455,6 +491,7 @@ def reviewed_item_answer(service, run, request, requirements):\n             m = available[selected['meaning_ref']]\n             if m['requirement_id'] != item['requirement_id']:\n                 errors.append(item['id'] + ': wrong_requirement'); continue\n+            shown_meanings.add(selected['meaning_ref'])\n             if m.get('kind') == 'exact_row_field':\n                 selected_fields.add(m['field_name'])\n                 lines.append(('원문 행 값 (결론 연결 미확인): ' if selected['use'] == 'premise_only'\n@@ -473,14 +510,8 @@ def reviewed_item_answer(service, run, request, requirements):\n                         lines.append('자료에 기록된 날짜: ' + ', '.join(d['value'] for d in m['source_dates']))\n                 continue\n             prefix = '확인된 전제 (결론 연결 미확인): ' if selected['use'] == 'premise_only' else '검토된 원문 의미: '\n-            lines.append(prefix + m['statement'])\n-            for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:\n-                value = m.get(field)\n-                status = (m.get('field_checks') or business_review.source_judgment(m)['field_checks'])[field]\n-                # Preserve every legacy qualifier in its whole-meaning bundle;\n-                # do not invent a separate field verdict or silently broaden it.\n-                if value and status in {'supported', 'not_assessed'}:\n-                    lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))\n+            content = reviewed_meaning_lines(m)\n+            lines.extend([prefix + content[0], *content[1:]])\n             citations.extend(m['required_claim_ids'])\n             if m.get('premise_keys') is None:\n                 limitations.append(m['key'] + ': 추가 연결 전제의 독립성은 확인되지 않았습니다.')\n@@ -498,6 +529,17 @@ def reviewed_item_answer(service, run, request, requirements):\n                 lines.append(gap)\n                 limitations.append(gap)\n         rendered.append('\\n'.join(lines))\n+    unassigned = [ref for ref in available if ref in preserved_refs - shown_meanings]\n+    run['answer_meaning_selection']['unassigned_required'] = unassigned\n+    for ref in unassigned:\n+        m = available[ref]\n+        label = '요구의 필수 검토 내용' if ref in required_refs else '필수 검토 내용의 연결 전제'\n+        rendered.append(label + ' (답변 항목 배치 미완료):\\n' + '\\n'.join(reviewed_meaning_lines(m)))\n+        citations.extend(m['required_claim_ids'])\n+        errors.append(m['requirement_id'] + ': required_meaning_not_assigned:' + m['key'])\n+        limitations.append('필수 검토 내용은 보존했으나 요청 항목과의 연결이 답변에서 빠졌습니다: ' + m['key'])\n+        if m.get('premise_keys') is None:\n+            limitations.append(m['key'] + ': 추가 연결 전제의 독립성은 확인되지 않았습니다.')\n     for limitation in run.get('answer_assessment_limitations', []):\n         text = ('요청한 내용의 전체 충족은 아직 확인되지 않았습니다'\n             + (' (기준 시점: ' + limitation['period'] + ')' if limitation['period'] else '') + '. '\n@@ -738,6 +780,8 @@ def query(service, request, *, context_mode='graph'):\n                    answer_basis='source_passages_not_ontology_approval' if source_reader else 'reviewed_claims',\n                    source_extraction_status=original['status'] if source_reader else None,\n                    answer_contract=ANSWER_CONTRACT, required_context_ids=sorted(required_ids))\n+        if request.answer_mode == 'reviewed_items':\n+            run['required_answer_meaning_keys'] = required_answer_meaning_keys(snapshot, request.requirement_ids)\n         run['execution_boundary'] = dict(\n             answer_mode=request.answer_mode, answer_contract=None,\n             unadopted_answer_mode=request.answer_mode in {'source_quotes', 'items'},\n",
+    "rejected_qa_task": "--- a/app/knowledge/business_use.py\n+++ b/app/knowledge/business_use.py\n@@ -453,7 +453,12 @@\n             r'(?<![A-Za-z0-9_])' + r'\\s*'.join(map(re.escape, re.sub(r'\\s+', '', name))) + r'(?![A-Za-z0-9_])',\n             item['request_quote'], re.IGNORECASE)] for item in run['answer_items']}\n     output = business_run.json_call(service, run, 'business_qa',\n-        '공개 질문/criterion의 항목별로 해당하는 검토 의미 ID만 선택한다. 문장·결론을 새로 작성하지 않는다. '\n+        '공개 질문/criterion에 답하기 위해 검토된 사실 사이에 아직 필요한 연결을 찾는다. '\n+        'required_preserved_meaning_refs의 온전한 사실·조건은 서버가 보존한다. 이를 다시 요약하거나 새 결론으로 쓰지 않는다. '\n+        'selected는 해당 공개 항목에 사실을 배치하는 선택이며, 선택만으로 질문에 답했다는 뜻이 아니다. '\n+        '각 항목에서 확인된 문장 자체로 답할 수 있는 부분은 그대로 선택한다. 이미 명시된 조건 결론에 불필요한 추가 확인을 요구하지 않는다. '\n+        '그 사실을 알아도 질문의 조건별 결론에 답하려면 추가로 알아야 할 주체·행위·조건의 연결이 있으면 unconfirmed에 구체적으로 쓴다. '\n+        '질문 조건이 여럿이면 각각 대조한다. 일반적 주의문이나 사실 목록으로 빠진 연결을 대신하지 않는다. '\n         '각 의미의 출처/조건/대상/기간과 질문 적용성을 대조한다. 직접 답인 사실은 direct_fact, '\n         '결론에 추가 연결이 필요하면 premise_only로 고르고 그 구체 미확인 연결을 unconfirmed에 쓴다. '\n         '명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. '\n@@ -465,6 +470,7 @@\n         '파일 기준일은 현실 최신성이나 전체 요구 충족의 증거가 아니며 assessment_limitations를 유지한다.'\n         if run.get('exact_row_answer_fields') else ''),\n         dict(question=request.question, public_requirements=requirements, public_answer_items=run['answer_items'],\n+             required_preserved_meaning_refs=[ref for ref in available if ref in required_refs],\n              requested_row_fields=requested_fields,\n              **(dict(row_contexts=row_contexts) if row_contexts else {}),\n              **(dict(assessment_limitations=run['answer_assessment_limitations'])\n"
+  },
+  "not_executed": [
+    "new extraction",
+    "whole dataset evaluation",
+    "LH",
+    "new normal-question model execution",
+    "automatic error detection/repair pipeline",
+    "new graph change propagation",
+    "PR merge/deploy"
+  ],
+  "next": "Keep issues open. Preserve known meaning bundles. Do not repeat the rejected prompt variation; a concrete, justified condition-connection mechanism remains necessary.",
+  "artifact_root": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_answer_preservation_20261009",
+  "artifact_hashes": {
+    "prepare.py": "5ebaf3fbd983913ec0a8ad1ee81ba1986452868298a5aebaac9e1bee041aa554",
+    "run_live.py": "2f4ebb3f4f593de25039806c67473fe7769529e90204d5d7449dd3f583205da2",
+    "finalize.py": "258673649b8972560bfa15826715b8ea7d7171fdefd6fe76fb62d3d83852f7a3",
+    "code_candidate_manifest.json": "892a0917b2c7c256df2388d792c3700d7af92674f7e9e7cbec16c81b7d108df3",
+    "code_candidate_final_manifest.json": "1490691810de13e43631cdc4f7bbaa2ec3bb6588da0a46a64d0fd1ad18568bf8",
+    "expected_qa_request.json": "46723def7af75e327f33040fe445c03103051521480855d01fbf4599337b4f4f",
+    "criteria.json": "6f8d16e4132e69f6cde9aa917210c629923815b9ee71547e21de98aac2e4dc54",
+    "request.json": "09f3b8e6d799bf77552fb8cae989a0a97af69cb2e8b6109648d960e6b361ad7f",
+    "preparation_integrity.json": "d9130d8b5642b0b4cfee6d9ba74debb5916750cd50d0ad71586bbfa0a85f89d3",
+    "replay.json": "73959d1dc55debf11a36cfef63f7eee32627c66021c706ff8dd4f35c3a58cfcd",
+    "request_comparison.json": "b11484d2fd94ca6b74e3305a56d94de65d35e991ec6439605ba02bc522c256d6",
+    "final_request_unchanged.json": "be51d1ebefceaff5d1ff74038ed264e03c860cf726535a99ee00ae5da7fc5ca3",
+    "resource_before_live.json": "b243b8edf7e1cb9f2d6d056d7a63444381803e2e4d2619a0b8ce00a704a25d18",
+    "resource_released.json": "488db53f7e5ec0ccc1fec7a4416e2e62392eefe35039132f4807a075e9161ce9",
+    "live/result.json": "884c944cdac842d2913e5fc1ba843547785657d3fced94aeb72ec04704a911c6",
+    "live/integrity.json": "2f54c1f5fe4c4c781112708df0042f5378c586b51559046bfb68cbbc2b18ddcc",
+    "live/freeze.json": "7f3492e6486f99e1effa050a6c57d873583f8bfe413a5777efd682fb82869866",
+    "live/cache_lookups.json": "8f82de82b7d0f2d584c34f0e4421b8571fef9935e27ea27783dc107f5fa88898",
+    "server_preservation.patch": "843b1aed87cab83bbd3c4e044c6ee48e9cc919f7ac480ebc847abd039a0dcd3b",
+    "qa_task_experiment.patch": "cd491ca6aff758704dfaff15211364d8e59c76d021ce9ea44698de51e979de5d",
+    "adopted_patch.patch": "2822e07fdad223bff78167b392e5382fe33c9984748edd77a25fde309a756fab",
+    "adopted_business_use.py": "1cec744cd90c100a17c1cdaf216d959d3ed9f5bf7f70907fb863bd0ffc14dd3b",
+    "preservation_only_business_use.py": "7deabf6860528d32e9b0c8565acb2cdb1a908306e1a856bdbfe2f40ad95ff0ae",
+    "dependency_candidate_tests.log": "21ba90641d5ce7d839347aafe5356e0fb53fcceb7315a9221c0fba76d816c6c3",
+    "final_preservation_tests.log": "280a7bc0762dd187dcdebc45c693b00a77d27e814b2d42b35565c94c70b2390e",
+    "final_query_boundary_tests.log": "cb8d845b10575852f8ccee2a3cca881da0ce3faab1ea2b07a6a2d5f091028fda",
+    "before_dependency_regression.log": "f2f88e18cde6a8d50fbbdbea3fed2e238365a6fc16bf691f09198d03465dc7df"
+  }
+}

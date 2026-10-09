@@ -316,6 +316,26 @@ def bind_answer_items(request, requirements):
     return items
 
 
+def required_answer_meaning_keys(snapshot, requirement_ids):
+    keys = {rid: {row['meaning_key'] for row in (snapshot['assessments'][rid].get('representation') or {}).get('source_checks', [])
+                  if row['required_for_requirement']} for rid in requirement_ids}
+    for review in snapshot.get('explicit_meaning_reviews', []):
+        if review['requirement_id'] in keys and review['meaning'].get('required_for_requirement'):
+            keys[review['requirement_id']].add(review['meaning']['key'])
+    return {rid: sorted(values) for rid, values in keys.items()}
+
+
+def reviewed_meaning_lines(meaning):
+    lines = [meaning['statement']]
+    for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:
+        value = meaning.get(field)
+        status = (meaning.get('field_checks') or business_review.source_judgment(meaning)['field_checks'])[field]
+        # Legacy qualifiers remain in the reviewed bundle, without inventing a field verdict.
+        if value and status in {'supported', 'not_assessed'}:
+            lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))
+    return lines
+
+
 def exact_row_answer_fields(snapshot, selected, requirement_ids):
     """Expose accepted literal cells, not new model-reviewed propositions."""
     rows = []
@@ -394,6 +414,19 @@ def reviewed_item_answer(service, run, request, requirements):
     # public items, including when the prior request's applicability was unknown.
     run['answer_meaning_selection'] = dict(available=deepcopy(available), excluded=excluded,
                                          public_answer_items=deepcopy(run['answer_items']))
+    item_requirements = {item['requirement_id'] for item in run['answer_items']}
+    required_refs = {ref for ref, m in available.items() if m['requirement_id'] in item_requirements
+        and m['key'] in run.get('required_answer_meaning_keys', {}).get(m['requirement_id'], [])}
+    preserved_refs = set(required_refs)
+    by_key = {(m['requirement_id'], m['key']): ref for ref, m in available.items()}
+    pending = list(required_refs)
+    while pending:
+        m = available[pending.pop()]
+        for key in m.get('premise_keys') or []:
+            ref = by_key[m['requirement_id'], key]
+            if ref not in preserved_refs:
+                preserved_refs.add(ref)
+                pending.append(ref)
     if not available:
         return dict(answer='확인된 후보·조건·전제가 함께 제공된 의미가 없습니다.', citations=[], choice=None,
                     limitations=['현재 검토 버전의 표현 연결을 확인해야 합니다.'])
@@ -438,10 +471,13 @@ def reviewed_item_answer(service, run, request, requirements):
                 if run.get('answer_assessment_limitations') else {}),
              # Earlier whole-requirement applicability is not a verdict on the current public item.
              reviewed_meanings=payload), output_type)
-    if output is None:
-        return None
     run['answer_meaning_selection']['output'] = deepcopy(output)
+    if output is None:
+        if not required_refs:
+            return None
+        output = dict(items=[])
     rendered, citations, limitations, errors = [], [], [], []
+    shown_meanings = set()
     for item in run['answer_items']:
         matches = [r for r in output['items'] if r['item_id'] == item['id']]
         if len(matches) != 1:
@@ -455,6 +491,7 @@ def reviewed_item_answer(service, run, request, requirements):
             m = available[selected['meaning_ref']]
             if m['requirement_id'] != item['requirement_id']:
                 errors.append(item['id'] + ': wrong_requirement'); continue
+            shown_meanings.add(selected['meaning_ref'])
             if m.get('kind') == 'exact_row_field':
                 selected_fields.add(m['field_name'])
                 lines.append(('원문 행 값 (결론 연결 미확인): ' if selected['use'] == 'premise_only'
@@ -473,14 +510,8 @@ def reviewed_item_answer(service, run, request, requirements):
                         lines.append('자료에 기록된 날짜: ' + ', '.join(d['value'] for d in m['source_dates']))
                 continue
             prefix = '확인된 전제 (결론 연결 미확인): ' if selected['use'] == 'premise_only' else '검토된 원문 의미: '
-            lines.append(prefix + m['statement'])
-            for field, label in [('conditions', '조건'), ('exceptions', '예외'), ('period', '기간'), ('references', '참조')]:
-                value = m.get(field)
-                status = (m.get('field_checks') or business_review.source_judgment(m)['field_checks'])[field]
-                # Preserve every legacy qualifier in its whole-meaning bundle;
-                # do not invent a separate field verdict or silently broaden it.
-                if value and status in {'supported', 'not_assessed'}:
-                    lines.append(label + ': ' + (' / '.join(value) if isinstance(value, list) else value))
+            content = reviewed_meaning_lines(m)
+            lines.extend([prefix + content[0], *content[1:]])
             citations.extend(m['required_claim_ids'])
             if m.get('premise_keys') is None:
                 limitations.append(m['key'] + ': 추가 연결 전제의 독립성은 확인되지 않았습니다.')
@@ -498,6 +529,17 @@ def reviewed_item_answer(service, run, request, requirements):
                 lines.append(gap)
                 limitations.append(gap)
         rendered.append('\n'.join(lines))
+    unassigned = [ref for ref in available if ref in preserved_refs - shown_meanings]
+    run['answer_meaning_selection']['unassigned_required'] = unassigned
+    for ref in unassigned:
+        m = available[ref]
+        label = '요구의 필수 검토 내용' if ref in required_refs else '필수 검토 내용의 연결 전제'
+        rendered.append(label + ' (답변 항목 배치 미완료):\n' + '\n'.join(reviewed_meaning_lines(m)))
+        citations.extend(m['required_claim_ids'])
+        errors.append(m['requirement_id'] + ': required_meaning_not_assigned:' + m['key'])
+        limitations.append('필수 검토 내용은 보존했으나 요청 항목과의 연결이 답변에서 빠졌습니다: ' + m['key'])
+        if m.get('premise_keys') is None:
+            limitations.append(m['key'] + ': 추가 연결 전제의 독립성은 확인되지 않았습니다.')
     for limitation in run.get('answer_assessment_limitations', []):
         text = ('요청한 내용의 전체 충족은 아직 확인되지 않았습니다'
             + (' (기준 시점: ' + limitation['period'] + ')' if limitation['period'] else '') + '. '
@@ -738,6 +780,8 @@ def query(service, request, *, context_mode='graph'):
                    answer_basis='source_passages_not_ontology_approval' if source_reader else 'reviewed_claims',
                    source_extraction_status=original['status'] if source_reader else None,
                    answer_contract=ANSWER_CONTRACT, required_context_ids=sorted(required_ids))
+        if request.answer_mode == 'reviewed_items':
+            run['required_answer_meaning_keys'] = required_answer_meaning_keys(snapshot, request.requirement_ids)
         run['execution_boundary'] = dict(
             answer_mode=request.answer_mode, answer_contract=None,
             unadopted_answer_mode=request.answer_mode in {'source_quotes', 'items'},
