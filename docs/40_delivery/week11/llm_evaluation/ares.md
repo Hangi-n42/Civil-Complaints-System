@@ -300,12 +300,13 @@ app/evaluation/
     __init__.py
     schemas.py
     prompts.py
-    context_relevance_judge.py
-    answer_faithfulness_judge.py
-    answer_relevance_judge.py
     evaluator.py
     report_builder.py
 ```
+
+2026-10-09 현행 구현에서는 평가 스크립트와 테스트가 `AresLiteEvaluator`를
+직접 사용한다. 호출되지 않는 개별 judge 래퍼 3개는 제거했으며,
+세 평가 기능과 기존 평가 기록은 유지한다.
 
 초기 구현은 운영 API가 아니라 평가 스크립트에서 먼저 사용한다.
 
