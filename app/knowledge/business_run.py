@@ -1420,6 +1420,7 @@ def execute(service, run_id):
             if options['repair'] and repair(service, run, requirement, assessment):
                 changed = True
                 assessment = assess(service, run, requirement, source=assessment['source'], phase='after_repair')
+                assessment = reassess_challenges(service, run, requirement, assessment)
                 run['repairs'][-1]['recheck_assessment_id'] = assessment['id']
                 run['repairs'][-1]['status'] = 'rechecked' if assessment['status'] == 'satisfied' else 'recheck_incomplete'
         if changed:
@@ -1427,7 +1428,8 @@ def execute(service, run_id):
             for requirement in run['requirements']:
                 previous = next(a for a in reversed(run['assessments']) if a['requirement_id'] == requirement['id'])
                 if previous.get('input_fingerprint') != assessment_fingerprint(run, requirement, previous['source'], previous.get('review_scope')):
-                    assess(service, run, requirement, source=previous['source'], phase='shared_claim_recheck')
+                    assessment = assess(service, run, requirement, source=previous['source'], phase='shared_claim_recheck')
+                    reassess_challenges(service, run, requirement, assessment)
             refresh_repaired_graph(service, run)
         from .business_use import publish
         run['changeset_id'] = publish(service, run)['id']

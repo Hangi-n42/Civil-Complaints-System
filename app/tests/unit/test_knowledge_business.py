@@ -1186,10 +1186,11 @@ def test_requirement_query_keeps_approved_coverage_and_rejects_unknown_or_too_sm
                 checks=[dict(meaning_key='x', status='represented', claim_ids=['other_requirement'])]))),
         claims=claims, concepts=[], blocks=[dict(id='body', locator=dict(line=4)),
                                          dict(id='optional', locator=dict(line=8))])
-    supplied = []
+    supplied, public_scopes = [], []
     def answer(_service, run, stage, instruction, context, schema, **kwargs):
         ids = [c['id'] for c in context['context']]
         supplied.append(ids)
+        public_scopes.append(context.get('public_requirements'))
         evidence = context['source_evidence']
         shared_row = next(row for row in evidence if row['id'] == 'body')
         assert shared_row['text'] == shared['quote']
@@ -1218,8 +1219,11 @@ def test_requirement_query_keeps_approved_coverage_and_rejects_unknown_or_too_sm
         query = dict(snapshot_id='s', question='업무 요구 답변', retrieval='bm25', limit=2)
         unscoped = business_use.query(service, BusinessQuery(**query))
         assert supplied[-1] == ['ranked', 'optional'] and unscoped['status'] == 'answered'
+        assert public_scopes[-1] is None
         scoped = business_use.query(service, BusinessQuery(**query, requirement_ids=['r']))
         assert supplied[-1] == ['mandatory', 'ranked'] and scoped['status'] == 'answered'
+        assert [r['id'] for r in public_scopes[-1]] == ['r']
+        assert set(public_scopes[-1][0]) == {'id', 'question', 'criterion', 'target', 'situation', 'period'}
         assert scoped['retrieval'][0]['selection_reason'] == 'required_reviewed_meaning'
         assert service.run(scoped['run_id'])['required_context_ids'] == ['mandatory']
         count = len(supplied)
