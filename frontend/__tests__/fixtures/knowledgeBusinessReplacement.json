@@ -1,0 +1,62 @@
+{
+  "provenance": {
+    "kind": "read-only projection of existing actual repair; no new model call",
+    "database": "data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db",
+    "sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+    "run_id": "cedacf0841e540cf83934db6d821140c",
+    "repair_id": "93c2a734b3c74199930312341e763cb0",
+    "projection": "receipt.changes before/after: id, statement, superseded_by; replacements from receipt.after; evidence restricted to original repair source b146"
+  },
+  "change": {
+    "before": {
+      "id": "claim_b040fc7be8bc9d01cb2fadc8",
+      "statement": "금련산센터 이전등록(자가용) 담당자가 자동차 소유권 이전(변경) 등록, 등록원부, 등록증 발급, 취득세 및 등록세 부과, 건설기계 변경, 말소, 저당, 사업용자동차 이전등록을 수행한다. — at the same time — 부전센터 이전등록(자가용) 담당자가 자동차 소유권 이전(변경) 등록, 등록원부, 등록증 발급, 취득세 및 등록세 부과를 수행한다.",
+      "evidence": [
+        {
+          "block_id": "89cee83e2e9e4721941eb154f809d717",
+          "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+          "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+          "start_char": 0,
+          "end_char": 131,
+          "quote": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\n- 취득세 및 등록세 부과\n- 건설기계 변경, 말소, 저당\n- 사업용자동차 이전등록\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가",
+          "precision": "chunk"
+        }
+      ]
+    },
+    "after": {
+      "id": "claim_b040fc7be8bc9d01cb2fadc8",
+      "statement": "금련산센터 이전등록(자가용) 담당자가 자동차 소유권 이전(변경) 등록, 등록원부, 등록증 발급, 취득세 및 등록세 부과, 건설기계 변경, 말소, 저당, 사업용자동차 이전등록을 수행한다. — at the same time — 부전센터 이전등록(자가용) 담당자가 자동차 소유권 이전(변경) 등록, 등록원부, 등록증 발급, 취득세 및 등록세 부과를 수행한다.",
+      "superseded_by": [
+        "claim_b75ccdd9c2c09c66d0f5428a"
+      ],
+      "evidence": [
+        {
+          "block_id": "89cee83e2e9e4721941eb154f809d717",
+          "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+          "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+          "start_char": 0,
+          "end_char": 131,
+          "quote": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\n- 취득세 및 등록세 부과\n- 건설기계 변경, 말소, 저당\n- 사업용자동차 이전등록\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가",
+          "precision": "chunk"
+        }
+      ]
+    }
+  },
+  "claims": [
+    {
+      "id": "claim_b75ccdd9c2c09c66d0f5428a",
+      "statement": "금련산센터 — 담당한다 — 자동차 소유권 이전(변경) 등록, 등록원부/등록증 발급, 취득세 및 등록세 부과, 건설기계 변경/말소/저당, 사업용자동차 이전등록",
+      "evidence": [
+        {
+          "block_id": "89cee83e2e9e4721941eb154f809d717",
+          "source_version_id": "14476d2f18bf407d969301fcb68b01a1",
+          "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+          "start_char": 0,
+          "end_char": 131,
+          "quote": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\n- 취득세 및 등록세 부과\n- 건설기계 변경, 말소, 저당\n- 사업용자동차 이전등록\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가",
+          "precision": "chunk"
+        }
+      ]
+    }
+  ]
+}

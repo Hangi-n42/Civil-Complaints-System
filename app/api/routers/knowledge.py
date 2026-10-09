@@ -23,7 +23,7 @@ from app.knowledge import extraction_store
 from app.knowledge import snapshots
 from app.knowledge.schemas import SearchRequest, LocalEntityRequest
 from app.knowledge import business_store, business_use
-from app.knowledge.business_models import RequirementInput, BusinessRunRequest, BusinessDecision, BusinessQuery, ChangeRequest, ConceptRunRequest
+from app.knowledge.business_models import RequirementInput, BusinessRunRequest, BusinessDecision, BusinessEventEdit, BusinessQuery, ChangeRequest, ConceptRunRequest
 
 
 class KnowledgeRoute(APIRoute):
@@ -158,6 +158,12 @@ def business_change(changeset_id: str, service=Depends(get_knowledge_service)):
 @router.post('/business/changes/{changeset_id}/decisions', response_model=KnowledgeResponse)
 def business_decision(changeset_id: str, request: BusinessDecision, service=Depends(get_knowledge_service)):
     return result(business_use.decide(service, changeset_id, request))
+
+
+@router.post('/business/changes/{changeset_id}/edits', response_model=KnowledgeResponse)
+def business_edit(changeset_id: str, request: BusinessEventEdit, service=Depends(get_knowledge_service)):
+    from app.knowledge.business_edit import start
+    return result(start(service, changeset_id, request))
 
 
 @router.get('/business/snapshots', response_model=KnowledgeResponse)

@@ -114,6 +114,14 @@ def source_packet(blocks):
     return result
 
 
+def list_parents(block, blocks):
+    """Parser list ancestors only; their semantic applicability remains a model judgment."""
+    path = block.get('locator', {}).get('element_path', '')
+    return [b for b in blocks if b['id'] != block['id'] and b['source_version_id'] == block['source_version_id']
+            and '::text(' in b.get('locator', {}).get('element_path', '')
+            and path.startswith(b['locator']['element_path'].split('::text(')[0] + ' > ')]
+
+
 def chunks(blocks, context_tokens, output_tokens, target_chars=1000):
     """Retain source order, table rows and parents; don't silently truncate a bundle."""
     # ponytail: conservative UTF-8 estimate until the serving tokenizer is available.
@@ -144,9 +152,14 @@ def chunks(blocks, context_tokens, output_tokens, target_chars=1000):
             context = [dict(b, context_only=True) for b in heading if b['id'] != block['id']]
             # Parser text nodes on an ancestor list item carry its applicability
             # (for example a missing applicant); preserve the actual parent text.
-            context += [dict(b, context_only=True) for b in group if b['id'] != block['id']
-                and '::text(' in b.get('locator', {}).get('element_path', '')
-                and path.startswith(b['locator']['element_path'].split('::text(')[0] + ' > ')]
+            context += [dict(b, context_only=True) for b in list_parents(block, group)]
+            # A retrieved list label needs the contents of its own nested list.
+            parent_item = path.split('::text(')[0]
+            if '::text(' in path and re.search(r'(?:^| > )li(?::[^>]*)?$', parent_item):
+                prefix = parent_item + ' > '
+                context += [dict(b, context_only=True) for b in group
+                    if b.get('locator', {}).get('element_path', '').startswith(prefix)
+                    and re.match(r'(?:ul|ol)(?::[^>]*)? > ', b['locator']['element_path'][len(prefix):])]
             if 'row' in loc:
                 # Keep full table row plus headers, including rowspan parent cells.
                 context += [dict(b, context_only=True) for b in group if b['id'] != block['id']
@@ -157,6 +170,7 @@ def chunks(blocks, context_tokens, output_tokens, target_chars=1000):
             # without its preceding item can change the apparent referent.
             parent = path.rsplit(' > ', 1)[0]
             siblings = [b for b in group if ' > ' in path and
+                        'row' not in b.get('locator', {}) and
                         b.get('locator', {}).get('element_path', '').rsplit(' > ', 1)[0] == parent]
             notes = [b for b in siblings if re.search('다만|예외|제외|경우|생략|제\\d+조|별표|다음 각', b['text'])]
             local_list = bool(re.search(r'(?:^| > )(?:ul|ol)(?::[^>]*)?$', parent))
@@ -322,6 +336,21 @@ def graph(claims):
         elif role in {'entity_relation', 'event_relation'}:
             kind = 'entity' if role == 'entity_relation' else 'event'
             pairs = [(node(claim, kind, raw['Head'], 'Head'), raw['Relation'], node(claim, kind, raw['Tail'], 'Tail'))]
+        elif role == 'structured_row' and claim.get('construction_method') == 'direct_tabular_row':
+            # A row and its typed properties, not inferred entities or events.
+            # Identity stays within this source claim, even for equal field values.
+            row_id = identifier('node', [claim['id'], 'structured_row'])
+            common = dict(chunk_id=claim['chunk_id'], chunk_ids=[claim['chunk_id']],
+                          claim_ids=[claim['id']], evidence=deepcopy(claim['evidence']),
+                          identity_scope='source_claim_row_and_field')
+            nodes[row_id] = dict(common, id=row_id, kind='structured_row', label=raw['Event'],
+                                 fields=deepcopy(raw['fields']))
+            pairs = []
+            for field, value in raw['fields'].items():
+                field_id = identifier('node', [claim['id'], 'field_value', field])
+                nodes[field_id] = dict(common, id=field_id, kind='field_value', field=field,
+                    value=deepcopy(value), label=json.dumps(value, ensure_ascii=False))
+                pairs.append((row_id, field, field_id))
         else:
             continue
         for n, (head, relation, tail) in enumerate(pairs):
@@ -332,13 +361,17 @@ def graph(claims):
 
 
 def concept_targets(extracted):
-    targets = deepcopy(extracted['nodes'])
+    targets = [deepcopy(n) for n in extracted['nodes'] if n['kind'] in {'entity', 'event'}]
+    semantic_nodes = {n['id'] for n in targets}
     seen = set()
     for edge in extracted['edges']:
+        if edge['head'] not in semantic_nodes or edge['tail'] not in semantic_nodes:
+            continue
         if edge['relation'] not in seen:
             seen.add(edge['relation'])
             targets.append(dict(id=identifier('relation', edge['relation']), kind='relation', label=edge['relation'],
-                                claim_ids=[v['claim_id'] for v in extracted['edges'] if v['relation'] == edge['relation']]))
+                                claim_ids=[v['claim_id'] for v in extracted['edges'] if v['relation'] == edge['relation']
+                                           and v['head'] in semantic_nodes and v['tail'] in semantic_nodes]))
     return targets
 
 

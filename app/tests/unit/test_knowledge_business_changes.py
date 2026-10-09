@@ -56,3 +56,66 @@ def test_change_rechecks_unlinked_requirement_and_keeps_unaffected(tmp_path, mon
         assert values['new']['change_history'][0]['run_id'] == run['id']
     finally:
         service.shutdown()
+
+
+def test_impact_reads_exact_stored_meanings_and_rejects_stale_pointer(tmp_path, monkeypatch):
+    service = KnowledgeService(tmp_path / 'knowledge.db')
+    try:
+        requirement = dict(id='related', revision=1, question='대리 신청 서류는?',
+            current_assessment=dict(run_id='old', assessment_id='a1', revision=1, source_version_ids=['v1']))
+        meaning = dict(key='document', statement='증명서가 필요하다.', source_status='supported', conditions=['본인 미방문'],
+            exceptions=[], period='', references=[], premise_keys=None,
+            evidence=[dict(block_id='b1', source_version_id='v1')])
+        block = dict(id='b1', source_version_id='v1', text='본인이 방문하지 않을 때 증명서를 제출한다.')
+        old = dict(id='old', status='succeeded', input_version_ids=['v1'], blocks=[block],
+            recipe=dict(options=dict(context_tokens=8192, review_tokens=1024)),
+            claims=[dict(id='c1', role='event_entity', raw=dict(Event='본인 미방문 시 증명서 제출'),
+                         source_version_ids=['v1'], evidence=meaning['evidence']),
+                    dict(id='bad', role='event_entity', raw=dict(Event='항상 증명서 제출'),
+                         semantic_status='unknown', source_version_ids=['v1'], evidence=meaning['evidence'])],
+            assessments=[dict(id='a1', requirement_id='related', revision=1, claim_ids=['c1'],
+                source=dict(meanings=[meaning]), representation=dict(checks=[dict(meaning_key='document',
+                    status='represented', claim_ids=['c1'], incorrect_claim_ids=['bad'])], dependencies=[]))])
+        with service.repository.connect() as db:
+            db.execute('INSERT INTO runs VALUES(?,?)', ('old', json.dumps(old)))
+        def check(service, run, stage, instruction, context, schema):
+            dep = context['stored_dependencies'][0]
+            if requirement['current_assessment']['assessment_id'] == 'a1':
+                assert dep['status'] == 'provided'
+                assert dep['meanings'][0]['conditions'] == ['본인 미방문']
+                assert dep['meanings'][0]['premise_keys'] is None
+                assert dep['claims'][0]['raw']['Event'] == '본인 미방문 시 증명서 제출'
+                assert dep['claims'][1]['id'] == 'bad' and dep['claims'][1]['semantic_status'] == 'unknown'
+                assert context['blocks'][0]['text'] == block['text']
+            else:
+                assert dep['status'] == 'unavailable'
+            return dict(items=[dict(requirement_id='related', status='unaffected', reason='mock',
+                                    change_ids=[], new_relevance=False)])
+        monkeypatch.setattr(business_run, 'json_call', check)
+        result, valid = business_changes.review_impacts(service, {}, [requirement], dict(changes=[]), [], [])
+        assert valid and result['items'][0]['status'] == 'unaffected'
+        requirement['current_assessment']['assessment_id'] = 'wrong'
+        result, valid = business_changes.review_impacts(service, {}, [requirement], dict(changes=[]), [], [])
+        assert result['items'][0]['status'] == 'unknown'
+    finally:
+        service.shutdown()
+
+
+def test_impact_cannot_preserve_status_after_assessment_pointer_changes(tmp_path):
+    service = KnowledgeService(tmp_path / 'knowledge.db')
+    try:
+        before = dict(id='r', revision=1, status='satisfied', current_assessment=dict(assessment_id='old'))
+        with service.repository.connect() as db:
+            db.execute('INSERT INTO requirements VALUES(?,?)', ('r', json.dumps(dict(before,
+                current_assessment=dict(assessment_id='new')))))
+        impacts = [dict(requirement_id='r', status='unaffected', reason='old assessment independent',
+                        change_ids=[], new_relevance=False)]
+        business_changes.apply_impacts(service, dict(id='impact-run'), [before], impacts)
+        with service.repository.connect() as db:
+            current = service.repository.get(db, 'requirements', 'r')
+        assert impacts[0]['status'] == 'unknown'
+        assert current['status'] == 'needs_review'
+        assert current['current_assessment'] == dict(assessment_id='new')
+        assert current['change_history'][0]['run_id'] == 'impact-run'
+    finally:
+        service.shutdown()

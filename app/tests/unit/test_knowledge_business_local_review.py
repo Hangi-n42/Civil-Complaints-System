@@ -29,7 +29,7 @@ def local_run():
     chunk = autoschema.chunks([b], 49152, 4096)[0]
     claims = [autoschema.graph_record(chunk, 'entity_relation', dict(Head='기관', Relation='접수', Tail='신청'), i)
               for i in range(2)]
-    run = dict(recipe=dict(review_contract=review.CONTRACT, options=BusinessRunRequest(
+    run = dict(recipe=dict(review_contract='requirement-local-review-v4', options=BusinessRunRequest(
         source_version_ids=['v'], requirement_ids=['r']).model_dump()), blocks=[b], chunks=[chunk], claims=claims,
         repairs=[], units=[], assessments=[], requirements=[dict(id='r', revision=1, source_ids=[])])
     return run
@@ -195,7 +195,8 @@ def test_repair_protects_unknown_part_of_compound_claim_without_blocking_indepen
     assert not business_run.repair(None, run, run['requirements'][0], assessment)
 
 
-def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(monkeypatch):
+@pytest.mark.parametrize('aggregate_action', ['maintain', 'correct'])
+def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(monkeypatch, aggregate_action):
     run = local_run()
     bad, normal = [c['id'] for c in run['claims']]
     keys = ['first', 'second']
@@ -212,9 +213,11 @@ def test_repair_omits_only_past_source_history_and_corrects_shared_target_once(m
         row['premise_keys'] = None
     for check in representation['checks']:
         check['incorrect_claim_ids'] = [bad]
+        check['claim_support'] = {normal: 'supported', bad: 'incorrect'}
     assessment = dict(id='a', source=source, representation=representation, errors=[], issues=[],
         actions=[dict(meaning_key=k, action='correct', claim_ids=[bad], reason=k) for k in keys] +
-                [dict(meaning_key=k, action='maintain', claim_ids=[normal]) for k in keys],
+                ([dict(meaning_key=k, action='maintain', claim_ids=[normal]) for k in keys]
+                 if aggregate_action == 'maintain' else []),
         review_scope=dict(batches=[dict(unit_id='local', meaning_keys=keys, claim_ids=[bad, normal],
             provided_block_ids=['body'], output=representation, error=None)]))
     def answer(_service, _run, stage, instruction, context, schema):
@@ -432,9 +435,10 @@ def test_source_reassessment_typed_gap_survives_the_join_without_free_gap_duplic
     output = dict(meanings=[meaning('m')], examined_block_ids=['body'], completeness='partial', gaps=[],
         conjunctions=[], meaning_gaps=[dict(meaning_keys=['m'], text='필수 참조 상세가 제공되지 않았다.')], meaning_conjunctions=[])
     monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: deepcopy(output))
-    revised = review.reassess_source(None, run, {}, dict(source=source), [dict(meaning_key='m')])
-    assert len(revised['findings']) == 1 and revised['findings'][0]['text'] == output['meaning_gaps'][0]['text']
-    result = judgments(['m']); row = resolution(revised['findings'][0]['id'], 'required_gap')
+    revised = review.reassess_source(None, run, run['requirements'][0], dict(source=source), [dict(meaning_key='m')])
+    assert revised['findings'][:-1] == source['findings']
+    assert revised['findings'][-1]['text'] == output['meaning_gaps'][0]['text']
+    result = judgments(['m']); row = resolution(revised['findings'][-1]['id'], 'required_gap')
     row['reason'] = output['meaning_gaps'][0]['text']
     result.update(source_completeness='complete', finding_resolutions=[row])
     review.resolve_findings(revised, result, revised['findings'], run['blocks'], [], joined=True)
@@ -1083,3 +1087,168 @@ def test_valid_expression_join_keeps_local_errors_when_source_row_is_rejected(mo
     assert result['checks'][0]['claim_ids'] == [normal]
     assert result['checks'][0]['incorrect_claim_ids'] == [bad]
     assert result['meaning_challenges'][0]['meaning_key'] == 'm'
+
+
+def test_completed_local_absence_stays_unresolved_without_refuting_independent_fact():
+    run = local_run()
+    for kind, complete in [('local_not_found', True), ('reference_missing_here', True), ('local_not_found', False)]:
+        source = current_source()
+        f = source['findings'][0]
+        f.update(kind=kind, unit_id='inspection', meaning_keys=[], scope_meaning_keys=[])
+        source['source_batches'] = [dict(unit_id='inspection', provided_block_ids=['body'], errors=[],
+            output=dict(inspection_status='complete' if complete else 'partial'))]
+        before = deepcopy(source['meanings'])
+        result = judgments(['m'])
+        result.update(source_completeness='complete', finding_resolutions=[dict(resolution(status='not_required'),
+            meaning_keys=[], evidence=[])])
+        review.resolve_findings(source, result, [f], run['blocks'], [], joined=True)
+        assessment = dict(source=source, representation=result, errors=[], issues=[])
+        assert source['completeness'] == 'partial'
+        assert source['finding_resolutions'][0]['status'] == 'unresolved'
+        assert source['meanings'] == before and source['findings'] == [f]
+        if kind == 'local_not_found' and complete:
+            assert review.blocked(assessment) == (set(), [])
+            assert source['finding_resolutions'][0]['inspection_scope'] == dict(
+                unit_id='inspection', provided_block_ids=['body'])
+        else:
+            assert review.blocked(assessment)[1] == ['unscoped_source_challenge']
+
+
+def test_scoped_finding_retrieves_disputed_context_outside_existing_meaning(monkeypatch):
+    run = local_run()
+    run['blocks'].append(dict(block('disputed', '예약 취소 예외는 본인 확인을 거친다.', path='section:2'), source_id='s'))
+    source = current_source()
+    source['findings'][0].update(text='예약 취소 예외는 본인 확인을 거친다. 이 관계의 확인이 필요하다.',
+        meaning_keys=['m'], scope_meaning_keys=['m'])
+    supplied = []
+    monkeypatch.setattr(business_run, 'cancelled', lambda *a: False)
+    def answer(_service, _run, stage, instruction, context, schema):
+        run['units'].append(dict(id=str(len(run['units']))))
+        if context['mode'] == 'requirement_join':
+            supplied.extend(b['id'] for b in context['blocks'])
+            return None
+        return judgments(['m'], ids=[run['claims'][0]['id']])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    review.represent(None, run, run['requirements'][0], source, [])
+    assert {'body', 'disputed'} <= set(supplied)
+
+
+def test_gap_outside_required_scope_does_not_block_independent_required_facts():
+    run = local_run(); cid = run['claims'][0]['id']
+    source = current_source()
+    source['meanings'][0]['required_for_requirement'] = True
+    source['meanings'].append(meaning('background', required_for_requirement=False))
+    a = dict(id='a', requirement_id='r', source=source, representation=judgments(['m'], ids=[cid]), errors=[], issues=[])
+    run['assessments'] = [a]
+    for key, expected in [('background', set()), ('m', {'m'}), ('invalid', {'m'})]:
+        source['meaning_gaps'] = [dict(meaning_keys=[key], text='필수 전제 미확정')]
+        assert review.blocked(a)[0] == expected
+        a['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], source)
+        assert business_use.eligibility(run)[0] == ({cid} if key == 'background' else set())
+
+
+@pytest.mark.parametrize('resolution_status', ['resolved', 'not_required', 'unresolved', 'missing'])
+def test_reassessment_preserves_finding_until_evidenced_join_resolution(monkeypatch, resolution_status):
+    run = local_run(); run['units'] = [dict(id='reassessment')]
+    run['recipe']['review_contract'] = review.CONTRACT
+    run['blocks'].append(dict(block('dispute', '예약 취소 예외는 본인 확인을 거친다.', path='section:2'), source_id='s'))
+    source = current_source(); source['meanings'].append(meaning('unrelated'))
+    source['findings'][0].update(kind='interpretation_uncertain', text='예약 취소 예외는 본인 확인을 거친다. 이 관계의 확인이 필요하다.')
+    original = deepcopy(source); original_blocks = deepcopy(run['blocks'])
+    def answer(_service, _run, stage, instruction, context, schema):
+        assert {b['id'] for b in context['blocks']} == {'body', 'dispute'}
+        assert context['findings'] == original['findings']
+        revised = dict(meaning('m'), statement='신청을 접수하는 주체는 기관이다.')
+        return dict(meanings=[revised], examined_block_ids=['body', 'dispute'], completeness='complete',
+            gaps=[], conjunctions=[], meaning_gaps=[], meaning_conjunctions=[])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    revised = review.reassess_source(None, run, run['requirements'][0], dict(source=source), [dict(meaning_key='m')])
+    assert revised['findings'] == original['findings'] and revised['completeness'] == 'unknown'
+    assert revised['meanings'][0]['statement'] != original['meanings'][0]['statement']
+    assert revised['meanings'][1] == original['meanings'][1] and source == original
+    assert run['blocks'] == original_blocks
+    result = judgments(['m', 'unrelated'])
+    for check, claim in zip(result['checks'], run['claims']):
+        check.update(claim_ids=[claim['id']], claim_support={claim['id']: 'supported'})
+    result.update(source_completeness='complete', finding_resolutions=[] if resolution_status == 'missing'
+                  else [resolution(status=resolution_status)])
+    review.resolve_findings(revised, result, revised['findings'], run['blocks'], [], joined=True)
+    assert revised['findings'] == original['findings']
+    assert revised['completeness'] == ('complete' if resolution_status in {'resolved', 'not_required'} else 'partial')
+    assert review.blocked(dict(source=revised, representation=result, errors=[], issues=[]))[0] == (
+        set() if resolution_status in {'resolved', 'not_required'} else {'m'})
+    assessment = dict(id='a', requirement_id='r', source=revised, representation=result, errors=[], issues=[])
+    assessment['input_fingerprint'] = business_run.assessment_fingerprint(run, run['requirements'][0], revised)
+    run['assessments'] = [assessment]
+    assert business_use.eligibility(run)[0] == ({c['id'] for c in run['claims']}
+        if resolution_status in {'resolved', 'not_required'} else {run['claims'][1]['id']})
+
+
+@pytest.mark.parametrize('invalid', [False, True])
+@pytest.mark.parametrize('cached', [False, True])
+def test_reassessment_finding_points_to_source_call_before_application(monkeypatch, invalid, cached):
+    run = local_run(); run['recipe']['review_contract'] = review.SOURCE_APPLICATION_CONTRACT
+    source = current_source()
+    prior_unit = dict(id='original-source', status='succeeded')
+    run['reusable_units'] = [deepcopy(prior_unit)]
+    def answer(*args, **kwargs):
+        run['units'].append(dict(id='source-call', status='succeeded',
+            **(dict(response=dict(request_id='original-source'), reused_from=dict(unit_id='original-source')) if cached else {})))
+        return dict(meanings=[meaning('outside' if invalid else 'm')], examined_block_ids=['body'], completeness='partial',
+            gaps=['현재 원문에 남은 관계 미확정'], conjunctions=[], meaning_gaps=[], meaning_conjunctions=[])
+    def apply(_service, _run, _requirement, output, _blocks):
+        run['units'].append(dict(id='application-call', status='succeeded'))
+        return output
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    monkeypatch.setattr(review, 'apply_requirement', apply)
+    monkeypatch.setattr(business_run, 'save', lambda *a: None)
+    revised = review.reassess_source(None, run, run['requirements'][0], dict(source=source),
+        [dict(meaning_key='m', fields=['conditions'])])
+    assert run['reusable_units'] == [prior_unit]
+    if invalid:
+        assert revised is None and run['units'][0]['error'] == 'source_reassessment_outside_selected_meanings'
+        assert run['units'][0]['status'] == 'failed' and run['units'][1]['status'] == 'succeeded'
+        return
+    assert revised['findings'][:-1] == source['findings']
+    expected = 'original-source' if cached else 'source-call'
+    assert revised['findings'][-1]['id'] == f'reassessment:{expected}:0'
+    assert revised['findings'][-1]['unit_id'] == revised['reassessment_history'][-1]['unit_id'] == expected
+
+
+@pytest.mark.parametrize('mismatch', [None, 'version', 'parse', 'block', 'span', 'missing_span',
+                                    'source_quote', 'meaning', 'value', 'superseded'])
+def test_literal_relation_selection_requires_whole_value_and_actual_own_span(mismatch):
+    run = local_run(); candidate = run['claims'][0]
+    source_meaning = meaning('m')
+    source_meaning['evidence'] = business_run.exact_evidence(source_meaning['evidence'], run['blocks'])
+    candidate['raw']['Tail'] = '신청'
+    if mismatch in {'version', 'parse', 'block'}:
+        candidate['evidence'][0][{'version': 'source_version_id', 'parse': 'parse_run_id', 'block': 'block_id'}[mismatch]] = 'other'
+    elif mismatch == 'span': candidate['evidence'][0]['end_char'] = 2
+    elif mismatch == 'missing_span': candidate['evidence'][0].pop('start_char')
+    elif mismatch == 'source_quote': source_meaning['evidence'][0]['quote'] = '원문에 없는 신청'
+    elif mismatch == 'meaning': source_meaning['statement'] = '기관의 업무'
+    elif mismatch == 'value': candidate['raw']['Tail'] = '신청 서류'
+    elif mismatch == 'superseded': candidate['superseded_by'] = 'replacement'
+    before = deepcopy(candidate)
+    selected = review.literal_relation_candidates([candidate], source_meaning, run['blocks'])
+    assert selected == ({candidate['id']} if mismatch is None else set())
+    assert candidate == before and candidate['evidence'][0]['precision'] == 'chunk'
+
+
+def test_representation_adds_literal_candidate_missed_by_search(monkeypatch):
+    from app.knowledge.discovery_profile import FrozenIndex
+    run = local_run(); source_meaning = meaning('m')
+    source_meaning['evidence'] = business_run.exact_evidence(source_meaning['evidence'], run['blocks'])
+    source = dict(meanings=[source_meaning], completeness='complete', gaps=[], conjunctions=[], findings=[])
+    monkeypatch.setattr(FrozenIndex, 'search', lambda *args: [])
+    monkeypatch.setattr(business_run, 'cancelled', lambda *args: False)
+    observed = []
+    def answer(service, active, stage, instruction, context, schema):
+        active['units'].append(dict(id='literal-selection'))
+        if context['mode'] == 'meaning_batch':
+            observed.append([c['id'] for c in context['claims']])
+        return judgments(['m'], ids=[c['id'] for c in run['claims']])
+    monkeypatch.setattr(business_run, 'json_call', answer)
+    review.represent(None, run, run['requirements'][0], source, [])
+    assert observed == [[c['id'] for c in run['claims']]]
