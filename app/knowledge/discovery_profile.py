@@ -215,20 +215,25 @@ class FrozenIndex:
         if self.ready:
             self.engine.index(self.convert(self.tokens), show_progress=False)
 
-    def search(self, query, allowed, limit=6):
+    def rank(self, query, allowed):
+        """Raw positive-score ranking, before consumer-specific selection policies."""
         if not self.ready:
             return []
         tokens = self.tokenize([query])
         if not tokens[0]:
             return []
         ids, scores = self.engine.retrieve(self.convert(tokens), k=len(self.blocks), show_progress=False)
+        return [dict(block_id=self.blocks[int(index)]['id'], score=float(score),
+                     file_id=self.blocks[int(index)]['file_id'])
+                for index, score in zip(ids[0], scores[0])
+                if float(score) > 0 and self.blocks[int(index)]['id'] in allowed]
+
+    def search(self, query, allowed, limit=6):
+        blocks = {b['id']: b for b in self.blocks}
         groups, duplicates, seen = defaultdict(list), [], set()
-        for index, score in zip(ids[0], scores[0]):
-            block = self.blocks[int(index)]
-            if float(score) <= 0 or block['id'] not in allowed:
-                continue
+        for hit in self.rank(query, allowed):
+            block = blocks[hit['block_id']]
             text = re.sub(r'\s+', '', block['text'])
-            hit = dict(block_id=block['id'], score=float(score), file_id=block['file_id'])
             if text in seen:
                 duplicates.append(hit)
             else:

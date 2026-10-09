@@ -22,7 +22,7 @@ def parser_info(format: str) -> dict:
         return {"name": "stdlib.text", "version": "1", "adapter_version": "2"}
     if format not in packages:
         raise ValueError(f"지원하지 않는 형식: {format}")
-    return {"name": packages[format], "version": version(packages[format]), "adapter_version": "2" if format == "html" else "1"}
+    return {"name": packages[format], "version": version(packages[format]), "adapter_version": "3" if format == "html" else "1"}
 
 
 def _csv_rows(path: Path, encoding="utf-8-sig"):
@@ -144,7 +144,8 @@ def plan_units(path: Path, format: str, scope: dict | str | None = None) -> list
             if not nodes:
                 raise ValueError(f"HTML 본문 없음: {selector}")
             for index in range(len(nodes)):
-                units.append({"id": f"html-{len(units)}", "locator": {"format": format, "selector": selector, "element_index": index}})
+                units.append({"id": f"html-{len(units)}", "locator": {"format": format, "selector": selector, "element_index": index},
+                              **({"document_controls": scope["document_controls"]} if scope.get("document_controls") else {})})
         if codes:
             records = list(_sbd_records(path.read_text(encoding="utf-8-sig")))
             found = {fields["sbdLgoNo"] for _, fields in records}
@@ -207,23 +208,35 @@ def _html_blocks(path: Path, unit: dict) -> list[dict]:
         return blocks
     soup = _html(path)
     root = soup.select(locator["selector"])[locator["element_index"]]
+    controls = []
+    for declaration in unit.get('document_controls', []):
+        if not declaration.get('selector') or not declaration.get('reason', '').strip():
+            raise ValueError('문서 도구 영역의 selector와 확인 사유가 필요합니다.')
+        matches = soup.select(declaration['selector'])
+        if not matches or any(node is root or not any(parent is root for parent in node.parents) for node in matches):
+            raise ValueError('문서 도구 영역은 선택 본문 안의 실제 하위 영역이어야 합니다.')
+        controls.extend((node, dict(policy='explicit-document-controls-v1', selector=declaration['selector'],
+                                   reason=declaration['reason'])) for node in matches)
     blocks = []
-    def emit(text: str, extra: dict):
+    def emit(text: str, extra: dict, node):
         if text.strip():
+            roles = [reason for control, reason in controls if node is control or any(parent is control for parent in node.parents)]
+            if roles:
+                extra = dict(extra, document_controls=roles)
             blocks.append({"text": text, "locator": {**locator, **extra}})
     def walk(node: Any, css: str):
         if isinstance(node, Comment):
             return
         if isinstance(node, NavigableString):
-            emit(str(node), {"element_path": css})
+            emit(str(node), {"element_path": css}, node)
             return
         if not isinstance(node, Tag) or node.name in {"script", "style", "button", "input", "noscript"}:
             return
         if re.fullmatch(r"h[1-6]", node.name):
-            emit(node.get_text("\n", strip=True), {"element_path": css, "heading_level": int(node.name[1])})
+            emit(node.get_text("\n", strip=True), {"element_path": css, "heading_level": int(node.name[1])}, node)
             return
         if node.name == "img":
-            emit(node.get("alt", ""), {"element_path": css, "attribute": "alt"})
+            emit(node.get("alt", ""), {"element_path": css, "attribute": "alt"}, node)
             return
         if node.name == "table":
             caption = node.find("caption")
@@ -235,12 +248,12 @@ def _html_blocks(path: Path, unit: dict) -> list[dict]:
                         column += 1
                     rows, columns = int(cell.get("rowspan", 1)), int(cell.get("colspan", 1))
                     occupied.update((r, c) for r in range(row_index, row_index + rows) for c in range(column, column + columns))
-                    emit(cell.get_text("\n", strip=True), {"element_path": css, "table_caption": caption.get_text(" ", strip=True) if caption else None, "row": row_index, "column": column, "merged_span": {"rows": rows, "columns": columns}})
+                    emit(cell.get_text("\n", strip=True), {"element_path": css, "table_caption": caption.get_text(" ", strip=True) if caption else None, "row": row_index, "column": column, "merged_span": {"rows": rows, "columns": columns}}, cell)
                     column += columns
             return
         structural = {"div", "section", "article", "table", "ul", "ol", "li", "dl", "dt", "dd", "p", "pre", "h1", "h2", "h3", "h4", "h5", "figure", "img"}
         if not any(child.name in structural for child in node.find_all(recursive=False)):
-            emit(node.get_text("\n", strip=True), {"element_path": css})
+            emit(node.get_text("\n", strip=True), {"element_path": css}, node)
             return
         counts = {}
         for index, child in enumerate(node.children):
