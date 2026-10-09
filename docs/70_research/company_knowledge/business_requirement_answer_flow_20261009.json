@@ -5169,6 +5169,570 @@
     "synthesis_live/result.json": "0705a518cc70da3a115cc00e8e137fae087b289c2670a9302ad410d70ab10492",
     "synthesis_live/request.json": "13eb3bae66971b03d92bd7c984fb416e012b0090d7a0ffa10893b21faf2be061",
     "alignment.json": "81ce4df3029f7013933fc4d22361ce2227e4e833c8182aa9140d857a6e7e7d65",
-    "product_diff.patch": "e7e5ea317a83814e7df57abbc840292964d1736e18813facbdd340295de6e9a4"
+    "product_diff.patch": "e7e5ea317a83814e7df57abbc840292964d1736e18813facbdd340295de6e9a4",
+    "run_reason_boundary.py": "b48417d15a123e29c0d6a788d2c50884636c3991cd50a4b5d71d16ee88b39056",
+    "code_reason_boundary_manifest.json": "dc8e2a73ece7d9b6a1113b06efec6de832ba28506777751b9ac17f505671cccc",
+    "reason_boundary_preparation.json": "eeef7b9cd3390576a4d28c70b2b1d1790cc97e696432532d97b9778829392799",
+    "reason_boundary_preflight/uncached_request.json": "f563dbeddc04646a0b74f0994bfd6a5694ac3946fa0dbf645a4073b719ccb390",
+    "reason_boundary_live/result.json": "a991dee0b7184892e148e65267bc4c8f0aa78e400b8acfcaaa7d6f74afe19f11",
+    "reason_boundary_live/freeze.json": "9769345851a9df48a39ca7644cfb39c0c91bfa5232c4671f028721253d384e5a",
+    "reason_boundary_live/integrity.json": "2f54c1f5fe4c4c781112708df0042f5378c586b51559046bfb68cbbc2b18ddcc",
+    "reason_boundary_live/cache_lookups.json": "e7765d6d0dbe8ffb56e16c400d457e9e4921be4830a293bc7ea5178a39fcda4a",
+    "reason_boundary_rejected_candidate.patch": "beb9b6f17485ad3abd055ea95e65569e42e34ed85f95fc3f082273093d75b101",
+    "reason_boundary_comparison.json": "d133bcad57ed438c98f140ba48f299fea17d8c9fd9a849832770309e45bbd18e",
+    "application_origin.json": "19d8773533d462ccc23a5947d3b541ff6269ca02d44250d0a0a79fc9811beb77",
+    "resource_before_reason_boundary.json": "8112bfc7d859ee20f7ce0a8d6dedf164b82448a46668da575e178a32e55f12dc",
+    "resource_released_reason_boundary.json": "63c700806377c538b38fe81e75561b5cdfc46bd5ca26a2a424eaefca1876661d",
+    "reason_boundary_final_tests.log": "53ff3198ba8bbb90fce74252ff5027e2ce9620ff8a8cf95e92493ebd8f8d003f"
+  },
+  "reason_boundary_preparation": {
+    "change": "Only remove requirement_link.reason from synthesis model input; no stored record mutation",
+    "baseline_run_id": "4b02113d47a042e981e590752ec79d03",
+    "source_correction_old_copy_hypothesis_rejected": true,
+    "application_origin": {
+      "containing_run": "f423bd1c140f4fc2a7e820877e17291f",
+      "unit_id": "4323534351624ff6b066e4a582cabbc0",
+      "started_at": "2026-10-08T09:38:52.530845+00:00",
+      "input_fact": {
+        "key": "plate_change_documents",
+        "statement": "자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+        "source_status": "supported",
+        "availability": "provided",
+        "evidence": [
+          {
+            "block_id": "b32",
+            "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+            "source_version_id": "v1",
+            "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+            "start_char": 0,
+            "end_char": 116,
+            "precision": "exact"
+          }
+        ],
+        "conditions": [
+          "자가용(비사업용)자동차 이전등록",
+          "번호판 변경"
+        ],
+        "exceptions": [],
+        "period": "",
+        "references": [],
+        "reason": "b32는 b26(공통사항) 하위 항목으로, 번호판 변경 시 필요한 서류 및 지역 번호에 대한 추가 조건을 명시한다.",
+        "premise_keys": []
+      },
+      "output": {
+        "links": [
+          {
+            "item_id": "documents",
+            "key": "plate_change_documents",
+            "requirement_link": {
+              "requested_fact": "번호판 변경을 수반하는 이전등록의 구비서류 요건",
+              "applicability": "applicable",
+              "contribution": "direct_answer",
+              "reason": "질문은 번호판 변경을 수반하는 이전등록의 처리 가능 기관을 묻고, 기준은 구비서류 요건을 함께 확인하도록 요구한다. 원문 b32는 번호판 변경 시 기존번호판 2매 및 봉인 반납을 명시하며, 이는 번호판 변경을 수반하는 이전등록의 필수 서류 요건이다. 따라서 이 사실은 질문의 '번호판 변경을 수반하는' 조건에 직접 대응하는 직접 답변 사실이다.",
+              "requirement_quote": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+            },
+            "required_for_requirement": true
+          },
+          {
+            "item_id": "scope",
+            "key": "plate_change_documents",
+            "requirement_link": {
+              "requested_fact": "번호판 변경을 수반하는 이전등록의 처리 가능 기관",
+              "applicability": "outside_scope",
+              "contribution": "background",
+              "reason": "질문은 '어느 기관에서 처리할 수 있는가'를 묻지만, 제공된 원문(b1~b44)에는 명지 본소·금련산·부전·구포·동부산센터 중 어느 기관이 번호판 변경을 수반하는 이전등록을 처리하는지에 대한 명시적 정보가 없다. 원문은 절차(1F 창구)와 서류만 제시하며, 센터별 처리 가능 범위나 제외 업무를 명시하지 않는다. 따라서 이 원문은 기관별 처리 가능 범위에 대한 직접 답변이 될 수 없으며, 부가 정보로만 남는다.",
+              "requirement_quote": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?"
+            },
+            "required_for_requirement": false
+          },
+          {
+            "item_id": "excluded",
+            "key": "plate_change_documents",
+            "requirement_link": {
+              "requested_fact": "센터별 제외 업무",
+              "applicability": "outside_scope",
+              "contribution": "background",
+              "reason": "기준은 '센터별 제외 업무'를 확인하도록 요구하지만, 제공된 원문에는 센터별 제외 업무에 대한 정보가 전혀 없다. 원문은 공통 구비서류와 절차만 기술하고 있어, 센터별 제외 업무에 대한 직접 답변이 불가능하다.",
+              "requirement_quote": "센터별 제외 업무"
+            },
+            "required_for_requirement": false
+          }
+        ],
+        "meaning_challenges": []
+      },
+      "origin_is_reusable_unit": true
+    },
+    "actual_serialized_diff": [
+      {
+        "path": "reviewed_meanings[2].requirement_link.reason",
+        "key": "transfer_certificate",
+        "before": "기준은 구비서류 요건을 함께 확인하라고 명시하고 있으며, 양수인 미방문 시 필요한 양도증명서 요건이 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[3].requirement_link.reason",
+        "key": "plate_change_documents",
+        "before": "질문은 번호판 변경을 수반하는 이전등록의 처리 가능 기관을 묻고, 기준은 구비서류 요건을 함께 확인하도록 요구한다. 원문 b32는 번호판 변경 시 기존번호판 2매 및 봉인 반납을 명시하며, 이는 번호판 변경을 수반하는 이전등록의 필수 서류 요건이다. 따라서 이 사실은 질문의 '번호판 변경을 수반하는' 조건에 직접 대응하는 직접 답변 사실이다."
+      },
+      {
+        "path": "reviewed_meanings[6].requirement_link.reason",
+        "key": "myeongji_main_office_scope",
+        "before": "질문은 번호판 변경 수반 여부와 무관하게 이전등록을 처리할 수 있는 기관을 묻고 있으며, 명지 본소 관리팀의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[7].requirement_link.reason",
+        "key": "geumryongsan_center_scope",
+        "before": "질문은 기관별 처리 가능 범위를 묻고 있으며, 금련산센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[8].requirement_link.reason",
+        "key": "geumryongsan_center_exclusion",
+        "before": "기준은 센터별 제외 업무를 모두 유지하라고 명시하고 있으며, 금련산센터의 제외 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[9].requirement_link.reason",
+        "key": "bujon_center_scope",
+        "before": "질문은 기관별 처리 가능 범위를 묻고 있으며, 부전센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[10].requirement_link.reason",
+        "key": "gupo_center_scope",
+        "before": "질문은 기관별 처리 가능 범위를 묻고 있으며, 구포센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      },
+      {
+        "path": "reviewed_meanings[11].requirement_link.reason",
+        "key": "dongbusan_center_scope",
+        "before": "질문은 기관별 처리 가능 범위를 묻고 있으며, 동부산센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+      }
+    ],
+    "changed_fields": 8,
+    "other_serialized_payload_equal": true,
+    "prompt_schema_settings_references_equal": true,
+    "snapshot_question_model_settings_equal": true,
+    "preflight_new_model_calls": 0,
+    "required_context_and_conditions_preserved": true,
+    "baseline_request_sha256": "d0d2474a017d3f5ec380c60f54894bd60f48eca534c6700ecea0ae91f72cb6e6",
+    "candidate_request_sha256": "f563dbeddc04646a0b74f0994bfd6a5694ac3946fa0dbf645a4073b719ccb390",
+    "live_status": "completed_one_qa_call",
+    "adoption_status": "rejected_not_adopted",
+    "tests": ".....                                                                    [100%]\n5 passed, 32 deselected in 19.11s\n",
+    "preparation_record_note": "Original preparation artifact preserves prepared/not-run state at freeze time; this report records final execution outcome."
+  },
+  "reason_boundary_comparison": {
+    "version": "r05-reason-boundary-one-change-v1",
+    "baseline_run_id": "4b02113d47a042e981e590752ec79d03",
+    "candidate_run_id": "5aacdbb9b2b749a8a41408d48dde4be9",
+    "change": "Remove only reviewed_meanings[*].requirement_link.reason from synthesis model input copy; preserve stored reviewed_meanings.",
+    "decision": "rejected_not_adopted",
+    "semantic_result": "failed_with_document_coverage_regression",
+    "automatic_discovery_or_repair_evaluated": false,
+    "same_snapshot_question_and_public_requirement": true,
+    "actual_input_comparison": {
+      "removed_fields": [
+        {
+          "key": "transfer_certificate",
+          "reason": "기준은 구비서류 요건을 함께 확인하라고 명시하고 있으며, 양수인 미방문 시 필요한 양도증명서 요건이 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "plate_change_documents",
+          "reason": "질문은 번호판 변경을 수반하는 이전등록의 처리 가능 기관을 묻고, 기준은 구비서류 요건을 함께 확인하도록 요구한다. 원문 b32는 번호판 변경 시 기존번호판 2매 및 봉인 반납을 명시하며, 이는 번호판 변경을 수반하는 이전등록의 필수 서류 요건이다. 따라서 이 사실은 질문의 '번호판 변경을 수반하는' 조건에 직접 대응하는 직접 답변 사실이다."
+        },
+        {
+          "key": "myeongji_main_office_scope",
+          "reason": "질문은 번호판 변경 수반 여부와 무관하게 이전등록을 처리할 수 있는 기관을 묻고 있으며, 명지 본소 관리팀의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "geumryongsan_center_scope",
+          "reason": "질문은 기관별 처리 가능 범위를 묻고 있으며, 금련산센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "geumryongsan_center_exclusion",
+          "reason": "기준은 센터별 제외 업무를 모두 유지하라고 명시하고 있으며, 금련산센터의 제외 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "bujon_center_scope",
+          "reason": "질문은 기관별 처리 가능 범위를 묻고 있으며, 부전센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "gupo_center_scope",
+          "reason": "질문은 기관별 처리 가능 범위를 묻고 있으며, 구포센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        },
+        {
+          "key": "dongbusan_center_scope",
+          "reason": "질문은 기관별 처리 가능 범위를 묻고 있으며, 동부산센터의 이전등록(자가용) 업무가 원문에 명시되어 있어 직접 답변에 해당한다."
+        }
+      ],
+      "all_other_payload_equal": true,
+      "all_other_messages_equal": true,
+      "schema_reference_map_model_configuration_limits_equal": true,
+      "stored_reviewed_meanings_equal": true,
+      "preflight_matches_live_messages": true
+    },
+    "candidate_code_and_test_patch": "diff --git a/app/knowledge/business_use.py b/app/knowledge/business_use.py\nindex 28371f49..c608965e 100644\n--- a/app/knowledge/business_use.py\n+++ b/app/knowledge/business_use.py\n@@ -889,6 +889,10 @@ def query(service, request, *, context_mode='graph'):\n     elif request.answer_mode == 'source_quotes':\n         output = source_quote_answer(service, run, request, source_evidence, snapshot['source_versions'], reference_map, answer_requirements)\n     else:\n+        answer_meanings = deepcopy(reviewed_meanings)\n+        for meaning in answer_meanings:\n+            if meaning.get('requirement_link'):\n+                meaning['requirement_link'].pop('reason', None)\n         output = business_run.json_call(service, run, 'business_qa',\n             '제공된 검색 근거만으로 질문에 한국어로 답한다. 선택지가 있으면 choice에 선택지의 A/B/C/D를 반환한다. '\n             '부족하면 확인 불가와 구체 한계를 표시한다. citations에는 사용한 context id만 쓴다. '\n@@ -912,7 +916,7 @@ def query(service, request, *, context_mode='graph'):\n                  source_versions=snapshot['source_versions'], source_evidence=source_evidence,\n                  **({'public_requirements': answer_requirements} if answer_requirements else {}),\n                  requirement_limitations=limitations, **({'source_context': required_source_context} if source_reader\n-                                                         else {'reviewed_meanings': reviewed_meanings})), context_answer,\n+                                                         else {'reviewed_meanings': answer_meanings})), context_answer,\n             reference_map=reference_map)\n     if source_reader:\n         run['answer_contract'] = 'source-unique-provided-citations-lossless-dedup-v3'\ndiff --git a/app/tests/unit/test_knowledge_business.py b/app/tests/unit/test_knowledge_business.py\nindex 9e4539a7..d4357bd6 100644\n--- a/app/tests/unit/test_knowledge_business.py\n+++ b/app/tests/unit/test_knowledge_business.py\n@@ -1280,6 +1280,8 @@ def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_rev\n     refs = [dict(business_run.exact_evidence([dict(block_id=b['id'], quote=b['text'])], blocks)[0], precision='chunk') for b in blocks]\n     m = meaning('m')\n     m['evidence'] = business_run.exact_evidence(m['evidence'], blocks)\n+    m['requirement_link'] = dict(requested_fact='접수 조건', applicability='applicable' if support == 'supported' else 'unresolved',\n+        contribution='direct_answer', requirement_quote='신청 서류', reason='기존 적용성 자유 설명')\n     c = dict(id='c', role='entity_relation', raw=dict(Head='기관', Relation='접수', Tail='신청'),\n              source_version_ids=[blocks[0]['source_version_id']], evidence=refs)\n     req = dict(id='r', revision=1, status='ready', question='대리 신청 접수 조건은?',\n@@ -1308,6 +1310,11 @@ def test_qa_source_compaction_keeps_mandatory_context_and_never_uses_partial_rev\n         assert delivered['body']==blocks[1]['text'] and delivered['note']==blocks[2]['text']\n         assert ('unrelated' not in delivered) if support=='supported' else ('unrelated' in delivered)\n         assert seen[0]['reviewed_meanings'][0]['claim_support'] == {'c':support}\n+        assert seen[0]['reviewed_meanings'][0]['requirement_link'] == {\n+            k: v for k, v in m['requirement_link'].items() if k != 'reason'}\n+        with service.repository.connect() as db:\n+            query_run = json.loads(db.execute('SELECT payload FROM runs ORDER BY rowid DESC LIMIT 1').fetchone()[0])\n+        assert query_run['reviewed_meanings'][0]['requirement_link'] == m['requirement_link']\n         public = seen[0]['public_requirements'][0]\n         assert public['criterion'] == req['criterion'] and public['question'] == req['question']\n         assert 'status' not in public and 'history' not in public\n",
+    "freeze": {
+      "created_at": "2026-10-09T11:14:22.894047+00:00",
+      "original_database": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_support_mechanism_20261008/conditional_qa/knowledge.db",
+      "original_sha256": "d93e080f0e4e1c7f092bb60aff1a5dd2903331520ad0baa9d37c9e10a4bd256f",
+      "snapshot_id": "f238a00cc00b474fad2f890782510a35",
+      "snapshot_sha256": "2ab23588ca07900d6221e36127562d92ab22aa3b2e3f4a65b6a473ee145211cc",
+      "recipe": {
+        "version": "autoschemakg-business-v2-compact-source",
+        "generation": {
+          "provider": "ollama",
+          "endpoint": "http://localhost:11434",
+          "auth_env": "KNOWLEDGE_API_KEY",
+          "context_length": 49152
+        },
+        "models": {
+          "draft": "gemma4:31b-it-q4_K_M",
+          "review": "qwen3.8:27b-q4_K_M"
+        },
+        "options": {
+          "source_version_ids": [
+            "7b42ae519cbd4184b4de800623559005",
+            "14476d2f18bf407d969301fcb68b01a1"
+          ],
+          "requirement_ids": [
+            "busan-R05"
+          ],
+          "block_ids": [],
+          "selection_reason": "",
+          "neighbor_mode": "structured",
+          "model": null,
+          "review_model": null,
+          "context_tokens": 49152,
+          "representation_context_tokens": 49152,
+          "extraction_tokens": 4096,
+          "concept_tokens": 512,
+          "review_tokens": 8192,
+          "representation_tokens": 8192,
+          "source_tokens": 8192,
+          "source_reassessment_tokens": 8192,
+          "timeout": 1800.0,
+          "think": false,
+          "repair": true,
+          "resume_run_id": null,
+          "reuse_run_id": null,
+          "conceptualize": false
+        },
+        "review_contract": "requirement-local-review-v6-separated"
+      },
+      "model_identity": {
+        "draft": {
+          "name": "gemma4:31b-it-q4_K_M",
+          "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+          "context_length": 262144
+        },
+        "review": {
+          "name": "qwen3.8:27b-q4_K_M",
+          "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+          "context_length": 262144
+        }
+      },
+      "question": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+      "public_requirement": {
+        "id": "busan-R05",
+        "question": "번호판 변경을 수반하거나 수반하지 않는 이전등록을 어느 기관에서 처리할 수 있는가?",
+        "criterion": "이전등록 담당과 센터별 제외 업무를 모두 유지하고 구비서류 요건과 기관의 처리 가능 범위를 함께 확인한다.",
+        "target": "자가용 매매 이전등록 신청인",
+        "situation": "명지 본소·금련산·부전·구포·동부산센터 비교",
+        "period": "방문 전 기관 및 서류 확인",
+        "revision": 1
+      },
+      "product_entrypoint": "business_use.query",
+      "answer_mode_change_only": true,
+      "gold_loaded": false,
+      "available_cache_units": 14,
+      "max_new_model_calls": 1,
+      "criteria_file": "docs/70_research/company_knowledge/business_requirement_answer_flow_20261009.md"
+    },
+    "candidate_metrics": {
+      "llm_calls": 1,
+      "model_total_s": 133.871859,
+      "elapsed_s": 145.9881896249717,
+      "reused_responses": 1
+    },
+    "candidate_qa_unit_id": "d7c90fe9500c456d88a7dc6990e7c351",
+    "candidate_input_tokens": 19007,
+    "candidate_output_tokens": 323,
+    "candidate_request_configuration": {
+      "model": "qwen3.8:27b-q4_K_M",
+      "generation": {
+        "provider": "ollama",
+        "endpoint": "http://localhost:11434",
+        "auth_env": "KNOWLEDGE_API_KEY",
+        "context_length": 49152
+      },
+      "identity": {
+        "draft": {
+          "name": "gemma4:31b-it-q4_K_M",
+          "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+          "context_length": 262144
+        },
+        "review": {
+          "name": "qwen3.8:27b-q4_K_M",
+          "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+          "context_length": 262144
+        }
+      },
+      "temperature": 0,
+      "timeout": 1800.0
+    },
+    "candidate_requested_limits": {
+      "max_tokens": 8192,
+      "context_tokens": 49152,
+      "think": false
+    },
+    "candidate_executed_limits": {
+      "max_tokens": 8192,
+      "context_tokens": 49152,
+      "think": false
+    },
+    "candidate_status": "answered",
+    "candidate_answer": {
+      "answer": "제공된 근거에 따르면, 번호판 변경을 수반하는 이전등록은 명지 본소(관리팀)와 금련산센터에서 처리할 수 있습니다. 명지 본소는 번호판 교부가 당일이며, 금련산센터는 번호판 교부에 2~3일이 소요됩니다. 번호판 변경을 수반하지 않는 이전등록은 명지 본소, 금련산센터, 부전센터, 구포센터, 동부산센터 모두에서 처리할 수 있습니다. 다만 부전센터, 구포센터, 동부산센터는 번호 변경 및 번호판 재발급·재봉인 업무를 제외하며, 동부산센터는 말소·저당 업무도 제외됩니다. 금련산센터는 자가용(비사업용) 신규등록 및 임시운행 허가 처리가 불가합니다.",
+      "choice": null,
+      "citations": [
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34"
+      ],
+      "limitations": [
+        "구체적인 구비서류 목록은 제공된 근거에 포함되어 있으나, 기관별 처리 가능 범위와 제외 업무에 초점을 맞춰 답변했습니다.",
+        "번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터의 번호판 교부 소요 기간이 다릅니다."
+      ]
+    },
+    "candidate_provider_response": {
+      "model": "qwen3.8:27b-q4_K_M",
+      "created_at": "2026-10-09T11:16:48.877441Z",
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"answer\": \"제공된 근거에 따르면, 번호판 변경을 수반하는 이전등록은 명지 본소(관리팀)와 금련산센터에서 처리할 수 있습니다. 명지 본소는 번호판 교부가 당일이며, 금련산센터는 번호판 교부에 2~3일이 소요됩니다. 번호판 변경을 수반하지 않는 이전등록은 명지 본소, 금련산센터, 부전센터, 구포센터, 동부산센터 모두에서 처리할 수 있습니다. 다만 부전센터, 구포센터, 동부산센터는 번호 변경 및 번호판 재발급·재봉인 업무를 제외하며, 동부산센터는 말소·저당 업무도 제외됩니다. 금련산센터는 자가용(비사업용) 신규등록 및 임시운행 허가 처리가 불가합니다.\",\n  \"choice\": null,\n  \"citations\": [\n    \"q13\",\n    \"q14\",\n    \"q15\",\n    \"q16\",\n    \"q17\",\n    \"q18\",\n    \"q19\"\n  ],\n  \"limitations\": [\n    \"구체적인 구비서류 목록은 제공된 근거에 포함되어 있으나, 기관별 처리 가능 범위와 제외 업무에 초점을 맞춰 답변했습니다.\",\n    \"번호판 변경을 수반하는 이전등록의 경우, 명지 본소와 금련산센터의 번호판 교부 소요 기간이 다릅니다.\"\n  ]\n}"
+      },
+      "done": true,
+      "done_reason": "stop",
+      "total_duration": 133850899292,
+      "load_duration": 5351078417,
+      "prompt_eval_count": 19007,
+      "prompt_eval_cached_count": 0,
+      "prompt_eval_duration": 110171841000,
+      "eval_count": 323,
+      "eval_duration": 18250801000
+    },
+    "baseline_answer": {
+      "answer": "자가용(비사업용)자동차 이전등록은 명지 본소 관리팀, 금련산센터, 부전센터, 구포센터, 동부산센터에서 모두 처리할 수 있습니다. 다만 번호판 변경(번호 변경 및 번호판 재발급·재봉인)을 수반하는 이전등록은 부전센터, 구포센터, 동부산센터에서는 제외되며, 명지 본소(번호판 교부 당일)와 금련산센터(번호판 교부 2~3일 소요)에서 처리 가능합니다. 금련산센터는 자가용(비사업용) 신규등록 및 임시운행 허가만 처리 불가하며, 동부산센터는 말소·저당 업무도 제외됩니다. 구비서류로는 이전등록신청서, 책임보험가입(피보험자: 양수인), 자동차세 완납이 공통으로 필요하며, 번호판 변경 시 기존번호판 2매 및 봉인 반납이 필요합니다. 매매 이전등록의 경우 양도증명서와 양도인의 자동차매도용 본인서명사실확인서 또는 인감증명서가 추가 필요하며, 양도인이 방문 시 매도용 서류는 생략 가능하나 법인 인감은 생략 불가합니다.",
+      "choice": null,
+      "citations": [
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34",
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_6804020432957407c5cf6595",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_9bb0b2df8d384265d1018017",
+        "claim_026829f70fe89ca9f770bee7"
+      ],
+      "limitations": [
+        "제공된 근거는 부산광역시 내 기관(명지 본소, 금련산, 부전, 구포, 동부산센터)에 한정되어 있으며, 타 지역 기관의 처리 가능 여부는 확인 불가합니다."
+      ]
+    },
+    "baseline_metrics": {
+      "llm_calls": 1,
+      "model_total_s": 141.356696,
+      "elapsed_s": 153.62811550003244,
+      "reused_responses": 1
+    },
+    "comparison": [
+      {
+        "dimension": "conditional_institution_authority",
+        "baseline": "failed",
+        "candidate": "failed",
+        "change": "unchanged_failure",
+        "evidence": {
+          "candidate_quote": "번호판 변경을 수반하는 이전등록은 명지 본소(관리팀)와 금련산센터에서 처리할 수 있습니다.",
+          "source_meanings": [
+            {
+              "key": "myeongji_main_office_scope",
+              "statement": "명지 본소 관리팀의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 「자동차관리법」 위반 과태료, 자동차 운행정지명령 등록 및 공고, 온라인 이전 등록, 이전등록 지연 범칙금을 포함하며, 번호판 교부는 당일에 이루어진다.",
+              "evidence": [
+                {
+                  "block_id": "b22",
+                  "quote": "관리팀\n(명지 본소)",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 11,
+                  "precision": "exact"
+                },
+                {
+                  "block_id": "b23",
+                  "quote": "이전등록\n(자가용)",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 10,
+                  "precision": "exact"
+                },
+                {
+                  "block_id": "b24",
+                  "quote": "- 자동차 소유권 이전(변경) 등록 ※ 번호판 교부: 당일\n- 「자동차관리법」 위반 과태료\n- 자동차 운행정지명령 등록 및 공고\n- 온라인 이전 등록\n- 이전등록 지연 범칙금",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 97,
+                  "precision": "exact"
+                }
+              ]
+            },
+            {
+              "key": "geumryongsan_center_scope",
+              "statement": "금련산센터의 이전등록(자가용) 업무는 자동차 소유권 이전(변경) 등록, 등록원부·등록증 발급, 취득세 및 등록세 부과, 건설기계 변경·말소·저당, 사업용자동차 이전등록을 포함하며, 번호판 교부는 2~3일 소요된다.",
+              "evidence": [
+                {
+                  "block_id": "b26",
+                  "quote": "금련산센터\n(지하철 2호선\n금련산역)",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 20,
+                  "precision": "exact"
+                },
+                {
+                  "block_id": "b27",
+                  "quote": "이전등록\n(자가용)",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 10,
+                  "precision": "exact"
+                },
+                {
+                  "block_id": "b28",
+                  "quote": "- 자동차 소유권 이전(변경) 등록\n등록원부, 등록증 발급 ※ 번호판 교부: 2~3일 소요\n- 취득세 및 등록세 부과\n- 건설기계 변경, 말소, 저당\n- 사업용자동차 이전등록\n※ 자가용(비사업용) 신규등록 및 임시운행 허가는 처리 불가",
+                  "source_version_id": "v2",
+                  "parse_run_id": "p1",
+                  "start_char": 0,
+                  "end_char": 131,
+                  "precision": "exact"
+                }
+              ]
+            }
+          ]
+        },
+        "judgment": "General ownership-transfer duties and plate-issuance timing are present. Candidate still asserts conditional plate-change authority without stating the missing connection. This is not evidence that real offices cannot perform the work."
+      },
+      {
+        "dimension": "regional_plate_return_condition",
+        "baseline": "generalized regional return to all plate changes",
+        "candidate": "omitted all plate-change documents",
+        "change": "no_corrective_evidence",
+        "evidence": {
+          "source": {
+            "key": "plate_change_documents",
+            "statement": "자가용(비사업용)자동차 이전등록 시 번호판 변경을 하는 경우, 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+            "evidence": [
+              {
+                "block_id": "b17",
+                "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+                "source_version_id": "v1",
+                "parse_run_id": "p1",
+                "start_char": 0,
+                "end_char": 116,
+                "precision": "exact"
+              }
+            ]
+          }
+        },
+        "judgment": "Absence of an erroneous statement after omitting the required document topic is not a correct preservation of the condition."
+      },
+      {
+        "dimension": "documents_and_exceptions",
+        "baseline": "partial; omitted absent-buyer proxy and seal-position conditions",
+        "candidate": "all document requirements omitted",
+        "change": "regressed",
+        "evidence": {
+          "public_criterion": "이전등록 담당과 센터별 제외 업무를 모두 유지하고 구비서류 요건과 기관의 처리 가능 범위를 함께 확인한다.",
+          "candidate_limitation": "구체적인 구비서류 목록은 제공된 근거에 포함되어 있으나, 기관별 처리 가능 범위와 제외 업무에 초점을 맞춰 답변했습니다.",
+          "lost_baseline_content": [
+            "common documents",
+            "sale additional documents",
+            "corporate seal exception"
+          ]
+        },
+        "judgment": "The model explicitly acknowledged that document evidence was provided, but chose institution scope only. A limitation does not fulfill the public criterion."
+      },
+      {
+        "dimension": "institution_exclusions_and_plate_issuance_time",
+        "baseline": "preserved",
+        "candidate": "preserved",
+        "change": "unchanged",
+        "judgment": "The existing center exclusions and timing target remain. Timing enumeration is not a newly added standalone requirement."
+      }
+    ],
+    "integrity": {
+      "original_database_unchanged": true,
+      "snapshot_unchanged": true,
+      "stored_source_run_unchanged": true,
+      "requirement_unchanged": true,
+      "code_unchanged": true,
+      "new_model_calls": 1
+    },
+    "cache_lookups": [
+      {
+        "stage": "graph_retrieval_filter",
+        "request_sha256": "6e9cd1640aaa5abbc4c0174daeea592c305b6756e4c2b172ee7f1c1612cfdc96",
+        "reuse_run_id": "e2c440e0a60f41b89fb35ceadce14931",
+        "reuse_unit_id": "d3fa6ffad3574013b9fb6f926d879fac"
+      },
+      {
+        "stage": "business_qa",
+        "request_sha256": "943078c74d80edc3a1aeed21f19101e424ac8694ce51139a3b86fa26e7163bd8",
+        "reuse_run_id": null,
+        "reuse_unit_id": null
+      }
+    ],
+    "resource_released": {
+      "created_at": "2026-10-09T11:17:18.204994+00:00",
+      "ollama_ps": {
+        "models": []
+      },
+      "processes": [
+        " 1444  1406   0.0  13616 /Applications/Ollama.app/Contents/MacOS/Ollama",
+        " 1490  1444   0.0  37312 /Applications/Ollama.app/Contents/Resources/ollama",
+        "96567 81144   0.0  28336 /Users/hyeongi/projects/Civil-Complaints-System/.venv/bin/python"
+      ],
+      "task_loaded_model_stopped": "qwen3.8:27b-q4_K_M",
+      "compute_released": true
+    },
+    "limits": [
+      "One development-exposed R05 pair; no general quality estimate or sole-cause conclusion.",
+      "No fresh extraction, requirement_application, source correction, automatic challenge detection, re-assessment, graph update, R02 or bus v2 execution.",
+      "A stored response reused; candidate only one new QA call; exact successful retrieval filter reused.",
+      "Latency is one local execution measurement, not a server budget or performance benchmark."
+    ],
+    "next": "No further model calls or repeated prompt variants. P1 model re-assessment effect, automatic discovery and complete R05 remain unverified/incomplete; issues #616/#617/#620 stay open.",
+    "causal_conclusion": "Wrong applicability explanations were passed to QA, but removing only those explanations retained the institution error and reduced document coverage. The sole-cause hypothesis is not supported; this does not establish that the explanations had no contribution.",
+    "restoration": {
+      "checkpoint": "0c2e40dfcd929d56029c62d72a3149bc979f75a1",
+      "files": [
+        "app/knowledge/business_use.py",
+        "app/tests/unit/test_knowledge_business.py"
+      ],
+      "byte_equal_verified": true,
+      "candidate_artifacts_preserved": true,
+      "followup_commit_scope": "documents only",
+      "additional_model_calls": 0,
+      "tests_after_restoration": "No test rerun: production and test files exactly match the already-tested P1 checkpoint."
+    }
   }
 }
