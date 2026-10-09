@@ -38,7 +38,7 @@ def prompt(case, arm, mapping):
         json.dumps(case,ensure_ascii=False)+'<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'+PREFIX)
 
 
-def select(response, vocab, token_ids=TOKENS):
+def select(response, vocab, token_ids=TOKENS, allow_ties=False):
     values = response['completion_probabilities'][0]['top_logprobs']
     scores = {v['id']:v['logprob'] for v in values}
     if len(values)!=vocab or set(scores)!=set(range(vocab)):
@@ -47,18 +47,21 @@ def select(response, vocab, token_ids=TOKENS):
         raise ValueError('nonfinite_logprob')
     options = {c:scores[t] for c,t in token_ids.items()}
     ordered = sorted(options,key=options.get,reverse=True)
-    if options[ordered[0]] == options[ordered[1]]:
+    tied=options[ordered[0]] == options[ordered[1]]
+    if tied and not allow_ties:
         raise ValueError('exact_option_tie')
     peak=max(options.values()); denom=sum(math.exp(v-peak) for v in options.values())
     greedy=max(scores,key=scores.get)
-    if len(response['completion_probabilities'])!=1 or len(response['tokens'])!=1 or response['tokens'][0]!=greedy:
+    if len(response['completion_probabilities'])!=1 or len(response['tokens'])!=1 or (response['tokens'][0]!=greedy and not (allow_ties and scores[response['tokens'][0]]==scores[greedy])):
         raise ValueError('first_position_greedy_mismatch')
-    return dict(code=ordered[0], option_logprobs=options,
+    result=dict(code=None if tied else ordered[0], option_logprobs=options,
         relative_option_preferences={c:math.exp(v-peak)/denom for c,v in options.items()},
         option_mass=sum(math.exp(v) for v in options.values()), vocabulary_mass=sum(math.exp(v) for v in scores.values()),
         margin=options[ordered[0]]-options[ordered[1]], native_greedy_token=greedy,
         native_greedy_outside_options=greedy not in token_ids.values(), returned_token=response['tokens'][0],
         full_coverage=True,finite=True,vocab=vocab,correctness_probability=False)
+    if allow_ties:result['option_tie']=tied
+    return result
 
 
 def parse_a(content, case, mapping):
