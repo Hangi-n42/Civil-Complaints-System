@@ -339,7 +339,52 @@ def pending_source_targets(source):
     return {uid: ids - excluded for uid, ids in pending_inspections(source).items() if ids - excluded}
 
 
-def inspection_summaries(source):
+def historical_inspection_scope(run, record):
+    """Recover request scope only; a saved request does not prove model inspection."""
+    from .business_run import exact_evidence
+    from .discovery_analysis import remap
+    units = [u for u in [*run.get('units', []), *run.get('reusable_units', [])]
+             if record.get('unit_id') and u.get('id') == record['unit_id']]
+    if not units or any(u != units[0] for u in units):
+        return dict(scope_record_status='unavailable', scope_record_error='unit_missing_or_ambiguous')
+    unit = units[0]
+    try:
+        mapping, views = unit['reference_map'], unit['evidence_reference_map']
+        if (unit['stage'] != 'source_reassessment' or not mapping or not views
+            or len(set(mapping.values())) != len(mapping)
+            or [m['role'] for m in unit['messages']] != ['system', 'user']):
+            raise ValueError('invalid request record')
+        payload = remap(json.loads(unit['messages'][1]['content']), {v: k for k, v in mapping.items()})
+        expected = autoschema.source_packet(list(views.values()))
+        for ref, block in zip(views, expected):
+            block['evidence_ref'] = ref
+        if payload['blocks'] != expected:
+            raise ValueError('message and evidence map differ')
+        previous = [{k: v for k, v in m.items() if k != 'previous_evidence_refs'}
+                    for m in payload['previous']['meanings']]
+        keys = [m['key'] for m in previous]
+        if not keys or len(set(keys)) != len(keys) or previous != record['previous']:
+            raise ValueError('selected previous meanings differ')
+        for block in views.values():
+            original = next(b for b in run['blocks'] if b['id'] == block['id'])
+            if block.get('locator') != original.get('locator') or not block.get('parse_run_id'):
+                raise ValueError('source address differs')
+            start, end = block.get('span', [0, len(block['text'])])
+            exact_evidence([dict(block_id=block['id'], quote=block['text'],
+                source_version_id=block['source_version_id'], parse_run_id=block['parse_run_id'],
+                start_char=start, end_char=end)], [original])
+        return dict(scope_record_status='available', scope_provenance='historical_unit_request',
+            meaning_keys=sorted(keys), provided_block_ids=sorted({b['id'] for b in views.values()}),
+            target_block_ids=sorted({b['id'] for b in views.values() if not b.get('context_only')}),
+            parent_context_block_ids=sorted({b['id'] for b in views.values() if b.get('context_only')}),
+            source_version_ids=sorted({b['source_version_id'] for b in views.values()}),
+            parse_run_ids=sorted({b['parse_run_id'] for b in views.values()}),
+            examined_block_ids_origin='model_report')
+    except (KeyError, TypeError, ValueError, StopIteration):
+        return dict(scope_record_status='unavailable', scope_record_error='unit_request_mismatch')
+
+
+def inspection_summaries(source, run=None):
     """Expose current verified coverage beside unchanged historical errors."""
     pending = pending_inspections(source)
     current = pending_source_targets(source)
@@ -355,9 +400,11 @@ def inspection_summaries(source):
             for batch in source.get('source_batches', [])]
     for record in source.get('reassessment_history', []):
         output = record.get('output') or {}
+        scope_fields = ('meaning_keys', 'provided_block_ids', 'target_block_ids', 'source_version_ids')
+        recovered = {} if all(k in record for k in scope_fields) else historical_inspection_scope(run or {}, record)
         summaries.append({k: deepcopy(record[k]) for k in ('unit_id', 'inspection_scope', 'meaning_keys',
             'provided_block_ids', 'target_block_ids', 'source_version_ids', 'errors') if k in record}
-            | dict(inspection_scope=record.get('inspection_scope', 'historical_meaning_reassessment'),
+            | recovered | dict(inspection_scope=record.get('inspection_scope', 'historical_meaning_reassessment'),
                 examined_block_ids=output.get('examined_block_ids', []),
                 inspection_status=output.get('inspection_status'),
                 remaining_target_block_ids=sorted(pending.get(record.get('unit_id'), [])),
@@ -2303,7 +2350,7 @@ item_ids는 실제 관련된 public_answer_items의 ID만 선택한다. 항목�
                     or any(c['meaning_key'] == row['meaning_key'] for c in compact['meaning_challenges'])))}
                 for row in compact[field]] for field in (('checks', 'dependencies') if split_roles
                     else ('checks', 'source_checks', 'dependencies'))}, local_failures=failures,
-            source_inspections=inspection_summaries(source),
+            source_inspections=inspection_summaries(source, run),
             preservation_targets=[dict(target_id=v['before']['id'], after_id=v['after']['id'])
                 for r in context for v in r['changes'] if v['before'] and v['after']],
             **(dict(repair_context=[dict(r, targets=[{k: v for k, v in target.items() if k != 'review_records'}
