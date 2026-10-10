@@ -1,0 +1,386 @@
+{
+  "issue": 651,
+  "base_commit": "def333024f1df79f09888cd3a1862d7b1885f523",
+  "status": "research_complete_not_adopted",
+  "product_goal_complete": false,
+  "source_candidate_judgments_not_independent_documents": true,
+  "decision": {
+    "at": 1791624684.814216,
+    "decision_owner": "01a11fd9-f71b-7261-832b-0681548a03c4",
+    "decision": "research_complete_not_adopted",
+    "initial_gate_passed": false,
+    "initial_label_correct": 14,
+    "initial_label_total": 14,
+    "initial_label_bundles_correct": 5,
+    "initial_contract_pass": 1,
+    "initial_calls": 5,
+    "original_correct_before": 9,
+    "original_correct_after": 10,
+    "original_total": 10,
+    "new_no_duty_correct": 4,
+    "new_no_duty_total": 4,
+    "single": {
+      "label_correct": 2,
+      "total": 2,
+      "contract_pass": 1,
+      "diagnostic_separate_approval": true,
+      "original_gate_unchanged": true
+    },
+    "construction": {
+      "total": 119,
+      "unsupported_non_event": 79,
+      "unsupported_event": 40,
+      "constructed": 0,
+      "semantically_evaluated": 0
+    },
+    "conclusion": "Partial development label gain; explicit no-duty candidate necessity not established because both single candidates also U; original citation/reason gate failed. No product adoption.",
+    "new_confirmation_calls": 0,
+    "two_candidate_followup_calls": 0,
+    "editing_or_storage_calls": 0,
+    "extraction_calls": 0,
+    "same_requirement_graph_search_qa_calls": 0,
+    "stats": {
+      "initial": {
+        "calls": 5,
+        "input_tokens": 10068,
+        "output_tokens": 3430,
+        "response_elapsed_s": 235.86284291592892,
+        "wall_s": 235.86719454196282,
+        "cache_n": 0
+      },
+      "single": {
+        "calls": 2,
+        "input_tokens": 5180,
+        "output_tokens": 449,
+        "wall_s": 51.71216637501493,
+        "response_elapsed_s": 51.7115906260442,
+        "cache_n": 0
+      },
+      "total": {
+        "calls": 7,
+        "input_tokens": 15248,
+        "output_tokens": 3879,
+        "wall_s": 287.57936091697775,
+        "response_elapsed_s": 287.5744335419731,
+        "cache_n": 0
+      }
+    }
+  },
+  "initial_review": {
+    "at": 1791624366.082287,
+    "passed": false,
+    "label_gate_passed": true,
+    "semantic_reasons_fully_correct": false,
+    "contract_gate_passed": false,
+    "coordinator_review": "pending final disposition",
+    "expected_judgments": 14,
+    "correct_labels": 14,
+    "label_complete_bundles": 5,
+    "total_bundles": 5,
+    "reused": {
+      "total": 10,
+      "before_correct": 9,
+      "after_correct": 10,
+      "gains": [
+        "na.Y"
+      ],
+      "regressions": [],
+      "correct_preserved": 9
+    },
+    "new_no_duty": {
+      "total": 4,
+      "correct": 4
+    },
+    "normal_supported": {
+      "total": 5,
+      "correct": 5
+    },
+    "explicit_contradiction": {
+      "total": 2,
+      "correct": 2
+    },
+    "unsupported": {
+      "total": 7,
+      "correct": 7
+    },
+    "strict_calls_passed": 1,
+    "strict_call_count": 5,
+    "dimensions_type_errors": [
+      "na",
+      "p1",
+      "p3",
+      "p5"
+    ],
+    "evidence_exact": 8,
+    "evidence_invalid": 6,
+    "error_spans_exact": 9,
+    "difference_quotes_exact": 14,
+    "errors": [
+      "NA evidence changes source ending, claims exact match incorrectly",
+      "p3 evidence flattens newline",
+      "p3 difference gloss mixes shall not and need not",
+      "p3 Y overstates absence of pickup-method information",
+      "instruction rewrite omitted explicit dimensions array annotation"
+    ],
+    "unresolved_labels": 0,
+    "all_eos": true,
+    "none_truncated": true,
+    "single_calls": 0,
+    "source_or_gold_or_output_repairs": 0,
+    "stored_correction_or_qa_calls": 0
+  },
+  "single_diagnostic_authorization": {
+    "at": 1791624400.838611,
+    "owner_chat": "01a11fd9-f71b-7261-832b-0681548a03c4",
+    "maximum_calls": 2,
+    "initial_gate_remains_failed": true,
+    "scope": "Goal section 3 cause/cost diagnosis using exactly the pre-result frozen single NA02/p1X requests",
+    "deviation": "Original conditional followup required passing initial gate. It did not pass. Coordinator separately authorizes two diagnostic calls after observed label gain and contract failures; not retroactive gate relaxation.",
+    "expected": {
+      "NA02": "unsupported",
+      "p1X": "unsupported"
+    },
+    "instructions_or_examples_or_settings_changed": false,
+    "product_adoption": false,
+    "runner_sha256": "4632b0c472ec9f4af01bc4bf028c26d9f20a4c75109790bb84e84f932ba55f30",
+    "files": {
+      "freeze.json": "bf0e9d467f62389691946b5080dc479d402938261e431aba61d4a8e154bc5154",
+      "requests.json": "51ca474b486026515445d0e5a337e5a7e3d38b1023c31f891a5c1220a2dbb4cd",
+      "initial_review.json": "fb5c77eee578b4d30e7a2d2382415a9e378c3cba4feaece4c044b31ce849cc31",
+      "output_audit.json": "6c7a16301257edd70b3e85fe4c707e67ef5f68c8e0563b2a42673364707c4d5c",
+      "initial/result.json": "96e1fa708fe3ec1f332424ee10dff513df47ef190f14f00f0b2d33dd95154a19"
+    }
+  },
+  "boundary_validation": {
+    "at": 1791624684.814421,
+    "old_frozen_code_and_inputs_verified": true,
+    "original_gate_false": true,
+    "syntax_checked": 2,
+    "original_database_sha256": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+    "original_database_unchanged": true,
+    "readme_bytes_unchanged": [
+      {
+        "path": "docs/README.md",
+        "sha256": "5a95998908616b6147d27cec27afc45e8c04ee86058fc70eaddebcbcdd5ea34a"
+      },
+      {
+        "path": "experiments/README.md",
+        "sha256": "f7bfb739bf6e08eb99743413606c101925685097fede744121708b80a2c54221"
+      }
+    ],
+    "ledger_prior_snapshot_sha256": "aec232ea3f4d205bab7554df550b3458938cc860bd0469dcf3deddb54e593e27",
+    "ledger_final_sha256": "c57ab76e40252175be12f303bf59c38f01ac1a46dc1ac69dc07e55d0a7aae7d8",
+    "ledger_existing_anchors_preserved": true,
+    "product_head": "18cee9fb6f3eb4a163894a8f21b7740aadd764cb",
+    "product_status": "",
+    "product_public_files_changed": 0
+  },
+  "scope": "Research code, report and ledger only; raw sources/outputs/DB remain local",
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/audit_outputs.py",
+      "bytes": 2847,
+      "sha256": "c486d57e5eea65cf6dd930915226f44403b9b6de29cae7ec93ca5d72e02118e2"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/baselines.json",
+      "bytes": 197607,
+      "sha256": "6488ef657e2ee00402dec955b1445f68d6027c890461ec05930d2e88c2d20ced"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/boundary_validation.json",
+      "bytes": 928,
+      "sha256": "752c517073f4d2428683a38546c5c367430f238103b608dc5a41c915fc1464c3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/construction_audit.json",
+      "bytes": 49890,
+      "sha256": "e9ab21019bb9d826fa720e20a79816bb9783754510425f7bd82ceab44bd0091c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/criteria.json",
+      "bytes": 2175,
+      "sha256": "ae7899b062bdcbe66f4a5facb71a4cbb786c531e7eeb9f4431db0eaa1c513006"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/execution_authorization.json",
+      "bytes": 386,
+      "sha256": "fd258124212403ead05bc08fde7fcf4bbaffb1cc0854e457dbe2d769d88ef9af"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/final_decision.json",
+      "bytes": 1773,
+      "sha256": "c365b4e61dd209e88933ccfe11d1bbf06248f3fdd17798a19530bdf4946dd01a"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/freeze.json",
+      "bytes": 408,
+      "sha256": "bf0e9d467f62389691946b5080dc479d402938261e431aba61d4a8e154bc5154"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/na_response.json",
+      "bytes": 24717,
+      "sha256": "1dffd14f0414b40b09a9249f670808db19212c54416fa106b0fb22c2f5b81c05"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/p1_response.json",
+      "bytes": 13332,
+      "sha256": "de1db29ebfba5056b6ac8a76c3ba6c92f462dfa0245749c8d8cf87c021cdd6e4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/p2_response.json",
+      "bytes": 13120,
+      "sha256": "518e158c9d27402122c0bc1bd81a3349b7bec4010276dcd73cb413dcb768b317"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/p3_response.json",
+      "bytes": 12908,
+      "sha256": "926b8a3f4ceccb6bba4c9dc43d952d9a3b6add2d997454d44c2b5c527df4ca23"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/p5_response.json",
+      "bytes": 16669,
+      "sha256": "819fee3311b3247eebde60bf059bf1a173a896ef7e7675b5613eca631cb3581d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial/result.json",
+      "bytes": 18465,
+      "sha256": "96e1fa708fe3ec1f332424ee10dff513df47ef190f14f00f0b2d33dd95154a19"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial.log",
+      "bytes": 321,
+      "sha256": "c1af671c113100b69558c90b29ead31bfa5a9c63d08a4de23511266e07a72497"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/initial_review.json",
+      "bytes": 1448,
+      "sha256": "fb5c77eee578b4d30e7a2d2382415a9e378c3cba4feaece4c044b31ce849cc31"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/inputs.json",
+      "bytes": 145828,
+      "sha256": "3e7d03979244b82908c35c95c60b14d89956a029e7250cfe5d60c77df2a8a691"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/instruction_diff.patch",
+      "bytes": 4250,
+      "sha256": "a9528327cccf3b1972477fd0c7ba1ae25360b1e4d93bcccd6d510281e0b14a33"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/ledger_update.patch",
+      "bytes": 17915,
+      "sha256": "25fc20c8e08d56cea2f50932a449888c37606d3d3df1773087735c3a7da7906b"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/output_audit.json",
+      "bytes": 11568,
+      "sha256": "6c7a16301257edd70b3e85fe4c707e67ef5f68c8e0563b2a42673364707c4d5c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/preexisting_snapshot/docs/README.md",
+      "bytes": 4214,
+      "sha256": "5a95998908616b6147d27cec27afc45e8c04ee86058fc70eaddebcbcdd5ea34a"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/preexisting_snapshot/experiments/README.md",
+      "bytes": 1126,
+      "sha256": "f7bfb739bf6e08eb99743413606c101925685097fede744121708b80a2c54221"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/preexisting_snapshot/experiments/company_knowledge/automatic_semantic_judgment_ledger.md",
+      "bytes": 56896,
+      "sha256": "aec232ea3f4d205bab7554df550b3458938cc860bd0469dcf3deddb54e593e27"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/preexisting_snapshot/git_diff.patch",
+      "bytes": 1823,
+      "sha256": "3513bddd79b03ad01371a260ba59a373426a3d1a95faf5f46115995818d300af"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/preexisting_snapshot/receipt.json",
+      "bytes": 545,
+      "sha256": "39a7673c2daa12644ebfae164e974b35927cb4e8ee9cdd37d739f73433558734"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/prepared.json",
+      "bytes": 2351,
+      "sha256": "56648a327b1ab981905065e5362be6097fbb15e2c9ba55cb16715075590d73c4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/props.json",
+      "bytes": 11800,
+      "sha256": "f94f95f52cbb855a516264653a372c2f13a4e9a23e5049a529a1c6f4f1551587"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/requests.json",
+      "bytes": 373558,
+      "sha256": "51ca474b486026515445d0e5a337e5a7e3d38b1023c31f891a5c1220a2dbb4cd"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/runtime_identity.json",
+      "bytes": 872,
+      "sha256": "a086fa2cb429382d868a074b91a9e3ee84f2d79ce22b7c9f9611d8d98471652e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/server.log",
+      "bytes": 16178,
+      "sha256": "b975984ca762a215574bf1a4c3b536ed8fdf46e76a08f71d45db027663f8bf24"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/server_start.json",
+      "bytes": 438,
+      "sha256": "ae107c05075c53bdad06bdd4489aeac21a1c4da0d0565707050c693ba49d1df1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/server_stop.json",
+      "bytes": 154,
+      "sha256": "706df85471d6b0e1d9a33963fdf7e33e13f7cab918c38d85b3c44695134b44b5"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic/NA02_response.json",
+      "bytes": 19433,
+      "sha256": "385fd972e1f5b58741794cc5504fc382c7d67ad6dd7c4ae95d1943777676b663"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic/p1X_response.json",
+      "bytes": 8516,
+      "sha256": "66c5515e12a29d8b668be37c6506f00ec109fe2ded344fdd83452f60804d72b3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic/result.json",
+      "bytes": 3570,
+      "sha256": "9dfa1f19e57cea2510835f1049c9cbf9f4f426281b931c0ba00dd043de7b93fc"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic.log",
+      "bytes": 62,
+      "sha256": "d8fe6525f124ac5deaabdb54b4b8d69331f9ddae892ecec0d129e3e07c903a17"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic_audit.json",
+      "bytes": 681,
+      "sha256": "f15c8cf99ba34e31191263ed66059d19e54ceb723fbd49099f89f0915c542935"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/single_diagnostic_authorization.json",
+      "bytes": 1213,
+      "sha256": "241d2380923341c6ee4207eea5c7c85bab8b4ae63aa83bb7b193ce8685324eef"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_explicit_opposition_20261010/stored_claim_inventory.json",
+      "bytes": 4089256,
+      "sha256": "95264aa6bd123381e233abf36ee7fbc2fb6cd450c0189a72ff5ed33235a4c1ed"
+    },
+    {
+      "path": "scripts/compare_business_explicit_opposition.py",
+      "bytes": 12328,
+      "sha256": "66640773b342b3169b19831bfacb1c8b3fed217cf828bdf8c3ebc62803d0e627"
+    },
+    {
+      "path": "scripts/diagnose_business_opposition_single.py",
+      "bytes": 3096,
+      "sha256": "4632b0c472ec9f4af01bc4bf028c26d9f20a4c75109790bb84e84f932ba55f30"
+    }
+  ]
+}
