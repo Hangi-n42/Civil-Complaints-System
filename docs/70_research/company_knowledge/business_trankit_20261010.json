@@ -1,0 +1,295 @@
+{
+  "issue": 648,
+  "base_commit": "a5fd5c9b931c70a7207a12334d3b3afc8497451f",
+  "status": "research_complete_not_adopted",
+  "scope": "Research scripts and records only; originals, full outputs, environment and weights retained locally",
+  "new_generation_calls": 0,
+  "new_confirmation_cases": 0,
+  "product_chain_executed": false,
+  "verification": {
+    "exact_same_address_and_units": 24,
+    "exact_input_text": true,
+    "tokens": 155,
+    "unmapped": 0,
+    "nonwhitespace_gaps": 0,
+    "head_ids_within_units": true,
+    "freeze_small_files": true,
+    "large_model_hashes": "Reused pre-run LFS/file receipts; not needlessly rehashed",
+    "generation_calls": 0
+  },
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/dependencies_install.json",
+      "bytes": 548735,
+      "sha256": "b7d51ed1d4f25a67cac6337808a2738c323dc39a807c149cf4387ee57e569506"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/encoder_files.json",
+      "bytes": 1496,
+      "sha256": "3b08e08f155e664ad4993db0653e8dda2981d460aec57b99c72a862604486000"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/freeze.json",
+      "bytes": 3523,
+      "sha256": "b79785cc836f840d4741adb079a99e01a3f59da5d3799350f9ba17dbdb1f4271"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/install.log",
+      "bytes": 6466,
+      "sha256": "69fdafa1af5d74edd72744e5bf336b491e09f9dbcae6fbce21f5063faeda7355"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/installed_code.json",
+      "bytes": 4361,
+      "sha256": "69a8ce9e49f29dd3564372be9f1e23b64dac36ec9a46e804b468ce1413d6949b"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/language_files.json",
+      "bytes": 944,
+      "sha256": "98b1abb20f2d44a9df600c6f6be897536576510295b863c9a45b213a71cbf0ff"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/model_download.json",
+      "bytes": 454,
+      "sha256": "be8ce3706363aca9582e71989d56b34bce2723ce47d26d6bfacb8324ab5458f6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/LICENSE",
+      "bytes": 11367,
+      "sha256": "52a7b72e9a10ceef33252f69feb39432ad1beacd0de67f3661c74738c8dd11d7"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/README.md",
+      "bytes": 12067,
+      "sha256": "bf8c9f282ed2ee51eae8032beb34812eda512c13b461690808b56b2d43c384ec"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/hf_model_metadata.json",
+      "bytes": 45897,
+      "sha256": "e7f723f13fe226c8497897749b03fc18058db8cc5621b5da34d18e30b1f27546"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/receipts.json",
+      "bytes": 2021,
+      "sha256": "83ba326639c41575b54ef68c6e9d0ee3f52922cf01b867f1043c56075dbdd9f8"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/setup.py",
+      "bytes": 2388,
+      "sha256": "6f0b6261c5a93f2a7478e71662d6fc0a1362ff4b5790b6fbd856571e552ca69f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/trankit____init__.py",
+      "bytes": 8880,
+      "sha256": "b5fdee24fb549512611c3640a54116156cf743143d804c650a9f8db547e19351"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/trankit__models__base_models.py",
+      "bytes": 4833,
+      "sha256": "6384d7db2eee2e79b43cb846b1e976b62f5b79ad48a81f39ec4b9e8df75085ce"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/trankit__pipeline.py",
+      "bytes": 55136,
+      "sha256": "e8ac7caced3fb1da3e9bb8a084e17a0f6e61a2a19d824a5e1c5c39fe38da4fb9"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/trankit__utils__base_utils.py",
+      "bytes": 12894,
+      "sha256": "c172cd01e36ab8b982b28ece6f384d92fe913117889c5578b55138685f2792b1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/trankit__utils__tbinfo.py",
+      "bytes": 12023,
+      "sha256": "7bfa7a0863cd46132a022ad70287648ce2fb25ddc79dbea1cdefddc5a1aa866d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/official/xlmr_metadata.json",
+      "bytes": 6830,
+      "sha256": "411a2f1073a9e4bf0492e6e43aa6892f26cfe134ece8a6dc5991f9dbc18d00d8"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/parsed.json",
+      "bytes": 142908,
+      "sha256": "1ed952b2fbfc4aa6bad226bbff533322ebb76b7f86d586c029af8c4f74c848be"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/parser_config.json",
+      "bytes": 733,
+      "sha256": "05e0045904d1f53a297c6e160de36e6b332169a7173046b4af9d6734360c3fdc"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/requirements.lock.txt",
+      "bytes": 746,
+      "sha256": "9d72af0e3c5cfc86e14581b13e2a839320494698d8a0dabaf80442bf38b77375"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/run.log",
+      "bytes": 541,
+      "sha256": "476aafa7d942e228169c2a27d82bb4ec2131b89df64d121740475b24e4cc8165"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/runtime.json",
+      "bytes": 249,
+      "sha256": "caa02eaec6b5ab363913e9ac19281a7ac98d6a569e18d904750ea7a81c50ced6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/semantic_review.json",
+      "bytes": 348,
+      "sha256": "21573a53dbbb134e83dc6d68cda0c8a496231926b22e68c34b2270dd4123f5ff"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/source_download.json",
+      "bytes": 207,
+      "sha256": "d4a78716373e8c429445bb90b1adb87ab8b5e7448503b871b30588dca16188bf"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/source_install.json",
+      "bytes": 49322,
+      "sha256": "6b155b74b3c9d834433bd8b4316510960e4ef9705dea2a2ffac5fc4337b983b4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/source_install.log",
+      "bytes": 8321,
+      "sha256": "ab2742ca3fd78ac24964a8d759d738c59d78a8748e980861a731e5671f9fabc3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/verification.json",
+      "bytes": 303,
+      "sha256": "223cd52c95bbc4f687b9b74f92ef16bdee3524efb3d02d0d8251dedaab3cd95d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_trankit_20261010/weight_configs.json",
+      "bytes": 1486,
+      "sha256": "8710471d0bafe0f620564f7e2aa084f046ed1a7dc4221699c20ab300e4916925"
+    },
+    {
+      "path": "scripts/business_dependency_parser.py",
+      "bytes": 8303,
+      "sha256": "bcb31f291eeb04b01af0c7ac121430e15ea11e561d0d5ac5b411f0ce1d5abaf5"
+    },
+    {
+      "path": "scripts/compare_business_trankit.py",
+      "bytes": 5569,
+      "sha256": "db01c5ddff992645d39177cf9c39a8e09034abfe0e66401b5b206602b96c50bc"
+    }
+  ],
+  "parser_config": {
+    "issue": 648,
+    "source_commit": "54e863327391262cf72f6adc1b0ff104e972a1dc",
+    "trankit": "1.1.2",
+    "language": "korean-kaist",
+    "treebank": "UD_Korean-Kaist",
+    "model_version": "v1.0.0",
+    "model_revision": "1add34e3909949dbb98523ed6cfcb4e9393e2c8e",
+    "embedding": "xlm-roberta-base",
+    "encoder_revision": "e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+    "device": "cpu",
+    "threads": 4,
+    "is_sent": true,
+    "seed": 42,
+    "training": false,
+    "word_expansion": false,
+    "task": "Same 24 unchanged document units, all parser output retained; no Qwen call authorized by this freeze",
+    "license": "Code Apache-2.0; encoder card MIT; KAIST treebank CC BY-SA 4.0; separate task-weight license not stated in HF metadata or ZIP"
+  },
+  "runtime": {
+    "documents": 24,
+    "load_s": 1.983671166934073,
+    "parse_s": 4.8977832907112315,
+    "tokens": 155,
+    "unmapped": 0,
+    "nonwhitespace_gaps": 0,
+    "torch": "2.0.1",
+    "trankit": "1.1.2",
+    "device": "cpu",
+    "threads": 4,
+    "generation_calls": 0
+  },
+  "model_download": {
+    "url": "https://huggingface.co/uonlp/trankit/resolve/1add34e3909949dbb98523ed6cfcb4e9393e2c8e/models/v1.0.0/xlm-roberta-base/korean-kaist.zip",
+    "sha256": "61ad040e3ed0ff8caf858a66bd5b2aa76aabf42f94258c8a3435a79d22a78a7d",
+    "bytes": 35339423,
+    "members": [
+      "korean-kaist.downloaded",
+      "korean-kaist_lemmatizer.pt",
+      "korean-kaist.tagger.mdl",
+      "korean-kaist.tokenizer.mdl",
+      "korean-kaist.vocabs.json"
+    ],
+    "license_files": []
+  },
+  "encoder_files": [
+    {
+      "file": "runtime/xlm-roberta-base/config.json",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/config.json",
+      "sha256": "d66ed8cd4f2a93b358c245e50736fa389ed4f35c0bae7aad0b32abb20c62b579",
+      "bytes": 615
+    },
+    {
+      "file": "runtime/xlm-roberta-base/sentencepiece.bpe.model",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/sentencepiece.bpe.model",
+      "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+      "bytes": 5069051
+    },
+    {
+      "file": "runtime/xlm-roberta-base/tokenizer_config.json",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/tokenizer_config.json",
+      "sha256": "994f46754c5bf4014f1aa92d34b1374319c3a6b3f702105cd5b742beaecd18ce",
+      "bytes": 25
+    },
+    {
+      "file": "runtime/xlm-roberta-base/model.safetensors",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/model.safetensors",
+      "sha256": "6fd4797bc397c3b8b55d6bb5740366b57e6a3ce91c04c77f22aafc0c128e6feb",
+      "bytes": 1115567652
+    },
+    {
+      "file": "runtime/xlm-roberta-base/README.md",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/README.md",
+      "sha256": "bec9f2cd81f7396a64ee474145117d81139906443a21480cbe4993c97cb499aa",
+      "bytes": 5238
+    }
+  ],
+  "language_files": [
+    {
+      "file": "models/xlm-roberta-base/korean-kaist/korean-kaist.downloaded",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "models/xlm-roberta-base/korean-kaist/korean-kaist.tagger.mdl",
+      "sha256": "32779195714c1b84dc5ad1e7fe6ea3a8b1dd26d6451f17c5f852e13312dc2fa0",
+      "bytes": 21992540
+    },
+    {
+      "file": "models/xlm-roberta-base/korean-kaist/korean-kaist.tokenizer.mdl",
+      "sha256": "b4fcd5bd0095c0fd162bd8edfce1f8b85b0420be343729b240fcd98c608782cf",
+      "bytes": 9514929
+    },
+    {
+      "file": "models/xlm-roberta-base/korean-kaist/korean-kaist.vocabs.json",
+      "sha256": "4a7069a3f59fbc24c224b949d310502bb28a8c0ec2710fcf104604f919bf18fd",
+      "bytes": 45397
+    },
+    {
+      "file": "models/xlm-roberta-base/korean-kaist/korean-kaist_lemmatizer.pt",
+      "sha256": "3e4382271ddcce969dcafd5dd50cac2c5d453db20726c04af92b04ed370df26a",
+      "bytes": 10834102
+    }
+  ],
+  "semantic_review": {
+    "decision": "research_complete_not_adopted",
+    "partial_improvement": [
+      "b31/c13 Tail NOUN analyses",
+      "c46 condition-action cues"
+    ],
+    "unresolved": [
+      "b29 buyer VERB",
+      "b32 regional topic attached to outer item",
+      "b32 mandatory adverb attached to item"
+    ],
+    "generation_effect": "not_measured",
+    "new_qwen_calls": 0
+  }
+}

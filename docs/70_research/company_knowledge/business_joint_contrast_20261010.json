@@ -1,0 +1,167 @@
+{
+  "issue": 647,
+  "base_commit": "a5fd5c9b931c70a7207a12334d3b3afc8497451f",
+  "status": "research_complete_not_adopted",
+  "scope": "Research scripts and records only; originals, full outputs, environment and weights retained locally",
+  "new_generation_calls": 3,
+  "new_confirmation_cases": 0,
+  "product_chain_executed": false,
+  "verification": {
+    "calls": 3,
+    "input_tokens": 4910,
+    "output_tokens": 2032,
+    "elapsed_s": 134.48552395915613,
+    "wall_s": 134.4873037909856,
+    "contract_pass": 3,
+    "frozen_and_raw_hashes": true,
+    "all_eos": true,
+    "none_truncated": true,
+    "reverse_calls": 0
+  },
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/criteria.json",
+      "bytes": 1018,
+      "sha256": "ef536e9e43d417dff27ecd27484808a80a93592e071bb9c3f87b1904cc310c20"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/exposure.json",
+      "bytes": 3985,
+      "sha256": "2a3076596f977c39b3a9d307f1d8946edcaff2d536a4b1ab9e0e6ecde343b242"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/freeze.json",
+      "bytes": 439,
+      "sha256": "b8363c225ddba7e72857275a5cb3a951172477e0a310f56e7a8c07faf3b9f16b"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/inputs.json",
+      "bytes": 7412,
+      "sha256": "d7fd4a62951a7bb6b2f437e13e107df39e06f2f5a41e301ca37a0443f75ca7e3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/prepared.json",
+      "bytes": 2954,
+      "sha256": "81c3f00120e36a5788fb72fc913570db9ad8ffbf500d9280d6f9c9068f19620e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/prompts.json",
+      "bytes": 19752,
+      "sha256": "e469ca34befda4b6bb416230f9057dd9ade81ee4d41de4e3b45027eb85889cea"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/props.json",
+      "bytes": 11800,
+      "sha256": "866ffbd5f7399183a9be61f557367f067d5edc9cd19cbd23c29c66798d81a78b"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/requests.json",
+      "bytes": 93032,
+      "sha256": "f9b7c0ca70936906c9d1ec2a4679cce5c86236ff80be132ba02bf4a8a1728269"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/run/p1_response.json",
+      "bytes": 13372,
+      "sha256": "459e922953e3c90f880f89f457b4e541a9db0edf29bd047eec9dfdd5d3c9f4f6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/run/p2_response.json",
+      "bytes": 15239,
+      "sha256": "4b3c81064b3edf0e7bed4f7cc0d4dfed7acf7cfb1deedc2674969c794d3014e1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/run/p3_response.json",
+      "bytes": 14280,
+      "sha256": "e56f95f80fb2f0d96db9d5d5d38cf9322d5bdc2813b7e890e3c7f28ff649de9d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/run/result.json",
+      "bytes": 10778,
+      "sha256": "c1d0ed8e39949f42ec346d0f5bd3444a176549e10fff00a3b0bd8e3507797aa1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/run.log",
+      "bytes": 156,
+      "sha256": "c75fa25efa144e460d18dcdcb7b048877c6e1886a5e02047fcc0b55dc35fbce0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/semantic_review.json",
+      "bytes": 566,
+      "sha256": "ca96f7cc1e86087391bbb846c783c3d42c48cfb4b2d93662c6afeb72da820008"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/server.log",
+      "bytes": 9169,
+      "sha256": "530cf58efbe05adf55938cd7721773ad4254c6d0d9345faaa5c8872d3254e11e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/server_start.json",
+      "bytes": 438,
+      "sha256": "7f984c37bae482525dfbd6a8404613e845739176853048861dc3d84db6975e41"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/server_stop.json",
+      "bytes": 115,
+      "sha256": "c2a80b7b190ae0aeb7060d47153f98808a804a65423ca10ed087e29f1e8aafd7"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/settings.json",
+      "bytes": 291,
+      "sha256": "4423382ff26cb2559fe7b26ce771e3d13028924848e1b54229391870a7c4e5ef"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_joint_contrast_20261010/verification.json",
+      "bytes": 254,
+      "sha256": "700dca02b783eb1c6485be8463f9efbe0002173e0081710bda55725c669682b6"
+    },
+    {
+      "path": "scripts/business_dependency_parser.py",
+      "bytes": 8303,
+      "sha256": "bcb31f291eeb04b01af0c7ac121430e15ea11e561d0d5ac5b411f0ce1d5abaf5"
+    },
+    {
+      "path": "scripts/compare_business_entailment_boundary.py",
+      "bytes": 9517,
+      "sha256": "4a8a4a76a48f2d148f359634682e79807ab9dd4d217b77c4162ca224a28a7840"
+    },
+    {
+      "path": "scripts/compare_business_joint_contrast.py",
+      "bytes": 13634,
+      "sha256": "82d67ee8262669fb68b6c1937f4657d929e878bd8f4bce292a0a111e6b9da0a8"
+    },
+    {
+      "path": "scripts/compare_business_label_selection.py",
+      "bytes": 15776,
+      "sha256": "bcf5548a24f3ed71f0843db268a02eb35708cb3083e1c051afb81f183b962bd4"
+    }
+  ],
+  "semantic_review": {
+    "decision": "research_complete_not_adopted",
+    "pairs": 3,
+    "unique_inputs": 4,
+    "labels": [
+      [
+        "U",
+        "S"
+      ],
+      [
+        "U",
+        "U"
+      ],
+      [
+        "S",
+        "S"
+      ]
+    ],
+    "partial_improvement": "p1 original error span and judgment, d2 retained",
+    "regression": "p2 d3 C to U; reason contradicts actual label",
+    "other_failures": [
+      "p2 d1 reason overreach",
+      "p3 both permission-to-duty errors",
+      "contrast-partner dependence"
+    ],
+    "reverse_calls": 0,
+    "automatic_construction_calls": 0,
+    "confirmation_cases": 0
+  }
+}

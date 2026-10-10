@@ -1,0 +1,127 @@
+{
+  "issue": 646,
+  "base_commit": "a5fd5c9b931c70a7207a12334d3b3afc8497451f",
+  "status": "research_complete_not_adopted",
+  "scope": "Research scripts and records only; originals, full outputs, environment and weights retained locally",
+  "new_generation_calls": 0,
+  "new_confirmation_cases": 0,
+  "product_chain_executed": false,
+  "verification": {
+    "exact_originals_and_metadata": 23,
+    "exact_dom_units": 11,
+    "total_units": 24,
+    "unchanged_raw_and_mapped_documents": 22,
+    "freeze_small_files": true,
+    "main_raw_sha_unchanged": true,
+    "generation_calls": 0
+  },
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/comparison.json",
+      "bytes": 767,
+      "sha256": "7b18f9756d01202a6eacd18c500d45f457657b42dc50e692472ac28098a362cb"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/criteria.json",
+      "bytes": 717,
+      "sha256": "1f7dd27e32daba74320250fa9d2da88e35715f3084c6e703f33924b6d9df983c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/exposure_inventory.json",
+      "bytes": 3985,
+      "sha256": "2a3076596f977c39b3a9d307f1d8946edcaff2d536a4b1ab9e0e6ecde343b242"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/freeze.json",
+      "bytes": 1732,
+      "sha256": "d05e09015fd9e321bba7977ba12fa21d700a6d7aa137bd48604770a5eb1fa442"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/inputs.json",
+      "bytes": 22131,
+      "sha256": "6291df9299be771f71cb9d47ef6874279e24eae571af9c0c3609f0c598746d2c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/parsed.json",
+      "bytes": 338996,
+      "sha256": "22fdf3492f44da3f3fc3c2a4f27f68b7f096ed860d5b9c2adcbb86ad9bb1a059"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/parser_config.json",
+      "bytes": 630,
+      "sha256": "42a065d9f8af61883f4881df6b6d184f7a244a92331eee8a0be0bae5b0a5ab49"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/preparation.json",
+      "bytes": 834,
+      "sha256": "ae2e5ff6e3c395ca5eb016831259c6928b27061c2e8b3ba5338df8f23c8f5fec"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/run.log",
+      "bytes": 851,
+      "sha256": "93617d412ef3225f09ea3da7323a0cbe57ab23693387a6e9813fddf096054ddf"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/runtime.json",
+      "bytes": 265,
+      "sha256": "77f3c011c84d64f02c63cfed686a00e210c1dde9894a9987b0f36637a1554d47"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/source.html",
+      "bytes": 52205,
+      "sha256": "2c20a45589ff718553057274fc446a9bb14517e3e5a5188299b9a8a082f3dde2"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/verification.json",
+      "bytes": 220,
+      "sha256": "e3eecabdf0325c8e10d3971e5cfcba50d287577007ff001cfb839d74a64abd45"
+    },
+    {
+      "path": "scripts/business_dependency_parser.py",
+      "bytes": 8303,
+      "sha256": "bcb31f291eeb04b01af0c7ac121430e15ea11e561d0d5ac5b411f0ce1d5abaf5"
+    },
+    {
+      "path": "scripts/business_document_units.py",
+      "bytes": 3192,
+      "sha256": "254f6edd2f6f851624d7b5200f5fe591d87544b9c649fc62e421d8e66290c0ec"
+    },
+    {
+      "path": "scripts/compare_business_document_boundary.py",
+      "bytes": 5032,
+      "sha256": "42e687e44769554f79da6b139d03a8f748c30336a02c979459b5f2a32138200f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_document_boundary_20261010/verification_script.py",
+      "bytes": 6317,
+      "sha256": "ab9610e8ce5575a5a2789f775d83a3c2ad1d517d0721df4f6daa03bfdf9522d1"
+    }
+  ],
+  "parser_config": {
+    "lang": "ko",
+    "package": "kaist",
+    "processors": "tokenize,pos,lemma,depparse",
+    "device": "cpu",
+    "stanza_version": "1.15.0",
+    "resources_version": "1.15.0",
+    "model_revision": "b83aba4a61553a85db1946477c12f1eab000fbcf",
+    "selection_reason": "Official Korean default, selected before parsing the development cases; no package search",
+    "input_policy": "Unchanged source blocks and raw candidate string fields separately; no rewritten sentence or supplied predicate",
+    "threads": 4,
+    "tokenize_no_ssplit": true,
+    "call_unit": "Each unchanged substring separately; local offsets restored to original block/field"
+  },
+  "runtime": {
+    "stanza": "1.15.0",
+    "torch": "2.5.1",
+    "device": "cpu",
+    "threads": 4,
+    "documents": 24,
+    "load_s": 1.2977005830034614,
+    "parse_s": 0.4306432524463162,
+    "token_unmapped": 0,
+    "word_unmapped": 0,
+    "nonwhitespace_gaps": 0,
+    "new_generation_calls": 0
+  }
+}
