@@ -82,5 +82,147 @@
     "durable_before_owner_fix": "/Users/hyeongi/.codex/artifacts/business-auto-finding-edit-20261011/before_owner_fix",
     "durable_final": "/Users/hyeongi/.codex/artifacts/business-auto-finding-edit-20261011/final"
   },
-  "next_boundary": "Keep recording fix; unresolved join/QA semantic behavior remains in existing issues. No further QA, search, concept, correction, or same-variant model run authorized here."
+  "next_boundary": "Keep recording fix; unresolved join/QA semantic behavior remains in existing issues. No further QA, search, concept, correction, or same-variant model run authorized here.",
+  "execution_metrics": {
+    "stages": [
+      {
+        "stage": "native_edit",
+        "new_calls": 1,
+        "reused_responses": 0,
+        "new": {
+          "prompt_tokens": 1922,
+          "output_tokens": 94,
+          "model_s": 21.175631
+        },
+        "cached_original": {
+          "prompt_tokens": 0,
+          "output_tokens": 0,
+          "model_s": 0
+        },
+        "driver_s": 21.891973666963167
+      },
+      {
+        "stage": "source_reassessment",
+        "new_calls": 1,
+        "reused_responses": 0,
+        "new": {
+          "prompt_tokens": 2393,
+          "output_tokens": 662,
+          "model_s": 53.062563
+        },
+        "cached_original": {
+          "prompt_tokens": 0,
+          "output_tokens": 0,
+          "model_s": 0
+        },
+        "driver_s": 55.253428208990954
+      },
+      {
+        "stage": "R05_assess",
+        "new_calls": 11,
+        "reused_responses": 2,
+        "new": {
+          "prompt_tokens": 86157,
+          "output_tokens": 3968,
+          "model_s": 709.329039
+        },
+        "cached_original": {
+          "prompt_tokens": 8318,
+          "output_tokens": 475,
+          "model_s": 74.29668799999999
+        },
+        "driver_s": 737.6380247500492
+      },
+      {
+        "stage": "changed_target_concepts",
+        "new_calls": 4,
+        "reused_responses": 0,
+        "new": {
+          "prompt_tokens": 18354,
+          "output_tokens": 77,
+          "model_s": 107.272267
+        },
+        "cached_original": {
+          "prompt_tokens": 0,
+          "output_tokens": 0,
+          "model_s": 0
+        },
+        "driver_s": null
+      },
+      {
+        "stage": "default_graph_filter_and_QA",
+        "new_calls": 2,
+        "reused_responses": 0,
+        "new": {
+          "prompt_tokens": 17278,
+          "output_tokens": 676,
+          "model_s": 147.333141
+        },
+        "cached_original": {
+          "prompt_tokens": 0,
+          "output_tokens": 0,
+          "model_s": 0
+        },
+        "driver_s": 165.6714100409299
+      },
+      {
+        "stage": "cb9_QA_connection",
+        "new_calls": 1,
+        "reused_responses": 1,
+        "new": {
+          "prompt_tokens": 14136,
+          "output_tokens": 1048,
+          "model_s": 142.003648
+        },
+        "cached_original": {
+          "prompt_tokens": 3346,
+          "output_tokens": 51,
+          "model_s": 32.008985
+        },
+        "driver_s": 143.6946667500306
+      },
+      {
+        "stage": "owner_connector_replay_join",
+        "new_calls": 1,
+        "reused_responses": 13,
+        "new": {
+          "prompt_tokens": 14823,
+          "output_tokens": 1581,
+          "model_s": 180.938072
+        },
+        "cached_original": {
+          "prompt_tokens": 82039,
+          "output_tokens": 3858,
+          "model_s": 679.154753
+        },
+        "driver_s": 205.51038216706365
+      }
+    ],
+    "full_D_driver_s": 278.13661883294117,
+    "totals_new": {
+      "prompt_tokens": 155063,
+      "output_tokens": 8106,
+      "model_s": 1361.114361
+    },
+    "new_product_calls": 21,
+    "reused_responses": 16,
+    "upstream_finding_and_historical_models_excluded": true
+  },
+  "executed_driver_sha256": {
+    "diagnose.py": "64ec6d6c2ebe0282c13c4f5f7eceaf7294f4d88b2ea679ed0d23ef9fea52b8a3",
+    "source_reassess.py": "acdb261b576b2eecb08a00bfba42dab5f234261392e705ef2e8342d28b26a6e1",
+    "assess_r05.py": "0d89e12d3ff88156467a9a1c1233732cc5bf4f79fde7815c05b2224ef77b8101",
+    "snapshot_qa.py": "c46fe16f60f2da93ca56d05b247b97373896a49587ff2c127bdfde07026923e1",
+    "connect_cb9.py": "73e8ec6323cbad7e46eb35bfd73b7d94094d2f683cd65f7fb6b02e01583656a4",
+    "join_reuse_preflight.py": "fc9525895492631bff6cb7cc21d7bfff513e6d7e4529406d2f50256dc96ee6c6",
+    "owner_replay_join.py": "9533e785256c1eb0640a9d6c054a6a5c3d69d9adf243c5539050b17e53a7ec65"
+  },
+  "implementation_commit": "890529b890ce307bd5592ef09b84ff030871aadf",
+  "verification_detail": {
+    "post_fix_tests": "12 passed in 21.77s",
+    "pre_fix_existing_tests": "10 passed in 18.61s",
+    "git_diff_check": "passed",
+    "json_parse_and_literal_backslash_n_check": "passed"
+  },
+  "issue_states": "616/617/620 remain open; unmet full semantic/QA criteria"
 }
