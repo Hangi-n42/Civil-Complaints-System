@@ -204,6 +204,11 @@ def start(service, request):
                         'answer_items', 'prior_repairs', 'reference_meanings', 'stored_pool'):
                 if key in parent:
                     run[key] = deepcopy(parent[key])
+        if parent and (request.resume_run_id or request.reassess_run_id):
+            run['preservation_reuses'] = deepcopy(parent.get('preservation_reuses', []))
+        if request.answer_items:
+            from .business_use import bind_answer_items
+            run['answer_items'] = bind_answer_items(request, requirements)
         if request.target_parse_run_ids:
             run['source_target_plan'] = business_review.freeze_target_plan(service, db, run, request.target_parse_run_ids)
         elif request.resume_run_id and parent.get('source_target_plan'):
@@ -315,6 +320,8 @@ def evidence_fields(output_type):
             names.extend(['checks', 'meaning_challenges'])
             if 'candidate_challenges' in output_type.model_fields:
                 names.append('candidate_challenges')
+        if 'conjunction_reviews' in output_type.model_fields:
+            names.append('conjunction_reviews')
     return {name: get_args(output_type.model_fields[name].annotation)[0] for name in names}
 
 
@@ -336,7 +343,7 @@ def selected_evidence_type(output_type, references):
                 row = grounded | unresolved
             else:
                 row = unresolved
-        overrides[field] = (list[row], Field(...) if output_type.model_fields[field].is_required() else Field(default_factory=list))
+        overrides[field] = (list[row], deepcopy(output_type.model_fields[field]))
     return create_model('Selected' + output_type.__name__, __base__=output_type, **overrides)
 
 
@@ -628,6 +635,7 @@ def apply_source_corrections(run, requirement, source):
         result.setdefault('explicit_correction_ids', [])
         if correction['id'] not in result['explicit_correction_ids']:
             result['explicit_correction_ids'].append(correction['id'])
+    business_review.refresh_conjunctions(run, requirement, result)
     return result
 
 

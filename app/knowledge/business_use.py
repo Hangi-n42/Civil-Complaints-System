@@ -303,10 +303,29 @@ def public_answer_requirements(requirements):
             for r in requirements]
 
 
+def reviewed_answer_connections(snapshot, original, requirement_ids):
+    rows = []
+    for rid, assessment in snapshot.get('assessments', {}).items():
+        if requirement_ids and rid not in requirement_ids:
+            continue
+        requirement = next(r for r in original['requirements'] if r['id'] == rid)
+        source = assessment.get('source') or {}
+        for record in source.get('conjunction_records', []):
+            row = deepcopy(record)
+            row['requirement_id'] = rid
+            if (row.get('review') and row.get('input_fingerprint') !=
+                    business_review.conjunction_fingerprint(original, requirement, source, record)):
+                row.update(review=None, review_error='conjunction_input_changed')
+            rows.append(row)
+    return rows
+
+
 def bind_answer_items(request, requirements):
     """Bind the public plan to this execution without revising or approving requirements."""
     by_id = {r['id']: r for r in requirements if r['id'] in request.requirement_ids}
     items = [i.model_dump() for i in request.answer_items]
+    if len({i['id'] for i in items}) != len(items):
+        raise ValueError('공개 답변 항목 ID는 중복될 수 없습니다.')
     for item in items:
         requirement = by_id.get(item['requirement_id'])
         if not requirement or item['requirement_revision'] != requirement['revision']:
@@ -435,6 +454,10 @@ def reviewed_item_answer(service, run, request, requirements):
     row = create_model('ReviewedItemSelection', item_id=(Literal[tuple(i['id'] for i in run['answer_items'])], Field(...)),
         selected=(list[selection], Field(...)),
         unconfirmed=(list[str], Field(description='Concrete requested fact or inference link not established; never an affirmative conclusion.')))
+    connections = {f'k{n+1}': record for n, record in enumerate(run.get('reviewed_connections', []))}
+    if connections:
+        row = create_model('ConnectedReviewedItemSelection', __base__=row,
+            connection_refs=(list[Literal[tuple(connections)]], Field(...)))
     output_type = create_model('ReviewedItemSelections', items=(list[row], Field(...)))
     payload, row_contexts = {}, {}
     row_keys = ('row_fields', 'evidence', 'source_version_id', 'source_filename', 'source_dates', 'row_locator')
@@ -459,6 +482,10 @@ def reviewed_item_answer(service, run, request, requirements):
         '명시적 사실·조건을 새로운 허용·의무·보장으로 확대하지 않는다. 일부 적용 범위를 일반화하지 않는다. '
         '모든 공개 항목에 유용한 의미 또는 구체 공백이 필요하다. 불필요한 의미는 선택하지 않는다. '
         '검토 의미도 오류 가능하며 judgment_origin은 정답 보장이 아니다. 원문과 모순이면 선택하지 말고 공백에 이유를 남긴다.' + (
+        ' reviewed_connections는 출처·현재 버전에 묶인 별도 결합 판정이다. selected의 사실 ID가 아니다. '
+        '해당 공개 항목에 실제 관련된 연결만 connection_refs로 선택한다. 원문 지지와 후보 표현 위치·질문 필요성을 구별한다. '
+        'unsupported/unknown은 거짓이 아니며 refuted는 명시 반증이다. 미확인 결합을 확인된 처리 보장으로 승격하지 않는다. '
+        'background/outside_scope를 새 필수 요구로 추가하지 않는다.' if connections else '') + (
         ' kind=exact_row_field는 승인된 후보와 원문 행이 일치하는 직접 셀값이며 새 의미 검수 결과가 아니다. '
         'row_context_id의 row_contexts에 원문 행·출처 문맥이 있다. 질문/공개 항목이 요청한 필드만 선택하고 비요청 필드는 나열하지 않는다. '
         '열 이름과 자연어가 섞인 요청도 각 요청 사실에 해당하는 필드를 빠짐없이 대조한다. '
@@ -469,6 +496,7 @@ def reviewed_item_answer(service, run, request, requirements):
              **(dict(row_contexts=row_contexts) if row_contexts else {}),
              **(dict(assessment_limitations=run['answer_assessment_limitations'])
                 if run.get('answer_assessment_limitations') else {}),
+             **(dict(reviewed_connections=connections) if connections else {}),
              # Earlier whole-requirement applicability is not a verdict on the current public item.
              reviewed_meanings=payload), output_type)
     run['answer_meaning_selection']['output'] = deepcopy(output)
@@ -520,6 +548,42 @@ def reviewed_item_answer(service, run, request, requirements):
         for gap in row['unconfirmed']:
             lines.append('확인 불가: ' + gap)
             limitations.append(gap)
+        for ref, record in connections.items():
+            review = record.get('review')
+            if not review or record['requirement_id'] != item['requirement_id']:
+                continue
+            link = review['requirement_link']
+            bound_item = next((i for i in record['public_answer_items'] if i['id'] == item['id']), None)
+            matching = bool(bound_item and bound_item == item and item['id'] in review['item_ids'])
+            selected_connection = ref in row.get('connection_refs', [])
+            required_connection = matching and link['applicability'] == 'applicable' and link['contribution'] != 'background'
+            if not selected_connection and not required_connection:
+                continue
+            if review['source_status'] == 'supported' and not selected_connection:
+                continue
+            if (bound_item and not matching) or link['applicability'] == 'outside_scope':
+                errors.append(item['id'] + ': connection_outside_public_item:' + ref)
+                continue
+            if review['source_status'] == 'supported' and row['unconfirmed']:
+                errors.append(item['id'] + ': connection_selection_conflicts_with_unconfirmed:' + ref)
+                text = '결합 결론 보류: 이 항목에는 미확인 내용이 남아 있어, 결합한 결론은 확정하지 않았습니다.'
+                if text not in lines:
+                    lines.append(text); limitations.append(text)
+                continue
+            locations = {cid for m in available.values() if m['requirement_id'] == record['requirement_id']
+                for cid in m['required_claim_ids']}
+            meaning_keys = {m['key'] for m in available.values() if m['requirement_id'] == record['requirement_id']}
+            expressed = bool(review['claim_ids']) and set(review['claim_ids']) <= locations and set(review['meaning_keys']) <= meaning_keys
+            if review['source_status'] == 'supported' and expressed:
+                lines.append('검토된 결합 해석: ' + review['statement'])
+                citations.extend(review['claim_ids'])
+            elif review['source_status'] == 'refuted':
+                text = '원문 검수에서 철회된 결합: ' + record['text'] + ' — ' + review['reason']
+                lines.append(text); limitations.append(text)
+            else:
+                text = '확인 불가: ' + review['statement'] + ' — ' + (review['reason'] if review['source_status'] != 'supported'
+                    else '원문 지지는 검수됐지만 현재 승인 후보의 표현 위치는 확인되지 않았습니다.')
+                lines.append(text); limitations.append(text)
         if not row['selected'] and not row['unconfirmed']:
             errors.append(item['id'] + ': empty_item')
         for name in requested_fields[item['id']]:
@@ -853,6 +917,7 @@ def query(service, request, *, context_mode='graph'):
     reviewed_meanings = reviewed_answer_meanings(snapshot, selected, request.requirement_ids) if not source_reader else []
     run['answer_scope_contract'] = 'reviewed-meanings-and-source-qualifications-v1'
     run['reviewed_meanings'] = deepcopy(reviewed_meanings)
+    run['reviewed_connections'] = reviewed_answer_connections(snapshot, original, request.requirement_ids) if not source_reader else []
     if request.answer_mode == 'reviewed_items':
         run['exact_row_answer_fields'] = exact_row_answer_fields(snapshot, selected, request.requirement_ids)
     required_source_context = []

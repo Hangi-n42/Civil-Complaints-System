@@ -354,6 +354,128 @@ def inspection_summaries(source):
             for batch in source.get('source_batches', [])]
 
 
+def conjunction_fingerprint(run, requirement, source, record):
+    review = record.get('review') or {}
+    keys, ids = set(review.get('meaning_keys', [])), set(review.get('claim_ids', []))
+    known = bool(keys and ids and review.get('source_status') in {'supported', 'refuted'})
+    meanings = [m for m in source['meanings'] if not known or m['key'] in keys]
+    claims = [c for c in run['claims'] if not known or c['id'] in ids]
+    options = run['recipe']['options']
+    blocks = related_blocks(run, [*meanings, dict(evidence=review.get('evidence', []))], claims,
+        chunks=autoschema.chunks(run['blocks'], options['context_tokens'], options['review_tokens'], 1)) if known else run['blocks']
+    return autoschema.identifier('conjunction_review', [record['text'],
+        {k: requirement[k] for k in ('id', 'revision', 'question', 'criterion', 'target', 'situation', 'period', 'source_ids') if k in requirement},
+        meanings, claims, blocks, [i for i in run.get('answer_items', []) if i['requirement_id'] == requirement['id']],
+        run.get('recipe'), run.get('model_identity'), 'source-conjunction-review-v1'])
+
+
+def refresh_conjunctions(run, requirement, source):
+    for record in source.get('conjunction_records', []):
+        fingerprint = conjunction_fingerprint(run, requirement, source, record)
+        if record.get('review') and record.get('input_fingerprint') != fingerprint:
+            source.setdefault('conjunction_history', []).append(dict(record=deepcopy(record),
+                reason='conjunction_input_changed'))
+            record['review'] = None
+        record['input_fingerprint'] = conjunction_fingerprint(run, requirement, source, record)
+        record['public_answer_items'] = deepcopy([i for i in run.get('answer_items', []) if i['requirement_id'] == requirement['id']])
+    if 'conjunction_records' in source:
+        source['conjunctions'] = [r['review']['statement'] for r in source['conjunction_records']
+            if r.get('review') and r['review']['source_status'] == 'supported']
+
+
+def conjunction_candidates(service, run, requirement, source):
+    if not separated(run):
+        return []
+    if 'conjunction_records' not in source and source.get('conjunctions'):
+        origin = deepcopy(source.get('historical_judgment_origin', {}))
+        origin['source_version_ids'] = list(run.get('input_version_ids', []))
+        origin['unit_ids'] = [b['unit_id'] for b in source.get('source_batches', []) if b.get('unit_id')]
+        if service is not None and origin.get('run_id') and not origin['unit_ids']:
+            with service.repository.connect() as db:
+                original = service.repository.get(db, 'runs', origin['run_id'])
+            origin['source_version_ids'] = original['input_version_ids']
+            origin['unit_ids'] = [u['id'] for u in original['units'] if u['stage'] == 'requirement_source'
+                and any(m['role'] == 'user' and json.loads(m['content']).get('requirement', {}).get('id') == requirement['id']
+                        for m in u['messages'])]
+        source['conjunction_records'] = [dict(id=autoschema.identifier('conjunction', [origin, n, text]),
+            text=text, origin=deepcopy(origin), review=None) for n, text in enumerate(source['conjunctions'])]
+        source.setdefault('conjunction_history', []).append(dict(original_conjunctions=deepcopy(source['conjunctions']),
+            origin=origin, reason='legacy_conjunctions_are_review_candidates'))
+    refresh_conjunctions(run, requirement, source)
+    return deepcopy(source.get('conjunction_records', []))
+
+
+def resolve_conjunctions(run, requirement, source, result, output, blocks, claims, unit_id):
+    """Keep connection uncertainty separate from independently checked source facts."""
+    from .business_run import exact_evidence
+    records = source.get('conjunction_records', [])
+    keys, ids = {m['key'] for m in review_meanings(source)}, {c['id'] for c in claims}
+    errors, complete, source_complete = [], True, True
+    for record in records:
+        rows = [r for r in output or [] if r['conjunction_id'] == record['id']]
+        row = deepcopy(rows[0]) if len(rows) == 1 else None
+        error = None
+        if row is not None:
+            link = row['requirement_link']
+            try:
+                if not set(row['meaning_keys']) <= keys or not set(row['claim_ids']) <= ids:
+                    raise ValueError('conjunction_outside_provided_scope')
+                if not set(row['item_ids']) <= {i['id'] for i in record['public_answer_items']}:
+                    raise ValueError('conjunction_outside_public_items')
+                locations = {cid for check in result['checks'] if check['meaning_key'] in row['meaning_keys']
+                    and check['status'] == 'represented' for cid in check['claim_ids']}
+                if not set(row['claim_ids']) <= locations:
+                    raise ValueError('conjunction_expression_outside_related_meanings')
+                if row['source_status'] in {'supported', 'refuted'} and not row['meaning_keys']:
+                    raise ValueError('conjunction_without_meaning_location')
+                row['evidence'] = exact_evidence(row['evidence'], blocks)
+                if (row['source_status'] in {'supported', 'refuted'}
+                        or row['original_source_status'] in {'supported', 'refuted'}) and not row['evidence']:
+                    raise ValueError('conjunction_without_actual_source')
+                if row['statement'] == record['text'] and row['original_source_status'] != row['source_status']:
+                    raise ValueError('unchanged_conjunction_has_conflicting_source_status')
+                if row['statement'] != record['text'] and row['source_status'] != 'supported':
+                    raise ValueError('unverified_conjunction_rewrite')
+                if not link['reason'].strip():
+                    raise ValueError('conjunction_without_requirement_reason')
+                if link['contribution'] != 'background' and link['applicability'] != 'outside_scope' and not (
+                        link['requirement_quote'].strip() and any(link['requirement_quote'] in requirement.get(k, '')
+                            for k in ('question', 'criterion'))):
+                    raise ValueError('conjunction_without_public_requirement_quote')
+            except ValueError as exc:
+                error = str(exc)
+        else:
+            error = 'conjunction_review_missing_or_duplicate'
+        previous = deepcopy(record)
+        if error:
+            record.update(review=None, review_error=error)
+            errors.append(dict(conjunction_id=record['id'], reason=error))
+            complete = source_complete = False
+        else:
+            action = ('corrected' if row['statement'] != record['text'] else 'maintained') if row['source_status'] == 'supported' else (
+                'withdrawn' if row['source_status'] == 'refuted' else 'unconfirmed')
+            record.update(review=row, action=action, review_unit_id=unit_id,
+                expression_status='located' if row['claim_ids'] else 'unconfirmed')
+            record.pop('review_error', None)
+            link = row['requirement_link']
+            required = link['applicability'] != 'outside_scope' and link['contribution'] != 'background'
+            if required and (link['applicability'] == 'unresolved' or row['source_status'] != 'supported'):
+                complete = source_complete = False
+            elif required and not row['claim_ids']:
+                complete = False
+        record['input_fingerprint'] = conjunction_fingerprint(run, requirement, source, record)
+        source.setdefault('conjunction_history', []).append(dict(previous=previous, current=deepcopy(record),
+            output=deepcopy(rows), unit_id=unit_id))
+    refresh_conjunctions(run, requirement, source)
+    result['conjunction_reviews'] = deepcopy(records)
+    if not complete:
+        result.update(satisfied=False, conjunctions_satisfied=False)
+    if not source_complete:
+        result['source_completeness'] = 'partial'
+        source['completeness'] = 'partial'
+    return errors
+
+
 def related_blocks(run, meanings, claims=(), *, chunks=None):
     refs = [e for m in meanings for e in m.get('evidence', [])]
     refs.extend(e for c in claims for e in c.get('evidence', []) if e.get('precision') != 'chunk')
@@ -637,6 +759,7 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
         result['reassessed_meaning_keys'] = sorted(set(previous.get('reassessed_meaning_keys', [])) | set(validated))
         result.setdefault('reassessment_history', []).append(dict(previous=deepcopy(meanings), output=deepcopy(output),
                                                                  unit_id=source_unit_id))
+        refresh_conjunctions(run, requirement, result)
         return result
     result['gaps'] = list(dict.fromkeys([*previous['gaps'], *output['gaps']]))
     result['conjunctions'] = list(dict.fromkeys([*previous['conjunctions'], *output['conjunctions']]))
@@ -1205,12 +1328,12 @@ def summarize_local(meanings, outputs):
         if any('error_fields' in c for c in checks):
             result['checks'][-1].update(error_fields={cid: list(dict.fromkeys(
                 field for c in checks for field in c.get('error_fields', {}).get(cid, [])))
-                for cid in incorrect | {cid for c in checks for cid, status in c.get('claim_support', {}).items() if status == 'unknown'}},
+                for cid in sorted(incorrect | {cid for c in checks for cid, status in c.get('claim_support', {}).items() if status == 'unknown'})},
                 error_evidence=[e for c in checks for e in c.get('error_evidence', [])])
         if any('claim_support' in c for c in checks):
             ids = {cid for c in checks for cid in c.get('claim_support', {})}
             support = {}
-            for cid in ids:
+            for cid in sorted(ids):
                 statuses = {c['claim_support'][cid] for c in checks if cid in c.get('claim_support', {})}
                 support[cid] = ('incorrect' if 'incorrect' in statuses else 'unknown' if 'unknown' in statuses
                                 else 'supported' if 'supported' in statuses else 'not_assessed')
@@ -1811,10 +1934,12 @@ def represent(service, run, requirement, source, context, *, previous_scope=None
     """Bounded R batches, real missing-pool checks and a compact source-based join."""
     from . import business_run as execution
     from .business_models import (LocalRepresentationCheck, RequirementJoinCheck, PreservationCheck,
-                                  ExpressionReviewCheck, RequirementSynthesisCheck, ContributionReviewCheck, ContributionSynthesisCheck)
+                                  ExpressionReviewCheck, RequirementSynthesisCheck, ContributionReviewCheck, ContributionSynthesisCheck,
+                                  ConjunctionReview)
     from .discovery_profile import FrozenIndex
     meanings = review_meanings(source)
     split_roles = separated(run)
+    conjunctions = conjunction_candidates(service, run, requirement, source)
     local_type = ContributionReviewCheck if separate_application(run) else ExpressionReviewCheck if split_roles else LocalRepresentationCheck
     claims = [c for c in run['claims'] if not c.get('superseded_by')]
     direct_rows = {c['id']: ref for c in claims if (ref := execution.exact_direct_row(c, run['blocks']))}
@@ -2003,7 +2128,7 @@ claim_support는 후보가 자기 출처/버전에서 지지되는지를 대조�
     join_keys.update(key for a in source.get('meaning_conjunctions', []) for key in a['meaning_keys'])
     # Explicit connections and unattributed conjunctions need their actual source
     # context. Independent local facts retain their judgments and locations.
-    if source.get('conjunctions'):
+    if source.get('conjunctions') or conjunctions:
         join_keys.update(m['key'] for m in meanings)
     join_keys.update(c['meaning_key'] for c in compact['meaning_challenges']
         if c['meaning_key'] in {m['key'] for m in meanings})
@@ -2038,6 +2163,11 @@ claim_support는 후보가 자기 출처/버전에서 지지되는지를 대조�
             target_id=(Literal[tuple(preservation_ids)], Field(...)))
         join_type = create_model('PreservingRequirementJoinCheck', __base__=join_type,
             preservation_checks=(list[check_type], Field(min_length=len(preservation_ids), max_length=len(preservation_ids))))
+    if conjunctions:
+        conjunction_type = create_model('BoundConjunctionReview', __base__=ConjunctionReview,
+            conjunction_id=(Literal[tuple(r['id'] for r in conjunctions)], Field(...)))
+        join_type = create_model('ConjunctionRequirementJoinCheck', __base__=join_type,
+            conjunction_reviews=(list[conjunction_type], Field(min_length=len(conjunctions), max_length=len(conjunctions))))
     # No repeated local output transcripts or source batch history in the join.
     # The source statements and their claim locations remain complete.
     preservation_instruction = ('\nrepair_context의 실제 수정 대상마다 원래 정상 의미 전체와 현재 after/replacements/claims의 위치를 대조해 preservation_checks에 명시한다. '
@@ -2086,10 +2216,25 @@ source_completeness는 필수 범위 조사 상태이며 unselected_source_requi
 후보 전체의 자기 출처 정확성은 별도 검수의 책임이며 재판정하지 않는다. checks는 기여/누락/부분 결합만 바꾼다.
 구체 새 후보 모순은 candidate_challenges에 실제 필드·후보 ID·원문 인용으로 남겨 해당 후보 재검수를 요청한다.
 '''
+    if conjunctions:
+        join_instruction += '''
+conjunction_candidates는 과거 결합 해석의 재검토 대상이며 확정 사실이나 새 필수 요구가 아니다.
+각 ID를 conjunction_reviews에서 한 번씩 판단한다. original_source_status는 원래 문장, source_status는 현재 statement의 제공 원문 지지다.
+supported는 실제 지지, unsupported는 제공 자료에서 지지 미확인, unknown은 해석/조사 미확정, refuted는 명시 반증이다. 미지지를 현실의 거짓으로 바꾸지 않는다.
+정정이 확인되면 statement를 원문에 맞게 한정하고 이유에 원래 주장과 차이를 쓴다. 정정 확인이 없으면 원래 문장을 유지한다.
+meaning_keys는 실제 관련 의미, claim_ids는 실제 현재 표현 위치다. 원문 지지가 후보 표현·사용 승인을 보장하지 않으며 위치 미확인은 []로 둔다.
+requirement_link는 원래 question/criterion의 요청 사실·적용 범위·실제 필요성을 구별한다. 불필요한 복합 처리 보장을 새 필수 요구로 만들지 않는다.
+item_ids는 실제 관련된 public_answer_items의 ID만 선택한다. 항목을 제공하지 않았으면 []이다. 문자열 포함만으로 의미상 귀속/필수성을 판단하지 않는다.
+근거와 공개 요구상 이유 없이 background/outside_scope로 면제하지 않는다. 원문 진위와 질문 필요성은 별개다.
+필수 연결 미확인은 전체 완료를 막지만 독립 정상 사실의 오류가 아니다. 정상 기관/제외/구비항목과 local_judgments는 그대로 유지한다.
+결합 해석의 수정/철회만으로 그 전제 의미들을 meaning_challenges에 넣지 않는다. 실제 원문 의미 자체의 오류가 특정된 경우만 기존 부분 재판정을 요청한다.
+'''
     result = execution.json_call(service, run, 'requirement_representation', join_instruction,
         dict(mode='requirement_join', requirement=requirement, review_meaning_keys=sorted(join_keys),
-            source=dict({k: v for k, v in source.items() if k in {'completeness', 'conjunctions', 'meaning_conjunctions', 'unadmitted_connections'}},
+            source=dict({k: v for k, v in source.items() if k in {'completeness', 'meaning_conjunctions', 'unadmitted_connections'}
+                        or k == 'conjunctions' and not conjunctions},
                 meanings=[join_source_meaning(m) for m in meanings]),
+            **(dict(conjunction_candidates=conjunctions) if conjunctions else {}),
             public_answer_items=[i for i in run.get('answer_items', []) if i['requirement_id'] == requirement['id']],
             blocks=join_blocks, findings=[{k: v for k, v in f.items() if k != 'provided_block_ids'} for f in findings],
             source_selection={k: v for k, v in source.get('source_selection', {}).items()
@@ -2107,6 +2252,7 @@ source_completeness는 필수 범위 조사 상태이며 unselected_source_requi
             **(dict(repair_context=[dict(r, targets=[{k: v for k, v in target.items() if k != 'review_records'}
                 for target in r['targets']]) for r in context],
                 local_preservation_checks=compact['preservation_checks']) if preservation_ids else {})), join_type)
+    conjunction_output = deepcopy((result or {}).get('conjunction_reviews', []))
     if result is not None and separate_application(run):
         attach_candidate_support(run, result, join_claims, join_blocks)
     failed_keys = {f['meaning_key'] for f in failures}
@@ -2144,12 +2290,15 @@ source_completeness는 필수 범위 조사 상태이며 unselected_source_requi
                      resolution_keys={m['key'] for m in source['meanings']} if split_roles else valid_rows['source_checks'],
                      expression_keys=(valid_rows['checks'] | valid_rows['retained_missing']) - failed_keys,
                      source_joined=source_joined)
+    conjunction_errors = resolve_conjunctions(run, requirement, source, result, conjunction_output,
+        join_blocks, join_claims, response_unit_id(run)) if conjunctions else []
     missing = any(c['status'] in {'missing', 'partial', 'unknown'} for c in result['checks'])
     return result, dict(batches=receipts, claim_ids=sorted(checked_ids), failures=failures,
                         pool_hash=pool_hash(run) if missing else None,
                         candidate_inventory_ids=sorted(all_ids), inventory_count=len(claims),
                         exact_row_exclusions=row_exclusions, exact_row_bindings=bindings,
                         findings=findings, finding_resolutions=deepcopy(result.get('finding_resolutions', [])),
+                        **(dict(conjunction_errors=conjunction_errors) if conjunctions else {}),
                         join_succeeded=joined, join_errors=join_errors, source_join_succeeded=source_joined,
                         valid_join_rows={k: sorted(v) for k, v in valid_rows.items()},
                         valid_join_meaning_keys=sorted(valid_join_keys), join_unit_id=response_unit_id(run))

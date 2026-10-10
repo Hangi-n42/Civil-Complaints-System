@@ -19,10 +19,21 @@ class RequirementInput(BaseModel):
     expected_revision: int = Field(ge=0, default=0)
 
 
+class PublicAnswerItem(BaseModel):
+    """Execution-only decomposition of an unchanged public request, never an expected answer."""
+    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
+    id: str = Field(min_length=1)
+    requirement_id: str
+    requirement_revision: int = Field(ge=0)
+    field: Literal['question', 'criterion']
+    request_quote: str = Field(min_length=1)
+
+
 class BusinessRunRequest(BaseModel):
     model_config = {'extra': 'forbid'}
     source_version_ids: list[str] = Field(min_length=1)
     requirement_ids: list[str] = Field(min_length=1)
+    answer_items: list[PublicAnswerItem] = Field(default_factory=list)
     block_ids: list[str] = Field(default_factory=list)
     target_parse_run_ids: dict[str, str] = Field(default_factory=dict)
     selection_reason: str = ''
@@ -258,6 +269,19 @@ class MeaningSelection(BaseModel):
     correction: MeaningContent | None = Field(description='Only if the stored meaning needs a source-grounded correction or narrower scope; otherwise null. Preserve the whole subject/condition/time meaning.')
 
 
+class ConjunctionReview(BaseModel):
+    conjunction_id: str
+    original_source_status: Literal['supported', 'unsupported', 'unknown', 'refuted']
+    source_status: Literal['supported', 'unsupported', 'unknown', 'refuted']
+    statement: str = Field(min_length=1, description='Current source-grounded wording; retain the original wording if no correction is established.')
+    meaning_keys: list[str]
+    claim_ids: list[str]
+    evidence: list[EvidenceQuote]
+    requirement_link: RootedRequirementLink
+    item_ids: list[str]
+    reason: str = Field(min_length=1)
+
+
 class SelectedRequirementSourceCheck(BaseModel):
     examined_block_ids: list[str]
     inspection_status: Literal['complete', 'partial', 'unknown']
@@ -471,16 +495,6 @@ class BusinessEventEdit(BaseModel):
         if bool(self.source_edits) != (self.error_owner in {'source', 'both'}):
             raise ValueError('오류 귀속과 원문 해석 정정 대상이 일치해야 합니다.')
         return self
-
-
-class PublicAnswerItem(BaseModel):
-    """Execution-only decomposition of an unchanged public request, never an expected answer."""
-    model_config = {'extra': 'forbid', 'str_strip_whitespace': True}
-    id: str = Field(min_length=1)
-    requirement_id: str
-    requirement_revision: int = Field(ge=0)
-    field: Literal['question', 'criterion']
-    request_quote: str = Field(min_length=1)
 
 
 class BusinessQuery(BaseModel):

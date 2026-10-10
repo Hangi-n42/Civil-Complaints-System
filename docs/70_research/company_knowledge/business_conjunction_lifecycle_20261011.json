@@ -1,0 +1,569 @@
+{
+  "contract": "source-conjunction-lifecycle-and-item-rendering-v1",
+  "date": "2026-10-11",
+  "branch": "feature/business-requirement-answer-flow",
+  "base_commit": "af9521bb49c0227cad0fc675a8b9470e43113e2c",
+  "status": "scoped_product_contract_and_saved_response_rendering_fix_adopted_R05_semantic_completion_unmet",
+  "issues_remaining_open": [
+    616,
+    617,
+    620
+  ],
+  "adopted": [
+    "per_connection_original_current_status_and_source_version_history",
+    "related_input_fingerprint_and_stale_invalidation",
+    "public_answer_items_via_product_start",
+    "existing_preservation_receipt_transport_without_guard_relaxation",
+    "deterministic_set_dictionary_serialization",
+    "QA_connection_payload_and_checked_item_ID_binding",
+    "no_automatic_positive_connection_without_QA_selection",
+    "same_item_uncertainty_conflict_hold_keeps_direct_facts"
+  ],
+  "not_claimed": [
+    "automatic_join_semantic_quality_improvement",
+    "whole_R05_completion",
+    "research_judge_adoption",
+    "new_model_success_from_cached_response_or_server_replay",
+    "single_factor_causal_attribution",
+    "human_approval_or_official_quality_score"
+  ],
+  "source_diagnosis": {
+    "original_conjunction_run_id": "899f5a8f82ac46b59c074a088c1ed5a7",
+    "original_assessment_id": "38f03f4e69554380bc9fb4109f4e7354",
+    "original_unit_id": "4861a82977bd42349995eae320d18b8c",
+    "original_source_version_ids": [
+      "7b42ae519cbd4184b4de800623559005",
+      "14476d2f18bf407d969301fcb68b01a1"
+    ],
+    "original_5_strings_and_history_preserved": true,
+    "lifecycle_defect_verified": true,
+    "direct_prior_QA_error_causation_verified": false
+  },
+  "freeze": {
+    "source_meanings": 17,
+    "active_claims": 119,
+    "blocks": 171,
+    "public_items": 4,
+    "exact_local_reuses": 12,
+    "source_claims_blocks_concepts_unchanged": true,
+    "original_database_sha256": "4c48361a92de0ec721e472f3fe3d023e79425d53e1e77244f8f41afc6863abb1",
+    "same_original_database_after_all_execution": true,
+    "table_context_groups": 5,
+    "multiple_input_changes": [
+      "connection_contract",
+      "existing_public_QA_items"
+    ],
+    "new_expected_answers_in_model_input": false
+  },
+  "preflight": {
+    "latest": "prepared_v4",
+    "different_hash_seeds": [
+      1,
+      2,
+      3
+    ],
+    "request_determinism_13_verified": true,
+    "actual_v4_request_byte_exact": true,
+    "input_estimate": 40533,
+    "output_limit": 8192,
+    "context": 49152,
+    "think": false,
+    "temperature": 0,
+    "timeout": 1800,
+    "model": "qwen3.8:27b-q4_K_M",
+    "model_digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e"
+  },
+  "actual_join": {
+    "run_id": "4eae9af668cb41e6b04940502779a636",
+    "unit_id": "75661231013a4cd1b61e05cbf9bd4795",
+    "model_recorded_status": "satisfied",
+    "model_recorded_source_completeness": "complete",
+    "connection_rows": [
+      {
+        "number": 1,
+        "id": "conjunction_1339f1784029def5cfa6ffa4",
+        "action": "maintained",
+        "original_source_status": "supported",
+        "source_status": "supported",
+        "applicability": "applicable",
+        "contribution": "direct_answer",
+        "item_ids": [
+          "plate_change",
+          "excluded"
+        ],
+        "meaning_keys": [
+          "myeongji_main_office_scope",
+          "geumryongsan_center_scope"
+        ],
+        "claim_ids": [
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_d34252c5e269cb5463c100c6"
+        ],
+        "evidence_block_ids": [
+          "a3fba913af2c4c65a61fea9062576e8b",
+          "89cee83e2e9e4721941eb154f809d717"
+        ],
+        "expression_status": "located"
+      },
+      {
+        "number": 2,
+        "id": "conjunction_fd7919e7569091520eaffc0a",
+        "action": "maintained",
+        "original_source_status": "supported",
+        "source_status": "supported",
+        "applicability": "applicable",
+        "contribution": "direct_answer",
+        "item_ids": [
+          "without_plate_change",
+          "excluded"
+        ],
+        "meaning_keys": [
+          "myeongji_main_office_scope",
+          "geumryongsan_center_scope",
+          "bujon_center_scope",
+          "gupo_center_scope",
+          "dongbusan_center_scope"
+        ],
+        "claim_ids": [
+          "claim_2c8f650b6c06ccdd142da788",
+          "claim_d34252c5e269cb5463c100c6",
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34"
+        ],
+        "evidence_block_ids": [
+          "a3fba913af2c4c65a61fea9062576e8b",
+          "89cee83e2e9e4721941eb154f809d717",
+          "caad152924954040bed7ba5451ca53ad",
+          "b92b407eb9a24197af34f54326d33fb5",
+          "cc38a40410cb41e18e05c93e67c86cf5"
+        ],
+        "expression_status": "located"
+      },
+      {
+        "number": 3,
+        "id": "conjunction_ee15c788dafd2b64f8b27c64",
+        "action": "maintained",
+        "original_source_status": "supported",
+        "source_status": "supported",
+        "applicability": "applicable",
+        "contribution": "direct_answer",
+        "item_ids": [
+          "excluded"
+        ],
+        "meaning_keys": [
+          "bujon_center_scope",
+          "gupo_center_scope",
+          "dongbusan_center_scope"
+        ],
+        "claim_ids": [
+          "claim_9e7a51e7f7b3446d7af4f340",
+          "claim_1ae59a75e84c1aac5c10c13b",
+          "claim_c8a9b52a5b358426db1acf34"
+        ],
+        "evidence_block_ids": [
+          "caad152924954040bed7ba5451ca53ad",
+          "b92b407eb9a24197af34f54326d33fb5",
+          "cc38a40410cb41e18e05c93e67c86cf5"
+        ],
+        "expression_status": "located"
+      },
+      {
+        "number": 4,
+        "id": "conjunction_2813d470a727054f68c79be9",
+        "action": "maintained",
+        "original_source_status": "supported",
+        "source_status": "supported",
+        "applicability": "applicable",
+        "contribution": "direct_answer",
+        "item_ids": [
+          "excluded"
+        ],
+        "meaning_keys": [
+          "dongbusan_center_scope"
+        ],
+        "claim_ids": [
+          "claim_c8a9b52a5b358426db1acf34"
+        ],
+        "evidence_block_ids": [
+          "cc38a40410cb41e18e05c93e67c86cf5"
+        ],
+        "expression_status": "located"
+      },
+      {
+        "number": 5,
+        "id": "conjunction_bc83a515988f2a205e8e9aa3",
+        "action": "maintained",
+        "original_source_status": "supported",
+        "source_status": "supported",
+        "applicability": "applicable",
+        "contribution": "direct_answer",
+        "item_ids": [
+          "excluded"
+        ],
+        "meaning_keys": [
+          "geumryongsan_center_exclusion"
+        ],
+        "claim_ids": [
+          "claim_d34252c5e269cb5463c100c6"
+        ],
+        "evidence_block_ids": [
+          "89cee83e2e9e4721941eb154f809d717"
+        ],
+        "expression_status": "located"
+      }
+    ],
+    "conjunction_review_errors": [],
+    "same_12_check_values": true,
+    "same_dependencies": true,
+    "same_eligible_ids": true,
+    "eligible": 21,
+    "blocked": 0,
+    "independent_audit": {
+      "finding0_original_target": "번호판 변경을 수반하지 않는 이전등록의 구비서류 요건이 제공된 원문에 없다.",
+      "finding0_accepted_by_server": "resolved",
+      "finding0_meaning_keys": [
+        "plate_change_documents"
+      ],
+      "finding0_resolution_scope_mismatch_remains": true,
+      "whole_R05_complete": false
+    }
+  },
+  "actual_QA": {
+    "run_id": "d829442053e14ec18c3b6d90d5c54dae",
+    "snapshot_id": "06b35a112b52463bbaed5c41b4324d6a",
+    "model_execution_answer_status": "answered",
+    "graph_counts": {
+      "nodes": 364,
+      "edges": 5061,
+      "passages": 171,
+      "concept_nodes": 134
+    },
+    "graph_and_search_actually_executed": true,
+    "mandatory_inclusion_count": 21,
+    "provided_count": 21,
+    "citations_count": 21,
+    "mandatory_inclusion_is_not_natural_retrieval_success": true,
+    "quality_audit": {
+      "qa_run_id": "d829442053e14ec18c3b6d90d5c54dae",
+      "snapshot_id": "06b35a112b52463bbaed5c41b4324d6a",
+      "items": [
+        {
+          "item_id": "plate_change",
+          "model_selected_connections": [
+            "k1"
+          ],
+          "server_displayed_connections": [
+            "k1"
+          ],
+          "server_auto_added_connections": [],
+          "unconfirmed": [
+            "번호판 변경이 '기존번호판 반납 후 번호 변경'으로 한정되는지, 단순 번호판 재발급/교부와 동일한지 원문에서 명확히 구분되지 않음"
+          ]
+        },
+        {
+          "item_id": "without_plate_change",
+          "model_selected_connections": [
+            "k2"
+          ],
+          "server_displayed_connections": [
+            "k2"
+          ],
+          "server_auto_added_connections": [],
+          "unconfirmed": []
+        },
+        {
+          "item_id": "excluded",
+          "model_selected_connections": [
+            "k3",
+            "k4",
+            "k5"
+          ],
+          "server_displayed_connections": [
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "k5"
+          ],
+          "server_auto_added_connections": [
+            "k1",
+            "k2"
+          ],
+          "unconfirmed": []
+        },
+        {
+          "item_id": "documents",
+          "model_selected_connections": [],
+          "server_displayed_connections": [],
+          "server_auto_added_connections": [],
+          "unconfirmed": []
+        }
+      ],
+      "source_claims_blocks_concepts_assessments_unchanged": true,
+      "provided_claim_ids": [
+        "claim_026829f70fe89ca9f770bee7",
+        "claim_05b9382c1028126d1aa778ea",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_2cb381cb866ed84d54cf83f4",
+        "claim_4039be13b6671fc592118c23",
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_4ac9c4011b8d99b5c377e9ac",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_61b6c69d9a2e9c1dd9d939dd",
+        "claim_6804020432957407c5cf6595",
+        "claim_7cff5e461f1287f5d492d06e",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_9bb0b2df8d384265d1018017",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_ad6bfe8f0b9d960379667f2c",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_c8a9b52a5b358426db1acf34",
+        "claim_d34252c5e269cb5463c100c6"
+      ],
+      "citations": [
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_6804020432957407c5cf6595",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34",
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_7cff5e461f1287f5d492d06e",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_05b9382c1028126d1aa778ea",
+        "claim_4ac9c4011b8d99b5c377e9ac",
+        "claim_61b6c69d9a2e9c1dd9d939dd",
+        "claim_ad6bfe8f0b9d960379667f2c",
+        "claim_026829f70fe89ca9f770bee7",
+        "claim_2cb381cb866ed84d54cf83f4",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_9bb0b2df8d384265d1018017"
+      ],
+      "mandatory_hits": [
+        "claim_46cf1e37c4889c2dc8e94b8b",
+        "claim_91ed8b4772cb89d716f2dcd1",
+        "claim_4eeafcbb9a37b6398026cd26",
+        "claim_4ac9c4011b8d99b5c377e9ac",
+        "claim_61b6c69d9a2e9c1dd9d939dd",
+        "claim_05b9382c1028126d1aa778ea",
+        "claim_ad6bfe8f0b9d960379667f2c",
+        "claim_2cb381cb866ed84d54cf83f4",
+        "claim_49c9d7ed3051939ea3440cd3",
+        "claim_7cff5e461f1287f5d492d06e",
+        "claim_6804020432957407c5cf6595",
+        "claim_57bde5abc4e4e9b299c856e6",
+        "claim_9bb0b2df8d384265d1018017",
+        "claim_026829f70fe89ca9f770bee7",
+        "claim_4039be13b6671fc592118c23",
+        "claim_b75ccdd9c2c09c66d0f5428a",
+        "claim_2c8f650b6c06ccdd142da788",
+        "claim_d34252c5e269cb5463c100c6",
+        "claim_9e7a51e7f7b3446d7af4f340",
+        "claim_1ae59a75e84c1aac5c10c13b",
+        "claim_c8a9b52a5b358426db1acf34"
+      ],
+      "model_specific_unconfirmed_then_server_supported_connection": true,
+      "old_normal_document_duties_exclusions_timing_and_c47_preserved": true,
+      "r05_guidance_scope_v1_pass": false,
+      "positive_connection_rendering_adopted": false,
+      "audit_kind": "nonblind AI source and stored raw selection versus actual final rendering; not a new judge or human test"
+    }
+  },
+  "server_replay": {
+    "status": "saved_response_rendering_verified",
+    "product_answer_status_from_existing_error_rule": "unverified",
+    "new_model_calls": 0,
+    "exact_actual_qa_request_and_response_replayed": true,
+    "actual_source_and_connection_verdicts_and_qa_selection_unchanged": true,
+    "selected_normal_exclusions_3_preserved": true,
+    "unselected_positive_connections_not_auto_added": true,
+    "same_item_conflicting_connection_held_without_erasing_direct_facts": true,
+    "unresolved_connection_attribution_reported": true,
+    "c47_both_normal_meanings_and_timing_preserved": true,
+    "hold_scope": "same public item only; attribution of its unconfirmed text to an individual connection remains unknown",
+    "document_section_exactly_preserved": true,
+    "citations_21_exactly_preserved": true,
+    "error_records": [
+      "plate_change: connection_selection_conflicts_with_unconfirmed:k1"
+    ],
+    "finding0_semantic_error_fixed": false,
+    "whole_R05_semantic_completion_or_new_model_improvement_claimed": false,
+    "actual_qa_database_unchanged": true
+  },
+  "remaining_limitations": [
+    "finding0 targets no_plate_change_documents but resolves only plate_change_documents/c47/b32",
+    "first_connection terminology and compound_processing premise remains unverified",
+    "source support and locations do not prove all_compound_processing_completion",
+    "same_item unconfirmed is not attributed to a particular connection; item-level hold may include independently sound connections",
+    "server replay is not new model or end-to-end semantic evaluation"
+  ],
+  "costs": {
+    "stages": [
+      {
+        "stage": "join",
+        "new_calls": 1,
+        "input_tokens": 17143,
+        "output_tokens": 3182,
+        "model_elapsed_s": 281.692897,
+        "driver_elapsed_s": 306.3465022080345
+      },
+      {
+        "stage": "QA",
+        "new_calls": 1,
+        "input_tokens": 20851,
+        "output_tokens": 714,
+        "model_elapsed_s": 162.645369,
+        "driver_elapsed_s": 180.07824504200835
+      }
+    ],
+    "total_new_calls": 2,
+    "total_new_input_tokens": 37994,
+    "total_new_output_tokens": 3896,
+    "total_new_model_s": 444.338266,
+    "execution_stage_driver_total_s": 486.42474725004286,
+    "driver_total_is_not_full_workflow_wall_clock": true,
+    "actual_exact_cached_units": 13,
+    "historical_cached_costs_not_added": [
+      {
+        "stage": "local_reuse",
+        "count": 12,
+        "original_prompt_tokens": 79646,
+        "original_output_tokens": 3196,
+        "original_elapsed_s": 626.0921900000001
+      },
+      {
+        "stage": "filter_reuse",
+        "count": 1,
+        "original_prompt_tokens": 3346,
+        "original_output_tokens": 51,
+        "original_elapsed_s": 32.008985
+      }
+    ],
+    "preflight_and_rendering_replay_new_model_calls": 0
+  },
+  "preserved_failures": [
+    {
+      "path": "task root + preflight_failure_v1",
+      "kind": "missing preservation metadata prevented exact local reuse",
+      "new_model_calls": 0
+    },
+    {
+      "path": "prepared_v2",
+      "kind": "backend schema count constraint lost before v3 repair",
+      "new_model_calls": 0
+    },
+    {
+      "path": "prepared_v3 + actual_join",
+      "kind": "dictionary key order mismatch before join call",
+      "new_model_calls": 0
+    },
+    {
+      "path": "actual_join_v4",
+      "kind": "finding0 mismatch and first compound premise not verified",
+      "new_model_calls": 1
+    },
+    {
+      "path": "actual_qa",
+      "kind": "server positive connection contradicts item uncertainty and auto-adds unselected k1/k2",
+      "new_model_calls": 1
+    },
+    {
+      "path": "server_render_v2",
+      "kind": "technical user wording refined in v3",
+      "new_model_calls": 0
+    }
+  ],
+  "tests": {
+    "current_connection_and_product_boundary_passed": 14,
+    "current_connection_and_product_boundary_s": 0.24,
+    "existing_answer_preservation_and_scope_passed": 11,
+    "existing_answer_preservation_and_scope_s": 0.16,
+    "earlier_local_separated_111_passed_before_later_small_changes": true,
+    "earlier_111_not_final_full_suite_evidence": true,
+    "git_diff_check_passed": true,
+    "bus": {
+      "status": "passed_stored_input_and_rendering_boundary",
+      "cases": [
+        {
+          "run_id": "7c02742a2dca48ab8bcf60afdf4e7184",
+          "requirement_ids": [
+            "BUS-CONTROL-12"
+          ],
+          "exact_stored_messages_schema_reference_map": true,
+          "stored_answer_exactly_preserved": true,
+          "connection_records": 0,
+          "original_free_conjunctions": {
+            "BUS-CONTROL-12": 0
+          }
+        },
+        {
+          "run_id": "e5f927e463d0411fbdec45b315d8c88f",
+          "requirement_ids": [
+            "BUS-NEW-13"
+          ],
+          "exact_stored_messages_schema_reference_map": true,
+          "stored_answer_exactly_preserved": true,
+          "connection_records": 0,
+          "original_free_conjunctions": {
+            "BUS-NEW-13": 0
+          }
+        }
+      ],
+      "original_database_sha256": "b85204999c9069cd629eab8a322454d3886adaf2830cea2fe7baa112c9d1165f",
+      "original_database_unchanged": true,
+      "new_model_or_embedding_or_graph_or_extraction_calls": 0,
+      "new_bus_semantic_evaluation_or_general_quality_claimed": false
+    }
+  },
+  "resources": {
+    "models": []
+  },
+  "final_code_sha256": {
+    "app/knowledge/business_models.py": "5ca5b3b0071f12a5d1d2718932aaa3cf8a86d6f2ee6ffed0cb2696bc400d6426",
+    "app/knowledge/business_review.py": "49c392944d21df0f29b7bbaf6afc1372a3fc1519d843d5de3f5825d00f2b2408",
+    "app/knowledge/business_run.py": "c65662c2aff96d6217425ea956d36aa2ac588a3e53325de6a4dabc58f682129e",
+    "app/knowledge/business_use.py": "2d33de88cb39c62d40fdb9e218d090f51a071b1b1af30eefb86e102bf3bbab46",
+    "app/tests/unit/test_knowledge_business_conjunctions.py": "19b90f774e090421314f34142ff58c91944869705afce82075e70b05a9afdebf",
+    "app/tests/unit/test_knowledge_business_target_boundary.py": "43e8e1e0586cf32dae8f52167f92192cd2de03d7f8d084f6a150b7fb1f251dca"
+  },
+  "evidence_sha256": {
+    "prepared_v4/freeze.json": "f8fc55fc0edf4c135accbdf6092b49e65889d4d757be6c7b053814b9a2d54e12",
+    "prepared_v4/determinism_audit.json": "2da1e149baff46fcb7ad2cfca5ce983a5f1be82165ed81c20a0cfa01640ba218",
+    "prepared_v4/v3_value_preservation_audit.json": "c1a0aee0890df5c01447c27d88b2bff21491ec223045a7edc1dfb1a38d7f43b7",
+    "criteria.json": "182a4e70b9eac4e8ecf7598a03b4c68b2ceba0da232a00b2d08c884a10a050e6",
+    "actual_join_v4/freeze.json": "41f5cee7031e851ec633258fad579e6d1e909cc725c348a3e8895b4f97b0f2e4",
+    "actual_join_v4/request_13_requirement_join.json": "a882fdd1066e508cd6ccc1b9a22f87add71ade1b8b830510408dc392cc42f03b",
+    "actual_join_v4/join_unit.json": "01cc97ad0fd65928b580e5f92828d241140eaea3c58477087a833997bc664e15",
+    "actual_join_v4/result_audit.json": "77a3a25e2dc5e012a9f5bf4bdd014cd289b8fadb1e5ab763cfa82b62371c87d8",
+    "actual_qa/freeze.json": "d98ad9f02e4f8b38ecdccffe17dfe1647ac63f80955aaa6ecd937d8d8f941110",
+    "actual_qa/qa_unit.json": "bafd8b04e0ec1dc76f8d2c0f5c191564ae3df5be511e70dc77cfe53228219ffd",
+    "actual_qa/qa_output.json": "e0178318879930fe55b38183166827a1d906d15340e95fa6ed4c3398306a373d",
+    "actual_qa/quality_audit.json": "10974738d4f08f712ddca3947809a97103c0dacf9babe64b12ec7765ec93697d",
+    "server_render_v3/freeze.json": "4835ff06ffe1fe597ba0cdfc7303112874f4d638357f4e5b95dd64b74cdb8d49",
+    "server_render_v3/replay_request.json": "9ad0b95f5bad0d1c6afb2e482540469d9c75850906471f9305989f8cf3c3a2cd",
+    "server_render_v3/replay_output.json": "165d32da5e3917efe179ed362c0fe55919238e2b3031921fb43325926180abe3",
+    "server_render_v3/result.json": "d82ad1f7525764e1aedbb2ffcee5b6ca8b78588b12c9290ce14d3fce905c3c57",
+    "bus_boundary_audit.json": "e55fd045ceda8cb853bff2ee72a00c1aac6f36b7736a99c2571cb5f5ff0e9e15",
+    "actual_qa/runtime_ps_after_release.json": "c8cdda2058dfad73596cb9baef30bb2a825485859ad54c8d9cf5a10a457b0c8c",
+    "preflight.py": "272f687d62fc6edf0ae271a3c23711926fd156d208706e74ccdf2bd695aa3c44",
+    "execute_join.py": "067c7b22828a9def8aba2932aee117c49af039b1ebc6172148e1014c98747aa4",
+    "execute_qa.py": "e4c298e207b12dba295b966dee2c16ee82c663b742df28702b331dbea8e4baf9",
+    "replay_server_render.py": "2e5ca5692ffc75ee689a97b4b8fadcd65dbd44457b0444d375a0c080f2548eef",
+    "qa_payload_preflight.py": "623edc5a55b810131687afe6fee8a77d826835fd18a02f054ee0f02241ad66bd",
+    "check_stored_bus_qa.py": "3e2700eaa40eae2e15f89deda9beefe999f467b588d501d59c376ff89f5f102f"
+  },
+  "artifact_paths": {
+    "local": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_conjunction_lifecycle_20261011",
+    "permanent": "/Users/hyeongi/.codex/artifacts/business-conjunction-lifecycle-20261011/final",
+    "hash_manifest": "/Users/hyeongi/.codex/artifacts/business-conjunction-lifecycle-20261011/final/artifact_manifest.json"
+  },
+  "issue616_progress": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/616#issuecomment-6100641217"
+}

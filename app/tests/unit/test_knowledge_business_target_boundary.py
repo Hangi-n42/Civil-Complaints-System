@@ -208,6 +208,9 @@ def test_frozen_parse_mapping_and_plain_resume_ignore_later_parse(tmp_path, monk
         parent = local_run(); parent.update(id='parent', kind='business', status='review_ready', input_version_ids=[vid],
             blocks=blocks, chunks=autoschema.chunks(blocks, 49152, 4096), claims=[], graph=dict(nodes=[], edges=[]),
             concepts=[], model_identity={}, metrics={})
+        parent['preservation_reuses'] = [dict(requirement_id='r', requirement_revision=1,
+            check=dict(target_id='unavailable', status='unknown', before_normal_meanings=[], after_locations=[], reason='전달 경계 검사'),
+            claim_versions={'unavailable': 'old-claim-version'}, meaning_versions={}, source_versions=[], scope='local_preservation_only_not_requirement_independence')]
         with service.repository.connect() as db:
             parent['source_target_plan'] = review.freeze_target_plan(service, db, parent, {vid: classified})
             assert len(parent['source_target_plan']['exclusions']) == 1
@@ -227,6 +230,8 @@ def test_frozen_parse_mapping_and_plain_resume_ignore_later_parse(tmp_path, monk
         result = business_run.start(service, BusinessRunRequest(source_version_ids=[vid], requirement_ids=['r'], resume_run_id='parent'))
         resumed = service.run(result['run_id'])
         assert resumed['blocks'] == parent['blocks'] and resumed['source_target_plan'] == parent['source_target_plan']
+        assert resumed['preservation_reuses'] == parent['preservation_reuses']
+        assert review.valid_preservation_reuses(resumed, parent['requirements'][0], []) == []
     finally:
         service.shutdown()
 
