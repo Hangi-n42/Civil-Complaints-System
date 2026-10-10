@@ -224,5 +224,35 @@
     "git_diff_check": "passed",
     "json_parse_and_literal_backslash_n_check": "passed"
   },
-  "issue_states": "616/617/620 remain open; unmet full semantic/QA criteria"
+  "issue_states": "616/617/620 remain open; unmet full semantic/QA criteria",
+  "runtime_evidence": {
+    "artifact": "runtime_evidence.json",
+    "product_provider": "ollama",
+    "endpoint": "http://localhost:11434",
+    "model_identities": {
+      "draft": {
+        "name": "gemma4:31b-it-q4_K_M",
+        "digest": "6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7",
+        "context_length": 262144
+      },
+      "review": {
+        "name": "qwen3.8:27b-q4_K_M",
+        "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+        "context_length": 262144
+      }
+    },
+    "executed_limits": {
+      "max_tokens": 8192,
+      "context_tokens": 49152,
+      "think": false
+    },
+    "concept_output_limit": 512,
+    "temperature": 0,
+    "timeout": 1800.0,
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_device": "cpu",
+    "embedding_local_files_only": true,
+    "research_native_engine_sha256": "c8bbfac5e73a6f04f0dd2d91dde8f9934c0f1526b862f6129703be8d158a25db",
+    "research_engine_role": "Stored upstream finding, separate runtime; not default product adoption."
+  }
 }

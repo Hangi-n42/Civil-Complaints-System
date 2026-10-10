@@ -47,6 +47,8 @@ owner 이후 QA 내용도 추가 호출 없이 대조했다. 기존 기본 QA pa
 
 review는 `qwen3.8:27b-q4_K_M` (digest `25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e`), 개념 생성은 `gemma4:31b-it-q4_K_M` (digest `6316f0629137b426c9d9b853ffc4c8209589f30ee39aebede6285096c0ff47e7`)이다. 실행 context 49,152, review 출력 한도 8,192, 개념 출력 한도 512, temperature 0, think=false, timeout 1,800초를 유지했다. 응답 `elapsed_s`는 순수 GPU 추론 벤치마크가 아니다.
 
+제품 로컬 runtime은 `ollama`, endpoint `http://localhost:11434`이며 실제 requested/executed limits를 대조했다. 임베딩은 `BAAI/bge-m3`, device=`cpu`, 기존 로컬 파일만 로드했다. 상위 연구는 보존된 `/Applications/Ollama.app/Contents/Resources/llama-server` native 엔진의 별도 port 11435 실행 산출물이고, 이번 제품은 Ollama API를 통한 기존 제품함수 연결 진단이다. 두 실행 엔진의 품질·속도 우월성을 비교하지 않았다. 근거는 `runtime_evidence.json`의 제품 `/generation`, `/request_configuration`, `/requested_limits`, `/executed_limits`, `/embedding` 및 연구 handoff `/runtime`, `/settings`이고, 원 기록은 `qa_run.json`과 `handoff.json`이다.
+
 아래 토큰은 provider의 실제 응답 metadata이며 입력 예산 추정치가 아니다. 새 모델 시간과 재사용에 붙은 원 응답 시간을 구분한다. 단계 driver 합계는 실행 구간 합계로 준비·AI 검토·대기 등 작업 전체 경과 시간이 아니다. 상위 연구 finding과 과거 추출/AI 정정은 새 제품 호출 합계에서 제외한다.
 
 | 단계 | 새 호출 | 응답 재사용 | 새 입력 토큰 | 새 출력 토큰 | 새 모델 시간(초) | 단계 driver 시간(초) |
