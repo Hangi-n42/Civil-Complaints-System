@@ -404,6 +404,11 @@
       "path": "scripts/confirm_business_candidate_contrast.py",
       "bytes": 5800,
       "sha256": "cd23ce00c2ce9e92813ff9e2645d41144a1ece106265d46d61b2a8de2dc35a1c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/dispatch_provenance.json",
+      "bytes": 3607,
+      "sha256": "be5b4cc6ba35275e0f17f799021225cc46f9426e99ddc8a97d196ac6df4e5741"
     }
   ],
   "verification": {
@@ -431,5 +436,96 @@
       "response_elapsed_s": 211.7891846661223,
       "cache_n": 0
     }
+  },
+  "confirmation_preparation_provenance": {
+    "recorded_at": 1791622027.898274,
+    "record_kind": "Post-run provenance extraction; no change to pre-output frozen receipts",
+    "parent_chat": "01a1204b-78c9-7e12-9081-fe899ac1e48c",
+    "session_log_file": "rollout-2026-10-09T19-52-59-01a1204b-78c9-7e12-9081-fe899ac1e48c.jsonl",
+    "dispatch": [
+      {
+        "tool": "collaboration.spawn_agent",
+        "call_id": "call_23155ebe73ff437396fa7453877cf646",
+        "request_at": "2026-10-10T08:16:59.144Z",
+        "request_ordinal": 6568,
+        "request_record_sha256": "95232734c65604bf8561d0de0dbcfa9a70a9b9808c7fa94d54701fa0329f53b8",
+        "arguments": {
+          "task_name": "candidate_confirmation_author",
+          "model": "gpt-6-astra",
+          "reasoning_effort": "high",
+          "fork_turns": "none"
+        },
+        "return_at": "2026-10-10T08:16:59.265Z",
+        "return_ordinal": 6571,
+        "return_record_sha256": "352f7b454d08d4cc74cd5f691e6f1d78e2927a95673c8af36cf6e088357f80c7",
+        "tool_return": {
+          "task_name": "/root/candidate_confirmation_author"
+        }
+      },
+      {
+        "tool": "collaboration.spawn_agent",
+        "call_id": "call_623dcaaa724f47a4bcad5d1de4a48c61",
+        "request_at": "2026-10-10T08:20:00.511Z",
+        "request_ordinal": 6611,
+        "request_record_sha256": "705c2a12fd238ed30e4710744a700b05a8d714fc34ebbbfb86327cb527c3d1bf",
+        "arguments": {
+          "task_name": "candidate_confirmation_reviewer",
+          "model": "gpt-6-astra",
+          "reasoning_effort": "high",
+          "fork_turns": "none"
+        },
+        "return_at": "2026-10-10T08:20:00.637Z",
+        "return_ordinal": 6614,
+        "return_record_sha256": "3ba85ce7780c60b879e317442f36496f1771e3feedfd1b163a3966a33bbc6515",
+        "tool_return": {
+          "task_name": "/root/candidate_confirmation_reviewer"
+        }
+      }
+    ],
+    "agent_identifier_kind": "Canonical task_name returned by spawn_agent; no separate agent UUID returned",
+    "runtime_model_identity": null,
+    "runtime_reasoning_identity": null,
+    "identity_limit": "Requested dispatch gpt-6-astra/high and returned task identities verified from tool records; independent runtime model self-identification not provided",
+    "candidate_counts": {
+      "authored": 4,
+      "included": 4,
+      "excluded": 0,
+      "unresolved": 0,
+      "label_agreement": 4
+    },
+    "wall_intervals": [
+      {
+        "role": "author",
+        "receipt": "author/receipt.json",
+        "started_at": "2026-10-10T08:17:06+00:00",
+        "ended_at": "2026-10-10T08:19:25.990275+00:00",
+        "elapsed_wall_s": 139.990275,
+        "receipt_sha256": "1453e3399b6dc4587d918d7e3c8151f3100f5674a57b8741c87fc7afb3ad67a4",
+        "token_usage": null,
+        "cost": null
+      },
+      {
+        "role": "blind_review",
+        "receipt": "reviewer/receipt.json",
+        "started_at": "2026-10-10T08:20:11+00:00",
+        "ended_at": "2026-10-10T08:24:13.477826+00:00",
+        "elapsed_wall_s": 242.477826,
+        "receipt_sha256": "0ab2f712a37e8249dab13d44bf75b6a19faf7bf83bea63523e11246210a64be0",
+        "token_usage": null,
+        "cost": null
+      },
+      {
+        "role": "post_freeze_comparison",
+        "receipt": "reviewer/comparison_receipt.json",
+        "started_at": "2026-10-10 08:24:51 UTC",
+        "ended_at": "2026-10-10T08:26:02.670367+00:00",
+        "elapsed_wall_s": 71.670367,
+        "receipt_sha256": "99209cfc3b0a3ff699ce76f3b76299d38e2cac588a50de2707d754129d151117",
+        "token_usage": null,
+        "cost": null
+      }
+    ],
+    "timing_limit": "Intervals between observed receipt clocks, start clock second precision; includes tool activity, not billed compute time. Token/cost usage unobserved.",
+    "original_frozen_files_unchanged": true
   }
 }

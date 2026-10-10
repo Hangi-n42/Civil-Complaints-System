@@ -52,4 +52,6 @@ Qwen3.8 27B Q4_K_M, 동일 native 엔진/GGUF 해시, temperature 0, seed 42, �
 
 사전 기준은 기존 오류를 하나 이상 교정하고 기존 정답 및 정상/반증/참조 부재 통제를 전부 보존하는 것이다. 이를 충족하지 못했으므로 UCS 후속 0회, 새 확인 0회다. A 공동 판단의 성패와 독립적으로 결정했다. 이미 마련한 새 원문의 작성·blind review 기록은 보존하되 실행하지 않은 확인을 성과로 계산하지 않는다.
 
+공유 확인 자료의 포함 4·제외 0·미확정 0과 작성/검토 provenance는 [A 보고서](business_candidate_contrast_20261010.md) 및 두 manifest에 보존했다. 실제 도구 반환 식별자는 `/root/candidate_confirmation_author`, `/root/candidate_confirmation_reviewer`이며 dispatch는 `gpt-6-astra/high`, `fork_turns=none`이다. 관측 receipt 구간의 wall은 작성 139.990275초, blind 검토 242.477826초, 동결 후 대조 71.670367초다. 토큰·비용 및 런타임 모델 자체식별은 미제공이며, 이 자료 준비 비용을 B의 18회 제품 모델 호출 비용과 합치지 않았다.
+
 라벨 점수만 비교했으므로 오류 필드·구절, 필수 자료 부재의 별도 `source_state`, 실제 수정·저장·같은 요구 확인·그래프·검색·후속 답변의 개선을 입증하지 않는다. 제품 기본 경로와 #616/#617/#620은 미완료다. 전체 제품 테스트·전체 자료 재평가는 하지 않았다. 로컬 `data/knowledge/evaluations/business_task_calibration_20261010/`에 원시 증거를 보존하고 공개 [manifest](business_task_calibration_20261010.json)에 해시와 결과를 남겼다. 현재 사용자 결정이 필요한 사항 없음.

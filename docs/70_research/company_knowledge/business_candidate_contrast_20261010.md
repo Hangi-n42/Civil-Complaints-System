@@ -44,6 +44,10 @@ p3 개별 Y는 의무가 없다는 원문이 허용 주장과 정면으로 배�
 
 평가 전용 GPT-6 Astra/high 작성자와 별도 blind reviewer가 공개 원문을 읽고 NA01~NA04를 만들고 검토했다. reviewer는 독립 판단을 SHA로 동결한 뒤 작성자 해석을 비교했으며 제품 모델 출력은 보지 않았다. 라벨 S/U/S/C는 4/4 일치했다. 작성자의 `provided`와 검토자의 `present`, 최소 양태 구절과 더 넓은 서술부 인용 차이는 원형을 보존했다. 최종 기준은 모델 출력 전에 `present`와 전체 오류 양태를 포함한 연속 구절로 정했다. 같은 모델 계열의 두 역할이며 인간 검토 또는 완전히 독립된 오류 계열을 뜻하지 않는다.
 
+도구가 반환한 실제 에이전트 식별자는 `/root/candidate_confirmation_author`와 `/root/candidate_confirmation_reviewer`다. `collaboration.spawn_agent`의 각각 `call_23155ebe73ff437396fa7453877cf646`, `call_623dcaaa724f47a4bcad5d1de4a48c61` 요청에 `model=gpt-6-astra`, `reasoning_effort=high`, `fork_turns=none`이 있고 반환값은 위 task name이다. 해당 세션의 도구 요청·반환 시각/레코드 SHA를 별도 `confirmation/dispatch_provenance.json`과 manifest에 보존했다. 별도 agent UUID와 런타임 모델 자체식별은 제공되지 않았으므로 dispatch 설정 이상으로 독립 검증했다고 주장하지 않는다.
+
+후보 4개를 전부 포함했으며 제외 0, 미확정 0이다. receipt의 관측 시각 차이로 계산한 작성 wall은 139.990275초, blind 검토 242.477826초, 동결 후 대조 71.670367초다. 시작 시각은 초 단위이며 이 구간에는 도구 작업도 포함된다. 과금 추론 시간이나 토큰 수가 아니며 토큰 사용량·비용은 미관측(null)이다. 이 사후 provenance 보완은 원래 동결 receipt와 기준을 수정하지 않았다.
+
 실제 로컬 저장 경로 4곳의 연구 기록/평가 파일(5MB 미만)에서 URL·구별 문구를 조회해 이전 노출 0건을 확인했다. 이는 조사 경로의 한계 안에서 새 자료라는 뜻이며 사전학습·모든 채팅에서의 비노출을 증명하지 않는다. 전체 원문·후보·작성/검토 기록·기준·A/B 프롬프트를 초기 모델 결과 전에 동결했다.
 
 | 새 확인 후보 | 기대 | 개별 의미 라벨 | 공동 의미 라벨 |
