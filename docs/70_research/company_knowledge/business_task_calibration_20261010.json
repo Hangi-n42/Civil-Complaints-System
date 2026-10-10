@@ -1,0 +1,267 @@
+{
+  "issue": 650,
+  "base_commit": "c79d1e05e6bcd8456a06b22f8e527dce90317251",
+  "status": "research_complete_not_adopted",
+  "scope": "Research scripts and reports only; original sources, requests, raw model outputs, evaluation annotations and weights remain local",
+  "new_generation_calls": 18,
+  "reused_calls": 9,
+  "product_chain_executed": false,
+  "semantic_review": {
+    "at": 1791621836.9753091,
+    "decision_owner": "01a11fd9-f71b-7261-832b-0681548a03c4",
+    "decision": "research_complete_not_adopted",
+    "original_correct": 7,
+    "tc_correct": 4,
+    "total": 9,
+    "gains": [],
+    "regressions": [
+      "c47",
+      "H03",
+      "A02"
+    ],
+    "correct_preserved": [
+      "K01",
+      "c13",
+      "c46",
+      "H02"
+    ],
+    "wrong_remaining": [
+      "K02",
+      "NLC-C04"
+    ],
+    "primary_gate": false,
+    "UCS_calls": 0,
+    "confirmation_calls": 0,
+    "combined_with_A": false,
+    "limits": "TC formula applied to this model, JSON masking and exposed data only; no general impossibility claim; no label-to-error-location claim"
+  },
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/comparison.json",
+      "bytes": 6788,
+      "sha256": "98c7789ce6fa46e87edd3f3ac1b153f831cc5ae49fe147870c8387526023dfe6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/criteria.json",
+      "bytes": 1206,
+      "sha256": "341fb2b5397f34af1e7c50f1b5f0f501fbfcdfa1d5ae00a102e5519839b1895a"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/execution_authorization.json",
+      "bytes": 570,
+      "sha256": "1ea4387aab3020a1f2dd9d6a07d166935ab4353d5c08d3b3a280d3d1752769ce"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/freeze.json",
+      "bytes": 397,
+      "sha256": "a92221af67d242e834357253bb4b8c2de8dd8542590255dbb1c55b9f35e64b04"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/inputs.json",
+      "bytes": 108306,
+      "sha256": "3a046817052f1da30d251f2a9879956ec963d18bedaff8226e95ee2becf926f7"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/LICENSE",
+      "bytes": 1065,
+      "sha256": "21c5f55ac8bf2d41cf0e23fea713b30f0dc02f75a79cb586d26e82fabc30fc74"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/README.md",
+      "bytes": 3033,
+      "sha256": "996be397dbbe2771ea64cc6877d53f1995d4991a23624e6c20de228a84107011"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/receipts.json",
+      "bytes": 1441,
+      "sha256": "5ae14e2992b62d388200b2291a2ea6a43fd7c953d3682a299927885b05c373f8"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/src__eval.py",
+      "bytes": 15036,
+      "sha256": "c02c40b3e95a81000d233fc26df09305bbc27c09417f7cbf0c1ffb2236c79639"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/src__run.sh",
+      "bytes": 1374,
+      "sha256": "5a322896d88536bd49690aefd6209e572e265eca7e4c7e96fe0b121a6e3cb608"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/src__utils.py",
+      "bytes": 16659,
+      "sha256": "6b06b3e2b89ceb95cfc67ea86ee418e4fc41926a1bc356aac7b4e570c8930da8"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/official/tree.json",
+      "bytes": 625759,
+      "sha256": "f3c82e445b1f613e3846d14226d159ae3e1573d5ca1451bfe477c02f83c7cd97"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/prepared.json",
+      "bytes": 8132,
+      "sha256": "66801298b0563c3d492884e0928e5f4864c3b8db588e3e309bfaac5bd97cee36"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/props.json",
+      "bytes": 11800,
+      "sha256": "23e2bd49f8182f7540e0d4e51c293e5b7cf35bd5280026f4a62492fcd3d54382"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/requests.json",
+      "bytes": 289381,
+      "sha256": "09bef43373c4bcf4ba92f12bc07821ee6cb316a0d4657c4c55c126b21e919afe"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/A02_hypothesis_response.json.gz",
+      "bytes": 8576808,
+      "sha256": "0f8eaac5a63d72e4f8c31ac2b86f202ecf126f123bf5cb2743f3db13b8a46d22"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/A02_premise_response.json.gz",
+      "bytes": 8571051,
+      "sha256": "de506661589f348ab1391664972484a49bbfae4db3bf06177516726772df9dd0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/H02_hypothesis_response.json.gz",
+      "bytes": 8570905,
+      "sha256": "acce8de015eb8910100656756ed482d70d3c2e262ab3359ac9be5c14e7ce2a79"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/H02_premise_response.json.gz",
+      "bytes": 8569981,
+      "sha256": "9b5909f8e8662c65259444802e0d394adcae5d32a9798b4935553302ad893504"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/H03_hypothesis_response.json.gz",
+      "bytes": 8574265,
+      "sha256": "2c8af83e97d4117d91c428f98bfc0ba5d9a6868bad8e85b3779e1591eece9f00"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/H03_premise_response.json.gz",
+      "bytes": 8568709,
+      "sha256": "60ab1d972108e2288bb16538e4dd1714ed1b4a47937884bdf18380b7a0c6dad3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/K01_hypothesis_response.json.gz",
+      "bytes": 8571637,
+      "sha256": "0a741f5e869b860b769bdb8f2ed11eac789bea9fa469f672d6c84cd6ba3a326f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/K01_premise_response.json.gz",
+      "bytes": 8562654,
+      "sha256": "9fe05423de6e3c592715a59fafca1eab519c33be177320a8f13df949b71d5597"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/K02_hypothesis_response.json.gz",
+      "bytes": 8573732,
+      "sha256": "ad935977e6ef7500f1c8d527382594599ae5f4898a033f4a82aa2f9f91d6eab9"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/K02_premise_response.json.gz",
+      "bytes": 8571430,
+      "sha256": "33cdcf9769da8a7ea5966b130d067f6a6809412cf71b5503c397a7b3d4d54f13"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/NLC-C04_hypothesis_response.json.gz",
+      "bytes": 8544851,
+      "sha256": "80e3931c73cf86d690aead10ce98671796a1ef3f999ea31989546d6cf5a16bda"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/NLC-C04_premise_response.json.gz",
+      "bytes": 8562803,
+      "sha256": "2259f928afef2e936b37261e7985545233bd404c9d103b7661719a8a3db75a2f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c13_hypothesis_response.json.gz",
+      "bytes": 8559956,
+      "sha256": "320bd4a3c528d4de07cd496964201ec779237fadfa08a5ca4bd7c628aab4eb90"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c13_premise_response.json.gz",
+      "bytes": 8568426,
+      "sha256": "2d9ec612247386655b4729efaeefe8f23e79199763c13dbfa458acc753481df4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c46_hypothesis_response.json.gz",
+      "bytes": 8557539,
+      "sha256": "2eec843c0a09c5591d4a129cf0894a41d12c38c75df9058c96a1772e036b20ab"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c46_premise_response.json.gz",
+      "bytes": 8569535,
+      "sha256": "0684ffd4f2dc0126223a9f3f7ed1ce3ae811c8427ae8fa91cb33d2e3f082ea17"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c47_hypothesis_response.json.gz",
+      "bytes": 8560223,
+      "sha256": "47cc3d757943cf7cd3cf86a64387fcf1bfc9ba4b97ece74274cb958f15b1cfd3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/c47_premise_response.json.gz",
+      "bytes": 8568826,
+      "sha256": "eb12612f5aefaf8d5b91d1bf464ade210341b0ad71fe2eea998d306565178c3c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run/result.json",
+      "bytes": 26485,
+      "sha256": "49328a3a906a392be27a850172e8fdcc933de82475405d0b7e88452792860468"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/run.log",
+      "bytes": 431,
+      "sha256": "64f36842eec9c60f9612838f09d4bfb4d1fd4014df332f172214a859f3024352"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/semantic_review.json",
+      "bytes": 641,
+      "sha256": "1a7c41cca1940412408d42fc43ec9931fe4ef8a7f32fdc09760fd35cfb75eedc"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_task_calibration_20261010/validation.json",
+      "bytes": 440,
+      "sha256": "92e33eb52375037b011cfe879b5d490c5eb72be390e8e6a76c905f1cc7b72654"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/runtime_identity.json",
+      "bytes": 959,
+      "sha256": "768d4803330c91029ab3dfdb91e1adf70d6ec89d1c03bd02b054dc64b408f77f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/server_start.json",
+      "bytes": 610,
+      "sha256": "9885eaacfe4690b304129cbf1d8f26c407e0c99efeb56217d53a08e63b101aa1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/server_stop.json",
+      "bytes": 163,
+      "sha256": "59645ecead2a141caf03bef7c00cbf2029bda255c418521749a7bce62b4d01a0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/freeze.json",
+      "bytes": 1422,
+      "sha256": "c4217d714c4a33ad7f624eaceae7c60050a929ee640b64093dba43cf760b1587"
+    },
+    {
+      "path": "scripts/compare_business_task_calibration.py",
+      "bytes": 11459,
+      "sha256": "496c11785ecb88e3419f2e9b54c1deb61c19378ff0fa6a2f939570dac86a5026"
+    }
+  ],
+  "verification": {
+    "at": 1791621277.208266,
+    "raw_responses_verified": 18,
+    "full_vocab_entries_each": 248320,
+    "original_frozen_inputs_verified": true,
+    "official_formula_recomputed": true,
+    "stats": {
+      "calls": 18,
+      "input_tokens": 15053,
+      "output_tokens": 18,
+      "wall_s": 97.18317674996797,
+      "response_elapsed_s": 97.16565866488963,
+      "prompt_ms": 81190.40499999998,
+      "predicted_ms": 0.01800000000000001,
+      "cache_n": 0
+    }
+  }
+}

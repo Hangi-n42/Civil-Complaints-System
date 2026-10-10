@@ -1,0 +1,435 @@
+{
+  "issue": 649,
+  "base_commit": "c79d1e05e6bcd8456a06b22f8e527dce90317251",
+  "status": "research_complete_not_adopted",
+  "scope": "Research scripts and reports only; original sources, requests, raw model outputs, evaluation annotations and weights remain local",
+  "new_generation_calls": 19,
+  "reused_calls": 6,
+  "product_chain_executed": false,
+  "semantic_review": {
+    "at": 1791621836.975195,
+    "decision_owner": "01a11fd9-f71b-7261-832b-0681548a03c4",
+    "decision": "research_complete_not_adopted",
+    "initial": {
+      "individual_correct": 5,
+      "joint_correct": 10,
+      "source_candidate_judgments": 10,
+      "gains": 5,
+      "regressions": 0,
+      "joint_contract_pass": 5,
+      "joint_calls": 5,
+      "gate": true
+    },
+    "stability": {
+      "new_individual_label": "supported",
+      "joint_labels": [
+        [
+          "unsupported",
+          "supported"
+        ],
+        [
+          "supported",
+          "supported"
+        ],
+        [
+          "unsupported",
+          "supported"
+        ]
+      ],
+      "joint_contract_pass": 3,
+      "gate": true
+    },
+    "confirmation": {
+      "expected": [
+        "supported",
+        "unsupported",
+        "supported",
+        "contradicted"
+      ],
+      "individual": [
+        "supported",
+        "contradicted",
+        "supported",
+        "contradicted"
+      ],
+      "joint": [
+        "supported",
+        "contradicted",
+        "supported",
+        "contradicted"
+      ],
+      "individual_correct": 3,
+      "joint_correct": 3,
+      "gains": 0,
+      "regressions": 0,
+      "joint_contract_pass": 1,
+      "joint_calls": 2,
+      "gate": false,
+      "semantic_failure": "NA02 unsupported obligation strengthening treated as explicit contradiction; wrong reason as well",
+      "contract_failure": "NA_pair2 unsupported dimension obligation; no output repair"
+    },
+    "limits": [
+      "curated pair selection and suffix conversion, not stored error correction",
+      "p3 whole-sentence spans not minimal repair location",
+      "p5 scope-U explanation not explicit required-reference source_state validation",
+      "joint task/instruction/output changes confounded",
+      "confirmation single new source with four authored candidates",
+      "no product changes or correction/save/graph/search/answer execution"
+    ],
+    "extension_calls": 0,
+    "product_chain_executed": false
+  },
+  "evidence_files": [
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/baselines.json",
+      "bytes": 218384,
+      "sha256": "ddc4d5f1a38e21418354f60c7b7cbac98c238f59571eb36c87331ae3080a335c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/author/candidates.json",
+      "bytes": 1193,
+      "sha256": "412b5ea5bb3baf8acd9616685a5da707c033fd9890f336fd15e22b5c264df676"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/author/draft_criteria.json",
+      "bytes": 15077,
+      "sha256": "1583f0c863e7f327ec7b142b1cb82ac51bba7f35637b96d76b4901bd91def5d0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/author/receipt.json",
+      "bytes": 6569,
+      "sha256": "1453e3399b6dc4587d918d7e3c8151f3100f5674a57b8741c87fc7afb3ad67a4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/blind_review_freeze.json",
+      "bytes": 812,
+      "sha256": "d4056be61365e61748789033672ed633e661cbfc45065987757ffe38bcc3b42e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/criteria.json",
+      "bytes": 1500,
+      "sha256": "38f7b3d04dbd89cdf1adbabbdcf0b165e48c5a6fbd0632d4fedcfb7edcc09548"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/freeze.json",
+      "bytes": 1422,
+      "sha256": "c4217d714c4a33ad7f624eaceae7c60050a929ee640b64093dba43cf760b1587"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/inputs.json",
+      "bytes": 48097,
+      "sha256": "fcd3df627665f757668924da9ecfb950799ffef8887f66e30ac1a00bbf436092"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/prepared.json",
+      "bytes": 1555,
+      "sha256": "7913726c9f19cbe3dd8b2670dbb95b74f6bbd078d3e7e841321a0dc618d0a396"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/prompts.json",
+      "bytes": 197589,
+      "sha256": "f0882265383ab977de3bae9c6828fb4be3497e253589960b20b86bf7b5580582"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/requests.json",
+      "bytes": 514297,
+      "sha256": "13bc11c3791028583ca8d0238b0bb6e0fade6fa745a479e17a62c1b62a685439"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/reviewer/comparison.json",
+      "bytes": 14375,
+      "sha256": "6b3ad3d57f285bb8ee716211c207707462b0d15b555959305d5222451dd4de6f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/reviewer/comparison_receipt.json",
+      "bytes": 5679,
+      "sha256": "99209cfc3b0a3ff699ce76f3b76299d38e2cac588a50de2707d754129d151117"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/reviewer/independent.json",
+      "bytes": 14097,
+      "sha256": "a4d41520c6f698cd6e9c626d82bfe04996a6ea9b8646d5607a95b6808c8da652"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/reviewer/receipt.json",
+      "bytes": 5250,
+      "sha256": "0ab2f712a37e8249dab13d44bf75b6a19faf7bf83bea63523e11246210a64be0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA01_individual_response.json",
+      "bytes": 16928,
+      "sha256": "9fde980d529c4b261731020d383962f69a3cf90cc2e820d68eb279a69c3c18b5"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA02_individual_response.json",
+      "bytes": 17318,
+      "sha256": "0a553c114d163c79e088f35bdf68e9a77f245e4e738c3334d8224591dd81509e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA03_individual_response.json",
+      "bytes": 17042,
+      "sha256": "188bce66a4d7d30ea4573ba4cc217235d128e7d62712975dcf1035c149acb8f4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA04_individual_response.json",
+      "bytes": 16392,
+      "sha256": "84ee518ee3e63a0d84b13cb067331b3a6f6384d2e6f98e76541548f8119a2ad6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA_pair1_joint_response.json",
+      "bytes": 21996,
+      "sha256": "06b1d42bd97f2bb731991af665f6cc83a6850094ae153272246028b2f56c6b80"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/NA_pair2_joint_response.json",
+      "bytes": 22326,
+      "sha256": "960d00f1fc0006aca4f0dab148ec0ca6cb97d564530557ef86d11dddfef94ead"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run/result.json",
+      "bytes": 12834,
+      "sha256": "3dd43e6ff0709e23aac93b3f037b48bac0ab7eca274ae2faae88866e31965ac0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/run.log",
+      "bytes": 311,
+      "sha256": "e984e09092345dc196861f6415cf1368c915b66ea5a5fb1d8f893b5dc76ef087"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/source.html",
+      "bytes": 90855,
+      "sha256": "35283dec8812efcde7eab88a0e70116eb030ca5594845d716d8d2c59c2ae1f95"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/source.txt",
+      "bytes": 11147,
+      "sha256": "2d107d238a587f3e8eedf4caa3c44780f2b204abfc0ef820ecc4777e045c74c5"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/confirmation/source_preparation.json",
+      "bytes": 1892,
+      "sha256": "e54dc69dcd8dc63ca6c07914e5c6cfbeb50243f208090d55fe3004729762684e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/construction.json",
+      "bytes": 2921,
+      "sha256": "5703221ab7706999a316ab4940afd7c3ec5592d7b154ca1696651198332ae41d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/criteria.json",
+      "bytes": 1903,
+      "sha256": "dbcb9310deec05eee5b9ec0fd0b93cf9fd92d2d240c4504f8e103d1745ca8a79"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/execution_authorization.json",
+      "bytes": 570,
+      "sha256": "1a0c76737743adeb5b272cdb85811258fdc2cec4d6a7dc916ccff69c39ffab84"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/exposure_inventory.json",
+      "bytes": 4245,
+      "sha256": "76634606a962b5ee0d1362aec9b41245bef1ce1c1d6465f0eccd20f77db748e3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/freeze.json",
+      "bytes": 330,
+      "sha256": "f4cff8cfe9d4cb8c694e1536eafbaa20dd6e2387585569f47c0ac2b35bbf5012"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/inputs.json",
+      "bytes": 37597,
+      "sha256": "eec674a74cf470b3fbc14099fab5c9e9117e11b53a98c350bea4a0baf445ce58"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/preparation_recipe.py",
+      "bytes": 5636,
+      "sha256": "9a5fe56872e3564ab980fa7c4182630e964a2f692cde7d7570517bed935410a6"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/prepared.json",
+      "bytes": 2642,
+      "sha256": "a9424d81cea5a995f894944cc9c6bbd612d79c1eb1044895d7b4d10301ea6fb1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/prompts.json",
+      "bytes": 52055,
+      "sha256": "21ab00bfafec49d047da53039c0c70869d671d891f971d48055bd936a18c7cf3"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/props.json",
+      "bytes": 11800,
+      "sha256": "23e2bd49f8182f7540e0d4e51c293e5b7cf35bd5280026f4a62492fcd3d54382"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/requests.json",
+      "bytes": 233285,
+      "sha256": "44e2b9109d8a0bf56652fefd0198e6a5824c63f8a698322ccaeaf359bae7249e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p1Y_individual_response.json",
+      "bytes": 6091,
+      "sha256": "54f68b31d4e5e6e97b9d96ddc7a3a458575f50d654b010a25165a357c9d43ad2"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p1_joint_response.json",
+      "bytes": 11165,
+      "sha256": "801cd5027a98179d96d272cb54bc36ae9bf9298a3a276b6f7c6c60e3b45fae17"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p2Y_individual_response.json",
+      "bytes": 5834,
+      "sha256": "7ab7fbe4416d61968c8885cf020926f0012c1850775446be96a88a79541fc683"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p2_joint_response.json",
+      "bytes": 11398,
+      "sha256": "018f95e88654df9d47e2ab074b8c3063a82cda061bba2a16f2eaf999cf11809f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p3Y_individual_response.json",
+      "bytes": 6325,
+      "sha256": "1b37b1be299154a6a95cc1eb6580f8b33291a0c78e91e12ae38a5b7af6f9122c"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p3_joint_response.json",
+      "bytes": 12440,
+      "sha256": "8670bd6c8b4e1810db26f0f783a5218d0456afec10467f1a76f86d75e79b9278"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p4_joint_response.json",
+      "bytes": 15349,
+      "sha256": "ddf354a9694aa932154b94cc14d1f441242af00b0abd947b805e979b0c12203e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p5Y_individual_response.json",
+      "bytes": 11219,
+      "sha256": "9abe32e618f543b02f50560402acb554395909936f9f53d2503d3a0fafde36e4"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/p5_joint_response.json",
+      "bytes": 16203,
+      "sha256": "05e5fc0cf8a72064f976aa4c80837273ff7fcb8299c32e1ade8182c7ec808947"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run/result.json",
+      "bytes": 21181,
+      "sha256": "cd2d3a6c5870ea315d69f6ba8f850053d47df489bbd388eba1dae4332ed30b39"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/run.log",
+      "bytes": 454,
+      "sha256": "b6fdd5d2153ebf92ec15d1551caef3cc4952f9cc958860ed0bca8281165bf084"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/runtime_identity.json",
+      "bytes": 959,
+      "sha256": "768d4803330c91029ab3dfdb91e1adf70d6ec89d1c03bd02b054dc64b408f77f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/semantic_review.json",
+      "bytes": 1888,
+      "sha256": "3047082af8417466a2461de03531f0c2230c00544817267b5d3373e9550d075f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/server.log",
+      "bytes": 48602,
+      "sha256": "23e564a917e21e72bbcf7e1191453f6bb72f7c650b841b87d3e2180881fbd6f7"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/server_start.json",
+      "bytes": 610,
+      "sha256": "9885eaacfe4690b304129cbf1d8f26c407e0c99efeb56217d53a08e63b101aa1"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/server_stop.json",
+      "bytes": 163,
+      "sha256": "59645ecead2a141caf03bef7c00cbf2029bda255c418521749a7bce62b4d01a0"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/prepared.json",
+      "bytes": 1275,
+      "sha256": "b5ca0f5c0d8ffa42e118001bed0262d604c378459cb06eb39561005b4d22a4fc"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/requests.json",
+      "bytes": 125205,
+      "sha256": "713bb77f5ea4ac330680d93edd45bddf233cd5ecd6fd28b46cefdc8dd95943ee"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run/duty_synonym_partner_joint_response.json",
+      "bytes": 11260,
+      "sha256": "dd2f7e54e9957ad6c0cf0901d10be240a06d9aa6d50003b7e36609d24e71c90f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run/p4_reversed_joint_response.json",
+      "bytes": 15442,
+      "sha256": "68f98c342bbbf257f44f83a880c68631c2166fc8ae575702b2293888d07fdd0d"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run/permission_synonym_individual_response.json",
+      "bytes": 6129,
+      "sha256": "c0c0b8d39561bd6ff71c3a920463855a730d1454ef9870854779263c39470b9e"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run/permission_synonyms_joint_response.json",
+      "bytes": 10913,
+      "sha256": "a462ca7c55d1fcba54f2a7c1b25875a8176fa9d6745eabe780ffd0bec42f58ce"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run/result.json",
+      "bytes": 10130,
+      "sha256": "4b3a04b380cdda148c68608db8d4592b67d86aad1e5f728524a514102102005f"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/stability/run.log",
+      "bytes": 261,
+      "sha256": "2535c92d18f6cc3d766fec8914801dfa7cc2feade07af8da60270c170a489739"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/validation_confirmation.json",
+      "bytes": 1079,
+      "sha256": "03af6344288584cf587f94cb8918e0ab87beeb23baca5972d062a2f63c302915"
+    },
+    {
+      "path": "data/knowledge/evaluations/business_candidate_contrast_20261010/validation_initial_stability.json",
+      "bytes": 1219,
+      "sha256": "8916b6381b356cf3a17dff2591a718f77ac7016c752d858e2ffdf8aa6638b4c6"
+    },
+    {
+      "path": "scripts/compare_business_candidate_contrast.py",
+      "bytes": 11521,
+      "sha256": "838458ddf33bfeab690ca1ca786d07b7a119d3af32d0a3509cd31811e3df6bc6"
+    },
+    {
+      "path": "scripts/confirm_business_candidate_contrast.py",
+      "bytes": 5800,
+      "sha256": "cd23ce00c2ce9e92813ff9e2645d41144a1ece106265d46d61b2a8de2dc35a1c"
+    }
+  ],
+  "verification": {
+    "initial": {
+      "calls": 9,
+      "input_tokens": 12010,
+      "output_tokens": 3203,
+      "wall_s": 235.44058162497822,
+      "response_elapsed_s": 235.43380612425972,
+      "cache_n": 0
+    },
+    "stability": {
+      "calls": 4,
+      "input_tokens": 5293,
+      "output_tokens": 1574,
+      "wall_s": 114.45487537502777,
+      "response_elapsed_s": 114.45278599893209,
+      "cache_n": 0
+    },
+    "confirmation": {
+      "calls": 6,
+      "input_tokens": 22480,
+      "output_tokens": 1625,
+      "wall_s": 211.79361895797774,
+      "response_elapsed_s": 211.7891846661223,
+      "cache_n": 0
+    }
+  }
+}
