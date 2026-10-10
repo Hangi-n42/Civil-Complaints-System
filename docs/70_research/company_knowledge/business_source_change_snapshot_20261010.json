@@ -1,0 +1,891 @@
+{
+  "contract": "source-change-snapshot-current-use-v1",
+  "date": "2026-10-10",
+  "base_head": "18cee9fb6f3eb4a163894a8f21b7740aadd764cb",
+  "issue": "https://github.com/Hangi-n42/Civil-Complaints-System/issues/620",
+  "evidence_kind": "actual_stored_bus_ledger_query_boundary_with_no_models",
+  "original_db": "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_support_mechanism_20261008/bus_update/knowledge.db",
+  "original_sha256": "def64d1e250937b82e7fad8e7a710e1a54ac1123dacbfdd907286900d13bd749",
+  "before_version_id": "c7cc4c7147794c3381dd7781fae442c9",
+  "after_version_id": "c14386ec6798498eb00b0cc213eca468",
+  "source_change_run_id": "9fd8657075c84ba2b4b9da2e52ac3f82",
+  "after_assessment_run_id": "e82031d7f77a4326b23601677281c4c0",
+  "original_unchanged": true,
+  "code_freeze": {
+    "base_head": "18cee9fb6f3eb4a163894a8f21b7740aadd764cb",
+    "code_sha256": {
+      "app/knowledge/business_changes.py": "abc04e652548e92d8ed3e91f2d72887b9d74dc55b2803873ab46327381cc9603",
+      "app/knowledge/business_use.py": "7b014b382be67ab3a31bb9e3d230db689f33e73248500622bacd25ba17303498",
+      "app/knowledge/business_run.py": "1dd71f0d3354181747f96f013608d1abf581d07ca0fb5b995dee1d9793d9bf8d",
+      "app/knowledge/graph_retrieval.py": "9919cd056ea7f538c476c8038707c0e76489c197f011f91aa0ff6680766e642b",
+      "app/tests/unit/test_knowledge_business_change_snapshot.py": "6b05cd0be388a48a91543e530e779e25f6c5a5536095bb95143735d1da2880ed"
+    },
+    "qa_plan_sha256": "8dfbc725a6f3066cc881257e699bb1a7adbf6b25e7268fb70d8beeb58bc3d932",
+    "qa_status": "awaiting coordinated model resource",
+    "max_llm_calls": 4,
+    "query_changes_allowed": false
+  },
+  "boundary_observations": [
+    {
+      "snapshot_id": "12424e58e49147198426f826495bbe5a",
+      "requirement_id": "BUS-NEW-13",
+      "current_status": "partial",
+      "before_retrieval_reached": true,
+      "after_retrieval_reached": false,
+      "after_status": "needs_review",
+      "before_candidates": 120,
+      "after_candidates": 0,
+      "old_changed_claim_before": true,
+      "old_changed_claim_after": false,
+      "old_unchanged_claim_after": false,
+      "new_changed_claim_after": false,
+      "snapshot_unchanged": true
+    },
+    {
+      "snapshot_id": "12424e58e49147198426f826495bbe5a",
+      "requirement_id": "BUS-CONTROL-12",
+      "current_status": "satisfied",
+      "before_retrieval_reached": true,
+      "after_retrieval_reached": true,
+      "after_status": null,
+      "before_candidates": 120,
+      "after_candidates": 119,
+      "old_changed_claim_before": true,
+      "old_changed_claim_after": false,
+      "old_unchanged_claim_after": true,
+      "new_changed_claim_after": false,
+      "snapshot_unchanged": true
+    },
+    {
+      "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+      "requirement_id": "BUS-NEW-13",
+      "current_status": "partial",
+      "before_retrieval_reached": true,
+      "after_retrieval_reached": true,
+      "after_status": null,
+      "before_candidates": 2,
+      "after_candidates": 2,
+      "old_changed_claim_before": false,
+      "old_changed_claim_after": false,
+      "old_unchanged_claim_after": false,
+      "new_changed_claim_after": true,
+      "snapshot_unchanged": true
+    }
+  ],
+  "tests": {
+    "initial_reproduction_failures": 6,
+    "related_regressions_passed": 94,
+    "final_boundary_cases_passed": 12,
+    "related_log": "data/knowledge/evaluations/business_change_snapshot_20261010/regression.log",
+    "final_related_regressions_passed": 94,
+    "final_related_log": "data/knowledge/evaluations/business_change_snapshot_20261010/final-regression.log",
+    "mixed_reproduction_failures": 12
+  },
+  "qa": {
+    "status": "actual_local_execution_completed",
+    "maximum_new_llm_calls": 4,
+    "new_llm_calls": 4,
+    "plan_path": "data/knowledge/evaluations/business_change_snapshot_20261010/qa-plan.json",
+    "saved_response_reuse_allowed": false,
+    "reason": "messages/schema and passage search texts differ",
+    "graph_nodes": 20,
+    "graph_edges": 34,
+    "passages": 2,
+    "limit": 50,
+    "required_claim_inclusion": true,
+    "actual_embeddings_executed": true,
+    "embedding_invocation_count": "not instrumented; first index_cache_hit false, second true",
+    "runtime_path": "data/knowledge/evaluations/business_change_snapshot_20261010/qa-runtime.json",
+    "runtime_db": "data/knowledge/evaluations/business_change_snapshot_20261010/qa-runtime.db",
+    "model_total_s": 104.96611200000001,
+    "driver_total_s": 114.44858908653259,
+    "cases": [
+      {
+        "requirement_ids": [
+          "BUS-CONTROL-12"
+        ],
+        "request": {
+          "question": "1127번 순번 12 정차의 ID·명칭·좌표는 무엇인가?",
+          "choices": [],
+          "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+          "source_run_id": null,
+          "requirement_ids": [
+            "BUS-CONTROL-12"
+          ],
+          "limit": 50,
+          "retrieval": "hipporag2",
+          "graph_variant": "full",
+          "answer_mode": "reviewed_items",
+          "answer_items": [
+            {
+              "id": "row",
+              "requirement_id": "BUS-CONTROL-12",
+              "requirement_revision": 1,
+              "field": "question",
+              "request_quote": "1127번 순번 12 정차의 ID·명칭·좌표는 무엇인가?"
+            }
+          ]
+        },
+        "live_model_identity": {
+          "review": {
+            "name": "qwen3.8:27b-q4_K_M",
+            "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+            "context_length": 262144
+          }
+        },
+        "result": {
+          "run_id": "7c02742a2dca48ab8bcf60afdf4e7184",
+          "status": "answered",
+          "answer": {
+            "answer": "1127번 순번 12 정차의 ID·명칭·좌표는 무엇인가?\n검토된 원문 의미: ROUTE_ID 100100143, 노선명 1127, 순번 12의 정차는 NODE_ID 109000033, ARS_ID 10116, 정류소명 방학사거리, X좌표 127.0421039333, Y좌표 37.6622176747이다.\n원문 행 값: ROUTE_ID: 100100143\n자료: 1127_after.json; 원문 행 위치: /11\n자료에 기록된 날짜: 2025-06-24\n원문 행 값: 노선명: \"1127\"\n원문 행 값: 순번: 12\n원문 행 값: NODE_ID: 109000033\n원문 행 값: ARS_ID: \"10116\"\n원문 행 값: 정류소명: \"방학사거리\"\n원문 행 값: X좌표: 127.0421039333\n원문 행 값: Y좌표: 37.6622176747",
+            "citations": [
+              "claim_fc97562dd821d3873eefd03e"
+            ],
+            "choice": null,
+            "limitations": [
+              "batch1:stop_12_identity: 추가 연결 전제의 독립성은 확인되지 않았습니다."
+            ]
+          },
+          "retrieval": [
+            {
+              "block_id": "claim_fc97562dd821d3873eefd03e",
+              "file_id": "c14386ec6798498eb00b0cc213eca468",
+              "score": 0.49492750829083504,
+              "passage_id": "passage_0f79ed89f01e49b54d71048e",
+              "selection_reason": "required_reviewed_meaning"
+            },
+            {
+              "block_id": "claim_88b7672a6a3c6e5701ea202e",
+              "file_id": "c14386ec6798498eb00b0cc213eca468",
+              "score": 0.0,
+              "passage_id": "passage_de27688889fa2cbacf953c39",
+              "selection_reason": "hipporag2"
+            }
+          ],
+          "context_mode": "graph",
+          "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+          "source_run_id": null,
+          "answer_basis": "reviewed_claims",
+          "limitations": [
+            {
+              "requirement_id": "BUS-NEW-13",
+              "status": "partial",
+              "gaps": []
+            }
+          ],
+          "execution_boundary": {
+            "answer_mode": "reviewed_items",
+            "answer_contract": "provided-unique-citations-nonempty-answer-v2",
+            "unadopted_answer_mode": false,
+            "source_review_run_id": "e82031d7f77a4326b23601677281c4c0",
+            "source_run_review_contract": "requirement-local-review-v8-owned-errors",
+            "source_run_review_experimental": false,
+            "review_provenance_scope": "source_run_recipe_not_all_snapshot_assessments",
+            "status_semantics": "answered는 응답 형식·제공 근거 참조 검사 상태이며 의미 정확성이나 요구 전체 충족을 보증하지 않는다."
+          }
+        },
+        "metrics": {
+          "llm_calls": 2,
+          "model_total_s": 53.935797,
+          "elapsed_s": 61.076452040928416
+        },
+        "graph_retrieval": {
+          "contract": "autoschemakg-hipporag2-source-passages-v2",
+          "variant": "full",
+          "directed": true,
+          "nodes": 20,
+          "edges": 34,
+          "passages": 2,
+          "concept_nodes": 0,
+          "ignored_concept_targets": [],
+          "embedding_model": "BAAI/bge-m3",
+          "embedding_device": "cpu",
+          "alpha": 0.9,
+          "passage_weight": 0.9,
+          "topk_edges": 30,
+          "topk_nodes": 10,
+          "selected_edge_ids": [
+            "edge_81541beb523586d25fb30964",
+            "edge_3c05f580fb43015231a1b6c2",
+            "edge_f31263f26ced6f93c67e019f",
+            "edge_905a196c1d3e0f2a3c65a5f4",
+            "edge_025f9e0b078268310067b33e",
+            "edge_243baf192150a97c31ade092"
+          ],
+          "fallback": null,
+          "index_cache_hit": false,
+          "candidate_edge_ids": [
+            "edge_81541beb523586d25fb30964",
+            "edge_3c05f580fb43015231a1b6c2",
+            "edge_23fceb699fe67ad8f45ce697",
+            "edge_f31263f26ced6f93c67e019f",
+            "edge_905a196c1d3e0f2a3c65a5f4",
+            "edge_025f9e0b078268310067b33e",
+            "edge_243baf192150a97c31ade092",
+            "edge_f1613133ef21a893b64b81df",
+            "edge_3a497bc6df8b9cea464a5291",
+            "edge_ba4f35a9d0b6338ab2d76dfc",
+            "edge_ce34debb1da46466466b7f39",
+            "edge_3c7cfcd84d71ce9d1d7fbab4",
+            "edge_c188579bc51f8d46c2b68aab",
+            "edge_ca25de698f29dee4a09a88c1",
+            "edge_3f822a1b76dbf08679a05cd4",
+            "edge_244226a07d89e526c1f3c6f4"
+          ],
+          "seed_node_scores": {
+            "node_888795ab6d6a589a0e24fffd": 1.0,
+            "node_17a36980b43068229666c7af": 0.8476807491418676,
+            "node_5d4661916e900eceb90fa01f": 0.6323242048173355,
+            "node_1099954d1b58b62577ca7754": 0.5077663591235485,
+            "node_3b45b1989b1bf004518dc1fe": 0.4849293904642203,
+            "node_d18546b1e5c1993abd01468c": 0.4795533513266809,
+            "node_9ab0dc1ede7bfec4b3a62db0": 0.47401537884769623
+          },
+          "ranked_passages": [
+            {
+              "id": "passage_0f79ed89f01e49b54d71048e",
+              "score": 0.49492750829083504,
+              "evidence": {
+                "block_id": "c6c49ac9166e409bb865477229d14fa2",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 12, \"NODE_ID\": 109000033, \"ARS_ID\": \"10116\", \"정류소명\": \"방학사거리\", \"X좌표\": 127.0421039333, \"Y좌표\": 37.6622176747}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_fc97562dd821d3873eefd03e"
+              ]
+            },
+            {
+              "id": "passage_de27688889fa2cbacf953c39",
+              "score": 0.0,
+              "evidence": {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ]
+            }
+          ],
+          "elapsed_s": 29.91253858304117,
+          "ranking_is_semantic_validation": false
+        },
+        "snapshot_invalidations": [],
+        "provided_ids": [
+          "claim_88b7672a6a3c6e5701ea202e",
+          "claim_fc97562dd821d3873eefd03e"
+        ],
+        "answer_item_errors": [],
+        "stages": [
+          {
+            "stage": "graph_retrieval_filter",
+            "status": "succeeded",
+            "error": null,
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response_metadata": {
+              "request_id": "bdc5ac1dd9b44612939305f56796adf9",
+              "stage": "graph_retrieval_filter",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-10T14:45:08.706959Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\"selected_ids\": [\"e1\", \"e2\", \"e4\", \"e5\", \"e6\", \"e7\"]}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 23005480291,
+                "load_duration": 7118904666,
+                "prompt_eval_count": 2738,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 14392628000,
+                "eval_count": 29,
+                "eval_duration": 1473545000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 2738,
+              "eval_count": 29,
+              "usage_source": "provider_reported",
+              "elapsed_s": 23.040271,
+              "input_chars": 5555,
+              "total_duration": 23005480291
+            }
+          },
+          {
+            "stage": "business_qa",
+            "status": "succeeded",
+            "error": null,
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response_metadata": {
+              "request_id": "9fb131ee3f5345a1bbdbaa15c905a9c2",
+              "stage": "business_qa",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-10T14:45:39.626437Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\n  \"items\": [\n    {\n      \"item_id\": \"row\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m1\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f2\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f3\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f4\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f5\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f6\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f7\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f8\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f9\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    }\n  ]\n}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 30878857416,
+                "load_duration": 4268791,
+                "prompt_eval_count": 3095,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 16641476999,
+                "eval_count": 270,
+                "eval_duration": 14085891000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 3095,
+              "eval_count": 270,
+              "usage_source": "provider_reported",
+              "elapsed_s": 30.895526,
+              "input_chars": 6779,
+              "total_duration": 30878857416
+            }
+          }
+        ]
+      },
+      {
+        "requirement_ids": [
+          "BUS-NEW-13"
+        ],
+        "request": {
+          "question": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?",
+          "choices": [],
+          "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+          "source_run_id": null,
+          "requirement_ids": [
+            "BUS-NEW-13"
+          ],
+          "limit": 50,
+          "retrieval": "hipporag2",
+          "graph_variant": "full",
+          "answer_mode": "reviewed_items",
+          "answer_items": [
+            {
+              "id": "row",
+              "requirement_id": "BUS-NEW-13",
+              "requirement_revision": 1,
+              "field": "question",
+              "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+            }
+          ]
+        },
+        "live_model_identity": {
+          "review": {
+            "name": "qwen3.8:27b-q4_K_M",
+            "digest": "25b843619e944cd0ae6069f94ff4e5e26a16e109ccbc0a66a0f05979ed70098e",
+            "context_length": 262144
+          }
+        },
+        "result": {
+          "run_id": "e5f927e463d0411fbdec45b315d8c88f",
+          "status": "answered",
+          "answer": {
+            "answer": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?\n검토된 원문 의미: 노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 정차 식별자(NODE_ID)는 109000011이다.\n조건: ROUTE_ID가 100100143이고 / 노선명이 1127이고 / 순번이 13인 행\n검토된 원문 의미: 노선 1127(ROUTE_ID 100100143)의 순번 13 정차 행의 좌표는 X 127.0407623758, Y 37.6589364195이다.\n조건: ROUTE_ID가 100100143이고 / 노선명이 1127이고 / 순번이 13인 행\n원문 행 값: 순번: 13\n자료: 1127_after.json; 원문 행 위치: /12\n자료에 기록된 날짜: 2025-06-24\n원문 행 값: NODE_ID: 109000011\n원문 행 값: X좌표: 127.0407623758\n원문 행 값: Y좌표: 37.6589364195\n\n요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다.",
+            "citations": [
+              "claim_88b7672a6a3c6e5701ea202e"
+            ],
+            "choice": null,
+            "limitations": [
+              "요청한 내용의 전체 충족은 아직 확인되지 않았습니다 (기준 시점: 최신 제공 정차표 스냅샷). 제공된 파일의 행값과 날짜는 이 미확정을 해소하지 않습니다."
+            ]
+          },
+          "retrieval": [
+            {
+              "block_id": "claim_88b7672a6a3c6e5701ea202e",
+              "file_id": "c14386ec6798498eb00b0cc213eca468",
+              "score": 0.50724314128396,
+              "passage_id": "passage_de27688889fa2cbacf953c39",
+              "selection_reason": "required_reviewed_meaning"
+            },
+            {
+              "block_id": "claim_fc97562dd821d3873eefd03e",
+              "file_id": "c14386ec6798498eb00b0cc213eca468",
+              "score": 0.0,
+              "passage_id": "passage_0f79ed89f01e49b54d71048e",
+              "selection_reason": "hipporag2"
+            }
+          ],
+          "context_mode": "graph",
+          "snapshot_id": "996dcfe5a4054404af531942ef1b5862",
+          "source_run_id": null,
+          "answer_basis": "reviewed_claims",
+          "limitations": [
+            {
+              "requirement_id": "BUS-NEW-13",
+              "status": "partial",
+              "gaps": []
+            }
+          ],
+          "execution_boundary": {
+            "answer_mode": "reviewed_items",
+            "answer_contract": "provided-unique-citations-nonempty-answer-v2",
+            "unadopted_answer_mode": false,
+            "source_review_run_id": "e82031d7f77a4326b23601677281c4c0",
+            "source_run_review_contract": "requirement-local-review-v8-owned-errors",
+            "source_run_review_experimental": false,
+            "review_provenance_scope": "source_run_recipe_not_all_snapshot_assessments",
+            "status_semantics": "answered는 응답 형식·제공 근거 참조 검사 상태이며 의미 정확성이나 요구 전체 충족을 보증하지 않는다."
+          }
+        },
+        "metrics": {
+          "llm_calls": 2,
+          "model_total_s": 51.030315,
+          "elapsed_s": 53.085316041018814
+        },
+        "graph_retrieval": {
+          "contract": "autoschemakg-hipporag2-source-passages-v2",
+          "variant": "full",
+          "directed": true,
+          "nodes": 20,
+          "edges": 34,
+          "passages": 2,
+          "concept_nodes": 0,
+          "ignored_concept_targets": [],
+          "embedding_model": "BAAI/bge-m3",
+          "embedding_device": "cpu",
+          "alpha": 0.9,
+          "passage_weight": 0.9,
+          "topk_edges": 30,
+          "topk_nodes": 10,
+          "selected_edge_ids": [
+            "edge_ce34debb1da46466466b7f39",
+            "edge_3a497bc6df8b9cea464a5291",
+            "edge_3c7cfcd84d71ce9d1d7fbab4",
+            "edge_ba4f35a9d0b6338ab2d76dfc",
+            "edge_c188579bc51f8d46c2b68aab",
+            "edge_ca25de698f29dee4a09a88c1",
+            "edge_244226a07d89e526c1f3c6f4",
+            "edge_3f822a1b76dbf08679a05cd4"
+          ],
+          "fallback": null,
+          "index_cache_hit": true,
+          "candidate_edge_ids": [
+            "edge_ce34debb1da46466466b7f39",
+            "edge_3a497bc6df8b9cea464a5291",
+            "edge_3c05f580fb43015231a1b6c2",
+            "edge_3c7cfcd84d71ce9d1d7fbab4",
+            "edge_ba4f35a9d0b6338ab2d76dfc",
+            "edge_c188579bc51f8d46c2b68aab",
+            "edge_ca25de698f29dee4a09a88c1",
+            "edge_244226a07d89e526c1f3c6f4",
+            "edge_23fceb699fe67ad8f45ce697",
+            "edge_3f822a1b76dbf08679a05cd4",
+            "edge_81541beb523586d25fb30964",
+            "edge_f31263f26ced6f93c67e019f",
+            "edge_025f9e0b078268310067b33e",
+            "edge_905a196c1d3e0f2a3c65a5f4",
+            "edge_f1613133ef21a893b64b81df",
+            "edge_243baf192150a97c31ade092"
+          ],
+          "seed_node_scores": {
+            "node_5ba126b5d0fbe07d7bdea074": 1.0,
+            "node_38e0814ff00896638d6e6f73": 0.6728933553642426,
+            "node_6d2a9ccd70fad1a8955a9848": 0.45777136534621365,
+            "node_11bad48f977da2f606c253c2": 0.43517798056903806,
+            "node_dca52f871ead70aae91c5611": 0.3544681250268901,
+            "node_94640a74939939875cb9d6dd": 0.3160719127217346,
+            "node_a87c2641340ac200b10f27c0": 0.2786598017485023,
+            "node_a71f909652531120b2b6d088": 0.21399328799985046,
+            "node_0f9173e3c70e9d3d4a51407b": 0.18756599634487087
+          },
+          "ranked_passages": [
+            {
+              "id": "passage_de27688889fa2cbacf953c39",
+              "score": 0.50724314128396,
+              "evidence": {
+                "block_id": "3267746b3f9143758ea6034307448140",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 13, \"NODE_ID\": 109000011, \"ARS_ID\": \"10011\", \"정류소명\": \"도봉보건소\", \"X좌표\": 127.0407623758, \"Y좌표\": 37.6589364195}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_88b7672a6a3c6e5701ea202e"
+              ]
+            },
+            {
+              "id": "passage_0f79ed89f01e49b54d71048e",
+              "score": 0.0,
+              "evidence": {
+                "block_id": "c6c49ac9166e409bb865477229d14fa2",
+                "source_version_id": "c14386ec6798498eb00b0cc213eca468",
+                "parse_run_id": "e648c3678f0e4238aaaa3caf4d63a51a",
+                "start_char": 0,
+                "end_char": 151,
+                "quote": "{\"ROUTE_ID\": 100100143, \"노선명\": \"1127\", \"순번\": 12, \"NODE_ID\": 109000033, \"ARS_ID\": \"10116\", \"정류소명\": \"방학사거리\", \"X좌표\": 127.0421039333, \"Y좌표\": 37.6622176747}",
+                "precision": "exact"
+              },
+              "claim_ids": [
+                "claim_fc97562dd821d3873eefd03e"
+              ]
+            }
+          ],
+          "elapsed_s": 18.46297524997499,
+          "ranking_is_semantic_validation": false
+        },
+        "snapshot_invalidations": [],
+        "provided_ids": [
+          "claim_88b7672a6a3c6e5701ea202e",
+          "claim_fc97562dd821d3873eefd03e"
+        ],
+        "answer_item_errors": [],
+        "stages": [
+          {
+            "stage": "graph_retrieval_filter",
+            "status": "succeeded",
+            "error": null,
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response_metadata": {
+              "request_id": "72e9a5656c444eee8b15a542fe85134c",
+              "stage": "graph_retrieval_filter",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-10T14:45:58.235336Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\"selected_ids\": [\"e1\", \"e2\", \"e4\", \"e5\", \"e6\", \"e7\", \"e8\", \"e10\"]}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 16545519625,
+                "load_duration": 2484833,
+                "prompt_eval_count": 2737,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 14500002000,
+                "eval_count": 38,
+                "eval_duration": 1927130000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 2737,
+              "eval_count": 38,
+              "usage_source": "provider_reported",
+              "elapsed_s": 16.5556,
+              "input_chars": 5557,
+              "total_duration": 16545519625
+            }
+          },
+          {
+            "stage": "business_qa",
+            "status": "succeeded",
+            "error": null,
+            "requested_limits": {
+              "max_tokens": 8192,
+              "context_tokens": 49152,
+              "think": false
+            },
+            "response_metadata": {
+              "request_id": "c3bc2fd6cd514b1e9c93dc7414ac75ef",
+              "stage": "business_qa",
+              "provider": "ollama",
+              "model": "qwen3.8:27b-q4_K_M",
+              "raw_response": {
+                "model": "qwen3.8:27b-q4_K_M",
+                "created_at": "2026-10-10T14:46:32.727882Z",
+                "message": {
+                  "role": "assistant",
+                  "content": "{\n  \"items\": [\n    {\n      \"item_id\": \"row\",\n      \"selected\": [\n        {\n          \"meaning_ref\": \"m1\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"m2\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f5\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f6\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f9\",\n          \"use\": \"direct_fact\"\n        },\n        {\n          \"meaning_ref\": \"f10\",\n          \"use\": \"direct_fact\"\n        }\n      ],\n      \"unconfirmed\": []\n    }\n  ]\n}"
+                },
+                "done": true,
+                "done_reason": "stop",
+                "total_duration": 34458849875,
+                "load_duration": 1158584,
+                "prompt_eval_count": 4560,
+                "prompt_eval_cached_count": 0,
+                "prompt_eval_duration": 24133229000,
+                "eval_count": 195,
+                "eval_duration": 10231165000
+              },
+              "done": true,
+              "done_reason": "stop",
+              "failure_kind": null,
+              "prompt_eval_count": 4560,
+              "eval_count": 195,
+              "usage_source": "provider_reported",
+              "elapsed_s": 34.474715,
+              "input_chars": 9608,
+              "total_duration": 34458849875
+            }
+          }
+        ]
+      }
+    ],
+    "old_changed_snapshot_probe": {
+      "request": {
+        "question": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?",
+        "choices": [],
+        "snapshot_id": "12424e58e49147198426f826495bbe5a",
+        "source_run_id": null,
+        "requirement_ids": [
+          "BUS-NEW-13"
+        ],
+        "limit": 50,
+        "retrieval": "hipporag2",
+        "graph_variant": "full",
+        "answer_mode": "reviewed_items",
+        "answer_items": [
+          {
+            "id": "row",
+            "requirement_id": "BUS-NEW-13",
+            "requirement_revision": 1,
+            "field": "question",
+            "request_quote": "1127번 순번 13의 현재 정차 식별자와 좌표는 무엇인가?"
+          }
+        ]
+      },
+      "result": {
+        "status": "needs_review",
+        "answer": null,
+        "snapshot_id": "12424e58e49147198426f826495bbe5a",
+        "invalidations": [
+          {
+            "event": "business_source_change",
+            "snapshot_id": "12424e58e49147198426f826495bbe5a",
+            "run_ids": [
+              "3d292c255b0047279d0bcf067d023af7",
+              "9fd8657075c84ba2b4b9da2e52ac3f82"
+            ],
+            "reason": "source_change_recorded_for_snapshot_version",
+            "claim_ids": [
+              "claim_d60cf12c95e74be31e049c8b"
+            ],
+            "block_ids": [
+              "233f259078e943f6b155e1fe2215f232"
+            ],
+            "requirement_ids": [
+              "BUS-R01",
+              "BUS-R02",
+              "BUS-R03",
+              "BUS-R04",
+              "BUS-NEW-13"
+            ]
+          }
+        ]
+      },
+      "llm_calls": 0,
+      "embedding_calls": 0
+    },
+    "original_unchanged": true,
+    "snapshots_unchanged": true,
+    "ars_id_observation": {
+      "offered": "10011",
+      "model_selected": false,
+      "required_by_explicit_frozen_field_list": false,
+      "new_failure_label": false
+    },
+    "question_success_scope": "provided after row NODE_ID and coordinates; frozen question/criterion do not demand both NODE_ID and ARS_ID; current requirement remains partial",
+    "qa_execution_code_and_final_code_separately_preserved": true,
+    "prompt_tokens": 13130,
+    "output_tokens": 532
+  },
+  "limits": [
+    "requirement-level unaffected is not blanket repermission for all old claims in an actually changed block",
+    "independent partial meanings inside the same changed block are not proven or restored",
+    "tests/stored-ledger boundary do not establish automatic semantic improvement",
+    "historical source_run previews remain separate from current reviewed snapshot use",
+    "no Windows runtime validation, merge or deployment"
+  ],
+  "raw_artifacts": {
+    "data/knowledge/evaluations/business_change_snapshot_20261010/probe.py": "fee44477925f39a5ba207df93926e67c0486cc7646c97ee82dad8ea9e7719768",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/before.json": "eee509d8458844fa85dd148e7959490f6a132df8732cac1f35e62e9bf04e83bb",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/after-final.json": "678c40a4b51c688935e2fa26bb5562b13fdab60c47e28e809ca810ba20e9cddf",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/prepare_qa.py": "bf1d47669cc9beea3ed22b587ae77962096d3b62852fd32bb2484deb50c7901d",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/qa-plan.json": "8dfbc725a6f3066cc881257e699bb1a7adbf6b25e7268fb70d8beeb58bc3d932",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/code-freeze.json": "2f833023b251d3b0d744a8a1f1f5710120ce7b2ce805c144c51449c459f24308",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/execute_qa.py": "907726913b691ec41898ebbaafe16a50ce0ac79f2bde15e4d051926c8768303e",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/regression.log": "727d7a3037351acc197e9ebdc2b5b11f8ddaae004210dd0c7353ec6172870203",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/qa-runtime.db": "b85204999c9069cd629eab8a322454d3886adaf2830cea2fe7baa112c9d1165f",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/qa-runtime.json": "c7bf7f7d532cc1f06d45248ddac7d0703af9f70c6e7fb9a73a82a4e3c30b1c01",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/qa-runtime.log": "f6b0f3ab538ac762859ff9f95a791fafcac94f5c9641a632d19405cac87fab4b",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/resource-release.json": "c59e8c4f1b95bf06aec6d20169ab18bfec9e6769a17b42df32f2d5734bd30817",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/mixed_probe.py": "36040c2376760238b1d050664dc224373bd5f1b2e2b04e30a3ca78e78a6c42c9",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/mixed-before.json": "0bddb9e07375293fe4dad4c7e6c58cd4401bbe14e295d8f57f9add34fc0dce01",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/mixed-before.db": "ebfb18f0522ad027585a3d151a685e2bed85a4487f493f20062cefcaf84cf3d3",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/mixed-after.json": "0a0e6c612922a07a6bb29522513d73afba514051af9d6948809f118b92f0dcad",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/mixed-after.db": "7063ebeca423a626ccd41377781dd31ded99085d629c3e469bd0511ff128f3ef",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/after-scope-final.json": "678c40a4b51c688935e2fa26bb5562b13fdab60c47e28e809ca810ba20e9cddf",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/final-code-comparison.json": "f7340667507a70e0f5a16485ad93dac806b815ed7db83bf92b6385dec31e8b02",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/prepare_qa_final.py": "98f89b78e110f3b951b1fd99460cd3a3bbcaed853452a67dd5a68b4ba8640689",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/qa-plan-final.json": "8dfbc725a6f3066cc881257e699bb1a7adbf6b25e7268fb70d8beeb58bc3d932",
+    "data/knowledge/evaluations/business_change_snapshot_20261010/final-regression.log": "9718e834fa421ce7ff570c08befbf806331b4bce0ad5e5e1f3f081a1c7073d63"
+  },
+  "status": "scoped_product_fix_and_bounded_bus_query_connection_completed",
+  "final_code_comparison": {
+    "final_code_sha256": {
+      "app/knowledge/business_changes.py": "a046da6e9928f96c28ade85d61c23babb994005efd4d4858ada329b65bb9aed7",
+      "app/knowledge/business_use.py": "b42328c697f1b8e1c528bc4a5f9ae528a502401c849cc6163118685490d8fb5e",
+      "app/tests/unit/test_knowledge_business_change_snapshot.py": "dd166c29147f289faa889c1620a6ecbebf678423abfa8f21fe48623eb7600cea"
+    },
+    "original_qa_code_freeze_sha256": "2f833023b251d3b0d744a8a1f1f5710120ce7b2ce805c144c51449c459f24308",
+    "graph_builder_code_unchanged": true,
+    "actual_qa_input_matches_final_product": [
+      {
+        "requirement_ids": [
+          "BUS-CONTROL-12"
+        ],
+        "actual_run_id": "7c02742a2dca48ab8bcf60afdf4e7184",
+        "qa_request_equal": {
+          "messages": true,
+          "schema": true,
+          "reference_map": true
+        }
+      },
+      {
+        "requirement_ids": [
+          "BUS-NEW-13"
+        ],
+        "actual_run_id": "e5f927e463d0411fbdec45b315d8c88f",
+        "qa_request_equal": {
+          "messages": true,
+          "schema": true,
+          "reference_map": true
+        }
+      }
+    ],
+    "new_model_calls": 0,
+    "new_embedding_calls": 0
+  },
+  "mixed_source_fixture": {
+    "kind": "controlled_stored_after_assessment_reuse_through_save_assessment_and_decide_not_fresh_semantic_review",
+    "before": {
+      "evidence_kind": "controlled_stored_after_assessment_fixture_not_fresh_semantic_review",
+      "llm_calls": 0,
+      "embedding_calls": 0,
+      "db": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_change_snapshot_20261010/mixed-before.db",
+      "decision": {
+        "decision": {
+          "id": "151c6eb0c5e349d9acc8ffa62f82bef9",
+          "kind": "source_graph",
+          "changeset_id": "mixed-after-change",
+          "actor": "controlled regression fixture, not new human review",
+          "completion_contract": "required-meaning-completion-v2-applicability",
+          "eligibility_contract": "current-claim-local-dependencies-v8-applicability",
+          "eligible_ids_at_review": [
+            "claim_88b7672a6a3c6e5701ea202e",
+            "claim_fc97562dd821d3873eefd03e"
+          ],
+          "reason": "Stored after-only assessment/claims with before+after metadata; no model rerun.",
+          "accepted_ids": [
+            "claim_fc97562dd821d3873eefd03e",
+            "claim_88b7672a6a3c6e5701ea202e"
+          ],
+          "created_at": "2026-10-10T14:51:35.480495+00:00",
+          "explicit_meaning_reviews": []
+        },
+        "snapshot_id": "356dbd180e294661bbcc1e8ad4bf1174",
+        "changeset_revision": 2
+      },
+      "query": {
+        "status": "needs_review",
+        "answer": null,
+        "snapshot_id": "356dbd180e294661bbcc1e8ad4bf1174",
+        "invalidations": [
+          {
+            "event": "business_source_change",
+            "snapshot_id": "356dbd180e294661bbcc1e8ad4bf1174",
+            "run_ids": [
+              "3d292c255b0047279d0bcf067d023af7",
+              "9fd8657075c84ba2b4b9da2e52ac3f82"
+            ],
+            "reason": "source_change_recorded_for_snapshot_version",
+            "claim_ids": [],
+            "block_ids": [
+              "233f259078e943f6b155e1fe2215f232"
+            ],
+            "requirement_ids": [
+              "BUS-R01",
+              "BUS-R02",
+              "BUS-R03",
+              "BUS-R04",
+              "BUS-NEW-13"
+            ]
+          }
+        ]
+      },
+      "retrieval_reached": false
+    },
+    "after": {
+      "evidence_kind": "controlled_stored_after_assessment_fixture_not_fresh_semantic_review",
+      "llm_calls": 0,
+      "embedding_calls": 0,
+      "db": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_change_snapshot_20261010/mixed-after.db",
+      "decision": {
+        "decision": {
+          "id": "640b78a8cce741519fab0b6bfdac6017",
+          "kind": "source_graph",
+          "changeset_id": "mixed-after-change",
+          "actor": "controlled regression fixture, not new human review",
+          "completion_contract": "required-meaning-completion-v2-applicability",
+          "eligibility_contract": "current-claim-local-dependencies-v8-applicability",
+          "eligible_ids_at_review": [
+            "claim_88b7672a6a3c6e5701ea202e",
+            "claim_fc97562dd821d3873eefd03e"
+          ],
+          "reason": "Stored after-only assessment/claims with before+after metadata; no model rerun.",
+          "accepted_ids": [
+            "claim_fc97562dd821d3873eefd03e",
+            "claim_88b7672a6a3c6e5701ea202e"
+          ],
+          "created_at": "2026-10-10T14:52:43.684868+00:00",
+          "explicit_meaning_reviews": []
+        },
+        "snapshot_id": "f1d437c33c3a41408be13ab939e19b9e",
+        "changeset_revision": 2
+      },
+      "candidate_ids": [
+        "claim_fc97562dd821d3873eefd03e",
+        "claim_88b7672a6a3c6e5701ea202e"
+      ],
+      "retrieval_reached": true
+    },
+    "llm_calls": 0,
+    "embedding_calls": 0
+  },
+  "resource_release": {
+    "checked_at": "2026-10-10T14:56:42.123330+00:00",
+    "qa_exec_exit_code": 0,
+    "qa_process_absent": true,
+    "ollama_ps": "NAME    ID    SIZE    PROCESSOR    CONTEXT    UNTIL \n",
+    "qwen_unloaded": true,
+    "embedding_process": "same terminated QA Python process; no server created",
+    "unload_command": "/usr/local/bin/ollama stop qwen3.8:27b-q4_K_M"
+  },
+  "artifact_archive": "/Users/hyeongi/.codex/artifacts/business-source-change-snapshot-20261010"
+}

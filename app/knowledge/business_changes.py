@@ -164,6 +164,59 @@ def apply_impacts(service, run, requirements, impacts):
             service.repository.save(db, 'requirements', current)
 
 
+def assessment_uses_version(snapshot, original, requirement_id, version_id):
+    assessment = snapshot.get('assessments', {}).get(requirement_id)
+    if not assessment:
+        return True
+    ids = set(assessment.get('claim_ids', [])) | {cid for check in
+        (assessment.get('representation') or {}).get('checks', []) for cid in check.get('claim_ids', [])}
+    claims = {c['id']: c for c in [*original.get('claims', []), *snapshot['claims']]}
+    if not ids <= claims.keys():
+        return True
+    versions = {vid for cid in ids for vid in claims[cid]['source_version_ids']}
+    refs = [ref for meaning in business_review.review_meanings(assessment.get('source') or {})
+            for part in [meaning, *(meaning.get('field_judgments') or {}).values()]
+            for ref in part.get('evidence', [])]
+    try:
+        versions.update(ref['source_version_id'] for ref in business_run.exact_evidence(
+            refs, original.get('blocks', snapshot['blocks'])))
+    except ValueError:
+        return True
+    return not versions or version_id in versions
+
+
+def snapshot_invalidations(service, db, snapshot, original):
+    """Use durable impact receipts even after a new assessment replaces needs_review."""
+    invalidations, changes = {}, {}
+    histories = sorted((history for row in db.execute('SELECT payload FROM requirements')
+        for history in json.loads(row['payload']).get('change_history', [])), key=lambda h: h['recorded_at'])
+    for history in histories:
+        run_id = history['run_id']
+        if run_id not in changes:
+            changes[run_id] = service.repository.get(db, 'runs', run_id)
+        change = changes[run_id]
+        before = change.get('request', {}).get('before_version_id')
+        if change.get('kind') != 'business_change' or before not in snapshot['source_versions']:
+            continue
+        pair = before, change['request']['after_version_id']
+        # shortcut: exclude whole changed blocks until receipts identify independent unchanged claims.
+        blocks = {bid for delta in change['diff']['changes'] for bid in
+                  [delta.get('before_block_id'), *delta.get('before_block_ids', [])] if bid}
+        event = invalidations.setdefault(pair, dict(event='business_source_change', snapshot_id=snapshot['id'],
+            run_ids=[], reason='source_change_recorded_for_snapshot_version',
+            claim_ids=[], block_ids=[], requirement_ids=[]))
+        if run_id not in event['run_ids']:
+            event['run_ids'].append(run_id)
+        event['block_ids'] = sorted(set(event['block_ids']) | blocks)
+        event['claim_ids'] = [c['id'] for c in snapshot['claims'] if any(
+            e['source_version_id'] == before and e['block_id'] in event['block_ids'] for e in c.get('evidence', []))]
+        impact = history['impact']
+        event['requirement_ids'] = [rid for rid in event['requirement_ids'] if rid != impact['requirement_id']]
+        if impact['status'] != 'unaffected' and assessment_uses_version(snapshot, original, impact['requirement_id'], before):
+            event['requirement_ids'].append(impact['requirement_id'])
+    return list(invalidations.values())
+
+
 def analyze(service, request):
     started = monotonic()
     config = configuration()

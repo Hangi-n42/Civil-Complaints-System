@@ -732,19 +732,24 @@ def query(service, request, *, context_mode='graph'):
             snapshot = service.repository.get(db, 'snapshots', request.snapshot_id)
         if snapshot.get('kind') != 'source_graph':
             raise ValueError('출처 그래프 snapshot이 필요합니다.')
+        original = service.repository.get(db, 'runs', snapshot['run_id'])
         invalidations = [event for row in db.execute('SELECT payload FROM snapshot_events')
             if (event := json.loads(row['payload'])).get('event') == 'business_correction'
             and event['snapshot_id'] == snapshot['id']]
+        if not source_reader:
+            from .business_changes import snapshot_invalidations
+            invalidations.extend(snapshot_invalidations(service, db, snapshot, original))
         if invalidations:
             affected = {rid for i in invalidations for rid in i['requirement_ids']}
             if affected.intersection(request.requirement_ids):
                 return dict(status='needs_review', answer=None, snapshot_id=snapshot['id'], invalidations=invalidations)
             excluded = {cid for i in invalidations for cid in i['claim_ids']}
+            excluded_blocks = {bid for i in invalidations for bid in i.get('block_ids', [])}
             snapshot = dict(snapshot, claims=[c for c in snapshot['claims'] if c['id'] not in excluded],
+                            blocks=[b for b in snapshot['blocks'] if b['id'] not in excluded_blocks],
                             assessments={rid:a for rid,a in snapshot['assessments'].items() if rid not in affected})
         if not set(request.requirement_ids) <= {r['id'] for r in snapshot['requirements']}:
             raise ValueError('선택한 요구가 해당 snapshot에 없습니다.')
-        original = service.repository.get(db, 'runs', snapshot['run_id'])
         restrictions = restricted_sources(db, snapshot['source_versions'])
         if restrictions:
             return dict(status='needs_review', restrictions=restrictions, answer=None, snapshot_id=snapshot['id'])
@@ -777,6 +782,7 @@ def query(service, request, *, context_mode='graph'):
                    recipe=deepcopy(original['recipe']), model_identity=original['model_identity'],
                    metrics=dict(llm_calls=0, model_total_s=0, elapsed_s=0), started_at=utcnow(), finished_at=None,
                    query=request.model_dump(), answer_items=answer_items, context_mode=context_mode, snapshot_id=snapshot['id'],
+                   snapshot_invalidations=deepcopy(invalidations),
                    answer_basis='source_passages_not_ontology_approval' if source_reader else 'reviewed_claims',
                    source_extraction_status=original['status'] if source_reader else None,
                    answer_contract=ANSWER_CONTRACT, required_context_ids=sorted(required_ids))
