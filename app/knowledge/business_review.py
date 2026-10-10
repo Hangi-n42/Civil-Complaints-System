@@ -620,7 +620,7 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
     if previous.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
         # Updating a meaning is not resolving its findings; the existing join needs their original IDs.
         result['findings'] = deepcopy(previous.get('findings', []))
-        annotations = [dict(meaning_keys=sorted(selected), text=text) for text in output['gaps']]
+        annotations = [dict(meaning_keys=[], text=text) for text in output['gaps']]
         annotations.extend(output.get('meaning_gaps', []))
         for n, annotation in enumerate(annotations):
             result['findings'].append(dict(id=f'reassessment:{source_unit_id}:{n}', origin='source',

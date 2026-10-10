@@ -429,6 +429,27 @@ def test_finding_resolution_requires_actual_source_and_keeps_raw_history():
     assert source['completeness'] == 'partial' and result['meaning_challenges']
 
 
+@pytest.mark.parametrize('contract', ['requirement-local-review-v4', review.CONTRACT])
+def test_reassessment_keeps_free_gap_unowned_and_explicit_gap_owned(monkeypatch, contract):
+    run = local_run(); run['units'] = [dict(id='new-e')]
+    run['recipe']['review_contract'] = contract
+    source = current_source(); source['review_contract'] = contract
+    output = dict(meanings=[meaning('m')], examined_block_ids=['body'], completeness='partial',
+        gaps=['전체 범위의 미귀속 공백'], conjunctions=[],
+        meaning_gaps=[dict(meaning_keys=['m'], text='명시적으로 귀속된 공백')], meaning_conjunctions=[])
+    original = deepcopy(source)
+    monkeypatch.setattr(business_run, 'json_call', lambda *a, **k: deepcopy(output))
+    revised = review.reassess_source(None, run, run['requirements'][0], dict(source=source), [dict(meaning_key='m')])
+    free, owned = revised['findings'][-2:]
+    assert free['meaning_keys'] == [] and owned['meaning_keys'] == ['m']
+    for index, finding in enumerate((free, owned)):
+        assert finding['scope_meaning_keys'] == ['m'] and finding['provided_block_ids'] == ['body']
+        assert finding['id'] == f'reassessment:new-e:{index}' and finding['unit_id'] == 'new-e'
+        assert finding['text'] == (output['gaps'][0] if index == 0 else output['meaning_gaps'][0]['text'])
+    assert revised['findings'][:-2] == original['findings'] and source == original
+    assert revised['meaning_gaps'] == output['meaning_gaps'] and revised['completeness'] == 'unknown'
+
+
 def test_source_reassessment_typed_gap_survives_the_join_without_free_gap_duplicate(monkeypatch):
     run = local_run(); run['units'] = [dict(id='new-e')]
     source = current_source()

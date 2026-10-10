@@ -1,0 +1,86 @@
+{
+  "version": "business-auto-finding-edit-and-gap-ownership-v1",
+  "date": "2026-10-11",
+  "base_commit": "9abff745d9fbf8d6baa4d7ff04651dd849461c3b",
+  "branch": "feature/business-requirement-answer-flow",
+  "issue_scope": [
+    616,
+    617,
+    620
+  ],
+  "completed": {
+    "real_c47_automatic_finding_to_native_edit_and_storage": true,
+    "c47_inventory_and_regional_return_condition_preserved": true,
+    "current_c47_source_automatically_reassessed": true,
+    "eligible_snapshot_graph_search_and_same_question_QA_connected": true,
+    "old_generalized_c47_event_excluded_from_active_full_graph_search_index": true,
+    "new_changed_target_concepts": 4,
+    "free_gap_ownership_recording_fixed": true,
+    "explicit_gap_ownership_scope_evidence_and_execution_ids_preserved": true
+  },
+  "not_completed_or_adopted": {
+    "whole_semantic_R05_or_product_completion": false,
+    "research_judge_default_adoption": false,
+    "cb9_QA_configuration_default_adoption": false,
+    "owner_fix_join_semantic_quality_gain_demonstrated": false,
+    "merge_or_deploy": false
+  },
+  "non_c47_operating_baseline": {
+    "run_id": "fd10ffa6e523437eb2ab1b31411dba8b",
+    "meaning_count": 16,
+    "explicit_coordinating_AI_correction_count": 8,
+    "remaining_historical_model_review_records": 8,
+    "human_trial": false,
+    "new_automatic_success_denominator": 0,
+    "donor_c47_meaning_judgment_history_reused": 0
+  },
+  "runs": {
+    "automatic_edit_source_and_R05": "954a0173c52b41ec997bca47af3a6e86",
+    "current_snapshot": "259ea7cd945c4c10a9f2129469078451",
+    "default_QA": "0416918d5c604dc5b91c9ceab24d3003",
+    "cb9_connection_QA": "761fad0ac9934e8cb484c37eae9592aa",
+    "owner_replay_join": "29d2b55edd704c65a9d3e4be024ddf19"
+  },
+  "model_evidence": {
+    "new_product_calls_by_stage": {
+      "native_edit": 1,
+      "source_reassessment": 1,
+      "R05_assess": 11,
+      "changed_target_concepts": 4,
+      "default_graph_filter_and_QA": 2,
+      "cb9_QA_connection": 1,
+      "owner_join": 1
+    },
+    "new_product_model_calls_total": 21,
+    "R05_response_reuses": 2,
+    "cb9_filter_reuses": 1,
+    "owner_source_response_and_local_reuses": 13,
+    "upstream_research_finding_calls_and_historical_extractions_excluded_from_this_total": true,
+    "cached_elapsed_is_original_response_time_not_new_model_time": true
+  },
+  "semantic_limits": {
+    "default_QA": "answered with preserved facts, but all four concrete unconfirmed arrays empty.",
+    "cb9_connection": "Concrete uncertainties added, but internal affirmative/uncertain and exclusion contradictions plus unnecessary gaps remain; rejected for adoption. Historical cb9 evaluation correction retained.",
+    "owner_join": "Model satisfied/complete again, but finding0 still uses plate-change evidence for non-plate-change documents and redefines the concern. Recording fix is not semantic success.",
+    "old_conjunctions": "Unchanged procedural combination assertions remain unproven; not sent directly to reviewed_items QA.",
+    "QA_after_owner_fix": "No new call: no-model comparison found identical semantic payload except assessment_id.",
+    "retrieval": "21 required reviewed hits are policy inclusion, not independent natural retrieval quality."
+  },
+  "verification": {
+    "pre_fix_related_tests": "10 passed",
+    "post_fix_narrow_regression_tests": "12 passed",
+    "real_source_output_replay_changed_only_free_gap_owner_metadata": true,
+    "source_meanings_17_exactly_unchanged_after_join": true,
+    "candidates_119_and_blocks_171_preserved": true,
+    "original_and_D_databases_preserved": true,
+    "QA_patch_only_in_separate_copy": true,
+    "owner_fix_in_common_code": "app/knowledge/business_review.py:623",
+    "no_extra_model_retry_or_gold_rescue": true
+  },
+  "artifacts": {
+    "local": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_auto_finding_edit_20261011",
+    "durable_before_owner_fix": "/Users/hyeongi/.codex/artifacts/business-auto-finding-edit-20261011/before_owner_fix",
+    "durable_final": "/Users/hyeongi/.codex/artifacts/business-auto-finding-edit-20261011/final"
+  },
+  "next_boundary": "Keep recording fix; unresolved join/QA semantic behavior remains in existing issues. No further QA, search, concept, correction, or same-variant model run authorized here."
+}
