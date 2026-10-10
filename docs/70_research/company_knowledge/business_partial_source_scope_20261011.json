@@ -1,0 +1,373 @@
+{
+  "date": "2026-10-11",
+  "start_commit": "d65da7137320bb8cd97a5ff5ec8f5eef81ea4616",
+  "branch": "feature/business-requirement-answer-flow",
+  "issue_states": {
+    "616": "OPEN",
+    "617": "OPEN",
+    "620": "OPEN"
+  },
+  "evaluation_root": "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1",
+  "durable_artifact_root": "/Users/hyeongi/.codex/artifacts/business-partial-source-scope-20261011/v1",
+  "run_id": "1eb94484391e42d7b8c4edde39dfdaed",
+  "source_unit_id": "143d6a18da4f469aa493240a797d75c3",
+  "old_source_unit_id": "1f3345c4ec084e2184da588d95b6e97f",
+  "before_input_meaning": {
+    "key": "plate_change_documents",
+    "statement": "번호판 변경 시 기존번호판 2매 및 봉인을 반납해야 하며, 지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+    "source_status": "supported",
+    "availability": "provided",
+    "evidence": [
+      {
+        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)",
+        "source_version_id": "7b42ae519cbd4184b4de800623559005",
+        "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+        "start_char": 0,
+        "end_char": 62,
+        "precision": "exact"
+      }
+    ],
+    "conditions": [
+      "번호판 변경"
+    ],
+    "exceptions": [],
+    "period": "번호 변경 시",
+    "references": [],
+    "reason": "v1의 번호판 변경 시 구비서류가 원문에 명시되어 있다.",
+    "required_for_requirement": true
+  },
+  "old_actual_output_meaning": {
+    "key": "plate_change_documents",
+    "statement": "번호판 변경 시 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+    "source_status": "supported",
+    "availability": "provided",
+    "evidence": [
+      {
+        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+        "source_version_id": "7b42ae519cbd4184b4de800623559005",
+        "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+        "start_char": 0,
+        "end_char": 116,
+        "precision": "exact"
+      }
+    ],
+    "conditions": [
+      "번호판 변경",
+      "지역 번호의 경우 반납 후 번호 변경"
+    ],
+    "exceptions": [],
+    "period": "번호 변경 시",
+    "references": [],
+    "reason": "원문은 번호판 변경 시 기존번호판 2매 및 봉인을 구비서류로 제시하고, 지역 번호에 대해서만 반납 후 번호 변경을 조건으로 명시한다. 지역 번호 조건을 일반 번호판 변경 전체에 확장하지 않는다.",
+    "field_judgments": {
+      "statement": {
+        "status": "supported",
+        "reason": "b32에서 번호판 변경 시 기존번호판 2매 및 봉인, 지역 번호의 반납 후 변경 조건이 명시되어 있다.",
+        "statement_affected": true
+      },
+      "conditions": {
+        "status": "supported",
+        "reason": "번호판 변경이라는 일반 조건과 지역 번호라는 구체 조건이 원문에 존재한다.",
+        "statement_affected": true
+      },
+      "exceptions": {
+        "status": "not_applicable",
+        "reason": "해당 구간의 예외 조항은 확인되지 않았다.",
+        "statement_affected": true
+      },
+      "period": {
+        "status": "supported",
+        "reason": "번호 변경 시라는 시점이 원문에 명시되어 있다.",
+        "statement_affected": true
+      },
+      "references": {
+        "status": "not_applicable",
+        "reason": "해당 구간의 외부 참조는 확인되지 않았다.",
+        "statement_affected": true
+      }
+    },
+    "premise_keys": null,
+    "required_for_requirement": true,
+    "requirement_link": {
+      "requested_fact": "번호판 변경을 수반하거나 수반하지 않는 이전등록의 처리 가능 범위와 구비서류 요건",
+      "applicability": "applicable",
+      "contribution": "direct_answer",
+      "reason": "번호판 변경 수반 시 필요한 구비서류와 지역 번호의 추가 조건을 확인하는 데 직접 사용된다."
+    }
+  },
+  "new_actual_output_meaning": {
+    "key": "plate_change_documents",
+    "statement": "자가용(비사업용)자동차 이전등록에서 번호판 변경을 신청하는 경우 기존번호판 2매 및 봉인을 구비서류로 제출해야 하며, 지역 번호인 경우 반드시 기존번호판 2매 및 봉인을 반납한 후에 번호 변경을 하여야 한다.",
+    "source_status": "supported",
+    "availability": "provided",
+    "evidence": [
+      {
+        "block_id": "a55dc972ad5c4f5d8e8c3c22c80c6735",
+        "quote": "번호판변경시 기존번호판 2매 및 봉인(지역 번호는 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 함)\n※ 양도증명서 양식은 정보마당>서식다운로드 게시판에서 \"양도\"로 검색, 출력하여 사용할 수 있음",
+        "source_version_id": "7b42ae519cbd4184b4de800623559005",
+        "parse_run_id": "c07b68e5135e49118fbae958f46125bf",
+        "start_char": 0,
+        "end_char": 116,
+        "precision": "exact"
+      }
+    ],
+    "conditions": [
+      "자가용(비사업용)자동차 이전등록",
+      "번호판 변경"
+    ],
+    "exceptions": [
+      "지역 번호인 경우 기존번호판 2매 및 봉인 반납 후 번호 변경"
+    ],
+    "period": "",
+    "references": [
+      "정보마당>서식다운로드 게시판에서 \"양도\"로 검색하여 양도증명서 양식 출력"
+    ],
+    "reason": "제공된 v1 원문 b32는 번호판 변경 시 기존번호판 2매 및 봉인을 구비서류로 제시하고, 지역 번호에 대해서는 반납 후 번호 변경을 별도 조건으로 명시한다. 이 의미는 질문의 '번호판 변경을 수반하는 이전등록' 처리 가능 범위와 구비서류 요건을 함께 확인하는 데 필요한 전제이다.",
+    "field_judgments": {
+      "statement": {
+        "status": "supported",
+        "reason": "b32에서 번호판 변경 시 기존번호판 2매 및 봉인, 지역 번호의 반납 후 변경 조건이 명시되어 있다.",
+        "statement_affected": true
+      },
+      "conditions": {
+        "status": "supported",
+        "reason": "b9/b24/b25/b26의 헤딩 구조와 b32의 본문이 번호판 변경 조건을 지지한다.",
+        "statement_affected": true
+      },
+      "exceptions": {
+        "status": "supported",
+        "reason": "b32에서 지역 번호에 대한 별도 조건이 명시되어 있다.",
+        "statement_affected": true
+      },
+      "period": {
+        "status": "not_applicable",
+        "reason": "원문에 기간 관련 주장이 없다.",
+        "statement_affected": true
+      },
+      "references": {
+        "status": "supported",
+        "reason": "b32에서 양도증명서 양식 다운로드 경로가 명시되어 있다.",
+        "statement_affected": true
+      }
+    },
+    "premise_keys": null,
+    "required_for_requirement": true,
+    "requirement_link": {
+      "requested_fact": "번호판 변경을 수반하는 이전등록의 처리 가능 범위와 구비서류 요건",
+      "applicability": "applicable",
+      "contribution": "necessary_premise",
+      "reason": "질문은 번호판 변경 수반/비수반 이전등록의 기관 처리 가능 범위를 묻고, 기준은 구비서류 요건과 기관 처리 가능 범위를 함께 확인하도록 요구한다. 이 의미는 번호판 변경 수반 시 필요한 서류와 지역 번호의 추가 조건을 제공하여, 기관별 처리 가능 여부 판단에 필요한 서류 요건을 적용하는 데 필요하다."
+    }
+  },
+  "independent_comparison": {
+    "run_id": "1eb94484391e42d7b8c4edde39dfdaed",
+    "unit_id": "143d6a18da4f469aa493240a797d75c3",
+    "review_method": "Read-only source comparison by this agent; no new judge model, manual correction, or runtime label mutation",
+    "historical_criteria": {
+      "path": "/Users/hyeongi/.codex/worktrees/business-semantic-research/Civil-Complaints-System/data/knowledge/evaluations/business_source_limit_contrast_20261011/diagnostic/criteria.json",
+      "sha256": "12cc7681f48c596ce814ccfde2fd651e36c19a811bb99ea3a07b0b9948826ac6",
+      "scope": "Original general-return-versus-regional-condition gate unchanged; no claim of real-world exemption or C/refuted."
+    },
+    "checks": [
+      {
+        "check": "Local responsibility and bounded receipt",
+        "status": "confirmed",
+        "evidence": "Same six original input fields; LocalSourceCheck output; provided 5 / target 1 / examined 5 / selected meaning 1; whole source remains unknown."
+      },
+      {
+        "check": "Unprovided whole-R05 observations",
+        "status": "observed_reduction_only",
+        "before_count": 2,
+        "after_count": 0,
+        "reason": "Two prior non-plate-change-document/center-scope observations did not recur. Removing whole gaps output authority is a contract change, not independent proof of general model accuracy."
+      },
+      {
+        "check": "General document items",
+        "status": "content_preserved_but_new_modality_unverified",
+        "reason": "Two plates and seal remain as document items. New submission obligation is separately unverified."
+      },
+      {
+        "check": "Regional return-before-change condition",
+        "status": "preserved",
+        "reason": "Return of both plates and seal before changing the number remains explicitly limited to regional numbers; no general return obligation is asserted."
+      },
+      {
+        "check": "General submission obligation",
+        "status": "unsupported_addition_vs_prior_neutral_output",
+        "before": "번호판 변경 시 기존번호판 2매 및 봉인이 구비서류로 제시되며, 지역 번호의 경우 반드시 기존번호판 2매 및 봉인 반납 후 번호 변경하여야 한다.",
+        "after": "자가용(비사업용)자동차 이전등록에서 번호판 변경을 신청하는 경우 기존번호판 2매 및 봉인을 구비서류로 제출해야 하며, 지역 번호인 경우 반드시 기존번호판 2매 및 봉인을 반납한 후에 번호 변경을 하여야 한다.",
+        "reason": "Provided headings and b32 list document items; the general submission action/obligation is not stated. Submission is not equated to return. This is unsupported by supplied text, not a finding that real-world submission is false. The model statement=supported verdict does not prove this added action."
+      },
+      {
+        "check": "Region in exceptions field",
+        "status": "classification_mismatch",
+        "reason": "The content is a regional additional condition, not an explicit exemption from the general item list. It is present in the statement and exceptions field, so content preservation and field classification are separate."
+      },
+      {
+        "check": "New transfer-form reference",
+        "status": "text_present_attribution_unconfirmed",
+        "reason": "The b32 tail explicitly names the form download/search path. The form body was not supplied. Its attribution as a reference of plate_change_documents is not established by sharing the same block. A supported reference string does not establish external form completeness."
+      },
+      {
+        "check": "Period and usage condition",
+        "status": "usage_condition_preserved",
+        "reason": "period changed from number-change time to empty; the number-plate-change condition remains in statement/conditions. Empty period does not prove the real process has no timing requirements."
+      },
+      {
+        "check": "Contribution change",
+        "status": "unconfirmed",
+        "reason": "The old one-call output direct_answer became necessary_premise. Criterion still explicitly requests document requirements; no whole Requirement synthesis was performed to certify the new contribution judgment."
+      },
+      {
+        "check": "Real missing-reference or interpretation detection",
+        "status": "not_demonstrated_in_this_call",
+        "reason": "The same before-call selected meaning had references=[] and no findings. The new findings=[] result does not prove general detection of missing material; typed observation preservation was checked mechanically."
+      }
+    ],
+    "sibling_16_meanings_unchanged": true,
+    "all_119_candidates_unchanged": true,
+    "all_171_blocks_unchanged": true,
+    "preserved_files_unchanged": true,
+    "new_model_calls": 1,
+    "new_join_calls": 0,
+    "new_qa_calls": 0,
+    "new_candidate_edits": 0,
+    "new_extraction_calls": 0,
+    "mechanical_contract_verified": true,
+    "semantic_adoption_gate": "hold",
+    "normal_meaning_preservation_success_claim": false,
+    "single_factor_causal_effect_claim": false,
+    "code_adoption": "adopted_in_existing_issue_616",
+    "model_output_adoption": "not_adopted",
+    "no_prompt_retry": true,
+    "model_cost": {
+      "prompt_eval_count": 2700,
+      "eval_count": 787,
+      "elapsed_s": 60.276436
+    },
+    "driver_elapsed_s": 62.838906207936816,
+    "legacy_additional_read_limit": "source_selection absent: report legacy_source_selection_missing, retain unknown, no invented whole-source receipt",
+    "preserved_sibling_provenance": {
+      "existing_non_c47_operating_meanings": 16,
+      "past_coordinating_ai_corrections": 8,
+      "past_model_review_meanings": 8,
+      "new_automatic_success_for_these": 0,
+      "actor_is_not_human_trial": true
+    }
+  },
+  "scope_receipts": [
+    {
+      "unit_id": "143d6a18da4f469aa493240a797d75c3",
+      "inspection_scope": "selected_meanings",
+      "meaning_keys": [
+        "plate_change_documents"
+      ],
+      "provided_block_ids": [
+        "384fc97259f848eea8d30c610503e21a",
+        "4dba31116db34b12889c30f1f05e68f7",
+        "9aaab992bc0546a7a1f9e42afc74a686",
+        "a55dc972ad5c4f5d8e8c3c22c80c6735",
+        "f114498fee924169a3ba2bc5e8cfa4cd"
+      ],
+      "target_block_ids": [
+        "a55dc972ad5c4f5d8e8c3c22c80c6735"
+      ],
+      "source_version_ids": [
+        "7b42ae519cbd4184b4de800623559005"
+      ],
+      "errors": [],
+      "examined_block_ids": [
+        "4dba31116db34b12889c30f1f05e68f7",
+        "384fc97259f848eea8d30c610503e21a",
+        "f114498fee924169a3ba2bc5e8cfa4cd",
+        "9aaab992bc0546a7a1f9e42afc74a686",
+        "a55dc972ad5c4f5d8e8c3c22c80c6735"
+      ],
+      "inspection_status": "complete",
+      "remaining_target_block_ids": [],
+      "inspection_error_active": false
+    }
+  ],
+  "test_receipt": {
+    "unique_passing_cases": 19,
+    "full_suite_runs": 0,
+    "new_scope_cases": 12,
+    "existing_link_ownership_unit_cases": 7,
+    "runs": [
+      {
+        "selection": "test_knowledge_business_reassessment_scope.py before legacy cases were added",
+        "passed": 10,
+        "elapsed_s": 9.14
+      },
+      {
+        "selection": "test_knowledge_business_reassessment_scope.py -k legacy_additional_read",
+        "passed": 2,
+        "elapsed_s": 0.21
+      },
+      {
+        "selection": [
+          "test_invalid_answer_link_reuses_partial_source_reassessment_without_rewriting_facts",
+          "test_reassessment_keeps_free_gap_unowned_and_explicit_gap_owned",
+          "test_reassessment_finding_points_to_source_call_before_application"
+        ],
+        "passed": 7,
+        "elapsed_s": 9.67
+      },
+      {
+        "selection": "test_knowledge_business_reassessment_scope.py -k incomplete_inspection",
+        "passed": 3,
+        "elapsed_s": 0.16,
+        "repeated_after_change": "Out-of-provided examined IDs retained only in receipt, excluded from merged examined IDs"
+      }
+    ],
+    "pytest_results_source": "Actual exec_command tool outputs from this implementation turn",
+    "meaning_quality_proof": false
+  },
+  "preserved_original_files": {
+    "/Users/hyeongi/.codex/worktrees/business-repair-retrieval/Civil-Complaints-System/data/knowledge/evaluations/business_repair_retrieval_20261007/busan_r05_continuation_v1/knowledge.db": "d5aecf8f44b6ec2f95f8a193393cbcf97b6dffaa75a6857d98f18319ab9693e7",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_auto_finding_edit_20261011/runtime.db": "4c48361a92de0ec721e472f3fe3d023e79425d53e1e77244f8f41afc6863abb1",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_auto_finding_edit_20261011/source_reassessment_result.json": "11dd09f0b3597807e74da568d98c59547e11ee6161ecc47e465536f02ab22bb4",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_auto_finding_edit_20261011/source_reassessment_previous.json": "e8c8ef1fdd501f72a488bdd9dd489041eda3ed69e0bccff3dc8219cb5be465c0",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_auto_finding_edit_20261011/source_reassessment_request.json": "966df86506b14c87a0cd20234bff5f7af73ca4481134d088c3e637dbf9b9da94"
+  },
+  "raw_file_sha256": {
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/freeze.json": "282ad3cc5bc3ef573453ee548a893687dc3d6fb7258c13377a11dde6b3a61a6f",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/request.json": "180f3817f610d7a44618b252d19ce9f92bb923bcca80bab0e78b1ffa01fbadd0",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/run_input.json": "cdbd76795c60241be1c0bbb026eb0f72c686ecaa037f3156f8091647a9338cea",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/previous_source.json": "e8c8ef1fdd501f72a488bdd9dd489041eda3ed69e0bccff3dc8219cb5be465c0",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/result.json": "3286e9ba0e63c183ed3bb5bf53a7a8ee004a36ee1d6607982b31990c25533c17",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/source_output.json": "2961b4ad49175bf3e82d4532f8d6930ee7119b1519c1a2aedceffbbe3f71366e",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/inspection_summaries.json": "bae014287c74e69aaeaed59a912b0944c83aee2eff6f49ee717844bf47ae4751",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/independent_audit.json": "a5a553e03cec5cb44e5cab2700517bc81c022c42b1a715144d408b698ae661e2",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/test_receipt.json": "b6193c7445f0b73e1766d99133e721250c9bedf0ba28c169566a07dd35b3126c",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/run_once.py": "b3f1f0b0653e81a2bb5d1c376ca094716a96a5b0ac7e4edef35f67cde01d6ef4",
+    "/Users/hyeongi/.codex/worktrees/business-requirement-answer-flow/Civil-Complaints-System/data/knowledge/evaluations/business_partial_source_scope_20261011_v1/model_release_receipt.json": "2cf009557d4970cd2be7b8fe7fc5e45e3b3451ef36a321d7a70489165f2cf568"
+  },
+  "unexecuted": [
+    "additional_source",
+    "whole_requirement_join",
+    "qa",
+    "candidate_edit",
+    "extraction",
+    "graph_snapshot_publication",
+    "prompt_retry",
+    "PR",
+    "merge",
+    "deploy"
+  ],
+  "no_new_framework_judge_or_issue": true,
+  "research_93d1bad_transfer_approval_unchanged": true,
+  "output_unchanged_not_manually_corrected": true,
+  "model_resource_release": {
+    "model": "qwen3.8:27b-q4_K_M",
+    "response": {
+      "already_unloaded": true
+    },
+    "after": {
+      "models": []
+    },
+    "inference_calls": 0
+  }
+}

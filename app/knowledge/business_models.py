@@ -301,7 +301,7 @@ class RequirementLinkUpdate(BaseModel):
     required_for_requirement: bool
 
 
-class RequirementLinkReassessment(GroundingCheck):
+class RequirementLinkReassessment(LocalSourceCheck):
     meanings: list[RequirementLinkUpdate]
 
 

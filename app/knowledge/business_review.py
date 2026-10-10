@@ -285,7 +285,8 @@ def pending_inspections(source):
     """Accumulate declared coverage over the same target; keep errors until fully covered."""
     from .business_run import exact_evidence
     pending = {}
-    batches = source.get('source_batches', [])
+    batches = [*source.get('source_batches', []), *[r for r in source.get('reassessment_history', [])
+               if r.get('inspection_scope') == 'selected_meanings']]
     for batch in batches:
         if not INSPECTION_ERRORS.intersection(e for e in batch.get('errors', []) if isinstance(e, str)):
             continue
@@ -342,7 +343,7 @@ def inspection_summaries(source):
     """Expose current verified coverage beside unchanged historical errors."""
     pending = pending_inspections(source)
     current = pending_source_targets(source)
-    return [{k: batch[k] for k in ('unit_id', 'target_block_ids', 'provided_block_ids', 'errors') if k in batch}
+    summaries = [{k: batch[k] for k in ('unit_id', 'target_block_ids', 'provided_block_ids', 'errors') if k in batch}
             | dict(inspection_status=(batch.get('output') or {}).get('inspection_status'),
                 reinspection_of=batch.get('reinspection_of', []),
                 remaining_target_block_ids=sorted(pending.get(batch.get('unit_id'), [])),
@@ -352,6 +353,16 @@ def inspection_summaries(source):
                     e for e in batch.get('errors', []) if isinstance(e, str))) and (
                     batch.get('unit_id') in pending or batch.get('unit_id') not in source.get('inspection_rechecks', {})))
             for batch in source.get('source_batches', [])]
+    for record in source.get('reassessment_history', []):
+        output = record.get('output') or {}
+        summaries.append({k: deepcopy(record[k]) for k in ('unit_id', 'inspection_scope', 'meaning_keys',
+            'provided_block_ids', 'target_block_ids', 'source_version_ids', 'errors') if k in record}
+            | dict(inspection_scope=record.get('inspection_scope', 'historical_meaning_reassessment'),
+                examined_block_ids=output.get('examined_block_ids', []),
+                inspection_status=output.get('inspection_status'),
+                remaining_target_block_ids=sorted(pending.get(record.get('unit_id'), [])),
+                inspection_error_active=record.get('unit_id') in current))
+    return summaries
 
 
 def conjunction_fingerprint(run, requirement, source, record):
@@ -615,8 +626,8 @@ def source_row_challenges(run, assessment):
 
 def reassess_source(service, run, requirement, assessment, challenges):
     from . import business_run as execution
-    from .business_models import (GroundingCheck, RequirementGroundingCheck, ScopedRequirementGroundingCheck,
-                                  RootedRequirementGroundingCheck, RootedRequiredMeaningCheck, RequirementLinkReassessment)
+    from .business_models import (GroundingCheck, RootedRequirementSourceCheck,
+                                  RootedRequiredMeaningCheck, RequirementLinkReassessment)
     previous = assessment['source']
     keys = {m['key'] for m in previous['meanings']}
     selected = set()
@@ -682,8 +693,10 @@ def reassess_source(service, run, requirement, assessment, challenges):
                 return result
         link_only = False
     else:
-        output = execution.json_call(service, run, 'source_reassessment', execution.SOURCE_PROMPT
-            + (RELEVANCE_PROMPT if separated(run) else '') + (REQUIREMENT_LINK_PROMPT if scoped(run) else '')
+        instruction, _, output_type = source_request(run, requirement, dict(blocks=supplied), 0, 1)
+        instruction = instruction.replace('unverified_interpretations', 'previous').replace(
+            '기존 해석에 없는 의미도 조사한다.', '지정한 기존 의미만 다시 조사한다.')
+        output = execution.json_call(service, run, 'source_reassessment', instruction
             + (ANSWER_SCOPE_PROMPT if rooted else '') + ('''
 이번 오류는 질문과 의미의 연결이다. 원문 사실·자료 상태·후보 표현의 오류로 바꾸지 않는다.
 previous의 사실·조건·예외·기간은 서버가 그대로 보존한다. 출력은 요구 연결·필수성·전제와 정확 근거 주소만 갱신한다.
@@ -692,16 +705,32 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
 지정 previous 의미의 근거·자료 상태·추가 주장만 원문으로 정정한다. key는 그대로 유지한다.
 정상 형제 의미는 이 요청 밖에 보존돼 있다. 새 의미 추가/다른 key 교체는 하지 않는다.
 의미가 다른 필드에 정상 보존된 경우 같은 내용을 새로 만들지 않는다.
-의미에 귀속된 공백/결합 전제는 meaning_gaps/meaning_conjunctions로 함께 갱신한다.
-해결된 공백은 반환하지 않는다. 이번 범위의 조사 block_id도 갱신한다. 자유 gaps는 전체 범위의 미귀속 공백만 쓴다.
+field_judgments에 문장/조건/예외/기간/참조 각각의 상태와 실제 evidence에 근거한 이유를 기록한다.
+전체 source_status를 복사하지 않는다. 빈 필드는 추가 주장 없음(not_applicable)과 정정 대상 미확인(unknown)을 구분한다.
+statement_affected=false는 해당 필드의 미확정과 본문 의미가 독립임을 원문으로 확인한 경우만 허용한다.
+필수 조건·예외를 생략해 본문을 일반화하지 않는다.
+의미에 귀속된 미확정·참조 누락은 findings의 실제 meaning_keys로, 결합 전제는 meaning_conjunctions로 함께 갱신한다.
+귀속을 확인하지 못한 이의의 meaning_keys는 []이며 조사 범위가 의미 오류의 귀속은 아니다.
+해결된 발견은 다시 반환하지 않는다. 이번 범위의 조사 block_id도 갱신한다.
+전체 요구의 부족/완료를 판정하지 않는다. 이번 호출에 다른 자료가 없다는 사실로 전체 자료 부재를 만들지 않는다.
 ''', dict(**request_context, blocks=supplied, findings=findings,
+               source_scope=dict(scope='selected_meaning_reassessment; full_requirement_join_follows',
+                                 meaning_keys=sorted(selected)),
                previous=dict(meanings=meanings, **{field: [a for a in previous.get(field, [])
                              if selected.intersection(a['meaning_keys'])] for field in ('meaning_gaps', 'meaning_conjunctions')}),
                challenges=selected_challenges),
-               RequirementLinkReassessment if link_only else RootedRequirementGroundingCheck if rooted else ScopedRequirementGroundingCheck if scoped(run) else RequirementGroundingCheck if separated(run) else GroundingCheck)
+               RequirementLinkReassessment if link_only else RootedRequirementSourceCheck if rooted else output_type)
         source_unit, source_unit_id = run['units'][-1], response_unit_id(run)
     if output is None:
         return None
+    local = 'inspection_status' in output
+    if local:
+        if any(not set(f['meaning_keys']) <= selected for f in output['findings']):
+            source_unit.update(status='failed', error='source_finding_outside_selected_meanings')
+            execution.save(service, run)
+            return None
+        output['meaning_gaps'] = [dict(meaning_keys=f['meaning_keys'], text=f['text'])
+                                 for f in output['findings'] if f['meaning_keys']]
     returned = [m['key'] for m in output['meanings']]
     if set(returned) != selected or len(returned) != len(selected):
         source_unit.update(status='failed', error='source_reassessment_outside_selected_meanings')
@@ -738,17 +767,20 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
         # A mixed annotation depends on an unchanged meaning too; preserve it
         # until that connected group is actually reconsidered.
         result[field] = [a for a in previous.get(field, []) if not set(a['meaning_keys']) <= selected] + output.get(field, [])
-    result['examined_block_ids'] = list(dict.fromkeys([*previous['examined_block_ids'], *output['examined_block_ids']]))
-    if previous.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
+    examined = [bid for bid in output['examined_block_ids'] if not local or bid in {b['id'] for b in supplied}]
+    result['examined_block_ids'] = list(dict.fromkeys([*previous['examined_block_ids'], *examined]))
+    if local or previous.get('review_contract') in {'requirement-local-review-v4', *SEPARATED_CONTRACTS}:
         # Updating a meaning is not resolving its findings; the existing join needs their original IDs.
         result['findings'] = deepcopy(previous.get('findings', []))
-        annotations = [dict(meaning_keys=[], text=text) for text in output['gaps']]
-        annotations.extend(output.get('meaning_gaps', []))
+        annotations = output['findings'] if local else [dict(kind='interpretation_uncertain', meaning_keys=[], text=text)
+            for text in output['gaps']] + [dict(a, kind='interpretation_uncertain') for a in output.get('meaning_gaps', [])]
         for n, annotation in enumerate(annotations):
             result['findings'].append(dict(id=f'reassessment:{source_unit_id}:{n}', origin='source',
-                kind='interpretation_uncertain', text=annotation['text'], meaning_keys=annotation['meaning_keys'], scope_meaning_keys=sorted(selected),
-                claim_ids=[], fields=[], provided_block_ids=output['examined_block_ids'], unit_id=source_unit_id))
-        result.update(gaps=[], completeness='unknown')
+                kind=annotation['kind'], text=annotation['text'], meaning_keys=annotation['meaning_keys'],
+                scope_meaning_keys=sorted(selected) if not local or annotation['meaning_keys'] else [],
+                claim_ids=[], fields=[], provided_block_ids=sorted({b['id'] for b in supplied}) if local else output['examined_block_ids'],
+                unit_id=source_unit_id))
+        result['completeness'] = 'unknown'
         validated = []
         for meaning in output['meanings']:
             try:
@@ -757,18 +789,29 @@ invalid_requirement_quote를 실제 answer_request의 question/criterion과 대�
             except ValueError:
                 pass  # The following assessment retains the actual invalid-address issue.
         result['reassessed_meaning_keys'] = sorted(set(previous.get('reassessed_meaning_keys', [])) | set(validated))
-        result.setdefault('reassessment_history', []).append(dict(previous=deepcopy(meanings), output=deepcopy(output),
-                                                                 unit_id=source_unit_id))
+        receipt = dict(previous=deepcopy(meanings), output=deepcopy(output), unit_id=source_unit_id)
+        if local:
+            provided = {b['id'] for b in supplied}
+            targets = {b['id'] for b in supplied if not b.get('context_only')}
+            declared = set(output['examined_block_ids'])
+            receipt.update(inspection_scope='selected_meanings', meaning_keys=sorted(selected),
+                provided_block_ids=sorted(provided), target_block_ids=sorted(targets),
+                source_version_ids=sorted({b['source_version_id'] for b in supplied}), errors=[])
+            if not declared <= provided or not targets <= declared:
+                receipt['errors'].append('local_source_inspection_scope_mismatch')
+            if output['inspection_status'] != 'complete':
+                receipt['errors'].append('local_source_inspection_incomplete')
+        result.setdefault('reassessment_history', []).append(receipt)
         refresh_conjunctions(run, requirement, result)
         return result
-    result['gaps'] = list(dict.fromkeys([*previous['gaps'], *output['gaps']]))
+    result['gaps'] = list(dict.fromkeys([*previous['gaps'], *output.get('gaps', [])]))
     result['conjunctions'] = list(dict.fromkeys([*previous['conjunctions'], *output['conjunctions']]))
     incomplete_batches = any(not b.get('output') or b['output']['completeness'] != 'complete'
         and not set(b.get('meaning_keys', [])) <= selected
         for b in previous.get('source_batches', []))
     result['completeness'] = ('partial' if result['gaps'] or result.get('meaning_gaps') or incomplete_batches
         or any(m['availability'] != 'provided' for m in result['meanings'])
-        or output['completeness'] != 'complete' else 'complete')
+        or output.get('completeness') != 'complete' else 'complete')
     result.setdefault('reassessment_history', []).append(dict(previous=meanings, output=deepcopy(output),
                                                              unit_id=response_unit_id(run)))
     return result
@@ -1157,6 +1200,13 @@ def admission_findings(output, audit, unit_id, provided, key_map):
 def source(service, run, requirement, *, previous=None):
     """Keep local inspection findings separate from the later whole-requirement judgment."""
     from . import business_run as execution
+    if previous is not None and 'source_selection' not in previous:
+        # Legacy coverage cannot be reconstructed from a list of reported examined IDs.
+        previous.setdefault('additional_read_errors', [])
+        if 'legacy_source_selection_missing' not in previous['additional_read_errors']:
+            previous['additional_read_errors'].append('legacy_source_selection_missing')
+        previous['completeness'] = 'unknown'
+        return None
     bundles, selection = source_selection(run, requirement)
     merged = dict(examined_block_ids=[], meanings=[], completeness='unknown', gaps=[], conjunctions=[],
                   meaning_gaps=[], meaning_conjunctions=[], findings=[], source_selection=selection,
@@ -1821,7 +1871,14 @@ def resolve_findings(source, result, findings, blocks, claims, *, joined, resolu
             else:
                 batch = next((b for b in source.get('source_batches', [])
                               if b.get('unit_id') == finding.get('unit_id')), {})
-                if (row['status'] == 'unresolved' and finding['origin'] == 'source'
+                reassessment = next((r for r in source.get('reassessment_history', [])
+                    if r.get('unit_id') == finding.get('unit_id') and r.get('inspection_scope') == 'selected_meanings'), {})
+                if (row['status'] == 'unresolved' and finding['origin'] == 'source' and not finding['claim_ids']
+                        and reassessment.get('provided_block_ids') == finding['provided_block_ids'] and reassessment):
+                    # The receipt locates an unattributed observation, never a fault in every inspected meaning.
+                    row['inspection_scope'] = dict(unit_id=finding['unit_id'],
+                        provided_block_ids=list(finding['provided_block_ids']))
+                elif (row['status'] == 'unresolved' and finding['origin'] == 'source'
                         and finding['kind'] == 'local_not_found' and not finding['claim_ids']
                         and batch.get('provided_block_ids') == finding['provided_block_ids']
                         and finding['provided_block_ids'] and not batch.get('errors')

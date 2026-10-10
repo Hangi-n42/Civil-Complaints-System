@@ -414,14 +414,15 @@ def test_invalid_answer_link_reuses_partial_source_reassessment_without_rewritin
     def answer(service, active, stage, instruction, context, schema):
         calls.append(context);active['units'].append(dict(id='partial-link'))
         assert stage=='source_reassessment' and schema.__name__=='RequirementLinkReassessment'
+        assert not {'completeness', 'gaps'}.intersection(schema.model_fields)
         assert [m['key'] for m in context['previous']['meanings']]==['adjacent']
         assert context['challenges'][0]['invalid_requirement_quote']=='기관 선택'
         assert context['answer_request']==source['answer_request']
         patch=dict(key='adjacent', required_for_requirement=False, premise_keys=[], evidence=adjacent['evidence'],
             requirement_link=dict(requested_fact='', applicability='applicable', contribution='background',
                                   reason='직접 답변에 필요 없음', requirement_quote=''), reason='원문 사실은 유지')
-        return dict(meanings=[patch], examined_block_ids=['body'], completeness='complete',gaps=[],
-                    conjunctions=[],meaning_gaps=[],meaning_conjunctions=[])
+        return schema.model_validate(dict(meanings=[patch], examined_block_ids=['body'], inspection_status='complete',
+                    findings=[], conjunctions=[], meaning_conjunctions=[])).model_dump()
     monkeypatch.setattr(business_run, 'json_call', answer)
     result=review.reassess_source(None, run, req, dict(source=source), review.answer_scope_challenges(source))
     assert len(calls)==1 and source==original and result['meanings'][0]==normal
